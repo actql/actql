@@ -52,6 +52,26 @@ independent of a locally installed DuckDB library. A packaged native Host must
 ship or require a compatible, verified DuckDB shared library as part of its
 runtime bundle.
 
+## Filesystem integration
+
+The native filesystem adapter opens an explicit Store root as a directory file
+descriptor. Object operations use validated relative names and remain beneath
+that authority. Writers enforce their admitted byte limit before each write,
+so a rejected append does not first allocate or write the excess payload.
+
+Sealing synchronizes the staging file, captures its exact device, inode, and
+size, creates the final name without overwriting an existing object, removes
+the staging name, synchronizes the Store directory, and rechecks the committed
+generation. A failed synchronization or cleanup retains enough physical state
+for the same operation to retry without rewriting the payload. Replacement of
+an owned generation is rejected rather than unlinked.
+
+These calls report physical observations only. MoonBit control code owns the
+reservation, publication, retry, completion, and reclamation decisions. A C
+finalizer is only a best-effort safeguard for abandoned uncommitted resources;
+it is not settlement or durable cleanup evidence, and it does not remove a
+successfully sealed object.
+
 ## Supported native profiles
 
 The initial native product profiles are:

@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/filesystem"
+
+// Values
+pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct NativeFileGeneration {
+  device : UInt64
+  inode : UInt64
+  size : Int64
+}
+
+pub(all) enum NativeFilesystemIssue {
+  UnsupportedTarget
+  InvalidName
+  InvalidLimit
+  RootOpen(String)
+  WriterCreate(String)
+  CapacityExceeded
+  WriterClosed
+  Write(String)
+  Conflict
+  GenerationMismatch
+  Seal(String)
+  Cleanup(String)
+}
+
+type Root
+pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
+pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
+
+type Writer
+pub fn Writer::append(Self, Bytes) -> Result[Unit, NativeFilesystemIssue]
+pub fn Writer::cancel(Self) -> Result[Unit, NativeFilesystemIssue]
+pub fn Writer::cleanup_pending(Self) -> Bool
+pub fn Writer::is_sealed(Self) -> Bool
+pub fn Writer::seal(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]
+pub fn Writer::written(Self) -> Int64
+
+// Type aliases
+
+// Traits
