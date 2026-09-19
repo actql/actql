@@ -361,12 +361,12 @@ pub fn append_node(
     return fail(builder, InvalidProperties)
   }
   let (key, key_bytes, key_work) = match
-    encoded_values(builder, [identity], 0, 0) {
+    encoded_values(builder, [identity], 0, 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   let (payload, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, key_bytes, key_work) {
+    encoded_values(builder, properties, key_bytes, key_work + 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -441,12 +441,12 @@ pub fn append_edge(
     return fail(builder, InvalidProperties)
   }
   let (source_key, source_bytes, source_work) = match
-    encoded_values(builder, [source], 0, 0) {
+    encoded_values(builder, [source], 0, 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   let (target_key, target_bytes, target_work) = match
-    encoded_values(builder, [target], source_bytes, source_work) {
+    encoded_values(builder, [target], source_bytes, source_work + 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -457,7 +457,7 @@ pub fn append_edge(
       target,
       label,
       source_bytes + target_bytes,
-      source_work + target_work,
+      source_work + target_work + 1,
     ) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
@@ -465,7 +465,7 @@ pub fn append_edge(
   let prior_bytes = source_bytes + target_bytes + edge_key_bytes
   let prior_work = source_work + target_work + edge_key_work
   let (payload, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, prior_bytes, prior_work) {
+    encoded_values(builder, properties, prior_bytes, prior_work + 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
