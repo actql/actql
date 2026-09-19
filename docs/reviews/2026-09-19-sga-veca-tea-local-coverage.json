@@ -389,6 +389,7 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
         "resources",
         "three_targets"
       ],
@@ -397,7 +398,8 @@
         "portability/corpus/vector-numeric.json",
         "src/vector_numeric/fixture.generated_wbtest.mbt",
         "src/vector_numeric/numeric_wbtest.mbt",
-        "src/local_veca/normalize_wbtest.mbt"
+        "src/local_veca/normalize_wbtest.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt"
       ]
     },
     {
@@ -415,6 +417,7 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
         "resources",
         "three_targets"
       ],
@@ -424,7 +427,8 @@
         "src/vector_numeric/fixture.generated_wbtest.mbt",
         "src/vector_numeric/numeric_wbtest.mbt",
         "src/value_admission/key_order_wbtest.mbt",
-        "src/local_veca/score_wbtest.mbt"
+        "src/local_veca/score_wbtest.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt"
       ]
     },
     {
@@ -543,8 +547,20 @@
       "variants": ["single/composite semantic id", "dimension", "finite component failure"],
       "status": "partial",
       "owner": "local-bridge",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/vector_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt"
+      ]
     },
     {
       "family": "Bridge",
@@ -553,8 +569,21 @@
       "output": "relation",
       "canonical": ["BRIDGE.vectors.to_rows"],
       "variants": ["identity restoration", "dimension preservation", "opaque carrier evidence"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/query_integration/local_carrier_vectors_wbtest.mbt"
+      ]
     },
     {
       "family": "VecAExpression",

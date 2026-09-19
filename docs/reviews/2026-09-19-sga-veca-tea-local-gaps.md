@@ -113,15 +113,16 @@ consume rather than recreate them.
 ### VecA
 
 Normalization now executes as a portable bounded-step kernel over exact managed
-Vectors input. It applies binary32 input and output quantization, preserves the
+Vectors input and reaches the standard Host through the registered Vectors
+provider. It applies binary32 input and output quantization, preserves the
 specified dimension-order binary64 norm fold, rejects zero vectors, admits
 record workspace before temporary construction, and publishes a distinct
 managed generation. Its tests cover cancellation observation and two exact
 downstream producer reads on JS, Wasm, and native. An independent fixed-bit
 corpus covers binary32 ties, subnormals, overflow, signed zero, binary64 fold
 order, square-root boundaries, and nonfinite rejection on all three targets.
-Environment cancellation delivery, independent consumer release, and standard
-Host selection remain open, so normalization is not complete. Checked typed
+Environment cancellation delivery and independent Carrier consumer release
+remain open, so normalization is not complete. Checked typed
 lowering also emits
 `VEC.score_sort`, including bound query values, without reading frontend syntax
 again. Scoring now executes the pinned dot, cosine, and negative-L2 folds,
@@ -131,9 +132,10 @@ It admits query, ordering, temporary, and retained-output workspace before
 execution. Portable tests cover empty-input query validation, score ties,
 cancellation observation, two exact downstream reads, and JS, Wasm, and native.
 The independent fixed-bit corpus exercises every score metric and its specified
-rounding and failure boundaries. Standard Host selection, environment
-cancellation delivery, independent consumer release, and publication remain
-open, so scoring is not complete. The other three VecA operations still lack
+rounding and failure boundaries. Scoring now reaches the standard Host through
+the same registered Vectors provider. Environment cancellation delivery,
+independent Carrier consumer release, and publication remain open, so scoring
+is not complete. The other three VecA operations still lack
 portable Local kernels.
 `vector_score` and `vector_concat` are accepted by expression typing but still
 rejected by shared expression lowering and have no evaluator implementation.
@@ -167,23 +169,26 @@ portable Local kernels.
 
 ### Bridges
 
-`to_events` and `to_vectors` now lower their checked semantic roles to
+`to_events` and `to_vectors` lower their checked semantic roles to
 `BRIDGE.rows.to_events` and `BRIDGE.rows.to_vectors`. Rows-to-Events and
-Events-to-rows execute inside the first registered provider and preserve an
-independently managed generation across the intermediate watermark consumer.
-Standalone Bridge selection, direct Carrier consumer lifetime, page-split
-coverage, publication, the vector conversions, and the three graph conversions
-remain open. A Relation-shaped buffer alone is not evidence of a completed
-conversion.
+Events-to-rows execute inside the first registered provider. Rows-to-Vectors
+and Vectors-to-rows now execute inside a second registered provider, with
+normalization between them. Both paths preserve independently managed Carrier
+generations and reach two real downstream Relation computations before final
+ledger reclamation. Standalone Bridge selection, overlapping direct Carrier
+consumer lifetime, page-split coverage, publication, and the three graph
+conversions remain open. A Relation-shaped buffer alone is not evidence of a
+completed conversion.
 
 ## Current verification boundary
 
 The baseline passed Linux CI run `35414883771`. That proves the accepted RelA
 baseline only. It is not evidence for any missing family execution path.
 
-At `5ea64854`, the affected Local, Bridge, TEA, provider, and query integration
-packages pass 355 tests on each of JS, Wasm, and native. The focused Carrier
-suite passes four tests on every target, the Node Local adapter passes eleven,
+At `e34840d4`, the affected Local, Bridge, TEA, VecA, provider, and query
+integration packages pass 366 tests on each of JS, Wasm, and native. The
+focused Carrier suites pass six tests on every target, while the Node Local
+adapter passes eleven,
 and the retained boundary passes 231. Portable dependency and dependency-free
 Node subset checks pass. This is local evidence, not a replacement for final
 same-SHA Linux CI.
