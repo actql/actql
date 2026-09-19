@@ -1,0 +1,41 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/sqlite"
+
+// Values
+pub fn load_library(String) -> Result[Library, NativeSqliteIssue]
+
+// Errors
+
+// Types and methods
+type Database
+pub fn Database::close(Self) -> Unit
+pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
+
+type Library
+pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
+pub fn Library::version(Self) -> String
+
+pub(all) struct NativeJournalValue {
+  revision : Int64
+  body : Bytes
+}
+
+pub(all) enum NativeSqliteIssue {
+  UnsupportedTarget
+  InvalidName
+  InvalidLimit
+  LibraryLoad(String)
+  DatabaseOpen(String)
+  DatabaseClosed
+  NotFound
+  Collision
+  Busy
+  BodyTooLarge
+  Physical(String)
+}
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  "native-stub": [ "sqlite_stub.c" ],
+  targets: {
+    "sqlite_native.mbt": [ "native" ],
+    "sqlite_unsupported.mbt": [ "not", "native" ],
+    "sqlite_wbtest.mbt": [ "native" ],
+    "sqlite_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)

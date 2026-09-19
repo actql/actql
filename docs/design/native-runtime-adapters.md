@@ -72,6 +72,27 @@ finalizer is only a best-effort safeguard for abandoned uncommitted resources;
 it is not settlement or durable cleanup evidence, and it does not remove a
 successfully sealed object.
 
+## SQLite integration
+
+The native SQLite adapter is the first integration slice for a Node-free local
+journal. It loads an explicitly selected SQLite 3.37 or later shared library
+and uses the published C API. Native builds require the corresponding SQLite
+development header; product packaging must bind the selected library and
+header ABI to the admitted runtime bundle.
+
+The adapter creates a strict, versioned record table in WAL mode with full
+synchronization. Inserts are absent-only. Updates use a revision predicate in
+the SQLite statement, so two processes cannot both commit from one observed
+revision. Reopening the database recovers the committed revision and exact
+body. The durability claim remains limited to SQLite and the selected
+filesystem profile; it is not a claim against loss of the storage device.
+
+SQLite owns the physical transaction and locking state only. MoonBit creates
+the canonical record body, chooses the expected revision, and decides what a
+successful compare-and-exchange means for dispatch, publication, cleanup, or
+any other application state. The adapter cannot turn a row update into an
+ActQL completion.
+
 ## Supported native profiles
 
 The initial native product profiles are:
