@@ -101,6 +101,14 @@ successful compare-and-exchange means for dispatch, publication, cleanup, or
 any other application state. The adapter cannot turn a row update into an
 ActQL completion.
 
+The native Remote Site journal stores the portable dispatch-record body under
+an attempt-occurrence key. A changed dispatch ID therefore cannot create a
+second physical execution for the same language-task attempt. Admission and
+each state transition install the canonical next body through SQLite before
+the corresponding MoonBit transition commits. A lost response can reconcile
+the identical installed body; a different body at that revision is a state
+collision, not permission to overwrite or retry execution.
+
 ## Supported native profiles
 
 The initial native product profiles are:

@@ -142,7 +142,7 @@ fn emit_durable_dispatch_record(
     Ok(value) => value
     Err(_) => return Err(InvalidJournal)
   }
-  let writer = @encode.writer(131072, 32, 2) catch {
+  let writer = @encode.writer(262144, 32, 2) catch {
     _ => return Err(InvalidJournal)
   }
   try {
@@ -199,13 +199,73 @@ pub fn dispatch_record_durable_json(
 }
 
 ///|
+/// Initial durable body installed before an admitted dispatch may start.
+pub fn dispatch_admission_durable_json(
+  admission : DispatchAdmission,
+) -> Result[String, DispatchIssue] {
+  emit_durable_dispatch_record(
+    admission.request,
+    0,
+    0,
+    0,
+    0,
+    false,
+    false,
+    "",
+    "",
+    "",
+  )
+}
+
+///|
+/// Desired durable body for one already prepared CAS transition.
+pub fn dispatch_transition_durable_json(
+  transition : DispatchTransition,
+) -> Result[String, DispatchIssue] {
+  let evidence = evidence_state_fields(transition.next_evidence)
+  emit_durable_dispatch_record(
+    transition.record.request,
+    transition.expected_revision + 1,
+    execution_state_code(transition.next_execution),
+    evidence_state_code(transition.next_evidence),
+    cleanup_state_code(transition.next_cleanup),
+    transition.next_material_available,
+    transition.next_quarantined_capacity,
+    evidence[0],
+    evidence[1],
+    evidence[2],
+  )
+}
+
+///|
+pub fn dispatch_transition_expected_revision(
+  transition : DispatchTransition,
+) -> Int {
+  transition.expected_revision
+}
+
+///|
+pub fn dispatch_transition_request_identity(
+  transition : DispatchTransition,
+) -> String {
+  transition.record.request.dispatch_request_cid
+}
+
+///|
+pub fn dispatch_transition_attempt_identity(
+  transition : DispatchTransition,
+) -> Result[String, DispatchIssue] {
+  dispatch_request_attempt_identity(transition.record.request)
+}
+
+///|
 pub fn admit_durable_dispatch_record(
   bytes : Bytes,
 ) -> Result[DurableDispatchRecord, DispatchIssue] {
   try {
     let node = match
       @source.parse_json_bytes(bytes, {
-        max_input_bytes: 131072,
+        max_input_bytes: 262144,
         max_nodes: 32,
         max_depth: 2,
       }) {
@@ -337,4 +397,23 @@ pub fn durable_dispatch_record_journal_key(
 ///|
 pub fn durable_dispatch_record_revision(durable : DurableDispatchRecord) -> Int {
   durable.revision
+}
+
+///|
+pub fn durable_dispatch_record_json(durable : DurableDispatchRecord) -> String {
+  durable.body
+}
+
+///|
+pub fn durable_dispatch_record_request_identity(
+  durable : DurableDispatchRecord,
+) -> String {
+  durable.request.dispatch_request_cid
+}
+
+///|
+pub fn durable_dispatch_record_attempt_identity(
+  durable : DurableDispatchRecord,
+) -> Result[String, DispatchIssue] {
+  dispatch_request_attempt_identity(durable.request)
 }

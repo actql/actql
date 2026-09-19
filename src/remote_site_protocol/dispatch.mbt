@@ -2408,6 +2408,41 @@ pub fn dispatch_request_identity(request : DispatchRequest) -> String {
 }
 
 ///|
+/// Durable uniqueness key for one language-task attempt. A new dispatch ID
+/// cannot authorize concurrent execution of the same attempt.
+pub fn dispatch_request_attempt_identity(
+  request : DispatchRequest,
+) -> Result[String, DispatchIssue] {
+  if !valid_request(request) {
+    return Err(InvalidDispatch)
+  }
+  let writer = @encode.writer(16384, 16, 2) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "coordinator_authority")
+    @encode.string_value(writer, request.coordinator_authority)
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, request.run_definition_cid)
+    @encode.key(writer, "task_attempt")
+    @encode.number_value(writer, request.task_attempt.to_double())
+    @encode.key(writer, "task_key")
+    @encode.string_value(writer, request.task_key)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-dispatch-attempt-key/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(InvalidDispatch) }
+  match @sha.text_hex(body) {
+    Ok(value) => Ok("sha256:" + value)
+    Err(_) => Err(InvalidDispatch)
+  }
+}
+
+///|
 /// Exact durable-index columns. The canonical request remains authoritative;
 /// this projection only lets a physical journal enforce uniqueness.
 pub fn dispatch_request_journal_key(request : DispatchRequest) -> Array[String] {

@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_journal"
+
+import {
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol",
+}
+
+// Values
+pub fn open_journal(@sqlite.Library, String, Int64, @remote_site_protocol.SiteDispatchJournal) -> Result[Journal, NativeRemoteJournalIssue]
+
+// Errors
+
+// Types and methods
+type Journal
+pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
+pub fn Journal::close(Self) -> Bool
+pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
+
+pub(all) enum NativeRemoteJournalIssue {
+  UnsupportedTarget
+  Closed
+  Physical(@sqlite.NativeSqliteIssue)
+  Protocol(@remote_site_protocol.DispatchIssue)
+  StateCollision
+}
+
+// Type aliases
+
+// Traits

@@ -63,3 +63,19 @@ test "durable dispatch record rejects noncanonical and impossible state" {
     is Err(InvalidJournal),
   )
 }
+
+///|
+test "durable attempt identity prevents dispatch ID from authorizing reexecution" {
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let first = request("attempt-key-a", 33, 1, bundle)
+  let second = request("attempt-key-b", 33, 1, bundle)
+  assert_true(
+    dispatch_request_identity(first) != dispatch_request_identity(second),
+  )
+  assert_eq(
+    dispatch_request_attempt_identity(first).unwrap(),
+    dispatch_request_attempt_identity(second).unwrap(),
+  )
+}

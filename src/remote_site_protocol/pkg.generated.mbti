@@ -53,6 +53,8 @@ pub fn create_coordinator_dispatch_journal(String) -> Result[CoordinatorDispatch
 
 pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
 
+pub fn dispatch_admission_durable_json(DispatchAdmission) -> Result[String, DispatchIssue]
+
 pub fn dispatch_admission_kind(DispatchAdmission) -> DispatchAcceptance
 
 pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, DispatchIssue]
@@ -67,6 +69,8 @@ pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvi
 
 pub fn dispatch_record_state_codes(DispatchRecord) -> Array[Int]
 
+pub fn dispatch_request_attempt_identity(DispatchRequest) -> Result[String, DispatchIssue]
+
 pub fn dispatch_request_budget_cid(DispatchRequest) -> String
 
 pub fn dispatch_request_connector_registration(DispatchRequest) -> String
@@ -79,11 +83,25 @@ pub fn dispatch_request_journal_key(DispatchRequest) -> Array[String]
 
 pub fn dispatch_request_json(DispatchRequest) -> Result[String, DispatchIssue]
 
+pub fn dispatch_transition_attempt_identity(DispatchTransition) -> Result[String, DispatchIssue]
+
+pub fn dispatch_transition_durable_json(DispatchTransition) -> Result[String, DispatchIssue]
+
+pub fn dispatch_transition_expected_revision(DispatchTransition) -> Int
+
 pub fn dispatch_transition_journal_key(DispatchTransition) -> Array[String]
 
 pub fn dispatch_transition_projection(DispatchTransition) -> Array[String]
 
+pub fn dispatch_transition_request_identity(DispatchTransition) -> String
+
+pub fn durable_dispatch_record_attempt_identity(DurableDispatchRecord) -> Result[String, DispatchIssue]
+
 pub fn durable_dispatch_record_journal_key(DurableDispatchRecord) -> Array[String]
+
+pub fn durable_dispatch_record_json(DurableDispatchRecord) -> String
+
+pub fn durable_dispatch_record_request_identity(DurableDispatchRecord) -> String
 
 pub fn durable_dispatch_record_revision(DurableDispatchRecord) -> Int
 

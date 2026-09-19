@@ -1,0 +1,21 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol" @remote,
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "actql/actql/execution_site" @site,
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  targets: {
+    "journal_native.mbt": [ "native" ],
+    "journal_native_wbtest.mbt": [ "native" ],
+    "journal_unsupported.mbt": [ "not", "native" ],
+    "journal_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)
