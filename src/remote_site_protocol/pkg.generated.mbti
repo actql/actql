@@ -133,6 +133,12 @@ pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int],
 
 pub fn prepare_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
+pub fn prepare_remote_runtime_cleanup(DispatchRecord, Bool, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
+
+pub fn prepare_remote_runtime_failure(DispatchRecord, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
+
+pub fn prepare_remote_runtime_reclaim_unknown(DispatchRecord) -> Result[RemoteRuntimeStep, DispatchIssue]
+
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
@@ -180,6 +186,12 @@ pub fn remote_managed_output_subject_projection(RemoteManagedOutputSubject) -> A
 pub fn remote_managed_output_subject_retention(RemoteManagedOutputSubject) -> (String, String, String, Int64)
 
 pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[Array[String], DispatchIssue]
+
+pub fn remote_runtime_record_startable(DispatchRecord) -> Bool
+
+pub fn remote_runtime_step_action_code(RemoteRuntimeStep) -> Int
+
+pub fn remote_runtime_step_transition(RemoteRuntimeStep) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn restore_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
 
@@ -287,6 +299,16 @@ pub(all) enum RemoteExecutionState {
 type RemoteManagedOutputMeasurement
 
 type RemoteManagedOutputSubject
+
+pub(all) enum RemoteRuntimeAction {
+  RuntimeAwaitStop
+  RuntimePersistTransition
+  RuntimeSettleThenPersist
+  RuntimeReclaimResources
+  RuntimeFinished
+} derive(Eq, @debug.Debug)
+
+type RemoteRuntimeStep
 
 type SiteDispatchJournal
 

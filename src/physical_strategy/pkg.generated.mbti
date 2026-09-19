@@ -293,6 +293,8 @@ pub fn task_execution_numeric_reduction_member_cid(CapturedDAG, TaskExecution, I
 
 pub fn task_execution_numeric_reduction_slot_cid(CapturedDAG, TaskExecution, Int) -> String?
 
+pub fn task_execution_registration_key(CapturedDAG, TaskExecution) -> String?
+
 pub fn task_numeric_observation_family(TaskNumericObservation) -> NumericObservationFamily
 
 pub fn task_numeric_observation_name(TaskNumericObservation) -> String
@@ -306,8 +308,6 @@ pub fn task_numeric_observation_same_owner(TaskNumericObservation, TaskNumericOb
 pub fn task_numeric_observation_slot_cid(TaskNumericObservation) -> String
 
 pub fn task_numeric_observation_step(TaskNumericObservation) -> Int
-
-pub fn task_execution_registration_key(CapturedDAG, TaskExecution) -> String?
 
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 

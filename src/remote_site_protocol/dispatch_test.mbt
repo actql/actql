@@ -774,3 +774,143 @@ test "force loss quarantines capacity until exact late cleanup" {
     is Err(QuarantinedCapacity),
   )
 }
+
+///|
+test "runtime failure planning owns settlement ordering" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, record) = accept(state, request("dispatch-runtime-a", 20, 1, bundle))
+  provision(record)
+  execute(record)
+  let failed = prepare_remote_runtime_failure(record, false, true).unwrap()
+  assert_eq(remote_runtime_step_action_code(failed), 2)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(failed).unwrap(),
+    true,
+  ).unwrap()
+  let (execution, evidence, cleanup, available, quarantined) = dispatch_record_state(
+    record,
+  )
+  assert_eq(execution, ExecutionFailed)
+  assert_eq(evidence, NoEvidence)
+  assert_eq(cleanup, CleanupActive)
+  assert_false(available)
+  assert_false(quarantined)
+}
+
+///|
+test "runtime cleanup waits for stop then advances one durable fact at a time" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, record) = accept(state, request("dispatch-runtime-b", 21, 1, bundle))
+  provision(record)
+  execute(record)
+  let uncertain = prepare_remote_runtime_failure(record, false, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(uncertain), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(uncertain).unwrap(),
+    true,
+  ).unwrap()
+  let waiting = prepare_remote_runtime_cleanup(record, false, false, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(waiting), 0)
+  assert_true(remote_runtime_step_transition(waiting) is Err(InvalidTransition))
+  let stopped = prepare_remote_runtime_cleanup(record, false, true, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(stopped), 2)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(stopped).unwrap(),
+    true,
+  ).unwrap()
+  let releasing = prepare_remote_runtime_cleanup(record, false, true, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(releasing), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(releasing).unwrap(),
+    true,
+  ).unwrap()
+  let reclaim = prepare_remote_runtime_cleanup(record, false, true, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(reclaim), 3)
+  let reclaimed = prepare_remote_runtime_cleanup(record, false, true, true).unwrap()
+  assert_eq(remote_runtime_step_action_code(reclaimed), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(reclaimed).unwrap(),
+    true,
+  ).unwrap()
+  let finished = prepare_remote_runtime_cleanup(record, false, true, true).unwrap()
+  assert_eq(remote_runtime_step_action_code(finished), 4)
+  assert_true(
+    remote_runtime_step_transition(finished) is Err(InvalidTransition),
+  )
+}
+
+///|
+test "runtime cancellation and evidence rejection use common progress" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, cancelled) = accept(
+    state,
+    request("dispatch-runtime-c", 22, 1, bundle),
+  )
+  assert_true(remote_runtime_record_startable(cancelled))
+  let cancel = prepare_remote_runtime_failure(cancelled, true, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(cancel), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(cancel).unwrap(),
+    true,
+  ).unwrap()
+  assert_false(remote_runtime_record_startable(cancelled))
+  let (_, rejected) = accept(
+    state,
+    request("dispatch-runtime-d", 23, 1, bundle),
+  )
+  provision(rejected)
+  execute(rejected)
+  settle(rejected)
+  let reject = prepare_remote_runtime_failure(rejected, false, true).unwrap()
+  assert_eq(remote_runtime_step_action_code(reject), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(reject).unwrap(),
+    true,
+  ).unwrap()
+  let (_, evidence, _, available, _) = dispatch_record_state(rejected)
+  assert_eq(evidence, EvidenceRejected)
+  assert_false(available)
+}
+
+///|
+test "runtime reclaim failure remains retryable without releasing responsibility" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, record) = accept(state, request("dispatch-runtime-e", 24, 1, bundle))
+  provision(record)
+  execute(record)
+  settle(record)
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  let uncertain = prepare_remote_runtime_reclaim_unknown(record).unwrap()
+  assert_eq(remote_runtime_step_action_code(uncertain), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(uncertain).unwrap(),
+    true,
+  ).unwrap()
+  let retry = prepare_remote_runtime_cleanup(record, false, true, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(retry), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(retry).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_remote_runtime_cleanup(record, false, true, false).unwrap(),
+    ),
+    3,
+  )
+}

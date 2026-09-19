@@ -397,6 +397,34 @@ function remoteSiteControl(moon) {
     prepareEvidenceRejection: value => checked(
       moon.strategyRemotePrepareEvidenceRejection(value),
     ),
+    runtimeStartable: moon.strategyRemoteRuntimeStartable,
+    prepareRuntimeFailure: (value, cancelled, stopConfirmed) => checked(
+      moon.strategyRemoteRuntimeFailurePlan(
+        value,
+        cancelled,
+        stopConfirmed,
+      ),
+    ),
+    prepareRuntimeCleanup: (
+      value,
+      cancelled,
+      stopConfirmed,
+      resourcesReclaimed,
+    ) => checked(
+      moon.strategyRemoteRuntimeCleanupPlan(
+        value,
+        cancelled,
+        stopConfirmed,
+        resourcesReclaimed,
+      ),
+    ),
+    prepareRuntimeReclaimUnknown: value => checked(
+      moon.strategyRemoteRuntimeReclaimUnknownPlan(value),
+    ),
+    runtimeStepAction: moon.strategyRemoteRuntimeStepAction,
+    runtimeStepTransition: value => checked(
+      moon.strategyRemoteRuntimeStepTransition(value),
+    ),
     prepareUnknown: value => checked(
       moon.strategyRemotePrepareUnknown(value),
     ),

@@ -3515,6 +3515,82 @@ pub fn strategy_remote_prepare_evidence_rejection(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeStartable")
+pub fn strategy_remote_runtime_startable(
+  record : @remote.DispatchRecord,
+) -> Bool {
+  @remote.remote_runtime_record_startable(record)
+}
+
+///|
+#export_name("strategyRemoteRuntimeFailurePlan")
+pub fn strategy_remote_runtime_failure_plan(
+  record : @remote.DispatchRecord,
+  cancelled : Bool,
+  stop_confirmed : Bool,
+) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
+  match
+    @remote.prepare_remote_runtime_failure(
+      record,
+      cancelled,
+      stop_confirmed,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRuntimeCleanupPlan")
+pub fn strategy_remote_runtime_cleanup_plan(
+  record : @remote.DispatchRecord,
+  cancelled : Bool,
+  stop_confirmed : Bool,
+  resources_reclaimed : Bool,
+) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
+  match
+    @remote.prepare_remote_runtime_cleanup(
+      record,
+      cancelled,
+      stop_confirmed,
+      resources_reclaimed,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRuntimeReclaimUnknownPlan")
+pub fn strategy_remote_runtime_reclaim_unknown_plan(
+  record : @remote.DispatchRecord,
+) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
+  match @remote.prepare_remote_runtime_reclaim_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRuntimeStepAction")
+pub fn strategy_remote_runtime_step_action(
+  step : @remote.RemoteRuntimeStep,
+) -> Int {
+  @remote.remote_runtime_step_action_code(step)
+}
+
+///|
+#export_name("strategyRemoteRuntimeStepTransition")
+pub fn strategy_remote_runtime_step_transition(
+  step : @remote.RemoteRuntimeStep,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.remote_runtime_step_transition(step) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemotePrepareUnknown")
 pub fn strategy_remote_prepare_unknown(
   record : @remote.DispatchRecord,

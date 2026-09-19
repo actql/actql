@@ -163,6 +163,41 @@ test('registered runtime durably executes, evidences, and releases output',
     );
   });
 
+test('failed physical reclaim remains owned and retryable', async t => {
+  let closes = 0;
+  const failure = new Error('close failed');
+  const f = await fixture(t, async () => managedOutput({
+    async close() {
+      closes++;
+      if (closes === 1) throw failure;
+    },
+  }));
+  const dispatch = request();
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch),
+    dispatch,
+    f.control,
+  );
+  await f.dispatchRuntime.start(dispatch, record);
+  await assert.rejects(
+    f.dispatchRuntime.release(dispatch),
+    error => error === failure,
+  );
+  assert.equal(closes, 1);
+  assert.deepEqual(f.control.status(record), [3, 2, 3, 1, 0]);
+  assert.deepEqual(
+    runtime.siteControl.status(f.selectedSite).slice(2, 9),
+    [0n, 0n, 1n, 0n, 8n, 0n, 0n],
+  );
+  assert.equal(await f.dispatchRuntime.release(dispatch), true);
+  assert.equal(closes, 2);
+  assert.deepEqual(f.control.status(record), [3, 2, 2, 0, 0]);
+  assert.deepEqual(
+    runtime.siteControl.status(f.selectedSite).slice(2, 9),
+    [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+  );
+});
+
 test('unsupported grant is rejected before durable admission or execution',
   async t => {
     let executions = 0;

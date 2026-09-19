@@ -442,6 +442,18 @@ pub fn strategy_remote_restart_count(@remote_site_protocol.SiteRestartTransition
 
 pub fn strategy_remote_restart_metadata(@remote_site_protocol.SiteRestartTransition) -> Array[String]
 
+pub fn strategy_remote_runtime_cleanup_plan(@remote_site_protocol.DispatchRecord, Bool, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_failure_plan(@remote_site_protocol.DispatchRecord, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -> Bool
+
+pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
+
+pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
 pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransition, Bool) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_transition_key(@remote_site_protocol.DispatchTransition) -> Array[String]
