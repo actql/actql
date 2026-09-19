@@ -629,6 +629,14 @@ pub fn time_series_step(PreparedTimeSeries) -> Int64
 
 pub fn usage(Prepared) -> Usage
 
+pub fn vector_nearest_input_vectors(PreparedVector, @relation_evidence.NearestSide) -> @carrier_contract.Vectors?
+
+pub fn vector_nearest_k(PreparedVector) -> Int64?
+
+pub fn vector_nearest_metric(PreparedVector) -> PreparedVectorMetric?
+
+pub fn vector_nearest_requires_bridge(PreparedVector, @relation_evidence.NearestSide) -> Bool?
+
 pub fn vector_output_carrier(PreparedVector) -> @carrier_contract.Carrier
 
 pub fn vector_pool_encodes_member_identity(PreparedVector) -> Bool?
@@ -1104,6 +1112,7 @@ pub enum Payload {
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
   VectorValue(@vector_typing.CheckedVector)
+  NearestValue(@relation_evidence.CheckedNearest)
   PoolValue(@vector_typing.CheckedPool)
   EventValue(@event_typing.CheckedEvent)
   CarrierProjection(@carrier_projection.CheckedProjection)

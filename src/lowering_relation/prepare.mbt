@@ -70,6 +70,7 @@ pub enum Payload {
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
   VectorValue(@vector.CheckedVector)
+  NearestValue(@vector.CheckedNearest)
   PoolValue(@vector.CheckedPool)
   EventValue(@event.CheckedEvent)
   CarrierProjection(@projection.CheckedProjection)
@@ -235,6 +236,7 @@ pub fn operation(value : PreparedNode) -> String {
         @vector.NormalizeVectors => "VEC.normalize_l2"
         @vector.ScoreVectors => "VEC.score_sort"
       }
+    NearestValue(_) => "VEC.knn_join"
     PoolValue(_) => "VEC.pool"
     EventValue(value) =>
       match @event.options(value) {
@@ -312,7 +314,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(value) => Some(GraphMeanValue(value))
     Pool(value) => Some(PoolValue(value))
-    GraphConstruction(..) | Nearest(..) | Ranking(_) | TextRank(..) => None
+    Nearest(checked~, ..) => Some(NearestValue(checked))
+    GraphConstruction(..) | Ranking(_) | TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
       match @event.options(value) {
@@ -495,6 +498,7 @@ pub fn prepare(
           },
           1,
         )
+      NearestValue(_) => ("nearest", 2)
       PoolValue(_) => ("pool_vectors", 1)
       EventValue(value) =>
         (
@@ -531,6 +535,7 @@ pub fn prepare(
       _ => None
     }
     let vector_expansion = match payload {
+      NearestValue(nearest) => Some(prepare_nearest_expansion(nearest))
       PoolValue(pool) => Some(prepare_pool_expansion(pool))
       _ => None
     }
@@ -680,6 +685,7 @@ pub fn prepare(
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
       VectorValue(_) => None
+      NearestValue(_) => None
       PoolValue(_) => None
       EventValue(_) => None
       CarrierProjection(_) => None

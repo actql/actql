@@ -9,12 +9,18 @@ struct PreparedVector {
 }
 
 ///|
-/// One node in the registered finite expansion of vector pooling.
+/// One node in a registered finite vector-operation expansion.
 priv struct PreparedVectorExpansionNode {
   role : String
   operation : String
   inputs : Int
   source_node : Bool
+}
+
+///|
+priv struct PreparedVectorBridgeRoles {
+  identity : String
+  vector : String
 }
 
 ///|
@@ -48,6 +54,44 @@ fn prepare_pool_expansion(
 }
 
 ///|
+fn nearest_input_requires_bridge(input : @vector.NearestInput) -> Bool {
+  match @vector.nearest_input_source(input) {
+    @evidence.KeySource(_) => true
+    @evidence.CarrierSource(carrier) =>
+      @carrier.kind(carrier) == @carrier.RelationKind
+  }
+}
+
+///|
+fn prepare_nearest_expansion(
+  checked : @vector.CheckedNearest,
+) -> Array[PreparedVectorExpansionNode] {
+  let pair = @vector.nearest_pair(checked)
+  let nodes : Array[PreparedVectorExpansionNode] = []
+  for
+    (side, role) in [
+      (@evidence.Candidates, "candidates"),
+      (@evidence.Queries, "queries"),
+    ] {
+    if nearest_input_requires_bridge(@vector.nearest_pair_input(pair, side)) {
+      nodes.push({
+        role,
+        operation: "BRIDGE.rows.to_vectors",
+        inputs: 1,
+        source_node: false,
+      })
+    }
+  }
+  nodes.push({
+    role: "",
+    operation: "VEC.knn_join",
+    inputs: 2,
+    source_node: true,
+  })
+  nodes
+}
+
+///|
 fn vector_expansion_reference_count(
   expansion : Array[PreparedVectorExpansionNode],
 ) -> Int {
@@ -63,6 +107,12 @@ priv enum PreparedVectorParams {
   VectorBridgeParams(String, String)
   VectorNormalizeParams
   VectorScoreParams(@vector_checking.Metric, Array[Double])
+  VectorNearestParams(
+    @vector_checking.Metric,
+    Int64,
+    PreparedVectorBridgeRoles?,
+    PreparedVectorBridgeRoles?
+  )
   VectorPoolParams(
     Array[String],
     @vector.PoolMethod,
@@ -127,6 +177,61 @@ pub fn vector_score_query_at(value : PreparedVector, index : Int) -> Double? {
     VectorScoreParams(_, query) => query.get(index)
     _ => None
   }
+}
+
+///|
+/// Resolved exact-nearest metric. Other vector operations return None.
+pub fn vector_nearest_metric(value : PreparedVector) -> PreparedVectorMetric? {
+  match value.params {
+    VectorNearestParams(metric, _, _, _) =>
+      Some(
+        match metric {
+          @vector_checking.Cosine => CosineScore
+          @vector_checking.Dot => DotScore
+          @vector_checking.L2 => L2Score
+        },
+      )
+    _ => None
+  }
+}
+
+///|
+/// Positive checked top-k bound retained without source re-interpretation.
+pub fn vector_nearest_k(value : PreparedVector) -> Int64? {
+  match value.params {
+    VectorNearestParams(_, k, _, _) => Some(k)
+    _ => None
+  }
+}
+
+///|
+/// Whether one exact input side needs the registered Relation bridge.
+pub fn vector_nearest_requires_bridge(
+  value : PreparedVector,
+  side : @vector.NearestSide,
+) -> Bool? {
+  match value.params {
+    VectorNearestParams(_, _, candidates, queries) =>
+      Some(
+        match side {
+          @evidence.Candidates => candidates is Some(_)
+          @evidence.Queries => queries is Some(_)
+        },
+      )
+    _ => None
+  }
+}
+
+///|
+/// Checked vector contract for one exact nearest input when statically known.
+pub fn vector_nearest_input_vectors(
+  value : PreparedVector,
+  side : @vector.NearestSide,
+) -> @carrier.Vectors? {
+  guard value.node.payload is NearestValue(checked) else { return None }
+  @vector.nearest_input_vectors(
+    @vector.nearest_pair_input(@vector.nearest_pair(checked), side),
+  )
 }
 
 ///|
@@ -270,6 +375,29 @@ fn checked_query_values(
 }
 
 ///|
+fn checked_nearest_bridge_roles(
+  input : @vector.NearestInput,
+) -> Result[(PreparedVectorBridgeRoles?, Int, Int), VectorIssue] {
+  if !nearest_input_requires_bridge(input) {
+    return Ok((None, 0, 0))
+  }
+  guard @vector.nearest_input_vectors(input) is Some(vectors) &&
+    @carrier.vector_identity_count(vectors) == 1 &&
+    @carrier.vector_identity_at(vectors, 0) is Some(identity) else {
+    return Err(InvalidVectorWiring)
+  }
+  let identity = @schema.reference_name(identity.name)
+  let vector = @schema.reference_name(@carrier.vector_components(vectors).name)
+  Ok(
+    (
+      Some({ identity, vector, }),
+      @utf8.encode(identity).length() + @utf8.encode(vector).length(),
+      2,
+    ),
+  )
+}
+
+///|
 fn prepare_vector_node(
   owner : BoundPrepared,
   step : Int,
@@ -319,6 +447,35 @@ fn prepare_vector_node(
           )
         }
       }
+    NearestValue(checked) => {
+      let pair = @vector.nearest_pair(checked)
+      let options = @vector.nearest_pair_options(pair)
+      let (candidate, candidate_names, candidate_work) = match
+        checked_nearest_bridge_roles(
+          @vector.nearest_pair_input(pair, @evidence.Candidates),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let (query, query_names, query_work) = match
+        checked_nearest_bridge_roles(
+          @vector.nearest_pair_input(pair, @evidence.Queries),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      (
+        VectorNearestParams(
+          @vector.nearest_metric(options),
+          @vector.nearest_k(options),
+          candidate,
+          query,
+        ),
+        0,
+        candidate_names + query_names,
+        candidate_work + query_work + 3,
+      )
+    }
     PoolValue(checked) => {
       let options = @vector.pooled_options(checked)
       let groups : Array[String] = []
@@ -429,6 +586,21 @@ fn emit_vector_operation(
         @encode.number_value(out, value)
       }
       @encode.end_array(out)
+    }
+    VectorNearestParams(metric, k, _, _) => {
+      @encode.key(out, "exact")
+      @encode.bool_value(out, true)
+      @encode.key(out, "k")
+      @encode.number_value(out, k.to_double())
+      @encode.key(out, "metric")
+      @encode.string_value(
+        out,
+        match metric {
+          @vector_checking.Cosine => "cosine"
+          @vector_checking.Dot => "dot"
+          @vector_checking.L2 => "l2"
+        },
+      )
     }
     VectorPoolParams(groups, reduction, output_id, vector, _, _) => {
       @encode.key(out, "by")
@@ -586,11 +758,68 @@ fn emit_pool_bridge_node(
 }
 
 ///|
+fn emit_nearest_bridge_node(
+  prepared : PreparedVector,
+  role : String,
+  input : String,
+  fields : PreparedVectorBridgeRoles,
+  out : @encode.Writer,
+) -> String raise @encode.EncodeFailure {
+  let id = vector_generated_role_id(prepared.step, role)
+  @encode.begin_object(out)
+  @encode.key(out, "id")
+  @encode.string_value(out, id)
+  @encode.key(out, "in")
+  @encode.begin_array(out)
+  @encode.string_value(out, input)
+  @encode.end_array(out)
+  @encode.key(out, "op")
+  @encode.string_value(out, "BRIDGE.rows.to_vectors")
+  @encode.key(out, "params")
+  @encode.begin_object(out)
+  @encode.key(out, "id")
+  @encode.string_value(out, fields.identity)
+  @encode.key(out, "vector")
+  @encode.string_value(out, fields.vector)
+  @encode.end_object(out)
+  @encode.end_object(out)
+  id
+}
+
+///|
 fn emit_vector_node(
   prepared : PreparedVector,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   match prepared.params {
+    VectorNearestParams(_, _, candidate, query) => {
+      guard prepared.node.inputs.get(0) is Some(candidate_input) &&
+        prepared.node.inputs.get(1) is Some(query_input) else {
+        raise @encode.InvalidStructure
+      }
+      let candidate_input = match candidate {
+        Some(fields) =>
+          emit_nearest_bridge_node(
+            prepared, "candidates", candidate_input, fields, out,
+          )
+        None => candidate_input
+      }
+      let query_input = match query {
+        Some(fields) =>
+          emit_nearest_bridge_node(
+            prepared, "queries", query_input, fields, out,
+          )
+        None => query_input
+      }
+      // AoA orders the query set before the candidate corpus. The checked
+      // operation edges retain their authored candidate/query positions.
+      emit_vector_operation(
+        prepared,
+        [query_input, candidate_input],
+        false,
+        out,
+      )
+    }
     VectorPoolParams(_, _, _, vector, identities, encoded) => {
       if identities.is_empty() {
         emit_vector_operation(prepared, prepared.node.inputs, true, out)

@@ -532,6 +532,7 @@ fn lower_expression_measured(
       | GraphDiffRows(_)
       | GraphApplyValue(_)
       | VectorValue(_)
+      | NearestValue(_)
       | PoolValue(_)
       | EventValue(_)
       | CarrierProjection(_) =>
