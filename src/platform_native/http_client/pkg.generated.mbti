@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/http_client"
+
+// Values
+pub fn load_library(String) -> Result[Library, NativeHttpIssue]
+
+// Errors
+
+// Types and methods
+type Client
+pub fn Client::cancel(Self) -> Bool
+pub fn Client::close(Self) -> Bool
+pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
+
+type Library
+pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
+pub fn Library::version(Self) -> String
+
+pub(all) enum NativeHttpIssue {
+  UnsupportedTarget
+  InvalidConfiguration
+  LibraryLoad(String)
+  ClientCreate(String)
+  InvalidRequest
+  CapacityExceeded
+  Cancelled
+  Closed
+  Transport(String)
+}
+
+pub(all) struct NativeHttpResponse {
+  status : Int
+  body : Bytes
+}
+
+// Type aliases
+
+// Traits

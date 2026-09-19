@@ -11,6 +11,7 @@
     "check:publication-runtime": "moon build --target js --release src/connectors_builtin_node && node --test adapters/host-common/publication-contract-control.test.mjs adapters/host-common/durable-result-payload.test.mjs",
     "check:process-capacity": "moon build --target js --release src/process_host_bridge && node --test adapters/host-node/process-capacity.test.mjs adapters/host-node/process-accounting.test.mjs",
     "check:remote-site-runtime": "moon build --target js --release src/connectors_builtin_node && node --test adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/https-agent.test.mjs",
+    "check:native-http-client": "node scripts/test-native-http-client.mjs",
     "check:connector-addition": "node scripts/check-connector-addition.mjs",
     "check:windows": "node scripts/window-schema.mjs && node --test scripts/window-schema.test.mjs scripts/window-capacity.test.mjs",
     "check:carrier-projections": "node scripts/carrier-projection-schema.mjs && node --test scripts/carrier-projection-schema.test.mjs",

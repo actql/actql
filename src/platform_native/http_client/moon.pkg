@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  "native-stub": [ "http_client_stub.c" ],
+  targets: {
+    "http_client_native.mbt": [ "native" ],
+    "http_client_wbtest.mbt": [ "native" ],
+    "http_client_unsupported.mbt": [ "not", "native" ],
+    "http_client_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)

@@ -123,6 +123,35 @@ and measurement bodies needed after restart. Physical SQLite rows therefore
 cannot manufacture evidence from CID strings or turn transport uncertainty
 into a Site observation.
 
+## HTTPS integration
+
+The native HTTPS adapter uses the maintained libcurl easy API through a thin C
+FFI. It loads an explicitly selected library from the admitted runtime bundle;
+it does not implement TCP, TLS, certificate validation, or HTTP framing.
+MoonBit validates the request shape and bounds, selects the operation, and
+classifies the physical result. The adapter performs only the synchronous
+physical exchange and reports its observed status, response bytes, or error.
+
+The initial operation is a bounded JSON POST over HTTPS with mutual TLS. Peer
+and hostname verification are mandatory, redirects are disabled, and the
+protocol set is restricted to HTTPS. The response limit is checked before
+each allocation or copy, so an oversized response is rejected without first
+materializing it in full. Request bytes remain borrowed for the synchronous
+call and response bytes cross the FFI once after the exchange completes.
+
+Cancellation is checked before the request and through libcurl's transfer
+progress callback. The current MoonBit call is synchronous; a caller that must
+cancel an in-flight exchange from another execution context needs the later
+operation-handle integration. A timeout or transport return is not proof that
+an independently executing remote operation stopped. Common dispatch,
+settlement, reconciliation, and cleanup decisions remain in MoonBit.
+
+The integration fixture creates independent test authorities, requires a real
+client certificate, rejects a certificate from the foreign authority, tests a
+disconnected exchange, and enforces the response bound. Node.js is used only
+to host the test HTTPS endpoint. It is not spawned or linked by the native
+adapter or its product runtime.
+
 ## Supported native profiles
 
 The initial native product profiles are:
@@ -160,7 +189,10 @@ logical identity from a physical digest.
 - SQLite remains the first candidate for native durable journals. Its
   transaction and crash behavior must be verified by an integration slice
   before it is selected for the product journal.
+- libcurl provides the native HTTPS and TLS implementation. The selected
+  library, trust roots, and client credential paths are runtime-bundle inputs;
+  their admission and grant scope remain common Host decisions.
 
-TLS, HTTP, cryptography, and SQLite should use maintained libraries behind thin
-physical adapters. ActQL-specific identities and state transitions must remain
-independent of their transport encodings.
+Cryptography and any later storage or RPC dependencies should likewise use
+maintained libraries behind thin physical adapters. ActQL-specific identities
+and state transitions must remain independent of their transport encodings.
