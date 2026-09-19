@@ -111,10 +111,42 @@ async function fixture(
     issuerCapabilityCid: cid('b'),
     execute,
   });
+  const bundleManifest = Object.freeze({runtimeBundleCid: cid('a')});
+  const bundleHolds = new Map();
+  const bundleControl = Object.freeze({
+    identity: value => value.runtimeBundleCid,
+  });
+  const bundleStore = Object.freeze({
+    active: () => Object.freeze({manifest: bundleManifest}),
+    async verify(runtimeBundleCid) {
+      if (runtimeBundleCid !== cid('a')) {
+        throw Object.assign(new Error('bundle missing'), {
+          code: 'RemoteBundleMissing',
+        });
+      }
+      return Object.freeze({manifest: bundleManifest});
+    },
+    retain(runtimeBundleCid, holdId, kind) {
+      if (runtimeBundleCid !== cid('a') || kind !== 'dispatch') {
+        throw new Error('invalid bundle hold');
+      }
+      const existing = bundleHolds.get(holdId);
+      if (existing !== undefined && existing !== runtimeBundleCid) {
+        throw new Error('bundle hold collision');
+      }
+      bundleHolds.set(holdId, runtimeBundleCid);
+      return true;
+    },
+    release(holdId) {
+      return bundleHolds.delete(holdId);
+    },
+  });
   const dispatchRuntime = createRemoteDispatchRuntime({
     control,
     siteControl: runtime.siteControl,
     store: wrapStore(store),
+    bundleStore,
+    bundleControl,
     registrations: [registration],
     budgets: [dispatchBudget],
   });
@@ -122,7 +154,15 @@ async function fixture(
     if (autoClose) await dispatchRuntime.close();
     store.close();
   });
-  return {control, dispatchRuntime, journal, root, selectedSite, store};
+  return {
+    bundleHolds,
+    control,
+    dispatchRuntime,
+    journal,
+    root,
+    selectedSite,
+    store,
+  };
 }
 
 test('registered runtime durably executes, evidences, and releases output',
@@ -158,8 +198,10 @@ test('registered runtime durably executes, evidences, and releases output',
       runtime.siteControl.status(f.selectedSite).slice(2, 9),
       [0n, 0n, 1n, 0n, 8n, 0n, 0n],
     );
+    assert.equal(f.bundleHolds.size, 1);
     assert.equal(await f.dispatchRuntime.release(dispatch), true);
     assert.equal(closes, 1);
+    assert.equal(f.bundleHolds.size, 0);
     assert.deepEqual(f.control.status(record), [3, 2, 2, 0, 0]);
     assert.deepEqual(
       runtime.siteControl.status(f.selectedSite).slice(2, 9),
@@ -264,10 +306,13 @@ test('revoked Site is rejected before remote execution starts', async t => {
 
 test('Site revocation during execution cannot issue completion evidence',
   async t => {
+    let executionStarted;
     let finishExecution;
     let closes = 0;
+    const started = new Promise(resolve => { executionStarted = resolve; });
     const executing = new Promise(resolve => { finishExecution = resolve; });
     const f = await fixture(t, async () => {
+      executionStarted();
       await executing;
       return managedOutput({async close() { closes++; }});
     });
@@ -278,6 +323,7 @@ test('Site revocation during execution cannot issue completion evidence',
       f.control,
     );
     const operation = f.dispatchRuntime.start(dispatch, record);
+    await started;
     runtime.siteControl.revoke(f.selectedSite);
     finishExecution();
     await assert.rejects(operation, {code: 'RemoteSiteOperationUnavailable'});
@@ -418,8 +464,10 @@ test('unconfirmed executor stop retains cleanup until retry confirms it',
       runtime.siteControl.status(f.selectedSite).slice(2, 9),
       [1n, 0n, 0n, 0n, 0n, 64n, 16n],
     );
+    assert.equal(f.bundleHolds.size, 1);
     assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
     assert.equal(retries, 1);
+    assert.equal(f.bundleHolds.size, 0);
     assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
     assert.deepEqual(
       runtime.siteControl.status(f.selectedSite).slice(2, 9),

@@ -74,7 +74,38 @@ export function prepareRemoteRuntimeRegistration({
     key: keyOf(control.managedRuntimeRegistrationScope(capability, issuer)),
     capability,
     issuer,
+    runtimeBundleCid,
     site,
+    execute,
+  });
+}
+
+export async function prepareInstalledRemoteRuntimeRegistration({
+  bundleStore,
+  bundleControl,
+  runtimeBundleCid,
+  load,
+  ...registration
+} = {}) {
+  if (bundleStore === null || typeof bundleStore !== 'object' ||
+      typeof bundleStore.active !== 'function' ||
+      typeof bundleStore.verify !== 'function' ||
+      bundleControl === null || typeof bundleControl !== 'object' ||
+      typeof bundleControl.identity !== 'function' ||
+      !text(runtimeBundleCid) || typeof load !== 'function') {
+    fail('InvalidInstalledRemoteRuntimeRegistration');
+  }
+  const active = bundleStore.active(bundleControl);
+  if (active === undefined ||
+      bundleControl.identity(active.manifest) !== runtimeBundleCid) {
+    fail('RemoteRuntimeBundleNotActive');
+  }
+  const bundle = await bundleStore.verify(runtimeBundleCid, bundleControl);
+  const execute = await load(bundle);
+  if (typeof execute !== 'function') fail('InvalidRemoteRuntimeBundleLoader');
+  return prepareRemoteRuntimeRegistration({
+    ...registration,
+    runtimeBundleCid,
     execute,
   });
 }
@@ -109,6 +140,8 @@ export function createRemoteDispatchRuntime({
   control,
   siteControl,
   store,
+  bundleStore,
+  bundleControl,
   registrations,
   budgets,
 } = {}) {
@@ -149,6 +182,13 @@ export function createRemoteDispatchRuntime({
       store === null || typeof store !== 'object' ||
       typeof store.advance !== 'function' ||
       typeof store.advanceEvidence !== 'function' ||
+      bundleStore === null || typeof bundleStore !== 'object' ||
+      typeof bundleStore.active !== 'function' ||
+      typeof bundleStore.verify !== 'function' ||
+      typeof bundleStore.retain !== 'function' ||
+      typeof bundleStore.release !== 'function' ||
+      bundleControl === null || typeof bundleControl !== 'object' ||
+      typeof bundleControl.identity !== 'function' ||
       !Array.isArray(registrations) || !Array.isArray(budgets)) {
     fail('InvalidRemoteDispatchRuntime');
   }
@@ -159,8 +199,9 @@ export function createRemoteDispatchRuntime({
       'execute',
       'issuer',
       'key',
+      'runtimeBundleCid',
       'site',
-    ]) || !text(registration.key) ||
+    ]) || !text(registration.key) || !text(registration.runtimeBundleCid) ||
         typeof registration.execute !== 'function' ||
         registration.key !== keyOf(control.managedRuntimeRegistrationScope(
           registration.capability,
@@ -196,6 +237,12 @@ export function createRemoteDispatchRuntime({
   };
   const budgetFor = dispatch =>
     provisionedBudgets.get(control.dispatchBudgetIdentity(dispatch));
+  const bundleActive = registration => {
+    if (registration === undefined) return false;
+    const value = bundleStore.active(bundleControl);
+    return value !== undefined &&
+      bundleControl.identity(value.manifest) === registration.runtimeBundleCid;
+  };
   const admissionFor = (
     dispatch,
     record,
@@ -259,7 +306,8 @@ export function createRemoteDispatchRuntime({
   };
   const resourcesReclaimed = entry =>
     (entry.output === undefined || entry.outputClosed) &&
-    (entry.siteHolding === undefined || entry.holdingReleased);
+    (entry.siteHolding === undefined || entry.holdingReleased) &&
+    (entry.bundleHoldId === undefined || entry.bundleReleased);
   const reclaimResources = async entry => {
     if (entry.output !== undefined && !entry.outputClosed) {
       await entry.output.close();
@@ -270,6 +318,12 @@ export function createRemoteDispatchRuntime({
         fail('RemoteSiteHoldingReleaseRejected');
       }
       entry.holdingReleased = true;
+    }
+    if (entry.bundleHoldId !== undefined && !entry.bundleReleased) {
+      if (!bundleStore.release(entry.bundleHoldId, bundleControl)) {
+        fail('RemoteBundleHoldReleaseRejected');
+      }
+      entry.bundleReleased = true;
     }
   };
   const observeStop = async (entry, retry) => {
@@ -361,6 +415,7 @@ export function createRemoteDispatchRuntime({
     operationState,
     error,
     signal,
+    bundleHoldId,
   ) => {
     const cleanupPending = member(error, 'cleanupPending') === true;
     const retainedOwner = owners.get(identity);
@@ -378,6 +433,8 @@ export function createRemoteDispatchRuntime({
       outputClosed: output === undefined,
       siteHolding: operationState.siteHolding,
       holdingReleased: operationState.siteHolding === undefined,
+      bundleHoldId,
+      bundleReleased: bundleHoldId === undefined,
     };
     if (retainedOwner !== undefined) {
       entry.handle = member(error, 'cleanupHandle');
@@ -418,16 +475,35 @@ export function createRemoteDispatchRuntime({
     }
     throw error;
   };
-  const run = async (registration, budget, dispatch, record, signal) => {
+  const run = async (
+    registration,
+    budget,
+    dispatch,
+    record,
+    signal,
+    bundleHoldId,
+  ) => {
     const identity = control.identity(dispatch);
     let output;
     const operationState = {
       operation: undefined,
       settled: false,
       siteHolding: undefined,
+      bundleRetained: false,
     };
     try {
       signal?.throwIfAborted();
+      bundleStore.retain(
+        registration.runtimeBundleCid,
+        bundleHoldId,
+        'dispatch',
+        bundleControl,
+      );
+      operationState.bundleRetained = true;
+      const bundle = await bundleStore.verify(
+        registration.runtimeBundleCid,
+        bundleControl,
+      );
       store.advance(
         control.prepareManagedProvisioning(
           record,
@@ -448,7 +524,11 @@ export function createRemoteDispatchRuntime({
       }
       signal?.throwIfAborted();
       store.advance(control.prepareExecution(record), record, control);
-      output = await registration.execute(Object.freeze({dispatch, signal}));
+      output = await registration.execute(Object.freeze({
+        bundle,
+        dispatch,
+        signal,
+      }));
       signal?.throwIfAborted();
       checkedOutput(output);
       if (!siteControl.operationAvailable(operationState.operation)) {
@@ -481,6 +561,8 @@ export function createRemoteDispatchRuntime({
         outputClosed: false,
         siteHolding: operationState.siteHolding,
         holdingReleased: false,
+        bundleHoldId,
+        bundleReleased: false,
       });
       store.advance(control.prepareRetained(
         record,
@@ -530,6 +612,7 @@ export function createRemoteDispatchRuntime({
         operationState,
         error,
         signal,
+        operationState.bundleRetained ? bundleHoldId : undefined,
       );
     }
   };
@@ -538,7 +621,7 @@ export function createRemoteDispatchRuntime({
     supports(dispatch) {
       const registration = registrationFor(dispatch);
       const budget = budgetFor(dispatch);
-      return admissionFor(
+      return bundleActive(registration) && admissionFor(
         dispatch,
         undefined,
         registration,
@@ -569,6 +652,7 @@ export function createRemoteDispatchRuntime({
       if (admission !== 0) {
         fail('InvalidRemoteRuntimeAdmission');
       }
+      const bundleHoldId = `dispatch:${identity}`;
       const controller = new AbortController();
       const abort = () => controller.abort(signal?.reason);
       if (signal?.aborted) abort();
@@ -579,6 +663,7 @@ export function createRemoteDispatchRuntime({
         dispatch,
         record,
         controller.signal,
+        bundleHoldId,
       ).finally(() => {
         signal?.removeEventListener('abort', abort);
         active.delete(identity);

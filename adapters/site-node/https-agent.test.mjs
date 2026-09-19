@@ -4,7 +4,11 @@ import {once} from 'node:events';
 import {readFile, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {X509Certificate} from 'node:crypto';
+import {
+  createHash,
+  generateKeyPairSync,
+  X509Certificate,
+} from 'node:crypto';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -20,6 +24,7 @@ import {createRemoteSiteCoordinator} from
   '../host-node/remote-site-coordinator.mjs';
 import {openSqliteCoordinatorDispatchJournal} from
   '../host-node/sqlite-coordinator-journal.mjs';
+import {signRemoteRuntimeBundle} from './remote-bundle-signature.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
@@ -125,25 +130,68 @@ async function startFixture(
   {delayMs = 0, maxConcurrentOperations = 4} = {},
 ) {
   const configurationPath = join(root, 'agent.json');
+  const targetTriple = 'test-native-target';
+  const component = Buffer.from('remote-site-runtime-fixture', 'utf8');
+  const componentPath = join(root, 'runtime-component');
+  const bundlePublicKeyPath = join(root, 'bundle-authority.pem');
+  const bundleKeys = generateKeyPairSync('ed25519');
+  const bundleManifest = runtime.remoteBundleControl.prepare({
+    issuerAuthority: 'bundle-authority-a',
+    bundleName: 'remote-site-fixture',
+    revision: '1',
+    targetTriple,
+    componentCid: `sha256:${createHash('sha256')
+      .update(component).digest('hex')}`,
+    componentBytes: BigInt(component.byteLength),
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
+  });
+  const runtimeBundleCid = runtime.remoteBundleControl.identity(
+    bundleManifest,
+  );
+  const signedBundle = signRemoteRuntimeBundle(
+    bundleManifest,
+    runtime.remoteBundleControl,
+    {keyId: 'key-a', privateKey: bundleKeys.privateKey},
+  );
+  await Promise.all([
+    writeFile(componentPath, component, {mode: 0o600}),
+    writeFile(
+      bundlePublicKeyPath,
+      bundleKeys.publicKey.export({type: 'spki', format: 'pem'}),
+      {mode: 0o600},
+    ),
+  ]);
   await writeFile(configurationPath, JSON.stringify({
     keyPath: join(root, 'site.key'),
     certPath: join(root, 'site.crt'),
     caPath: join(root, 'ca.crt'),
     storeRoot: join(root, 'site-store'),
+    bundle: {
+      componentPath,
+      expectedComponent: component.toString('utf8'),
+      issuerAuthority: 'bundle-authority-a',
+      keyId: 'key-a',
+      publicKeyPath: bundlePublicKeyPath,
+      signed: signedBundle,
+      storeRoot: join(root, 'bundle-store'),
+      targetTriple,
+    },
     coordinatorAuthorities: [
       [material.coordinatorFingerprint, 'coordinator-a'],
     ],
     site: {
       key: 'site-a',
       generation: 1,
-      runtimeRevision: cid('a'),
+      runtimeRevision: runtimeBundleCid,
       maxConcurrentOperations,
       maxConcurrentTransfers: 4,
       maxRetainedBytes: '1048576',
       maxExecutionBytes: '1048576',
     },
     runtime: {
-      runtimeBundleCid: cid('a'),
+      runtimeBundleCid,
       connectorRegistration: 'local',
       connectorRevision: 'local/1',
       strategyRevision: 'strategy/1',
@@ -209,6 +257,13 @@ async function startFixture(
   return Object.freeze({
     origin: `https://127.0.0.1:${ready.port}`,
     child,
+    runtimeBundleCid,
+    dispatch(dispatchId = 'dispatch-a', revision = 'local/1', overrides = {}) {
+      return dispatch(dispatchId, revision, {
+        runtimeBundleCid,
+        ...overrides,
+      });
+    },
     executionStarts: () => executionStarts,
     stopAdmission() {
       return new Promise((resolve, reject) => {
@@ -261,7 +316,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       ),
       store: coordinatorStore,
     });
-    const request = dispatch();
+    const request = fixture.dispatch();
     const options = {
       origin: fixture.origin,
       ca: material.ca,
@@ -307,7 +362,10 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     assert.equal(retransmitted.revision, completed.revision);
 
     await assert.rejects(
-      sendRemoteDispatch({...options, dispatch: dispatch('dispatch-a', 'local/2')}),
+      sendRemoteDispatch({
+        ...options,
+        dispatch: fixture.dispatch('dispatch-a', 'local/2'),
+      }),
       error => error.code === 'RemoteSiteRejected' && error.status === 409,
     );
     await assert.rejects(
@@ -317,6 +375,17 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
         key: material.foreignKey,
       }),
       error => error.code === 'RemoteSiteRejected' && error.status === 404,
+    );
+    await assert.rejects(
+      sendRemoteDispatch({
+        ...options,
+        dispatch: fixture.dispatch(
+          'dispatch-wrong-bundle',
+          'local/1',
+          {runtimeBundleCid: cid('a'), taskAttempt: 2},
+        ),
+      }),
+      error => error.code === 'RemoteSiteRejected' && error.status === 400,
     );
     coordinatorStore.close();
     const reopenedStore = openSqliteCoordinatorDispatchJournal(
@@ -354,7 +423,7 @@ test('exact retransmission bypasses new-work capacity and admission closure',
       maxConcurrentOperations: 1,
     });
     t.after(() => fixture.close());
-    const request = dispatch('dispatch-retransmit');
+    const request = fixture.dispatch('dispatch-retransmit');
     const options = {
       origin: fixture.origin,
       ca: material.ca,
@@ -381,7 +450,11 @@ test('exact retransmission bypasses new-work capacity and admission closure',
     await assert.rejects(
       sendRemoteDispatch({
         ...options,
-        dispatch: dispatch('dispatch-new', 'local/1', {taskAttempt: 2}),
+        dispatch: fixture.dispatch(
+          'dispatch-new',
+          'local/1',
+          {taskAttempt: 2},
+        ),
       }),
       error => error.code === 'RemoteSiteRejected' && error.status === 503,
     );
@@ -397,7 +470,7 @@ test('authenticated cancellation waits for physical handler exit', async t => {
   const material = await certificates(root);
   const fixture = await startFixture(root, material, {delayMs: 10_000});
   t.after(() => fixture.close());
-  const request = dispatch('dispatch-cancel');
+  const request = fixture.dispatch('dispatch-cancel');
   const options = {
     origin: fixture.origin,
     ca: material.ca,

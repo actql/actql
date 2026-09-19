@@ -185,7 +185,7 @@ export async function startHttpsRemoteSiteAgent({
         return;
       }
       const admission = control.prepareAdmission(journal, dispatch);
-      if (!dispatchRuntime.supports(dispatch)) {
+      if (!await dispatchRuntime.supports(dispatch)) {
         reply(response, 409, {error: 'dispatch_unsupported'});
         return;
       }

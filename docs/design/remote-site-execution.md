@@ -229,6 +229,24 @@ while execution, readers, or cleanup require it; historical verification keeps
 the manifest, signature, and required decoder rather than every old executable.
 OCI and existing signing tools are candidates, not semantic requirements.
 
+The initial filesystem adapter accepts a pre-positioned component and a signed
+canonical bundle envelope. `runtime-bundle-cli.mjs` exposes `install`,
+`activate`, `drain`, `rollback`, `verify`, `inspect`, `active`, `list`,
+`recover`, and `reclaim`. Its configuration names the Site-local Store,
+target triple, and configured issuer public keys. The adapter copies through a
+bounded buffer, verifies the component digest before adoption, and makes the
+Site-local active revision durable in SQLite. These filesystem and SQLite
+operations are environment-specific; canonical identity and every lifecycle
+transition remain MoonBit decisions.
+
+Remote dispatch resolves only a registration for the exact active bundle. It
+retains a durable bundle owner before execution, verifies the installed
+artifact immediately before invoking the registered handler, and releases the
+owner only after physical output cleanup and Site holding release. Activating
+a new revision therefore drains the prior revision without invalidating an
+already admitted attempt. Reclamation is retryable and cannot remove an
+artifact still referenced by another bundle or owner.
+
 ## Environment adapters and completion evidence
 
 Environment-specific code is justified for physical capabilities: TLS and

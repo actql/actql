@@ -6,9 +6,13 @@ import {admitRemoteDispatchJson} from
   '../host-common/remote-dispatch-wire.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {startHttpsRemoteSiteAgent} from './https-agent.mjs';
-import {createRemoteDispatchRuntime, prepareRemoteRuntimeRegistration} from
+import {
+  createRemoteDispatchRuntime,
+  prepareInstalledRemoteRuntimeRegistration,
+} from
   './remote-dispatch-runtime.mjs';
 import {openSqliteDispatchJournal} from './sqlite-dispatch-journal.mjs';
+import {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
 
 const configurationPath = process.argv[2];
 if (typeof configurationPath !== 'string') {
@@ -21,6 +25,26 @@ const [key, cert, ca] = await Promise.all([
   readFile(configuration.caPath),
 ]);
 const runtime = runtimeCore(moon);
+const bundlePublicKey = await readFile(configuration.bundle.publicKeyPath);
+const bundleStore = await openRuntimeBundleStore(
+  configuration.bundle.storeRoot,
+  {
+    bundleAuthorities: new Map([[
+      configuration.bundle.issuerAuthority,
+      new Map([[configuration.bundle.keyId, bundlePublicKey]]),
+    ]]),
+    targetTriple: configuration.bundle.targetTriple,
+  },
+);
+await bundleStore.install(
+  configuration.bundle.componentPath,
+  configuration.bundle.signed,
+  runtime.remoteBundleControl,
+);
+bundleStore.activate(
+  configuration.runtime.runtimeBundleCid,
+  runtime.remoteBundleControl,
+);
 const siteConfiguration = Object.freeze({
   ...configuration.site,
   maxRetainedBytes: BigInt(configuration.site.maxRetainedBytes),
@@ -33,30 +57,38 @@ const store = openSqliteDispatchJournal(configuration.storeRoot, {
   siteGeneration: configuration.site.generation,
   runtimeRevision: configuration.site.runtimeRevision,
 });
-const registration = prepareRemoteRuntimeRegistration({
+const registration = await prepareInstalledRemoteRuntimeRegistration({
   control: runtime.remoteSiteControl,
   site,
+  bundleStore,
+  bundleControl: runtime.remoteBundleControl,
   ...configuration.runtime,
-  execute: async ({signal}) => {
-    process.send?.({type: 'execution-started'});
-    if (configuration.runtime.delayMs > 0) {
-      await new Promise((resolve, reject) => {
-        const abort = () => {
-          clearTimeout(timer);
-          reject(signal.reason);
-        };
-        const timer = setTimeout(() => {
-          signal.removeEventListener('abort', abort);
-          resolve();
-        }, configuration.runtime.delayMs);
-        signal.addEventListener('abort', abort, {once: true});
-      });
+  async load(bundle) {
+    const component = await readFile(bundle.artifactPath, 'utf8');
+    if (component !== configuration.bundle.expectedComponent) {
+      throw new Error('Remote fixture loaded an unexpected bundle');
     }
-    return Object.freeze({
-      ...configuration.runtime.output,
-      retainedBytes: BigInt(configuration.runtime.output.retainedBytes),
-      async close() {},
-    });
+    return async ({signal}) => {
+      process.send?.({type: 'execution-started'});
+      if (configuration.runtime.delayMs > 0) {
+        await new Promise((resolve, reject) => {
+          const abort = () => {
+            clearTimeout(timer);
+            reject(signal.reason);
+          };
+          const timer = setTimeout(() => {
+            signal.removeEventListener('abort', abort);
+            resolve();
+          }, configuration.runtime.delayMs);
+          signal.addEventListener('abort', abort, {once: true});
+        });
+      }
+      return Object.freeze({
+        ...configuration.runtime.output,
+        retainedBytes: BigInt(configuration.runtime.output.retainedBytes),
+        async close() {},
+      });
+    };
   },
 });
 const budgets = configuration.budgets.map(budget =>
@@ -68,6 +100,8 @@ const dispatchRuntime = createRemoteDispatchRuntime({
   control: runtime.remoteSiteControl,
   siteControl: runtime.siteControl,
   store,
+  bundleStore,
+  bundleControl: runtime.remoteBundleControl,
   registrations: [registration],
   budgets,
 });
@@ -93,6 +127,7 @@ async function close() {
   closing = true;
   try {
     await agent.close();
+    bundleStore.close();
     store.close();
     process.send?.({type: 'closed'});
     process.exitCode = 0;

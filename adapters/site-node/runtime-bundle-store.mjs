@@ -419,6 +419,25 @@ export async function openRuntimeBundleStore(root, {
     rollback(runtimeBundleCid, control) {
       return store.activate(runtimeBundleCid, control);
     },
+    drain(runtimeBundleCid, control) {
+      active();
+      requireControl(control);
+      return transaction(database, () => {
+        const row = select.get(runtimeBundleCid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restore(row, control);
+        const state = control.recordProjection(value.record);
+        if (state[1] === '2') return value;
+        if (activeRow.get('active_bundle_cid').value !== runtimeBundleCid) {
+          fail('RemoteBundleNotActive');
+        }
+        const transition = control.prepareDrain(value.record);
+        persist(transition, control);
+        setActive.run('', 'active_bundle_cid');
+        control.commitTransition(transition, true);
+        return restore(select.get(runtimeBundleCid), control);
+      });
+    },
     retain(runtimeBundleCid, holdId, kind, control) {
       active();
       requireControl(control);
@@ -471,6 +490,9 @@ export async function openRuntimeBundleStore(root, {
         const row = select.get(runtimeBundleCid);
         if (row === undefined) fail('RemoteBundleMissing');
         const value = restore(row, control);
+        if (control.recordProjection(value.record)[1] === '3') {
+          return Object.freeze({row, transition: undefined});
+        }
         const transition = control.prepareReclaim(value.record);
         database.prepare(`
           UPDATE bundles SET reclaim_pending = 1
@@ -478,6 +500,9 @@ export async function openRuntimeBundleStore(root, {
         `).run(runtimeBundleCid);
         return Object.freeze({row, transition});
       });
+      if (prepared.transition === undefined) {
+        return restore(prepared.row, control);
+      }
       const users = Number(artifactUsers.get(
         prepared.row.artifact_name,
         runtimeBundleCid,
