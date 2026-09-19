@@ -182,10 +182,11 @@ orders queries and tied candidates by typed identity, and emits the fixed
 ranking Relation schema. The standard Host fixture exercises explicit roles,
 dot scoring, `k=2`, a candidate-score tie, two overlapping downstream Relation
 computations, independent release, and final ledger reclamation on JS, Wasm,
-and native. The other three Carrier combinations, inferred roles, cosine and
-negative-L2 integration, `k` boundaries, duplicate and empty-side failures,
-environment cancellation delivery, and publication remain open. Ranking merge
-still lacks a portable Local kernel.
+and native. The same path now also covers cosine, negative L2, inferred
+Relation roles, `k=1`, and an empty candidate side. The other three Carrier
+combinations, `k` greater than corpus size, an empty query side, duplicate
+identity failures, environment cancellation delivery, and publication remain
+open. Ranking merge still lacks a portable Local kernel.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -344,7 +345,7 @@ Workers fixture; fixture freshness and all 24 Workers tests pass. These results
 do not establish overlapping direct Carrier consumers, environment
 cancellation delivery, publication, or final same-SHA Linux CI.
 
-At `7df8ab1a`, exact Relation-by-Relation nearest executes through the
+At `0fd16e6d`, exact Relation-by-Relation nearest executes through the
 registered VecA provider and the standard Host. Its fixed fixture proves query
 identity ordering, score-descending and candidate-identity tie ordering,
 contiguous rank, two live downstream Relation consumers, independent release,
@@ -353,6 +354,14 @@ pass 23 tests on each of JS, Wasm, and native. The Workers fixture is generated
 from the same source and is fresh. This is one classified nearest slice, not
 evidence for the remaining Carrier combinations, all formal metric and boundary
 variants, publication, cancellation delivery, or final same-SHA Linux CI.
+
+At `611a7969`, the nearest standard Host fixture additionally covers cosine,
+negative L2, checked completion of sole string primary-key and vector roles, a
+one-result prefix, and an empty candidate side. The affected VecA and query
+integration suites pass 28 tests on each portable target. The empty side still
+passes through normal two-consumer lifetime and final reclamation. This does
+not close direct Vectors inputs, duplicate identity failures, every `k`
+boundary, publication, cancellation delivery, or final Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

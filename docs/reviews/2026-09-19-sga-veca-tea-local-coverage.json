@@ -485,9 +485,25 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "7df8ab1a",
+          "sha": "0fd16e6d",
           "evidence": [
             "src/local_veca/nearest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_relation_metrics_inferred_roles_k1_empty_corpus",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "611a7969",
+          "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
           ]
         }
