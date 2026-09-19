@@ -127,9 +127,48 @@ fn analytic_envelopes_satisfied(
 }
 
 ///|
-/// Initial profile: one captured acquisition at unit zero, one or two checked
-/// data inputs per task and one final output. No fresh
-/// reads are synthesized. Bindings are indexed by checked receiving port.
+fn ordered_data_inputs_complete(
+  input_counts : Array[Int],
+  data : Array[DataEdge],
+) -> Bool {
+  if input_counts.is_empty() {
+    return false
+  }
+  let seen : Array[Array[Bool]] = Array::makei(input_counts.length(), task => {
+    let count = input_counts[task]
+    if count < 0 {
+      []
+    } else {
+      Array::make(count, false)
+    }
+  })
+  for edge in data {
+    if edge.consumer <= 0 || edge.consumer >= input_counts.length() {
+      return false
+    }
+    let inputs = seen[edge.consumer]
+    if edge.input < 0 || edge.input >= inputs.length() || inputs[edge.input] {
+      return false
+    }
+    inputs[edge.input] = true
+  }
+  for task in 1..<input_counts.length() {
+    if input_counts[task] < 0 {
+      return false
+    }
+    for present in seen[task] {
+      if !present {
+        return false
+      }
+    }
+  }
+  true
+}
+
+///|
+/// Initial profile: one captured acquisition at unit zero, ordered checked
+/// data inputs per task and one final output. No fresh reads are synthesized.
+/// Bindings are indexed by checked receiving port.
 pub fn open_captured_dag(
   graph : CheckedDAG,
   source : @query.CapturedInputSource,
@@ -146,7 +185,10 @@ pub fn open_captured_dag(
     ) {
     return Err(ForeignCapture)
   }
-  let seen = Array::make(count, 0)
+  let input_counts = Array::makei(count, task => {
+    let pipeline = @lower.pipeline(@lower.bound_preparation(graph.owners[task]))
+    @pipeline.input_count(pipeline)
+  })
   let join_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => [])
   let aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]] = Array::makei(
     count,
@@ -156,31 +198,13 @@ pub fn open_captured_dag(
     count,
     _ => [],
   )
-  for edge in graph.data {
-    if edge.consumer == 0 || edge.input < 0 || edge.input > 1 {
-      return Err(UnsupportedGraph)
-    }
-    let bit = if edge.input == 0 { 1 } else { 2 }
-    if (seen[edge.consumer] & bit) != 0 {
-      return Err(UnsupportedGraph)
-    }
-    seen[edge.consumer] = seen[edge.consumer] | bit
+  if !ordered_data_inputs_complete(input_counts, graph.data) {
+    return Err(UnsupportedGraph)
   }
   for index in 1..<count {
     let pipeline = @lower.pipeline(
       @lower.bound_preparation(graph.owners[index]),
     )
-    let input_count = @pipeline.input_count(pipeline)
-    let expected_inputs = if input_count == 0 {
-      0
-    } else if input_count == 1 {
-      1
-    } else {
-      3
-    }
-    if input_count > 2 || seen[index] != expected_inputs {
-      return Err(UnsupportedGraph)
-    }
     if @pipeline.step_count(pipeline) == 0 {
       return Err(UnsupportedGraph)
     }
