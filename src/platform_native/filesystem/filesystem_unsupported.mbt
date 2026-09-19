@@ -73,6 +73,14 @@ pub fn Root::verify_generation(
 }
 
 ///|
+pub fn Root::inspect_generation(
+  _self : Root,
+  _name : String,
+) -> Result[NativeFileGeneration?, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Root::reclaim_generation(
   _self : Root,
   name : String,

@@ -16,6 +16,9 @@
 typedef struct {
   int fd;
   char *error;
+  uint64_t result_device;
+  uint64_t result_inode;
+  int64_t result_size;
 } actql_native_filesystem_root;
 
 typedef struct {
@@ -626,6 +629,63 @@ int32_t actql_native_filesystem_verify_generation(
                  actql_exact_generation(&status, device, inode, size);
   free(name_text);
   return matches;
+}
+
+int32_t actql_native_filesystem_inspect_generation(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  if (root == NULL || root->fd < 0) return -1;
+  actql_replace_error(&root->error, NULL);
+  root->result_device = 0;
+  root->result_inode = 0;
+  root->result_size = 0;
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&root->error, "object name allocation failed");
+    return -1;
+  }
+  if (!actql_valid_name(name_text, (size_t)length)) {
+    free(name_text);
+    actql_replace_error(&root->error, "invalid object name");
+    return 2;
+  }
+  struct stat status;
+  if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0) {
+    int stat_error = errno;
+    free(name_text);
+    if (stat_error == ENOENT) return 1;
+    actql_replace_errno_error(&root->error, "inspect object generation", stat_error);
+    return -1;
+  }
+  free(name_text);
+  if (!S_ISREG(status.st_mode) || status.st_size < 0) {
+    actql_replace_error(&root->error, "object is not a regular generation");
+    return 2;
+  }
+  root->result_device = (uint64_t)status.st_dev;
+  root->result_inode = (uint64_t)status.st_ino;
+  root->result_size = (int64_t)status.st_size;
+  return 0;
+}
+
+uint64_t actql_native_filesystem_root_result_device(
+  actql_native_filesystem_root *root
+) {
+  return root == NULL ? 0 : root->result_device;
+}
+
+uint64_t actql_native_filesystem_root_result_inode(
+  actql_native_filesystem_root *root
+) {
+  return root == NULL ? 0 : root->result_inode;
+}
+
+int64_t actql_native_filesystem_root_result_size(
+  actql_native_filesystem_root *root
+) {
+  return root == NULL ? 0 : root->result_size;
 }
 
 int32_t actql_native_filesystem_reclaim_generation(

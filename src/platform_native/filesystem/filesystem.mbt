@@ -23,7 +23,7 @@ pub(all) struct NativeFileGeneration {
   device : UInt64
   inode : UInt64
   size : Int64
-}
+} derive(Eq, Debug)
 
 ///|
 pub(all) struct NativeFileChunk {

@@ -110,6 +110,26 @@ extern "C" fn verify_generation_ffi(
 
 ///|
 #borrow(root, name)
+extern "C" fn inspect_generation_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> Int = "actql_native_filesystem_inspect_generation"
+
+///|
+#borrow(root)
+extern "C" fn root_result_device_ffi(root : Root) -> UInt64 = "actql_native_filesystem_root_result_device"
+
+///|
+#borrow(root)
+extern "C" fn root_result_inode_ffi(root : Root) -> UInt64 = "actql_native_filesystem_root_result_inode"
+
+///|
+#borrow(root)
+extern "C" fn root_result_size_ffi(root : Root) -> Int64 = "actql_native_filesystem_root_result_size"
+
+///|
+#borrow(root, name)
 extern "C" fn reclaim_generation_ffi(
   root : Root,
   name : Bytes,
@@ -278,6 +298,32 @@ pub fn Root::verify_generation(
     generation.inode,
     generation.size,
   )
+}
+
+///|
+/// Observes one regular file generation without following symbolic links.
+/// A missing name is represented as None and is distinct from a mismatch.
+pub fn Root::inspect_generation(
+  self : Root,
+  name : String,
+) -> Result[NativeFileGeneration?, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  match inspect_generation_ffi(self, encoded, encoded.length()) {
+    0 =>
+      Ok(
+        Some({
+          device: root_result_device_ffi(self),
+          inode: root_result_inode_ffi(self),
+          size: root_result_size_ffi(self),
+        }),
+      )
+    1 => Ok(None)
+    2 => Err(GenerationMismatch)
+    _ => Err(Read(decode_message(root_error_ffi(self))))
+  }
 }
 
 ///|

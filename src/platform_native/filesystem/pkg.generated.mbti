@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/platform_native/filesystem"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
 
@@ -16,7 +20,7 @@ pub(all) struct NativeFileGeneration {
   device : UInt64
   inode : UInt64
   size : Int64
-}
+} derive(Eq, @debug.Debug)
 
 pub(all) enum NativeFilesystemIssue {
   UnsupportedTarget
@@ -44,6 +48,7 @@ pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
 
 type Root
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
+pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
 pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool

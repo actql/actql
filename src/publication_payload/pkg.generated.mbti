@@ -1,0 +1,121 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/publication_payload"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_durable_publication_payload_record(Bytes) -> Result[DurablePublicationPayloadRecord, PublicationPayloadIssue]
+
+pub fn commit_publication_payload_transition(PublicationPayloadTransition, Bool) -> Result[PublicationPayloadRecord, PublicationPayloadIssue]
+
+pub fn durable_publication_payload_record_material_identity(DurablePublicationPayloadRecord) -> String
+
+pub fn durable_publication_payload_record_request(DurablePublicationPayloadRecord) -> PublicationPayloadRequest
+
+pub fn durable_publication_payload_record_request_identity(DurablePublicationPayloadRecord) -> String
+
+pub fn durable_publication_payload_record_revision(DurablePublicationPayloadRecord) -> Int
+
+pub fn durable_publication_payload_record_state(DurablePublicationPayloadRecord) -> PublicationPayloadState
+
+pub fn prepare_publication_payload_reclaimed(PublicationPayloadRecord) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_reclaiming(PublicationPayloadRecord, discovered_generation? : PublicationPayloadGeneration?) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_record(PublicationPayloadRequest) -> PublicationPayloadRecord
+
+pub fn prepare_publication_payload_request(String, String, String, String, String, String, String, String, Int64, Int64) -> Result[PublicationPayloadRequest, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_reserved(PublicationPayloadRecord) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_sealed(PublicationPayloadRecord, PublicationPayloadGeneration, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_writing(PublicationPayloadRecord) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn publication_payload_material_identity(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_object_name(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_record_actual_bytes(PublicationPayloadRecord) -> Int64
+
+pub fn publication_payload_record_digest(PublicationPayloadRecord) -> String
+
+pub fn publication_payload_record_durable_json(PublicationPayloadRecord) -> Result[String, PublicationPayloadIssue]
+
+pub fn publication_payload_record_generation(PublicationPayloadRecord) -> PublicationPayloadGeneration?
+
+pub fn publication_payload_record_request(PublicationPayloadRecord) -> PublicationPayloadRequest
+
+pub fn publication_payload_record_revision(PublicationPayloadRecord) -> Int
+
+pub fn publication_payload_record_state(PublicationPayloadRecord) -> PublicationPayloadState
+
+pub fn publication_payload_request_attempt(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_codec(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_identity(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_logical_relation(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_max_bytes(PublicationPayloadRequest) -> Int64
+
+pub fn publication_payload_request_ordering_evidence(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_result_definition(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_row_count(PublicationPayloadRequest) -> Int64
+
+pub fn publication_payload_request_schema(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_store_authority(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_staging_name(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_transition_durable_json(PublicationPayloadTransition) -> Result[String, PublicationPayloadIssue]
+
+pub fn publication_payload_transition_expected_revision(PublicationPayloadTransition) -> Int
+
+pub fn publication_payload_transition_material_identity(PublicationPayloadTransition) -> String
+
+pub fn restore_durable_publication_payload_record(DurablePublicationPayloadRecord) -> Result[PublicationPayloadRecord, PublicationPayloadIssue]
+
+// Errors
+
+// Types and methods
+type DurablePublicationPayloadRecord
+
+pub(all) struct PublicationPayloadGeneration {
+  device : UInt64
+  inode : UInt64
+  size : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationPayloadIssue {
+  InvalidRequest
+  InvalidRecord
+  InvalidTransition
+  IdentityMismatch
+  StateCollision
+} derive(@debug.Debug)
+
+type PublicationPayloadRecord
+
+type PublicationPayloadRequest
+
+pub(all) enum PublicationPayloadState {
+  Intent
+  Reserved
+  Writing
+  Sealed
+  Reclaiming
+  Reclaimed
+} derive(Eq, @debug.Debug)
+
+type PublicationPayloadTransition
+
+// Type aliases
+
+// Traits
