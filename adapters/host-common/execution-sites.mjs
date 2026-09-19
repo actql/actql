@@ -40,6 +40,7 @@ const controlMethods = [
   'failedOperationAction',
   'retainedHoldingAction',
   'hostCleanupAction',
+  'hostTaskSuccessAction',
 ];
 
 function checkedControl(control) {
@@ -571,6 +572,39 @@ export function executionSiteHostCleanupAction(
   );
   if (!Number.isSafeInteger(action) || action < 0 || action > 4) {
     fail('InvalidExecutionSiteHostCleanupAction');
+  }
+  return action;
+}
+
+export function executionSiteHostTaskSuccessAction(
+  installation,
+  siteCompletionChecked,
+  siteCompletionReady,
+  commonCompletionChecked,
+  commonCompleted,
+  connectorOwnedOutput,
+  outputRetained,
+  siteOperationSettled,
+  managedBindingClaimed,
+  managedBindingChecked,
+  managedBindingValid,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const action = state.control.hostTaskSuccessAction(
+    siteCompletionChecked,
+    siteCompletionReady,
+    commonCompletionChecked,
+    commonCompleted,
+    connectorOwnedOutput,
+    outputRetained,
+    siteOperationSettled,
+    managedBindingClaimed,
+    managedBindingChecked,
+    managedBindingValid,
+  );
+  if (!Number.isSafeInteger(action) || action < 0 || action > 10) {
+    fail('InvalidExecutionSiteHostTaskSuccessAction');
   }
   return action;
 }

@@ -2722,6 +2722,36 @@ pub fn strategy_host_cleanup_action(
 }
 
 ///|
+#export_name("strategyHostTaskSuccessAction")
+pub fn strategy_host_task_success_action(
+  site_completion_checked : Bool,
+  site_completion_ready : Bool,
+  common_completion_checked : Bool,
+  common_completed : Bool,
+  connector_owned_output : Bool,
+  output_retained : Bool,
+  site_operation_settled : Bool,
+  managed_binding_claimed : Bool,
+  managed_binding_checked : Bool,
+  managed_binding_valid : Bool,
+) -> Int {
+  @strategy.host_task_success_action_code(
+    @strategy.prepare_host_task_success_step(
+      site_completion_checked,
+      site_completion_ready,
+      common_completion_checked,
+      common_completed,
+      connector_owned_output,
+      output_retained,
+      site_operation_settled,
+      managed_binding_claimed,
+      managed_binding_checked,
+      managed_binding_valid,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRemoteDispatchPrepare")
 pub fn strategy_remote_dispatch_prepare(
   coordinator_authority : String,

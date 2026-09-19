@@ -263,5 +263,34 @@ export function createExecutionSiteControlFixture() {
       }
       return 4;
     },
+    hostTaskSuccessAction(
+      siteCompletionChecked,
+      siteCompletionReady,
+      commonCompletionChecked,
+      commonCompleted,
+      connectorOwnedOutput,
+      outputRetained,
+      siteOperationSettled,
+      managedBindingClaimed,
+      managedBindingChecked,
+      managedBindingValid,
+    ) {
+      if ((siteCompletionReady && !siteCompletionChecked) ||
+          (commonCompleted && !commonCompletionChecked) ||
+          (outputRetained && !commonCompleted) ||
+          (siteOperationSettled && !outputRetained) ||
+          (managedBindingValid && !managedBindingChecked)) return 10;
+      if (!siteCompletionChecked) return 0;
+      if (!siteCompletionReady) return 1;
+      if (!commonCompletionChecked) return 2;
+      if (!commonCompleted) return 3;
+      if (!outputRetained) return connectorOwnedOutput ? 4 : 5;
+      if (!siteOperationSettled) return 6;
+      if (managedBindingClaimed) {
+        if (!managedBindingChecked) return 7;
+        if (!managedBindingValid) return 8;
+      }
+      return 9;
+    },
   });
 }

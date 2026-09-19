@@ -4,6 +4,7 @@
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   executionSiteCandidate,
   executionSiteDescription, executionSiteHostCleanupAction,
+  executionSiteHostTaskSuccessAction,
   executionSiteOperationAvailable,
   executionSitePlacements, failedExecutionSiteOperationAction,
   installExecutionSites,
@@ -365,10 +366,14 @@ export async function runInstalledStrategy(
   // safe retry to invent, but the reservation and teardown responsibility
   // must remain visible.
   const unconfirmedSiteOperations = new Set();
-  const settleSiteAfterFailure = (operation, error) => {
+  const settleSiteAfterFailure = (
+    operation,
+    error,
+    alreadySettled = false,
+  ) => {
     const cleanupRequired = failureMember(error, 'cleanupPending') === true;
     const upstream = failureMember(error, 'cleanupHandle');
-    let operationSettled = false;
+    let operationSettled = alreadySettled;
     const progress = cleanupStopped => failedExecutionSiteOperationAction(
       operation,
       cleanupRequired,
@@ -673,37 +678,107 @@ export async function runInstalledStrategy(
         siteCompletionReady,
       }) : task;
       let result, siteResult;
+      let siteOperationSettled = false;
       try {
         result = await (managed
           ? entry.runPrepared(siteTask, signal)
           : entry.run(task, signal, siteCompletionPermit));
-        siteCompletionPermit.assertAvailable();
-        if (!core.completed(setup, index)) {
-          throw new StrategyHostError('TaskNotCompleted');
-        }
-        if (managed || result?.close) {
-          siteResult = retainSiteResult(
-            siteOperation, result, siteCandidate.capacity.retainedBytes,
+        const connectorOwnedOutput = Boolean(managed || result?.close);
+        const managedBindingClaimed = result?.completed != null ||
+          result?.material != null;
+        let siteCompletionChecked = false;
+        let siteCompletionAvailable = false;
+        let commonCompletionChecked = false;
+        let commonCompleted = false;
+        let outputRetained = false;
+        let managedBindingChecked = false;
+        let managedBindingValid = false;
+        let successFinished = false;
+        for (let step = 0; step < 12; step++) {
+          const action = executionSiteHostTaskSuccessAction(
+            siteInstallation,
+            siteCompletionChecked,
+            siteCompletionAvailable,
+            commonCompletionChecked,
+            commonCompleted,
+            connectorOwnedOutput,
+            outputRetained,
+            siteOperationSettled,
+            managedBindingClaimed,
+            managedBindingChecked,
+            managedBindingValid,
           );
-        } else {
-          const output = core.output(setup, index);
-          if (output == null) throw new StrategyHostError('MissingCompletedOutput');
-          coreSiteOutputs.retain(
-            siteOperation, output, siteCandidate.capacity.retainedBytes,
-          );
+          if (action === 0) {
+            siteCompletionAvailable = siteCompletionReady();
+            siteCompletionChecked = true;
+            continue;
+          }
+          if (action === 1) {
+            throw new StrategyHostError('ExecutionSiteCompletionNotReady');
+          }
+          if (action === 2) {
+            commonCompleted = core.completed(setup, index);
+            commonCompletionChecked = true;
+            continue;
+          }
+          if (action === 3) throw new StrategyHostError('TaskNotCompleted');
+          if (action === 4) {
+            siteResult = retainSiteResult(
+              siteOperation, result, siteCandidate.capacity.retainedBytes,
+            );
+            outputs.push(siteResult);
+            outputRetained = true;
+            continue;
+          }
+          if (action === 5) {
+            const output = core.output(setup, index);
+            if (output == null) {
+              throw new StrategyHostError('MissingCompletedOutput');
+            }
+            coreSiteOutputs.retain(
+              siteOperation, output, siteCandidate.capacity.retainedBytes,
+            );
+            outputRetained = true;
+            continue;
+          }
+          if (action === 6) {
+            if (!settleExecutionSiteOperation(siteOperation)) {
+              throw new StrategyHostError(
+                'ExecutionSiteOperationSettlementRejected',
+              );
+            }
+            siteOperationSettled = true;
+            continue;
+          }
+          if (action === 7) {
+            managedBindingValid = result.completed != null &&
+              result.material != null &&
+              core.managedMatches(setup, index, result.completed);
+            managedBindingChecked = true;
+            continue;
+          }
+          if (action === 8) {
+            throw new StrategyHostError('InvalidManagedCompletion');
+          }
+          if (action === 9) {
+            successFinished = true;
+            break;
+          }
+          throw new StrategyHostError('InvalidHostTaskSuccessProgress');
         }
-        settleExecutionSiteOperation(siteOperation);
-        if (siteResult) outputs.push(siteResult);
+        if (!successFinished) {
+          throw new StrategyHostError('HostTaskSuccessDidNotConverge');
+        }
       } catch (error) {
-        throw settleSiteAfterFailure(siteOperation, error);
+        throw settleSiteAfterFailure(
+          siteOperation,
+          error,
+          siteOperationSettled,
+        );
       }
       // A callback's resolved Promise is not a completion proof. The core must
       // already have installed this exact task's retained, verified output.
       if (result?.completed != null || result?.material != null) {
-        if (result.completed == null || result.material == null ||
-            !core.managedMatches(setup, index, result.completed)) {
-          throw new StrategyHostError('InvalidManagedCompletion');
-        }
         managedOutputs.set(index, Object.freeze({
           task: index,
           completed: result.completed,
