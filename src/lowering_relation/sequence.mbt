@@ -43,6 +43,7 @@ pub(all) enum SequenceIssue {
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
+  GraphBasicFailure(Int, GraphBasicIssue)
 }
 
 ///|
@@ -162,9 +163,22 @@ pub fn prepare_sequence(
         GraphUnionStep(prepared)
       }
       BasicGraph(_) => {
-        let prepared = match prepare_graph_basic_node(owner.prepared.nodes[i]) {
+        let (prepared, used_bindings, used_names, used_work) = match
+          prepare_graph_basic_node(
+            owner,
+            owner.prepared.nodes[i],
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
           Ok(value) => value
-          Err(issue) => return Err(issue)
+          Err(issue) => return Err(GraphBasicFailure(i, issue))
+        }
+        bindings -= used_bindings
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
         }
         GraphBasicStep(prepared)
       }

@@ -248,8 +248,10 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | Projection(_) => None
     Graph(value) =>
       match @graph.operation(value) {
-        @graph.NormalizeGraph | @graph.Degree => Some(BasicGraph(value))
-        _ => None
+        @graph.NormalizeGraph
+        | @graph.Degree
+        | @graph.Components
+        | @graph.GraphBounds => Some(BasicGraph(value))
       }
     GraphMatch(_)
     | Reach(_)

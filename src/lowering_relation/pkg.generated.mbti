@@ -796,6 +796,14 @@ pub(all) struct FragmentRowLimits {
   max_work : Int64
 }
 
+pub(all) enum GraphBasicIssue {
+  InvalidGraphBasicLimits
+  InvalidGraphBasicWiring
+  GraphBasicPreparationLimit
+  MissingGraphBasicParameter(String)
+  InvalidGraphBasicParameter(String)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GroupIssue {
   GroupNotFound
   InvalidGroupLimits
@@ -1124,6 +1132,7 @@ pub(all) enum SequenceIssue {
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
+  GraphBasicFailure(Int, GraphBasicIssue)
 }
 
 pub(all) struct SequenceLimits {
