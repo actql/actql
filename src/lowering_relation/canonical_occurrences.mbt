@@ -14,12 +14,7 @@ pub fn sequence_canonical_node_count(
   step : Int,
 ) -> Int? {
   if sequence.steps.get(step) is Some(NestStep(kernel)) {
-    return Some(
-      11 +
-      (if kernel.parent_references.is_empty() { 0 } else { 1 }) +
-      (if kernel.child_references.is_empty() { 0 } else { 1 }) +
-      (if kernel.inherited_order || kernel.order.is_empty() { 0 } else { 1 }),
-    )
+    return Some(kernel.expansion.length())
   }
   sequence.owner.prepared.nodes
   .get(step)
@@ -43,30 +38,17 @@ pub fn sequence_canonical_node_at(
     return None
   }
   if sequence.steps.get(step) is Some(NestStep(kernel)) {
-    let values : Array[(String, String)] = []
-    if !kernel.parent_references.is_empty() {
-      values.push((nest_generated_id(kernel, "parent_refs"), "REL.derive"))
-    }
-    if !kernel.child_references.is_empty() {
-      values.push((nest_generated_id(kernel, "child_refs"), "REL.derive"))
-    }
-    values.push((nest_generated_id(kernel, "matched"), "REL.join"))
-    values.push((nest_generated_id(kernel, "children"), "REL.select"))
-    if !kernel.inherited_order && !kernel.order.is_empty() {
-      values.push((nest_generated_id(kernel, "ordered"), "REL.orderByStable"))
-    }
-    values.push((nest_generated_id(kernel, "grouped"), "REL.groupBy"))
-    values.push((nest_generated_id(kernel, "none"), "REL.where"))
-    values.push((nest_generated_id(kernel, "empty"), "REL.groupBy"))
-    values.push((nest_generated_id(kernel, "attached"), "REL.join"))
-    values.push((nest_generated_id(kernel, "parents"), "REL.select"))
-    values.push((nest_generated_id(kernel, "empty_attached"), "REL.join"))
-    values.push((nest_generated_id(kernel, "flat"), "REL.select"))
-    values.push((nest_generated_id(kernel, "filled"), "REL.derive"))
-    values.push((node.id, "REL.select"))
-    return values
+    return kernel.expansion
       .get(index)
-      .map(value => { source_step: step, id: value.0, operation: value.1, })
+      .map(expanded => {
+        source_step: step,
+        id: if expanded.source_node {
+          node.id
+        } else {
+          nest_generated_id(kernel, expanded.role)
+        },
+        operation: expanded.operation,
+      })
   }
   let mut remaining = index
   if node.aggregation_id is Some(id) {

@@ -46,6 +46,37 @@ fn nest_sequence(max_items : Int) -> GeneratedSequence raise {
 }
 
 ///|
+fn authored_order_nest_sequence() -> GeneratedSequence raise {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"key\":1}]},\"as\":\"parents\"}," +
+    "{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false},\"position\":{\"type\":\"number\",\"nullable\":false},\"value\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"key\":1,\"position\":0,\"value\":2},{\"key\":1,\"position\":1,\"value\":1},{\"key\":1,\"position\":2,\"value\":1}]},\"as\":\"children\"}," +
+    "{\"from\":\"parents\",\"nest\":{\"with\":\"children\",\"on\":[{\"left\":\"key\",\"right\":\"key\"}],\"into\":\"items\",\"fields\":[{\"amount\":\"value\"},{\"position\":\"position\"}],\"order_by\":[{\"value\":\"asc\"}],\"max_items\":3},\"as\":\"nested\"}]",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["nest_2"],
+    100000,
+    10000,
+  ).unwrap()
+  let grouped = constrain_generated_aggregate_output(
+    generated,
+    2,
+    "items",
+    NestGroupedBytes,
+    10000L,
+  ).unwrap()
+  constrain_generated_aggregate_output(
+    grouped,
+    2,
+    "items",
+    NestAttachedBytes,
+    10000L,
+  ).unwrap()
+}
+
+///|
 fn nest_sibling_sequence(attached_bytes : Int64) -> GeneratedSequence raise {
   let source =
     #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"meta":{"type":"object","nullable":false,"fields":{"tag":{"type":"string","nullable":false}}}},"rows":[{"id":1,"key":1,"meta":{"tag":"x"}},{"id":2,"key":2,"meta":{"tag":"long"}}]},"as":"parents"},{"values":{"schema":{"key":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"value":10}]},"as":"children"},{"from":"parents","nest":{"with":"children","on":[{"left":"key","right":"key"}],"into":"items","fields":[{"amount":"value"}],"max_items":1},"as":"nested"}]
@@ -121,6 +152,32 @@ test "nest preserves parents child order NULL keys and empty arrays" {
   assert_true(second[1] is Number(10))
   assert_true(nested_amounts(table.rows[2]).is_empty())
   assert_true(nested_amounts(table.rows[3]).is_empty())
+}
+
+///|
+test "nest authored order sorts values and preserves inherited ties" {
+  let completed = execute_generated_sequence(
+    authored_order_nest_sequence(),
+    [],
+    { rows: run_limits(), max_work: 100000, max_frames: 100, },
+  ).unwrap()
+  let table = test_row_output(completed_output(completed, Step(2)).unwrap())
+  assert_eq(table.rows.length(), 1)
+  guard table.rows[0][1] is Captured(@admitted.Array(items)) else {
+    fail("nested array")
+  }
+  let expected = [(1.0, 1.0), (1.0, 2.0), (2.0, 0.0)]
+  assert_eq(@admitted.element_count(items), expected.length())
+  for index in 0..<expected.length() {
+    guard @admitted.element_at(items, index) is Some(@admitted.Object(fields)) &&
+      @admitted.element_at(fields, 0)
+      is Some(("amount", @admitted.Number(amount))) &&
+      @admitted.element_at(fields, 1)
+      is Some(("position", @admitted.Number(position))) else {
+      fail("nested ordered object")
+    }
+    assert_eq((amount, position), expected[index])
+  }
 }
 
 ///|

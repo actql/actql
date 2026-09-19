@@ -30,6 +30,175 @@ priv struct PreparedNestReference {
 }
 
 ///|
+/// One node in the registered finite expansion of a nest occurrence.
+priv struct PreparedNestExpansionNode {
+  role : String
+  operation : String
+  inputs : Int
+  source_node : Bool
+} derive(Eq)
+
+///|
+fn nest_generated_role_id(step : Int, role : String) -> String {
+  "nest_" + role + "_" + step.to_string()
+}
+
+///|
+fn prepare_source_nest_expansion(
+  owner : @pipeline.CheckedPipeline,
+  step : Int,
+  checked : @nest.CheckedNest,
+) -> Array[PreparedNestExpansionNode] {
+  let ordered = match
+    @pipeline.resolve_nest_order(
+      owner,
+      step,
+      max_work=2147483647,
+      max_text_bytes=2147483647,
+    ) {
+    Ok(resolved) =>
+      @pipeline.nest_order_strategy(resolved) != @pipeline.Inherited &&
+      @pipeline.nest_order_term_count(resolved) > 0
+    Err(_) => @nest.order_count(checked) is Some(_)
+  }
+  prepare_nest_expansion(
+    nest_schema_has_references(@nest.input_schema(checked, @schema.Left)),
+    nest_schema_has_references(@nest.input_schema(checked, @schema.Right)),
+    ordered,
+  )
+}
+
+///|
+fn prepare_nest_expansion(
+  parent_references : Bool,
+  child_references : Bool,
+  ordered : Bool,
+) -> Array[PreparedNestExpansionNode] {
+  let nodes : Array[PreparedNestExpansionNode] = []
+  if parent_references {
+    nodes.push({
+      role: "parent_refs",
+      operation: "REL.derive",
+      inputs: 1,
+      source_node: false,
+    })
+  }
+  if child_references {
+    nodes.push({
+      role: "child_refs",
+      operation: "REL.derive",
+      inputs: 1,
+      source_node: false,
+    })
+  }
+  nodes.push({
+    role: "matched",
+    operation: "REL.join",
+    inputs: 2,
+    source_node: false,
+  })
+  nodes.push({
+    role: "children",
+    operation: "REL.select",
+    inputs: 1,
+    source_node: false,
+  })
+  if ordered {
+    nodes.push({
+      role: "ordered",
+      operation: "REL.orderByStable",
+      inputs: 1,
+      source_node: false,
+    })
+  }
+  nodes.push({
+    role: "grouped",
+    operation: "REL.groupBy",
+    inputs: 1,
+    source_node: false,
+  })
+  nodes.push({
+    role: "none",
+    operation: "REL.where",
+    inputs: 1,
+    source_node: false,
+  })
+  nodes.push({
+    role: "empty",
+    operation: "REL.groupBy",
+    inputs: 1,
+    source_node: false,
+  })
+  nodes.push({
+    role: "attached",
+    operation: "REL.join",
+    inputs: 2,
+    source_node: false,
+  })
+  nodes.push({
+    role: "parents",
+    operation: "REL.select",
+    inputs: 1,
+    source_node: false,
+  })
+  nodes.push({
+    role: "empty_attached",
+    operation: "REL.join",
+    inputs: 2,
+    source_node: false,
+  })
+  nodes.push({
+    role: "flat",
+    operation: "REL.select",
+    inputs: 1,
+    source_node: false,
+  })
+  nodes.push({
+    role: "filled",
+    operation: "REL.derive",
+    inputs: 1,
+    source_node: false,
+  })
+  nodes.push({
+    role: "",
+    operation: "REL.select",
+    inputs: 1,
+    source_node: true,
+  })
+  nodes
+}
+
+///|
+fn nest_expansion_reference_count(
+  expansion : Array[PreparedNestExpansionNode],
+) -> Int {
+  let mut count = 0
+  for node in expansion {
+    count += node.inputs
+  }
+  count
+}
+
+///|
+fn nest_expansion_has_role(
+  expansion : Array[PreparedNestExpansionNode],
+  role : String,
+) -> Bool {
+  expansion.any(node => node.role == role)
+}
+
+///|
+fn nest_schema_has_references(schema : @schema.Schema) -> Bool {
+  for index in 0..<@schema.field_count(schema) {
+    match @schema.field_at(schema, index).unwrap().contract.shape {
+      @contract.ResourceRef(..) | @contract.ArtifactRef(..) => return true
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
 /// Complete owner-bound nest input. This view resolves the checked order and
 /// authored guard once; execution never reopens author source.
 struct PreparedNestKernel {
@@ -42,6 +211,7 @@ struct PreparedNestKernel {
   parent_references : Array[PreparedNestReference]
   child_references : Array[PreparedNestReference]
   inherited_order : Bool
+  expansion : Array[PreparedNestExpansionNode]
   item_limit : Int64?
 }
 
@@ -207,6 +377,16 @@ pub fn prepare_nest_kernel(
     order_count +
     parent_references.length() +
     child_references.length()
+  let order_strategy = @pipeline.nest_order_strategy(resolved)
+  let expansion = prepare_nest_expansion(
+    !parent_references.is_empty(),
+    !child_references.is_empty(),
+    order_strategy != @pipeline.Inherited && !order.is_empty(),
+  )
+  guard node.nest_expansion is Some(prepared_expansion) &&
+    prepared_expansion == expansion else {
+    return Err(InvalidNestWiring)
+  }
   Ok(
     (
       {
@@ -219,6 +399,7 @@ pub fn prepare_nest_kernel(
         parent_references,
         child_references,
         inherited_order: @pipeline.nest_order_inherited(resolved) is Some(_),
+        expansion,
         item_limit,
       },
       entries,

@@ -1,6 +1,6 @@
 ///|
 fn nest_generated_id(kernel : PreparedNestKernel, role : String) -> String {
-  "nest_" + role + "_" + kernel.step.to_string()
+  nest_generated_role_id(kernel.step, role)
 }
 
 ///|
@@ -341,7 +341,7 @@ pub fn emit_nest_kernel(
   @encode.end_object(out)
 
   let mut ordered = selected
-  if !kernel.inherited_order && !kernel.order.is_empty() {
+  if nest_expansion_has_role(kernel.expansion, "ordered") {
     ordered = nest_generated_id(kernel, "ordered")
     begin_nest_node(out, ordered, [selected], "REL.orderByStable")
     @encode.begin_object(out)

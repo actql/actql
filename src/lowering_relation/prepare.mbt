@@ -15,6 +15,7 @@ struct PreparedNode {
   projection_id : String?
   order_id : String?
   aggregation_id : String?
+  nest_expansion : Array[PreparedNestExpansionNode]?
   payload : Payload
   inputs : Array[String]
   input_targets : Array[@pipeline.Target]
@@ -340,6 +341,39 @@ pub fn prepare(
         )
     }
     let id = preferred + "_" + i.to_string()
+    let nest_expansion = match payload {
+      NestRows(nest) => Some(prepare_source_nest_expansion(checked, i, nest))
+      _ => None
+    }
+    if nest_expansion is Some(expansion) {
+      let expanded_nodes = expansion.length()
+      let expanded_references = nest_expansion_reference_count(expansion)
+      let added_nodes = expanded_nodes - 1
+      let added_references = expanded_references - arity
+      if added_nodes > limits.max_nodes - count - inputs - expansions ||
+        added_references > limits.max_references - references ||
+        added_nodes > limits.max_work - work ||
+        added_references > limits.max_work - work - added_nodes {
+        return Err({ kind: BudgetExceeded, source: step.source, })
+      }
+      for expansion_node in expansion {
+        if expansion_node.source_node {
+          continue
+        }
+        let generated = nest_generated_role_id(i, expansion_node.role)
+        if used.contains(generated) || generated == id {
+          return Err({ kind: IdentifierCollision, source: step.source, })
+        }
+        if generated.length() > limits.max_identifier_bytes - bytes {
+          return Err({ kind: BudgetExceeded, source: step.source, })
+        }
+        bytes += generated.length()
+        used[generated] = true
+      }
+      expansions += added_nodes
+      references += added_references
+      work += added_nodes + added_references
+    }
     let projection_id = match payload {
       InnerJoin(_) => {
         if expansions >= limits.max_nodes - count - inputs ||
@@ -501,6 +535,7 @@ pub fn prepare(
       projection_id,
       order_id,
       aggregation_id,
+      nest_expansion,
       payload,
       inputs: refs,
       input_targets,
