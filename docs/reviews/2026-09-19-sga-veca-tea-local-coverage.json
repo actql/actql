@@ -26,12 +26,14 @@
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
   "shared_gaps": [
-    "canonical_aoa_inventory",
     "ordered_typed_task_inputs",
     "carrier_aware_completion",
     "bounded_step_execution",
     "cancellation_delivery_and_stop",
     "family_artifact_isolation"
+  ],
+  "shared_completed": [
+    "canonical_aoa_inventory"
   ],
   "operations": [
     {

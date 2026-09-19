@@ -199,7 +199,8 @@
   },
   "SGA.apply_delta": {
     "inputs": [
-      "graph"
+      "graph",
+      "relation"
     ],
     "output": "graph"
   },
@@ -218,10 +219,10 @@
     "output": "graph"
   },
   "SGA.union_structural": {
-    "inputs": [
-      "graph",
-      "graph"
-    ],
+    "finite_inputs": {
+      "repeated_input": "graph",
+      "minimum_inputs": 2
+    },
     "output": "graph"
   },
   "SGA.diff_structural": {
@@ -244,15 +245,31 @@
     "output": "relation"
   },
   "SGA.traverse": {
-    "inputs": [
-      "graph",
-      "relation"
+    "input_alternatives": [
+      [
+        "graph"
+      ],
+      [
+        "graph",
+        "relation"
+      ]
     ],
     "output": "relation"
   },
   "SGA.shortest_path": {
-    "inputs": [
-      "graph"
+    "input_alternatives": [
+      [
+        "graph"
+      ],
+      [
+        "graph",
+        "relation"
+      ],
+      [
+        "graph",
+        "relation",
+        "relation"
+      ]
     ],
     "output": "relation"
   },
@@ -261,6 +278,32 @@
       "graph"
     ],
     "output": "relation"
+  },
+  "SGA.subgraph": {
+    "input_alternatives": [
+      [
+        "graph"
+      ],
+      [
+        "graph",
+        "relation"
+      ]
+    ],
+    "output": "graph"
+  },
+  "SGA.equal": {
+    "inputs": [
+      "graph",
+      "graph"
+    ],
+    "output": "relation"
+  },
+  "SGA.mean_structural": {
+    "finite_inputs": {
+      "repeated_input": "graph",
+      "minimum_inputs": 1
+    },
+    "output": "graph"
   },
   "TEA.window.fixed_label": {
     "inputs": [
@@ -305,6 +348,17 @@
     ],
     "output": "relation"
   },
+  "TEA.time_series": {
+    "inputs": [],
+    "output": "relation"
+  },
+  "TEA.join.interval": {
+    "inputs": [
+      "relation",
+      "relation"
+    ],
+    "output": "relation"
+  },
   "VEC.normalize_l2": {
     "inputs": [
       "vector_set"
@@ -331,10 +385,24 @@
     "output": "vector_set"
   },
   "VEC.merge_rankings": {
-    "inputs": [
-      "relation",
-      "relation"
-    ],
+    "policy_inputs": {
+      "max": {
+        "inputs": [
+          "relation",
+          "relation"
+        ]
+      },
+      "weighted_sum": {
+        "inputs": [
+          "relation",
+          "relation"
+        ]
+      },
+      "rrf": {
+        "repeated_input": "relation",
+        "minimum_inputs": 2
+      }
+    },
     "output": "relation"
   },
   "BRIDGE.graph.to_edge_rows": {

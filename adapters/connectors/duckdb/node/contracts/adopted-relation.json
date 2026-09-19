@@ -1,6 +1,6 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:6ec08692f3ccb05427f999dca6fb7f7990dca425a480ee464a9f8bc2c4c7e496",
+  "registry_cid": "sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c",
   "values_cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44",
   "fragment_cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60",
   "registry": {
@@ -204,7 +204,8 @@
     },
     "SGA.apply_delta": {
       "inputs": [
-        "graph"
+        "graph",
+        "relation"
       ],
       "output": "graph"
     },
@@ -223,10 +224,10 @@
       "output": "graph"
     },
     "SGA.union_structural": {
-      "inputs": [
-        "graph",
-        "graph"
-      ],
+      "finite_inputs": {
+        "repeated_input": "graph",
+        "minimum_inputs": 2
+      },
       "output": "graph"
     },
     "SGA.diff_structural": {
@@ -249,15 +250,31 @@
       "output": "relation"
     },
     "SGA.traverse": {
-      "inputs": [
-        "graph",
-        "relation"
+      "input_alternatives": [
+        [
+          "graph"
+        ],
+        [
+          "graph",
+          "relation"
+        ]
       ],
       "output": "relation"
     },
     "SGA.shortest_path": {
-      "inputs": [
-        "graph"
+      "input_alternatives": [
+        [
+          "graph"
+        ],
+        [
+          "graph",
+          "relation"
+        ],
+        [
+          "graph",
+          "relation",
+          "relation"
+        ]
       ],
       "output": "relation"
     },
@@ -266,6 +283,32 @@
         "graph"
       ],
       "output": "relation"
+    },
+    "SGA.subgraph": {
+      "input_alternatives": [
+        [
+          "graph"
+        ],
+        [
+          "graph",
+          "relation"
+        ]
+      ],
+      "output": "graph"
+    },
+    "SGA.equal": {
+      "inputs": [
+        "graph",
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.mean_structural": {
+      "finite_inputs": {
+        "repeated_input": "graph",
+        "minimum_inputs": 1
+      },
+      "output": "graph"
     },
     "TEA.window.fixed_label": {
       "inputs": [
@@ -310,6 +353,17 @@
       ],
       "output": "relation"
     },
+    "TEA.time_series": {
+      "inputs": [],
+      "output": "relation"
+    },
+    "TEA.join.interval": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
     "VEC.normalize_l2": {
       "inputs": [
         "vector_set"
@@ -336,10 +390,24 @@
       "output": "vector_set"
     },
     "VEC.merge_rankings": {
-      "inputs": [
-        "relation",
-        "relation"
-      ],
+      "policy_inputs": {
+        "max": {
+          "inputs": [
+            "relation",
+            "relation"
+          ]
+        },
+        "weighted_sum": {
+          "inputs": [
+            "relation",
+            "relation"
+          ]
+        },
+        "rrf": {
+          "repeated_input": "relation",
+          "minimum_inputs": 2
+        }
+      },
       "output": "relation"
     },
     "BRIDGE.graph.to_edge_rows": {

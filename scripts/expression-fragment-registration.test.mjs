@@ -16,7 +16,7 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:6ec08692f3ccb05427f999dca6fb7f7990dca425a480ee464a9f8bc2c4c7e496';
+  'sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c';
 const contractCid = 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
@@ -39,7 +39,7 @@ function resolve(body, selected, owner = aoa, expr = expressions) {
 test('extensions preserve historical primitives except explicitly revised values resources', () => {
   assert.equal(cid(historical), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
   assert.equal(cid(registry), currentCid);
-  assert.equal(Object.keys(registry).length, 63);
+  assert.equal(Object.keys(registry).length, 68);
   const {[op]: added, ...rest} = registry;
   const retained=structuredClone(rest);
   delete retained['REL.derive'].execution_extensions;
@@ -47,6 +47,20 @@ test('extensions preserve historical primitives except explicitly revised values
   delete retained['REL.intersect_rows'];
   delete retained['REL.cross_join'];
   delete retained['REL.analytic'];
+  for (const operation of [
+    'SGA.subgraph',
+    'SGA.equal',
+    'SGA.mean_structural',
+    'TEA.time_series',
+    'TEA.join.interval',
+  ]) delete retained[operation];
+  for (const operation of [
+    'SGA.apply_delta',
+    'SGA.union_structural',
+    'SGA.traverse',
+    'SGA.shortest_path',
+    'VEC.merge_rankings',
+  ]) retained[operation] = historical[operation];
   assert.equal(retained['REL.values'].execution_contract.cid,
     cid(aoa.execution_contracts['REL.values']));
   assert.notEqual(retained['REL.values'].execution_contract.cid,

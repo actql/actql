@@ -7895,10 +7895,11 @@ Registration/implementation status is not a different source meaning.
 
 Each added single-output operation lowers to exactly one node with the mapped
 operation ID, the usual generated step ID, ordered input references and closed
-parameters. `union_graphs` with a list is the exception: emit the binary
-union nodes as a left fold, using generated operation-local suffixes 0..n-1;
-even laws allowing physical reassociation do not change this canonical fold.
-No physical indexes, hash tables, runtime batch partition or evaluator caches
+parameters. Finite-list operations retain every authored input position in
+that one occurrence. Repeated references are not deduplicated. A kernel may
+fold or parallelize the ordered inputs only when it preserves the specified
+result, order, representative failure, numerical law and accounting. No
+physical indexes, hash tables, runtime batch partition or evaluator caches
 appear in this graph. Existing bridge lowering remains as specified above.
 
 Input references are current input first, then with for binary operations;
@@ -7940,7 +7941,7 @@ members specified above. Selector `where` and `ids` variants remain unchanged.
 | text_rank | queries | [C, queries] | remove queries |
 | subgraph | nodes.from when present | [C, nodes.from] or [C] | nodes becomes {input_port: 1, id} for Relation selector |
 | shortest_path | source.from, target.from when present | C, then source Relation, then target Relation | replace each Relation selector with {input_port: assigned index, id} |
-| union_graphs list | with list | binary node i takes previous fold result and with[i] | remove with from each binary node |
+| union_graphs list | with list | [C, ...with] | remove with |
 | values, time_series, calendar_series | none | [] | retain remaining body |
 | analytic, calendar_bucket | none beyond current | [C] | retain body |
 
@@ -7948,11 +7949,9 @@ Non-RRF ranking merge retains its existing binary lowering. Search is a typed
 barrier, not a node in this table: source resolves the static acquisition
 template, query_input binds the selected current/query Relation, and outputs
 binds publication ports rather than algebra inputs.
-Union node IDs are `<operation-base>_union_<i>` with zero-based i; allocate the
-operation-base once by the ordinary collision-checked allocator for that step.
-Only the final node receives the authored output binding. Two union steps
-therefore never restart a shared global suffix namespace. The source list's
-singleton and scalar forms have the same one-node expansion.
+The scalar and singleton-list union forms have the same one-node occurrence
+shape. The complete ordered input list, rather than an implementation's fold
+tree or scheduling choice, participates in canonical identity.
 
 Expression pointers are relative to the canonical node's params: analytic
 `/functions/<escaped-name>/expr` and `/functions/<escaped-name>/filter` use the
@@ -9582,7 +9581,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:1d685ba83af1d22f904b79318b3867ce13d0be7e359be4c4b52c82949692d31b
+../../spec/contracts/actql-aoa.json# sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

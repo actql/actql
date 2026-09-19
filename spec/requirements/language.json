@@ -7066,7 +7066,7 @@
     },
     {
       "requirement_id": "actql.language/operation-binding.input-ports",
-      "statement_sha256": "87d294ebc5464aa3144ba1e147984b72212de33377d68e04b601b8b92c02d711",
+      "statement_sha256": "f62f3b95ab6e2c8fb59b11ad88b18d707e2f9470e00e0cd1206ed1c63b79423d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8067,7 +8067,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "2c617b26cb684ea5b8cf555a3fd298eb085d65ed551f9ff29a7636339767420a",
+      "statement_sha256": "7d76c188beb235749b95e1aae25c9fafbeaf42bfb42d03e8a35c4acc9a6c57d3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

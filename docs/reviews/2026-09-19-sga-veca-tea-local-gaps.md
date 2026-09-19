@@ -9,7 +9,7 @@ readable coverage manifest is authoritative for individual operation status.
 
 | Area | Baseline state | Required closure |
 |---|---|---|
-| Canonical AoA | Five normative operations are absent and several arities disagree with the language contract | Reconcile operation IDs, Carrier signatures, ordered inputs, parameters, obligations, laws, CIDs, and pins |
+| Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | SGA, VecA, TEA, Bridge, and vector scalar expressions are rejected as unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Task inputs are limited to ports zero and one | Use ordered typed edges through planning, dispatch, cancellation, and cleanup |
 | Completion | Managed output is Relation-shaped | One Carrier-aware lifecycle with typed Carrier views |
@@ -19,10 +19,10 @@ readable coverage manifest is authoritative for individual operation status.
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | Existing Effect-free path accepts ordered Relations | Connect every new Relation result and Carrier projection through that path |
 
-## Normative contract mismatches
+## Closed normative contract mismatches
 
-The language maps the following canonical operations, but the pinned pipeline
-registry does not contain them:
+The selected pipeline registry now contains the five previously absent
+canonical operations:
 
 - `SGA.subgraph`
 - `SGA.equal`
@@ -30,18 +30,18 @@ registry does not contain them:
 - `TEA.time_series`
 - `TEA.join.interval`
 
-The baseline registry also has incompatible fixed arities for these formal
-source shapes:
+The selected registry now represents the following source shapes without
+forcing an incompatible fixed arity:
 
 - graph traversal with an optional selector Relation
 - shortest path with up to two selector Relations
 - reciprocal-rank fusion with a nonempty finite Relation list
 
-The canonical lowering text still describes `union_graphs` as a generated
-binary fold. The accepted design instead retains the authored finite list as
-one typed occurrence and allows a physical fold only when it preserves the
-registered order, failure, numeric, identity, and accounting laws. Resolve
-this normative conflict before implementing either path.
+Canonical `union_graphs` retains the authored finite list as one typed
+occurrence. A physical fold remains an implementation choice only when it
+preserves the registered order, failure, numeric, identity, and accounting
+laws. Independent vectors retain repeated input positions and reject a
+canonical binary fold tree.
 
 ## Family execution gaps
 

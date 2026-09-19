@@ -18,7 +18,7 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:6ec08692f3ccb05427f999dca6fb7f7990dca425a480ee464a9f8bc2c4c7e496');
+    'sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
@@ -35,6 +35,20 @@ test('current registry and historical preimages keep distinct identities', () =>
   delete primitive['REL.intersect_rows'];
   delete primitive['REL.cross_join'];
   delete primitive['REL.analytic'];
+  for (const operation of [
+    'SGA.subgraph',
+    'SGA.equal',
+    'SGA.mean_structural',
+    'TEA.time_series',
+    'TEA.join.interval',
+  ]) delete primitive[operation];
+  for (const operation of [
+    'SGA.apply_delta',
+    'SGA.union_structural',
+    'SGA.traverse',
+    'SGA.shortest_path',
+    'VEC.merge_rankings',
+  ]) primitive[operation] = valuesRegistry[operation];
   primitive['REL.values'] = valuesRegistry['REL.values'];
   assert.deepEqual(primitive, valuesRegistry);
   assert.equal(cid(fixtures.registry), 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a');

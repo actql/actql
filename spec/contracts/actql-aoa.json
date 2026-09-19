@@ -25,8 +25,80 @@
   "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:6ec08692f3ccb05427f999dca6fb7f7990dca425a480ee464a9f8bc2c4c7e496",
+  "pipeline_registry_cid": "sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
+  "local_family_execution_profile": {
+    "version": "actql-local-family-execution/0.1",
+    "source_contract": "actql-protocol-schema-registry/0.1",
+    "registry_operations": [
+      "SGA.normalize",
+      "SGA.match_nodes",
+      "SGA.match_edges",
+      "SGA.traverse",
+      "SGA.shortest_path",
+      "SGA.components",
+      "SGA.reachable",
+      "SGA.bounds_check",
+      "SGA.degree_metrics",
+      "SGA.diff",
+      "SGA.graft",
+      "SGA.union_structural",
+      "SGA.diff_structural",
+      "SGA.subgraph",
+      "SGA.equal",
+      "SGA.apply_delta",
+      "SGA.mean_structural",
+      "TEA.window.fixed_label",
+      "TEA.window.sliding_assign",
+      "TEA.watermark.label",
+      "TEA.window.session_assign",
+      "TEA.time_series",
+      "TEA.join.interval",
+      "TEA.dedupe",
+      "TEA.join.asof",
+      "TEA.sequence.match",
+      "VEC.normalize_l2",
+      "VEC.score_sort",
+      "VEC.knn_join",
+      "VEC.pool",
+      "VEC.merge_rankings",
+      "BRIDGE.rows.to_graph",
+      "BRIDGE.graph.to_node_rows",
+      "BRIDGE.graph.to_edge_rows",
+      "BRIDGE.rows.to_events",
+      "BRIDGE.events.to_rows",
+      "BRIDGE.rows.to_vectors",
+      "BRIDGE.vectors.to_rows"
+    ],
+    "input_contract": {
+      "ordered": true,
+      "retain_repeated_positions": true,
+      "finite_list_is_one_occurrence": true,
+      "input_position_is_not_producer_port": true
+    },
+    "parameter_contract": {
+      "closed_checked_source_bodies": true,
+      "remove_bound_input_references": true,
+      "preserve_authored_list_order": true,
+      "no_runtime_layout_members": true
+    },
+    "required_obligations": [
+      "typed_carrier_admission",
+      "exact_input_binding",
+      "operation_parameter_admission",
+      "semantic_failure_order",
+      "logical_resource_accounting",
+      "physical_capacity_admission",
+      "managed_generation_lifetime"
+    ],
+    "law_manifest_cids": {
+      "pipeline": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
+      "relation": "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2",
+      "vector_numeric": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
+      "graph_structural": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
+      "graph_identity": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
+    }
+  },
   "target_registry_requirements": {
     "REL.values": {
       "inputs": [],
@@ -116,6 +188,39 @@
       ],
       "output": "relation"
     },
+    "SGA.union_structural": {
+      "finite_inputs": {
+        "repeated_input": "graph",
+        "minimum_inputs": 2
+      },
+      "output": "graph"
+    },
+    "SGA.subgraph": {
+      "input_alternatives": [
+        [
+          "graph"
+        ],
+        [
+          "graph",
+          "relation"
+        ]
+      ],
+      "output": "graph"
+    },
+    "SGA.equal": {
+      "inputs": [
+        "graph",
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.mean_structural": {
+      "finite_inputs": {
+        "repeated_input": "graph",
+        "minimum_inputs": 1
+      },
+      "output": "graph"
+    },
     "TEA.window.session_assign": {
       "inputs": [
         "event_stream"
@@ -138,6 +243,17 @@
     "TEA.sequence.match": {
       "inputs": [
         "event_stream"
+      ],
+      "output": "relation"
+    },
+    "TEA.time_series": {
+      "inputs": [],
+      "output": "relation"
+    },
+    "TEA.join.interval": {
+      "inputs": [
+        "relation",
+        "relation"
       ],
       "output": "relation"
     },
