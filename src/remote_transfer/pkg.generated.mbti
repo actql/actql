@@ -13,6 +13,8 @@ pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, I
 
 pub fn admit_request_json(String, String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
+pub fn commit_store_use_transition(RemoteTransferStoreUseTransition, Bool) -> Result[RemoteTransferStoreUseRecord, RemoteTransferIssue]
+
 pub fn commit_transition(RemoteTransferTransition, Bool) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
 pub fn destination_receipt_cid(RemoteTransferDestinationReceipt) -> String
@@ -22,6 +24,8 @@ pub fn destination_receipt_json(RemoteTransferDestinationReceipt) -> Result[Stri
 pub fn destination_receipt_projection(RemoteTransferDestinationReceipt) -> Array[String]
 
 pub fn open_record(RemoteTransferRequest) -> RemoteTransferRecord
+
+pub fn open_store_use(RemoteTransferStoreUse) -> RemoteTransferStoreUseRecord
 
 pub fn prepare_cleanup(RemoteTransferRecord, Bool, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
 
@@ -36,6 +40,20 @@ pub fn prepare_request(String, String, RemoteTransferRoute, String, Int, String,
 pub fn prepare_source_settled(RemoteTransferRecord, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
 
 pub fn prepare_start(RemoteTransferRecord) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn prepare_store_use(RemoteTransferRequest, String) -> Result[RemoteTransferStoreUse, RemoteTransferIssue]
+
+pub fn prepare_store_use_cleanup(RemoteTransferStoreUseRecord) -> Result[RemoteTransferStoreUseTransition, RemoteTransferIssue]
+
+pub fn prepare_store_use_complete(RemoteTransferStoreUseRecord, RemoteTransferDestinationReceipt) -> Result[RemoteTransferStoreUseTransition, RemoteTransferIssue]
+
+pub fn prepare_store_use_failure(RemoteTransferStoreUseRecord, Bool) -> Result[RemoteTransferStoreUseTransition, RemoteTransferIssue]
+
+pub fn prepare_store_use_progress(RemoteTransferStoreUseRecord, Int, Int64) -> Result[RemoteTransferStoreUseTransition, RemoteTransferIssue]
+
+pub fn prepare_store_use_start(RemoteTransferStoreUseRecord) -> Result[RemoteTransferStoreUseTransition, RemoteTransferIssue]
+
+pub fn prepare_store_use_unknown(RemoteTransferStoreUseRecord) -> Result[RemoteTransferStoreUseTransition, RemoteTransferIssue]
 
 pub fn prepare_unknown(RemoteTransferRecord) -> Result[RemoteTransferTransition, RemoteTransferIssue]
 
@@ -64,6 +82,18 @@ pub fn request_projection(RemoteTransferRequest) -> Array[String]
 pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
 
 pub fn restore_record(RemoteTransferRequest, Array[Int]) -> Result[RemoteTransferRecord, RemoteTransferIssue]
+
+pub fn restore_store_use_record(RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> Result[RemoteTransferStoreUseRecord, RemoteTransferIssue]
+
+pub fn store_use_cid(RemoteTransferStoreUse) -> String
+
+pub fn store_use_projection(RemoteTransferStoreUse) -> Array[String]
+
+pub fn store_use_record_projection(RemoteTransferStoreUseRecord) -> Array[String]
+
+pub fn store_use_transition_journal_key(RemoteTransferStoreUseTransition) -> Array[String]
+
+pub fn store_use_transition_projection(RemoteTransferStoreUseTransition) -> (Array[String], Array[String])
 
 pub fn transition_journal_key(RemoteTransferTransition) -> Array[String]
 
@@ -119,6 +149,26 @@ pub(all) enum RemoteTransferRoute {
   DirectStream
   TransferStore
 } derive(Eq, @debug.Debug)
+
+type RemoteTransferStoreUse
+
+pub(all) enum RemoteTransferStoreUseCleanupState {
+  StoreUseCleanupActive
+  StoreUseCleanupReleased
+  StoreUseCleanupUnknown
+} derive(Eq, @debug.Debug)
+
+type RemoteTransferStoreUseRecord
+
+pub(all) enum RemoteTransferStoreUseState {
+  StoreUseAdmitted
+  StoreUseReading
+  StoreUseCompleted
+  StoreUseFailed
+  StoreUseUnknown
+} derive(Eq, @debug.Debug)
+
+type RemoteTransferStoreUseTransition
 
 type RemoteTransferTransition
 

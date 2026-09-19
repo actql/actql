@@ -580,6 +580,36 @@ pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTr
 
 pub fn strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
+pub fn strategy_remote_transfer_store_use_cleanup_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_complete_prepare(@remote_transfer.RemoteTransferStoreUseRecord, @remote_transfer.RemoteTransferDestinationReceipt) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_failure_prepare(@remote_transfer.RemoteTransferStoreUseRecord, Bool) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_identity(@remote_transfer.RemoteTransferStoreUse) -> String
+
+pub fn strategy_remote_transfer_store_use_open(@remote_transfer.RemoteTransferStoreUse) -> @remote_transfer.RemoteTransferStoreUseRecord
+
+pub fn strategy_remote_transfer_store_use_prepare(@remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferStoreUse raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_progress_prepare(@remote_transfer.RemoteTransferStoreUseRecord, Int, Int64) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_projection(@remote_transfer.RemoteTransferStoreUse) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_record_projection(@remote_transfer.RemoteTransferStoreUseRecord) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_record_restore(@remote_transfer.RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_start_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_transition_commit(@remote_transfer.RemoteTransferStoreUseTransition, Bool) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_transition_journal_key(@remote_transfer.RemoteTransferStoreUseTransition) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_transition_projection(@remote_transfer.RemoteTransferStoreUseTransition) -> (Array[String], Array[String])
+
+pub fn strategy_remote_transfer_store_use_unknown_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
 pub fn strategy_remote_transfer_transition_commit(@remote_transfer.RemoteTransferTransition, Bool) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
 
 pub fn strategy_remote_transfer_transition_journal_key(@remote_transfer.RemoteTransferTransition) -> Array[String]

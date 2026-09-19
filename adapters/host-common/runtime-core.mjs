@@ -636,6 +636,78 @@ function remoteTransferControl(moon) {
       )),
     destinationReceiptProjection:
       moon.strategyRemoteTransferDestinationReceiptProjection,
+    storeUse: Object.freeze({
+      prepare: (request, useId) => checked(
+        moon.strategyRemoteTransferStoreUsePrepare(request, useId),
+      ),
+      identity: moon.strategyRemoteTransferStoreUseIdentity,
+      projection: moon.strategyRemoteTransferStoreUseProjection,
+      open: moon.strategyRemoteTransferStoreUseOpen,
+      prepareStart: record => checked(
+        moon.strategyRemoteTransferStoreUseStartPrepare(record),
+      ),
+      prepareProgress: (record, confirmedChunks, confirmedBytes) => checked(
+        moon.strategyRemoteTransferStoreUseProgressPrepare(
+          record,
+          confirmedChunks,
+          int64(confirmedBytes, 'confirmed Store use bytes'),
+        ),
+      ),
+      prepareComplete: (record, receipt) => checked(
+        moon.strategyRemoteTransferStoreUseCompletePrepare(record, receipt),
+      ),
+      prepareFailure: (record, readerStopped) => checked(
+        moon.strategyRemoteTransferStoreUseFailurePrepare(
+          record,
+          readerStopped,
+        ),
+      ),
+      prepareUnknown: record => checked(
+        moon.strategyRemoteTransferStoreUseUnknownPrepare(record),
+      ),
+      prepareCleanup: record => checked(
+        moon.strategyRemoteTransferStoreUseCleanupPrepare(record),
+      ),
+      transitionProjection: transition => tuplePair(
+        moon.strategyRemoteTransferStoreUseTransitionProjection(transition),
+      ),
+      transitionKey:
+        moon.strategyRemoteTransferStoreUseTransitionJournalKey,
+      commitTransition: (transition, durable) => checked(
+        moon.strategyRemoteTransferStoreUseTransitionCommit(
+          transition,
+          durable,
+        ),
+      ),
+      recordProjection: moon.strategyRemoteTransferStoreUseRecordProjection,
+      restore: (storeUse, state) => {
+        if (!Array.isArray(state) || state.length !== 7 ||
+            state.some(value => typeof value !== 'string') ||
+            !/^(0|[1-9][0-9]*)$/.test(state[0]) ||
+            !/^[0-4]$/.test(state[1]) || !/^[0-2]$/.test(state[2]) ||
+            !/^(0|[1-9][0-9]*)$/.test(state[3]) ||
+            !/^(0|[1-9][0-9]*)$/.test(state[4]) ||
+            !/^[01]$/.test(state[5])) {
+          throw new TypeError('Invalid Remote Transfer Store use state');
+        }
+        const revision = Number(state[0]);
+        const confirmedChunks = Number(state[3]);
+        if (!Number.isSafeInteger(revision) ||
+            !Number.isSafeInteger(confirmedChunks)) {
+          throw new TypeError('Invalid Remote Transfer Store use revision');
+        }
+        return checked(moon.strategyRemoteTransferStoreUseRecordRestore(
+          storeUse,
+          revision,
+          Number(state[1]),
+          Number(state[2]),
+          confirmedChunks,
+          BigInt(state[4]),
+          state[5] === '1',
+          state[6],
+        ));
+      },
+    }),
     requestProjection: moon.strategyRemoteTransferProjection,
     journalKey: moon.strategyRemoteTransferJournalKey,
     chunks: request => {

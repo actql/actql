@@ -133,6 +133,51 @@ test('destination receipt is canonical evidence for the exact Store request',
     ));
   });
 
+test('Store use state keeps reader stop separate from destination receipt',
+  () => {
+    const requestValue = control.prepare(request('store'));
+    const storeUse = control.storeUse.prepare(requestValue, 'download-a');
+    assert.deepEqual(control.storeUse.projection(storeUse), [
+      control.storeUse.identity(storeUse),
+      control.identity(requestValue),
+      'download-a',
+      'destination-b',
+      '2',
+      cid('5'),
+    ]);
+    const record = control.storeUse.open(storeUse);
+    const commit = transition => control.storeUse.commitTransition(
+      transition,
+      true,
+    );
+    commit(control.storeUse.prepareStart(record));
+    commit(control.storeUse.prepareProgress(record, 1, 5n));
+    const receipt = control.prepareDestinationReceipt(
+      requestValue,
+      'destination-material-a',
+    );
+    commit(control.storeUse.prepareComplete(record, receipt));
+    assert.deepEqual(control.storeUse.recordProjection(record), [
+      '3',
+      '2',
+      '0',
+      '1',
+      '5',
+      '1',
+      control.destinationReceiptIdentity(receipt),
+    ]);
+    const restored = control.storeUse.restore(
+      storeUse,
+      control.storeUse.recordProjection(record),
+    );
+    assert.deepEqual(
+      control.storeUse.recordProjection(restored),
+      control.storeUse.recordProjection(record),
+    );
+    commit(control.storeUse.prepareCleanup(record));
+    assert.equal(control.storeUse.recordProjection(record)[2], '1');
+  });
+
 test('direct Transfer commits only after durable stop and integrity', () => {
   const record = control.open(control.prepare(request('direct')));
   commit(control.prepareStart(record));

@@ -19,6 +19,8 @@ import {
   uploadHttpsTransferObject,
 } from './https-transfer-store.mjs';
 import {openSqliteTransferJournal} from './sqlite-transfer-journal.mjs';
+import {openSqliteTransferStoreJournal} from
+  './sqlite-transfer-store-journal.mjs';
 
 const control = runtimeCore(moon).remoteTransferControl;
 const contractControl = createPublicationContractControlFixture();
@@ -101,11 +103,15 @@ async function retainedBody(store, value) {
   return await writer.sealPhysical();
 }
 
-function publicationConfiguration(directory, authority) {
+function publicationConfiguration(
+  directory,
+  authority,
+  capacityBytes = 1024 * 1024,
+) {
   return Object.freeze({
     directory,
     storeAuthorityCid: authority,
-    capacityBytes: 1024 * 1024,
+    capacityBytes,
     maxObjectBytes: 64 * 1024,
     maxObjects: 100,
     maxContractNodes: 4096,
@@ -148,7 +154,7 @@ function transferRequest(values) {
   }));
 }
 
-async function fixture(t) {
+async function fixture(t, {destinationCapacityBytes} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-transfer-store-'));
   const sourceRoot = join(root, 'source');
   const transferRoot = join(root, 'transfer');
@@ -167,7 +173,11 @@ async function fixture(t) {
     contractControl,
   );
   const destinationStore = await openLocalPublicationStore(
-    publicationConfiguration(destinationRoot, cid('8')),
+    publicationConfiguration(
+      destinationRoot,
+      cid('8'),
+      destinationCapacityBytes,
+    ),
     contractControl,
   );
   const journal = openSqliteTransferJournal(join(destinationRoot, 'journal'), {
@@ -177,7 +187,25 @@ async function fixture(t) {
     maxManifestBytes: 8192,
     maxReferencedBytes: 1024n,
   });
-  const service = await startHttpsTransferObjectStore({
+  const useJournal = openSqliteTransferStoreJournal(
+    join(root, 'transfer-journal'),
+    {
+      maxChunks: 8,
+      maxManifestBytes: 8192,
+      maxReferencedBytes: 1024n,
+    },
+  );
+  const authorize = ({request, phase, peer, useId}) => {
+      const projection = control.requestProjection(request);
+      if (phase.startsWith('upload:')) {
+        return peer.siteKey === 'source-a' && projection[10] === cid('4');
+      }
+      return peer.siteKey === 'destination-b' &&
+        projection[11] === cid('5') &&
+        (phase === 'download:admit' || useId === 'download-a' ||
+          useId === 'download-b');
+    };
+  const startService = () => startHttpsTransferObjectStore({
     key: material.storeKey,
     cert: material.storeCertificate,
     ca: material.ca,
@@ -187,27 +215,21 @@ async function fixture(t) {
     ]),
     control,
     store: transferStore,
-    authorize: ({request, phase, peer, useId}) => {
-      const projection = control.requestProjection(request);
-      if (phase.startsWith('upload:')) {
-        return peer.siteKey === 'source-a' && projection[10] === cid('4');
-      }
-      return peer.siteKey === 'destination-b' &&
-        projection[11] === cid('5') &&
-        (phase === 'download:admit' || useId === 'download-a' ||
-          useId === 'download-b');
-    },
+    useJournal,
+    authorize,
     maxManifestBytes: 8192,
     maxChunks: 8,
     maxReferencedBytes: 1024n,
     maxFrameBytes: 3,
   });
+  const service = await startService();
   t.after(async () => {
     try { await service.close(); }
     catch (error) {
       if (error.code !== 'RemoteTransferCleanupPending') throw error;
     }
     journal.close();
+    useJournal.close();
     sourceStore.close();
     await sourceStore.cleanup();
     await transferStore.close();
@@ -221,7 +243,9 @@ async function fixture(t) {
     transferStore,
     destinationStore,
     journal,
+    useJournal,
     service,
+    startService,
   });
 }
 
@@ -333,5 +357,93 @@ test('sealed Store object is reused without reading source again', async t => {
   await setup.destinationStore.retirePhysicalHolding(
     control.identity(transfer),
   );
+  assert.equal(await setup.service.close(), true);
+});
+
+test('completed download use reconciles after Transfer Store restart',
+  async t => {
+    const setup = await fixture(t);
+    const source = await retainedBody(setup.sourceStore, 'restart');
+    const transfer = transferRequest(['restart']);
+    await uploadHttpsTransferObject({
+      origin: setup.service.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request: transfer,
+      sourceBodies: [source],
+    });
+    await receiveHttpsTransferObject({
+      origin: setup.service.origin,
+      ca: setup.material.ca,
+      cert: setup.material.destinationCertificate,
+      key: setup.material.destinationKey,
+      control,
+      request: transfer,
+      useId: 'download-a',
+      journal: setup.journal,
+      destinationStore: setup.destinationStore,
+    });
+    assert.equal(await setup.service.close(), true);
+    const reopened = await setup.startService();
+    t.after(() => reopened.close());
+    const reconciled = await receiveHttpsTransferObject({
+      origin: reopened.origin,
+      ca: setup.material.ca,
+      cert: setup.material.destinationCertificate,
+      key: setup.material.destinationKey,
+      control,
+      request: transfer,
+      useId: 'download-a',
+      journal: setup.journal,
+      destinationStore: setup.destinationStore,
+    });
+    assert.deepEqual(
+      control.recordProjection(reconciled.record),
+      [3, 2, 3, 1, 0, 1, 1, 0, 1],
+    );
+    assert.equal(await reopened.close(), true);
+    source.close();
+    await setup.sourceStore.cleanup();
+    await setup.transferStore.retirePhysicalHolding(control.identity(transfer));
+    await setup.destinationStore.retirePhysicalHolding(
+      control.identity(transfer),
+    );
+  });
+
+test('destination failure releases the durable Store reader use', async t => {
+  const setup = await fixture(t, {destinationCapacityBytes: 4});
+  const source = await retainedBody(setup.sourceStore, 'larger');
+  const transfer = transferRequest(['larger']);
+  await uploadHttpsTransferObject({
+    origin: setup.service.origin,
+    ca: setup.material.ca,
+    cert: setup.material.sourceCertificate,
+    key: setup.material.sourceKey,
+    control,
+    request: transfer,
+    sourceBodies: [source],
+  });
+  await assert.rejects(receiveHttpsTransferObject({
+    origin: setup.service.origin,
+    ca: setup.material.ca,
+    cert: setup.material.destinationCertificate,
+    key: setup.material.destinationKey,
+    control,
+    request: transfer,
+    useId: 'download-a',
+    journal: setup.journal,
+    destinationStore: setup.destinationStore,
+  }));
+  const recovered = setup.useJournal.recover(control);
+  assert.equal(recovered.length, 1);
+  assert.deepEqual(control.storeUse.recordProjection(recovered[0].record), [
+    '3', '3', '1', '0', '0', '1', '',
+  ]);
+  assert.equal(setup.destinationStore.status().reservedBytes, 0);
+  source.close();
+  await setup.sourceStore.cleanup();
+  await setup.transferStore.retirePhysicalHolding(control.identity(transfer));
   assert.equal(await setup.service.close(), true);
 });

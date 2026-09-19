@@ -4781,6 +4781,181 @@ pub fn strategy_remote_transfer_destination_receipt_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferStoreUsePrepare")
+pub fn strategy_remote_transfer_store_use_prepare(
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> @transfer.RemoteTransferStoreUse raise NodeHostFailure {
+  match @transfer.prepare_store_use(request, use_id) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseIdentity")
+pub fn strategy_remote_transfer_store_use_identity(
+  store_use : @transfer.RemoteTransferStoreUse,
+) -> String {
+  @transfer.store_use_cid(store_use)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseProjection")
+pub fn strategy_remote_transfer_store_use_projection(
+  store_use : @transfer.RemoteTransferStoreUse,
+) -> Array[String] {
+  @transfer.store_use_projection(store_use)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseOpen")
+pub fn strategy_remote_transfer_store_use_open(
+  store_use : @transfer.RemoteTransferStoreUse,
+) -> @transfer.RemoteTransferStoreUseRecord {
+  @transfer.open_store_use(store_use)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseStartPrepare")
+pub fn strategy_remote_transfer_store_use_start_prepare(
+  record : @transfer.RemoteTransferStoreUseRecord,
+) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
+  match @transfer.prepare_store_use_start(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseProgressPrepare")
+pub fn strategy_remote_transfer_store_use_progress_prepare(
+  record : @transfer.RemoteTransferStoreUseRecord,
+  confirmed_chunks : Int,
+  confirmed_bytes : Int64,
+) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
+  match
+    @transfer.prepare_store_use_progress(
+      record,
+      confirmed_chunks,
+      confirmed_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCompletePrepare")
+pub fn strategy_remote_transfer_store_use_complete_prepare(
+  record : @transfer.RemoteTransferStoreUseRecord,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
+  match @transfer.prepare_store_use_complete(record, receipt) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseFailurePrepare")
+pub fn strategy_remote_transfer_store_use_failure_prepare(
+  record : @transfer.RemoteTransferStoreUseRecord,
+  reader_stopped : Bool,
+) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
+  match @transfer.prepare_store_use_failure(record, reader_stopped) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseUnknownPrepare")
+pub fn strategy_remote_transfer_store_use_unknown_prepare(
+  record : @transfer.RemoteTransferStoreUseRecord,
+) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
+  match @transfer.prepare_store_use_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCleanupPrepare")
+pub fn strategy_remote_transfer_store_use_cleanup_prepare(
+  record : @transfer.RemoteTransferStoreUseRecord,
+) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
+  match @transfer.prepare_store_use_cleanup(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseTransitionProjection")
+pub fn strategy_remote_transfer_store_use_transition_projection(
+  transition : @transfer.RemoteTransferStoreUseTransition,
+) -> (Array[String], Array[String]) {
+  @transfer.store_use_transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseTransitionJournalKey")
+pub fn strategy_remote_transfer_store_use_transition_journal_key(
+  transition : @transfer.RemoteTransferStoreUseTransition,
+) -> Array[String] {
+  @transfer.store_use_transition_journal_key(transition)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseTransitionCommit")
+pub fn strategy_remote_transfer_store_use_transition_commit(
+  transition : @transfer.RemoteTransferStoreUseTransition,
+  durable : Bool,
+) -> @transfer.RemoteTransferStoreUseRecord raise NodeHostFailure {
+  match @transfer.commit_store_use_transition(transition, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseRecordProjection")
+pub fn strategy_remote_transfer_store_use_record_projection(
+  record : @transfer.RemoteTransferStoreUseRecord,
+) -> Array[String] {
+  @transfer.store_use_record_projection(record)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseRecordRestore")
+pub fn strategy_remote_transfer_store_use_record_restore(
+  store_use : @transfer.RemoteTransferStoreUse,
+  revision : Int,
+  state : Int,
+  cleanup : Int,
+  confirmed_chunks : Int,
+  confirmed_bytes : Int64,
+  reader_stopped : Bool,
+  destination_receipt_cid : String,
+) -> @transfer.RemoteTransferStoreUseRecord raise NodeHostFailure {
+  match
+    @transfer.restore_store_use_record(
+      store_use,
+      revision,
+      state,
+      cleanup,
+      confirmed_chunks,
+      confirmed_bytes,
+      reader_stopped,
+      destination_receipt_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteTransferProjection")
 pub fn strategy_remote_transfer_projection(
   request : @transfer.RemoteTransferRequest,

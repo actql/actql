@@ -115,6 +115,7 @@ export async function startHttpsTransferObjectStore({
   peerAuthorities,
   control,
   store,
+  useJournal,
   authorize,
   clock = () => Date.now(),
   maxControlBytes = 131_072,
@@ -131,11 +132,18 @@ export async function startHttpsTransferObjectStore({
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' ||
       typeof control.activeAt !== 'function' ||
+      typeof control.admitDestinationReceiptJson !== 'function' ||
+      typeof control.destinationReceiptJson !== 'function' ||
+      typeof control.destinationReceiptIdentity !== 'function' ||
       store === null || typeof store !== 'object' ||
       typeof store.createPreparedObjectWriter !== 'function' ||
       typeof store.commitPhysicalHolding !== 'function' ||
       typeof store.inspectPhysicalHolding !== 'function' ||
       typeof store.consumePhysicalHolding !== 'function' ||
+      useJournal === null || typeof useJournal !== 'object' ||
+      typeof useJournal.accept !== 'function' ||
+      typeof useJournal.advance !== 'function' ||
+      typeof useJournal.recover !== 'function' ||
       typeof authorize !== 'function' || typeof clock !== 'function' ||
       !count(maxControlBytes) || maxControlBytes === 0 ||
       !count(maxManifestBytes) || maxManifestBytes === 0 ||
@@ -150,6 +158,10 @@ export async function startHttpsTransferObjectStore({
   let admissionClosed = false;
   let listenerClosed = false;
   let closed = false;
+  const storeUseControl = control.storeUse;
+  if (storeUseControl === null || typeof storeUseControl !== 'object') {
+    fail('MissingRemoteTransferStoreControl');
+  }
 
   const peerFor = request => {
     const certificate = request.socket.getPeerCertificate();
@@ -187,6 +199,24 @@ export async function startHttpsTransferObjectStore({
     await authorizeUse(entry, authorize, control, clock, `${phase}:admit`, peer);
     return Object.freeze({admitted, projection, claimedRequestCid});
   };
+
+  for (const recovered of useJournal.recover(control)) {
+    const projection = storeUseControl.projection(recovered.storeUse);
+    const holding = await store.inspectPhysicalHolding(projection[1]);
+    if (holding === undefined) continue;
+    const state = storeUseControl.recordProjection(recovered.record);
+    downloads.set(`${projection[1]}\n${projection[2]}`, {
+      request: recovered.request,
+      peer: Object.freeze({siteKey: projection[3]}),
+      useId: projection[2],
+      holding,
+      storeUse: recovered.storeUse,
+      useRecord: recovered.record,
+      complete: state[1] === '2',
+      receipt: undefined,
+      busy: false,
+    });
+  }
 
   const server = createServer({
     key,
@@ -248,12 +278,28 @@ export async function startHttpsTransferObjectStore({
         const key = `${accepted.claimedRequestCid}\n${useId}`;
         let entry = downloads.get(key);
         if (entry === undefined) {
+          const acceptedUse = useJournal.accept(
+            accepted.admitted,
+            useId,
+            control,
+          );
+          let useRecord = acceptedUse.record;
+          if (storeUseControl.recordProjection(useRecord)[1] === '0') {
+            useRecord = useJournal.advance(
+              storeUseControl.prepareStart(useRecord),
+              control,
+            );
+          }
           entry = {
             request: accepted.admitted,
             peer,
             useId,
             holding,
-            complete: false,
+            storeUse: acceptedUse.storeUse,
+            useRecord,
+            complete:
+              storeUseControl.recordProjection(useRecord)[1] === '2',
+            receipt: undefined,
             busy: false,
           };
           await authorizeUse(
@@ -379,6 +425,14 @@ export async function startHttpsTransferObjectStore({
             entry, authorize, control, clock, 'download:read', peer,
           );
           const object = entry.holding.objects[index];
+          const state = storeUseControl.recordProjection(entry.useRecord);
+          const confirmedChunks = Number(state[3]);
+          const confirmedBytes = BigInt(state[4]);
+          const expectedPrefix = entry.holding.objects.slice(0, index)
+            .reduce((total, item) => total + BigInt(item.byte_count), 0n);
+          if (confirmedChunks !== index || confirmedBytes !== expectedPrefix) {
+            fail('RemoteTransferChunkOrder');
+          }
           entry.busy = true;
           response.writeHead(200, {
             'content-type': 'application/octet-stream',
@@ -391,7 +445,32 @@ export async function startHttpsTransferObjectStore({
                 const owned = Buffer.from(frame);
                 if (!response.write(owned)) await once(response, 'drain');
               });
+            const finished = once(response, 'finish');
             response.end();
+            await finished;
+            entry.useRecord = useJournal.advance(
+              storeUseControl.prepareProgress(
+                entry.useRecord,
+                index + 1,
+                confirmedBytes + BigInt(object.byte_count),
+              ),
+              control,
+            );
+          } catch (error) {
+            const failedState = storeUseControl.recordProjection(
+              entry.useRecord,
+            );
+            if (failedState[1] !== '2' && failedState[1] !== '3') {
+              entry.useRecord = useJournal.advance(
+                storeUseControl.prepareFailure(entry.useRecord, true),
+                control,
+              );
+              entry.useRecord = useJournal.advance(
+                storeUseControl.prepareCleanup(entry.useRecord),
+                control,
+              );
+            }
+            throw error;
           } finally {
             entry.busy = false;
           }
@@ -399,13 +478,63 @@ export async function startHttpsTransferObjectStore({
         }
         if (request.method === 'POST' && parts.length === 6 &&
             parts[5] === 'complete') {
-          await readBoundedBody(request, 0);
+          const claimedReceiptCid = request.headers[
+            'actql-destination-receipt-cid'
+          ];
+          if (!text(claimedReceiptCid) ||
+              request.headers['content-type'] !== 'application/json') {
+            fail('InvalidRemoteTransferDestinationReceipt');
+          }
+          const receiptJson = new TextDecoder('utf-8', {fatal: true}).decode(
+            await readBoundedBody(request, 4096),
+          );
+          const receipt = control.admitDestinationReceiptJson(
+            receiptJson,
+            entry.request,
+            claimedReceiptCid,
+          );
           await authorizeUse(
             entry, authorize, control, clock, 'download:complete', peer,
           );
           if (entry.busy) fail('RemoteTransferBusy');
-          entry.complete = true;
+          const state = storeUseControl.recordProjection(entry.useRecord);
+          if (state[1] === '2' && state[6] !== claimedReceiptCid) {
+            fail('RemoteTransferDestinationReceiptCollision');
+          }
+          if (state[1] !== '2') {
+            entry.useRecord = useJournal.advance(
+              storeUseControl.prepareComplete(entry.useRecord, receipt),
+              control,
+            );
+            entry.useRecord = useJournal.advance(
+              storeUseControl.prepareCleanup(entry.useRecord),
+              control,
+            );
+            entry.receipt = receipt;
+            entry.complete = true;
+          }
           reply(response, 200, {requestCid, useId, complete: true});
+          return;
+        }
+        if (request.method === 'POST' && parts.length === 6 &&
+            parts[5] === 'cancel') {
+          await readBoundedBody(request, 0);
+          await authorizeUse(
+            entry, authorize, control, clock, 'download:cancel', peer,
+          );
+          if (entry.busy) fail('RemoteTransferBusy');
+          const state = storeUseControl.recordProjection(entry.useRecord);
+          if (state[1] !== '2' && state[1] !== '3') {
+            entry.useRecord = useJournal.advance(
+              storeUseControl.prepareFailure(entry.useRecord, true),
+              control,
+            );
+            entry.useRecord = useJournal.advance(
+              storeUseControl.prepareCleanup(entry.useRecord),
+              control,
+            );
+          }
+          reply(response, 200, {requestCid, useId, cancelled: true});
           return;
         }
       }
@@ -465,7 +594,7 @@ export async function startHttpsTransferObjectStore({
         );
       }
       if (uploads.size !== 0 || [...downloads.values()].some(
-        entry => !entry.complete || entry.busy,
+        entry => entry.busy,
       )) {
         fail('RemoteTransferCleanupPending');
       }
@@ -677,6 +806,9 @@ export async function receiveHttpsTransferObject({
       typeof journal.accept !== 'function' ||
       typeof journal.advance !== 'function' ||
       typeof journal.commitDestinationReceipt !== 'function' ||
+      typeof control.prepareDestinationReceipt !== 'function' ||
+      typeof control.destinationReceiptJson !== 'function' ||
+      typeof control.destinationReceiptIdentity !== 'function' ||
       destinationStore === null || typeof destinationStore !== 'object' ||
       typeof destinationStore.createPreparedObjectWriter !== 'function' ||
       typeof destinationStore.commitPhysicalHolding !== 'function' ||
@@ -715,6 +847,7 @@ export async function receiveHttpsTransferObject({
     );
   }
   if (installed === undefined) {
+    const writers = [];
     const prepared = [];
     try {
       const chunks = control.chunks(request);
@@ -722,6 +855,7 @@ export async function receiveHttpsTransferObject({
         const writer = destinationStore.createPreparedObjectWriter(
           Number(chunks[index].byteLength),
         );
+        writers.push(writer);
         await downloadChunk({
           common,
           path: `/v1/transfer-store/downloads/${encodeURIComponent(
@@ -740,10 +874,25 @@ export async function receiveHttpsTransferObject({
       installed = await destinationStore.inspectPhysicalHolding(requestCid);
     } catch (error) {
       const failures = [];
-      for (let index = prepared.length - 1; index >= 0; index--) {
-        try { await prepared[index].cleanup.retry(); }
+      for (let index = writers.length - 1; index >= 0; index--) {
+        try {
+          if (prepared[index] === undefined) await writers[index].cancel();
+          else await prepared[index].prepared.retry();
+        }
         catch (cleanupError) { failures.push(cleanupError); }
       }
+      try {
+        await send({
+          ...common,
+          signal: undefined,
+          path: `/v1/transfer-store/downloads/${encodeURIComponent(
+            requestCid,
+          )}/${encodeURIComponent(useId)}/cancel`,
+          method: 'POST',
+          headers: {'content-length': '0'},
+          write(outgoing) { outgoing.end(); },
+        });
+      } catch {}
       if (failures.length !== 0) {
         throw new AggregateError(
           [error, ...failures],
@@ -757,17 +906,26 @@ export async function receiveHttpsTransferObject({
   if (JSON.stringify(installed) !== JSON.stringify(destinationHolding)) {
     fail('RemoteTransferDestinationMismatch');
   }
+  const receipt = control.prepareDestinationReceipt(request, requestCid);
+  journal.commitDestinationReceipt(receipt, request, control);
+  const receiptJson = Buffer.from(
+    control.destinationReceiptJson(receipt),
+    'utf8',
+  );
   await send({
     ...common,
     path: `/v1/transfer-store/downloads/${encodeURIComponent(
       requestCid,
     )}/${encodeURIComponent(useId)}/complete`,
     method: 'POST',
-    headers: {'content-length': '0'},
-    write(outgoing) { outgoing.end(); },
+    headers: {
+      'content-type': 'application/json',
+      'content-length': String(receiptJson.byteLength),
+      'actql-destination-receipt-cid':
+        control.destinationReceiptIdentity(receipt),
+    },
+    write(outgoing) { outgoing.end(receiptJson); },
   });
-  const receipt = control.prepareDestinationReceipt(request, requestCid);
-  journal.commitDestinationReceipt(receipt, request, control);
   if (control.recordProjection(record)[1] !== 2) {
     record = journal.advance(
       control.prepareDestinationCommit(record),

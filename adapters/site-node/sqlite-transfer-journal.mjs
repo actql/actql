@@ -405,7 +405,6 @@ export function openSqliteTransferJournal(root, {
         if (transfer === undefined || transfer.request_cid !== requestCid) {
           fail('RemoteTransferJournalRecordMissing');
         }
-        control.prepareDestinationCommit(restore(transfer, control).record);
         const existing = selectDestinationReceipt.get(
           key[0], key[1], generation, key[3],
         );
@@ -421,6 +420,7 @@ export function openSqliteTransferJournal(root, {
             existing.receipt_cid,
           );
         }
+        control.prepareDestinationCommit(restore(transfer, control).record);
         insertDestinationReceipt.run(
           key[0],
           key[1],
