@@ -847,6 +847,42 @@ pub fn strategy_superseded_publication_finalization_action(
 }
 
 ///|
+#export_name("strategyPublicationCommitFailureAction")
+pub fn strategy_publication_commit_failure_action(
+  reconciliation_attempted : Bool,
+  reconciliation_failed : Bool,
+  committed_found : Bool,
+  unknown_append_attempted : Bool,
+) -> Int {
+  @publication.publication_commit_failure_action_code(
+    @publication.prepare_publication_commit_failure_step(
+      reconciliation_attempted,
+      reconciliation_failed,
+      committed_found,
+      unknown_append_attempted,
+    ),
+  )
+}
+
+///|
+#export_name("strategyPublicationUnknownRetryAction")
+pub fn strategy_publication_unknown_retry_action(
+  reconciliation_resolved : Bool,
+  upstream_pending : Bool,
+  upstream_retry_available : Bool,
+  upstream_retry_attempted : Bool,
+) -> Int {
+  @publication.publication_unknown_retry_action_code(
+    @publication.prepare_publication_unknown_retry_step(
+      reconciliation_resolved,
+      upstream_pending,
+      upstream_retry_available,
+      upstream_retry_attempted,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRunPublicationChainValid")
 pub fn strategy_run_publication_chain_valid(
   run_definition : @publication.PublicationContract,

@@ -177,3 +177,101 @@ pub fn publication_finalization_action_code(
     PublicationFinalizationInvalid => 4
   }
 }
+
+///|
+/// Progression after the physical public-index commit reports a failure. The
+/// adapter reports whether an authoritative lookup failed, confirmed absence,
+/// or found the exact commit. A failed lookup must first persist uncertainty;
+/// it never authorizes a second commit attempt.
+pub(all) enum PublicationCommitFailureAction {
+  PublicationReconcileCommit
+  PublicationAppendUnknown
+  PublicationReturnUnknown
+  PublicationConfirmUncommittedFailure
+  PublicationAdoptCommittedIndex
+  PublicationCommitFailureInvalid
+} derive(Eq, Debug)
+
+///|
+pub fn prepare_publication_commit_failure_step(
+  reconciliation_attempted : Bool,
+  reconciliation_failed : Bool,
+  committed_found : Bool,
+  unknown_append_attempted : Bool,
+) -> PublicationCommitFailureAction {
+  if (reconciliation_failed && !reconciliation_attempted) ||
+    (committed_found && (!reconciliation_attempted || reconciliation_failed)) ||
+    (unknown_append_attempted && !reconciliation_failed) {
+    return PublicationCommitFailureInvalid
+  }
+  if !reconciliation_attempted {
+    return PublicationReconcileCommit
+  }
+  if reconciliation_failed {
+    if !unknown_append_attempted {
+      return PublicationAppendUnknown
+    }
+    return PublicationReturnUnknown
+  }
+  if committed_found {
+    PublicationAdoptCommittedIndex
+  } else {
+    PublicationConfirmUncommittedFailure
+  }
+}
+
+///|
+pub fn publication_commit_failure_action_code(
+  action : PublicationCommitFailureAction,
+) -> Int {
+  match action {
+    PublicationReconcileCommit => 0
+    PublicationAppendUnknown => 1
+    PublicationReturnUnknown => 2
+    PublicationConfirmUncommittedFailure => 3
+    PublicationAdoptCommittedIndex => 4
+    PublicationCommitFailureInvalid => 5
+  }
+}
+
+///|
+/// Retry progression for an unknown publication outcome. Reconciliation is
+/// always performed before an independent upstream cleanup retry. Historical
+/// retry errors are diagnostics and do not become current cleanup ownership.
+pub(all) enum PublicationUnknownRetryAction {
+  PublicationRetryReconcile
+  PublicationRetryUpstreamCleanup
+  PublicationUnknownRetryFinished
+  PublicationUnknownRetryInvalid
+} derive(Eq, Debug)
+
+///|
+pub fn prepare_publication_unknown_retry_step(
+  reconciliation_resolved : Bool,
+  upstream_pending : Bool,
+  upstream_retry_available : Bool,
+  upstream_retry_attempted : Bool,
+) -> PublicationUnknownRetryAction {
+  if upstream_retry_attempted && !reconciliation_resolved {
+    return PublicationUnknownRetryInvalid
+  }
+  if !reconciliation_resolved {
+    return PublicationRetryReconcile
+  }
+  if upstream_pending && upstream_retry_available && !upstream_retry_attempted {
+    return PublicationRetryUpstreamCleanup
+  }
+  PublicationUnknownRetryFinished
+}
+
+///|
+pub fn publication_unknown_retry_action_code(
+  action : PublicationUnknownRetryAction,
+) -> Int {
+  match action {
+    PublicationRetryReconcile => 0
+    PublicationRetryUpstreamCleanup => 1
+    PublicationUnknownRetryFinished => 2
+    PublicationUnknownRetryInvalid => 3
+  }
+}

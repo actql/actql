@@ -94,6 +94,10 @@ pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> Pub
 
 pub fn prepare_publication_cancellation_step(PublicationContract?) -> PublicationCancellationAction
 
+pub fn prepare_publication_commit_failure_step(Bool, Bool, Bool, Bool) -> PublicationCommitFailureAction
+
+pub fn prepare_publication_unknown_retry_step(Bool, Bool, Bool, Bool) -> PublicationUnknownRetryAction
+
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
 
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
@@ -103,6 +107,8 @@ pub fn prepare_superseded_publication_finalization(PublicationContract?) -> Publ
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
 
 pub fn publication_cancellation_action_code(PublicationCancellationAction) -> Int
+
+pub fn publication_commit_failure_action_code(PublicationCommitFailureAction) -> Int
 
 pub fn publication_contract_identity(PublicationContract) -> String
 
@@ -117,6 +123,8 @@ pub fn publication_finalization_action_code(PublicationFinalizationAction) -> In
 pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], PublicationContract, PublicationContract, String) -> Bool
 
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
+
+pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
 
 pub fn result_definition_cid(ResultDefinition) -> String
 
@@ -278,6 +286,15 @@ pub(all) enum PublicationCancellationAction {
   PublicationCancelCommitting
 } derive(Eq, @debug.Debug)
 
+pub(all) enum PublicationCommitFailureAction {
+  PublicationReconcileCommit
+  PublicationAppendUnknown
+  PublicationReturnUnknown
+  PublicationConfirmUncommittedFailure
+  PublicationAdoptCommittedIndex
+  PublicationCommitFailureInvalid
+} derive(Eq, @debug.Debug)
+
 pub(all) enum PublicationCommitIssuanceIssue {
   CommitIssuanceWrongContract
   CommitIssuanceEmptyInventory
@@ -339,6 +356,13 @@ pub(all) enum PublicationTransitionIssue {
   PriorRecordMismatch
   StateMismatch
   UncommittedNotConfirmed
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationUnknownRetryAction {
+  PublicationRetryReconcile
+  PublicationRetryUpstreamCleanup
+  PublicationUnknownRetryFinished
+  PublicationUnknownRetryInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResultArtifactEvidenceIssue {

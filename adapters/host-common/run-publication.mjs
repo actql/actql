@@ -35,8 +35,9 @@ function validateControl(control) {
         'issuePublicIndexEntry', 'issuePublicationRecord',
         'publicationAttemptAction', 'publicationCancellationAction',
         'committedPublicationFinalizationAction',
-        'supersededPublicationFinalizationAction', 'effectFreeChainValid',
-        'effectFreeCommitValid', 'admit']
+        'supersededPublicationFinalizationAction',
+        'publicationCommitFailureAction', 'publicationUnknownRetryAction',
+        'effectFreeChainValid', 'effectFreeCommitValid', 'admit']
         .every(name => typeof control[name] === 'function')) {
     fail('InvalidRunPublicationControl');
   }
@@ -340,7 +341,7 @@ function cleanupState(handle, required) {
 }
 
 function uncertainFailure(
-  primary, reconciliation, recordFailure, reconcile,
+  primary, reconciliation, recordFailure, control, reconcile,
 ) {
   const failure = new RunPublicationError('RunPublicationUnknown', primary);
   failure.publicationState = 'publication_unknown';
@@ -363,20 +364,34 @@ function uncertainFailure(
   const handle = Object.freeze({
     status,
     async retry() {
-      if (!resolved) {
-        try {
-          result = await reconcile(upstream);
-          resolved = true;
-          failure.publicationResult = result.publication;
-        } catch (error) {
-          errors.push(error);
-          throw error;
+      let upstreamRetryAttempted = false;
+      while (true) {
+        const cleanup = cleanupState(upstream, upstreamRequired);
+        const action = control.publicationUnknownRetryAction(
+          resolved,
+          cleanup.pending,
+          typeof member(upstream, 'retry') === 'function',
+          upstreamRetryAttempted,
+        );
+        if (action === 0) {
+          try {
+            result = await reconcile(upstream);
+            resolved = true;
+            failure.publicationResult = result.publication;
+          } catch (error) {
+            errors.push(error);
+            throw error;
+          }
+          continue;
         }
-      }
-      if (cleanupState(upstream, upstreamRequired).pending &&
-          typeof member(upstream, 'retry') === 'function') {
-        try { await upstream.retry(); }
-        catch (error) { errors.push(error); }
+        if (action === 1) {
+          upstreamRetryAttempted = true;
+          try { await upstream.retry(); }
+          catch (error) { errors.push(error); }
+          continue;
+        }
+        if (action === 2) break;
+        fail('InvalidRunPublicationUnknownRetry');
       }
       failure.cleanupPending = status().pending;
       failure.cleanupErrors = status().errors;
@@ -501,69 +516,99 @@ export async function publishEffectFreeRun(options) {
       commitEvidence(evidence),
     );
   } catch (primary) {
+    let reconciliationAttempted = false;
+    let reconciliationFailed = false;
     let reconciled;
-    try {
-      reconciled = await validateExistingCommit(
-        store, control, evidence, publicationRequest, key, limits,
+    let reconciliationFailure;
+    let unknownAppendAttempted = false;
+    let recordFailure;
+    while (true) {
+      const action = control.publicationCommitFailureAction(
+        reconciliationAttempted,
+        reconciliationFailed,
+        reconciled !== undefined,
+        unknownAppendAttempted,
       );
-    } catch (reconciliation) {
-      let recordFailure;
-      try {
-        await appendState(
-          store, control, publicationAttempt, record, 'publication_unknown',
-          now(), limits,
-        );
-      } catch (error) { recordFailure = error; }
-      const reconcile = async upstream => {
-        const resolved = await validateExistingCommit(
-          store, control, evidence, publicationRequest, key, limits,
-        );
-        if (resolved === undefined) {
-          if (typeof member(upstream, 'resolveConfirmed') === 'function') {
-            upstream.resolveConfirmed(undefined);
-          }
-          return Object.freeze({outcome: 'uncommitted'});
+      if (action === 0) {
+        reconciliationAttempted = true;
+        try {
+          reconciled = await validateExistingCommit(
+            store, control, evidence, publicationRequest, key, limits,
+          );
+        } catch (error) {
+          reconciliationFailed = true;
+          reconciliationFailure = error;
         }
-        await store.validateCommittedEvidence(resolved.index, evidence);
-        const resolution = await finishResolvedCommit(
-          store,
-          control,
-          publicationAttempt,
-          index,
-          resolved.index,
-          now,
-          limits,
-        );
-        return Object.freeze({
-          outcome: 'committed',
-          publication: withPublicationCleanup({
-            state: 'succeeded',
-            committed: false,
-            idempotent: true,
-            request: publicationRequest,
-            attempt: resolution.winner,
-            index: resolved.index,
-          }, resolution.cleanup),
-        });
-      };
-      throw uncertainFailure(
-        primary, reconciliation, recordFailure, reconcile,
-      );
-    }
-    if (reconciled === undefined) {
-      const cleanup = member(primary, 'cleanupHandle');
-      if (member(primary, 'cleanupPending') === true &&
-          typeof member(cleanup, 'resolveConfirmed') === 'function') {
-        cleanup.resolveConfirmed(undefined);
+        continue;
       }
-      throw primary;
+      if (action === 1) {
+        unknownAppendAttempted = true;
+        try {
+          await appendState(
+            store, control, publicationAttempt, record,
+            'publication_unknown', now(), limits,
+          );
+        } catch (error) { recordFailure = error; }
+        continue;
+      }
+      if (action === 2) {
+        const reconcile = async upstream => {
+          const resolved = await validateExistingCommit(
+            store, control, evidence, publicationRequest, key, limits,
+          );
+          if (resolved === undefined) {
+            if (typeof member(upstream, 'resolveConfirmed') === 'function') {
+              upstream.resolveConfirmed(undefined);
+            }
+            return Object.freeze({outcome: 'uncommitted'});
+          }
+          await store.validateCommittedEvidence(resolved.index, evidence);
+          const resolution = await finishResolvedCommit(
+            store,
+            control,
+            publicationAttempt,
+            index,
+            resolved.index,
+            now,
+            limits,
+          );
+          return Object.freeze({
+            outcome: 'committed',
+            publication: withPublicationCleanup({
+              state: 'succeeded',
+              committed: false,
+              idempotent: true,
+              request: publicationRequest,
+              attempt: resolution.winner,
+              index: resolved.index,
+            }, resolution.cleanup),
+          });
+        };
+        throw uncertainFailure(
+          primary,
+          reconciliationFailure,
+          recordFailure,
+          control,
+          reconcile,
+        );
+      }
+      if (action === 3) {
+        const cleanup = member(primary, 'cleanupHandle');
+        if (member(primary, 'cleanupPending') === true &&
+            typeof member(cleanup, 'resolveConfirmed') === 'function') {
+          cleanup.resolveConfirmed(undefined);
+        }
+        throw primary;
+      }
+      if (action !== 4) fail('InvalidRunPublicationCommitFailure');
+      await store.validateCommittedEvidence(reconciled.index, evidence);
+      committed = Object.freeze({
+        entry: JSON.parse(reconciled.index.wire),
+        committed: false,
+        idempotent: true,
+      });
+      break;
     }
-    await store.validateCommittedEvidence(reconciled.index, evidence);
-    committed = Object.freeze({
-      entry: JSON.parse(reconciled.index.wire),
-      committed: false,
-      idempotent: true,
-    });
   }
   const committedIndex = await store.readPublicationContract(
     committed.entry.public_index_entry_cid, 'public_index_entry',

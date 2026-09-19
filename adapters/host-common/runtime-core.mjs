@@ -764,6 +764,32 @@ function publicationControl(moon) {
         record === undefined ? undefined : token(record),
       );
     },
+    publicationCommitFailureAction(
+      reconciliationAttempted,
+      reconciliationFailed,
+      committedFound,
+      unknownAppendAttempted,
+    ) {
+      return moon.strategyPublicationCommitFailureAction(
+        reconciliationAttempted,
+        reconciliationFailed,
+        committedFound,
+        unknownAppendAttempted,
+      );
+    },
+    publicationUnknownRetryAction(
+      reconciliationResolved,
+      upstreamPending,
+      upstreamRetryAvailable,
+      upstreamRetryAttempted,
+    ) {
+      return moon.strategyPublicationUnknownRetryAction(
+        reconciliationResolved,
+        upstreamPending,
+        upstreamRetryAvailable,
+        upstreamRetryAttempted,
+      );
+    },
     runChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, limits) {
       return moon.strategyRunPublicationChainValid(

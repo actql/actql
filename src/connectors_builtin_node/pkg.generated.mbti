@@ -276,6 +276,8 @@ pub fn strategy_publication_attempt_action(@run_publication.PublicationContract?
 
 pub fn strategy_publication_cancellation_action(@run_publication.PublicationContract?) -> Int
 
+pub fn strategy_publication_commit_failure_action(Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_publication_contract_identity(@run_publication.PublicationContract) -> String
 
 pub fn strategy_publication_contract_identity_field(@run_publication.PublicationContract) -> String
@@ -291,6 +293,8 @@ pub fn strategy_publication_record_allows_commit(@run_publication.PublicationCon
 pub fn strategy_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Bool
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_publication_unknown_retry_action(Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
 

@@ -151,3 +151,59 @@ test "publication finalization distinguishes winner and superseded attempt" {
     PublicationFinalizationFinished,
   )
 }
+
+///|
+test "publication commit failure reconciles before choosing an outcome" {
+  assert_eq(
+    prepare_publication_commit_failure_step(false, false, false, false),
+    PublicationReconcileCommit,
+  )
+  assert_eq(
+    prepare_publication_commit_failure_step(true, true, false, false),
+    PublicationAppendUnknown,
+  )
+  assert_eq(
+    prepare_publication_commit_failure_step(true, true, false, true),
+    PublicationReturnUnknown,
+  )
+  assert_eq(
+    prepare_publication_commit_failure_step(true, false, false, false),
+    PublicationConfirmUncommittedFailure,
+  )
+  assert_eq(
+    prepare_publication_commit_failure_step(true, false, true, false),
+    PublicationAdoptCommittedIndex,
+  )
+  assert_eq(
+    prepare_publication_commit_failure_step(false, true, false, false),
+    PublicationCommitFailureInvalid,
+  )
+  assert_eq(
+    prepare_publication_commit_failure_step(true, false, false, true),
+    PublicationCommitFailureInvalid,
+  )
+}
+
+///|
+test "publication unknown retry reconciles before independent cleanup" {
+  assert_eq(
+    prepare_publication_unknown_retry_step(false, true, true, false),
+    PublicationRetryReconcile,
+  )
+  assert_eq(
+    prepare_publication_unknown_retry_step(true, true, true, false),
+    PublicationRetryUpstreamCleanup,
+  )
+  assert_eq(
+    prepare_publication_unknown_retry_step(true, true, true, true),
+    PublicationUnknownRetryFinished,
+  )
+  assert_eq(
+    prepare_publication_unknown_retry_step(true, true, false, false),
+    PublicationUnknownRetryFinished,
+  )
+  assert_eq(
+    prepare_publication_unknown_retry_step(false, true, true, true),
+    PublicationUnknownRetryInvalid,
+  )
+}
