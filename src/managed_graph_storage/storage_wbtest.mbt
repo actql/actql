@@ -124,6 +124,7 @@ test "declared graph collapses equal payloads and closes endpoints" {
     is Ok(_),
   )
   let graph = finish(builder).unwrap()
+  assert_eq(mode(graph), DeclaredNodes)
   assert_eq(node_count(graph), 2)
   assert_eq(edge_count(graph), 1)
   assert_eq(input_row_count(graph), 5)
@@ -186,6 +187,12 @@ test "graph construction rejects conflicts missing endpoints and preallocation o
     append_node(tiny, number(1.0), [text("a")]) is Err(WorkspaceLimit),
   )
   assert_true(finish(tiny) is Err(Closed))
+
+  let cancelled = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
+  append_node(cancelled, number(1.0), [text("a")]).unwrap()
+  assert_true(cancel(cancelled))
+  assert_false(cancel(cancelled))
+  assert_true(finish(cancelled) is Err(Closed))
 
   let measured = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
   append_node(measured, number(1.0), [text("a")]).unwrap()

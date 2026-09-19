@@ -80,6 +80,7 @@ struct Builder {
 /// and are never exposed for mutation.
 struct Storage {
   graph : @carrier.Graph
+  mode : Mode
   nodes : Array[Node]
   edges : Array[Edge]
   input_rows : Int
@@ -574,6 +575,7 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
   builder.open = false
   Ok({
     graph: builder.graph,
+    mode: builder.mode,
     nodes: builder.nodes,
     edges: builder.edges,
     input_rows: builder.input_rows,
@@ -582,6 +584,26 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
     work: builder.work,
     workspace_slots: builder.workspace_slots,
   })
+}
+
+///|
+pub fn cancel(builder : Builder) -> Bool {
+  if !builder.open {
+    return false
+  }
+  builder.open = false
+  builder.nodes.clear()
+  builder.edges.clear()
+  builder.node_keys.clear()
+  builder.node_payloads.clear()
+  builder.edge_keys.clear()
+  builder.edge_payloads.clear()
+  true
+}
+
+///|
+pub fn mode(value : Storage) -> Mode {
+  value.mode
 }
 
 ///|

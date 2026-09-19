@@ -25,6 +25,14 @@ pub fn complete_receipt(Binding, Measure) -> Result[Receipt, Issue]
 
 pub fn[E, T] completed_available(Completed[E, T]) -> Bool
 
+pub fn[E, T] completed_evidence(Completed[E, T]) -> E?
+
+pub fn[E, T] completed_measure(Completed[E, T]) -> Measure
+
+pub fn[E, T] completed_payload(Completed[E, T]) -> T?
+
+pub fn[E, T] completed_storage_bytes(Completed[E, T]) -> Int64?
+
 pub fn[E, T] completion_reference(Completed[E, T]) -> CompletionReference
 
 pub fn completion_reference_available(CompletionReference) -> Bool

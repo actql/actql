@@ -274,6 +274,30 @@ pub fn[E, T] completed_available(value : Completed[E, T]) -> Bool {
 }
 
 ///|
+pub fn[E, T] completed_measure(value : Completed[E, T]) -> Measure {
+  receipt_measure(value.retained.receipt)
+}
+
+///|
+pub fn[E, T] completed_evidence(value : Completed[E, T]) -> E? {
+  if completed_available(value) {
+    Some(value.retained.evidence)
+  } else {
+    None
+  }
+}
+
+///|
+pub fn[E, T] completed_payload(value : Completed[E, T]) -> T? {
+  retained_payload(value.retained)
+}
+
+///|
+pub fn[E, T] completed_storage_bytes(value : Completed[E, T]) -> Int64? {
+  retained_storage_bytes(value.retained)
+}
+
+///|
 pub fn[E, T] completion_reference(
   value : Completed[E, T],
 ) -> CompletionReference {

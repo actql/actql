@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/managed_graph_runtime"
+
+import {
+  "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
+  "actql/actql/managed_graph_storage",
+  "actql/actql/pipeline_typing",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append_edge(OutputBuilder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn cancel_output(OutputBuilder) -> Bool
+
+pub fn completed_available(Completed) -> Bool
+
+pub fn completed_evidence(Completed) -> Evidence?
+
+pub fn completed_measure(Completed) -> @managed_carrier_runtime.Measure
+
+pub fn completed_reference(Completed) -> CompletionReference
+
+pub fn completed_reference_available(CompletionReference) -> Bool
+
+pub fn completed_storage(Completed) -> @managed_graph_storage.Storage?
+
+pub fn completed_storage_bytes(Completed) -> Int64?
+
+pub fn evidence_construction_work(Evidence) -> Int
+
+pub fn evidence_input_rows(Evidence) -> Int
+
+pub fn evidence_measured_value_bytes(Evidence) -> Int
+
+pub fn evidence_mode(Evidence) -> @managed_graph_storage.Mode
+
+pub fn evidence_retained_value_bytes(Evidence) -> Int
+
+pub fn evidence_workspace_slots(Evidence) -> Int
+
+pub fn finish_output(OutputBuilder) -> Result[Completed, Issue]
+
+pub fn prepare_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_graph_storage.Mode, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[OutputBuilder, Issue]
+
+pub fn prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed) -> Result[ProducerRead, Issue]
+
+pub fn producer_read_available(ProducerRead) -> Bool
+
+pub fn producer_read_matches_reference(ProducerRead, CompletionReference) -> Bool
+
+pub fn producer_read_same(ProducerRead, ProducerRead) -> Bool
+
+pub fn producer_read_storage(ProducerRead) -> @managed_graph_storage.Storage?
+
+// Errors
+
+// Types and methods
+type Completed
+
+type CompletionReference
+
+type Evidence
+
+pub(all) enum Issue {
+  Lifecycle(@managed_carrier_runtime.Issue)
+  Storage(@managed_graph_storage.Issue)
+  Producer(@managed_carrier_runtime.ProducerReadIssue)
+  InvalidStorageBytes
+  Closed
+} derive(Eq, @debug.Debug)
+
+type OutputBuilder
+
+type ProducerRead
+
+// Type aliases
+
+// Traits
