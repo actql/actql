@@ -10,10 +10,10 @@ readable coverage manifest is authoritative for individual operation status.
 | Area | Baseline state | Required closure |
 |---|---|---|
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
-| Lowering | All seventeen SGA operations and the vector bridge, normalization, and scoring forms reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and VecA expression forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
+| Lowering | All seventeen SGA operations, both record-producing Bridges, vector normalization and scoring, and event watermarking reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and VecA expression forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Common lifecycle and exact producer reads now own typed Relation, Graph, and Vectors generations; Graph and record construction install retention before accepting values | Connect the Events view without a separate lifecycle state machine, then join every Carrier to physical task completion |
-| Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage and checked Vectors use record storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to registered providers without forced copies |
+| Completion | Common lifecycle and exact producer reads now own typed Relation, Graph, Events, and Vectors generations; Graph and record construction install retention before accepting values | Join every Carrier to physical task completion |
+| Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage and checked Events and Vectors use record storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to registered providers without forced copies |
 | Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; normalize is the first connected kernel, but environment yield is not connected yet | Move every remaining potentially long kernel into bounded steps and add real environment yield between steps |
 | Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
@@ -93,21 +93,25 @@ targets; VecA kernels and standard Host integration remain open.
 
 ### TEA
 
-All eight operations lack portable Local execution. Runtime work must preserve
-finite event-time observation semantics across transport page splits and bind
-checkpoint advancement to the existing successful commit boundary. No
-long-lived streaming state is required by TEA 0.1. Common immutable record
-storage now preserves typed event roles, open payload evidence, semantic
-identity uniqueness, and bounded allocation; managed lifecycle and TEA kernels
+All eight operations lack portable Local execution. Checked typed lowering now
+emits `TEA.watermark.label`, while the other TEA forms remain unimplemented in
+shared lowering. Runtime work must preserve finite event-time observation
+semantics across transport page splits and bind checkpoint advancement to the
+existing successful commit boundary. No long-lived streaming state is required
+by TEA 0.1. Common immutable record storage preserves typed event roles, open
+payload evidence, semantic identity uniqueness, and bounded allocation. Events
+now pass through the common managed generation and exact producer-read
+lifecycle on all three targets; TEA kernels and standard Host integration
 remain open.
 
 ### Bridges
 
-`to_vectors` now lowers its checked identity and component roles to
-`BRIDGE.rows.to_vectors`. Its runtime conversion and the other six Bridge
-operations remain open. Bridge implementations must retain their source and
-target Carrier contracts and create an independently managed generation; a
-Relation-shaped buffer alone is not evidence of a completed conversion.
+`to_events` and `to_vectors` now lower their checked semantic roles to
+`BRIDGE.rows.to_events` and `BRIDGE.rows.to_vectors`. Their runtime conversions
+and the other five Bridge operations remain open. Bridge implementations must
+retain their source and target Carrier contracts and create an independently
+managed generation; a Relation-shaped buffer alone is not evidence of a
+completed conversion.
 
 ## Current verification boundary
 

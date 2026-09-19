@@ -39,6 +39,7 @@
     "bounded_immutable_event_vector_storage",
     "managed_graph_lifecycle",
     "managed_vector_lifecycle",
+    "managed_event_lifecycle",
     "bounded_step_session_core"
   ],
   "operations": [
@@ -285,8 +286,10 @@
       "output": "events",
       "canonical": ["TEA.watermark.label"],
       "variants": ["drop", "mark", "late boundary", "stable retained order"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
     },
     {
       "family": "TEA",
@@ -439,8 +442,10 @@
       "output": "events",
       "canonical": ["BRIDGE.rows.to_events"],
       "variants": ["semantic id", "number/timestamp clock", "uniqueness failure"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
     },
     {
       "family": "Bridge",

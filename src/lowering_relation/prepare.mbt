@@ -68,6 +68,7 @@ pub enum Payload {
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
   VectorValue(@vector.CheckedVector)
+  EventValue(@event.CheckedEvent)
 }
 
 ///|
@@ -229,6 +230,13 @@ pub fn operation(value : PreparedNode) -> String {
         @vector.NormalizeVectors => "VEC.normalize_l2"
         @vector.ScoreVectors => "VEC.score_sort"
       }
+    EventValue(value) =>
+      match @event.options(value) {
+        @event.ToEvents => "BRIDGE.rows.to_events"
+        @event.Watermark(_, _) => "TEA.watermark.label"
+        @event.Dedupe(_) => "TEA.dedupe"
+        @event.Session(_) => "TEA.window.session_assign"
+      }
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -293,13 +301,14 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(value) => Some(GraphMeanValue(value))
-    GraphConstruction(..)
-    | Nearest(..)
-    | Pool(_)
-    | Ranking(_)
-    | TextRank(..)
-    | Event(_) => None
+    GraphConstruction(..) | Nearest(..) | Pool(_) | Ranking(_) | TextRank(..) =>
+      None
     Vector(value) => Some(VectorValue(value))
+    Event(value) =>
+      match @event.options(value) {
+        @event.ToEvents | @event.Watermark(_, _) => Some(EventValue(value))
+        @event.Dedupe(_) | @event.Session(_) => None
+      }
   }
 }
 
@@ -473,6 +482,16 @@ pub fn prepare(
           },
           1,
         )
+      EventValue(value) =>
+        (
+          match @event.options(value) {
+            @event.ToEvents => "to_events"
+            @event.Watermark(_, _) => "watermark_events"
+            @event.Dedupe(_) => "dedupe_events"
+            @event.Session(_) => "session"
+          },
+          1,
+        )
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -603,6 +622,7 @@ pub fn prepare(
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
       VectorValue(_) => None
+      EventValue(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

@@ -27,6 +27,7 @@ pub enum PreparedStep {
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
   VectorStep(PreparedVector)
+  EventStep(PreparedEvent)
 }
 
 ///|
@@ -60,6 +61,7 @@ pub(all) enum SequenceIssue {
   GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
   VectorFailure(Int, VectorIssue)
+  EventFailure(Int, EventIssue)
 }
 
 ///|
@@ -321,6 +323,25 @@ pub fn prepare_sequence(
         }
         VectorStep(prepared)
       }
+      EventValue(_) => {
+        let (prepared, used_bindings, used_names, used_work) = match
+          prepare_event_node(
+            owner.prepared.nodes[i],
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(EventFailure(i, issue))
+        }
+        bindings -= used_bindings
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        EventStep(prepared)
+      }
       BasicGraph(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_graph_basic_node(
@@ -450,6 +471,7 @@ pub fn emit_sequence_steps(
       GraphShortestStep(v) => emit_graph_shortest_node(v, out)
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)
+      EventStep(v) => emit_event_node(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

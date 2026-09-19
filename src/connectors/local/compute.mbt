@@ -183,6 +183,7 @@ pub fn local_managed_sequence_supported(
       @lower.GraphShortestStep(_) => false
       @lower.GraphRelationStep(_) => false
       @lower.VectorStep(_) => false
+      @lower.EventStep(_) => false
     }
   })
 }

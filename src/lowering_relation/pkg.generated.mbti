@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/event_typing",
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing",
   "actql/actql/graph_typing",
@@ -724,6 +725,12 @@ pub(all) struct DemandUsage {
   links : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) enum EventIssue {
+  InvalidEventLimits
+  InvalidEventWiring
+  EventPreparationLimit
+} derive(Eq, @debug.Debug)
+
 type Expression
 
 pub enum ExpressionBody {
@@ -1019,6 +1026,7 @@ pub enum Payload {
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
   VectorValue(@vector_typing.CheckedVector)
+  EventValue(@event_typing.CheckedEvent)
 }
 
 pub(all) enum PivotIssue {
@@ -1066,6 +1074,8 @@ type PreparedCountGroup
 type PreparedCrossJoin
 
 type PreparedCrossJoinKernel
+
+type PreparedEvent
 
 pub(all) enum PreparedFrameBoundary {
   PreparedUnboundedPreceding
@@ -1162,6 +1172,7 @@ pub enum PreparedStep {
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
   VectorStep(PreparedVector)
+  EventStep(PreparedEvent)
 }
 
 type PreparedValues
@@ -1226,6 +1237,7 @@ pub(all) enum SequenceIssue {
   GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
   VectorFailure(Int, VectorIssue)
+  EventFailure(Int, EventIssue)
 }
 
 pub(all) struct SequenceLimits {
