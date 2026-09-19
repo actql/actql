@@ -179,6 +179,62 @@ fn analytic_frame_range(
 }
 
 ///|
+fn prepare_analytic_aggregate_demand(
+  sorted : Array[Int],
+  ranges : Array[AnalyticPartitionRange],
+  frame : @lower.PreparedRowsFrame,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[(Array[Bool], Int), RowIssue] {
+  let count = sorted.length()
+  if count == 2147483647 ||
+    !reserve_slots(workspace, count) ||
+    !reserve_slots(workspace, count) ||
+    !reserve_slots(workspace, 1) {
+    return Err(RowLimit)
+  }
+  let difference = Array::make(count + 1, 0)
+  let demanded = Array::make(count, false)
+  let mut visits = 0
+  for range in ranges {
+    if range.start < 0 || range.end < range.start || range.end > count {
+      return Err(InvalidRows)
+    }
+    let length = range.end - range.start
+    for relative in 0..<length {
+      if !spend_control(control, 1) {
+        return Err(RowLimit)
+      }
+      visits += 1
+      match analytic_frame_range(frame, relative, length) {
+        None => ()
+        Some((first, end)) => {
+          difference[range.start + first] += 1
+          difference[range.start + end] -= 1
+        }
+      }
+    }
+  }
+  let mut active = 0
+  for position in 0..<count {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    visits += 1
+    active += difference[position]
+    let source = sorted[position]
+    if source < 0 || source >= count || active < 0 {
+      return Err(InvalidRows)
+    }
+    demanded[source] = active > 0
+  }
+  if active + difference[count] != 0 {
+    return Err(InvalidRows)
+  }
+  Ok((demanded, visits))
+}
+
+///|
 fn[T : IndexedRows] analytic_expression_value(
   expression : @lower.Expression,
   input : T,
@@ -607,6 +663,16 @@ fn[T : RelationRows] evaluate_analytic_into(
   let demanded : Array[Array[Bool]] = Array::makei(call_count, _ => {
     Array::make(count, false)
   })
+  let mut needs_aggregate_demand = false
+  for call_index in 0..<call_count {
+    if @lower.analytic_call_function(
+        @lower.analytic_call_at(analytic, call_index).unwrap(),
+      )
+      is PreparedFrameAggregate(_) &&
+      count_indices[call_index] is None {
+      needs_aggregate_demand = true
+    }
+  }
   let mut frame_memberships = 0L
   for range_index in 0..<ranges.length() {
     let range = ranges[range_index]
@@ -681,18 +747,6 @@ fn[T : RelationRows] evaluate_analytic_into(
           PreparedFrameAggregate(_) => -1
         }
         references[call_index][source] = reference
-        if @lower.analytic_call_function(call) is PreparedFrameAggregate(_) {
-          guard @lower.analytic_frame(analytic) is Some(frame) else {
-            return Err(InvalidRows)
-          }
-          match analytic_frame_range(frame, relative, length) {
-            None => ()
-            Some((first, end)) =>
-              for offset in first..<end {
-                demanded[call_index][sorted[range.start + offset]] = true
-              }
-          }
-        }
         if envelope is Some(value) {
           let memberships = match @lower.analytic_call_function(call) {
             PreparedLag(_, _)
@@ -717,6 +771,20 @@ fn[T : RelationRows] evaluate_analytic_into(
         }
       }
     }
+  }
+  let aggregate_demand = if needs_aggregate_demand {
+    guard @lower.analytic_frame(analytic) is Some(frame) else {
+      return Err(InvalidRows)
+    }
+    match
+      prepare_analytic_aggregate_demand(
+        sorted, ranges, frame, control, workspace,
+      ) {
+      Ok((demand, _)) => Some(demand)
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    None
   }
   if !reserve_matrix_slots(workspace, call_count, count) ||
     !reserve_matrix_slots(workspace, call_count, count) ||
@@ -789,8 +857,10 @@ fn[T : RelationRows] evaluate_analytic_into(
         let call = @lower.analytic_call_at(analytic, call_index).unwrap()
         if @lower.analytic_call_function(call)
           is PreparedFrameAggregate(aggregate) {
-          if !demanded[call_index][source] ||
-            count_indices[call_index] is Some(_) {
+          if count_indices[call_index] is Some(_) {
+            continue
+          }
+          guard aggregate_demand is Some(demand) && demand[source] else {
             continue
           }
           if @lower.group_aggregate_filter(aggregate) is Some(filter) {

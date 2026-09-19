@@ -78,6 +78,35 @@ test "analytic ranking navigation and count retain indexed scaling" {
 }
 
 ///|
+test "analytic frame demand uses one interval pass per source" {
+  for count in [128, 512, 2048] {
+    let owner = analytic_execution_owner(
+      "\"analytic\":{\"partition_by\":[\"group\"]," +
+      "\"order_by\":[{\"id\":\"asc\"}]," +
+      "\"frame\":{\"start\":\"unbounded_preceding\"," +
+      "\"end\":\"current_row\"}," +
+      "\"functions\":{\"least\":{\"fn\":\"min\"," +
+      "\"field\":\"amount\"}}}",
+    )
+    let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
+    let frame = @lower.analytic_frame(analytic).unwrap()
+    let sorted = Array::makei(count, index => index)
+    let control = { remaining: count * 3, max_frames: 100, }
+    let workspace = { limit: count * 2 + 1, live: 0, peak: 0, }
+    let (demanded, visits) = prepare_analytic_aggregate_demand(
+      sorted,
+      [{ start: 0, end: count, }],
+      frame,
+      control,
+      workspace,
+    ).unwrap()
+    assert_eq(visits, count * 2)
+    assert_true(demanded.all(value => value))
+    assert_eq(workspace.peak, count * 2 + 1)
+  }
+}
+
+///|
 fn analytic_numeric_scale_sample(
   count : Int,
   frame : String,
