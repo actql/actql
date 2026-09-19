@@ -2287,3 +2287,198 @@ test('publication capacity preflight observes limits without reserving',
     }), false);
     assert.deepEqual(store.status(), before);
   });
+
+function physicalHolding(holdingCid, manifestCid, objects) {
+  return Object.freeze({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'remote-transfer',
+    holding_cid: holdingCid,
+    manifest_cid: manifestCid,
+    objects: Object.freeze(objects.map(object => Object.freeze({...object}))),
+  });
+}
+
+async function preparePhysical(store, value) {
+  const bytes = Buffer.from(value, 'utf8');
+  const writer = store.createPreparedObjectWriter(bytes.byteLength);
+  await writer.append(bytes);
+  return await writer.seal(digest(bytes));
+}
+
+test('physical Transfer holding survives reopen and reclaims exact objects',
+  async t => {
+    const setup = await fixture(t);
+    const values = ['alpha', '日本語'];
+    const prepared = [];
+    for (const value of values) {
+      prepared.push(await preparePhysical(setup.store, value));
+    }
+    const holdingCid = digest('transfer holding a');
+    const record = physicalHolding(
+      holdingCid,
+      digest('physical manifest a'),
+      prepared.map(object => ({cid: object.cid, byte_count: object.bytes})),
+    );
+    const committed = await setup.store.commitPhysicalHolding(
+      record,
+      prepared.map(object => object.prepared),
+    );
+    assert.equal(committed.created, true);
+    assert.equal(setup.store.status().storedBytes, 14);
+    assert.equal(setup.store.status().objectCount, 2);
+    assert.equal(prepared.every(object =>
+      object.prepared.status().pending === false), true);
+
+    await setup.store.close();
+    const reopened = await openLocalPublicationStore(
+      setup.configuration,
+      contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.inspectPhysicalHolding(holdingCid), record);
+    const received = [];
+    for (let index = 0; index < values.length; index++) {
+      const chunks = [];
+      await reopened.consumePhysicalHolding(
+        holdingCid,
+        index,
+        chunk => chunks.push(Buffer.from(chunk)),
+      );
+      received.push(Buffer.concat(chunks).toString('utf8'));
+    }
+    assert.deepEqual(received, values);
+    const retired = await reopened.retirePhysicalHolding(holdingCid);
+    assert.equal(retired.deleted, true);
+    assert.equal(retired.cleanup.status().pending, false);
+    assert.equal(reopened.status().storedBytes, 0);
+    assert.equal(reopened.status().objectCount, 0);
+  });
+
+test('independent Transfer holdings share bytes but release independently',
+  async t => {
+    const {store} = await fixture(t);
+    const first = await preparePhysical(store, 'shared');
+    const firstRecord = physicalHolding(
+      digest('transfer holding first'),
+      digest('physical manifest shared'),
+      [{cid: first.cid, byte_count: first.bytes}],
+    );
+    await store.commitPhysicalHolding(firstRecord, [first.prepared]);
+
+    const second = await preparePhysical(store, 'shared');
+    const secondRecord = physicalHolding(
+      digest('transfer holding second'),
+      digest('physical manifest shared'),
+      [{cid: second.cid, byte_count: second.bytes}],
+    );
+    await store.commitPhysicalHolding(secondRecord, [second.prepared]);
+    assert.equal(store.status().storedBytes, 6);
+    assert.equal(store.status().objectCount, 1);
+
+    assert.equal((await store.retirePhysicalHolding(
+      firstRecord.holding_cid,
+    )).deleted, true);
+    assert.equal(store.status().storedBytes, 6);
+    const chunks = [];
+    await store.consumePhysicalHolding(
+      secondRecord.holding_cid,
+      0,
+      chunk => chunks.push(Buffer.from(chunk)),
+    );
+    assert.equal(Buffer.concat(chunks).toString('utf8'), 'shared');
+    assert.equal((await store.retirePhysicalHolding(
+      secondRecord.holding_cid,
+    )).deleted, true);
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+  });
+
+test('physical holding retirement waits for the exact active reader',
+  async t => {
+    const {store} = await fixture(t);
+    const prepared = await preparePhysical(store, 'reader');
+    const record = physicalHolding(
+      digest('transfer holding reader'),
+      digest('physical manifest reader'),
+      [{cid: prepared.cid, byte_count: prepared.bytes}],
+    );
+    await store.commitPhysicalHolding(record, [prepared.prepared]);
+    let continueRead;
+    const blocked = new Promise(resolve => { continueRead = resolve; });
+    let reading;
+    const started = new Promise(resolve => { reading = resolve; });
+    const consume = store.consumePhysicalHolding(
+      record.holding_cid,
+      0,
+      async () => {
+        reading();
+        await blocked;
+      },
+    );
+    await started;
+    const retiring = await store.retirePhysicalHolding(record.holding_cid);
+    assert.equal(retiring.deleted, false);
+    assert.equal(retiring.cleanup.status().pending, true);
+    assert.equal(await store.inspectPhysicalHolding(record.holding_cid),
+      undefined);
+    continueRead();
+    await consume;
+    assert.equal((await retiring.cleanup.retry()).pending, false);
+    assert.equal(store.status().storedBytes, 0);
+  });
+
+test('physical holding retains capacity until unlink durability retry',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-transfer-holding-durability-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 512,
+      maxObjects: 8,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let objectSyncFailures = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'objects') && objectSyncFailures > 0) {
+          objectSyncFailures--;
+          const error = new Error('injected object sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration,
+      contractControl,
+      durability,
+    );
+    t.after(async () => { await store.close(); });
+    const prepared = await preparePhysical(store, 'durable');
+    const record = physicalHolding(
+      digest('transfer holding durability'),
+      digest('physical manifest durability'),
+      [{cid: prepared.cid, byte_count: prepared.bytes}],
+    );
+    await store.commitPhysicalHolding(record, [prepared.prepared]);
+    objectSyncFailures = 1;
+    const retired = await store.retirePhysicalHolding(record.holding_cid);
+    assert.equal(retired.deleted, false);
+    assert.equal(retired.cleanup.status().pending, true);
+    assert.equal(store.status().storedBytes, 7);
+    assert.equal(await store.inspectPhysicalHolding(record.holding_cid),
+      undefined);
+    const recovered = await retired.cleanup.retry();
+    assert.equal(recovered.pending, false);
+    assert.equal(recovered.errors.length, 1);
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+  });

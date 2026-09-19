@@ -242,6 +242,9 @@ export async function openLocalPublicationStore(
   const indexesDirectory = resolve(root, 'indexes');
   const metadataInventoriesDirectory = resolve(root, 'metadata-inventories');
   const metadataDeletionsDirectory = resolve(root, 'metadata-deletions');
+  const physicalHoldingsDirectory = resolve(root, 'physical-holdings');
+  const physicalHoldingDeletionsDirectory =
+    resolve(root, 'physical-holding-deletions');
   const retentionExtensionsDirectory = resolve(root, 'retention-extensions');
   const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
@@ -249,6 +252,7 @@ export async function openLocalPublicationStore(
     stagingDirectory, custodyDirectory, attemptsDirectory, deliveriesDirectory,
     manifestReadsDirectory, indexesDirectory, retentionExtensionsDirectory,
     metadataInventoriesDirectory, metadataDeletionsDirectory,
+    physicalHoldingsDirectory, physicalHoldingDeletionsDirectory,
     deletionsDirectory,
     clocksDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
@@ -366,6 +370,18 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(metadataDeletionsDirectory);
+  for (const directory of [
+    physicalHoldingsDirectory,
+    physicalHoldingDeletionsDirectory,
+  ]) {
+    for (const name of await readdir(directory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+          !(await lstat(resolve(directory, name))).isFile()) {
+        fail('InvalidPublicationPhysicalHoldingStore');
+      }
+    }
+    await syncDirectory(directory);
+  }
   for (const keyHash of await readdir(retentionExtensionsDirectory)) {
     const directory = resolve(retentionExtensionsDirectory, keyHash);
     if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
@@ -420,17 +436,20 @@ export async function openLocalPublicationStore(
   let reservedObjects = 0;
   let closed = false;
   const preparedObjects = new Map();
+  const preparedObjectOwners = new WeakMap();
   const reclaimableCustodies = new Map();
   const durablyConfirmedIndexes = new Map();
   const durablyConfirmedClocks = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
   let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
-  let resultRetentionBusy = Promise.resolve();
+  let materialRetentionBusy = Promise.resolve();
   let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
+  const activePhysicalHoldingReaders = new Map();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
+  const pendingPhysicalHoldingDeletions = new Map();
   const pendingUncommittedMetadataCleanups = new Map();
   const reclaimingMaterialCids = new Set();
 
@@ -449,6 +468,12 @@ export async function openLocalPublicationStore(
     resolve(metadataInventoriesDirectory, `${cidHex(publicIndexEntryCid)}.json`);
   const metadataDeletionPath = keyHash =>
     resolve(metadataDeletionsDirectory, `${keyHash}.json`);
+  const physicalHoldingPath = holdingCid =>
+    resolve(physicalHoldingsDirectory, `${cidHex(holdingCid)}.json`);
+  const physicalHoldingDeletionPath = holdingCid => resolve(
+    physicalHoldingDeletionsDirectory,
+    `${cidHex(holdingCid)}.json`,
+  );
   const retentionExtensionDirectory = keyHash =>
     resolve(retentionExtensionsDirectory, keyHash);
   const retentionExtensionResultDirectory = (
@@ -469,6 +494,59 @@ export async function openLocalPublicationStore(
   const active = () => {
     if (closed) fail('PublicationStoreClosed');
   };
+
+  const parsePhysicalHolding = bytes => {
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) {
+      fail('InvalidPublicationPhysicalHoldingStore', error);
+    }
+    if (!exactKeys(value, [
+      'version', 'namespace', 'holding_cid', 'manifest_cid', 'objects',
+    ]) ||
+        value.version !== 'actql-local-physical-holding/0.1' ||
+        value.namespace !== 'remote-transfer' ||
+        !cidPattern.test(value.holding_cid) ||
+        !cidPattern.test(value.manifest_cid) ||
+        !Array.isArray(value.objects) ||
+        value.objects.length > configuration.maxObjects ||
+        value.objects.some(object => !exactKeys(object, [
+          'cid', 'byte_count',
+        ]) || !cidPattern.test(object.cid) ||
+          !quantity(object.byte_count) ||
+          object.byte_count > configuration.maxObjectBytes)) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+    const sizes = new Map();
+    for (const object of value.objects) {
+      const existing = sizes.get(object.cid);
+      if (existing !== undefined && existing !== object.byte_count) {
+        fail('InvalidPublicationPhysicalHoldingStore');
+      }
+      sizes.set(object.cid, object.byte_count);
+    }
+    return Object.freeze({
+      ...value,
+      objects: Object.freeze(value.objects.map(object =>
+        Object.freeze({...object}))),
+    });
+  };
+
+  const readPhysicalHoldingAt = async path => {
+    let bytes;
+    try { bytes = await readBounded(path, configuration.maxObjectBytes); }
+    catch (error) {
+      if (error?.code === 'ENOENT') return undefined;
+      throw error;
+    }
+    return parsePhysicalHolding(bytes);
+  };
+
+  const readPhysicalHolding = holdingCid =>
+    readPhysicalHoldingAt(physicalHoldingPath(holdingCid));
+
+  const readPhysicalHoldingDeletion = holdingCid =>
+    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid));
 
   const parseMetadataInventory = bytes => {
     let value;
@@ -1208,6 +1286,10 @@ export async function openLocalPublicationStore(
             return state();
           },
         });
+        preparedObjectOwners.set(prepared, Object.freeze({
+          cid: physical.cid,
+          bytes: physical.bytes,
+        }));
         return Object.freeze({
           cid: physical.cid,
           bytes: physical.bytes,
@@ -2627,7 +2709,7 @@ export async function openLocalPublicationStore(
         !timestampPattern.test(admittedAt)) {
       fail('InvalidPublicationRetentionExtension');
     }
-    const operation = resultRetentionBusy.then(async () => {
+    const operation = materialRetentionBusy.then(async () => {
       const selected = await requireCommittedResultBinding(
         key, resultDefinitionCid,
       );
@@ -2709,7 +2791,7 @@ export async function openLocalPublicationStore(
       await syncDirectory(directory);
       return Object.freeze({record, extension, idempotent: false});
     });
-    resultRetentionBusy = operation.catch(() => {});
+    materialRetentionBusy = operation.catch(() => {});
     return operation;
   };
 
@@ -2982,6 +3064,17 @@ export async function openLocalPublicationStore(
   };
 
   const materialHasLiveReference = async materialCid => {
+    for (const name of await readdir(physicalHoldingsDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationPhysicalHoldingStore');
+      }
+      const holding = await readPhysicalHoldingAt(
+        resolve(physicalHoldingsDirectory, name),
+      );
+      if (holding.objects.some(object => object.cid === materialCid)) {
+        return true;
+      }
+    }
     for (const name of await readdir(indexesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
         fail('InvalidPublicationStoreIndex');
@@ -3011,6 +3104,316 @@ export async function openLocalPublicationStore(
       }
     }
     return false;
+  };
+
+  const admitPhysicalHolding = value => {
+    if (!exactKeys(value, [
+      'version', 'namespace', 'holding_cid', 'manifest_cid', 'objects',
+    ]) || !Array.isArray(value.objects) ||
+        value.objects.some(object => !exactKeys(object, [
+          'cid', 'byte_count',
+        ]))) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+    const record = {
+      version: value.version,
+      namespace: value.namespace,
+      holding_cid: value.holding_cid,
+      manifest_cid: value.manifest_cid,
+      objects: value.objects.map(object => ({
+        cid: object?.cid,
+        byte_count: object?.byte_count,
+      })),
+    };
+    const bytes = Buffer.from(JSON.stringify(record), 'utf8');
+    if (bytes.byteLength > configuration.maxObjectBytes) {
+      fail('PublicationObjectLimit');
+    }
+    return Object.freeze({
+      record: parsePhysicalHolding(bytes),
+      bytes,
+    });
+  };
+
+  const verifyPhysicalHoldingObjects = async record => {
+    const verified = new Map();
+    for (const object of record.objects) {
+      if (verified.has(object.cid)) continue;
+      const physical = await verifyObject(object.cid);
+      if (physical.bytes !== object.byte_count) {
+        fail('InvalidPublicationPhysicalHoldingStore');
+      }
+      verified.set(object.cid, physical);
+    }
+    return verified;
+  };
+
+  const commitPhysicalHolding = async (value, prepared) => {
+    active();
+    const admitted = admitPhysicalHolding(value);
+    const record = admitted.record;
+    if (await readPhysicalHoldingDeletion(record.holding_cid) !== undefined) {
+      fail('PublicationPhysicalHoldingRetiring');
+    }
+    const current = await readPhysicalHolding(record.holding_cid);
+    if (current !== undefined) {
+      if (!Buffer.from(JSON.stringify(current), 'utf8').equals(
+        admitted.bytes,
+      )) {
+        fail('PublicationPhysicalHoldingConflict');
+      }
+      await verifyPhysicalHoldingObjects(current);
+      await adoptPreparedObjects([...new Set(
+        current.objects.map(object => object.cid),
+      )]);
+      return Object.freeze({record: current, created: false});
+    }
+    if (!Array.isArray(prepared)) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+    const expected = new Map();
+    for (const object of record.objects) {
+      if (!expected.has(object.cid)) {
+        expected.set(object.cid, object.byte_count);
+      }
+    }
+    const supplied = new Map();
+    for (const handle of prepared) {
+      const owner = preparedObjectOwners.get(handle);
+      if (owner === undefined || supplied.has(owner.cid) ||
+          handle.status().pending !== true) {
+        fail('InvalidPublicationPhysicalHoldingOwner');
+      }
+      supplied.set(owner.cid, owner.bytes);
+    }
+    if (supplied.size !== expected.size) {
+      fail('InvalidPublicationPhysicalHoldingOwner');
+    }
+    for (const [cid, bytes] of expected) {
+      if (supplied.get(cid) !== bytes) {
+        fail('InvalidPublicationPhysicalHoldingOwner');
+      }
+    }
+    await verifyPhysicalHoldingObjects(record);
+    try {
+      await writeExclusive(
+        physicalHoldingPath(record.holding_cid),
+        admitted.bytes,
+      );
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const installed = await readBounded(
+        physicalHoldingPath(record.holding_cid),
+        configuration.maxObjectBytes,
+      );
+      if (!installed.equals(admitted.bytes)) {
+        fail('PublicationPhysicalHoldingConflict');
+      }
+    }
+    await syncDirectory(physicalHoldingsDirectory);
+    await adoptPreparedObjects([...expected.keys()]);
+    return Object.freeze({record, created: true});
+  };
+
+  const inspectPhysicalHolding = async holdingCid => {
+    active();
+    cidHex(holdingCid);
+    if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+      return undefined;
+    }
+    const record = await readPhysicalHolding(holdingCid);
+    if (record === undefined) return undefined;
+    await verifyPhysicalHoldingObjects(record);
+    return record;
+  };
+
+  const consumePhysicalHolding = async (
+    holdingCid,
+    objectIndex,
+    accept,
+  ) => {
+    active();
+    if (!quantity(objectIndex) || typeof accept !== 'function') {
+      fail('InvalidPublicationPhysicalHoldingRead');
+    }
+    const record = await inspectPhysicalHolding(holdingCid);
+    if (record === undefined || objectIndex >= record.objects.length) {
+      fail('PublicationPhysicalHoldingUnavailable');
+    }
+    activePhysicalHoldingReaders.set(
+      holdingCid,
+      (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
+    );
+    try {
+      return await consumeObject(record.objects[objectIndex].cid, accept);
+    } finally {
+      const remaining =
+        (activePhysicalHoldingReaders.get(holdingCid) ?? 1) - 1;
+      if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
+      else activePhysicalHoldingReaders.set(holdingCid, remaining);
+    }
+  };
+
+  const ensurePhysicalHoldingDeletion = async record => {
+    const bytes = Buffer.from(JSON.stringify(record), 'utf8');
+    const path = physicalHoldingDeletionPath(record.holding_cid);
+    try { await writeExclusive(path, bytes); }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readBounded(
+        path,
+        configuration.maxObjectBytes,
+      );
+      if (!existing.equals(bytes)) {
+        fail('PublicationPhysicalHoldingConflict');
+      }
+    }
+    await syncDirectory(physicalHoldingDeletionsDirectory);
+  };
+
+  const createPhysicalHoldingDeletionCleanup = record => {
+    const existing = pendingPhysicalHoldingDeletions.get(record.holding_cid);
+    if (existing !== undefined) return existing;
+    let pending = true;
+    const errors = [];
+    const unconfirmedObjects = new Map();
+    const status = () => Object.freeze({
+      pending,
+      errors: Object.freeze([...errors]),
+    });
+    const cleanup = Object.freeze({
+      status,
+      async retry() {
+        if (!pending) return status();
+        const operation = materialRetentionBusy.then(async () => {
+          await ensurePhysicalHoldingDeletion(record);
+          if ((activePhysicalHoldingReaders.get(record.holding_cid) ?? 0) !==
+              0) return;
+          const current = await readPhysicalHolding(record.holding_cid);
+          if (current !== undefined) {
+            const currentBytes = Buffer.from(JSON.stringify(current), 'utf8');
+            const expectedBytes = Buffer.from(JSON.stringify(record), 'utf8');
+            if (!currentBytes.equals(expectedBytes)) {
+              fail('PublicationPhysicalHoldingConflict');
+            }
+            await unlink(physicalHoldingPath(record.holding_cid));
+            await syncDirectory(physicalHoldingsDirectory);
+          }
+          const unique = new Map();
+          for (const object of record.objects) {
+            if (!unique.has(object.cid)) {
+              unique.set(object.cid, object.byte_count);
+            }
+          }
+          for (const [cid, bytes] of unique) {
+            if (unconfirmedObjects.has(cid)) continue;
+            const prepared = preparedObjects.get(cid);
+            if (prepared !== undefined &&
+                (prepared.holders.size !== 0 ||
+                  prepared.commitOwners.size !== 0)) continue;
+            if (await materialHasLiveReference(cid)) continue;
+            let state;
+            try { state = await lstat(objectPath(cid)); }
+            catch (error) {
+              if (error?.code !== 'ENOENT') throw error;
+            }
+            if (state === undefined) continue;
+            if (!state.isFile() || state.size !== bytes) {
+              fail('InvalidPublicationStoreObject');
+            }
+            if (state.nlink > 1) continue;
+            await unlink(objectPath(cid));
+            unconfirmedObjects.set(cid, bytes);
+          }
+          if (unconfirmedObjects.size !== 0) {
+            await syncDirectory(objectsDirectory);
+            for (const bytes of unconfirmedObjects.values()) {
+              storedBytes -= bytes;
+              objectCount--;
+            }
+            unconfirmedObjects.clear();
+          }
+          await unlink(physicalHoldingDeletionPath(record.holding_cid));
+          await syncDirectory(physicalHoldingDeletionsDirectory);
+          pending = false;
+          pendingPhysicalHoldingDeletions.delete(record.holding_cid);
+        });
+        materialRetentionBusy = operation.catch(() => {});
+        try { await operation; }
+        catch (error) {
+          errors.push(error);
+          throw error;
+        }
+        return status();
+      },
+    });
+    pendingPhysicalHoldingDeletions.set(record.holding_cid, cleanup);
+    return cleanup;
+  };
+
+  const retirePhysicalHolding = async holdingCid => {
+    active();
+    cidHex(holdingCid);
+    const record = await readPhysicalHolding(holdingCid) ??
+      await readPhysicalHoldingDeletion(holdingCid);
+    if (record === undefined) {
+      const cleanup = Object.freeze({
+        status: () => Object.freeze({
+          pending: false,
+          errors: Object.freeze([]),
+        }),
+        retry: () => Promise.resolve(Object.freeze({
+          pending: false,
+          errors: Object.freeze([]),
+        })),
+      });
+      return Object.freeze({record, cleanup, deleted: true});
+    }
+    const cleanup = createPhysicalHoldingDeletionCleanup(record);
+    try { await cleanup.retry(); }
+    catch {}
+    return Object.freeze({
+      record,
+      cleanup,
+      deleted: cleanup.status().pending === false,
+    });
+  };
+
+  const recoverPhysicalHoldingDeletions = async () => {
+    active();
+    const recovered = [];
+    for (const name of await readdir(physicalHoldingDeletionsDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationPhysicalHoldingStore');
+      }
+      const record = await readPhysicalHoldingAt(
+        resolve(physicalHoldingDeletionsDirectory, name),
+      );
+      const cleanup = createPhysicalHoldingDeletionCleanup(record);
+      try { await cleanup.retry(); }
+      catch {}
+      recovered.push(cleanup);
+    }
+    return Object.freeze(recovered);
+  };
+
+  const validatePhysicalHoldingStore = async () => {
+    for (const directory of [
+      physicalHoldingsDirectory,
+      physicalHoldingDeletionsDirectory,
+    ]) {
+      for (const name of await readdir(directory)) {
+        const record = await readPhysicalHoldingAt(resolve(directory, name));
+        if (`${cidHex(record.holding_cid)}.json` !== name) {
+          fail('InvalidPublicationPhysicalHoldingStore');
+        }
+        if (directory === physicalHoldingsDirectory &&
+            await readPhysicalHoldingDeletion(record.holding_cid) ===
+              undefined) {
+          await verifyPhysicalHoldingObjects(record);
+        }
+      }
+    }
   };
 
   const recoverPreparedCustodies = async () => {
@@ -3221,7 +3624,7 @@ export async function openLocalPublicationStore(
       status,
       async retry() {
         if (!pending) return status();
-        const operation = resultRetentionBusy.then(async () => {
+        const operation = materialRetentionBusy.then(async () => {
           await ensureResultDeletionMarker(
             keyHash, resultDefinitionCid, marker,
           );
@@ -3279,7 +3682,7 @@ export async function openLocalPublicationStore(
           pendingResultDeletions.delete(deletionKey);
           reclaimingMaterialCids.delete(materialCid);
         });
-        resultRetentionBusy = operation.catch(() => {});
+        materialRetentionBusy = operation.catch(() => {});
         try { await operation; }
         catch (error) {
           errors.push(error);
@@ -3582,10 +3985,17 @@ export async function openLocalPublicationStore(
     }
   };
 
+  await validatePhysicalHoldingStore();
+
   // Recover process-crash custody before accepting new Store work. A
   // committed or shared allocation survives; an unpublished allocation is
   // reclaimed using its exact recorded generation.
   await recoverPreparedCustodies();
+
+  // A retiring Transfer holding is unavailable before physical reclamation.
+  // Recovery resumes the exact durable cleanup without treating an absent
+  // object name as proof that another live holding was released.
+  await recoverPhysicalHoldingDeletions();
 
   await validateCommittedMetadataInventories();
 
@@ -3608,6 +4018,11 @@ export async function openLocalPublicationStore(
     storeAuthorityCid: configuration.storeAuthorityCid,
     createObjectWriter,
     createPreparedObjectWriter,
+    commitPhysicalHolding,
+    inspectPhysicalHolding,
+    consumePhysicalHolding,
+    retirePhysicalHolding,
+    recoverPhysicalHoldingDeletions,
     putBytes,
     putSemantic,
     putPublicationContract,
@@ -3682,7 +4097,9 @@ export async function openLocalPublicationStore(
           reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
           pendingMetadataDeletions.size !== 0 ||
-          activeResultReaders.size !== 0) {
+          pendingPhysicalHoldingDeletions.size !== 0 ||
+          activeResultReaders.size !== 0 ||
+          activePhysicalHoldingReaders.size !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));
