@@ -74,6 +74,7 @@ fn check_backend_capabilities(
         Field(_, _) | Literal(_) | TypedNull => 0
         Unary(_, _) => 1
         Binary(_, _, _) => 2
+        VectorScore(_, _, _) => 2
         Conditional(_, _, _) => 3
         Many(_, children) => children.length()
         Case(clauses, _) => {
@@ -112,6 +113,10 @@ fn check_backend_capabilities(
               }
             Add | Subtract | Multiply | Divide | Modulo => ()
           }
+          pending.push(right)
+          pending.push(left)
+        }
+        VectorScore(_, left, right) => {
           pending.push(right)
           pending.push(left)
         }

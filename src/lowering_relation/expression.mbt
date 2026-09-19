@@ -16,10 +16,18 @@ pub enum ExpressionBody {
   TypedNull
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
+  VectorScore(VectorMetric, Expression, Expression)
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
 }
+
+///|
+pub(all) enum VectorMetric {
+  Cosine
+  Dot
+  L2
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum UnaryOperator {
@@ -108,6 +116,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     | TypedNull
     | Unary(_, _)
     | Binary(_, _, _)
+    | VectorScore(_, _, _)
     | Conditional(_, _, _) => 0
   }
 }
@@ -166,6 +175,7 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "vector_score"
     | "if"
     | "case" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
@@ -206,6 +216,13 @@ fn expression_children(
         children.push(otherwise)
       }
       children
+    }
+    "vector_score" => {
+      let obj = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(obj, "left").unwrap(),
+        @decode.lookup(obj, "right").unwrap(),
+      ]
     }
     _ => {
       if @decode.array_length(body).unwrap() > max_nodes {
@@ -543,12 +560,18 @@ fn lower_expression_measured(
         }
       }
     }
-    let pending = @typing.pending_validations(typed)
-    if pending.get(0) is Some(obligation) {
-      expression_fail(
-        @typing.node_at(typed, obligation.node_index).unwrap().source,
-        PendingValidation(obligation.kind),
-      )
+    for obligation in @typing.pending_validations(typed) {
+      let admitted = match obligation.kind {
+        @typing.ProfileAdmission(profile) =>
+          expression_profile_admitted(bound, profile)
+        @typing.PatternValidation(_) | @typing.HostEnvelope => false
+      }
+      if !admitted {
+        expression_fail(
+          @typing.node_at(typed, obligation.node_index).unwrap().source,
+          PendingValidation(obligation.kind),
+        )
+      }
     }
     let fields : Map[String, @relation.ReferenceTarget] = Map([])
     for (name, target) in resolved_fields {
@@ -642,6 +665,17 @@ fn lower_expression_measured(
         "gt" => Binary(Greater, args[0], args[1])
         "gte" => Binary(GreaterEqual, args[0], args[1])
         "nullif" => Binary(NullIf, args[0], args[1])
+        "vector_score" => {
+          let obj = @decode.open_object(body).unwrap()
+          let metric = match
+            @decode.text(@decode.lookup(obj, "metric").unwrap()).unwrap() {
+            "cosine" => VectorMetric::Cosine
+            "dot" => VectorMetric::Dot
+            "l2" => VectorMetric::L2
+            other => expression_fail(cursor, ExpressionNotImplemented(other))
+          }
+          VectorScore(metric, args[0], args[1])
+        }
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)

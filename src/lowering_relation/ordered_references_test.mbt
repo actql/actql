@@ -74,6 +74,42 @@ test "reference preorder covers lazy branches and case independently of serializ
 }
 
 ///|
+test "vector score references retain the structured operand paths" {
+  let owner = vector_expression_pipeline(
+    "{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}",
+  )
+  let expression = @lowering_relation.lower_expression(
+    owner,
+    0,
+    0,
+    expression_limits(),
+  ).unwrap()
+  let kernel = match
+    @lowering_relation.prepare_kernel(
+      owner,
+      0,
+      max_bindings=100,
+      max_name_bytes=10000,
+      expression_limits(),
+    ) {
+    Ok(value) => value
+    Err(_) => fail("vector score kernel")
+  }
+  let index = @lowering_relation.prepare_ordered_references(
+    kernel,
+    reference_limits(),
+  ).unwrap()
+  assert_true(
+    @lowering_relation.expression_body(expression)
+    is @lowering_relation.VectorScore(_, _, _),
+  )
+  assert_eq(
+    references_wire(index),
+    "[{\"at\":\"/bindings/0/expr/body/left\",\"target\":{\"input_field\":\"left\"}},{\"at\":\"/bindings/0/expr/body/right\",\"target\":{\"input_field\":\"right\"}}]",
+  )
+}
+
+///|
 test "reference table never interprets expression shaped literal business data" {
   let kernel = ordered_kernel(
     ",{\"derive\":[{\"payload\":{\"literal\":{\"op\":\"field\",\"body\":\"missing\",\"$param\":\"business\",\"prior_slot\":99}}}]}",

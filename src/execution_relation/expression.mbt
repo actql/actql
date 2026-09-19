@@ -47,6 +47,13 @@ priv enum Continuation {
   Unary(@lower.Expression, @lower.UnaryOperator)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
+  VectorLeft(@lower.Expression, @lower.VectorMetric, @lower.Expression)
+  VectorRight(
+    @lower.Expression,
+    @lower.VectorMetric,
+    Value,
+    ExpressionRootLease?
+  )
   Choose(@lower.Expression, @lower.Expression, @lower.Expression)
   Many(
     @lower.Expression,
@@ -68,6 +75,18 @@ priv enum Continuation {
 priv enum Evaluation {
   Enter(@lower.Expression)
   Return(Value)
+  Score(VectorScoreState)
+}
+
+///|
+priv struct VectorScoreState {
+  expression : @lower.Expression
+  fold : @vector.ScoreFold
+  left : @admitted.FrozenArray[Double]
+  right : @admitted.FrozenArray[Double]
+  left_root : ExpressionRootLease?
+  right_root : ExpressionRootLease?
+  mut index : Int
 }
 
 ///|
@@ -304,6 +323,7 @@ fn advance_expression_frame_impl(
           Field(_, _) | Literal(_) | TypedNull => true
           Unary(_, _)
           | Binary(_, _, _)
+          | VectorScore(_, _, _)
           | Many(_, _)
           | Conditional(_, _, _)
           | Case(_, _) => false
@@ -336,6 +356,10 @@ fn advance_expression_frame_impl(
           }
           Binary(op, left, right) => {
             frame.stack.push(Left(expr, op, right))
+            frame.state = Enter(left)
+          }
+          VectorScore(metric, left, right) => {
+            frame.stack.push(VectorLeft(expr, metric, right))
             frame.state = Enter(left)
           }
           Conditional(condition, yes, no) => {
@@ -444,6 +468,61 @@ fn advance_expression_frame_impl(
             frame.current_root = None
             frame.state = Return(result)
           }
+          VectorLeft(expr, metric, right) => {
+            frame.stack.push(
+              VectorRight(expr, metric, value, frame.current_root),
+            )
+            frame.current_root = None
+            frame.state = Enter(right)
+          }
+          VectorRight(expr, metric, left, left_root) => {
+            frame.active = expr
+            if charge_value(left) is Some(issue) {
+              release_slots(workspace, 1)
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            if charge_value(value) is Some(issue) {
+              release_slots(workspace, 1)
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            let right_root = frame.current_root
+            if left is Null || value is Null {
+              if release(left_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              if release(right_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              frame.current_root = None
+              release_slots(workspace, 1)
+              frame.state = Return(Null)
+            } else {
+              guard left is Captured(@admitted.Vector(left_values)) &&
+                value is Captured(@admitted.Vector(right_values)) &&
+                @admitted.element_count(left_values) ==
+                @admitted.element_count(right_values) &&
+                @admitted.element_count(left_values) > 0 else {
+                release_slots(workspace, 1)
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
+              frame.current_root = None
+              frame.state = Score({
+                expression: expr,
+                fold: @vector.prepare_score(
+                  match metric {
+                    @lower.Cosine => @vector.Cosine
+                    @lower.Dot => @vector.Dot
+                    @lower.L2 => @vector.L2
+                  },
+                ),
+                left: left_values,
+                right: right_values,
+                left_root,
+                right_root,
+                index: 0,
+              })
+            }
+          }
           Choose(expr, yes, no) => {
             let selected = match
               expression_event_choice(
@@ -535,6 +614,56 @@ fn advance_expression_frame_impl(
               frame.state = Enter(otherwise)
             }
           }
+        }
+      }
+      Score(score) => {
+        frame.active = score.expression
+        if score.index < @admitted.element_count(score.left) {
+          guard @admitted.element_at(score.left, score.index) is Some(left) &&
+            @admitted.element_at(score.right, score.index) is Some(right) else {
+            release_slots(workspace, 1)
+            return Err({
+              kind: Scalar(InvalidOperand),
+              expression: score.expression,
+            })
+          }
+          match @vector.score_step(score.fold, left, right) {
+            Ok(_) => score.index += 1
+            Err(_) => {
+              release_slots(workspace, 1)
+              return Err({
+                kind: Scalar(ArithmeticFailure),
+                expression: score.expression,
+              })
+            }
+          }
+        } else {
+          let result = match @vector.finish_score(score.fold) {
+            Ok(value) => value
+            Err(_) => {
+              release_slots(workspace, 1)
+              return Err({
+                kind: Scalar(ArithmeticFailure),
+                expression: score.expression,
+              })
+            }
+          }
+          if release(score.left_root) is Some(issue) {
+            release_slots(workspace, 1)
+            return Err({
+              kind: LogicalValue(issue),
+              expression: score.expression,
+            })
+          }
+          if release(score.right_root) is Some(issue) {
+            release_slots(workspace, 1)
+            return Err({
+              kind: LogicalValue(issue),
+              expression: score.expression,
+            })
+          }
+          release_slots(workspace, 1)
+          frame.state = Return(Number(result))
         }
       }
     }

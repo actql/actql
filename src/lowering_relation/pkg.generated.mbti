@@ -84,7 +84,7 @@ pub fn append_kernel_owner(PreparedAppendKernel) -> BoundPrepared
 
 pub fn append_kernel_step(PreparedAppendKernel) -> Int
 
-pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int) -> Result[BoundPrepared, BindingIssue]
+pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int, expression_profiles? : ExpressionProfileAdmission) -> Result[BoundPrepared, BindingIssue]
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
@@ -782,6 +782,7 @@ pub enum ExpressionBody {
   TypedNull
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
+  VectorScore(VectorMetric, Expression, Expression)
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
@@ -810,6 +811,11 @@ pub(all) struct ExpressionLimits {
   max_depth : Int
   max_literal_nodes : Int
   max_literal_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ExpressionProfileAdmission {
+  text_time : Bool
+  veca : Bool
 } derive(Eq, @debug.Debug)
 
 pub struct ExpressionRoot {
@@ -1354,6 +1360,12 @@ pub(all) enum VectorIssue {
   VectorPreparationLimit
   MissingVectorParameter(String)
   InvalidVectorParameter(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum VectorMetric {
+  Cosine
+  Dot
+  L2
 } derive(Eq, @debug.Debug)
 
 pub(all) enum WindowIssue {

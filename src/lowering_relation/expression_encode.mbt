@@ -11,6 +11,7 @@ priv enum ExpressionFrame {
   CaseWhen(Array[(Expression, Expression)])
   Clauses(Array[(Expression, Expression)], Int)
   ClauseWhen(Expression)
+  VectorScoreRest(VectorMetric, Expression)
 }
 
 ///|
@@ -126,6 +127,14 @@ fn emit_frames(
             @encode.begin_array(output)
             pending.push(Expressions([left, right], 0))
           }
+          VectorScore(metric, left, right) => {
+            pending.push(Op("vector_score"))
+            @encode.begin_object(output)
+            @encode.key(output, "left")
+            pending.push(EndObject)
+            pending.push(VectorScoreRest(metric, right))
+            pending.push(Expr(left))
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -180,6 +189,19 @@ fn emit_frames(
       ClauseWhen(condition) => {
         @encode.key(output, "when")
         pending.push(Expr(condition))
+      }
+      VectorScoreRest(metric, right) => {
+        @encode.key(output, "metric")
+        @encode.string_value(
+          output,
+          match metric {
+            Cosine => "cosine"
+            Dot => "dot"
+            L2 => "l2"
+          },
+        )
+        @encode.key(output, "right")
+        pending.push(Expr(right))
       }
       Value(value) =>
         match value {

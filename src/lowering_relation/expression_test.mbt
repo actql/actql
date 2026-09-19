@@ -20,6 +20,51 @@ fn expression_pipeline(tail : String) -> @lowering_relation.BoundPrepared {
 }
 
 ///|
+fn vector_expression_pipeline(
+  expression : String,
+  admit? : Bool = true,
+) -> @lowering_relation.BoundPrepared {
+  let rows = @carrier.relation(
+    @carrier.rows(
+      [
+        (
+          @schema.Unqualified("left"),
+          Some(@contract.vector_contract(2.0, nullable=false).unwrap()),
+        ),
+        (
+          @schema.Unqualified("right"),
+          Some(@contract.vector_contract(2.0, nullable=false).unwrap()),
+        ),
+      ],
+      field_set=@carrier.Closed,
+      max_fields=2,
+      max_name_bytes=9,
+    ).unwrap(),
+  )
+  let checked = @pipeline.check_carriers(
+    cursor("[{\"from\":\"rows\",\"derive\":[{\"score\":" + expression + "}]}]"),
+    [("rows", rows)],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+    expression_profiles={ text_time: false, veca: admit, },
+  ).unwrap()
+}
+
+///|
 fn expression_wire(expr : @lowering_relation.Expression) -> String raise {
   let writer = @encode.writer(100000, 10000, 1000)
   @lowering_relation.emit_expression(expr, writer)
@@ -84,6 +129,55 @@ test "all basic binary node spellings match the normative expression contract" {
   assert_eq(
     expression_wire(expr),
     "{\"body\":{\"body\":\"id\",\"op\":\"field\"},\"op\":\"negate\"}",
+  )
+}
+
+///|
+test "vector score lowering retains metric and object child paths" {
+  let owner = vector_expression_pipeline(
+    "{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}",
+  )
+  let expr = match
+    @lowering_relation.lower_expression(owner, 0, 0, expression_limits()) {
+    Ok(value) => value
+    Err(issue) => {
+      debug_inspect(issue.kind, content="vector score lowering")
+      fail("vector score lowering")
+    }
+  }
+  guard @lowering_relation.expression_body(expr)
+    is @lowering_relation.VectorScore(@lowering_relation.Dot, left, right) else {
+    fail("expected vector score")
+  }
+  assert_true(
+    @lowering_relation.expression_body(left)
+    is @lowering_relation.Field("left", @relation.InputField(_)),
+  )
+  assert_true(
+    @lowering_relation.expression_body(right)
+    is @lowering_relation.Field("right", @relation.InputField(_)),
+  )
+  assert_eq(
+    expression_wire(expr),
+    "{\"body\":{\"left\":{\"body\":\"left\",\"op\":\"field\"},\"metric\":\"dot\",\"right\":{\"body\":\"right\",\"op\":\"field\"}},\"op\":\"vector_score\"}",
+  )
+}
+
+///|
+test "vector score lowering requires explicit VecA profile admission" {
+  let owner = vector_expression_pipeline(
+    "{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}",
+    admit=false,
+  )
+  guard @lowering_relation.lower_expression(owner, 0, 0, expression_limits())
+    is Err(issue) else {
+    fail("missing VecA profile was accepted")
+  }
+  assert_eq(
+    issue.kind,
+    @lowering_relation.PendingValidation(
+      @typing.ProfileAdmission("actql-veca/0.1"),
+    ),
   )
 }
 

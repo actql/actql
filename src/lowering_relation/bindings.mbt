@@ -5,7 +5,16 @@ struct BoundPrepared {
   prepared : Prepared
   bindings : @parameter.BoundValues?
   by_name : Map[String, @value.CheckedValue]
+  expression_profiles : ExpressionProfileAdmission
 }
+
+///|
+/// Profiles already selected by the enclosing checked Program. This is a
+/// lowering input, not proof of backend capability or an execution permit.
+pub(all) struct ExpressionProfileAdmission {
+  text_time : Bool
+  veca : Bool
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum BindingIssueKind {
@@ -27,6 +36,10 @@ pub fn bind_parameters(
   bindings : @parameter.BoundValues?,
   max_parameters~ : Int,
   max_name_bytes~ : Int,
+  expression_profiles? : ExpressionProfileAdmission = {
+    text_time: false,
+    veca: false,
+  },
 ) -> Result[BoundPrepared, BindingIssue] {
   let source = @pipeline.source(prepared.owner)
   if max_parameters < 0 || max_name_bytes < 0 {
@@ -66,7 +79,16 @@ pub fn bind_parameters(
       }
     }
   }
-  Ok({ prepared, bindings, by_name, })
+  Ok({ prepared, bindings, by_name, expression_profiles, })
+}
+
+///|
+fn expression_profile_admitted(value : BoundPrepared, profile : String) -> Bool {
+  match profile {
+    "actql-text-time/0.1" => value.expression_profiles.text_time
+    "actql-veca/0.1" => value.expression_profiles.veca
+    _ => false
+  }
 }
 
 ///|

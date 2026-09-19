@@ -130,6 +130,16 @@ pub fn prepare_ordered_references(
                 return Err(ReferenceLimit)
               }
             }
+            VectorScore(_, left, right) => {
+              guard append_path(path, "/body/right") is Some(right_path) &&
+                append_path(path, "/body/left") is Some(left_path) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(Visit(right, right_path)) ||
+                !push(Visit(left, left_path)) {
+                return Err(ReferenceLimit)
+              }
+            }
             Many(_, children) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)
