@@ -23,6 +23,7 @@ priv struct Execution {
   mut rows : @bridge.RowsToEventsExecution?
   mut row_events : @records.Completed?
   mut watermark : @tea.WatermarkExecution?
+  mut dedupe : @tea.DedupeExecution?
   mut watermarked : @records.Completed?
   mut projection : @bridge.EventsToRowsExecution?
   mut stage_progress : Int64
@@ -59,7 +60,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       (0, @lower.EventStep(_)) =>
         @lower.operation(node) == "BRIDGE.rows.to_events"
       (1, @lower.EventStep(_)) =>
-        @lower.operation(node) == "TEA.watermark.label"
+        @lower.operation(node) == "TEA.watermark.label" ||
+        @lower.operation(node) == "TEA.dedupe"
       (2, @lower.CarrierProjectionStep(projection)) =>
         @lower.operation(node) == "BRIDGE.events.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -224,61 +226,121 @@ fn advance_execution(
           Ok(read) => read
           Err(_) => return fail_execution(value)
         }
-        let started = match
-          @tea.start_watermark(
-            value.control,
-            value.sequence,
+        guard @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(value.generated),
+            ),
             1,
-            input,
-            value.limits,
-            value.storage_bytes,
-            fn() { true },
-          ) {
-          Ok(execution) => execution
-          Err(_) => return fail_execution(value)
+          )
+          is Some(node) else {
+          return fail_execution(value)
         }
-        value.watermark = Some(started)
+        match @lower.operation(node) {
+          "TEA.watermark.label" =>
+            match
+              @tea.start_watermark(
+                value.control,
+                value.sequence,
+                1,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => value.watermark = Some(execution)
+              Err(_) => return fail_execution(value)
+            }
+          "TEA.dedupe" =>
+            match
+              @tea.start_dedupe(
+                value.control,
+                value.sequence,
+                1,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => value.dedupe = Some(execution)
+              Err(_) => return fail_execution(value)
+            }
+          _ => return fail_execution(value)
+        }
         value.phase = Watermark
         reset_stage(value)
       }
-      Watermark => {
-        guard value.watermark is Some(active) else {
-          return fail_execution(value)
-        }
-        match @tea.advance_watermark(active, quantum) {
-          Err(_) => return fail_execution(value)
-          Ok(@tea.Continue(progress~, work~)) => {
-            guard continue_poll(value, progress, work) is Some(poll) else {
-              return fail_execution(value)
+      Watermark =>
+        if value.watermark is Some(active) {
+          match @tea.advance_watermark(active, quantum) {
+            Err(_) => return fail_execution(value)
+            Ok(@tea.Continue(progress~, work~)) => {
+              guard continue_poll(value, progress, work) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
             }
-            return Ok(poll)
-          }
-          Ok(@tea.Complete(output, progress~, work~)) => {
-            guard continue_poll(value, progress, work) is Some(poll) else {
-              return fail_execution(value)
+            Ok(@tea.Complete(output, progress~, work~)) => {
+              guard continue_poll(value, progress, work) is Some(poll) else {
+                return fail_execution(value)
+              }
+              value.watermarked = Some(output)
+              discard(value.row_events) |> ignore
+              value.row_events = None
+              value.phase = StartProjection
+              if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+                return Ok(poll)
+              }
             }
-            value.watermarked = Some(output)
-            discard(value.row_events) |> ignore
-            value.row_events = None
-            value.phase = StartProjection
-            if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+            Ok(@tea.Failed(_, progress~, work~)) => {
+              guard terminal_poll(value, progress, work, false) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
+            }
+            Ok(@tea.Stopped(_, progress~, work~)) => {
+              guard terminal_poll(value, progress, work, true) is Some(poll) else {
+                return fail_execution(value)
+              }
               return Ok(poll)
             }
           }
-          Ok(@tea.Failed(_, progress~, work~)) => {
-            guard terminal_poll(value, progress, work, false) is Some(poll) else {
-              return fail_execution(value)
+        } else if value.dedupe is Some(active) {
+          match @tea.advance_dedupe(active, quantum) {
+            Err(_) => return fail_execution(value)
+            Ok(@tea.DedupeContinue(progress~, work~)) => {
+              guard continue_poll(value, progress, work) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
             }
-            return Ok(poll)
-          }
-          Ok(@tea.Stopped(_, progress~, work~)) => {
-            guard terminal_poll(value, progress, work, true) is Some(poll) else {
-              return fail_execution(value)
+            Ok(@tea.DedupeComplete(output, progress~, work~)) => {
+              guard continue_poll(value, progress, work) is Some(poll) else {
+                return fail_execution(value)
+              }
+              value.watermarked = Some(output)
+              discard(value.row_events) |> ignore
+              value.row_events = None
+              value.phase = StartProjection
+              if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+                return Ok(poll)
+              }
             }
-            return Ok(poll)
+            Ok(@tea.DedupeFailed(_, progress~, work~)) => {
+              guard terminal_poll(value, progress, work, false) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
+            }
+            Ok(@tea.DedupeStopped(_, progress~, work~)) => {
+              guard terminal_poll(value, progress, work, true) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
+            }
           }
+        } else {
+          return fail_execution(value)
         }
-      }
       StartProjection => {
         guard value.watermarked is Some(output) else {
           return fail_execution(value)
@@ -388,6 +450,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.dedupe is Some(active) {
+    match @tea.cleanup_dedupe(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   if value.projection is Some(active) {
     match @bridge.cleanup_events_to_rows(active) {
       Ok(_) => ()
@@ -406,6 +474,10 @@ fn cleanup_execution(
     Some(active) => @tea.watermark_cleanup_pending(active)
     None => false
   }
+  let dedupe_pending = match value.dedupe {
+    Some(active) => @tea.dedupe_cleanup_pending(active)
+    None => false
+  }
   let projection_pending = match value.projection {
     Some(active) => @bridge.events_to_rows_cleanup_pending(active)
     None => false
@@ -413,7 +485,7 @@ fn cleanup_execution(
   if failed {
     return Err(issue())
   }
-  if rows_pending || watermark_pending || projection_pending {
+  if rows_pending || watermark_pending || dedupe_pending || projection_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -452,6 +524,7 @@ pub fn provider(
         rows: None,
         row_events: None,
         watermark: None,
+        dedupe: None,
         watermarked: None,
         projection: None,
         stage_progress: 0L,

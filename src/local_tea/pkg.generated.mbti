@@ -10,9 +10,23 @@ import {
 }
 
 // Values
+pub fn advance_dedupe(DedupeExecution, Int) -> Result[DedupePoll, DedupeIssue]
+
 pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, WatermarkIssue]
 
+pub fn cleanup_dedupe(DedupeExecution) -> Result[Bool, DedupeIssue]
+
 pub fn cleanup_watermark(WatermarkExecution) -> Result[Bool, WatermarkIssue]
+
+pub fn dedupe_cleanup_pending(DedupeExecution) -> Bool
+
+pub fn dedupe_max_noninterruptible_value_bytes(DedupeExecution) -> Int
+
+pub fn dedupe_max_noninterruptible_value_nodes(DedupeExecution) -> Int
+
+pub fn dedupe_stopped(DedupeExecution) -> Bool
+
+pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[DedupeExecution, DedupeIssue]
 
 pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[WatermarkExecution, WatermarkIssue]
 
@@ -25,6 +39,27 @@ pub fn watermark_stopped(WatermarkExecution) -> Bool
 // Errors
 
 // Types and methods
+type DedupeExecution
+
+pub(all) enum DedupeIssue {
+  InvalidDedupeKernel
+  InvalidDedupeLimits
+  DedupeInputUnavailable
+  InvalidDedupeRecord(Int)
+  InvalidDedupeValue(Int, Int)
+  DedupeTopTie(Int, Int)
+  DedupeWorkspaceLimit
+  DedupeOutput(@managed_record_runtime.Issue)
+  DedupeExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum DedupePoll {
+  DedupeContinue(progress~ : Int64, work~ : Int64)
+  DedupeComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  DedupeFailed(DedupeIssue, progress~ : Int64, work~ : Int64)
+  DedupeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type WatermarkExecution
 
 pub(all) enum WatermarkIssue {

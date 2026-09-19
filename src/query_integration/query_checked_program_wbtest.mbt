@@ -23,6 +23,7 @@ fn query_checked_program_fixture(
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
   local_carrier_events_chain? : Bool = false,
+  local_carrier_events_variant? : String = "watermark",
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_vector_expression_chain? : Bool = false,
@@ -82,7 +83,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_carrier_events_chain {
-    local_carrier_events_program()
+    local_carrier_events_program(variant=local_carrier_events_variant)
   } else {
     text
   }

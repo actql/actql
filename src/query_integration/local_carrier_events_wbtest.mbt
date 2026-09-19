@@ -30,9 +30,36 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
-fn local_carrier_events_program() -> String {
-  let fields = "[\"event_id\",\"occurred_at\",\"payload\"," +
+fn local_carrier_events_program(variant? : String = "watermark") -> String {
+  let dedupe = variant == "dedupe"
+  let fields = if dedupe {
+    "[\"event_id\",\"occurred_at\",\"payload\"]"
+  } else {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"watermark_ms\",\"late\",\"watermark_decision\"]"
+  }
+  let rows = if dedupe {
+    "[{\"event_id\":1,\"occurred_at\":20,\"payload\":\"a\"}," +
+    "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
+    "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else {
+    "[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
+    "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
+    "{\"event_id\":3,\"occurred_at\":2,\"payload\":\"edge\"}]"
+  }
+  let transform = if dedupe {
+    "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
+    "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
+    "\"nulls\":\"last\"}]}}"
+  } else {
+    "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
+  }
+  let second_fields = if dedupe {
+    "[\"payload\",\"event_id\"]"
+  } else {
+    "[\"watermark_decision\",\"late\",\"event_id\"]"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -44,16 +71,17 @@ fn local_carrier_events_program() -> String {
   "\"schema\":{\"event_id\":{\"type\":\"number\",\"nullable\":false}," +
   "\"occurred_at\":{\"type\":\"number\",\"nullable\":false}," +
   "\"payload\":{\"type\":\"string\",\"nullable\":false}}," +
-  "\"rows\":[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
-  "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
-  "{\"event_id\":3,\"occurred_at\":2,\"payload\":\"edge\"}]}," +
+  "\"rows\":" +
+  rows +
+  "}," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":[\"event_id\",\"occurred_at\",\"payload\"]}}},{" +
   "\"id\":\"events\",\"inputs\":{\"rows\":{\"result\":{" +
   "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[{" +
   "\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
-  "\"time\":\"occurred_at\"}},{\"watermark_events\":{" +
-  "\"watermark_ms\":2,\"policy\":\"mark\"}},{" +
+  "\"time\":\"occurred_at\"}}," +
+  transform +
+  ",{" +
   "\"events\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":" +
   fields +
@@ -66,18 +94,35 @@ fn local_carrier_events_program() -> String {
   fields +
   "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"events\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"watermark_decision\",\"late\",\"event_id\"]," +
+  "\"select\":" +
+  second_fields +
+  "," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
-  "\"fields\":[\"watermark_decision\",\"late\",\"event_id\"]}}}]," +
+  "\"fields\":" +
+  second_fields +
+  "}}}]," +
   "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
   "\"result\":\"r\"}}}}"
 }
 
 ///|
-fn carrier_events_owner(source : @lower.BoundPrepared) -> @lower.BoundPrepared {
+fn carrier_events_owner(
+  source : @lower.BoundPrepared,
+  variant? : String = "watermark",
+) -> @lower.BoundPrepared {
+  let transform = if variant == "dedupe" {
+    "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
+    "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
+    "\"nulls\":\"last\"}]}}"
+  } else {
+    "{\"watermark_events\":{\"watermark_ms\":10," + "\"policy\":\"mark\"}}"
+  }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}},{\"watermark_events\":{\"watermark_ms\":10,\"policy\":\"mark\"}},{\"events\":true}]",
+      "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
+      "\"time\":\"occurred_at\"}}," +
+      transform +
+      ",{\"events\":true}]",
     ),
     [
       (
@@ -370,185 +415,198 @@ test "registered Events provider advances and reclaims one typed pipeline" {
 
 ///|
 test "registered Events provider separates stop from cleanup" {
-  let source_owner = carrier_events_source_owner()
-  let source = carrier_events_source_output(source_owner)
-  let owner = carrier_events_owner(source_owner)
-  let generated = task_test_generated(owner)
-  let external = @execution.prepare_producer_read(
-    owner,
-    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
-    100,
-    1000,
-  ).unwrap()
-  let provider = @local_tea_provider.provider(
-    carrier_events_storage_limits(),
-    4096L,
-    @execution.generated_sequence_capacity(
+  for variant in ["watermark", "dedupe"] {
+    let source_owner = carrier_events_source_owner()
+    let source = carrier_events_source_output(source_owner)
+    let owner = carrier_events_owner(source_owner, variant~)
+    let generated = task_test_generated(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let provider = @local_tea_provider.provider(
+      carrier_events_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        dispatch_test_limits().local_execution,
+        dispatch_test_limits().guards,
+      ).unwrap(),
+    )
+    let execution = @local_connector.start_managed_provider(
+      provider,
       generated,
-      dispatch_test_limits().local_execution,
-      dispatch_test_limits().guards,
-    ).unwrap(),
-  )
-  let execution = @local_connector.start_managed_provider(
-    provider,
-    generated,
-    [external],
-    10,
-    1000,
-  ).unwrap()
-  assert_true(@local_connector.cancel_managed_provider(execution))
-  assert_true(
-    @local_connector.advance_managed_provider(execution, 1).unwrap()
-    is @local_connector.Stopped(..),
-  )
-  assert_true(@local_connector.managed_provider_stopped(execution))
-  assert_true(
-    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
-  )
-  assert_true(@execution.producer_read_available(external))
+      [external],
+      10,
+      1000,
+    ).unwrap()
+    assert_true(@local_connector.cancel_managed_provider(execution))
+    assert_true(
+      @local_connector.advance_managed_provider(execution, 1).unwrap()
+      is @local_connector.Stopped(..),
+    )
+    assert_true(@local_connector.managed_provider_stopped(execution))
+    assert_true(
+      @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+    )
+    assert_true(@execution.producer_read_available(external))
+  }
 }
 
 ///|
 test "standard Host runs registered bounded Events provider" {
-  let (run, issuer) = captured_graph_fixture(local_carrier_events_chain=true)
-  let registry = search_registry()
-  let limits = dispatch_test_limits()
-  let sequences = dispatch_test_generated(run)
-  let cleanup_attempts = Ref(0)
-  let provider = delayed_cleanup_provider(
-    @local_tea_provider.provider(
-      carrier_events_storage_limits(),
-      4096L,
-      @execution.generated_sequence_capacity(
-        sequences[1],
-        limits.local_execution,
-        limits.guards,
-      ).unwrap(),
-    ),
-    cleanup_attempts,
-  )
-  let modules = @builtin.configure_compute_modules(
-    @host_driver.open_dispatch_driver(run),
-    registry,
-    1,
-    _ => @strategy.RunIssue::ForeignCandidate,
-    with_local=Some(
-      (
-        @connector.capability_registration_at(registry, 0).unwrap(),
-        {
-          sequences,
-          managed_providers: [provider],
-          managed_capacity: limits.capacity,
-          execution: limits.local_execution,
-          measurement: limits.guards,
-          max_work: limits.candidate_work,
-        },
-        _ => @strategy.RunIssue::ForeignCandidate,
-        _ => @strategy.RunIssue::ForeignCandidate,
+  for variant in ["watermark", "dedupe"] {
+    let (run, issuer) = captured_graph_fixture(
+      local_carrier_events_chain=true,
+      local_carrier_events_variant=variant,
+    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    let sequences = dispatch_test_generated(run)
+    let cleanup_attempts = Ref(0)
+    let provider = delayed_cleanup_provider(
+      @local_tea_provider.provider(
+        carrier_events_storage_limits(),
+        4096L,
+        @execution.generated_sequence_capacity(
+          sequences[1],
+          limits.local_execution,
+          limits.guards,
+        ).unwrap(),
       ),
-    ),
-  ).unwrap()
-  let installed = @builtin.configured_local_module(modules).unwrap()
-  @local_driver.configure_local_retained_inputs(
-    installed,
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire: {
-        ..retained_attempt_wire_limits(),
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_columns: 10,
+      cleanup_attempts,
+    )
+    let modules = @builtin.configure_compute_modules(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      1,
+      _ => @strategy.RunIssue::ForeignCandidate,
+      with_local=Some(
+        (
+          @connector.capability_registration_at(registry, 0).unwrap(),
+          {
+            sequences,
+            managed_providers: [provider],
+            managed_capacity: limits.capacity,
+            execution: limits.local_execution,
+            measurement: limits.guards,
+            max_work: limits.candidate_work,
+          },
+          _ => @strategy.RunIssue::ForeignCandidate,
+          _ => @strategy.RunIssue::ForeignCandidate,
+        ),
+      ),
+    ).unwrap()
+    let installed = @builtin.configured_local_module(modules).unwrap()
+    @local_driver.configure_local_retained_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values: limits.local_execution.rows.input_values,
+        wire: {
+          ..retained_attempt_wire_limits(),
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_columns: 10,
+        },
+        row: {
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_text_bytes: 3000,
+        },
+        max_batch_bytes: 3000,
       },
-      row: {
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_text_bytes: 3000,
-      },
-      max_batch_bytes: 3000,
-    },
-    None,
-  ).unwrap()
+      None,
+    ).unwrap()
 
-  let values_live = Ref(true)
-  let (values_ops, values) = run_local_managed_test_task(
-    installed,
-    run,
-    1,
-    [],
-    [],
-    1,
-    values_live,
-  )
-  let values_rows = local_managed_test_rows(values_ops)
-  let events_live = Ref(true)
-  let (events_ops, events) = run_local_managed_test_task(
-    installed,
-    run,
-    2,
-    [values],
-    [values_rows],
-    2,
-    events_live,
-  )
-  let event_rows = local_managed_test_rows(events_ops)
-  assert_eq(event_rows.length(), 3)
-  assert_true(event_rows[0].contains("\"watermark_decision\":\"keep\""))
-  assert_true(event_rows[1].contains("\"late\":true"))
+    let values_live = Ref(true)
+    let (values_ops, values) = run_local_managed_test_task(
+      installed,
+      run,
+      1,
+      [],
+      [],
+      1,
+      values_live,
+    )
+    let values_rows = local_managed_test_rows(values_ops)
+    let events_live = Ref(true)
+    let (events_ops, events) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [values],
+      [values_rows],
+      2,
+      events_live,
+    )
+    let event_rows = local_managed_test_rows(events_ops)
+    let expected_rows = if variant == "dedupe" { 2 } else { 3 }
+    assert_eq(event_rows.length(), expected_rows)
+    if variant == "dedupe" {
+      assert_true(event_rows[0].contains("\"event_id\":2"))
+      assert_true(event_rows[1].contains("\"event_id\":4"))
+    } else {
+      assert_true(event_rows[0].contains("\"watermark_decision\":\"keep\""))
+      assert_true(event_rows[1].contains("\"late\":true"))
+    }
 
-  let first_live = Ref(true)
-  let (first_ops, first) = run_local_managed_test_task(
-    installed,
-    run,
-    3,
-    [events],
-    [event_rows],
-    3,
-    first_live,
-  )
-  let second_live = Ref(true)
-  let (second_ops, second) = run_local_managed_test_task(
-    installed,
-    run,
-    4,
-    [events],
-    [event_rows],
-    4,
-    second_live,
-  )
-  assert_eq(local_managed_test_rows(first_ops).length(), 3)
-  assert_eq(local_managed_test_rows(second_ops).length(), 3)
+    let first_live = Ref(true)
+    let (first_ops, first) = run_local_managed_test_task(
+      installed,
+      run,
+      3,
+      [events],
+      [event_rows],
+      3,
+      first_live,
+    )
+    let second_live = Ref(true)
+    let (second_ops, second) = run_local_managed_test_task(
+      installed,
+      run,
+      4,
+      [events],
+      [event_rows],
+      4,
+      second_live,
+    )
+    assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
+    assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
 
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 3)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
-  assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(events))
+    first_live.val = false
+    @strategy.close_captured_task_output(run, 3)
+    (first_ops.close)()
+    (first_ops.cleanup_refresh)() |> ignore
+    assert_false(@execution.managed_completed_output_available(first))
+    assert_true(@execution.managed_completed_output_available(second))
+    assert_true(@execution.managed_completed_output_available(events))
 
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 4)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
-  events_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (events_ops.close)()
-  assert_false((events_ops.cleanup_refresh)())
-  assert_true((events_ops.cleanup_refresh)())
-  assert_eq(cleanup_attempts.val, 2)
-  values_live.val = false
-  @strategy.close_captured_task_output(run, 1)
-  (values_ops.close)()
-  (values_ops.cleanup_refresh)() |> ignore
-  @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.reserved_execution_bytes, 0L)
-  assert_eq(usage.reserved_retention_bytes, 0L)
-  assert_eq(usage.held_bytes, 0L)
-  @mock.close_mock_query_issuer(issuer)
+    second_live.val = false
+    @strategy.close_captured_task_output(run, 4)
+    (second_ops.close)()
+    (second_ops.cleanup_refresh)() |> ignore
+    events_live.val = false
+    @strategy.close_captured_task_output(run, 2)
+    (events_ops.close)()
+    assert_false((events_ops.cleanup_refresh)())
+    assert_true((events_ops.cleanup_refresh)())
+    assert_eq(cleanup_attempts.val, 2)
+    values_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (values_ops.close)()
+    (values_ops.cleanup_refresh)() |> ignore
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+  }
 }
