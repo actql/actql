@@ -399,3 +399,41 @@ test "watermark admits workspace before records and observes cancellation" {
   )
   assert_eq(cleanup_watermark(execution), Ok(true))
 }
+
+///|
+test "watermark retains completed output custody until stop cleanup" {
+  let producer = producer_owner(false)
+  let source = source_events(producer, Ref(true), false)
+  let owner = watermark_owner(producer, "mark")
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let control = @bounded.control()
+  let availability_checks = Ref(0)
+  let execution = start_watermark(
+    control,
+    sequence(owner),
+    0,
+    input,
+    limits(),
+    4096L,
+    fn() {
+      availability_checks.val += 1
+      if availability_checks.val == 2 {
+        @bounded.request_cancel(control) |> ignore
+      }
+      true
+    },
+  ).unwrap()
+  while true {
+    match advance_watermark(execution, 1).unwrap() {
+      Continue(..) => continue
+      Stopped(@bounded.Cancelled, ..) => break
+      Complete(_, ..) => fail("cancelled output escaped")
+      Failed(_, ..) => fail("watermark failed")
+      Stopped(_, ..) => fail("wrong stop reason")
+    }
+  }
+  assert_true(availability_checks.val >= 2)
+  assert_true(watermark_cleanup_pending(execution))
+  assert_eq(cleanup_watermark(execution), Ok(true))
+  assert_false(watermark_cleanup_pending(execution))
+}

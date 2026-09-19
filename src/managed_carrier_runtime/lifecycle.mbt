@@ -64,6 +64,7 @@ struct Retained[E, T] {
 struct Completed[E, T] {
   identity : Ref[Unit]
   retained : Retained[E, T]
+  mut revoked : Bool
 }
 
 ///|
@@ -277,12 +278,24 @@ pub fn[E, T] complete(
   if !retained_available(retained) {
     return Err(Unavailable)
   }
-  Ok({ identity: Ref(()), retained, })
+  Ok({ identity: Ref(()), retained, revoked: false, })
 }
 
 ///|
 pub fn[E, T] completed_available(value : Completed[E, T]) -> Bool {
-  retained_available(value.retained)
+  !value.revoked && retained_available(value.retained)
+}
+
+///|
+/// Revoke an unpublished completed generation before disposing its payload.
+/// Historical occurrence identity remains distinct from current availability.
+pub fn[E, T] revoke_completed(value : Completed[E, T]) -> Bool {
+  if value.revoked {
+    false
+  } else {
+    value.revoked = true
+    true
+  }
 }
 
 ///|
@@ -301,12 +314,20 @@ pub fn[E, T] completed_evidence(value : Completed[E, T]) -> E? {
 
 ///|
 pub fn[E, T] completed_payload(value : Completed[E, T]) -> T? {
-  retained_payload(value.retained)
+  if completed_available(value) {
+    Some(value.retained.payload)
+  } else {
+    None
+  }
 }
 
 ///|
 pub fn[E, T] completed_storage_bytes(value : Completed[E, T]) -> Int64? {
-  retained_storage_bytes(value.retained)
+  if completed_available(value) {
+    Some(value.retained.storage_bytes)
+  } else {
+    None
+  }
 }
 
 ///|

@@ -93,6 +93,8 @@ pub fn[E, T] retained_receipt(Retained[E, T]) -> Receipt
 
 pub fn[E, T] retained_storage_bytes(Retained[E, T]) -> Int64?
 
+pub fn[E, T] revoke_completed(Completed[E, T]) -> Bool
+
 // Errors
 
 // Types and methods

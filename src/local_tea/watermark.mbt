@@ -299,7 +299,7 @@ pub fn start_watermark(
     time: None,
   }
   let (session, token) = @bounded.start(
-    control, state, watermark_step, cleanup_state,
+    control, state, watermark_step, cleanup_state, @records.discard_completed,
   )
   Ok({ session, token: Some(token), max_noninterruptible_value_nodes: 3, })
 }

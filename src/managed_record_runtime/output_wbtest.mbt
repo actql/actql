@@ -324,3 +324,44 @@ test "managed record output cancels before publishing partial material" {
     is Err(InvalidStorageBytes),
   )
 }
+
+///|
+test "failed managed record output remains reclaimable" {
+  let owner = event_producer_owner()
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {
+    true
+  }).unwrap()
+  let record = [
+    (@schema.Unqualified("event_id"), number(7.0)),
+    (@schema.Unqualified("occurred_at"), number(12.0)),
+  ]
+  append_record(output, record).unwrap()
+  assert_true(append_record(output, record) is Err(Storage(DuplicateIdentity)))
+  assert_eq(@storage.builder_record_count(output.records), 1)
+  assert_true(cancel_output(output))
+  assert_eq(@storage.builder_record_count(output.records), 0)
+  assert_eq(@storage.builder_retained_value_bytes(output.records), 0)
+  assert_eq(@storage.builder_workspace_slots(output.records), 0)
+  assert_false(cancel_output(output))
+  assert_true(finish_output(output) is Err(Closed))
+}
+
+///|
+test "unpublished completed record output can be revoked and discarded" {
+  let owner = event_producer_owner()
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {
+    true
+  }).unwrap()
+  append_record(output, [
+    (@schema.Unqualified("event_id"), number(7.0)),
+    (@schema.Unqualified("occurred_at"), number(12.0)),
+  ]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let storage = completed_storage(completed).unwrap()
+  assert_eq(@storage.record_count(storage), 1)
+  assert_true(discard_completed(completed))
+  assert_eq(@storage.record_count(storage), 0)
+  assert_false(completed_available(completed))
+  assert_true(completed_storage(completed) is None)
+  assert_false(discard_completed(completed))
+}

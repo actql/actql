@@ -181,7 +181,7 @@ pub fn start_normalize(
     index: 0,
   }
   let (session, token) = @bounded.start(
-    control, state, normalize_step, cleanup_state,
+    control, state, normalize_step, cleanup_state, @graph.discard_completed,
   )
   Ok({ session, token: Some(token), max_noninterruptible_value_nodes, })
 }

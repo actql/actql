@@ -73,6 +73,7 @@ struct Builder {
   mut work : Int
   mut workspace_slots : Int
   mut open : Bool
+  mut owns_private : Bool
 }
 
 ///|
@@ -152,6 +153,7 @@ pub fn prepare(
     work: 0,
     workspace_slots: 0,
     open: true,
+    owns_private: true,
   })
 }
 
@@ -558,10 +560,11 @@ pub fn append_edge(
 
 ///|
 pub fn finish(builder : Builder) -> Result[Storage, Issue] {
-  if !builder.open {
+  if !builder.open || !builder.owns_private {
     return Err(Closed)
   }
   builder.open = false
+  builder.owns_private = false
   Ok({
     graph: builder.graph,
     mode: builder.mode,
@@ -577,17 +580,50 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
 
 ///|
 pub fn cancel(builder : Builder) -> Bool {
-  if !builder.open {
+  if !builder.owns_private {
     return false
   }
   builder.open = false
+  builder.owns_private = false
   builder.nodes.clear()
   builder.edges.clear()
   builder.node_keys.clear()
   builder.node_payloads.clear()
   builder.edge_keys.clear()
   builder.edge_payloads.clear()
+  builder.retained_value_bytes = 0
+  builder.workspace_slots = 0
   true
+}
+
+///|
+pub fn builder_node_count(builder : Builder) -> Int {
+  builder.nodes.length()
+}
+
+///|
+pub fn builder_edge_count(builder : Builder) -> Int {
+  builder.edges.length()
+}
+
+///|
+pub fn builder_retained_value_bytes(builder : Builder) -> Int {
+  builder.retained_value_bytes
+}
+
+///|
+pub fn builder_workspace_slots(builder : Builder) -> Int {
+  builder.workspace_slots
+}
+
+///|
+pub fn builder_measured_input_value_bytes(builder : Builder) -> Int {
+  builder.value_bytes
+}
+
+///|
+pub fn builder_construction_work(builder : Builder) -> Int {
+  builder.work
 }
 
 ///|
@@ -633,6 +669,13 @@ pub fn construction_work(value : Storage) -> Int {
 ///|
 pub fn retained_workspace_slots(value : Storage) -> Int {
   value.workspace_slots
+}
+
+///|
+/// Dispose private material whose completed generation was never handed off.
+pub fn discard(value : Storage) -> Unit {
+  value.nodes.clear()
+  value.edges.clear()
 }
 
 ///|

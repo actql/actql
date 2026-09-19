@@ -33,6 +33,8 @@ pub fn completed_storage(Completed) -> @managed_graph_storage.Storage?
 
 pub fn completed_storage_bytes(Completed) -> Int64?
 
+pub fn discard_completed(Completed) -> Bool
+
 pub fn evidence_construction_work(Evidence) -> Int
 
 pub fn evidence_input_rows(Evidence) -> Int

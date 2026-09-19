@@ -43,13 +43,16 @@ struct Session[S, T, E] {
   state : S
   advance : (S, Int, Reader) -> KernelStep[T, E]
   cleanup : (S) -> Bool
+  dispose_result : (T) -> Bool
+  mut pending_result : T?
   mut ordinal : Int64
   mut progress : Int64
   mut work : Int64
   mut running : Bool
   mut terminal : Bool
   mut stopped : Bool
-  mut reclaimed : Bool
+  mut state_reclaimed : Bool
+  mut result_reclaimed : Bool
 }
 
 ///|
@@ -60,6 +63,7 @@ pub fn[S, T, E] start(
   state : S,
   advance : (S, Int, Reader) -> KernelStep[T, E],
   cleanup : (S) -> Bool,
+  dispose_result : (T) -> Bool,
 ) -> (Session[S, T, E], Token) {
   let identity = Ref(())
   let session = {
@@ -68,13 +72,16 @@ pub fn[S, T, E] start(
     state,
     advance,
     cleanup,
+    dispose_result,
+    pending_result: None,
     ordinal: 0L,
     progress: 0L,
     work: 0L,
     running: false,
     terminal: false,
     stopped: false,
-    reclaimed: false,
+    state_reclaimed: false,
+    result_reclaimed: true,
   }
   (session, { owner: identity, ordinal: 0L, })
 }
@@ -102,6 +109,20 @@ fn[S, T, E] stop_observation(
   session.terminal = true
   session.stopped = true
   StoppedWith(reason, progress=session.progress, work=session.work)
+}
+
+///|
+fn[S, T, E] retain_unaccepted_result(
+  session : Session[S, T, E],
+  result : KernelStep[T, E],
+) -> Unit {
+  match result {
+    Complete(value, _, _) => {
+      session.pending_result = Some(value)
+      session.result_reclaimed = false
+    }
+    _ => ()
+  }
 }
 
 ///|
@@ -141,12 +162,14 @@ pub fn[S, T, E] advance(
     | Stopped(_, progress, work) => (progress, work)
   }
   if work < 0 || work > work_quanta || progress < 0 || result is Continue(0, 0) {
+    retain_unaccepted_result(session, result)
     session.terminal = true
     session.stopped = true
     return Err(InvalidKernelReport)
   }
   guard add_counter(session.progress, progress) is Some(total_progress) &&
     add_counter(session.work, work) is Some(total_work) else {
+    retain_unaccepted_result(session, result)
     session.terminal = true
     session.stopped = true
     return Err(CounterOverflow)
@@ -154,6 +177,7 @@ pub fn[S, T, E] advance(
   session.progress = total_progress
   session.work = total_work
   if stop_requested(session.reader) is Some(reason) {
+    retain_unaccepted_result(session, result)
     return Ok(stop_observation(session, reason))
   }
   match result {
@@ -186,7 +210,7 @@ pub fn[S, T, E] session_stopped(session : Session[S, T, E]) -> Bool {
 
 ///|
 pub fn[S, T, E] cleanup_pending(session : Session[S, T, E]) -> Bool {
-  session.stopped && !session.reclaimed
+  session.stopped && (!session.state_reclaimed || !session.result_reclaimed)
 }
 
 ///|
@@ -196,13 +220,23 @@ pub fn[S, T, E] cleanup(session : Session[S, T, E]) -> Result[Bool, Issue] {
   if !session_stopped(session) {
     return Err(NotStopped)
   }
-  if session.reclaimed {
+  if session.state_reclaimed && session.result_reclaimed {
     return Ok(false)
   }
-  if (session.cleanup)(session.state) {
-    session.reclaimed = true
-    Ok(true)
-  } else {
-    Ok(false)
+  let mut changed = false
+  if !session.result_reclaimed {
+    guard session.pending_result is Some(result) else { return Ok(changed) }
+    if (session.dispose_result)(result) {
+      session.pending_result = None
+      session.result_reclaimed = true
+      changed = true
+    }
   }
+  if session.result_reclaimed &&
+    !session.state_reclaimed &&
+    (session.cleanup)(session.state) {
+    session.state_reclaimed = true
+    changed = true
+  }
+  Ok(changed)
 }

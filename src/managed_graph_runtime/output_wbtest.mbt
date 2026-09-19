@@ -228,3 +228,51 @@ test "managed Graph output cancels without publishing partial material" {
     is Err(InvalidStorageBytes),
   )
 }
+
+///|
+test "failed managed Graph output remains reclaimable" {
+  let owner = producer_owner()
+  let output = prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  append_node(output, number(1.0), [text("a")]).unwrap()
+  assert_true(
+    append_node(output, number(1.0), [text("different")])
+    is Err(Storage(DuplicateNodeConflict)),
+  )
+  assert_eq(@storage.builder_node_count(output.graph), 1)
+  assert_true(cancel_output(output))
+  assert_eq(@storage.builder_node_count(output.graph), 0)
+  assert_eq(@storage.builder_edge_count(output.graph), 0)
+  assert_eq(@storage.builder_retained_value_bytes(output.graph), 0)
+  assert_eq(@storage.builder_workspace_slots(output.graph), 0)
+  assert_false(cancel_output(output))
+  assert_true(finish_output(output) is Err(Closed))
+}
+
+///|
+test "unpublished completed Graph output can be revoked and discarded" {
+  let owner = producer_owner()
+  let output = prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  append_node(output, number(1.0), [text("a")]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let storage = completed_storage(completed).unwrap()
+  assert_eq(@storage.node_count(storage), 1)
+  assert_true(discard_completed(completed))
+  assert_eq(@storage.node_count(storage), 0)
+  assert_false(completed_available(completed))
+  assert_true(completed_storage(completed) is None)
+  assert_false(discard_completed(completed))
+}

@@ -20,7 +20,7 @@ pub fn request_deadline(Control) -> Bool
 
 pub fn[S, T, E] session_stopped(Session[S, T, E]) -> Bool
 
-pub fn[S, T, E] start(Control, S, (S, Int, Reader) -> KernelStep[T, E], (S) -> Bool) -> (Session[S, T, E], Token)
+pub fn[S, T, E] start(Control, S, (S, Int, Reader) -> KernelStep[T, E], (S) -> Bool, (T) -> Bool) -> (Session[S, T, E], Token)
 
 pub fn stop_requested(Reader) -> StopReason?
 

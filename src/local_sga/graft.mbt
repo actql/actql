@@ -221,7 +221,7 @@ pub fn start_graft(
     record_index: 0,
   }
   let (session, token) = @bounded.start(
-    control, state, graft_step, cleanup_graft_state,
+    control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
   )
   Ok({
     session,

@@ -262,3 +262,89 @@ test "record storage enforces exact retention and workspace admission" {
     append(slot_short, event_record("a", 1.0, "é")) is Err(WorkspaceLimit),
   )
 }
+
+///|
+fn assert_failed_builder_reclaims(builder : Builder) -> Unit raise {
+  let measured = builder_measured_input_value_bytes(builder)
+  let work = builder_construction_work(builder)
+  assert_eq(builder_record_count(builder), 1)
+  assert_true(builder_retained_value_bytes(builder) > 0)
+  assert_true(builder_workspace_slots(builder) > 0)
+  assert_true(cancel(builder))
+  assert_eq(builder_record_count(builder), 0)
+  assert_eq(builder_retained_value_bytes(builder), 0)
+  assert_eq(builder_workspace_slots(builder), 0)
+  assert_eq(builder_measured_input_value_bytes(builder), measured)
+  assert_eq(builder_construction_work(builder), work)
+  assert_false(cancel(builder))
+  assert_true(
+    append(builder, event_record("later", 3.0, "closed")) is Err(Closed),
+  )
+  assert_true(finish(builder) is Err(Closed))
+}
+
+///|
+test "failed record builders retain cleanup custody without refunding work" {
+  let baseline = prepare(events(), limits()).unwrap()
+  append(baseline, event_record("a", 1.0, "first")).unwrap()
+  let measured = finish(baseline).unwrap()
+  let bytes = measured_input_value_bytes(measured)
+  let work = construction_work(measured)
+  let slots = retained_workspace_slots(measured)
+
+  let duplicate = prepare(events(), limits()).unwrap()
+  append(duplicate, event_record("a", 1.0, "first")).unwrap()
+  assert_true(
+    append(duplicate, event_record("a", 2.0, "second"))
+    is Err(DuplicateIdentity),
+  )
+  assert_failed_builder_reclaims(duplicate)
+
+  let malformed = prepare(events(), limits()).unwrap()
+  append(malformed, event_record("a", 1.0, "first")).unwrap()
+  assert_true(
+    append(
+      malformed,
+      event_record("b", 2.0, "second").filter(pair => {
+        @schema.reference_name(pair.0) != "payload"
+      }),
+    )
+    is Err(InvalidRecord),
+  )
+  assert_failed_builder_reclaims(malformed)
+
+  let record_limited = prepare(events(), { ..limits(), max_records: 1, }).unwrap()
+  append(record_limited, event_record("a", 1.0, "first")).unwrap()
+  assert_true(
+    append(record_limited, event_record("b", 2.0, "second")) is Err(RecordLimit),
+  )
+  assert_failed_builder_reclaims(record_limited)
+
+  let value_limited = prepare(events(), {
+    ..limits(),
+    max_total_value_bytes: bytes,
+  }).unwrap()
+  append(value_limited, event_record("a", 1.0, "first")).unwrap()
+  assert_true(
+    append(value_limited, event_record("b", 2.0, "second")) is Err(ValueLimit),
+  )
+  assert_failed_builder_reclaims(value_limited)
+
+  let work_limited = prepare(events(), { ..limits(), max_work: work, }).unwrap()
+  append(work_limited, event_record("a", 1.0, "first")).unwrap()
+  assert_true(
+    append(work_limited, event_record("b", 2.0, "second")) is Err(WorkLimit),
+  )
+  assert_failed_builder_reclaims(work_limited)
+
+  let workspace_limited = prepare(events(), {
+    ..limits(),
+    max_workspace_slots: slots,
+  }).unwrap()
+  append(workspace_limited, event_record("a", 1.0, "first")).unwrap()
+  assert_true(
+    append(workspace_limited, event_record("b", 2.0, "second"))
+    is Err(WorkspaceLimit),
+  )
+  assert_failed_builder_reclaims(workspace_limited)
+}

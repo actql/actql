@@ -49,6 +49,7 @@ struct Builder {
   mut work : Int
   mut workspace_slots : Int
   mut open : Bool
+  mut owns_private : Bool
 }
 
 ///|
@@ -131,6 +132,7 @@ pub fn prepare(
     work: 0,
     workspace_slots: 0,
     open: true,
+    owns_private: true,
   })
 }
 
@@ -372,10 +374,11 @@ pub fn append(
 
 ///|
 pub fn finish(builder : Builder) -> Result[Storage, Issue] {
-  if !builder.open {
+  if !builder.open || !builder.owns_private {
     return Err(Closed)
   }
   builder.open = false
+  builder.owns_private = false
   Ok({
     carrier: builder.carrier,
     identities: builder.identities,
@@ -390,12 +393,15 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
 
 ///|
 pub fn cancel(builder : Builder) -> Bool {
-  if !builder.open {
+  if !builder.owns_private {
     return false
   }
   builder.open = false
+  builder.owns_private = false
   builder.values.clear()
   builder.keys.clear()
+  builder.retained_value_bytes = 0
+  builder.workspace_slots = 0
   true
 }
 
@@ -403,6 +409,26 @@ pub fn cancel(builder : Builder) -> Bool {
 /// Structural slots already retained by records accepted into this builder.
 pub fn builder_workspace_slots(builder : Builder) -> Int {
   builder.workspace_slots
+}
+
+///|
+pub fn builder_record_count(builder : Builder) -> Int {
+  builder.values.length()
+}
+
+///|
+pub fn builder_retained_value_bytes(builder : Builder) -> Int {
+  builder.retained_value_bytes
+}
+
+///|
+pub fn builder_measured_input_value_bytes(builder : Builder) -> Int {
+  builder.value_bytes
+}
+
+///|
+pub fn builder_construction_work(builder : Builder) -> Int {
+  builder.work
 }
 
 ///|
@@ -462,4 +488,10 @@ pub fn construction_work(value : Storage) -> Int {
 ///|
 pub fn retained_workspace_slots(value : Storage) -> Int {
   value.workspace_slots
+}
+
+///|
+/// Dispose private material whose completed generation was never handed off.
+pub fn discard(value : Storage) -> Unit {
+  value.values.clear()
 }

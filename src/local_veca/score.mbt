@@ -745,7 +745,7 @@ pub fn start_score(
     emit_fields: [],
   }
   let (session, token) = @bounded.start(
-    control, state, score_step, cleanup_score_state,
+    control, state, score_step, cleanup_score_state, @records.discard_completed,
   )
   Ok({
     session,

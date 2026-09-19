@@ -135,9 +135,6 @@ pub fn append_edge(
 
 ///|
 pub fn cancel_output(output : OutputBuilder) -> Bool {
-  if !output.open {
-    return false
-  }
   output.open = false
   let storage = @storage.cancel(output.graph)
   let retention = @lifecycle.cancel_retention_port(output.retention)
@@ -170,6 +167,17 @@ pub fn finish_output(output : OutputBuilder) -> Result[Completed, Issue] {
 ///|
 pub fn completed_available(value : Completed) -> Bool {
   @lifecycle.completed_available(value.core)
+}
+
+///|
+/// Reclaim a completed generation rejected before downstream handoff.
+pub fn discard_completed(value : Completed) -> Bool {
+  guard @lifecycle.completed_payload(value.core) is Some(storage) &&
+    @lifecycle.revoke_completed(value.core) else {
+    return false
+  }
+  @storage.discard(storage)
+  true
 }
 
 ///|

@@ -12,11 +12,25 @@ pub fn append_edge(Builder, @value_admission.CheckedValue, @value_admission.Chec
 
 pub fn append_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
+pub fn builder_construction_work(Builder) -> Int
+
+pub fn builder_edge_count(Builder) -> Int
+
+pub fn builder_measured_input_value_bytes(Builder) -> Int
+
+pub fn builder_node_count(Builder) -> Int
+
+pub fn builder_retained_value_bytes(Builder) -> Int
+
+pub fn builder_workspace_slots(Builder) -> Int
+
 pub fn cancel(Builder) -> Bool
 
 pub fn carrier(Storage) -> @carrier_contract.Carrier
 
 pub fn construction_work(Storage) -> Int
+
+pub fn discard(Storage) -> Unit
 
 pub fn edge_count(Storage) -> Int
 

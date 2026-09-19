@@ -374,7 +374,7 @@ pub fn start_normalize(
     divisor: 0.0,
   }
   let (session, token) = @bounded.start(
-    control, state, normalize_step, cleanup_state,
+    control, state, normalize_step, cleanup_state, @records.discard_completed,
   )
   Ok({
     session,
