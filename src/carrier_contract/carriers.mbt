@@ -252,6 +252,26 @@ pub fn events(
 }
 
 ///|
+pub fn event_records(events : Events) -> Knowledge {
+  events.records
+}
+
+///|
+pub fn event_identity(events : Events) -> Field {
+  events.identity
+}
+
+///|
+pub fn event_time(events : Events) -> Field {
+  events.time
+}
+
+///|
+pub fn event_clock_encoding(events : Events) -> ClockEncoding {
+  events.clock_encoding
+}
+
+///|
 /// Multiple identity fields describe an ordered semantic tuple, not a fabricated
 /// scalar ID or proof that actual records are unique.
 pub fn vectors(

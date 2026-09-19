@@ -10,6 +10,14 @@ import {
 // Values
 pub fn complete_schema(Knowledge) -> @relation_schema.Schema?
 
+pub fn event_clock_encoding(Events) -> ClockEncoding
+
+pub fn event_identity(Events) -> Field
+
+pub fn event_records(Events) -> Knowledge
+
+pub fn event_time(Events) -> Field
+
 pub fn events(Knowledge, id~ : @relation_schema.FieldName, time~ : @relation_schema.FieldName) -> Result[Carrier, Issue]
 
 pub fn field_at(Knowledge, Int) -> Field?

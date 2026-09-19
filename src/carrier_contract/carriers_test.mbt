@@ -22,10 +22,13 @@ test "event clock encoding preserves timestamp payload without fabricating a num
       is EventValue(e) else {
       abort("events")
     }
-    assert_eq(e.clock_encoding, encoding)
-    assert_true(@value.type_equal(e.time.contract.unwrap(), clock, 10))
-    assert_true(lookup(e.records, Unqualified("event_time_ms")) is Absent)
-    assert_eq(field_count(e.records), 2)
+    assert_eq(event_clock_encoding(e), encoding)
+    assert_true(@value.type_equal(event_time(e).contract.unwrap(), clock, 10))
+    assert_eq(event_identity(e).name, Unqualified("id"))
+    assert_true(
+      lookup(event_records(e), Unqualified("event_time_ms")) is Absent,
+    )
+    assert_eq(field_count(event_records(e)), 2)
   }
 }
 
