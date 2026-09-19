@@ -1,0 +1,60 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_bridge"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/managed_record_runtime",
+  "actql/actql/managed_record_storage",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance_events_to_rows(EventsToRowsExecution, Int) -> Result[EventsToRowsPoll, EventsBridgeIssue]
+
+pub fn advance_rows_to_events(RowsToEventsExecution, Int) -> Result[RowsToEventsPoll, EventsBridgeIssue]
+
+pub fn cleanup_events_to_rows(EventsToRowsExecution) -> Result[Bool, EventsBridgeIssue]
+
+pub fn cleanup_rows_to_events(RowsToEventsExecution) -> Result[Bool, EventsBridgeIssue]
+
+pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
+
+pub fn start_rows_to_events(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToEventsExecution, EventsBridgeIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum EventsBridgeIssue {
+  InvalidKernel
+  InputUnavailable
+  InvalidRow(Int)
+  InvalidRecord(Int)
+  Output(@managed_record_runtime.Issue)
+  RelationOutput(@execution_relation.CaptureIssue)
+  Completion(@execution_relation.TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+type EventsToRowsExecution
+
+pub enum EventsToRowsPoll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  Failed(EventsBridgeIssue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type RowsToEventsExecution
+
+pub enum RowsToEventsPoll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  Failed(EventsBridgeIssue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+// Type aliases
+
+// Traits
