@@ -9,7 +9,25 @@ import {
 // Values
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
+pub fn commit_transition(RemoteTransferTransition, Bool) -> Result[RemoteTransferRecord, RemoteTransferIssue]
+
+pub fn open_record(RemoteTransferRequest) -> RemoteTransferRecord
+
+pub fn prepare_cleanup(RemoteTransferRecord, Bool, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn prepare_destination_commit(RemoteTransferRecord) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn prepare_failure(RemoteTransferRecord, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
 pub fn prepare_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
+
+pub fn prepare_source_settled(RemoteTransferRecord, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn prepare_start(RemoteTransferRecord) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn prepare_unknown(RemoteTransferRecord) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn record_projection(RemoteTransferRecord) -> Array[Int]
 
 pub fn request_cid(RemoteTransferRequest) -> String
 
@@ -19,14 +37,49 @@ pub fn request_projection(RemoteTransferRequest) -> Array[String]
 
 pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
 
+pub fn transition_projection(RemoteTransferTransition) -> (Array[Int], Array[Int])
+
 // Errors
 
 // Types and methods
+pub(all) enum RemoteTransferAttemptState {
+  TransferAdmitted
+  TransferCopying
+  TransferDestinationCommitted
+  TransferFailed
+  TransferCancelled
+  TransferUnknown
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteTransferCleanupState {
+  TransferCleanupActive
+  TransferCleanupReleased
+  TransferCleanupUnknown
+  TransferCleanupForceLost
+  TransferCleanupRecoveredAfterLoss
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteTransferIntegrityState {
+  TransferIntegrityPending
+  TransferIntegrityVerified
+  TransferIntegrityRejected
+} derive(Eq, @debug.Debug)
+
 pub(all) enum RemoteTransferIssue {
   InvalidTransfer
   TransferIdentityMismatch
   TransferCapacityExceeded
 } derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteTransferObjectState {
+  NoTransferObject
+  TransferObjectReserved
+  TransferObjectUploading
+  TransferObjectSealed
+  TransferObjectReclaimed
+} derive(Eq, @debug.Debug)
+
+type RemoteTransferRecord
 
 type RemoteTransferRequest
 
@@ -34,6 +87,8 @@ pub(all) enum RemoteTransferRoute {
   DirectStream
   TransferStore
 } derive(Eq, @debug.Debug)
+
+type RemoteTransferTransition
 
 // Type aliases
 
