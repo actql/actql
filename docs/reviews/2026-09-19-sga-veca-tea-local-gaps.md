@@ -181,8 +181,8 @@ conversion.
 The baseline passed Linux CI run `35414883771`. That proves the accepted RelA
 baseline only. It is not evidence for any missing family execution path.
 
-At `ce088605`, the affected Local, Bridge, TEA, provider, and query integration
-packages pass 354 tests on each of JS, Wasm, and native. The focused Carrier
+At `5ea64854`, the affected Local, Bridge, TEA, provider, and query integration
+packages pass 355 tests on each of JS, Wasm, and native. The focused Carrier
 suite passes four tests on every target, the Node Local adapter passes eleven,
 and the retained boundary passes 231. Portable dependency and dependency-free
 Node subset checks pass. This is local evidence, not a replacement for final
