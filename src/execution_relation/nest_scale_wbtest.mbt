@@ -72,3 +72,82 @@ test "nest indexed correlation scales with inputs and emitted payload" {
     assert_true(peak <= count * 20 + 100)
   }
 }
+
+///|
+test "nest metadata construction follows the exact workspace reservation" {
+  let width = 512
+  let exact_workspace : RowWorkspace = { limit: width * 3, live: 0, peak: 0, }
+  let exact_constructed = Ref(false)
+  let exact = construct_reserved_nest_metadata(exact_workspace, width, fn() {
+    exact_constructed.val = true
+    Ok(())
+  })
+  assert_true(exact is Ok(_))
+  assert_true(exact_constructed.val)
+  assert_eq(exact_workspace.peak, width * 3)
+
+  let short_workspace : RowWorkspace = {
+    limit: width * 3 - 1,
+    live: 0,
+    peak: 0,
+  }
+  let short_constructed = Ref(false)
+  let short = construct_reserved_nest_metadata(short_workspace, width, fn() {
+    short_constructed.val = true
+    Ok(())
+  })
+  assert_true(short is Err(RowLimit))
+  assert_false(short_constructed.val)
+  assert_eq((short_workspace.live, short_workspace.peak), (0, 0))
+}
+
+///|
+fn nest_empty_workspace_attempt(
+  limit : Int,
+) -> (Result[Unit, RowIssue], Int) raise {
+  let generated = nest_sequence(1)
+  guard @lower.sequence_step(generated.sequence, 2)
+    is Some(@lower.NestStep(kernel)) else {
+    fail("nest kernel was not prepared")
+  }
+  let owner = @lower.nest_kernel_owner(kernel)
+  let parent_template = table_from_capture(
+    capture_values(owner, 0, max_rows=4, run_limits().input_values).unwrap(),
+  )
+  let child_template = table_from_capture(
+    capture_values(owner, 1, max_rows=3, run_limits().input_values).unwrap(),
+  )
+  let parents = { ..parent_template, rows: [], }
+  let children = { ..child_template, rows: [], }
+  let workspace : RowWorkspace = { limit, live: 0, peak: 0, }
+  let result = evaluate_nest_rows(
+    kernel,
+    parents,
+    children,
+    4,
+    { remaining: 100000, max_frames: 100, },
+    value_budget({
+      max_nodes: 100000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+      max_work: 100000,
+    }).unwrap(),
+    workspace,
+    selected_item_limit=Some(1L),
+    grouped_byte_limit=Some(10000L),
+    attached_byte_limit=Some(10000L),
+  ).map(_ => ())
+  (result, workspace.peak)
+}
+
+///|
+test "empty nest observes the exact metadata workspace boundary" {
+  let (generous, peak) = nest_empty_workspace_attempt(10000)
+  assert_true(generous is Ok(_))
+  let (exact, exact_peak) = nest_empty_workspace_attempt(peak)
+  assert_true(exact is Ok(_))
+  assert_eq(exact_peak, peak)
+  let (short, short_peak) = nest_empty_workspace_attempt(peak - 1)
+  assert_true(short is Err(RowLimit))
+  assert_true(short_peak <= peak - 1)
+}

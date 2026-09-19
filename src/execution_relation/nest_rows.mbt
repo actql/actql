@@ -50,6 +50,21 @@ fn measure_nest_value(
 }
 
 ///|
+fn[T] construct_reserved_nest_metadata(
+  workspace : RowWorkspace,
+  width : Int,
+  construct : () -> Result[T, RowIssue],
+) -> Result[T, RowIssue] {
+  if width < 0 || width > (workspace.limit - workspace.live) / 3 {
+    return Err(RowLimit)
+  }
+  if !reserve_slots(workspace, width * 3) {
+    return Err(RowLimit)
+  }
+  construct()
+}
+
+///|
 /// Indexed correlation with parent-major output and resolved child order.
 /// Parent duplicates remain separate occurrences and NULL keys never match.
 fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
@@ -179,44 +194,48 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
       projection.push((field.output, column))
     }
     let output_schema = @lower.nest_kernel_output_schema(kernel)
-    let output_fields = Array::makei(@schema.field_count(output_schema), index => {
-      @schema.field_at(output_schema, index).unwrap().name
-    })
-    let names = output_fields.map(@schema.reference_name)
-    if !reserve_slots(workspace, names.length()) {
-      return Err(RowLimit)
-    }
-    retained += names.length()
+    let output_width = @schema.field_count(output_schema)
     let into = @lower.nest_kernel_into(kernel)
-    let output_columns : Array[Int?] = []
-    let attachment_columns : Array[Int] = []
-    for index, name in names {
-      if !spend_control_text(control, name) {
-        return Err(RowLimit)
-      }
-      let field = output_fields[index]
-      if field == @schema.Unqualified(into) {
-        output_columns.push(None)
-      } else {
-        let column = match resolve(parent_names, field) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
+    let metadata = construct_reserved_nest_metadata(workspace, output_width, fn() {
+      let names : Array[String] = []
+      let output_columns : Array[Int?] = []
+      let attachment_columns : Array[Int] = []
+      for index in 0..<output_width {
+        let output = @schema.field_at(output_schema, index).unwrap()
+        let field = output.name
+        let name = @schema.reference_name(field)
+        if !spend_control_text(control, name) {
+          return Err(RowLimit)
         }
-        output_columns.push(Some(column))
+        names.push(name)
+        if field == @schema.Unqualified(into) {
+          output_columns.push(None)
+        } else {
+          let column = match resolve(parent_names, field) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          output_columns.push(Some(column))
+        }
+        match output.contract.shape {
+          @contract.Array(_, ..) | @contract.Object(_) =>
+            attachment_columns.push(index)
+          _ => ()
+        }
       }
-      let contract = @schema.field_at(output_schema, index).unwrap().contract
-      match contract.shape {
-        @contract.Array(_, ..) | @contract.Object(_) =>
-          attachment_columns.push(index)
-        _ => ()
-      }
+      Ok((names, output_columns, attachment_columns))
+    })
+    let (names, output_columns, attachment_columns) = match metadata {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
-    if !reserve_slots(workspace, attachment_columns.length()) ||
-      !reserve_slots(workspace, IndexedRows::row_count(child)) {
+    release_slots(workspace, output_width - attachment_columns.length())
+    retained += names.length()
+    let grouped_slots = IndexedRows::row_count(child)
+    if !reserve_slots(workspace, grouped_slots) {
       return Err(RowLimit)
     }
-    retained += attachment_columns.length() + IndexedRows::row_count(child)
-    let grouped = Array::make(IndexedRows::row_count(child), false)
+    let grouped = Array::make(grouped_slots, false)
     let rows : Array[Array[Value]] = []
     let mut pair_index = 0
     let mut grouped_bytes = 0L
@@ -318,6 +337,10 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
       }
       rows.push(row)
     }
+    release_slots(
+      workspace,
+      output_columns.length() + attachment_columns.length() + grouped_slots,
+    )
     Ok({
       owner,
       id: @lower.node_id(
