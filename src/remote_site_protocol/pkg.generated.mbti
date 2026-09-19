@@ -9,6 +9,8 @@ import {
 // Values
 pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
+pub fn admit_durable_dispatch_record(Bytes) -> Result[DurableDispatchRecord, DispatchIssue]
+
 pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
 
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
@@ -55,6 +57,8 @@ pub fn dispatch_admission_kind(DispatchAdmission) -> DispatchAcceptance
 
 pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, DispatchIssue]
 
+pub fn dispatch_record_durable_json(DispatchRecord) -> Result[String, DispatchIssue]
+
 pub fn dispatch_record_matches_request(DispatchRecord, DispatchRequest) -> Bool
 
 pub fn dispatch_record_revision(DispatchRecord) -> Int
@@ -78,6 +82,10 @@ pub fn dispatch_request_json(DispatchRequest) -> Result[String, DispatchIssue]
 pub fn dispatch_transition_journal_key(DispatchTransition) -> Array[String]
 
 pub fn dispatch_transition_projection(DispatchTransition) -> Array[String]
+
+pub fn durable_dispatch_record_journal_key(DurableDispatchRecord) -> Array[String]
+
+pub fn durable_dispatch_record_revision(DurableDispatchRecord) -> Int
 
 pub fn force_loss_journal_key(ForceLossTransition) -> Array[String]
 
@@ -205,6 +213,8 @@ pub fn restore_coordinator_dispatch_record(CoordinatorDispatchIntentRecord, Int,
 
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
+pub fn restore_durable_dispatch_record(SiteDispatchJournal, DurableDispatchRecord) -> Result[DispatchRecord, DispatchIssue]
+
 pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
 
 pub fn site_dispatch_generation(SiteDispatchJournal) -> Int
@@ -265,6 +275,8 @@ type DispatchRecord
 type DispatchRequest
 
 type DispatchTransition
+
+type DurableDispatchRecord
 
 type ForceLossTransition
 
