@@ -1,0 +1,438 @@
+{
+  "version": "actql-local-family-coverage/0.1",
+  "baseline": "0886df5ab75ff77edcd68291470f487346fc1cc4",
+  "targets": ["js", "wasm", "native"],
+  "families": ["SGA", "TEA", "VecA", "Bridge", "VecAExpression"],
+  "states": ["complete", "partial", "missing", "blocked"],
+  "required_layers": [
+    "contract",
+    "checker",
+    "lowering",
+    "kernel",
+    "managed",
+    "standard_host",
+    "consumer_lifetime",
+    "resources",
+    "cancellation",
+    "three_targets",
+    "publication"
+  ],
+  "completion_rule": "Every normative branch is classified and every required layer is complete with suite-connected evidence on one verified SHA.",
+  "normative_sources": {
+    "inventory": "docs/spec/language.md#operation-inventory",
+    "mapping": "docs/spec/language.md#algebra-lowering",
+    "registry": "spec/dependencies/aoa-pipeline-registry.json",
+    "target_contract": "spec/contracts/actql-aoa.json",
+    "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
+  },
+  "shared_gaps": [
+    "canonical_aoa_inventory",
+    "ordered_typed_task_inputs",
+    "carrier_aware_completion",
+    "bounded_step_execution",
+    "cancellation_delivery_and_stop",
+    "family_artifact_isolation"
+  ],
+  "operations": [
+    {
+      "family": "SGA",
+      "operation": "normalize_graph",
+      "input": "graph",
+      "output": "graph",
+      "canonical": ["SGA.normalize"],
+      "variants": ["duplicate policy", "dangling edge policy", "property admission"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "match_nodes",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.match_nodes"],
+      "variants": ["literal predicate", "typed property predicate", "missing property"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "match_edges",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.match_edges"],
+      "variants": ["literal predicate", "typed property predicate", "missing property"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "traverse",
+      "input": "graph plus optional selector relation",
+      "output": "relation",
+      "canonical": ["SGA.traverse"],
+      "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "shortest_path",
+      "input": "graph plus up to two selector relations",
+      "output": "relation",
+      "canonical": ["SGA.shortest_path"],
+      "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "components",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.components"],
+      "variants": ["weak", "strong", "cycles", "disconnected nodes"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "reach",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.reachable"],
+      "variants": ["selector forms", "cycles", "self loops", "bounded depth"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_bounds",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.bounds_check"],
+      "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "degree",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.degree_metrics"],
+      "variants": ["incoming", "outgoing", "both", "typed edges"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_diff",
+      "input": "graph, graph",
+      "output": "relation",
+      "canonical": ["SGA.diff"],
+      "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "graft_graph",
+      "input": "graph, graph",
+      "output": "graph",
+      "canonical": ["SGA.graft"],
+      "variants": ["conflict laws", "equal semantic ids", "shared storage"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "union_graphs",
+      "input": "graph plus ordered nonempty graph list",
+      "output": "graph",
+      "canonical": ["SGA.union_structural"],
+      "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "canonical finite-list contract conflicts with binary-fold text"
+    },
+    {
+      "family": "SGA",
+      "operation": "subtract_graphs",
+      "input": "graph, graph",
+      "output": "graph",
+      "canonical": ["SGA.diff_structural"],
+      "variants": ["node removal", "edge removal", "property laws", "no-op"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "subgraph",
+      "input": "graph plus optional relation",
+      "output": "graph",
+      "canonical": ["SGA.subgraph"],
+      "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "canonical operation absent from registry"
+    },
+    {
+      "family": "SGA",
+      "operation": "graphs_equal",
+      "input": "graph, graph",
+      "output": "relation",
+      "canonical": ["SGA.equal"],
+      "variants": ["equal", "not equal", "representation difference"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "canonical operation absent from registry"
+    },
+    {
+      "family": "SGA",
+      "operation": "apply_graph_delta",
+      "input": "graph, relation",
+      "output": "graph",
+      "canonical": ["SGA.apply_delta"],
+      "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
+      "status": "missing",
+      "owner": "local-sga"
+    },
+    {
+      "family": "SGA",
+      "operation": "mean_graphs",
+      "input": "ordered finite graph list",
+      "output": "graph",
+      "canonical": ["SGA.mean_structural"],
+      "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "canonical operation absent from registry"
+    },
+    {
+      "family": "TEA",
+      "operation": "window_events",
+      "input": "events",
+      "output": "events",
+      "canonical": ["TEA.window.fixed_label", "TEA.window.sliding_assign"],
+      "variants": ["fixed", "sliding", "literal/parameter size and step", "offset", "multiple membership"],
+      "status": "missing",
+      "owner": "local-tea"
+    },
+    {
+      "family": "TEA",
+      "operation": "watermark_events",
+      "input": "events",
+      "output": "events",
+      "canonical": ["TEA.watermark.label"],
+      "variants": ["drop", "mark", "late boundary", "stable retained order"],
+      "status": "missing",
+      "owner": "local-tea"
+    },
+    {
+      "family": "TEA",
+      "operation": "session",
+      "input": "relation or events",
+      "output": "same carrier",
+      "canonical": ["TEA.window.session_assign"],
+      "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
+      "status": "missing",
+      "owner": "local-tea"
+    },
+    {
+      "family": "TEA",
+      "operation": "time_series",
+      "input": "none",
+      "output": "relation",
+      "canonical": ["TEA.time_series"],
+      "variants": ["literal/parameter endpoints", "empty", "nonempty", "overflow"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "canonical operation absent from registry"
+    },
+    {
+      "family": "TEA",
+      "operation": "interval_join",
+      "input": "relation, relation",
+      "output": "relation",
+      "canonical": ["TEA.join.interval"],
+      "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "canonical operation absent from registry"
+    },
+    {
+      "family": "TEA",
+      "operation": "dedupe_events",
+      "input": "events",
+      "output": "events",
+      "canonical": ["TEA.dedupe"],
+      "variants": ["global/grouped", "resolved tie", "unresolved tie failure"],
+      "status": "missing",
+      "owner": "local-tea"
+    },
+    {
+      "family": "TEA",
+      "operation": "asof_join",
+      "input": "relation/events, relation",
+      "output": "relation",
+      "canonical": ["TEA.join.asof"],
+      "variants": ["relation/events left", "left/inner", "backward/forward/nearest", "identity completion", "tie completion"],
+      "status": "missing",
+      "owner": "local-tea"
+    },
+    {
+      "family": "TEA",
+      "operation": "sequence",
+      "input": "relation or events",
+      "output": "relation",
+      "canonical": ["TEA.sequence.match"],
+      "variants": ["relation/events", "allow/disallow overlap", "adjacent/subsequence", "global/grouped", "literal/parameter guards"],
+      "status": "missing",
+      "owner": "local-tea"
+    },
+    {
+      "family": "VecA",
+      "operation": "normalize_vectors",
+      "input": "vectors",
+      "output": "vectors",
+      "canonical": ["VEC.normalize_l2"],
+      "variants": ["zero vector", "finite components", "rounding boundary"],
+      "status": "missing",
+      "owner": "local-veca"
+    },
+    {
+      "family": "VecA",
+      "operation": "score_vectors",
+      "input": "vectors",
+      "output": "vectors",
+      "canonical": ["VEC.score_sort"],
+      "variants": ["literal/parameter query", "cosine/dot/l2", "score ties"],
+      "status": "missing",
+      "owner": "local-veca"
+    },
+    {
+      "family": "VecA",
+      "operation": "nearest",
+      "input": "relation/vectors, relation/vectors",
+      "output": "relation",
+      "canonical": ["VEC.knn_join"],
+      "variants": ["four Carrier combinations", "explicit/completed roles", "cosine/dot/l2", "k boundaries", "ties"],
+      "status": "missing",
+      "owner": "local-veca"
+    },
+    {
+      "family": "VecA",
+      "operation": "pool_vectors",
+      "input": "relation or vectors",
+      "output": "vectors",
+      "canonical": ["VEC.pool"],
+      "variants": ["relation/vectors", "mean/sum/max", "single/composite group", "output id"],
+      "status": "missing",
+      "owner": "local-veca"
+    },
+    {
+      "family": "VecA",
+      "operation": "merge_rankings",
+      "input": "ordered relation inputs",
+      "output": "relation",
+      "canonical": ["VEC.merge_rankings"],
+      "variants": ["maximum", "weighted sum", "finite-list reciprocal rank", "tie completion", "repeated inputs"],
+      "status": "blocked",
+      "owner": "shared-aoa",
+      "blocker": "registry is binary but reciprocal-rank fusion is finite-list"
+    },
+    {
+      "family": "Bridge",
+      "operation": "graph",
+      "input": "relation, relation",
+      "output": "graph",
+      "canonical": ["BRIDGE.rows.to_graph"],
+      "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "Bridge",
+      "operation": "node_rows",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["BRIDGE.graph.to_node_rows"],
+      "variants": ["identity restoration", "property columns", "collision failure"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "Bridge",
+      "operation": "edge_rows",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["BRIDGE.graph.to_edge_rows"],
+      "variants": ["identity restoration", "endpoint roles", "collision failure"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "Bridge",
+      "operation": "to_events",
+      "input": "relation",
+      "output": "events",
+      "canonical": ["BRIDGE.rows.to_events"],
+      "variants": ["semantic id", "number/timestamp clock", "uniqueness failure"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "Bridge",
+      "operation": "events",
+      "input": "events",
+      "output": "relation",
+      "canonical": ["BRIDGE.events.to_rows"],
+      "variants": ["identity transfer", "clock preservation", "page split invariance"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "Bridge",
+      "operation": "to_vectors",
+      "input": "relation",
+      "output": "vectors",
+      "canonical": ["BRIDGE.rows.to_vectors"],
+      "variants": ["single/composite semantic id", "dimension", "finite component failure"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "Bridge",
+      "operation": "vectors",
+      "input": "vectors",
+      "output": "relation",
+      "canonical": ["BRIDGE.vectors.to_rows"],
+      "variants": ["identity restoration", "dimension preservation", "opaque carrier evidence"],
+      "status": "missing",
+      "owner": "local-bridge"
+    },
+    {
+      "family": "VecAExpression",
+      "operation": "vector_score",
+      "input": "two same-dimension vectors and metric",
+      "output": "number",
+      "canonical": ["expression.vector_score"],
+      "variants": ["cosine/dot/l2", "nullable/non-null", "demanded evaluation"],
+      "status": "missing",
+      "owner": "local-veca"
+    },
+    {
+      "family": "VecAExpression",
+      "operation": "vector_concat",
+      "input": "ordered vector expression list",
+      "output": "vector",
+      "canonical": ["expression.vector_concat"],
+      "variants": ["arity two/many", "dimension overflow", "null propagation", "demanded evaluation"],
+      "status": "missing",
+      "owner": "local-veca"
+    }
+  ],
+  "evidence": [],
+  "verified_sha": null,
+  "linux_ci": null
+}
