@@ -623,3 +623,38 @@ pub fn managed_strategy_cleanup_refresh(
     @duckdb_driver.captured_managed_duckdb_execution(run.task),
   )
 }
+
+///|
+/// Portable DuckDB driver decision for one managed failure-cleanup step. The
+/// Node adapter performs only the selected physical operation.
+#export_name("managedStrategyFailureAction")
+pub fn managed_strategy_failure_action(
+  output_cancel_attempted : Bool,
+  output_owners_close_attempted : Bool,
+  output_reclaim_attempted : Bool,
+  execution_close_attempted : Bool,
+  native_stopped : Bool,
+  execution_settled : Bool,
+  execution_cleanup_confirmed : Bool,
+  output_reclaimed : Bool,
+) -> Int {
+  @duckdb_driver.managed_duckdb_failure_step_code(
+    output_cancel_attempted, output_owners_close_attempted, output_reclaim_attempted,
+    execution_close_attempted, native_stopped, execution_settled, execution_cleanup_confirmed,
+    output_reclaimed,
+  )
+}
+
+///|
+/// Portable retry ordering for independent native and Store cleanup owners.
+#export_name("managedStrategyFailureRetryAction")
+pub fn managed_strategy_failure_retry_action(
+  native_pending : Bool,
+  native_retry_attempted : Bool,
+  output_pending : Bool,
+  output_retry_attempted : Bool,
+) -> Int {
+  @duckdb_driver.managed_duckdb_failure_retry_step_code(
+    native_pending, native_retry_attempted, output_pending, output_retry_attempted,
+  )
+}

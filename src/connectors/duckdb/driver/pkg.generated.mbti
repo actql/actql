@@ -119,6 +119,10 @@ pub fn install_duckdb_resident_estimates(DuckDBDispatchModule, @physical_strateg
 
 pub fn install_duckdb_resource_estimate_policy(DuckDBDispatchModule, DuckDBResourceEstimatePolicy) -> Result[Unit, DuckDBEstimateIssue]
 
+pub fn managed_duckdb_failure_retry_step_code(Bool, Bool, Bool, Bool) -> Int
+
+pub fn managed_duckdb_failure_step_code(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue
 
 pub fn prepare_duckdb_dispatch(DuckDBDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, DuckDBDispatchIssue]

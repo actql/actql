@@ -14,7 +14,7 @@ import {encodeManagedColumnFrame, managedColumnCodecContractCid,
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {managedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
-import {ownedHostFailure} from './failure-envelope.mjs';
+import {settleFailedManagedDuckDB} from './managed-failure.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
@@ -88,10 +88,13 @@ export async function runManagedColumnStrategyHostCompute(
   let outputValueAdmissionCells = 0, outputJsMaterializedCells = 0;
   let reusedMeasurementCells = 0;
   let outputRows = 0;
-  let disposed = false;
+  const lifecycle = {
+    sessionStarted: false,
+    executionSettled: false,
+    outputDisposed: false,
+  };
   let authorized = true;
-  let sessionStarted = false;
-  const storageReleased = () => disposed && (!store ||
+  const storageReleased = () => lifecycle.outputDisposed && (!store ||
     (store.status().reservedBytes === 0 && !store.status().cleanupPending));
   try {
     checked(moon.managedStrategyRetentionCapacity(setup));
@@ -130,10 +133,11 @@ export async function runManagedColumnStrategyHostCompute(
     const parameters = Array.from({length: moon.managedStrategyParameterCount(run)}, (_, index) =>
       JSON.parse(checked(moon.managedStrategyParameter(run, index))));
     const accounting = Object.freeze({
-      started() { sessionStarted = true; },
+      started() { lifecycle.sessionStarted = true; },
       chargeTransfer(bytes) { checked(moon.managedStrategyCharge(run, BigInt(bytes))); },
       settled(confirmed) {
         checked(moon.managedStrategySettle(run, confirmed));
+        if (confirmed) lifecycle.executionSettled = true;
       },
     });
     const occurrences = [];
@@ -305,7 +309,7 @@ export async function runManagedColumnStrategyHostCompute(
         moon.managedOutputCancel(output);
         body.close();
         store.close();
-        disposed = true;
+        lifecycle.outputDisposed = true;
         try { await store.cleanup(); }
         finally {
           moon.managedStrategyClose(run);
@@ -315,77 +319,15 @@ export async function runManagedColumnStrategyHostCompute(
       },
     });
   } catch (reason) {
-    const error = ownedHostFailure(reason, 'ManagedStrategyFailed');
     authorized = false;
-    const nativeCleanup = error.cleanupPending === true
-      ? error.cleanupHandle : undefined;
-    let taskCleanupConfirmed = false;
-    const nativePending = () => {
-      if (!nativeCleanup) return false;
-      try { return nativeCleanup.status().pending === true; }
-      catch { return true; }
-    };
-    if (output) moon.managedOutputCancel(output);
-    body?.close();
-    store?.close();
-    disposed = true;
-    try {
-      await store?.cleanup();
-    } catch (cleanupError) {
-      error.cleanupErrors = Object.freeze([
-        ...(error.cleanupErrors ?? []), cleanupError,
-      ]);
-    } finally {
-      if (run) {
-        // A failure before the native session starts has a confirmed zero
-        // physical execution. Settle that reservation before disposal; an
-        // opened native session remains responsible for its own receipt.
-        if (!sessionStarted) checked(moon.managedStrategySettle(run, true));
-        moon.managedStrategyClose(run);
-        try {
-          taskCleanupConfirmed = checked(
-            moon.managedStrategyCleanupRefresh(run),
-          );
-        } catch (cleanupError) {
-          error.cleanupErrors = Object.freeze([
-            ...error.cleanupErrors, cleanupError,
-          ]);
-        }
-      }
-    }
-    const cleanupStatus = () => Object.freeze({
-      pending: nativePending() ||
-        (store?.status().cleanupPending ?? false) ||
-        (run !== undefined && !taskCleanupConfirmed),
-    });
-    if (cleanupStatus().pending || (error.cleanupErrors?.length ?? 0) > 0) {
-      error.cleanupPending = cleanupStatus().pending;
-      error.cleanupHandle = Object.freeze({
-        status: cleanupStatus,
-        retry: async () => {
-          const retryErrors = [];
-          if (nativePending()) {
-            try { await nativeCleanup?.retry(); }
-            catch (cleanupError) { retryErrors.push(cleanupError); }
-          }
-          try { await store?.cleanup(); }
-          catch (cleanupError) { retryErrors.push(cleanupError); }
-          if (run) {
-            try {
-              taskCleanupConfirmed = checked(
-                moon.managedStrategyCleanupRefresh(run),
-              );
-            } catch (cleanupError) { retryErrors.push(cleanupError); }
-          }
-          if (retryErrors.length) {
-            error.cleanupErrors = Object.freeze([
-              ...error.cleanupErrors, ...retryErrors,
-            ]);
-          }
-          return cleanupStatus();
-        },
-      });
-    }
-    throw error;
+    // A pre-start failure has a confirmed zero execution. After native start,
+    // only the native accounting callback may establish actual settlement.
+    throw await settleFailedManagedDuckDB(moon, checked, {
+      run,
+      output,
+      body,
+      store,
+      lifecycle,
+    }, reason);
   }
 }

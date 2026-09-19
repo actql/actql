@@ -234,6 +234,10 @@ pub fn managed_strategy_complete(ManagedComputeNodeRun, ManagedNodeOutput) -> @e
 
 pub fn managed_strategy_create_sql(ManagedComputeNodeRun, Int) -> String raise NodeHostFailure
 
+pub fn managed_strategy_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
+pub fn managed_strategy_failure_retry_action(Bool, Bool, Bool, Bool) -> Int
+
 pub fn managed_strategy_host_open(@driver.ManagedStrategyComputeHostConfiguration[Int], Int64, Int64, () -> Bool, () -> Bool) -> ManagedComputeNodeRun raise NodeHostFailure
 
 pub fn managed_strategy_input(ManagedComputeNodeRun) -> @execution_relation.ManagedProducerRead[Int] raise NodeHostFailure
