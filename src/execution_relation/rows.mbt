@@ -30,6 +30,9 @@ pub(all) enum RowIssue {
   WindowTime(Int)
   WindowArithmetic(Int)
   AnalyticEnvelope(AnalyticEnvelopeScope)
+  NestItemLimitRequired
+  NestItemLimit(Int)
+  NestEnvelope(NestEnvelopeScope)
 }
 
 ///|
@@ -39,6 +42,13 @@ pub(all) enum AnalyticEnvelopeScope {
   PartitionWireBytes
   FrameMemberships
   OutputRows
+  Measurement
+} derive(Eq, Debug)
+
+///|
+pub(all) enum NestEnvelopeScope {
+  GroupedBytes
+  AttachedBytes
   Measurement
 } derive(Eq, Debug)
 

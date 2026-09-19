@@ -165,7 +165,7 @@ test "Local managed parameter lag feeds two downstream Computes" {
 }
 
 ///|
-test "Local managed lag cancellation publishes nothing and reclaims" {
+test "Local managed lag pre-execution cancellation rejects completion and reclaims" {
   let (run, issuer) = captured_graph_fixture(
     local_values_lag_chain=true,
     local_values_lag_variant="literal",

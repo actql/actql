@@ -21,6 +21,7 @@ import {
   "actql/actql/order_key" @order,
   "actql/actql/numeric_reduction" @numeric,
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {

@@ -71,7 +71,9 @@ fn run_local_managed_test_task(
         Err(Preparation(_)) => fail("Local managed row preparation failed")
         Err(Dispatch(_)) => fail("Local managed row dispatch failed")
         Err(Execution(Physical(_))) =>
-          fail("Local managed row transfer capacity failed")
+          fail(
+            "Local managed row transfer capacity failed: " + task.to_string(),
+          )
         Err(Execution(NotReady)) => fail("Local managed row was not ready")
         Err(Execution(Stopped)) => fail("Local managed row was stopped")
         Err(Execution(_)) => fail("Local managed row execution failed")
@@ -230,15 +232,29 @@ fn run_local_managed_group_case(
     local_values_group_chain=true,
     local_values_group_variant=variant,
   )
-  if variant == "numeric" {
+  if variant == "numeric" ||
+    variant == "numeric_filter" ||
+    variant == "numeric_regroup" {
     let graph = @strategy.captured_dag_graph(run)
-    assert_eq(@strategy.graph_task_numeric_observation_count(graph, 2), Some(2))
+    let expected_slots = if variant == "numeric_regroup" { 4 } else { 2 }
+    assert_eq(
+      @strategy.graph_task_numeric_observation_count(graph, 2),
+      Some(expected_slots),
+    )
     let first = @strategy.graph_task_numeric_observation_at(graph, 2, 0).unwrap()
     let second = @strategy.graph_task_numeric_observation_at(graph, 2, 1).unwrap()
     assert_eq(@strategy.task_numeric_observation_step(first), 0)
     assert_eq(@strategy.task_numeric_observation_name(first), "mean")
     assert_eq(@strategy.task_numeric_observation_step(second), 0)
     assert_eq(@strategy.task_numeric_observation_name(second), "total")
+    if variant == "numeric_regroup" {
+      let third = @strategy.graph_task_numeric_observation_at(graph, 2, 2).unwrap()
+      let fourth = @strategy.graph_task_numeric_observation_at(graph, 2, 3).unwrap()
+      assert_eq(@strategy.task_numeric_observation_step(third), 1)
+      assert_eq(@strategy.task_numeric_observation_name(third), "mean")
+      assert_eq(@strategy.task_numeric_observation_step(fourth), 1)
+      assert_eq(@strategy.task_numeric_observation_name(fourth), "total")
+    }
     let numeric_steps : Array[Int] = []
     @execution.generated_sequence_all_steps(dispatch_test_generated(run)[1], fn(
       step,
@@ -253,7 +269,14 @@ fn run_local_managed_group_case(
       true
     })
     |> ignore
-    assert_eq(numeric_steps, [0])
+    assert_eq(
+      numeric_steps,
+      if variant == "numeric_regroup" {
+        [0, 1]
+      } else {
+        [0]
+      },
+    )
   }
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -272,7 +295,9 @@ fn run_local_managed_group_case(
     variant == "nested_distinct" ||
     variant == "filtered_expression" ||
     variant == "statistics" ||
-    variant == "numeric"
+    variant == "numeric" ||
+    variant == "numeric_filter" ||
+    variant == "numeric_regroup"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -573,5 +598,31 @@ test "Local managed numeric reductions reach two independent consumers" {
     [
       "{\"total\":null,\"mean\":null,\"k\":null}", "{\"total\":0,\"mean\":0,\"k\":1}",
     ],
+  )
+}
+
+///|
+test "Local seals numeric groups before a same-task filter" {
+  run_local_managed_group_case(
+    "numeric_filter",
+    [
+      "{\"k\":1,\"n\":10000000000000000}", "{\"k\":1,\"n\":1}", "{\"k\":1,\"n\":-10000000000000000}",
+      "{\"k\":null,\"n\":null}",
+    ],
+    ["{\"k\":1,\"mean\":0,\"total\":0}"],
+    ["{\"total\":0,\"mean\":0,\"k\":1}"],
+  )
+}
+
+///|
+test "Local seals each numeric group occurrence domain independently" {
+  run_local_managed_group_case(
+    "numeric_regroup",
+    [
+      "{\"k\":1,\"n\":10000000000000000}", "{\"k\":1,\"n\":1}", "{\"k\":1,\"n\":-10000000000000000}",
+      "{\"k\":null,\"n\":null}",
+    ],
+    ["{\"mean\":0,\"total\":0}"],
+    ["{\"total\":0,\"mean\":0}"],
   )
 }

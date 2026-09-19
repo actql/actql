@@ -34,6 +34,7 @@ fn query_checked_program_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
+  local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
@@ -191,6 +192,11 @@ fn query_checked_program_fixture(
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"joined","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]},"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]},"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"right_rows"},{"from":"left_rows","join":{"with":"right_rows","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"joined_raw"},{"from":"joined_raw","distinct":true,"as":"unique"},{"from":"unique","sort":[{"id":"asc"},{"l":"asc"},{"r":"asc"}],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     )
+  } else {
+    text
+  }
+  let text = if local_values_nest_chain {
+    local_values_nest_program()
   } else {
     text
   }
@@ -495,7 +501,12 @@ fn query_checked_program_fixture(
           text_rank: false,
         },
         numeric_profile=if (
-            local_values_group_chain && local_values_group_variant == "numeric"
+            local_values_group_chain &&
+            (
+              local_values_group_variant == "numeric" ||
+              local_values_group_variant == "numeric_filter" ||
+              local_values_group_variant == "numeric_regroup"
+            )
           ) ||
           (
             local_values_window_group_chain &&
@@ -503,7 +514,10 @@ fn query_checked_program_fixture(
           ) ||
           (
             local_values_analytic_chain &&
-            local_values_analytic_variant == "numeric"
+            (
+              local_values_analytic_variant == "numeric" ||
+              local_values_analytic_variant == "numeric_take"
+            )
           ) ||
           local_values_unary_chain == Some("pivot_numeric") {
           Some(@numeric.builtin_profile())
@@ -528,6 +542,13 @@ fn query_checked_program_fixture(
     NeedsInputs(_) => fail("fixture requires complete checking inputs")
     Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
   }
+}
+
+///|
+fn local_values_nest_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"parents","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true}},"rows":[{"id":1,"key":1},{"id":2,"key":1},{"id":3,"key":null},{"id":4,"key":2}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key"]}}},{"id":"children","inputs":{},"steps":[{"values":{"schema":{"child_id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"value":{"type":"number","nullable":true}},"rows":[{"child_id":2,"key":1,"value":null},{"child_id":1,"key":1,"value":10},{"child_id":3,"key":null,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["child_id","key","value"]}}},{"id":"nested","inputs":{"parents":{"result":{"stage":"parents","result":"r"}},"children":{"result":{"stage":"children","result":"r"}}},"steps":[{"from":"parents","nest":{"with":"children","on":[{"left":"key","right":"key"}],"into":"items","fields":[{"amount":"value"}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["id","key","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["items","id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["items","id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
 }
 
 ///|
@@ -958,12 +979,23 @@ fn local_values_group_program(variant : String) -> String {
         "[\"sample_deviation\",\"sample\",\"population_deviation\"," +
         "\"population\",\"discrete\",\"continuous\"]",
       )
-    "numeric" =>
+    "numeric" | "numeric_filter" | "numeric_regroup" =>
       (
         "{\"k\":{\"type\":\"number\",\"nullable\":true},\"n\":{\"type\":\"number\",\"nullable\":true}}",
         "[{\"k\":1,\"n\":10000000000000000},{\"k\":1,\"n\":1},{\"k\":1,\"n\":-10000000000000000},{\"k\":null,\"n\":null}]",
-        "[\"k\"]", "{\"mean\":{\"fn\":\"avg\",\"field\":\"n\"},\"total\":{\"fn\":\"sum\",\"field\":\"n\"}}",
-        "[\"k\",\"n\"]", "[\"k\",\"mean\",\"total\"]", "[\"total\",\"mean\",\"k\"]",
+        "[\"k\"]",
+        "{\"mean\":{\"fn\":\"avg\",\"field\":\"n\"},\"total\":{\"fn\":\"sum\",\"field\":\"n\"}}",
+        "[\"k\",\"n\"]",
+        if variant == "numeric_regroup" {
+          "[\"mean\",\"total\"]"
+        } else {
+          "[\"k\",\"mean\",\"total\"]"
+        },
+        if variant == "numeric_regroup" {
+          "[\"total\",\"mean\"]"
+        } else {
+          "[\"total\",\"mean\",\"k\"]"
+        },
       )
     _ => abort("unknown Local group fixture")
   }
@@ -978,13 +1010,26 @@ fn local_values_group_program(variant : String) -> String {
     selected +
     "}}}"
   }
-  let group_alias = "out"
+  let group_alias = if variant == "numeric_filter" ||
+    variant == "numeric_regroup" {
+    "grouped"
+  } else {
+    "out"
+  }
   let group_open = if variant == "collections" {
     "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"group\":{\"by\":"
   } else {
     "{\"group\":{\"by\":"
   }
-  let group_tail = ""
+  let group_tail = match variant {
+    "numeric_filter" =>
+      ",{\"from\":\"grouped\",\"filter\":\"total >= 0\",\"as\":\"out\"}"
+    "numeric_regroup" =>
+      ",{\"from\":\"grouped\",\"group\":{\"by\":[],\"aggregates\":{" +
+      "\"mean\":{\"fn\":\"avg\",\"field\":\"mean\"}," +
+      "\"total\":{\"fn\":\"sum\",\"field\":\"total\"}}},\"as\":\"out\"}"
+    _ => ""
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   remote +
   "," +

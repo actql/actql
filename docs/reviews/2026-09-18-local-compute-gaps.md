@@ -10,12 +10,12 @@ the implementation.
 
 ## Contract gaps found during the initial audit
 
-| Gap | Evidence | Required resolution |
-| --- | --- | --- |
-| `nest` has no canonical AoA mapping | It appears in the normative RelA inventory, but not the normative canonical mapping table | Define the common typed operation and register it before Local lowering |
-
-These are required-scope gaps, not reasons to remove operations from the Local
-milestone.
+The initial `nest` canonical-mapping gap is closed. The normative mapping now
+binds `nest` to its finite expansion over existing registered AoA operations.
+The common typed lowering retains both checked ports, resolved child order,
+projection, reference identities, and authored item guard. Local execution may
+fuse the expansion but does not define a Local-only opcode or reopen frontend
+syntax.
 
 The fixed baseline does not define parameterized `json_pick` path components.
 Its paths are nonempty arrays of exact object-key strings. The same baseline
@@ -50,7 +50,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | json_pick | C | C | C | C | Complete |
 | unnest | C | C | C | C | Complete |
 | join | C | C | C | C | Complete |
-| nest | C | - | - | - | Canonical common contract is missing |
+| nest | C | C | C | C | Complete |
 | group | C | C | C | C | Complete |
 | distinct | C | C | C | C | Complete |
 | dedupe_rows | C | C | C | C | Complete |
@@ -83,12 +83,35 @@ notification happens before editing it.
 
 ## Completion evidence
 
-The manifest records 28 complete operations. `window_group`, `pivot`, and
+The manifest records 29 complete operations. `nest` now reaches common typed
+lowering, indexed Local correlation, managed completion, two actual downstream
+Computes, individual release, and final reclamation. Its runtime checks retain
+parent order and duplicate occurrences, resolved child order, NULL no-match,
+item ceilings, and distinct grouped and attached recursive-value byte scopes.
+The performance fixture bounds correlation by input indexing plus emitted
+payload, rather than a per-parent scan of all children.
+
+`window_group`, `pivot`, and
 `analytic` now route binary64 sum and average through the selected,
 attempt-owned numeric executor. Their managed two-consumer fixtures and
-three-target conformance include the numeric paths, and analytic numeric frames
-have an indexed scaling floor.
+three-target conformance include the numeric paths. Analytic performance
+fixtures separately cover one-row, cumulative, fixed-width, full-partition,
+and empty frames. They bound work by input rows `N`, total frame memberships
+`B`, demanded expression evaluations `E`, and output rows `R`; peak workspace
+is bounded by the widest live frame and the `N` by call-count indexes rather
+than by total `B`.
 
-`nest` is the only remaining operation. It requires a canonical common AoA
-contract before lowering, Local execution, managed lifetime, and coverage can
-be completed without frontend rediscovery.
+Numeric aggregate conversion retains the admitted `Array[Value]` while it
+builds an `Array[Double]` of the same contributor count. The shared aggregate
+evaluator now reserves that second array before allocation. Group,
+window_group, and analytic exact/one-short workspace fixtures cover the
+overlap; window_group and analytic reach the same shared evaluator rather than
+carrying a Local-only reservation rule. Released per-aggregate temporaries do
+not remain in the completed output's retained-storage count.
+
+The managed lag cancellation fixture covers cancellation before execution,
+completion rejection, and reclamation. Cancellation during a running Local
+kernel remains dependent on the common Engine interruption contract: long
+loops need an adopted interruption point, stop confirmation must precede
+release, and an interrupted task must not publish completion. Local does not
+introduce a separate scheduler or resumable execution contract for this gap.

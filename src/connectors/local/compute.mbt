@@ -171,8 +171,7 @@ pub fn local_managed_sequence_supported(
       @lower.SetStep(_) => true
       @lower.CrossJoinStep(_) => true
       @lower.JoinStep(_) => true
-      // The common typed view is available before the Local kernel is wired.
-      @lower.NestStep(_) => false
+      @lower.NestStep(_) => true
     }
   })
 }

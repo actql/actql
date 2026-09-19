@@ -1558,6 +1558,64 @@ async function exerciseStrategyGraph(
     steps: [{select: ['id'], as: 'out'}],
     results: {r: {from: 'out', fields: ['id']}},
   })));
+  const nestProgram = structuredClone(zeroInputProgram);
+  nestProgram.stages.splice(1, 3, {
+    id: 'nest_parents',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        key: {type: 'number', nullable: true},
+      },
+      rows: [
+        {id: 1, key: 1},
+        {id: 2, key: 1},
+        {id: 3, key: null},
+        {id: 4, key: 2},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'key']}},
+  }, {
+    id: 'nest_children',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        child_id: {type: 'number', nullable: false},
+        key: {type: 'number', nullable: true},
+        value: {type: 'number', nullable: true},
+      },
+      rows: [
+        {child_id: 2, key: 1, value: null},
+        {child_id: 1, key: 1, value: 10},
+        {child_id: 3, key: null, value: 30},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['child_id', 'key', 'value']}},
+  }, {
+    id: 'nested',
+    inputs: {
+      parents: {result: {stage: 'nest_parents', result: 'r'}},
+      children: {result: {stage: 'nest_children', result: 'r'}},
+    },
+    from: 'parents',
+    steps: [{nest: {
+      with: 'children',
+      on: [{left: 'key', right: 'key'}],
+      into: 'items',
+      fields: [{amount: 'value'}],
+      max_items: 2,
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'items', 'key']}},
+  }, ...['a', 'b'].map(id => ({
+    id: `nest_consumer_${id}`,
+    inputs: {x: {result: {stage: 'nested', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? ['id', 'key', 'items']
+      : ['items', 'id', 'key'], as: 'out'}],
+    results: {r: {from: 'out', fields: id === 'a'
+      ? ['id', 'key', 'items']
+      : ['items', 'id', 'key']}},
+  })));
   const valuesVariantProgram = (schema, rows, fields, reversed) => {
     const variant = structuredClone(zeroInputProgram);
     variant.stages.splice(1, 3, {
@@ -2295,6 +2353,7 @@ async function exerciseStrategyGraph(
     ['global top k', globalTopKProgram, [1, 2, 3, 4]],
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3]],
+    ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
@@ -2407,6 +2466,13 @@ async function exerciseStrategyGraph(
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 4, 4],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'nest') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 3, 4, 4, 4],
           `${name} and both consumers publish complete retained outputs`,
         );
       }

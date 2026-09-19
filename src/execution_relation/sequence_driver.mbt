@@ -538,6 +538,25 @@ fn run_sequence_invocation(
         { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
       )
     }),
+    evaluate_nest=Some((kernel, parent, child) => {
+      let step = @lower.nest_kernel_step(kernel)
+      evaluate_nest_rows(
+        kernel,
+        parent,
+        child,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+        selected_item_limit=selected_step_ceiling(nest_item_ceilings, step),
+        grouped_byte_limit=selected_step_ceiling(
+          nest_grouped_byte_ceilings, step,
+        ),
+        attached_byte_limit=selected_step_ceiling(
+          nest_attached_byte_ceilings, step,
+        ),
+      )
+    }),
   )
 }
 

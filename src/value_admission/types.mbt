@@ -40,6 +40,31 @@ pub fn array_value(values : Array[Value]) -> Value {
 }
 
 ///|
+pub fn null_value() -> Value {
+  Null
+}
+
+///|
+/// Build an immutable closed object from already admitted, distinct fields.
+/// Canonical object order is independent of authored projection order.
+pub fn object_value(entries : Array[(String, Value)]) -> Value? {
+  let values = entries.copy()
+  let seen : Map[String, Bool] = Map([])
+  for (name, _) in values {
+    if seen.contains(name) {
+      return None
+    }
+    match @canonical.normalize_nfc_lf(name) {
+      Ok(normalized) => if normalized != name { return None }
+      Err(_) => return None
+    }
+    seen[name] = true
+  }
+  values.sort_by((left, right) => @canonical.compare_utf16(left.0, right.0))
+  Some(Object({ values, }))
+}
+
+///|
 /// Build an admitted Boolean from an already typed execution value.
 pub fn boolean_value(value : Bool) -> Value {
   Boolean(value)

@@ -21,7 +21,7 @@ fn local_values_analytic_program(variant : String) -> String {
         "[\"amount\",\"group\",\"id\",\"lowest\"]",
         "[\"lowest\",\"id\",\"group\",\"amount\"]",
       )
-    "numeric" =>
+    "numeric" | "numeric_take" =>
       (
         "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
         "\"group\":{\"type\":\"string\",\"nullable\":true}," +
@@ -107,7 +107,13 @@ fn local_values_analytic_program(variant : String) -> String {
   rows +
   "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":" +
   functions +
-  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  "},\"as\":\"analytic_out\"}" +
+  (if variant == "numeric_take" {
+    ",{\"from\":\"analytic_out\",\"take\":1,\"as\":\"out\"}"
+  } else {
+    ",{\"from\":\"analytic_out\",\"select\":" + fields + ",\"as\":\"out\"}"
+  }) +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   fields +
   "}}}," +
   "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"analytic_rows\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
@@ -390,6 +396,21 @@ test "Local managed analytic numeric reductions feed two downstream Computes" {
       "{\"total\":10000000000000000,\"mean\":10000000000000000,\"id\":1,\"group\":\"a\",\"amount\":10000000000000000}",
       "{\"total\":10000000000000000,\"mean\":5000000000000000,\"id\":2,\"group\":\"a\",\"amount\":1}",
       "{\"total\":0,\"mean\":0,\"id\":3,\"group\":\"a\",\"amount\":-10000000000000000}",
+    ],
+  )
+}
+
+///|
+test "Local managed analytic seals numeric observations before a later take" {
+  run_local_managed_analytic_case(
+    "numeric_take",
+    [
+      "{\"amount\":10000000000000000,\"group\":\"a\",\"id\":1," +
+      "\"mean\":10000000000000000,\"total\":10000000000000000}",
+    ],
+    [
+      "{\"total\":10000000000000000,\"mean\":10000000000000000," +
+      "\"id\":1,\"group\":\"a\",\"amount\":10000000000000000}",
     ],
   )
 }

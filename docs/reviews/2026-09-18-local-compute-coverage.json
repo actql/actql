@@ -2145,7 +2145,8 @@
             "path": "src/execution_relation/window_group_scale_wbtest.mbt",
             "fixtures": [
               "window group stays within indexed aggregation scaling floors",
-              "window group accepts exact work and storage boundaries"
+              "window group accepts exact work and storage boundaries",
+              "numeric window group arrays respect the exact workspace boundary"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -2226,7 +2227,7 @@
             "fixtures": [
               "Local managed literal lag feeds two downstream Computes",
               "Local managed parameter lag feeds two downstream Computes",
-              "Local managed lag cancellation publishes nothing and reclaims"
+              "Local managed lag pre-execution cancellation rejects completion and reclaims"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -3980,8 +3981,15 @@
       "operation": "nest",
       "input_shape": "relation x relation",
       "normative_anchor": "nest",
-      "canonical_operations": [],
-      "machine_registry": "canonical-mapping-gap",
+      "canonical_operations": [
+        "REL.derive",
+        "REL.join",
+        "REL.select",
+        "REL.orderByStable",
+        "REL.groupBy",
+        "REL.where"
+      ],
+      "machine_registry": "registered",
       "variant_scope": [
         "correlation keys",
         "nested relation value",
@@ -3991,23 +3999,126 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
-        "performance": "missing"
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
+        "performance": "complete"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
-        "performance": []
+        "source_connection": [
+          {
+            "operation": "nest",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/nest_test.mbt",
+            "fixtures": [
+              "nest lowering retains checked ports order projection and item guard",
+              "nest lowering leaves a selected item ceiling unresolved",
+              "nest lowering emits only registered canonical expansion nodes"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "nest",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_nest_wbtest.mbt",
+            "fixtures": [
+              "Local managed nest reaches two consumers and final reclamation"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "nest",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "nest",
+            "layer": "conformance",
+            "path": "src/execution_relation/nest_sequence_wbtest.mbt",
+            "fixtures": [
+              "nest preserves parents child order NULL keys and empty arrays",
+              "nest item guard fails atomically without truncation",
+              "selected nest item ceiling binds the exact output occurrence",
+              "selected nest item ceiling cannot weaken an authored guard",
+              "nest grouped and attached byte scopes count distinct and repeated arrays",
+              "nest attached byte scope includes recursive parent siblings"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "correlation keys",
+                "nested relation value",
+                "empty matches",
+                "ordering",
+                "array capacity"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "collection"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "ownership",
+                "schema",
+                "two_input_binding",
+                "value_validation"
+              ]
+            }
+          }
+        ],
+        "performance": [
+          {
+            "operation": "nest",
+            "layer": "performance",
+            "path": "src/execution_relation/nest_scale_wbtest.mbt",
+            "fixtures": [
+              "nest indexed correlation scales with inputs and emitted payload"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
-      "gaps": [
-        "The normative canonical AoA mapping omits nest; the shared contract must be completed before lowering."
-      ]
+      "gaps": []
     },
     {
       "operation": "group",
@@ -4163,6 +4274,7 @@
               "direct decimal sum checks only its final public precision",
               "direct group capability separates numeric observations from expressions",
               "selected numeric reductions execute every group occurrence exactly once",
+              "numeric group temporary arrays respect the exact workspace boundary",
               "aggregate filters gate expression demand before ordered distinct folds",
               "direct group accepts exact shared work and rejects one-short execution",
               "direct group stays within indexed aggregation scaling floors"
@@ -4318,7 +4430,8 @@
             "layer": "performance",
             "path": "src/execution_relation/group_rows_wbtest.mbt",
             "fixtures": [
-              "direct group stays within indexed aggregation scaling floors"
+              "direct group stays within indexed aggregation scaling floors",
+              "numeric group temporary arrays respect the exact workspace boundary"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -5883,7 +5996,8 @@
               "Local managed analytic navigation feeds two downstream Computes",
               "Local managed analytic collections feed two downstream Computes",
               "Local managed analytic statistics feed two downstream Computes",
-              "Local managed analytic numeric reductions feed two downstream Computes"
+              "Local managed analytic numeric reductions feed two downstream Computes",
+              "Local managed analytic seals numeric observations before a later take"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5916,7 +6030,8 @@
               "Local managed analytic navigation feeds two downstream Computes",
               "Local managed analytic collections feed two downstream Computes",
               "Local managed analytic statistics feed two downstream Computes",
-              "Local managed analytic numeric reductions feed two downstream Computes"
+              "Local managed analytic numeric reductions feed two downstream Computes",
+              "Local managed analytic seals numeric observations before a later take"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5950,6 +6065,7 @@
               "analytic does not clamp an out of partition frame start",
               "analytic navigation evaluates only referenced source rows",
               "analytic expression failure follows partition source and call order",
+              "analytic frame arguments fail in source then call order",
               "analytic execution has an exact control work boundary",
               "analytic aggregates requiring numeric observation stay unsupported",
               "analytic aggregate capability accepts lowered filter and expression demand",
@@ -6041,7 +6157,8 @@
               "Local managed analytic navigation feeds two downstream Computes",
               "Local managed analytic collections feed two downstream Computes",
               "Local managed analytic statistics feed two downstream Computes",
-              "Local managed analytic numeric reductions feed two downstream Computes"
+              "Local managed analytic numeric reductions feed two downstream Computes",
+              "Local managed analytic seals numeric observations before a later take"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -6058,7 +6175,9 @@
             "path": "src/execution_relation/analytic_scale_wbtest.mbt",
             "fixtures": [
               "analytic ranking navigation and count retain indexed scaling",
-              "analytic numeric frames retain indexed scaling"
+              "analytic numeric frame classes retain bounded scaling",
+              "analytic numeric temporary arrays respect the exact workspace boundary",
+              "analytic evaluates overlapping frame expressions once per source and call"
             ],
             "suite": "moon:execution_relation",
             "targets": [
