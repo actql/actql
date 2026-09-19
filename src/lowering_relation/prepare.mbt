@@ -63,6 +63,7 @@ pub enum Payload {
   GraphReachRows(@graph.CheckedReach)
   GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
+  GraphShortestRows(@graph.CheckedShortest)
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
@@ -217,6 +218,7 @@ pub fn operation(value : PreparedNode) -> String {
     GraphReachRows(_) => "SGA.reachable"
     GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
+    GraphShortestRows(_) => "SGA.shortest_path"
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
@@ -277,7 +279,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Reach(value) => Some(GraphReachRows(value))
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
-    Shortest(..) => None
+    Shortest(checked~, ..) => Some(GraphShortestRows(checked))
     GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
     GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
@@ -439,6 +441,19 @@ pub fn prepare(
             1
           },
         )
+      GraphShortestRows(checked) => {
+        let mut relations = 0
+        for side in [@schema.Left, @schema.Right] {
+          match @graph.shortest_endpoint(checked, side) {
+            @graph.Selected(selector) =>
+              if @graph.selector_form(selector) is @graph.RelationIds(..) {
+                relations += 1
+              }
+            @graph.Single(_) => ()
+          }
+        }
+        ("shortest_path", 1 + relations)
+      }
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
@@ -567,6 +582,7 @@ pub fn prepare(
       GraphReachRows(_) => None
       GraphSubgraphValue(_) => None
       GraphTraverseRows(_) => None
+      GraphShortestRows(_) => None
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None

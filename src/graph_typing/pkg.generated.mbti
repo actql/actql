@@ -305,6 +305,10 @@ pub fn shortest_selection(CheckedShortest) -> PathSelection
 
 pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
 
+pub fn shortest_type_at(CheckedShortest, Int) -> String?
+
+pub fn shortest_type_count(CheckedShortest) -> Int?
+
 pub fn shortest_types(CheckedShortest) -> Array[String]?
 
 pub fn shortest_usage(CheckedShortest) -> PredicateUsage

@@ -91,8 +91,10 @@
       "output": "relation",
       "canonical": ["SGA.shortest_path"],
       "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_shortest_test.mbt"]
     },
     {
       "family": "SGA",

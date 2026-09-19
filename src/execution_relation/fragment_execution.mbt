@@ -50,6 +50,7 @@ fn attach_fragment_budgets(
       @lower.GraphReachStep(_) => return Err(InputSet)
       @lower.GraphSubgraphStep(_) => return Err(InputSet)
       @lower.GraphTraverseStep(_) => return Err(InputSet)
+      @lower.GraphShortestStep(_) => return Err(InputSet)
       @lower.GraphRelationStep(_) => return Err(InputSet)
       @lower.NestStep(kernel) =>
         for key in 0..<@lower.nest_kernel_key_count(kernel) {

@@ -287,6 +287,19 @@ pub fn shortest_types(c : CheckedShortest) -> Array[String]? {
 }
 
 ///|
+pub fn shortest_type_count(c : CheckedShortest) -> Int? {
+  c.types.map(values => values.length())
+}
+
+///|
+pub fn shortest_type_at(c : CheckedShortest, index : Int) -> String? {
+  match c.types {
+    Some(values) => values.get(index)
+    None => None
+  }
+}
+
+///|
 pub fn shortest_weight(c : CheckedShortest) -> @row.FieldName? {
   c.weight
 }

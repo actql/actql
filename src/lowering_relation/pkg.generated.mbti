@@ -829,6 +829,15 @@ pub(all) enum GraphRelationIssue {
   GraphRelationPreparationLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphShortestIssue {
+  InvalidGraphShortestLimits
+  InvalidGraphShortestWiring
+  GraphShortestPreparationLimit
+  MissingGraphShortestParameter(String)
+  InvalidGraphShortestParameter(String)
+  GraphShortestExpression(ExpressionIssue)
+}
+
 pub(all) enum GraphSubgraphIssue {
   InvalidGraphSubgraphLimits
   InvalidGraphSubgraphWiring
@@ -1004,6 +1013,7 @@ pub enum Payload {
   GraphReachRows(@graph_typing.CheckedReach)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
+  GraphShortestRows(@graph_typing.CheckedShortest)
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
@@ -1072,6 +1082,8 @@ type PreparedGraphMean
 type PreparedGraphReach
 
 type PreparedGraphRelation
+
+type PreparedGraphShortest
 
 type PreparedGraphStructural
 
@@ -1145,6 +1157,7 @@ pub enum PreparedStep {
   GraphReachStep(PreparedGraphReach)
   GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
+  GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
 }
 
@@ -1205,6 +1218,7 @@ pub(all) enum SequenceIssue {
   GraphReachFailure(Int, GraphReachIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
+  GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
 }
 

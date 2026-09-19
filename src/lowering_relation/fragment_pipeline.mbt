@@ -34,6 +34,7 @@ pub fn prepare_fragment_pipeline(
     | GraphReachStep(_)
     | GraphSubgraphStep(_)
     | GraphTraverseStep(_)
+    | GraphShortestStep(_)
     | GraphRelationStep(_) => Err(NotExpressionKernel)
   }
 }

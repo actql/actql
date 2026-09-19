@@ -463,6 +463,24 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
+      GraphShortestRows(checked) => {
+        let side = match binding_index {
+          0 => @schema.Left
+          1 => @schema.Right
+          _ => expression_fail(step.source, MissingCheckedBinding)
+        }
+        let predicate = match @graph.shortest_endpoint(checked, side) {
+          @graph.Single(_) => None
+          @graph.Selected(selector) => @graph.selector_predicate(selector)
+        }
+        guard predicate is Some(predicate) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard graph_predicate_fields(predicate) is Some(references) else {
+          expression_fail(step.source, MissingResolvedField(""))
+        }
+        (@graph.predicate_expression(predicate), references)
+      }
       Values(_)
       | RowWindow(_)
       | Select(_)
