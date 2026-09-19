@@ -50,6 +50,7 @@ function request(overrides = {}) {
     inputBindingCid: cid('1'),
     obligationsCid: cid('2'),
     budgetCid: dispatchBudgetCid,
+    evidenceIssuerCapabilityCid: cid('b'),
     grantCid: cid('4'),
     ...overrides,
   }));
@@ -170,6 +171,19 @@ test('unsupported grant is rejected before durable admission or execution',
       throw new Error('must not execute');
     });
     const dispatch = request({grantCid: cid('5')});
+    assert.equal(f.dispatchRuntime.supports(dispatch), false);
+    assert.equal(f.store.inspect(dispatch, f.control), undefined);
+    assert.equal(executions, 0);
+  });
+
+test('unregistered evidence issuer is rejected before admission or execution',
+  async t => {
+    let executions = 0;
+    const f = await fixture(t, async () => {
+      executions++;
+      throw new Error('must not execute');
+    });
+    const dispatch = request({evidenceIssuerCapabilityCid: cid('d')});
     assert.equal(f.dispatchRuntime.supports(dispatch), false);
     assert.equal(f.store.inspect(dispatch, f.control), undefined);
     assert.equal(executions, 0);

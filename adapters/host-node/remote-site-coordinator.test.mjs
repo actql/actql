@@ -27,6 +27,7 @@ const request = dispatchId => control.prepare({
   inputBindingCid: cid('1'),
   obligationsCid: cid('2'),
   budgetCid: cid('3'),
+  evidenceIssuerCapabilityCid: cid('b'),
   grantCid: cid('4'),
 });
 

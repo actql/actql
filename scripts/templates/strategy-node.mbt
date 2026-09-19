@@ -2495,6 +2495,7 @@ pub fn strategy_remote_dispatch_prepare(
   input_binding_cid : String,
   obligations_cid : String,
   budget_cid : String,
+  evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> @remote.DispatchRequest raise NodeHostFailure {
   match @remote.prepare_dispatch_request(
@@ -2512,6 +2513,7 @@ pub fn strategy_remote_dispatch_prepare(
     input_binding_cid,
     obligations_cid,
     budget_cid,
+    evidence_issuer_capability_cid,
     grant_cid,
   ) {
     Ok(value) => value
@@ -2537,6 +2539,7 @@ pub fn strategy_remote_dispatch_admit(
   input_binding_cid : String,
   obligations_cid : String,
   budget_cid : String,
+  evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> @remote.DispatchRequest raise NodeHostFailure {
   match @remote.admit_dispatch_request(
@@ -2555,6 +2558,7 @@ pub fn strategy_remote_dispatch_admit(
     input_binding_cid,
     obligations_cid,
     budget_cid,
+    evidence_issuer_capability_cid,
     grant_cid,
   ) {
     Ok(value) => value
@@ -2652,6 +2656,18 @@ pub fn strategy_remote_dispatch_execution_scope(
   request : @remote.DispatchRequest,
 ) -> Array[String] {
   @remote.dispatch_request_execution_scope(request)
+}
+
+///|
+#export_name("strategyRemoteManagedRuntimeRegistrationScope")
+pub fn strategy_remote_managed_runtime_registration_scope(
+  capability : @remote.RemoteExecutionCapability,
+  issuer : @remote.RemoteEvidenceIssuer,
+) -> Array[String] raise NodeHostFailure {
+  match @remote.remote_managed_runtime_registration_scope(capability, issuer) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|
@@ -2993,6 +3009,20 @@ pub fn strategy_remote_prepare_provisioning(
   capability : @remote.RemoteExecutionCapability,
 ) -> @remote.DispatchTransition raise NodeHostFailure {
   match @remote.prepare_begin_provisioning(record, capability) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareManagedProvisioning")
+pub fn strategy_remote_prepare_managed_provisioning(
+  record : @remote.DispatchRecord,
+  capability : @remote.RemoteExecutionCapability,
+  issuer : @remote.RemoteEvidenceIssuer,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match
+    @remote.prepare_begin_managed_provisioning(record, capability, issuer) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }

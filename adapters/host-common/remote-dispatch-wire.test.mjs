@@ -31,6 +31,7 @@ const prepared = () => control.prepare(Object.freeze({
   inputBindingCid: cid('1'),
   obligationsCid: cid('2'),
   budgetCid: cid('3'),
+  evidenceIssuerCapabilityCid: cid('b'),
   grantCid: cid('4'),
 }));
 
@@ -152,6 +153,7 @@ test('evidence decoding recomputes identity and exact dispatch binding', () => {
     inputBindingCid: cid('1'),
     obligationsCid: cid('2'),
     budgetCid: cid('3'),
+    evidenceIssuerCapabilityCid: cid('b'),
     grantCid: cid('4'),
   }));
   assert.throws(

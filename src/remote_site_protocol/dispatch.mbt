@@ -17,6 +17,7 @@ struct DispatchRequest {
   input_binding_cid : String
   obligations_cid : String
   budget_cid : String
+  evidence_issuer_capability_cid : String
   grant_cid : String
 }
 
@@ -300,6 +301,7 @@ fn valid_request_fields(request : DispatchRequest) -> Bool {
   valid_cid(request.input_binding_cid) &&
   valid_cid(request.obligations_cid) &&
   valid_cid(request.budget_cid) &&
+  valid_cid(request.evidence_issuer_capability_cid) &&
   valid_cid(request.grant_cid)
 }
 
@@ -333,6 +335,8 @@ fn emit_dispatch_request_body(
     @encode.string_value(writer, request.coordinator_authority)
     @encode.key(writer, "dispatch_id")
     @encode.string_value(writer, request.dispatch_id)
+    @encode.key(writer, "evidence_issuer_capability_cid")
+    @encode.string_value(writer, request.evidence_issuer_capability_cid)
     @encode.key(writer, "grant_cid")
     @encode.string_value(writer, request.grant_cid)
     @encode.key(writer, "input_binding_cid")
@@ -354,7 +358,7 @@ fn emit_dispatch_request_body(
     @encode.key(writer, "task_key")
     @encode.string_value(writer, request.task_key)
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-dispatch-request/0.1")
+    @encode.string_value(writer, "actql-remote-dispatch-request/0.2")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -551,6 +555,35 @@ pub fn remote_execution_capability_scope(
     capability.strategy_revision,
     capability.operation_capability_cid,
   ]
+}
+
+///|
+/// Exact managed runtime registration selected before durable dispatch
+/// admission. Execution permission and evidence issuance remain distinct, but
+/// both must name the same installed implementation and Site generation.
+pub fn remote_managed_runtime_registration_scope(
+  capability : RemoteExecutionCapability,
+  issuer : RemoteEvidenceIssuer,
+) -> Result[Array[String], DispatchIssue] {
+  if capability.site_key != issuer.site_key ||
+    capability.site_generation != issuer.site_generation ||
+    capability.runtime_bundle_cid != issuer.runtime_bundle_cid ||
+    capability.connector_registration != issuer.connector_registration ||
+    capability.connector_revision != issuer.connector_revision ||
+    capability.strategy_revision != issuer.strategy_revision ||
+    issuer.evidence_kind != remote_managed_output_evidence_kind() {
+    return Err(InvalidDispatch)
+  }
+  Ok([
+    capability.site_key,
+    capability.site_generation.to_string(),
+    capability.runtime_bundle_cid,
+    capability.connector_registration,
+    capability.connector_revision,
+    capability.strategy_revision,
+    capability.operation_capability_cid,
+    issuer.issuer_capability_cid,
+  ])
 }
 
 ///|
@@ -1103,6 +1136,7 @@ pub fn remote_execution_evidence_matches_dispatch(
   evidence.connector_revision == request.connector_revision &&
   evidence.strategy_revision == request.strategy_revision &&
   evidence.obligations_cid == request.obligations_cid &&
+  evidence.issuer_capability_cid == request.evidence_issuer_capability_cid &&
   remote_execution_evidence_identity(evidence) == Ok(evidence.evidence_cid)
 }
 
@@ -1120,6 +1154,7 @@ pub fn issue_remote_execution_evidence(
     request.connector_registration != issuer.connector_registration ||
     request.connector_revision != issuer.connector_revision ||
     request.strategy_revision != issuer.strategy_revision ||
+    request.evidence_issuer_capability_cid != issuer.issuer_capability_cid ||
     record.execution != NativeSettled ||
     !record.material_available {
     return Err(InvalidDispatch)
@@ -1233,6 +1268,7 @@ pub fn dispatch_request_execution_scope(
     request.connector_revision,
     request.strategy_revision,
     request.grant_cid,
+    request.evidence_issuer_capability_cid,
   ]
 }
 
@@ -1265,6 +1301,7 @@ pub fn prepare_dispatch_request(
   input_binding_cid : String,
   obligations_cid : String,
   budget_cid : String,
+  evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> Result[DispatchRequest, DispatchIssue] {
   let pending : DispatchRequest = {
@@ -1283,6 +1320,7 @@ pub fn prepare_dispatch_request(
     input_binding_cid,
     obligations_cid,
     budget_cid,
+    evidence_issuer_capability_cid,
     grant_cid,
   }
   if !valid_request_fields(pending) {
@@ -1313,13 +1351,15 @@ pub fn admit_dispatch_request(
   input_binding_cid : String,
   obligations_cid : String,
   budget_cid : String,
+  evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> Result[DispatchRequest, DispatchIssue] {
   let request = match
     prepare_dispatch_request(
       coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
       site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
-      strategy_revision, input_binding_cid, obligations_cid, budget_cid, grant_cid,
+      strategy_revision, input_binding_cid, obligations_cid, budget_cid, evidence_issuer_capability_cid,
+      grant_cid,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1545,6 +1585,28 @@ pub fn prepare_begin_provisioning(
       )
     _ => Err(InvalidTransition)
   }
+}
+
+///|
+/// Managed execution cannot begin under an execution capability paired with a
+/// different evidence issuer. Candidate support uses the same scope before
+/// durable admission; this check protects the transition independently.
+pub fn prepare_begin_managed_provisioning(
+  record : DispatchRecord,
+  capability : RemoteExecutionCapability,
+  issuer : RemoteEvidenceIssuer,
+) -> Result[DispatchTransition, DispatchIssue] {
+  let request = record.request
+  let expected = dispatch_request_execution_scope(request)
+  let registered = match
+    remote_managed_runtime_registration_scope(capability, issuer) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if expected != registered {
+    return Err(InvalidDispatch)
+  }
+  prepare_begin_provisioning(record, capability)
 }
 
 ///|

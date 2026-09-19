@@ -71,6 +71,7 @@ function remoteSiteControl(moon) {
     request.inputBindingCid,
     request.obligationsCid,
     request.budgetCid,
+    request.evidenceIssuerCapabilityCid,
     request.grantCid,
   ];
   control = Object.freeze({
@@ -112,6 +113,9 @@ function remoteSiteControl(moon) {
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
     journalKey: moon.strategyRemoteDispatchJournalKey,
     executionScope: moon.strategyRemoteDispatchExecutionScope,
+    managedRuntimeRegistrationScope: (capability, issuer) => checked(
+      moon.strategyRemoteManagedRuntimeRegistrationScope(capability, issuer),
+    ),
     createCoordinatorJournal: authority => checked(
       moon.strategyRemoteCoordinatorJournalCreate(authority),
     ),
@@ -233,6 +237,9 @@ function remoteSiteControl(moon) {
     executionCapabilityScope: moon.strategyRemoteExecutionCapabilityScope,
     prepareProvisioning: (value, capability) => checked(
       moon.strategyRemotePrepareProvisioning(value, capability),
+    ),
+    prepareManagedProvisioning: (value, capability, issuer) => checked(
+      moon.strategyRemotePrepareManagedProvisioning(value, capability, issuer),
     ),
     prepareExecution: value => checked(
       moon.strategyRemotePrepareExecution(value),

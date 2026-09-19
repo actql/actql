@@ -25,7 +25,7 @@ export function admitRemoteDispatchJson(
   try { body = JSON.parse(bodyText); }
   catch (error) { fail('InvalidRemoteDispatchWire', error); }
   if (body === null || typeof body !== 'object' || Array.isArray(body) ||
-      body.version !== 'actql-remote-dispatch-request/0.1') {
+      body.version !== 'actql-remote-dispatch-request/0.2') {
     fail('InvalidRemoteDispatchWire');
   }
   let request;
@@ -46,6 +46,7 @@ export function admitRemoteDispatchJson(
       inputBindingCid: body.input_binding_cid,
       obligationsCid: body.obligations_cid,
       budgetCid: body.budget_cid,
+      evidenceIssuerCapabilityCid: body.evidence_issuer_capability_cid,
       grantCid: body.grant_cid,
     }));
   } catch (error) {

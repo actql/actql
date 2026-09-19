@@ -17,7 +17,7 @@ const member = (value, name) => {
   }
 };
 const keyOf = scope => {
-  if (!Array.isArray(scope) || scope.length !== 7 ||
+  if (!Array.isArray(scope) || scope.length !== 8 ||
       scope.some(value => !text(value))) {
     fail('InvalidRemoteExecutionScope');
   }
@@ -38,7 +38,7 @@ export function prepareRemoteRuntimeRegistration({
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.registerExecutionCapability !== 'function' ||
-      typeof control.executionCapabilityScope !== 'function' ||
+      typeof control.managedRuntimeRegistrationScope !== 'function' ||
       typeof control.registerEvidenceIssuer !== 'function' ||
       typeof control.managedOutputEvidenceKind !== 'string' ||
       typeof execute !== 'function') {
@@ -65,7 +65,7 @@ export function prepareRemoteRuntimeRegistration({
     fail('UnsupportedRemoteEvidenceKind');
   }
   return Object.freeze({
-    key: keyOf(control.executionCapabilityScope(capability)),
+    key: keyOf(control.managedRuntimeRegistrationScope(capability, issuer)),
     capability,
     issuer,
     site,
@@ -108,9 +108,10 @@ export function createRemoteDispatchRuntime({
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.executionScope !== 'function' ||
+      typeof control.managedRuntimeRegistrationScope !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.status !== 'function' ||
-      typeof control.prepareProvisioning !== 'function' ||
+      typeof control.prepareManagedProvisioning !== 'function' ||
       typeof control.prepareExecution !== 'function' ||
       typeof control.prepareSettled !== 'function' ||
       typeof control.prepareFailed !== 'function' ||
@@ -156,6 +157,10 @@ export function createRemoteDispatchRuntime({
       'site',
     ]) || !text(registration.key) ||
         typeof registration.execute !== 'function' ||
+        registration.key !== keyOf(control.managedRuntimeRegistrationScope(
+          registration.capability,
+          registration.issuer,
+        )) ||
         installed.has(registration.key)) {
       fail('InvalidRemoteRuntimeRegistration');
     }
@@ -390,7 +395,11 @@ export function createRemoteDispatchRuntime({
     try {
       signal?.throwIfAborted();
       store.advance(
-        control.prepareProvisioning(record, registration.capability),
+        control.prepareManagedProvisioning(
+          record,
+          registration.capability,
+          registration.issuer,
+        ),
         record,
         control,
       );

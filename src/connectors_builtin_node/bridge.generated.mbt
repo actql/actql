@@ -2377,13 +2377,15 @@ pub fn strategy_remote_dispatch_prepare(
   input_binding_cid : String,
   obligations_cid : String,
   budget_cid : String,
+  evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> @remote.DispatchRequest raise NodeHostFailure {
   match
     @remote.prepare_dispatch_request(
       coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
       site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
-      strategy_revision, input_binding_cid, obligations_cid, budget_cid, grant_cid,
+      strategy_revision, input_binding_cid, obligations_cid, budget_cid, evidence_issuer_capability_cid,
+      grant_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -2408,6 +2410,7 @@ pub fn strategy_remote_dispatch_admit(
   input_binding_cid : String,
   obligations_cid : String,
   budget_cid : String,
+  evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> @remote.DispatchRequest raise NodeHostFailure {
   match
@@ -2415,7 +2418,7 @@ pub fn strategy_remote_dispatch_admit(
       coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
       claimed_request_cid, site_key, site_generation, runtime_bundle_cid, connector_registration,
       connector_revision, strategy_revision, input_binding_cid, obligations_cid,
-      budget_cid, grant_cid,
+      budget_cid, evidence_issuer_capability_cid, grant_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -2511,6 +2514,18 @@ pub fn strategy_remote_dispatch_execution_scope(
   request : @remote.DispatchRequest,
 ) -> Array[String] {
   @remote.dispatch_request_execution_scope(request)
+}
+
+///|
+#export_name("strategyRemoteManagedRuntimeRegistrationScope")
+pub fn strategy_remote_managed_runtime_registration_scope(
+  capability : @remote.RemoteExecutionCapability,
+  issuer : @remote.RemoteEvidenceIssuer,
+) -> Array[String] raise NodeHostFailure {
+  match @remote.remote_managed_runtime_registration_scope(capability, issuer) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|
@@ -2834,6 +2849,19 @@ pub fn strategy_remote_prepare_provisioning(
   capability : @remote.RemoteExecutionCapability,
 ) -> @remote.DispatchTransition raise NodeHostFailure {
   match @remote.prepare_begin_provisioning(record, capability) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareManagedProvisioning")
+pub fn strategy_remote_prepare_managed_provisioning(
+  record : @remote.DispatchRecord,
+  capability : @remote.RemoteExecutionCapability,
+  issuer : @remote.RemoteEvidenceIssuer,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_begin_managed_provisioning(record, capability, issuer) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }

@@ -25,6 +25,7 @@ fn request(
     cid("1111111111111111111111111111111111111111111111111111111111111111"),
     cid("2222222222222222222222222222222222222222222222222222222222222222"),
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
   ).unwrap()
 }
@@ -244,7 +245,7 @@ test "dispatch retransmission reconciles without admitting another attempt" {
   let first = request("dispatch-a", 1, 1, bundle)
   assert_eq(
     dispatch_request_identity(first),
-    "sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065",
+    "sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba",
   )
   let admission = prepare_dispatch_acceptance(state, first).unwrap()
   assert_eq(dispatch_admission_kind(admission), NewDispatch)
@@ -277,6 +278,7 @@ test "dispatch retransmission reconciles without admitting another attempt" {
     cid("1111111111111111111111111111111111111111111111111111111111111111"),
     cid("2222222222222222222222222222222222222222222222222222222222222222"),
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
   )
   assert_true(collision is Err(DispatchIdentityMismatch))
@@ -295,6 +297,7 @@ test "dispatch retransmission reconciles without admitting another attempt" {
     cid("1111111111111111111111111111111111111111111111111111111111111111"),
     cid("2222222222222222222222222222222222222222222222222222222222222222"),
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
   ).unwrap()
   assert_true(
@@ -401,6 +404,23 @@ test "registered issuer binds evidence to exact dispatch and material" {
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
   let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
+  let wrong_issuer = register_remote_evidence_issuer(
+    replacement_site(1, bundle),
+    bundle,
+    "local",
+    "local/1",
+    "strategy/1",
+    remote_managed_output_evidence_kind(),
+    cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+  ).unwrap()
+  assert_true(
+    prepare_begin_managed_provisioning(
+      record,
+      execution_capability(),
+      wrong_issuer,
+    )
+    is Err(InvalidDispatch),
+  )
   provision(record)
   execute(record)
   settle(record)
@@ -419,11 +439,11 @@ test "registered issuer binds evidence to exact dispatch and material" {
   ).unwrap()
   assert_eq(
     remote_execution_evidence_cid(evidence),
-    "sha256:83266c6b43c6ad0c1c4e4a4cafcdf593852c97110d48a1d8691ea7b38406f250",
+    "sha256:b3ee413eb44ae2a6b688c4406bde6ca0c64335e49b3aa4764d303ae794572704",
   )
   assert_eq(
     remote_execution_evidence_json(evidence).unwrap(),
-    "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065\",\"evidence_kind\":\"actql.remote.physical-output/0.1\",\"evidence_subject_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
+    "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba\",\"evidence_kind\":\"actql.remote.physical-output/0.1\",\"evidence_subject_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
   )
   let foreign_site = replacement_site(1, bundle)
   let wrong = register_remote_evidence_issuer(
@@ -469,11 +489,11 @@ test "managed output subject has an independent canonical identity" {
   ).unwrap()
   assert_eq(
     remote_managed_output_subject_json(subject).unwrap(),
-    "{\"dispatch_request_cid\":\"sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.2\"}",
+    "{\"dispatch_request_cid\":\"sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.2\"}",
   )
   assert_eq(
     remote_managed_output_subject_cid(subject),
-    "sha256:93b0a3f2c2a47165de19188bd7da1ce76de3c487093e89b39dc20add985c03a7",
+    "sha256:086791f0ee077bdb887ff9f796816323ae0f6aebde77c189a503504c0b9d90f2",
   )
   assert_true(remote_managed_output_subject_matches_dispatch(subject, dispatch))
   assert_true(
@@ -537,7 +557,7 @@ test "managed output evidence accepts only its typed retained subject" {
   ).unwrap()
   assert_eq(
     remote_execution_evidence_cid(evidence),
-    "sha256:96ba498ecbfe9352e31bf7825af4dfd6fd13b92fd7ee6fe676158ed156eadf7c",
+    "sha256:39bc9a762f4e87674d3700ae3d762652d857052a387a62a860034e19f5245dae",
   )
   assert_true(
     remote_managed_output_subject_matches_evidence(subject, evidence, dispatch),
@@ -694,6 +714,7 @@ test "dispatch admission validates every bound identity" {
     cid("1111111111111111111111111111111111111111111111111111111111111111"),
     cid("2222222222222222222222222222222222222222222222222222222222222222"),
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
   )
   assert_true(invalid is Err(InvalidDispatch))

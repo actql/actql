@@ -109,6 +109,7 @@ const dispatch = (dispatchId = 'dispatch-a', revision = 'local/1') =>
     inputBindingCid: cid('1'),
     obligationsCid: cid('2'),
     budgetCid: dispatchBudgetCid,
+    evidenceIssuerCapabilityCid: cid('b'),
     grantCid: cid('4'),
   }));
 
