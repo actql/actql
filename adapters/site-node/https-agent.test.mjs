@@ -9,6 +9,7 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {startHttpsRemoteSiteAgent} from './https-agent.mjs';
 import {
   cancelRemoteDispatch,
   queryRemoteDispatch,
@@ -350,3 +351,80 @@ test('authenticated cancellation waits for physical handler exit', async t => {
   assert.deepEqual(terminal.state, [5, 0, 2, 0, 0]);
   assert.equal(terminal.evidence, undefined);
 });
+
+test('Agent close retries runtime cleanup without reopening admission',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-remote-close-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    let closes = 0;
+    const pending = Object.assign(new Error('cleanup pending'), {
+      cleanupPending: true,
+    });
+    const agent = await startHttpsRemoteSiteAgent({
+      key: material.siteKey,
+      cert: material.siteCertificate,
+      ca: material.ca,
+      coordinatorAuthorities: new Map(),
+      siteKey: 'site-a',
+      siteGeneration: 1,
+      journal: {},
+      store: {},
+      control: {runtimeStartable: () => false},
+      admitDispatchJson() {},
+      dispatchRuntime: {
+        supports: () => false,
+        start() {},
+        cancel() {},
+        async close() {
+          closes++;
+          if (closes === 1) throw pending;
+          return true;
+        },
+      },
+    });
+    await assert.rejects(agent.close(), error => error === pending);
+    assert.equal(closes, 1);
+    assert.equal(await agent.close(), true);
+    assert.equal(closes, 2);
+    assert.equal(await agent.close(), false);
+    assert.equal(closes, 2);
+  });
+
+test('concurrent Agent close calls share one runtime cleanup attempt',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-remote-close-race-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    let finishClose;
+    let closes = 0;
+    const closeGate = new Promise(resolve => { finishClose = resolve; });
+    const agent = await startHttpsRemoteSiteAgent({
+      key: material.siteKey,
+      cert: material.siteCertificate,
+      ca: material.ca,
+      coordinatorAuthorities: new Map(),
+      siteKey: 'site-a',
+      siteGeneration: 1,
+      journal: {},
+      store: {},
+      control: {runtimeStartable: () => false},
+      admitDispatchJson() {},
+      dispatchRuntime: {
+        supports: () => false,
+        start() {},
+        cancel() {},
+        async close() {
+          closes++;
+          await closeGate;
+          return true;
+        },
+      },
+    });
+    const first = agent.close();
+    const second = agent.close();
+    finishClose();
+    assert.deepEqual(await Promise.all([first, second]), [true, true]);
+    assert.equal(closes, 1);
+    assert.equal(await agent.close(), false);
+  });

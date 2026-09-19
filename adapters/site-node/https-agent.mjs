@@ -68,6 +68,10 @@ export async function startHttpsRemoteSiteAgent({
     `${siteGeneration}/dispatches`;
   const queryEndpoint = `${endpoint}/query`;
   const cancelEndpoint = `${endpoint}/cancel`;
+  let admissionClosed = false;
+  let listenerClosed = false;
+  let runtimeClosed = false;
+  let closeInFlight;
   const server = createServer({
     key,
     cert,
@@ -158,6 +162,10 @@ export async function startHttpsRemoteSiteAgent({
         });
         return;
       }
+      if (admissionClosed) {
+        reply(response, 503, {error: 'site_unavailable'});
+        return;
+      }
       const admission = control.prepareAdmission(journal, dispatch);
       if (!dispatchRuntime.supports(dispatch)) {
         reply(response, 409, {error: 'dispatch_unsupported'});
@@ -186,6 +194,7 @@ export async function startHttpsRemoteSiteAgent({
     }
   });
   server.on('clientError', (_error, socket) => socket.destroy());
+  server.once('close', () => { listenerClosed = true; });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, host, () => {
@@ -198,19 +207,33 @@ export async function startHttpsRemoteSiteAgent({
     server.close();
     fail('RemoteSiteAgentAddressUnavailable');
   }
-  let closed = false;
   return Object.freeze({
     origin: `https://${host}:${address.port}`,
     port: address.port,
     async close() {
-      if (closed) return false;
-      closed = true;
-      await new Promise((resolve, reject) => server.close(error => {
-        if (error) reject(error);
-        else resolve();
-      }));
-      await dispatchRuntime.close();
-      return true;
+      if (listenerClosed && runtimeClosed) return false;
+      admissionClosed = true;
+      if (closeInFlight !== undefined) return await closeInFlight;
+      const attempt = (async () => {
+        if (!listenerClosed) {
+          await new Promise((resolve, reject) => server.close(error => {
+            if (error) reject(error);
+            else resolve();
+          }));
+          listenerClosed = true;
+        }
+        if (!runtimeClosed) {
+          await dispatchRuntime.close();
+          runtimeClosed = true;
+        }
+        return true;
+      })();
+      closeInFlight = attempt;
+      try {
+        return await attempt;
+      } finally {
+        if (closeInFlight === attempt) closeInFlight = undefined;
+      }
     },
   });
 }
