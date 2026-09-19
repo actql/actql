@@ -386,6 +386,16 @@ pub fn transition_projection(
 }
 
 ///|
+pub fn transition_journal_key(
+  transition : RemoteTransferTransition,
+) -> Array[String] {
+  [
+    request_cid(transition.record.request),
+    ..request_journal_key(transition.record.request),
+  ]
+}
+
+///|
 /// Commit only after an adapter durably installs the exact next projection.
 pub fn commit_transition(
   transition : RemoteTransferTransition,

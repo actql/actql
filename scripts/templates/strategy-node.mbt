@@ -4836,6 +4836,14 @@ pub fn strategy_remote_transfer_transition_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferTransitionJournalKey")
+pub fn strategy_remote_transfer_transition_journal_key(
+  transition : @transfer.RemoteTransferTransition,
+) -> Array[String] {
+  @transfer.transition_journal_key(transition)
+}
+
+///|
 #export_name("strategyRemoteTransferTransitionCommit")
 pub fn strategy_remote_transfer_transition_commit(
   transition : @transfer.RemoteTransferTransition,

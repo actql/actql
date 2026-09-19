@@ -564,6 +564,8 @@ pub fn strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRec
 
 pub fn strategy_remote_transfer_transition_commit(@remote_transfer.RemoteTransferTransition, Bool) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
 
+pub fn strategy_remote_transfer_transition_journal_key(@remote_transfer.RemoteTransferTransition) -> Array[String]
+
 pub fn strategy_remote_transfer_transition_projection(@remote_transfer.RemoteTransferTransition) -> (Array[Int], Array[Int])
 
 pub fn strategy_remote_transfer_unknown_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure

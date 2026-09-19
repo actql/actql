@@ -657,6 +657,7 @@ function remoteTransferControl(moon) {
     transitionProjection: value => tuplePair(
       moon.strategyRemoteTransferTransitionProjection(value),
     ),
+    transitionKey: moon.strategyRemoteTransferTransitionJournalKey,
     commitTransition: (value, durable) => checked(
       moon.strategyRemoteTransferTransitionCommit(value, durable),
     ),

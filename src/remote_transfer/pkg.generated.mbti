@@ -47,6 +47,8 @@ pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
 
 pub fn restore_record(RemoteTransferRequest, Array[Int]) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
+pub fn transition_journal_key(RemoteTransferTransition) -> Array[String]
+
 pub fn transition_projection(RemoteTransferTransition) -> (Array[Int], Array[Int])
 
 // Errors
