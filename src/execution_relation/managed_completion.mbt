@@ -188,6 +188,7 @@ pub fn[T] try_bind_managed_identity_issuer(
 /// material still owns backing storage needed by its particular representation.
 struct ManagedCompletedOutput[T] {
   identity : Ref[Unit]
+  lifecycle : @managed_carrier.Completed[ManagedOutputValueReceipt, T]
   profile : ManagedExecutionProfile
   preparation : CompletionPreparation
   target : @pipeline.Target
@@ -205,8 +206,7 @@ struct ManagedCompletedOutput[T] {
 /// a replacement for the typed completed output. Only a verified managed
 /// completion can create it.
 struct ManagedCompletionReference {
-  identity : Ref[Unit]
-  available : () -> Bool
+  lifecycle : @managed_carrier.CompletionReference
 }
 
 ///|
@@ -350,8 +350,13 @@ pub fn[P, T] complete_managed_output(
     !physical_equal(issuer.material, material) {
     return Err(ForeignOutput)
   }
+  let lifecycle = match @managed_carrier.complete(material.core) {
+    Ok(value) => value
+    Err(_) => return Err(Unverified)
+  }
   Ok({
     identity: Ref(()),
+    lifecycle,
     profile: port.profile,
     preparation: port.preparation,
     target: port.target,
@@ -530,7 +535,7 @@ fn[P, T] verify_managed_completion_material(
     physical_equal(schema, receipt.schema) else {
     return Err(ForeignOutput)
   }
-  let live = (material.available)()
+  let live = @managed_carrier.retained_available(material.core)
   if port.revoked || !live {
     return Err(Unverified)
   }
@@ -567,7 +572,7 @@ pub fn[T] managed_completed_same_occurrence(
 pub fn[T] managed_completed_output_available(
   output : ManagedCompletedOutput[T],
 ) -> Bool {
-  (output.material.available)()
+  @managed_carrier.completed_available(output.lifecycle)
 }
 
 ///|
@@ -577,17 +582,14 @@ pub fn[T] managed_completed_output_available(
 pub fn[T] managed_completed_reference(
   output : ManagedCompletedOutput[T],
 ) -> ManagedCompletionReference {
-  {
-    identity: output.identity,
-    available: fn() { managed_completed_output_available(output) },
-  }
+  { lifecycle: @managed_carrier.completion_reference(output.lifecycle), }
 }
 
 ///|
 pub fn managed_completed_reference_available(
   reference : ManagedCompletionReference,
 ) -> Bool {
-  (reference.available)()
+  @managed_carrier.completion_reference_available(reference.lifecycle)
 }
 
 ///|
@@ -595,9 +597,10 @@ pub fn[T] managed_completed_reference_matches(
   reference : ManagedCompletionReference,
   output : ManagedCompletedOutput[T],
 ) -> Bool {
-  physical_equal(reference.identity, output.identity) &&
-  managed_completed_reference_available(reference) &&
-  managed_completed_output_available(output)
+  @managed_carrier.completion_reference_matches(
+    reference.lifecycle,
+    output.lifecycle,
+  )
 }
 
 ///|

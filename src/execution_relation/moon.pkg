@@ -20,12 +20,13 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/order_key" @order,
   "actql/actql/numeric_reduction" @numeric,
+  "actql/actql/managed_carrier_runtime" @managed_carrier,
+  "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
 }
 
 import {
-  "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/bench",
   "moonbitlang/core/env",
   "actql/actql/parameter_binding" @parameter,

@@ -1,0 +1,89 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/managed_carrier_runtime"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/lowering_relation",
+  "actql/actql/pipeline_typing",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn binding_kind(Binding) -> @carrier_contract.Kind
+
+pub fn binding_matches(Binding, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn binding_same(Binding, Binding) -> Bool
+
+pub fn[P, E, T] cancel_retention_port(RetentionPort[P, E, T]) -> Bool
+
+pub fn[E, T] complete(Retained[E, T]) -> Result[Completed[E, T], Issue]
+
+pub fn complete_receipt(Binding, Measure) -> Result[Receipt, Issue]
+
+pub fn[E, T] completed_available(Completed[E, T]) -> Bool
+
+pub fn[E, T] completion_reference(Completed[E, T]) -> CompletionReference
+
+pub fn completion_reference_available(CompletionReference) -> Bool
+
+pub fn[E, T] completion_reference_matches(CompletionReference, Completed[E, T]) -> Bool
+
+pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
+
+pub fn[P, E, T] prepare_retention_port(Binding, (P) -> (Receipt, E, T, Int64, () -> Bool)?) -> RetentionPort[P, E, T]
+
+pub fn receipt_matches(Receipt, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn receipt_matches_binding(Receipt, Binding) -> Bool
+
+pub fn receipt_measure(Receipt) -> Measure
+
+pub fn[P, E, T] retain(RetentionPort[P, E, T], P) -> Result[Retained[E, T], Issue]
+
+pub fn[E, T] retained_available(Retained[E, T]) -> Bool
+
+pub fn[E, T] retained_evidence(Retained[E, T]) -> E
+
+pub fn[E, T] retained_payload(Retained[E, T]) -> T?
+
+pub fn[E, T] retained_receipt(Retained[E, T]) -> Receipt
+
+pub fn[E, T] retained_storage_bytes(Retained[E, T]) -> Int64?
+
+// Errors
+
+// Types and methods
+type Binding
+
+type Completed[E, T]
+
+type CompletionReference
+
+pub(all) enum Issue {
+  MissingCarrier
+  WrongCarrier
+  InvalidMeasure
+  Closed
+  ForeignReceipt
+  InvalidStorageBytes
+  Unavailable
+  Unverified
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Measure {
+  RelationMeasure(rows~ : Int, columns~ : Int)
+  GraphMeasure(nodes~ : Int, edges~ : Int)
+  EventsMeasure(records~ : Int)
+  VectorsMeasure(records~ : Int, dimensions~ : Int)
+} derive(Eq, @debug.Debug)
+
+type Receipt
+
+type Retained[E, T]
+
+type RetentionPort[P, E, T]
+
+// Type aliases
+
+// Traits

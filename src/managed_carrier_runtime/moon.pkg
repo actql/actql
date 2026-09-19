@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+}
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+} for "wbtest"

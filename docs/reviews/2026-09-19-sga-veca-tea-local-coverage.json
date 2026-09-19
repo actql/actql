@@ -33,7 +33,8 @@
   ],
   "shared_completed": [
     "canonical_aoa_inventory",
-    "ordered_typed_task_inputs"
+    "ordered_typed_task_inputs",
+    "carrier_lifecycle_core"
   ],
   "operations": [
     {

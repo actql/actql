@@ -3,7 +3,7 @@
 /// This is provisional content evidence, not execution, retention, permission,
 /// or a substitute for any required logical identity.
 struct ManagedOutputValues {
-  identity : Ref[Unit]
+  carrier_binding : @managed_carrier.Binding
   owner : @lower.BoundPrepared
   target : @pipeline.Target
   buffer : AdmittedRowBuffer
@@ -30,7 +30,7 @@ struct ManagedOutputValues {
 /// escape. Opaque reference authority handles remain occurrence-scoped so a
 /// later checked reader never fabricates issuer evidence from wire bytes.
 struct ManagedOutputValueReceipt {
-  identity : Ref[Unit]
+  carrier_receipt : @managed_carrier.Receipt
   owner : @lower.BoundPrepared
   target : @pipeline.Target
   schema : @schema.Schema
@@ -76,8 +76,15 @@ pub fn prepare_managed_output_values(
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }
+  let carrier_binding = match @managed_carrier.prepare_binding(owner, target) {
+    Ok(value) => value
+    Err(_) => return Err(Admission(InvalidCheckedRow))
+  }
+  if @managed_carrier.binding_kind(carrier_binding) != @carrier.RelationKind {
+    return Err(Admission(InvalidCheckedRow))
+  }
   Ok({
-    identity: Ref(()),
+    carrier_binding,
     owner,
     target,
     buffer: output.buffer,
@@ -386,8 +393,19 @@ pub fn finish_managed_output_values(
     }
   }
   let budget = stream.buffer.budget
+  let carrier_receipt = match
+    @managed_carrier.complete_receipt(
+      stream.carrier_binding,
+      @managed_carrier.RelationMeasure(
+        rows=stream.rows,
+        columns=@schema.field_count(stream.buffer.schema),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Guard(InvalidLayout))
+  }
   Ok({
-    identity: stream.identity,
+    carrier_receipt,
     owner: stream.owner,
     target: stream.target,
     schema: stream.buffer.schema,

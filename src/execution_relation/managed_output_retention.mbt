@@ -6,11 +6,7 @@
 /// Neither arbitrary Program JSON nor a connector-selected verifier may install
 /// this port. Its proof type belongs to the adopted Host implementation.
 struct ManagedOutputRetentionPort[P, T] {
-  identity : Ref[Unit]
-  verify : (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?
-  mut open : Bool
-  mut verifying : Bool
-  mut revoked : Bool
+  core : @managed_carrier.RetentionPort[P, ManagedOutputValueReceipt, T]
 }
 
 ///|
@@ -18,12 +14,7 @@ struct ManagedOutputRetentionPort[P, T] {
 /// retains the receipt, not the admission buffer, upstream data or verifier.
 struct ManagedRetainedOutput[T] {
   receipt : ManagedOutputValueReceipt
-  payload : T
-  // Accounted physical holding upper bound owned by this generation. This is
-  // charged retained capacity, not an observed file length, serialized value
-  // size or process RSS measurement.
-  storage_bytes : Int64
-  available : () -> Bool
+  core : @managed_carrier.Retained[ManagedOutputValueReceipt, T]
 }
 
 ///|
@@ -46,11 +37,15 @@ pub fn[P, T] prepare_managed_output_retention_port(
     return Err(Closed)
   }
   Ok({
-    identity: stream.identity,
-    verify,
-    open: true,
-    verifying: false,
-    revoked: false,
+    core: @managed_carrier.prepare_retention_port(stream.carrier_binding, (
+      proof : P,
+    ) => {
+      match verify(proof) {
+        Some((receipt, payload, bytes, available)) =>
+          Some((receipt.carrier_receipt, receipt, payload, bytes, available))
+        None => None
+      }
+    }),
   })
 }
 
@@ -58,12 +53,7 @@ pub fn[P, T] prepare_managed_output_retention_port(
 pub fn[P, T] cancel_managed_output_retention_port(
   port : ManagedOutputRetentionPort[P, T],
 ) -> Bool {
-  if port.revoked || (!port.open && !port.verifying) {
-    return false
-  }
-  port.open = false
-  port.revoked = true
-  true
+  @managed_carrier.cancel_retention_port(port.core)
 }
 
 ///|
@@ -74,35 +64,17 @@ pub fn[P, T] retain_managed_output(
   port : ManagedOutputRetentionPort[P, T],
   proof : P,
 ) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue] {
-  if !port.open {
-    return Err(Closed)
+  let core = match @managed_carrier.retain(port.core, proof) {
+    Ok(value) => value
+    Err(@managed_carrier.Closed) => return Err(Closed)
+    Err(@managed_carrier.Unverified) => return Err(Unverified)
+    Err(@managed_carrier.ForeignReceipt) => return Err(ForeignReceipt)
+    Err(@managed_carrier.InvalidStorageBytes) => return Err(InvalidStorageBytes)
+    Err(@managed_carrier.Unavailable) => return Err(Unavailable)
+    Err(_) => return Err(Unverified)
   }
-  port.open = false
-  port.verifying = true
-  let verified = (port.verify)(proof)
-  port.verifying = false
-  if port.revoked {
-    return Err(Closed)
-  }
-  guard verified is Some((receipt, payload, storage_bytes, available)) else {
-    return Err(Unverified)
-  }
-  if !physical_equal(receipt.identity, port.identity) {
-    return Err(ForeignReceipt)
-  }
-  if storage_bytes < 0L {
-    return Err(InvalidStorageBytes)
-  }
-  port.verifying = true
-  let live = available()
-  port.verifying = false
-  if port.revoked {
-    return Err(Closed)
-  }
-  if !live {
-    return Err(Unavailable)
-  }
-  Ok({ receipt, payload, storage_bytes, available, })
+  let receipt = @managed_carrier.retained_evidence(core)
+  Ok({ receipt, core, })
 }
 
 ///|
@@ -110,7 +82,8 @@ pub fn[T] managed_retained_output_matches(
   material : ManagedRetainedOutput[T],
   receipt : ManagedOutputValueReceipt,
 ) -> Bool {
-  physical_equal(material.receipt, receipt) && (material.available)()
+  physical_equal(material.receipt, receipt) &&
+  @managed_carrier.retained_available(material.core)
 }
 
 ///|
@@ -119,20 +92,12 @@ pub fn[T] managed_retained_output_matches(
 pub fn[T] managed_retained_output_payload(
   material : ManagedRetainedOutput[T],
 ) -> T? {
-  if (material.available)() {
-    Some(material.payload)
-  } else {
-    None
-  }
+  @managed_carrier.retained_payload(material.core)
 }
 
 ///|
 pub fn[T] managed_retained_output_storage_bytes(
   material : ManagedRetainedOutput[T],
 ) -> Int64? {
-  if (material.available)() {
-    Some(material.storage_bytes)
-  } else {
-    None
-  }
+  @managed_carrier.retained_storage_bytes(material.core)
 }

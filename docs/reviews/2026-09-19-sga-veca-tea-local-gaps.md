@@ -12,7 +12,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | All seventeen SGA operations now reach typed canonical occurrences; TEA, VecA, Bridges, and VecA expressions remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Managed output is Relation-shaped | One Carrier-aware lifecycle with typed Carrier views |
+| Completion | The common binding, receipt, retention, completion occurrence, and reference lifecycle now owns Relation output; typed Graph, Events, and Vectors views are not connected yet | Extend the same lifecycle with typed Carrier views and common completion admission |
 | Runtime material | Only relation sequences and tables are accepted | Add managed Carrier views and registered providers without forced copies |
 | Progress | Local kernels are synchronous | Add bounded MoonBit start/resume state and real environment yield |
 | Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
