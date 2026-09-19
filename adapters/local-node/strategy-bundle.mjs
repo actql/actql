@@ -17,6 +17,8 @@ const managedSiteCapacity = value => Array.isArray(value)
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
+  const failureAction = (...facts) =>
+    moon.strategyHostManagedFailureAction(...facts);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
@@ -189,6 +191,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         available = false;
         throw settleFailedManagedOperations(
           operations, checked, error, settled,
+          [], failureAction,
         );
       }
     },
@@ -238,6 +241,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             close: () => output.close(),
             cleanupHandle: output.cleanupHandle,
           }],
+          failureAction,
         );
       }
     },

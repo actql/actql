@@ -5,6 +5,22 @@ import {installLocalRetainedStore} from './retained-store.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
+const managedFailureAction = (
+  additionalClosed,
+  operationsCloseAttempted,
+  operationsClosed,
+  cleanupStopped,
+  executionSettled,
+  cleanupRefreshed,
+) => {
+  if (!additionalClosed) return 0;
+  if (!operationsCloseAttempted) return 1;
+  if (!cleanupStopped) return 2;
+  if (!executionSettled) return 3;
+  if (!operationsClosed) return 1;
+  if (!cleanupRefreshed) return 4;
+  return 5;
+};
 function fixture({seal = async () => {}, cleanup = async () => {}} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
@@ -51,6 +67,7 @@ function fixture({seal = async () => {}, cleanup = async () => {}} = {}) {
   };
   const moon = {strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
+    strategyHostManagedFailureAction: managedFailureAction,
     strategyModule_local_Dispatch: () => {events.push('reserved'); return ok(operations);}};
   const entry = localStrategyContribution(moon, {}, checked, configuration);
   return {entry, events, configuration, allocated: () => allocated, released: () => releaseCheck?.()};

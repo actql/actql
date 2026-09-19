@@ -14,6 +14,8 @@ const managedSiteCapacity = value => Array.isArray(value)
 
 export function numericStrategyContribution(moon, setup, checked) {
   const registration = moon.strategyModule_reference_compute_Registration(setup);
+  const failureAction = (...facts) =>
+    moon.strategyHostManagedFailureAction(...facts);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
@@ -172,6 +174,7 @@ export function numericStrategyContribution(moon, setup, checked) {
         available = false;
         throw settleFailedManagedOperations(
           operations, checked, error, settled,
+          [], failureAction,
         );
       }
     },

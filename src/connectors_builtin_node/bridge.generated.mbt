@@ -2209,6 +2209,24 @@ pub fn strategy_host_transfer_cleanup_action(
 }
 
 ///|
+#export_name("strategyHostManagedFailureAction")
+pub fn strategy_host_managed_failure_action(
+  additional_closed : Bool,
+  operations_close_attempted : Bool,
+  operations_closed : Bool,
+  cleanup_stopped : Bool,
+  execution_settled : Bool,
+  cleanup_refreshed : Bool,
+) -> Int {
+  @strategy.managed_failure_runtime_action_code(
+    @strategy.prepare_managed_failure_step(
+      additional_closed, operations_close_attempted, operations_closed, cleanup_stopped,
+      execution_settled, cleanup_refreshed,
+    ),
+  )
+}
+
+///|
 #export_name("strategyHostTransferReceipt")
 pub fn strategy_host_transfer_receipt(
   receipt : @strategy.ManagedTransferReceipt,

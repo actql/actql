@@ -23,6 +23,22 @@ import {createExecutionSiteControlFixture} from
 
 const ok = _0 => ({$tag: 1, _0});
 const failed = _0 => ({$tag: 0, _0});
+const managedFailureAction = (
+  additionalClosed,
+  operationsCloseAttempted,
+  operationsClosed,
+  cleanupStopped,
+  executionSettled,
+  cleanupRefreshed,
+) => {
+  if (!additionalClosed) return 0;
+  if (!operationsCloseAttempted) return 1;
+  if (!cleanupStopped) return 2;
+  if (!executionSettled) return 3;
+  if (!operationsClosed) return 1;
+  if (!cleanupRefreshed) return 4;
+  return 5;
+};
 const siteControl = createExecutionSiteControlFixture();
 const siteCase = key => {
   const site = createInProcessExecutionSite({
@@ -69,6 +85,7 @@ function managedCase(factory, prefix, provider, overrides = {}) {
     strategyHostRegistrationSelectionKey: () => prefix,
     [`strategyModule_${prefix}_ManagedStart`]: () => ok(operations),
     strategyHostManagedInputMatchesMaterial: () => true,
+    strategyHostManagedFailureAction: managedFailureAction,
   };
   const entry = factory(moon, {}, checked);
   const prepared = {
@@ -350,6 +367,7 @@ test('standard file-to-Local cancellation closes the real read before settlement
     strategyModule_local_Registration: () => registration,
     strategyHostRegistrationSelectionKey: () => 'local-file',
     strategyModule_local_ManagedStart: () => ok(operations),
+    strategyHostManagedFailureAction: managedFailureAction,
     strategyHostManagedInputMatchesMaterial: (actual, expected) =>
       actual === input && expected === material,
   }, setup, checked);
@@ -484,6 +502,7 @@ for (const [name, factory, prefix] of [
       [`strategyModule_${prefix}_Registration`]: () => registration,
       strategyHostRegistrationSelectionKey: () => `${prefix}-integrity`,
       [`strategyModule_${prefix}_ManagedStart`]: () => ok(operations),
+      strategyHostManagedFailureAction: managedFailureAction,
       strategyHostManagedInputMatchesMaterial: (actual, expected) =>
         actual === input && expected === material,
     };

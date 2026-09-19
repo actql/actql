@@ -167,6 +167,8 @@ pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
+pub fn managed_failure_runtime_action_code(ManagedFailureRuntimeAction) -> Int
+
 pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
 
 pub fn next_captured_task(CapturedDAG) -> Int?
@@ -178,6 +180,8 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
+
+pub fn prepare_managed_failure_step(Bool, Bool, Bool, Bool, Bool, Bool) -> ManagedFailureRuntimeAction
 
 pub fn prepare_managed_transfer_cleanup_step(ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[ManagedTransferRuntimeAction, RunIssue]
 
@@ -377,6 +381,15 @@ pub(all) enum GraphIssue {
   UnsupportedIncoming(Int)
   NonDAG(Int)
   ForeignRequirement(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedFailureRuntimeAction {
+  FailureCloseAdditional
+  FailureCloseOperations
+  FailureAwaitStop
+  FailureSettleOperations
+  FailureRefreshCleanup
+  FailureFinished
 } derive(Eq, @debug.Debug)
 
 type ManagedTransfer
