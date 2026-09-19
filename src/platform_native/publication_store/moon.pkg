@@ -1,0 +1,22 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/publication_payload" @payload,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  targets: {
+    "store_native.mbt": [ "native" ],
+    "store_native_wbtest.mbt": [ "native" ],
+    "store_unsupported.mbt": [ "not", "native" ],
+    "store_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)

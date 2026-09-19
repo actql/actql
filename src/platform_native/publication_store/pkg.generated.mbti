@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/publication_store"
+
+import {
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/publication_payload",
+}
+
+// Values
+pub fn open_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Result[Store, NativePublicationStoreIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct NativePublicationPayloadInfo {
+  material_generation_cid : String
+  publication_attempt_cid : String
+  result_definition_cid : String
+  logical_relation_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  durable_codec_cid : String
+  row_count : Int64
+  physical_digest : String
+  object_name : String
+  generation : @filesystem.NativeFileGeneration
+}
+
+pub(all) struct NativePublicationRecovery {
+  retained : Int
+  reclaimed : Int
+}
+
+pub(all) enum NativePublicationStoreIssue {
+  UnsupportedTarget
+  Closed
+  InvalidConfiguration
+  Protocol(@publication_payload.PublicationPayloadIssue)
+  Filesystem(@filesystem.NativeFilesystemIssue)
+  Database(@sqlite.NativeSqliteIssue)
+  StateCollision
+  RecoveryRequired
+  ExistingPayload
+  DigestMismatch
+  CleanupPending
+  ReaderBusy
+}
+
+type PayloadReader
+pub fn PayloadReader::close(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn PayloadReader::finish(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn PayloadReader::next(Self, Int) -> Result[@filesystem.NativeFileChunk, NativePublicationStoreIssue]
+
+type PayloadWriter
+pub fn PayloadWriter::append(Self, Bytes) -> Result[Unit, NativePublicationStoreIssue]
+pub fn PayloadWriter::cancel(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn PayloadWriter::seal(Self) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
+
+type Store
+pub fn Store::begin_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[PayloadWriter, NativePublicationStoreIssue]
+pub fn Store::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue]
+pub fn Store::close(Self) -> Result[Bool, NativePublicationStoreIssue]
+pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
+pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
+pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
+
+// Type aliases
+
+// Traits
