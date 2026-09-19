@@ -51,6 +51,7 @@ pub enum Payload {
   CrossJoinRows(@join.CheckedCrossJoin)
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
+  NestRows(@nest.CheckedNest)
 }
 
 ///|
@@ -176,6 +177,9 @@ pub fn operation(value : PreparedNode) -> String {
     InnerJoin(_) => "REL.join"
     CrossJoinRows(_) => "REL.cross_join"
     AppendRows(_) => "REL.unionAll"
+    // Nest lowers to a registered multi-node expansion whose final node is a
+    // projection. There is no REL.nest operation in the AoA registry.
+    NestRows(_) => "REL.select"
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -215,8 +219,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Append(checked~, ..) => Some(AppendRows(checked))
     Set(checked~, ..) => Some(SetRows(checked))
     WindowGroup(v) => Some(WindowGroup(v))
-    Nest(..)
-    | IntervalJoin(..)
+    Nest(checked~, ..) => Some(NestRows(checked))
+    IntervalJoin(..)
     | AsOfJoin(..)
     | Sequence(_)
     | TimeSeries(_)
@@ -325,6 +329,7 @@ pub fn prepare(
       InnerJoin(_) => ("join", 2)
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
+      NestRows(_) => ("nest", 2)
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -408,6 +413,7 @@ pub fn prepare(
       AppendRows(_) => None
       SetRows(_) => None
       CrossJoinRows(_) => None
+      NestRows(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

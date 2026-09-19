@@ -4,6 +4,8 @@
 pub enum AggregateOutputUnit {
   ArrayItems
   StringBytes
+  NestGroupedBytes
+  NestAttachedBytes
 } derive(Eq, Debug)
 
 ///|
@@ -14,6 +16,16 @@ pub fn array_items_output_unit() -> AggregateOutputUnit {
 ///|
 pub fn string_bytes_output_unit() -> AggregateOutputUnit {
   StringBytes
+}
+
+///|
+pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit {
+  NestGroupedBytes
+}
+
+///|
+pub fn nest_attached_bytes_output_unit() -> AggregateOutputUnit {
+  NestAttachedBytes
 }
 
 ///|
@@ -62,6 +74,8 @@ pub fn aggregate_output_unit_name(value : AggregateOutputUnit) -> String {
   match value {
     ArrayItems => "array_items"
     StringBytes => "string_bytes"
+    NestGroupedBytes => "nest_grouped_bytes"
+    NestAttachedBytes => "nest_attached_bytes"
   }
 }
 

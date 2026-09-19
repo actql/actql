@@ -171,6 +171,8 @@ pub fn local_managed_sequence_supported(
       @lower.SetStep(_) => true
       @lower.CrossJoinStep(_) => true
       @lower.JoinStep(_) => true
+      // The common typed view is available before the Local kernel is wired.
+      @lower.NestStep(_) => false
     }
   })
 }
@@ -227,6 +229,9 @@ pub fn[T] execute_local_managed_fixed_compute(
     let unit = match @connector.aggregate_output_ceiling_unit(ceiling) {
       @connector.ArrayItems => @execution.array_items_output_unit()
       @connector.StringBytes => @execution.string_bytes_output_unit()
+      @connector.NestGroupedBytes => @execution.nest_grouped_bytes_output_unit()
+      @connector.NestAttachedBytes =>
+        @execution.nest_attached_bytes_output_unit()
     }
     constrained = match
       @execution.constrain_generated_aggregate_output(

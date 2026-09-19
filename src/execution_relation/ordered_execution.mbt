@@ -68,7 +68,8 @@ fn prepare_ordered_budgets(
       | @lower.JoinStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
-      | @lower.SetStep(_) => ()
+      | @lower.SetStep(_)
+      | @lower.NestStep(_) => ()
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {

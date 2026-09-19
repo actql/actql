@@ -35,6 +35,22 @@ priv enum SequenceInput {
 }
 
 ///|
+fn selected_step_ceiling(ceilings : Array[(Int, Int64)], step : Int) -> Int64? {
+  let mut selected = None
+  for (candidate, maximum) in ceilings {
+    if candidate == step {
+      selected = Some(
+        match selected {
+          Some(prior) => Int64::min(prior, maximum)
+          None => maximum
+        },
+      )
+    }
+  }
+  selected
+}
+
+///|
 fn charge_capture_rows(input : CapturedRows, budget : ValueBudget) -> Bool {
   for row in input.rows {
     if !charge_node(budget, 1) {
@@ -69,6 +85,9 @@ fn evaluate_sequence_components(
   join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
+  nest_item_ceilings? : Array[(Int, Int64)] = [],
+  nest_grouped_byte_ceilings? : Array[(Int, Int64)] = [],
+  nest_attached_byte_ceilings? : Array[(Int, Int64)] = [],
   numeric? : NumericAggregateExecution? = None,
   ordered? : OrderedExecution = {
     contexts: [],
@@ -99,6 +118,9 @@ fn evaluate_sequence_components(
       join_ceilings~,
       aggregate_outputs~,
       analytic_envelopes~,
+      nest_item_ceilings~,
+      nest_grouped_byte_ceilings~,
+      nest_attached_byte_ceilings~,
       numeric~,
     )
   }
@@ -122,6 +144,9 @@ fn evaluate_sequence_components(
     join_ceilings~,
     aggregate_outputs~,
     analytic_envelopes~,
+    nest_item_ceilings~,
+    nest_grouped_byte_ceilings~,
+    nest_attached_byte_ceilings~,
     numeric~,
   )
 }
@@ -416,6 +441,9 @@ fn run_sequence_invocation(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   numeric? : NumericAggregateExecution? = None,
+  nest_item_ceilings? : Array[(Int, Int64)] = [],
+  nest_grouped_byte_ceilings? : Array[(Int, Int64)] = [],
+  nest_attached_byte_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   run_completed_sequence_backend(
     invocation,
@@ -529,6 +557,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
   ])? = None,
   evaluate_append? : ((@lower.PreparedAppendKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_set? : ((@lower.PreparedSetKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_nest? : ((@lower.PreparedNestKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let result = run_sequence_with_backend(
     invocation,
@@ -539,6 +568,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     evaluate_cross_join~,
     evaluate_append~,
     evaluate_set~,
+    evaluate_nest~,
   )
   if result is Err(issue) {
     return Err(issue)
@@ -570,6 +600,7 @@ fn[T : RelationRows] run_sequence_with_backend(
   ])? = None,
   evaluate_append? : ((@lower.PreparedAppendKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_set? : ((@lower.PreparedSetKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_nest? : ((@lower.PreparedNestKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[Unit, SequenceRunIssue] {
   let {
     sequence,
@@ -644,6 +675,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
       }
     }),
+    evaluate_nest=evaluate_nest.map(evaluate => {
+      fn(i, kernel, parent, child) {
+        evaluate(kernel, parent, child).map_err(issue => Rows(i, issue))
+      }
+    }),
   )
   if result is Err(issue) {
     clear_table_store(store)
@@ -683,6 +719,10 @@ fn[T : RelationRows] run_sequence_steps(
     SequenceRunIssue,
   ])? = None,
   evaluate_set? : ((Int, @lower.PreparedSetKernel, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
+  evaluate_nest? : ((Int, @lower.PreparedNestKernel, T, T) -> Result[
     T,
     SequenceRunIssue,
   ])? = None,
@@ -745,6 +785,16 @@ fn[T : RelationRows] run_sequence_steps(
           return Err(InputSet)
         }
         evaluate(i, kernel, left.table, right.table)
+      }
+      @lower.NestStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 2 &&
+          evaluate_nest is Some(evaluate) &&
+          store.tables[route[0]] is Some(parent) &&
+          store.tables[route[1]] is Some(child) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, parent.table, child.table)
       }
       @lower.RowStep(kernel) => {
         let route = store.wiring.routes[i]

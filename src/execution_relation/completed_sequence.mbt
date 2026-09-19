@@ -72,6 +72,9 @@ fn evaluate_physical_sequence(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   numeric? : NumericAggregateExecution? = None,
+  nest_item_ceilings? : Array[(Int, Int64)] = [],
+  nest_grouped_byte_ceilings? : Array[(Int, Int64)] = [],
+  nest_attached_byte_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let invocation = match
     prepare_physical_sequence(

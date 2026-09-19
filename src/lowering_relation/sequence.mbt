@@ -15,6 +15,7 @@ pub enum PreparedStep {
   CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
+  NestStep(PreparedNestKernel)
 }
 
 ///|
@@ -38,6 +39,7 @@ pub(all) enum SequenceIssue {
   CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
+  NestFailure(Int, NestIssue)
 }
 
 ///|
@@ -129,6 +131,26 @@ pub fn prepare_sequence(
         names -= set_kernel_name_bytes(kernel)
         SetStep(kernel)
       }
+      NestRows(_) => {
+        let (kernel, used_entries, used_names, used_work) = match
+          prepare_nest_kernel(
+            owner,
+            i,
+            max_entries=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(NestFailure(i, issue))
+        }
+        bindings -= used_entries
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        NestStep(kernel)
+      }
       Values(values) => {
         let prepared = match
           prepare_values_node(owner, i, max_rows=rows, max_cells=cells) {
@@ -218,6 +240,7 @@ pub fn emit_sequence_steps(
       CrossJoinStep(v) => emit_cross_join_kernel(v, out)
       AppendStep(v) => emit_append_kernel(v, out)
       SetStep(v) => emit_set_kernel(v, out)
+      NestStep(v) => emit_nest_kernel(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

@@ -196,6 +196,49 @@ pub fn open_captured_dag(
         }
         aggregate_limits[index].push(ceiling)
       }
+      if requirement.disposition is ExecutionCheck(NestItems(limit)) {
+        let ceiling = @connector.aggregate_output_ceiling(
+          requirement.site.step,
+          @context.nest_item_limit_output_name(limit),
+          @connector.array_items_output_unit(),
+          @context.nest_item_limit_maximum(limit),
+        )
+        guard ceiling is Ok(ceiling) else { return Err(UnsupportedGraph) }
+        for previous in aggregate_limits[index] {
+          if @connector.aggregate_output_ceiling_step(previous) ==
+            @connector.aggregate_output_ceiling_step(ceiling) &&
+            @connector.aggregate_output_ceiling_name(previous) ==
+            @connector.aggregate_output_ceiling_name(ceiling) &&
+            @connector.aggregate_output_ceiling_unit(previous) ==
+            @connector.aggregate_output_ceiling_unit(ceiling) {
+            return Err(UnsupportedGraph)
+          }
+        }
+        aggregate_limits[index].push(ceiling)
+      }
+      if requirement.disposition is ExecutionCheck(NestValues(check)) {
+        let step = @context.nest_values_step(check)
+        let name = @context.nest_values_output_name(check)
+        let maximum = @context.nest_values_byte_ceiling(check)
+        for
+          unit in [
+            @connector.nest_grouped_bytes_output_unit(),
+            @connector.nest_attached_bytes_output_unit(),
+          ] {
+          let ceiling = @connector.aggregate_output_ceiling(
+            step, name, unit, maximum,
+          )
+          guard ceiling is Ok(ceiling) else { return Err(UnsupportedGraph) }
+          for previous in aggregate_limits[index] {
+            if @connector.aggregate_output_ceiling_step(previous) == step &&
+              @connector.aggregate_output_ceiling_name(previous) == name &&
+              @connector.aggregate_output_ceiling_unit(previous) == unit {
+              return Err(UnsupportedGraph)
+            }
+          }
+          aggregate_limits[index].push(ceiling)
+        }
+      }
       if requirement.disposition is ExecutionCheck(AnalyticExecution(check)) {
         let ceiling = match check.rule {
           EnforceArrayItems(_, limit) =>

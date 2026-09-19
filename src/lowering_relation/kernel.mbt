@@ -303,7 +303,8 @@ fn prepare_kernel_measured(
     | InnerJoin(_)
     | CrossJoinRows(_)
     | AppendRows(_)
-    | SetRows(_) => return Err(MissingKernelNode)
+    | SetRows(_)
+    | NestRows(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)

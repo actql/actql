@@ -42,6 +42,30 @@ fn attach_fragment_budgets(
       @lower.WindowStep(_) => ()
       @lower.AppendStep(_) => ()
       @lower.SetStep(_) => ()
+      @lower.NestStep(kernel) =>
+        for key in 0..<@lower.nest_kernel_key_count(kernel) {
+          let pair = @lower.nest_kernel_key_at(kernel, key).unwrap()
+          if !spend_control(control, 1) ||
+            !spend_control_text(control, @schema.reference_name(pair.left)) ||
+            !spend_control_text(control, @schema.reference_name(pair.right)) {
+            return Err(InputLimit)
+          }
+          guard @schema.lookup(
+              @lower.nest_kernel_input_schema(kernel, true),
+              pair.left,
+            )
+            is Some(left) &&
+            @schema.lookup(
+              @lower.nest_kernel_input_schema(kernel, false),
+              pair.right,
+            )
+            is Some(right) else {
+            return Err(FragmentContext(i, KernelMismatch))
+          }
+          if !supported_comparison(left, right) {
+            return Err(UnsupportedRowComparison(i, pair.left))
+          }
+        }
       @lower.JoinStep(kernel) => {
         let profile = @lower.join_kernel_profile(kernel)
         for key in 0..<@lower.inner_join_key_count(profile) {

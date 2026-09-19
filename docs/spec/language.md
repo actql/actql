@@ -7824,6 +7824,7 @@ operations is:
 | `assert_rows.where` / `assert_rows.unique_by` | `REL.assert_all` / `REL.assert_unique` |
 | `group` | `REL.groupBy` |
 | `join` | `REL.join` |
+| `nest` | `REL.derive` / `REL.join` / `REL.select` / `REL.orderByStable` / `REL.groupBy` / `REL.where` |
 | `append` | `REL.unionAll` |
 | `values` | `REL.values` |
 | `except` / `intersect` | `REL.except_rows` / `REL.intersect_rows` |

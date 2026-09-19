@@ -108,6 +108,21 @@ pub struct NestValuesCheck {
 }
 
 ///|
+pub fn nest_values_step(value : NestValuesCheck) -> Int {
+  value.site.step
+}
+
+///|
+pub fn nest_values_output_name(value : NestValuesCheck) -> String {
+  @nest.into(value.envelope.items.operation)
+}
+
+///|
+pub fn nest_values_byte_ceiling(value : NestValuesCheck) -> Int64 {
+  @policy.ceiling_value(value.envelope.byte_ceiling)
+}
+
+///|
 priv enum NestTypeFrame {
   Read(@contract.Contract, Int)
   Fields(@contract.Fields, Int, Int)

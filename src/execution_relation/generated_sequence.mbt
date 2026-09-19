@@ -9,6 +9,9 @@ struct GeneratedSequence {
   join_ceilings : Array[(Int, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
   analytic_envelopes : Array[SelectedAnalyticEnvelope]
+  nest_item_ceilings : Array[(Int, Int64)]
+  nest_grouped_byte_ceilings : Array[(Int, Int64)]
+  nest_attached_byte_ceilings : Array[(Int, Int64)]
   numeric : NumericAggregateExecution?
 }
 
@@ -91,6 +94,9 @@ pub fn prepare_generated_sequence(
         join_ceilings: [],
         aggregate_outputs: [],
         analytic_envelopes: [],
+        nest_item_ceilings: [],
+        nest_grouped_byte_ceilings: [],
+        nest_attached_byte_ceilings: [],
         numeric: None,
       })
     Err(issue) => Err(issue)
@@ -118,8 +124,41 @@ pub fn execute_generated_sequence(
     join_ceilings=generated.join_ceilings,
     aggregate_outputs=generated.aggregate_outputs,
     analytic_envelopes=generated.analytic_envelopes,
+    nest_item_ceilings=generated.nest_item_ceilings,
+    nest_grouped_byte_ceilings=generated.nest_grouped_byte_ceilings,
+    nest_attached_byte_ceilings=generated.nest_attached_byte_ceilings,
     numeric=generated.numeric,
   )
+}
+
+///|
+/// Narrow one exact nest array occurrence. Repeated selection cannot weaken
+/// an authored guard or an earlier selected ceiling.
+pub fn constrain_generated_nest_items(
+  generated : GeneratedSequence,
+  step : Int,
+  maximum : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if maximum < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.NestStep(kernel)) else {
+    return Err(InputSet)
+  }
+  if @lower.nest_kernel_item_limit(kernel) is Some(authored) &&
+    maximum > authored {
+    return Err(InputSet)
+  }
+  let ceilings = generated.nest_item_ceilings.copy()
+  for index, (prior_step, prior) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (step, Int64::min(prior, maximum))
+      return Ok({ ..generated, nest_item_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, maximum))
+  Ok({ ..generated, nest_item_ceilings: ceilings, })
 }
 
 ///|
@@ -175,10 +214,42 @@ pub fn constrain_generated_aggregate_output(
   if maximum < 0L {
     return Err(InvalidLimits)
   }
-  guard @lower.sequence_step(generated.sequence, step)
-    is Some(@lower.RowStep(kernel)) else {
+  guard @lower.sequence_step(generated.sequence, step) is Some(prepared) else {
     return Err(InputSet)
   }
+  if prepared is @lower.NestStep(kernel) {
+    if aggregate != @lower.nest_kernel_into(kernel) {
+      return Err(InputSet)
+    }
+    let ceilings = match unit {
+      ArrayItems => generated.nest_item_ceilings.copy()
+      NestGroupedBytes => generated.nest_grouped_byte_ceilings.copy()
+      NestAttachedBytes => generated.nest_attached_byte_ceilings.copy()
+      StringBytes => return Err(InputSet)
+    }
+    if unit == ArrayItems &&
+      @lower.nest_kernel_item_limit(kernel) is Some(authored) &&
+      maximum > authored {
+      return Err(InputSet)
+    }
+    for (prior_step, _) in ceilings {
+      if prior_step == step {
+        return Err(InputSet)
+      }
+    }
+    ceilings.push((step, maximum))
+    return Ok(
+      match unit {
+        ArrayItems => { ..generated, nest_item_ceilings: ceilings, }
+        NestGroupedBytes =>
+          { ..generated, nest_grouped_byte_ceilings: ceilings, }
+        NestAttachedBytes =>
+          { ..generated, nest_attached_byte_ceilings: ceilings, }
+        StringBytes => return Err(InputSet)
+      },
+    )
+  }
+  guard prepared is @lower.RowStep(kernel) else { return Err(InputSet) }
   let mut matched : @lower.PreparedAggregate? = None
   match @lower.kernel_group(kernel) {
     Some(group) =>
@@ -310,7 +381,8 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.JoinStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
-      | @lower.SetStep(_) => false
+      | @lower.SetStep(_)
+      | @lower.NestStep(_) => false
     }
   })
 }

@@ -7044,7 +7044,7 @@
     },
     {
       "requirement_id": "actql.language/algebra-lowering.actql-surface-form-canonical-aoa-registry-operation",
-      "statement_sha256": "9184c62a1eae377e38ef115deebb9de2de70d63faa553c04c2406d7101f89fc6",
+      "statement_sha256": "fe4b4ae09ab87546b28b6cbbd970d40cb996df3e43a359aac1b57cdc989628a0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

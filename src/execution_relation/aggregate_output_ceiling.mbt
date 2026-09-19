@@ -5,6 +5,8 @@
 pub enum AggregateOutputUnit {
   ArrayItems
   StringBytes
+  NestGroupedBytes
+  NestAttachedBytes
 } derive(Eq, Debug)
 
 ///|
@@ -15,6 +17,16 @@ pub fn array_items_output_unit() -> AggregateOutputUnit {
 ///|
 pub fn string_bytes_output_unit() -> AggregateOutputUnit {
   StringBytes
+}
+
+///|
+pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit {
+  NestGroupedBytes
+}
+
+///|
+pub fn nest_attached_bytes_output_unit() -> AggregateOutputUnit {
+  NestAttachedBytes
 }
 
 ///|
@@ -35,6 +47,7 @@ fn aggregate_output_matches(
   match (@lower.group_aggregate_function(aggregate), unit) {
     (@relation.ArrayAgg, ArrayItems) => true
     (@relation.StringAgg, StringBytes) => true
+    (_, NestGroupedBytes | NestAttachedBytes) => false
     _ => false
   }
 }
@@ -47,6 +60,7 @@ fn authored_aggregate_output_limit(
   match unit {
     ArrayItems => @lower.group_aggregate_item_limit(aggregate)
     StringBytes => @lower.group_aggregate_byte_limit(aggregate)
+    NestGroupedBytes | NestAttachedBytes => None
   }
 }
 

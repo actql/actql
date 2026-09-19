@@ -80,6 +80,18 @@ pub fn nest_item_candidate_at(
 }
 
 ///|
+/// Exact authored output field for the selected nest occurrence.
+pub fn nest_item_limit_output_name(value : NestItemLimit) -> String {
+  @nest.into(value.operation)
+}
+
+///|
+/// Effective per-parent array ceiling selected by the checked Program.
+pub fn nest_item_limit_maximum(value : NestItemLimit) -> Int64 {
+  value.maximum
+}
+
+///|
 pub fn select_nest_item_limit(
   owner : ProgramOperationResolutionIndex,
   requirement : Int,
