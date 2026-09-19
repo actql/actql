@@ -60,6 +60,7 @@ pub enum Payload {
   GraphUnion(@graph.CheckedUnion)
   GraphMeanValue(@graph.CheckedMean)
   GraphMatchRows(@graph.CheckedMatch)
+  GraphReachRows(@graph.CheckedReach)
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
@@ -211,6 +212,7 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Nodes => "SGA.match_nodes"
         @graph.Edges => "SGA.match_edges"
       }
+    GraphReachRows(_) => "SGA.reachable"
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
@@ -268,7 +270,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         | @graph.GraphBounds => Some(BasicGraph(value))
       }
     GraphMatch(value) => Some(GraphMatchRows(value))
-    Reach(_) | Subgraph(..) | Traverse(..) | Shortest(..) => None
+    Reach(value) => Some(GraphReachRows(value))
+    Subgraph(..) | Traverse(..) | Shortest(..) => None
     GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
     GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
@@ -409,6 +412,7 @@ pub fn prepare(
           },
           1,
         )
+      GraphReachRows(_) => ("reach", 1)
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
@@ -534,6 +538,7 @@ pub fn prepare(
       GraphUnion(_) => None
       GraphMeanValue(_) => None
       GraphMatchRows(_) => None
+      GraphReachRows(_) => None
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None

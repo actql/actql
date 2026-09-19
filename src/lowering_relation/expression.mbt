@@ -436,6 +436,7 @@ fn lower_expression_measured(
       | StructuralGraph(_)
       | GraphUnion(_)
       | GraphMeanValue(_)
+      | GraphReachRows(_)
       | GraphEqualityRows(_)
       | GraphDiffRows(_)
       | GraphApplyValue(_) =>

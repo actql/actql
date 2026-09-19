@@ -180,6 +180,7 @@ pub fn prepare_kernel_roots(
     | GraphUnionStep(_)
     | GraphMeanStep(_)
     | GraphMatchStep(_)
+    | GraphReachStep(_)
     | GraphRelationStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
@@ -242,6 +243,7 @@ fn prepare_root_range(
       | GraphUnionStep(_)
       | GraphMeanStep(_)
       | GraphMatchStep(_)
+      | GraphReachStep(_)
       | GraphRelationStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {

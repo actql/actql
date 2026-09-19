@@ -817,6 +817,12 @@ pub(all) enum GraphMeanIssue {
   GraphMeanPreparationLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphReachIssue {
+  InvalidGraphReachLimits
+  InvalidGraphReachWiring
+  GraphReachPreparationLimit
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphRelationIssue {
   InvalidGraphRelationLimits
   InvalidGraphRelationWiring
@@ -979,6 +985,7 @@ pub enum Payload {
   GraphUnion(@graph_typing.CheckedUnion)
   GraphMeanValue(@graph_typing.CheckedMean)
   GraphMatchRows(@graph_typing.CheckedMatch)
+  GraphReachRows(@graph_typing.CheckedReach)
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
@@ -1043,6 +1050,8 @@ type PreparedGraphBasic
 type PreparedGraphMatch
 
 type PreparedGraphMean
+
+type PreparedGraphReach
 
 type PreparedGraphRelation
 
@@ -1111,6 +1120,7 @@ pub enum PreparedStep {
   GraphUnionStep(PreparedGraphUnion)
   GraphMeanStep(PreparedGraphMean)
   GraphMatchStep(PreparedGraphMatch)
+  GraphReachStep(PreparedGraphReach)
   GraphRelationStep(PreparedGraphRelation)
 }
 
@@ -1168,6 +1178,7 @@ pub(all) enum SequenceIssue {
   GraphBasicFailure(Int, GraphBasicIssue)
   GraphMeanFailure(Int, GraphMeanIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
+  GraphReachFailure(Int, GraphReachIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
 }
 

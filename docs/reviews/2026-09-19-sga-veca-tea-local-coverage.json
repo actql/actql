@@ -111,8 +111,10 @@
       "output": "relation",
       "canonical": ["SGA.reachable"],
       "variants": ["selector forms", "cycles", "self loops", "bounded depth"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_reach_test.mbt"]
     },
     {
       "family": "SGA",
