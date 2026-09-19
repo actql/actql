@@ -72,7 +72,7 @@ test('native Parquet bytes retain order and duplicates through physical Store an
             for (const row of observed) checked(runtime.managedOutputAccept(admitted, 1, managedColumns(row)));
           }
           return observed.length;
-        });
+        }, runtime);
       assert.deepEqual(observed, expectedRows);
       assert.equal(report.rowCount, 3);
       assert.equal(report.integrityReadBytes, bytes.length);

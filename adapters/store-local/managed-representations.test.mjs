@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as manifestControl from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {mkdtemp, rmdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createLocalRetainedStore} from './files.mjs';
-import {managedPhysicalRepresentation} from
+import {managedPhysicalRepresentation as createManagedPhysicalRepresentation} from
   './managed-physical-representation.mjs';
 import {
   registerManagedMemoryInput,
@@ -17,6 +19,8 @@ import {
 
 const codec = `sha256:${'1'.repeat(64)}`;
 const fields = JSON.stringify([['id', 'DOUBLE', null, null]]);
+const managedPhysicalRepresentation = (...arguments_) =>
+  createManagedPhysicalRepresentation(...arguments_, manifestControl);
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-registry-'));
@@ -81,6 +85,21 @@ test('managed registry rejects mismatched row, codec and chunk identity', async 
       {}, () => true, store, body, codec, manifest,
     ), {code: 'InvalidManagedInputRegistration'});
   }
+});
+
+test('managed registry rejects an unadmitted manifest copy', async t => {
+  const {store, body} = await fixture(t);
+  const representation = managedPhysicalRepresentation(
+    body, 2, codec, fields, [0],
+  );
+  const copy = {
+    ...representation.manifest,
+    chunks: representation.manifest.chunks.map(chunk => ({...chunk})),
+  };
+  assert.deepEqual(copy, representation.manifest);
+  assert.throws(() => registerManagedInput(
+    {}, () => true, store, body, codec, copy,
+  ), {code: 'InvalidManagedInputRegistration'});
 });
 
 test('managed file commit runs after every final check and before pin release', async t => {

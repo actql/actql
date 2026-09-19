@@ -4528,3 +4528,43 @@ pub fn strategy_remote_historical_restore(
     Err(issue) => raise RemoteDispatch(issue)
   }
 }
+
+///|
+/// Portable physical-manifest admission. The string projection keeps the JS
+/// adapter independent from MoonBit object layout while retaining MoonBit as
+/// the only product authority for canonical identity and aggregate limits.
+#export_name("physicalManifestAdmit")
+pub fn physical_manifest_admit(
+  version : String,
+  schema_contract_cid : String,
+  view_contract_cid : String,
+  codec_contract_cid : String,
+  row_count : Int,
+  chunk_cids : Array[String],
+  chunk_byte_lengths : Array[Int64],
+  chunk_row_counts : Array[Int],
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Array[String] {
+  match
+    @manifest.admit(
+      version,
+      schema_contract_cid,
+      view_contract_cid,
+      codec_contract_cid,
+      row_count,
+      chunk_cids,
+      chunk_byte_lengths,
+      chunk_row_counts,
+      max_chunks,
+      max_manifest_bytes,
+      max_referenced_bytes,
+    ) {
+    Ok(value) => ["ok", ..@manifest.projection(value)]
+    Err(InvalidManifest) => ["error", "invalid"]
+    Err(ManifestLimit) => ["error", "limit"]
+    Err(CountOverflow) => ["error", "overflow"]
+    Err(RowCountMismatch) => ["error", "row-count"]
+  }
+}

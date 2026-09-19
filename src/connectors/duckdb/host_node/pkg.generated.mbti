@@ -354,6 +354,8 @@ pub fn native_retained_strategy_host_open(@host.NativeHostConfiguration, @physic
 
 pub fn native_strategy_host_open(@host.NativeHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
 
+pub fn physical_manifest_admit(String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64) -> Array[String]
+
 pub fn resident_begin(@physical_strategy.CapturedDAG, Int, Int64) -> @driver.DuckDBResidentStore raise NodeHostFailure
 
 pub fn resident_borrow_setup(@driver.StrategyComputeHostConfiguration, @driver.DuckDBResidentStore, Array[@driver.DuckDBResidentTable], Int, Int, Int) -> @driver.DuckDBResidentInputs raise NodeHostFailure

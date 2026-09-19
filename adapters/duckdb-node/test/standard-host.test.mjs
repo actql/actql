@@ -4628,6 +4628,7 @@ async function exerciseStrategyGraph(
         managedColumnCodecContractCid,
         managedFieldsFrame,
         managedStorageOrder,
+        bridge,
       ).manifest);
     assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), true,
       'the next task binds the exact retained occurrence through its checked graph edge');

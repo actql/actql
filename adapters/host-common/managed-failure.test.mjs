@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as manifestControl from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -10,7 +12,7 @@ import {registerManagedMemoryInput} from
   '../store-local/managed-memory-representations.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {registerManagedInput} from '../store-local/managed-representations.mjs';
-import {managedPhysicalRepresentation} from
+import {managedPhysicalRepresentation as createManagedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid,
   managedColumnRowProvider} from '../duckdb-node/managed-column-codec.mjs';
@@ -40,6 +42,8 @@ const managedFailureAction = (
   return 5;
 };
 const siteControl = createExecutionSiteControlFixture();
+const managedPhysicalRepresentation = (...arguments_) =>
+  createManagedPhysicalRepresentation(...arguments_, manifestControl);
 const siteCase = key => {
   const site = createInProcessExecutionSite({
     key,

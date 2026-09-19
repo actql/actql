@@ -14,7 +14,8 @@ import {
   "actql/actql/run_publication" @publication,
   "actql/actql/execution_site" @site,
   "actql/actql/remote_site_protocol" @remote,
-  "actql/actql/connectors/duckdb/driver" @binding10,
-  "actql/actql/connectors/local/driver" @binding11,
-  "actql/actql/connectors/reference_compute/driver" @binding12,
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/connectors/duckdb/driver" @binding11,
+  "actql/actql/connectors/local/driver" @binding12,
+  "actql/actql/connectors/reference_compute/driver" @binding13,
 }

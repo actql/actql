@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_manifest"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64) -> Result[PhysicalManifest, PhysicalManifestIssue]
+
+pub fn projection(PhysicalManifest) -> Array[String]
+
+// Errors
+
+// Types and methods
+pub(all) struct PhysicalChunk {
+  cid : String
+  byte_length : Int64
+  row_count : Int
+}
+
+pub(all) struct PhysicalManifest {
+  schema_contract_cid : String
+  view_contract_cid : String
+  codec_contract_cid : String
+  row_count : Int
+  chunks : Array[PhysicalChunk]
+  manifest_cid : String
+  metadata_bytes : Int
+  referenced_bytes : Int64
+}
+
+pub(all) enum PhysicalManifestIssue {
+  InvalidManifest
+  ManifestLimit
+  CountOverflow
+  RowCountMismatch
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

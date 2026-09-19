@@ -764,6 +764,7 @@ async function runHostCompute(
         managedColumnCodecContractCid,
         managedFieldsFrame,
         managedStorageOrder,
+        moon,
       );
       registerManagedInput(
         material,

@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as manifestControl from
+  '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {mkdtemp, rmdir, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -9,7 +11,7 @@ import {
   withManagedInputFile,
   withManagedInputFiles,
 } from '../../store-local/managed-representations.mjs';
-import {managedPhysicalRepresentation} from
+import {managedPhysicalRepresentation as createManagedPhysicalRepresentation} from
   '../../store-local/managed-physical-representation.mjs';
 import {withComputeDatabase} from '../session.mjs';
 
@@ -27,6 +29,8 @@ const limits = Object.freeze({
   cancelWaitMs: 0,
 });
 const codec = `sha256:${'1'.repeat(64)}`;
+const managedPhysicalRepresentation = (...arguments_) =>
+  createManagedPhysicalRepresentation(...arguments_, manifestControl);
 
 test('DuckDB cancellation deadline retains input pin until actual session stop', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-cancel-'));

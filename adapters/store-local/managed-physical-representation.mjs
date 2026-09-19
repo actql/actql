@@ -11,7 +11,7 @@ const quantity = value => Number.isSafeInteger(value) && value >= 0;
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function managedPhysicalRepresentation(
-  body, rowCount, codecContractCid, fieldsFrame, storageOrder,
+  body, rowCount, codecContractCid, fieldsFrame, storageOrder, control,
 ) {
   if (!body || !cid(body.cid) || !quantity(body.bytes) ||
       !quantity(rowCount) || !cid(codecContractCid) ||
@@ -54,7 +54,7 @@ export function managedPhysicalRepresentation(
     maxChunks: 1,
     maxManifestBytes: 4096 + Buffer.byteLength(fieldsFrame),
     maxReferencedBytes: body.bytes,
-  });
+  }, control);
   return Object.freeze({
     ...admitted,
     schemaContract,

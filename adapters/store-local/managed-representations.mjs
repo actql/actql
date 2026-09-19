@@ -3,7 +3,7 @@
 import {randomUUID} from 'node:crypto';
 import {localStoreOwnsBody, localRetainedStoreAvailable} from './files.mjs';
 import {withVerifiedDelegatedFile} from './direct-file.mjs';
-import {snapshotPhysicalManifest} from './managed-manifest.mjs';
+import {admittedPhysicalManifestSnapshot} from './managed-manifest.mjs';
 import {installManagedRepresentation, managedRepresentation} from
   './managed-memory-representations.mjs';
 export {managedInputCodecContractCid, managedInputPhysicalManifestCid,
@@ -106,14 +106,8 @@ export function registerManagedInput(
           typeof rowProvider.read !== 'function')) || !estimateValid) {
     throw issue('InvalidManagedInputRegistration');
   }
-  let admitted;
-  try {
-    admitted = snapshotPhysicalManifest(physicalManifest, {
-      maxChunks: 1,
-      maxManifestBytes: 1024 * 1024,
-      maxReferencedBytes: body.bytes,
-    });
-  } catch {
+  const admitted = admittedPhysicalManifestSnapshot(physicalManifest);
+  if (admitted === undefined) {
     throw issue('InvalidManagedInputRegistration');
   }
   const chunks = admitted.manifest.chunks;

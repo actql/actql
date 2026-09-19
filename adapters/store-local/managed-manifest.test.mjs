@@ -1,11 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as manifestControl from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createHash} from 'node:crypto';
 import {mkdtemp, rmdir, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createLocalRetainedStore} from './files.mjs';
-import {snapshotPhysicalManifest, consumePhysicalManifestFiles} from './managed-manifest.mjs';
+import {snapshotPhysicalManifest,
+  consumePhysicalManifestFiles as consumePhysicalManifestFilesRaw} from
+  './managed-manifest.mjs';
+
+const consumePhysicalManifestFiles = (
+  store, supplied, bodies, interpretation, bounded, session, decode,
+  signal, beforeRead,
+) => consumePhysicalManifestFilesRaw(
+  store, supplied, bodies, interpretation, bounded, session, decode,
+  manifestControl, signal, beforeRead,
+);
 
 const sha = text => `sha256:${createHash('sha256').update(text).digest('hex')}`;
 const expected = Object.freeze({schema_contract_cid: sha('fixture-schema'),
@@ -34,14 +46,20 @@ test('bounded snapshot hashes canonical metadata, preserves duplicates and detac
   const a = {cid: sha('a'), byte_length: 1, row_count: 1};
   const input = manifest([a, {...a, cid: sha('b')}, a]);
   const text = JSON.stringify(canonical(input));
-  const accepted = snapshotPhysicalManifest(input, limits);
+  const accepted = snapshotPhysicalManifest(input, limits, manifestControl);
   assert.equal(accepted.cid, sha(text));
   assert.equal(accepted.bytes, Buffer.byteLength(text));
   assert.equal(accepted.referencedBytes, 3);
-  assert.equal(snapshotPhysicalManifest(input, {...limits, maxManifestBytes: accepted.bytes}).cid, accepted.cid);
-  assert.throws(() => snapshotPhysicalManifest(input, {...limits, maxManifestBytes: accepted.bytes - 1}), {code: 'PhysicalManifestLimit'});
+  assert.equal(snapshotPhysicalManifest(input, {
+    ...limits, maxManifestBytes: accepted.bytes,
+  }, manifestControl).cid, accepted.cid);
+  assert.throws(() => snapshotPhysicalManifest(input, {
+    ...limits, maxManifestBytes: accepted.bytes - 1,
+  }, manifestControl), {code: 'PhysicalManifestLimit'});
   const reordered = manifest([input.chunks[1], a, a]);
-  assert.notEqual(snapshotPhysicalManifest(reordered, limits).cid, accepted.cid);
+  assert.notEqual(snapshotPhysicalManifest(
+    reordered, limits, manifestControl,
+  ).cid, accepted.cid);
   a.row_count = 99; input.chunks.length = 0;
   assert.equal(accepted.manifest.chunks.length, 3);
   assert.equal(accepted.manifest.chunks[0].row_count, 1);
@@ -58,16 +76,28 @@ test('snapshot rejects invalid shapes, counts, overflow and hostile metadata wit
     {...manifest([a]), codec_contract_cid: 'native'},
     {...manifest([]), chunks: new Array(1)},
     {...manifest([a]), chunks: [{...a, path: '/not-admitted'}]},
-  ]) assert.throws(() => snapshotPhysicalManifest(input, limits));
-  assert.throws(() => snapshotPhysicalManifest(manifest([a]), {...limits, maxChunks: 0}), {code: 'PhysicalManifestLimit'});
-  assert.throws(() => snapshotPhysicalManifest(manifest([a]), {...limits, maxReferencedBytes: 0}), {code: 'PhysicalManifestLimit'});
-  assert.throws(() => snapshotPhysicalManifest(manifest([]), {...limits, maxChunks: -1}), {code: 'InvalidPhysicalManifestLimits'});
+  ]) assert.throws(() => snapshotPhysicalManifest(
+    input, limits, manifestControl,
+  ));
+  assert.throws(() => snapshotPhysicalManifest(manifest([a]), {
+    ...limits, maxChunks: 0,
+  }, manifestControl), {code: 'PhysicalManifestLimit'});
+  assert.throws(() => snapshotPhysicalManifest(manifest([a]), {
+    ...limits, maxReferencedBytes: 0,
+  }, manifestControl), {code: 'PhysicalManifestLimit'});
+  assert.throws(() => snapshotPhysicalManifest(manifest([]), {
+    ...limits, maxChunks: -1,
+  }, manifestControl), {code: 'InvalidPhysicalManifestLimits'});
   const overflow = {...manifest([]), chunks: [{...a, row_count: Number.MAX_SAFE_INTEGER}, a]};
-  assert.throws(() => snapshotPhysicalManifest(overflow, limits), {code: 'PhysicalManifestCountOverflow'});
+  assert.throws(() => snapshotPhysicalManifest(
+    overflow, limits, manifestControl,
+  ), {code: 'PhysicalManifestCountOverflow'});
   let invoked = false;
   const hostile = manifest([]);
   Object.defineProperty(hostile, 'chunks', {enumerable: true, get() { invoked = true; return []; }});
-  assert.throws(() => snapshotPhysicalManifest(hostile, limits), {code: 'InvalidPhysicalManifest'});
+  assert.throws(() => snapshotPhysicalManifest(
+    hostile, limits, manifestControl,
+  ), {code: 'InvalidPhysicalManifest'});
   assert.equal(invoked, false);
 });
 
@@ -82,7 +112,9 @@ test('actual sealed physical chunks are consumed in occurrence order without log
   assert.deepEqual(charged, [3, 2, 3]);
   assert.equal(result.integrityReadBytes, 8); assert.equal(result.rowCount, 3);
   assert.equal(store.status().reservedBytes, 5); // unique physical holdings, not occurrences
-  assert.equal(result.manifestCid, snapshotPhysicalManifest(input, limits).cid);
+  assert.equal(result.manifestCid, snapshotPhysicalManifest(
+    input, limits, manifestControl,
+  ).cid);
   assert.equal(Object.hasOwn(result, 'logical_result_cid'), false);
   const next = b.delegateRead('next-consumer'); next.confirmStopped();
 });

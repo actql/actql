@@ -29,13 +29,14 @@ const profileCid = 'sha256:161b405aa85064521a44076212bb266d93f166fa1b383ca8948a8
 const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
   [name, type.id, type.precision == null ? null : String(type.precision),
     type.scale == null ? null : String(type.scale)]));
-const physicalManifest = (body, rows, codec, fields) =>
+const physicalManifest = (control, body, rows, codec, fields) =>
   managedPhysicalRepresentation(
     body,
     rows,
     codec,
     fieldsFrame(fields),
     fields.map((_, index) => index),
+    control,
   ).manifest;
 
 async function importManagedFile(connection, sql, path) {
@@ -156,7 +157,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         registerManagedInput(material,
           input => moon.managedInputMatchesMaterial(input, material),
           store, body, codec,
-          physicalManifest(body, observed.length, codec, result.value.fields));
+          physicalManifest(
+            moon, body, observed.length, codec, result.value.fields,
+          ));
         if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed', 'chained']) {
           let settled = false;
           const deriving = representation === 'computed';
@@ -552,7 +555,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             registerManagedInput(takeMaterial,
               input => moon.managedInputMatchesMaterial(input, takeMaterial),
               store, held.body, takeCodec,
-              physicalManifest(held.body, held.rows, takeCodec, held.fields));
+              physicalManifest(
+                moon, held.body, held.rows, takeCodec, held.fields,
+              ));
             for (let use = 0; use < 2; use++) {
               const input = fixture.managedTakeNextInput(held.setup, held.completed);
               const expected = empty ? [0, 0, 0, 0, 0] : [2, 15, 2, 11, 1];
@@ -579,7 +584,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           const countCodec = managedColumnCodecContractCid;
           registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
             store, downstreamBody, countCodec,
-            physicalManifest(downstreamBody, 1, countCodec,
+            physicalManifest(moon, downstreamBody, 1, countCodec,
               [{name: 'n', type: {id: 'DOUBLE'}}]));
           if (revoke === 'none') for (const derived of [undefined, heldTakes.find(held => held.representation === 'computed')])
           for (const representation of ['validated', 'preserved']) for (const ceiling of derived ? [10000] : [10000, 4]) {

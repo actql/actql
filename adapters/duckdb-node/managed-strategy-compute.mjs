@@ -271,6 +271,7 @@ export async function runManagedColumnStrategyHostCompute(
       codecContractCid,
       fieldsFrame(result.value),
       storageOrder,
+      moon,
     );
     registerManagedInput(material,
       input => moon.managedInputMatchesMaterial(input, material),
