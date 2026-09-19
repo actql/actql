@@ -76,6 +76,28 @@ real downstream Relation computations and final ledger reclamation. These
 commits do not complete other sequences, standalone Carrier outputs, or formal
 publication.
 
+## Closed review findings after `505a21e4`
+
+Commit `26951d0e` closes both lifecycle findings from the fixed review.
+
+- SGA normalize and graft, plus VecA normalize and score, now match every
+  input read against the exact checked consumer step, edge position, and
+  resolved producer target before allocating output state.
+- Unpublished completed Graph and record payloads remain under owner-bound
+  cleanup after read availability is revoked. A failed disposal remains
+  retryable, while successful reclamation occurs exactly once.
+
+The regressions include an operation whose exact external source is Input 1,
+reordered binary Graph inputs, unavailable completed payloads, disposal retry,
+and prior internal-step matching. The affected lifecycle and kernel suites pass
+52 tests on each of JS, Wasm, and native.
+
+Commit `c17589cc` bounds the two-site Host failure diagnostic before any opaque
+execution graph is formatted and refreshes the generated Workers fixture from
+the canonical helpers. The real two-site DuckDB Host test passes, and the
+Workers adapter passes all 24 tests. These focused results do not replace final
+same-SHA Linux CI.
+
 ## Family execution gaps
 
 ### SGA
@@ -160,13 +182,15 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 
-Six operations still lack portable Local execution. Checked typed lowering
+Five operations still lack portable Local execution. Checked typed lowering
 emits `TEA.watermark.label`, `TEA.dedupe`, and
-`TEA.window.session_assign`. Dedupe retains repeated partition positions,
+`TEA.window.session_assign`, while time series has both checked lowering and
+portable execution. Dedupe retains repeated partition positions,
 stable order terms, null placement, and the mandatory tie failure. Session
 retains its exact roles, grouping positions, clock encoding, and resolved
-literal or bound gap. The other TEA forms remain unimplemented in shared
-lowering. Runtime work must preserve finite event-time observation semantics
+literal or bound gap. The remaining window, interval join, as-of join, and
+sequence forms remain unimplemented in shared lowering. Runtime work must
+preserve finite event-time observation semantics
 across transport page splits and bind checkpoint advancement to the existing
 successful commit boundary. No long-lived streaming state is required by TEA
 0.1. Common immutable record storage preserves typed event roles, open payload
