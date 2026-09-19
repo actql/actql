@@ -160,6 +160,79 @@ fn remote_completion_values(
 }
 
 ///|
+fn start_remote_completion_test_execution(
+  run : @strategy.CapturedDAG,
+  input : @execution.ProducerRead,
+  registration_name? : String = "local",
+) -> @strategy.TaskExecution {
+  let request = @connector.prepare_fixed_compute_request([input], {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 10,
+    max_value_bytes: 100,
+    common_fragment: None,
+  }).unwrap()
+  let registry = @connector.prepare_capability_registry(
+    [{ name: registration_name, acquisition: false, fixed_compute: true, }],
+    1,
+    100,
+  ).unwrap()
+  let prepared = @connector.bind_compute_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    request,
+    (),
+    1,
+    [{ work_slots: [0], milliseconds: Some(1L), }],
+    { transfer_bytes: Some(0L), retained_bytes: Some(8L), money_units: None, },
+    10,
+  ).unwrap()
+  guard @connector.choose_fixed_compute_candidate(
+      registry,
+      request,
+      [@connector.prepared_compute_candidate(prepared)],
+      None,
+      10,
+    ).unwrap()
+    is Proposed(choice) else {
+    abort("remote test candidate")
+  }
+  let settled = Ref(false)
+  let bound = @connector.bind_prepared_execution(
+    choice,
+    prepared,
+    {
+      transfer_bytes: 0L,
+      retained_bytes: 8L,
+      scratch_bytes: 0L,
+      execution_bytes: 0L,
+    },
+    [],
+    fn(_) {
+      let operations : @connector.ExecutionOperations[
+        @strategy.RunIssue,
+        @strategy.TaskPublication,
+      ] = {
+        cancel: fn() { () },
+        dispose: fn() { () },
+        settled: fn() { settled.val = true },
+        retention_released: fn() { true },
+        released: fn() { () },
+        ready: fn() {
+          if settled.val {
+            Ok(())
+          } else {
+            Err(@strategy.RunIssue::NotReady)
+          }
+        },
+        finish: fn() { Err(@strategy.RunIssue::NotReady) },
+        publish: fn(_) { Err(@strategy.RunIssue::NotReady) },
+      }
+      Ok(((), operations))
+    },
+  ).unwrap()
+  @strategy.start_captured_execution(run, 1, bound).unwrap().1
+}
+
+///|
 test "remote proof creates one exact common managed completion" {
   let owner = remote_completion_owner()
   let request = remote_completion_request()
@@ -194,8 +267,13 @@ test "remote proof creates one exact common managed completion" {
         None
       }
     },
-    attempt~,
   ).unwrap()
+  assert_true(
+    @remote_completion.bind_remote_managed_completion_attempt(port, attempt),
+  )
+  assert_false(
+    @remote_completion.bind_remote_managed_completion_attempt(port, attempt),
+  )
   let completed = @remote_completion.finish_remote_managed_completion(port, {
     output: remote_completion_proof(request, profile_cid),
     material: "opaque-handle-a",
@@ -250,4 +328,101 @@ test "foreign remote material cannot create a common completion" {
     is Err(UnverifiedMaterial),
   )
   assert_false(@remote_completion.cancel_remote_managed_completion_port(port))
+}
+
+///|
+test "remote completion commits only its selected task and registration" {
+  let (run, _) = captured_graph_fixture()
+  let input = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
+  let execution = start_remote_completion_test_execution(run, input)
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
+  let request = remote_completion_request()
+  let profile = @execution.selected_managed_execution_profile()
+  let profile_cid = @execution.managed_execution_profile_cid(profile)
+  let port = @remote_completion.prepare_remote_managed_completion_port(
+    remote_completion_values(owner),
+    request,
+    {
+      managed_profile_cid: profile_cid,
+      result_schema_cid: remote_completion_cid("5"),
+      logical_view_cid: remote_completion_cid("6"),
+      representation_codec_cid: remote_completion_cid("7"),
+    },
+    profile,
+    task_test_completion(owner),
+    @pipeline.Step(1),
+    1000,
+    10000,
+    fn(handle : String, generation, holding, manifest, retained_bytes) {
+      if handle == "opaque-handle-a" &&
+        generation == "material-a" &&
+        holding == remote_completion_cid("c") &&
+        manifest == remote_completion_cid("8") &&
+        retained_bytes == 8L {
+        Some((handle, fn() { true }))
+      } else {
+        None
+      }
+    },
+    inputs=[input],
+  ).unwrap()
+  assert_true(
+    @remote_completion.bind_remote_managed_completion_task(port, run, execution),
+  )
+  @strategy.settle_task_execution(run, execution, true).unwrap()
+  let completed = @remote_completion.finish_remote_managed_task_completion(
+    port,
+    run,
+    execution,
+    {
+      output: remote_completion_proof(request, profile_cid),
+      material: "opaque-handle-a",
+    },
+  ).unwrap()
+  assert_true(@strategy.captured_task_completed(run, 1))
+  assert_true(
+    @strategy.captured_managed_task_output_matches(
+      run,
+      1,
+      @pipeline.Step(1),
+      completed,
+    ),
+  )
+
+  let (foreign_run, _) = captured_graph_fixture()
+  let foreign_input = @strategy.captured_task_input(foreign_run, 1, 100, 10000).unwrap()
+  let foreign_execution = start_remote_completion_test_execution(
+    foreign_run,
+    foreign_input,
+    registration_name="other",
+  )
+  let foreign_owner = @strategy.graph_task_owner(
+    @strategy.captured_dag_graph(foreign_run),
+    1,
+  ).unwrap()
+  let foreign_port = @remote_completion.prepare_remote_managed_completion_port(
+    remote_completion_values(foreign_owner),
+    request,
+    {
+      managed_profile_cid: profile_cid,
+      result_schema_cid: remote_completion_cid("5"),
+      logical_view_cid: remote_completion_cid("6"),
+      representation_codec_cid: remote_completion_cid("7"),
+    },
+    profile,
+    task_test_completion(foreign_owner),
+    @pipeline.Step(1),
+    1000,
+    10000,
+    fn(_ : String, _, _, _, _) -> (String, () -> Bool)? {
+      Some(("foreign", fn() { true }))
+    },
+    inputs=[foreign_input],
+  ).unwrap()
+  assert_false(
+    @remote_completion.bind_remote_managed_completion_task(
+      foreign_port, foreign_run, foreign_execution,
+    ),
+  )
+  assert_false(@strategy.captured_task_completed(foreign_run, 1))
 }

@@ -1294,6 +1294,16 @@ pub fn dispatch_request_budget_cid(request : DispatchRequest) -> String {
 }
 
 ///|
+/// Selected Host registration named by this exact dispatch. The registration
+/// name is only one part of execution admission; it grants no capability by
+/// itself.
+pub fn dispatch_request_connector_registration(
+  request : DispatchRequest,
+) -> String {
+  request.connector_registration
+}
+
+///|
 pub fn dispatch_record_matches_request(
   record : DispatchRecord,
   request : DispatchRequest,

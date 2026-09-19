@@ -63,6 +63,8 @@ pub fn dispatch_record_state_codes(DispatchRecord) -> Array[Int]
 
 pub fn dispatch_request_budget_cid(DispatchRequest) -> String
 
+pub fn dispatch_request_connector_registration(DispatchRequest) -> String
+
 pub fn dispatch_request_execution_scope(DispatchRequest) -> Array[String]
 
 pub fn dispatch_request_identity(DispatchRequest) -> String

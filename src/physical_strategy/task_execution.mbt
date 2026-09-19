@@ -5,6 +5,7 @@
 struct TaskExecution {
   owner : StrategyOfferOwner
   task : Int
+  registration_key : String
   reservation : @resources.Reservation
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
@@ -275,6 +276,9 @@ pub fn[I, T] start_captured_managed_execution(
       let execution : TaskExecution = {
         owner: run.offer_owner,
         task,
+        registration_key: @connector.capability_registration_selection_key(
+          @connector.managed_fixed_compute_candidate_registration(candidate),
+        ),
         reservation,
         retained_bytes: Some(fn() {
           match @connector.prepared_managed_execution_retained_bytes(prepared) {
@@ -422,6 +426,9 @@ fn[T] start_task_execution(
       let execution : TaskExecution = {
         owner: run.offer_owner,
         task,
+        registration_key: @connector.capability_registration_selection_key(
+          @connector.fixed_compute_candidate_registration(candidate),
+        ),
         reservation,
         retained_bytes: Some(fn() {
           match @connector.prepared_execution_retained_bytes(prepared) {
@@ -458,6 +465,20 @@ pub fn task_execution_managed_attempt(
 ) -> @execution.ManagedExecutionAttempt? {
   if task_execution_matches(run, execution) {
     Some(execution.attempt)
+  } else {
+    None
+  }
+}
+
+///|
+/// Stable selected registration identity for trusted Host wiring. This is not
+/// an implementation capability or permission to dispatch another attempt.
+pub fn task_execution_registration_key(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> String? {
+  if task_execution_matches(run, execution) {
+    Some(execution.registration_key)
   } else {
     None
   }

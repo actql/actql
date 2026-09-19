@@ -307,6 +307,8 @@ pub fn task_numeric_observation_slot_cid(TaskNumericObservation) -> String
 
 pub fn task_numeric_observation_step(TaskNumericObservation) -> Int
 
+pub fn task_execution_registration_key(CapturedDAG, TaskExecution) -> String?
+
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 
 // Errors
