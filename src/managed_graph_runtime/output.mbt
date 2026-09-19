@@ -172,12 +172,10 @@ pub fn completed_available(value : Completed) -> Bool {
 ///|
 /// Reclaim a completed generation rejected before downstream handoff.
 pub fn discard_completed(value : Completed) -> Bool {
-  guard @lifecycle.completed_payload(value.core) is Some(storage) &&
-    @lifecycle.revoke_completed(value.core) else {
-    return false
-  }
-  @storage.discard(storage)
-  true
+  @lifecycle.reclaim_completed(value.core, storage => {
+    @storage.discard(storage)
+    true
+  })
 }
 
 ///|
@@ -312,4 +310,20 @@ pub fn producer_read_carrier_reference(
   value : ProducerRead,
 ) -> @lifecycle.ProducerReadReference {
   @lifecycle.producer_read_reference(value.core)
+}
+
+///|
+/// Match a Graph read to the exact checked occurrence edge it supplies.
+pub fn producer_read_matches_operation_input(
+  value : ProducerRead,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  edge_index : Int,
+) -> Bool {
+  @lifecycle.producer_read_reference_matches_operation_input(
+    producer_read_carrier_reference(value),
+    receiver,
+    consumer_step,
+    edge_index,
+  )
 }

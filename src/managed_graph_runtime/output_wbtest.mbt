@@ -276,3 +276,25 @@ test "unpublished completed Graph output can be revoked and discarded" {
   assert_true(completed_storage(completed) is None)
   assert_false(discard_completed(completed))
 }
+
+///|
+test "unavailable unpublished Graph output remains reclaimable" {
+  let owner = producer_owner()
+  let live = Ref(true)
+  let output = prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  append_node(output, number(1.0), [text("a")]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let storage = completed_storage(completed).unwrap()
+  live.val = false
+  assert_false(completed_available(completed))
+  assert_true(discard_completed(completed))
+  assert_eq(@storage.node_count(storage), 0)
+  assert_false(discard_completed(completed))
+}

@@ -413,3 +413,23 @@ test "unpublished completed record output can be revoked and discarded" {
   assert_true(completed_storage(completed) is None)
   assert_false(discard_completed(completed))
 }
+
+///|
+test "unavailable unpublished record output remains reclaimable" {
+  let owner = event_producer_owner()
+  let live = Ref(true)
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {
+    live.val
+  }).unwrap()
+  append_record(output, [
+    (@schema.Unqualified("event_id"), number(7.0)),
+    (@schema.Unqualified("occurred_at"), number(12.0)),
+  ]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let storage = completed_storage(completed).unwrap()
+  live.val = false
+  assert_false(completed_available(completed))
+  assert_true(discard_completed(completed))
+  assert_eq(@storage.record_count(storage), 0)
+  assert_false(discard_completed(completed))
+}

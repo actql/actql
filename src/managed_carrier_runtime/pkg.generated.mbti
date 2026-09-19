@@ -89,6 +89,8 @@ pub fn receipt_matches_binding(Receipt, Binding) -> Bool
 
 pub fn receipt_measure(Receipt) -> Measure
 
+pub fn[E, T] reclaim_completed(Completed[E, T], (T) -> Bool) -> Bool
+
 pub fn[P, E, T] retain(RetentionPort[P, E, T], P) -> Result[Retained[E, T], Issue]
 
 pub fn[E, T] retained_available(Retained[E, T]) -> Bool

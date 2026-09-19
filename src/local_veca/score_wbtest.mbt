@@ -39,6 +39,48 @@ fn score_owner(
 }
 
 ///|
+fn second_input_score_owner(
+  first : @lower.BoundPrepared,
+  second : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor("[{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}]"),
+      [
+        (
+          "first",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(first)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "second",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(second)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(cursor("\"second\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn scored_source(
   owner : @lower.BoundPrepared,
   live : Ref[Bool],
@@ -152,6 +194,43 @@ test "score orders by value then typed identity and feeds two consumers" {
     @storage.record_count(@records.producer_read_storage(second).unwrap()),
     3,
   )
+}
+
+///|
+test "vector score admits only the exact external operation input" {
+  let first_owner = producer_owner()
+  let second_owner = producer_owner()
+  let first = scored_source(first_owner, Ref(true))
+  let second = scored_source(second_owner, Ref(true))
+  let owner = second_input_score_owner(first_owner, second_owner)
+  let wrong = @records.prepare_producer_read(owner, 0, first_owner, first).unwrap()
+  assert_true(
+    start_score(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      wrong,
+      limits(),
+      4096L,
+      fn() { true },
+    )
+    is Err(InvalidScoreKernel),
+  )
+  let exact = @records.prepare_producer_read(owner, 1, second_owner, second).unwrap()
+  let control = @bounded.control()
+  let execution = start_score(
+    control,
+    sequence(owner),
+    0,
+    exact,
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_score(execution, 1).unwrap() is ScoreContinue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_score(execution, 1).unwrap() is ScoreStopped(_))
+  assert_eq(cleanup_score(execution), Ok(true))
 }
 
 ///|

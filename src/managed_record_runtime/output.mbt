@@ -168,12 +168,10 @@ pub fn completed_available(value : Completed) -> Bool {
 ///|
 /// Reclaim a completed generation rejected before downstream handoff.
 pub fn discard_completed(value : Completed) -> Bool {
-  guard @lifecycle.completed_payload(value.core) is Some(storage) &&
-    @lifecycle.revoke_completed(value.core) else {
-    return false
-  }
-  @storage.discard(storage)
-  true
+  @lifecycle.reclaim_completed(value.core, storage => {
+    @storage.discard(storage)
+    true
+  })
 }
 
 ///|

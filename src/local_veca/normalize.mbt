@@ -324,8 +324,7 @@ pub fn start_normalize(
   guard @lower.sequence_step(sequence, step) is Some(@lower.VectorStep(_)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.operation(node) == "VEC.normalize_l2" &&
-    physical_equal(@records.producer_read_receiver(input), owner) &&
-    @records.producer_read_input_index(input) == 0 else {
+    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidKernel)
   }
   guard @records.producer_read_storage(input) is Some(source) &&

@@ -185,8 +185,9 @@ pub fn start_graft(
   }
   let sources = []
   for index, input in inputs {
-    guard physical_equal(@graph.producer_read_receiver(input), owner) &&
-      @graph.producer_read_input_index(input) == index &&
+    guard @graph.producer_read_matches_operation_input(
+        input, owner, step, index,
+      ) &&
       @graph.producer_read_storage(input) is Some(source) else {
       return Err(GraftInputUnavailable)
     }

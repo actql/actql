@@ -646,8 +646,7 @@ pub fn start_score(
     is Some(@lower.VectorStep(prepared)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.operation(node) == "VEC.score_sort" &&
-    physical_equal(@records.producer_read_receiver(input), owner) &&
-    @records.producer_read_input_index(input) == 0 else {
+    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidScoreKernel)
   }
   guard @records.producer_read_storage(input) is Some(source) &&

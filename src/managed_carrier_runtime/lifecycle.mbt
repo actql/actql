@@ -65,6 +65,7 @@ struct Completed[E, T] {
   identity : Ref[Unit]
   retained : Retained[E, T]
   mut revoked : Bool
+  mut reclaimed : Bool
 }
 
 ///|
@@ -280,12 +281,12 @@ pub fn[E, T] complete(
   if !retained_available(retained) {
     return Err(Unavailable)
   }
-  Ok({ identity: Ref(()), retained, revoked: false, })
+  Ok({ identity: Ref(()), retained, revoked: false, reclaimed: false, })
 }
 
 ///|
 pub fn[E, T] completed_available(value : Completed[E, T]) -> Bool {
-  !value.revoked && retained_available(value.retained)
+  !value.revoked && !value.reclaimed && retained_available(value.retained)
 }
 
 ///|
@@ -297,6 +298,26 @@ pub fn[E, T] revoke_completed(value : Completed[E, T]) -> Bool {
   } else {
     value.revoked = true
     true
+  }
+}
+
+///|
+/// Reclaim an unpublished completed payload under its retained ownership.
+/// Current read availability is deliberately irrelevant: revocation closes
+/// use authority, but must not erase the owner's cleanup responsibility.
+pub fn[E, T] reclaim_completed(
+  value : Completed[E, T],
+  dispose : (T) -> Bool,
+) -> Bool {
+  if value.reclaimed {
+    return false
+  }
+  value.revoked = true
+  if dispose(value.retained.payload) {
+    value.reclaimed = true
+    true
+  } else {
+    false
   }
 }
 

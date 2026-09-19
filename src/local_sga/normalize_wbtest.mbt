@@ -114,6 +114,48 @@ fn consumer_owner(producer : @lower.BoundPrepared) -> @lower.BoundPrepared {
 }
 
 ///|
+fn second_input_consumer_owner(
+  first : @lower.BoundPrepared,
+  second : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor("[{\"normalize_graph\":true}]"),
+      [
+        (
+          "first",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(first)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "second",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(second)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(cursor("\"second\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
   @lower.prepare_sequence(owner, {
     max_steps: 10,
@@ -247,6 +289,43 @@ test "normalize advances in bounded steps and feeds two consumers" {
     @storage.edge_count(@graph.producer_read_storage(second).unwrap()),
     1,
   )
+}
+
+///|
+test "normalize admits only the exact external operation input" {
+  let first_owner = source_owner()
+  let second_owner = source_owner()
+  let first = source_graph(first_owner, Ref(true))
+  let second = source_graph(second_owner, Ref(true))
+  let owner = second_input_consumer_owner(first_owner, second_owner)
+  let wrong = @graph.prepare_producer_read(owner, 0, first_owner, first).unwrap()
+  assert_true(
+    start_normalize(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      wrong,
+      storage_limits(),
+      4096L,
+      fn() { true },
+    )
+    is Err(InvalidKernel),
+  )
+  let exact = @graph.prepare_producer_read(owner, 1, second_owner, second).unwrap()
+  let control = @bounded.control()
+  let execution = start_normalize(
+    control,
+    sequence(owner),
+    0,
+    exact,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_normalize(execution, 1).unwrap() is Stopped(_))
+  assert_eq(cleanup_normalize(execution), Ok(true))
 }
 
 ///|

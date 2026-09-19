@@ -137,6 +137,49 @@ test "carrier lifecycle retains one exact immutable generation" {
 }
 
 ///|
+test "carrier lifecycle reclaims unavailable unpublished payloads" {
+  let binding = fixture_binding()
+  let receipt = complete_receipt(binding, RelationMeasure(rows=1, columns=1)).unwrap()
+  let live = Ref(true)
+  let retained = retain(
+    prepare_retention_port(binding, (_ : Unit) => {
+      Some((receipt, "rows", 42, 16L, fn() { live.val }))
+    }),
+    (),
+  ).unwrap()
+  let completed = complete(retained).unwrap()
+  live.val = false
+  assert_false(completed_available(completed))
+  let attempts = Ref(0)
+  let observed = Ref(0)
+  assert_false(
+    reclaim_completed(completed, payload => {
+      observed.val = payload
+      attempts.val += 1
+      false
+    }),
+  )
+  assert_eq(attempts.val, 1)
+  assert_eq(observed.val, 42)
+  assert_true(
+    reclaim_completed(completed, payload => {
+      observed.val = payload
+      attempts.val += 1
+      true
+    }),
+  )
+  assert_eq(attempts.val, 2)
+  assert_eq(observed.val, 42)
+  assert_false(
+    reclaim_completed(completed, _ => {
+      attempts.val += 1
+      true
+    }),
+  )
+  assert_eq(attempts.val, 2)
+}
+
+///|
 test "carrier lifecycle rejects kind mismatch and foreign receipt" {
   let binding = fixture_binding()
   assert_true(

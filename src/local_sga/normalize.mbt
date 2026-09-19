@@ -147,8 +147,7 @@ pub fn start_normalize(
   guard @lower.sequence_step(sequence, step) is Some(@lower.GraphBasicStep(_)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.operation(node) == "SGA.normalize" &&
-    physical_equal(@graph.producer_read_receiver(input), owner) &&
-    @graph.producer_read_input_index(input) == 0 else {
+    @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidKernel)
   }
   guard @graph.producer_read_storage(input) is Some(source) &&

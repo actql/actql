@@ -41,6 +41,48 @@ fn graft_owner(
 }
 
 ///|
+fn reordered_graft_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor("[{\"from\":\"left\",\"graft_graph\":{\"with\":\"right\"}}]"),
+      [
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn one_node_graph(
   owner : @lower.BoundPrepared,
   identity : Double,
@@ -79,8 +121,9 @@ test "graft preserves ordered inputs and collapses equal declarations" {
   let owner = graft_owner(left_owner, right_owner)
   let left = one_node_graph(left_owner, 1.0, "a")
   let right = one_node_graph(right_owner, 1.0, "a")
+  let control = @bounded.control()
   let execution = start_graft(
-    @bounded.control(),
+    control,
     sequence(owner),
     0,
     graft_inputs(owner, left_owner, right_owner, left, right),
@@ -128,6 +171,50 @@ test "graft preserves ordered inputs and collapses equal declarations" {
   assert_eq(@storage.node_count(repeated_result), 1)
   assert_eq(@storage.input_row_count(repeated_result), 2)
   assert_eq(cleanup_graft(repeated_execution), Ok(true))
+}
+
+///|
+test "graft binds each operand to its exact positioned input" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let owner = reordered_graft_owner(left_owner, right_owner)
+  let left = one_node_graph(left_owner, 1.0, "left")
+  let right = one_node_graph(right_owner, 2.0, "right")
+  let exact = [
+    @graph.prepare_producer_read(owner, 1, left_owner, left).unwrap(),
+    @graph.prepare_producer_read(owner, 0, right_owner, right).unwrap(),
+  ]
+  let control = @bounded.control()
+  let execution = start_graft(
+    control,
+    sequence(owner),
+    0,
+    exact,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_graft(execution, 1).unwrap() is GraftContinue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_graft(execution, 1).unwrap() is GraftStopped(_))
+  assert_eq(cleanup_graft(execution), Ok(true))
+
+  let wrong = [
+    @graph.prepare_producer_read(owner, 0, right_owner, right).unwrap(),
+    @graph.prepare_producer_read(owner, 1, left_owner, left).unwrap(),
+  ]
+  assert_true(
+    start_graft(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      wrong,
+      storage_limits(),
+      4096L,
+      fn() { true },
+    )
+    is Err(GraftInputUnavailable),
+  )
 }
 
 ///|
