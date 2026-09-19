@@ -155,6 +155,41 @@ fn[P, T] managed_view_output_verify(
     facts.columns.length() != plan.columns.length() {
     return Err(InconsistentFacts)
   }
+  let inherited_valid = (index : Int, column : ManagedColumnMeasurement) => {
+    guard managed_view_plan_column_facts(plan, index) is Some(inherited) else {
+      return true
+    }
+    if column.max_value_bytes > inherited.max_value_bytes_bound ||
+      (inherited.null_free && column.null_rows != 0) {
+      return false
+    }
+    match inherited.exact_measurement {
+      Some(exact) =>
+        column.bytes == exact.bytes &&
+        column.nodes == exact.nodes &&
+        column.max_value_bytes == exact.max_value_bytes &&
+        column.null_rows == exact.null_rows
+      None => true
+    }
+  }
+  apply_managed_output_facts(stream, facts, inherited_valid, port.index)
+}
+
+///|
+/// Shared finite summary verifier for installed execution implementations.
+/// The caller must first bind the facts to one exact execution and retained
+/// generation. Aggregate metadata supplied by a Program is never sufficient.
+fn apply_managed_output_facts(
+  stream : ManagedOutputValues,
+  facts : ManagedViewOutputFacts,
+  validate_column : (Int, ManagedColumnMeasurement) -> Bool,
+  index : ManagedRowMeasurements?,
+) -> Result[Unit, ManagedViewOutputIssue] {
+  if !stream.open ||
+    facts.rows < 0 ||
+    facts.columns.length() != @schema.field_count(stream.buffer.schema) {
+    return Err(if !stream.open { Closed } else { InconsistentFacts })
+  }
   let usage = facts.admission_usage
   let limits = stream.buffer.budget.limits
   if usage.nodes < 0 || usage.text_bytes < 0 || usage.work < 0 {
@@ -190,20 +225,8 @@ fn[P, T] managed_view_output_verify(
       (facts.rows == 0 && (column.bytes != 0 || column.nodes != 0)) {
       return Err(InconsistentFacts)
     }
-    if managed_view_plan_column_facts(plan, index) is Some(inherited) {
-      if column.max_value_bytes > inherited.max_value_bytes_bound ||
-        (inherited.null_free && column.null_rows != 0) {
-        return Err(InconsistentFacts)
-      }
-      if inherited.exact_measurement is Some(exact) &&
-        (
-          column.bytes != exact.bytes ||
-          column.nodes != exact.nodes ||
-          column.max_value_bytes != exact.max_value_bytes ||
-          column.null_rows != exact.null_rows
-        ) {
-        return Err(InconsistentFacts)
-      }
+    if !validate_column(index, column) {
+      return Err(InconsistentFacts)
     }
     if facts.rows > 0 &&
       (
@@ -225,18 +248,11 @@ fn[P, T] managed_view_output_verify(
       }
     }
   }
-  // No receipt before binding/liveness verification. An indexed diagnostic
-  // resolution below retains the consumed prefix of the shared ledger.
-  if !managed_producer_read_available(plan.input) {
-    return Err(ForeignBinding)
-  }
   if !stream.open {
     return Err(Closed)
   }
   if needs_ordered {
-    guard port.index is Some(index) else {
-      return Err(OutputRepresentationRequired)
-    }
+    guard index is Some(index) else { return Err(OutputRepresentationRequired) }
     match
       measure_managed_output_index(
         index,
@@ -261,7 +277,7 @@ fn[P, T] managed_view_output_verify(
   stream.buffer.budget.text = usage.text_bytes
   stream.buffer.budget.work = usage.work
   stream.rows = facts.rows
-  stream.row_measurements = port.index
+  stream.row_measurements = index
   for index, column in facts.columns {
     stream.column_usage[index] = (column.bytes, column.nodes)
     stream.column_maxima[index] = column.max_value_bytes
