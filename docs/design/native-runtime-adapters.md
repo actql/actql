@@ -168,6 +168,21 @@ Host planning responsibilities. The client does not retry, select another
 Site, infer native stop from HTTP cancellation, or turn a response into common
 task completion.
 
+An outbound-only native Site uses the same HTTPS adapter to poll an admitted
+Coordinator endpoint. The poll envelope carries the exact canonical dispatch
+request and its CID, but grants no execution authority by itself. MoonBit
+re-admits the request and checks the Site generation, task attempt, grants,
+budget, obligations, and runtime pins. The Site installs the accepted record
+in its durable SQLite journal before posting an acknowledgement. Repeated
+delivery reconciles that same record instead of starting another execution.
+
+The poll and acknowledgement calls deliberately contain no automatic retry or
+re-execution policy. A missing acknowledgement leaves the Coordinator and
+Site journals to reconcile their independently durable facts. The current
+slice proves outbound authenticated admission without requiring a native
+listener; it does not yet claim a complete remote compute, bulk transfer, or
+Coordinator gateway implementation.
+
 ## Supported native profiles
 
 The initial native product profiles are:

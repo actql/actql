@@ -27,3 +27,21 @@ pub fn cancel(
 ) -> Result[@remote.RemoteDispatchResponse, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn poll(
+  _client : @http.Client,
+  _url : String,
+) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn acknowledge_acceptance(
+  _journal : @journal.Journal,
+  _client : @http.Client,
+  _url : String,
+  _request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}

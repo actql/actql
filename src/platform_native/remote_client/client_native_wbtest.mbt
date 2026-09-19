@@ -94,3 +94,66 @@ test "native Coordinator persists intent and admitted HTTPS observations" {
   assert_true(client.close())
   assert_true(journal.close())
 }
+
+///|
+test "native Site polls outbound and durably accepts before acknowledgement" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(http_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL") is Some(origin) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_JOURNAL")
+    is Some(journal_path) else {
+    return
+  }
+  let http_library = @http.load_library(http_path).unwrap()
+  let client = http_library
+    .create_client(ca, cert, key, 131072L, 2000, 5000)
+    .unwrap()
+  let sqlite_library = @sqlite.load_library(sqlite_path).unwrap()
+  let site = @site.create_site(
+    "native-site",
+    1,
+    native_remote_cid(
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    ),
+    4,
+    4,
+    1048576L,
+    1048576L,
+  ).unwrap()
+  let journal = @journal.open_journal(
+    sqlite_library,
+    journal_path + ".site",
+    1048576L,
+    @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
+  ).unwrap()
+  let request = poll(client, origin + "/outbound/poll").unwrap().unwrap()
+  assert_eq(
+    @remote.dispatch_request_identity(request),
+    @remote.dispatch_request_identity(native_remote_request()),
+  )
+  let record = acknowledge_acceptance(
+    journal,
+    client,
+    origin + "/outbound/observation",
+    request,
+  ).unwrap()
+  assert_eq(@remote.dispatch_record_revision(record), 0)
+  assert_true(journal.close())
+  assert_true(client.close())
+}

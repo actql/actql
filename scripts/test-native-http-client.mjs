@@ -31,6 +31,28 @@ const issue = (authority, name, extension) => {
   );
 };
 
+const remoteRequestBody = JSON.stringify({
+  budget_cid: `sha256:${'3'.repeat(64)}`,
+  connector_registration: 'local',
+  connector_revision: 'local/1',
+  coordinator_authority: 'native-coordinator',
+  dispatch_id: 'dispatch-native-remote',
+  evidence_issuer_capability_cid: `sha256:${'b'.repeat(64)}`,
+  grant_cid: `sha256:${'4'.repeat(64)}`,
+  input_binding_cid: `sha256:${'1'.repeat(64)}`,
+  obligations_cid: `sha256:${'2'.repeat(64)}`,
+  run_definition_cid: `sha256:${'0'.repeat(64)}`,
+  runtime_bundle_cid: `sha256:${'a'.repeat(64)}`,
+  site_generation: 1,
+  site_key: 'native-site',
+  strategy_revision: 'strategy/1',
+  task_attempt: 1,
+  task_key: 'task-native-remote',
+  version: 'actql-remote-dispatch-request/0.2',
+});
+const remoteRequestCid = `sha256:${createHash('sha256')
+  .update(remoteRequestBody).digest('hex')}`;
+
 let server;
 try {
   openssl('genrsa', '-out', 'ca.key', '2048');
@@ -67,7 +89,14 @@ try {
       return;
     }
     if (request.method !== 'POST' ||
-        !['/probe', '/remote/dispatch', '/remote/query', '/remote/foreign']
+        ![
+          '/probe',
+          '/remote/dispatch',
+          '/remote/query',
+          '/remote/foreign',
+          '/outbound/poll',
+          '/outbound/observation',
+        ]
           .includes(request.url)) {
       response.writeHead(404).end();
       return;
@@ -89,6 +118,37 @@ try {
       return;
     }
     if (request.url === '/probe') {
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"accepted":true}');
+      return;
+    }
+    if (request.url === '/outbound/poll') {
+      if (body !== '{}') {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({
+        dispatch_request_cid: remoteRequestCid,
+        request_json: remoteRequestBody,
+        version: 'actql-remote-poll-dispatch/0.1',
+      }));
+      return;
+    }
+    if (request.url === '/outbound/observation') {
+      let observation;
+      try { observation = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      if (observation.version !== 'actql-remote-dispatch-response/0.1' ||
+          observation.dispatch_request_cid !== remoteRequestCid ||
+          observation.revision !== 0 ||
+          JSON.stringify(observation.state) !== '[0,0,0,0,0]') {
+        response.writeHead(400).end();
+        return;
+      }
       response.writeHead(200, {'content-type': 'application/json'});
       response.end('{"accepted":true}');
       return;

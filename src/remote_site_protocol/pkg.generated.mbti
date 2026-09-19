@@ -31,6 +31,8 @@ pub fn admit_remote_managed_output_subject(String, String, String, String, Strin
 
 pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
+pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
+
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
 
 pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorDispatchIntentRecord), DispatchIssue]
@@ -221,6 +223,8 @@ pub fn remote_dispatch_budget_cid(RemoteDispatchBudget) -> String
 
 pub fn remote_dispatch_budget_json(RemoteDispatchBudget) -> Result[String, DispatchIssue]
 
+pub fn remote_dispatch_reply_json(DispatchRecord) -> Result[String, DispatchIssue]
+
 pub fn remote_dispatch_response_evidence(RemoteDispatchResponse) -> RemoteExecutionEvidence?
 
 pub fn remote_dispatch_response_kind(RemoteDispatchResponse) -> RemoteDispatchResponseKind
@@ -264,6 +268,10 @@ pub fn remote_managed_output_subject_projection(RemoteManagedOutputSubject) -> A
 pub fn remote_managed_output_subject_retention(RemoteManagedOutputSubject) -> (String, String, String, Int64)
 
 pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[Array[String], DispatchIssue]
+
+pub fn remote_poll_dispatch_json(DispatchRequest) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 
 pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
 
@@ -394,6 +402,8 @@ pub(all) enum RemoteExecutionState {
 type RemoteManagedOutputMeasurement
 
 type RemoteManagedOutputSubject
+
+type RemotePollDispatch
 
 pub(all) enum RemoteRuntimeAction {
   RuntimeAwaitStop

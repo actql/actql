@@ -22,6 +22,43 @@ struct RemoteDispatchResponse {
 }
 
 ///|
+fn emit_response_state(
+  writer : @encode.Writer,
+  record : DispatchRecord,
+) -> Unit raise {
+  @encode.begin_array(writer)
+  for value in dispatch_record_state_codes(record) {
+    @encode.number_value(writer, value.to_double())
+  }
+  @encode.end_array(writer)
+}
+
+///|
+/// Emit the bounded transport acknowledgement for an exact Site record.
+pub fn remote_dispatch_reply_json(
+  record : DispatchRecord,
+) -> Result[String, DispatchIssue] {
+  let writer = @encode.writer(4096, 16, 2) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, record.request.dispatch_request_cid)
+    @encode.key(writer, "revision")
+    @encode.number_value(writer, record.revision.to_double())
+    @encode.key(writer, "state")
+    emit_response_state(writer, record)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-dispatch-response/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
 priv suberror ResponseJsonStop {
   ResponseJsonStop
 }

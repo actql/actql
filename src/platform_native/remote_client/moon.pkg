@@ -8,6 +8,7 @@ import {
 }
 
 import {
+  "actql/actql/execution_site" @site,
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/env",
 } for "wbtest"

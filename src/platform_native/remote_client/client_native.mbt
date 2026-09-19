@@ -104,3 +104,56 @@ pub fn cancel(
   }
   exchange(journal, client, url, request, record, @remote.DispatchReply)
 }
+
+///|
+/// Poll an outbound control endpoint. An empty 204 response means no work;
+/// a 200 response must carry one exact canonical dispatch envelope.
+pub fn poll(
+  client : @http.Client,
+  url : String,
+) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
+  let physical = match client.post_json(url, b"{}") {
+    Ok(value) => value
+    Err(issue) => return Err(Http(issue))
+  }
+  if physical.status == 204 {
+    if physical.body.length() == 0 {
+      return Ok(None)
+    }
+    return Err(Protocol(@remote.InvalidDispatch))
+  }
+  if physical.status != 200 {
+    return Err(HttpStatus(physical.status))
+  }
+  let response_text = @utf8.decode(physical.body) catch {
+    _ => return Err(InvalidUtf8)
+  }
+  match @remote.admit_remote_poll_dispatch_json(response_text) {
+    Ok(value) => Ok(Some(@remote.remote_poll_dispatch_request(value)))
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+/// Durably accept a polled dispatch before acknowledging it to the
+/// Coordinator. Repeating this operation reconciles the same Site record.
+pub fn acknowledge_acceptance(
+  journal : @journal.Journal,
+  client : @http.Client,
+  url : String,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteClientIssue] {
+  let record = match journal.accept(request) {
+    Ok((_, value)) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let body = match @remote.remote_dispatch_reply_json(record) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match client.post_json(url, body) {
+    Ok(value) if value.status == 200 => Ok(record)
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
