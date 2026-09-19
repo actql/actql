@@ -229,6 +229,44 @@ test('output above retained reservation fails and releases Site capacity',
     );
   });
 
+test('cancellation retains Site capacity until executor stop is observed',
+  async t => {
+    let enteredResolve;
+    let stopResolve;
+    const entered = new Promise(resolve => { enteredResolve = resolve; });
+    const stopped = new Promise(resolve => { stopResolve = resolve; });
+    const f = await fixture(t, async ({signal}) => {
+      enteredResolve();
+      await new Promise((resolve, reject) => {
+        signal.addEventListener('abort', async () => {
+          await stopped;
+          reject(signal.reason);
+        }, {once: true});
+      });
+    });
+    const dispatch = request();
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    const operation = f.dispatchRuntime.start(dispatch, record);
+    await entered;
+    assert.equal(f.dispatchRuntime.cancel(dispatch), true);
+    assert.deepEqual(f.control.status(record), [2, 0, 0, 0, 0]);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [1n, 0n, 0n, 0n, 0n, 64n, 16n],
+    );
+    stopResolve();
+    await assert.rejects(operation, {code: 'RemoteDispatchCancelled'});
+    assert.deepEqual(f.control.status(record), [5, 0, 2, 0, 0]);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+    );
+  });
+
 test('unconfirmed executor stop retains cleanup until retry confirms it',
   async t => {
     let stopped = false;

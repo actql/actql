@@ -64,6 +64,13 @@ different content is a collision. Reusing the task attempt for another
 dispatch is not permission to reexecute it. Query, retransmission, and a new
 execution attempt are distinct operations.
 
+Cancellation is an authenticated operation on the exact dispatch occurrence,
+not a retransmission and not a stop acknowledgement. The Site forwards the
+request to the active physical handler, while the durable state and capacity
+remain running until handler exit is observed. A non-cooperative handler enters
+the existing unknown-cleanup path; cancellation alone cannot release its
+reservation or authorize a replacement execution.
+
 The accepted record is made durable before physical execution begins. A
 terminal success is reported only after its required evidence, holdings, and
 journal facts are durable. After restart, the Site generation changes and old

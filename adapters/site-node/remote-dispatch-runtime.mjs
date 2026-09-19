@@ -388,6 +388,7 @@ export function createRemoteDispatchRuntime({
       signal?.throwIfAborted();
       store.advance(control.prepareExecution(record), record, control);
       output = await registration.execute(Object.freeze({dispatch, signal}));
+      signal?.throwIfAborted();
       checkedOutput(output);
       operationState.siteHolding = siteControl.retainOperationHolding(
         operationState.operation,
@@ -473,18 +474,40 @@ export function createRemoteDispatchRuntime({
       }
       const identity = control.identity(dispatch);
       const prior = active.get(identity);
-      if (prior !== undefined) return prior;
+      if (prior !== undefined) return prior.operation;
       if (control.status(record)[0] !== 0) {
         fail('RemoteDispatchAlreadyStarted');
       }
-      const operation = run(registration, budget, dispatch, record, signal)
-        .finally(() => active.delete(identity));
+      const controller = new AbortController();
+      const abort = () => controller.abort(signal?.reason);
+      if (signal?.aborted) abort();
+      else signal?.addEventListener('abort', abort, {once: true});
+      const operation = run(
+        registration,
+        budget,
+        dispatch,
+        record,
+        controller.signal,
+      ).finally(() => {
+        signal?.removeEventListener('abort', abort);
+        active.delete(identity);
+      });
       operation.catch(() => {});
-      active.set(identity, operation);
+      active.set(identity, {operation, controller});
       return operation;
     },
     active(dispatch) {
-      return active.get(control.identity(dispatch));
+      return active.get(control.identity(dispatch))?.operation;
+    },
+    cancel(dispatch) {
+      const running = active.get(control.identity(dispatch));
+      if (running === undefined) return false;
+      running.controller.abort(
+        Object.assign(new Error('RemoteDispatchCancelled'), {
+          code: 'RemoteDispatchCancelled',
+        }),
+      );
+      return true;
     },
     async release(dispatch) {
       const identity = control.identity(dispatch);
@@ -501,7 +524,18 @@ export function createRemoteDispatchRuntime({
     async close() {
       const wasClosed = closed;
       closed = true;
-      if (!wasClosed) await Promise.allSettled([...active.values()]);
+      if (!wasClosed) {
+        for (const entry of active.values()) {
+          entry.controller.abort(
+            Object.assign(new Error('RemoteDispatchRuntimeClosed'), {
+              code: 'RemoteDispatchRuntimeClosed',
+            }),
+          );
+        }
+        await Promise.allSettled(
+          [...active.values()].map(entry => entry.operation),
+        );
+      }
       const failures = [];
       for (const [identity, owner] of [...owners]) {
         try {

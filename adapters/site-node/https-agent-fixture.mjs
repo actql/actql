@@ -37,11 +37,26 @@ const registration = prepareRemoteRuntimeRegistration({
   control: runtime.remoteSiteControl,
   site,
   ...configuration.runtime,
-  execute: async () => Object.freeze({
-    ...configuration.runtime.output,
-    retainedBytes: BigInt(configuration.runtime.output.retainedBytes),
-    async close() {},
-  }),
+  execute: async ({signal}) => {
+    if (configuration.runtime.delayMs > 0) {
+      await new Promise((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        };
+        const timer = setTimeout(() => {
+          signal.removeEventListener('abort', abort);
+          resolve();
+        }, configuration.runtime.delayMs);
+        signal.addEventListener('abort', abort, {once: true});
+      });
+    }
+    return Object.freeze({
+      ...configuration.runtime.output,
+      retainedBytes: BigInt(configuration.runtime.output.retainedBytes),
+      async close() {},
+    });
+  },
 });
 const budgets = configuration.budgets.map(budget =>
   runtime.remoteSiteControl.prepareBudget({

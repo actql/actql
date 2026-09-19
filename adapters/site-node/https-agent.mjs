@@ -58,6 +58,7 @@ export async function startHttpsRemoteSiteAgent({
       dispatchRuntime === null || typeof dispatchRuntime !== 'object' ||
       typeof dispatchRuntime.supports !== 'function' ||
       typeof dispatchRuntime.start !== 'function' ||
+      typeof dispatchRuntime.cancel !== 'function' ||
       typeof dispatchRuntime.close !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     fail('InvalidRemoteSiteAgentConfiguration');
@@ -65,6 +66,7 @@ export async function startHttpsRemoteSiteAgent({
   const endpoint = `/v1/sites/${encodeURIComponent(siteKey)}/generations/` +
     `${siteGeneration}/dispatches`;
   const queryEndpoint = `${endpoint}/query`;
+  const cancelEndpoint = `${endpoint}/cancel`;
   const server = createServer({
     key,
     cert,
@@ -84,7 +86,9 @@ export async function startHttpsRemoteSiteAgent({
         request.url === endpoint;
       const queryRequest = request.method === 'POST' &&
         request.url === queryEndpoint;
-      if ((!admissionRequest && !queryRequest) ||
+      const cancelRequest = request.method === 'POST' &&
+        request.url === cancelEndpoint;
+      if ((!admissionRequest && !queryRequest && !cancelRequest) ||
           request.headers['content-type'] !== 'application/json') {
         reply(response, 404, {error: 'not_found'});
         return;
@@ -102,12 +106,28 @@ export async function startHttpsRemoteSiteAgent({
         reply(response, 404, {error: 'not_found'});
         return;
       }
-      if (queryRequest) {
+      if (queryRequest || cancelRequest) {
         const accepted = store.inspect(dispatch, control);
         const state = store.inspectState(dispatch, control);
         if (accepted === undefined || state === undefined ||
             accepted.dispatch_request_cid !== control.identity(dispatch)) {
           reply(response, 404, {error: 'not_found'});
+          return;
+        }
+        if (cancelRequest) {
+          dispatchRuntime.cancel(dispatch);
+          reply(response, 200, {
+            version: 'actql-remote-dispatch-response/0.1',
+            dispatch_request_cid: control.identity(dispatch),
+            revision: state[0],
+            state: [
+              state[1],
+              state[2],
+              state[3],
+              state[4] ? 1 : 0,
+              state[5] ? 1 : 0,
+            ],
+          });
           return;
         }
         const evidence = store.inspectEvidence(dispatch, control);

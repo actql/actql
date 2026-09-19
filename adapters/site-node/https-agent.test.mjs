@@ -9,7 +9,11 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {queryRemoteDispatch, sendRemoteDispatch} from
+import {
+  cancelRemoteDispatch,
+  queryRemoteDispatch,
+  sendRemoteDispatch,
+} from
   '../host-node/remote-site-client.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -104,7 +108,7 @@ const dispatch = (dispatchId = 'dispatch-a', revision = 'local/1') =>
     grantCid: cid('4'),
   }));
 
-async function startFixture(root, material) {
+async function startFixture(root, material, {delayMs = 0} = {}) {
   const configurationPath = join(root, 'agent.json');
   await writeFile(configurationPath, JSON.stringify({
     keyPath: join(root, 'site.key'),
@@ -131,6 +135,7 @@ async function startFixture(root, material) {
       operationCapabilityCid: cid('4'),
       evidenceKind: 'actql.remote.physical-output/0.1',
       issuerCapabilityCid: cid('b'),
+      delayMs,
       output: {
         materialGeneration: 'material-generation-a',
         holdingEvidenceCid: cid('c'),
@@ -234,3 +239,38 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       error => error.code === 'RemoteSiteRejected' && error.status === 404,
     );
   });
+
+test('authenticated cancellation waits for physical handler exit', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-remote-cancel-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const material = await certificates(root);
+  const fixture = await startFixture(root, material, {delayMs: 10_000});
+  t.after(() => fixture.close());
+  const request = dispatch('dispatch-cancel');
+  const options = {
+    origin: fixture.origin,
+    ca: material.ca,
+    cert: material.coordinatorCertificate,
+    key: material.coordinatorKey,
+    control: runtime.remoteSiteControl,
+    dispatch: request,
+  };
+  await sendRemoteDispatch(options);
+  await assert.rejects(
+    cancelRemoteDispatch({
+      ...options,
+      cert: material.foreignCertificate,
+      key: material.foreignKey,
+    }),
+    error => error.code === 'RemoteSiteRejected' && error.status === 404,
+  );
+  assert.deepEqual((await queryRemoteDispatch(options)).state, [2, 0, 0, 0, 0]);
+  const cancellation = await cancelRemoteDispatch(options);
+  assert.equal(
+    cancellation.dispatchRequestCid,
+    runtime.remoteSiteControl.identity(request),
+  );
+  const terminal = await terminalStatus(options);
+  assert.deepEqual(terminal.state, [5, 0, 2, 0, 0]);
+  assert.equal(terminal.evidence, undefined);
+});

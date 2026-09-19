@@ -17,7 +17,7 @@ async function exchangeRemoteDispatch({
   dispatch,
   signal,
   maxResponseBytes = 16_384,
-} = {}, query = false) {
+} = {}, operation = 'dispatch') {
   if (!text(origin) || ca === undefined || cert === undefined ||
       key === undefined || !text(servername) ||
       control === null || typeof control !== 'object' ||
@@ -31,8 +31,11 @@ async function exchangeRemoteDispatch({
   const body = control.requestJson(dispatch);
   const bodyBytes = Buffer.from(body, 'utf8');
   const parts = control.journalKey(dispatch);
+  const suffix = operation === 'query'
+    ? '/query'
+    : operation === 'cancel' ? '/cancel' : '';
   const path = `/v1/sites/${encodeURIComponent(parts[1])}/generations/` +
-    `${parts[2]}/dispatches${query ? '/query' : ''}`;
+    `${parts[2]}/dispatches${suffix}`;
   return await new Promise((resolve, reject) => {
     const request = httpsRequest(new URL(path, origin), {
       method: 'POST',
@@ -78,6 +81,7 @@ async function exchangeRemoteDispatch({
           }));
           return;
         }
+        const query = operation === 'query';
         const expectedVersion = query
           ? 'actql-remote-dispatch-status/0.1'
           : 'actql-remote-dispatch-response/0.1';
@@ -131,9 +135,13 @@ async function exchangeRemoteDispatch({
 }
 
 export function sendRemoteDispatch(options) {
-  return exchangeRemoteDispatch(options, false);
+  return exchangeRemoteDispatch(options, 'dispatch');
 }
 
 export function queryRemoteDispatch(options) {
-  return exchangeRemoteDispatch(options, true);
+  return exchangeRemoteDispatch(options, 'query');
+}
+
+export function cancelRemoteDispatch(options) {
+  return exchangeRemoteDispatch(options, 'cancel');
 }
