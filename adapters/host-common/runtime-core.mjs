@@ -69,6 +69,7 @@ function siteControl(moon) {
     managedCandidateFallback: moon.strategySiteManagedCandidateFallback,
     failedOperationAction: moon.strategySiteFailedOperationAction,
     retainedHoldingAction: moon.strategySiteRetainedHoldingAction,
+    hostCleanupAction: moon.strategyHostCleanupAction,
   });
   siteControls.set(moon, control);
   return control;

@@ -245,5 +245,23 @@ export function createExecutionSiteControlFixture() {
       if (closeFailed) return 2;
       return 1;
     },
+    hostCleanupAction(
+      initialRetryDone,
+      closesAwaited,
+      finalRetryDone,
+      closesPending,
+      knownCleanupPending,
+      unconfirmedOwnership,
+      cleanupFailed,
+    ) {
+      if (!initialRetryDone) return 0;
+      if (closesPending && !closesAwaited) return 1;
+      if (!finalRetryDone) return 0;
+      if (cleanupFailed) return 3;
+      if (closesPending || knownCleanupPending || unconfirmedOwnership) {
+        return 2;
+      }
+      return 4;
+    },
   });
 }

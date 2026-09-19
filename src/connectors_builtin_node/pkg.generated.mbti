@@ -66,6 +66,8 @@ pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.Publicatio
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
+pub fn strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_host_close_outputs(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
 pub fn strategy_host_configure_managed_identity(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool, Bool) -> Bool

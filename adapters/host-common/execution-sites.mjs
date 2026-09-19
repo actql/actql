@@ -39,6 +39,7 @@ const controlMethods = [
   'selectCandidate', 'planCandidate', 'managedCandidateFallback',
   'failedOperationAction',
   'retainedHoldingAction',
+  'hostCleanupAction',
 ];
 
 function checkedControl(control) {
@@ -543,6 +544,33 @@ export function retainedExecutionSiteHoldingAction(
   );
   if (!Number.isSafeInteger(action) || action < 0 || action > 5) {
     fail('InvalidExecutionSiteHoldingAction');
+  }
+  return action;
+}
+
+export function executionSiteHostCleanupAction(
+  installation,
+  initialRetryDone,
+  closesAwaited,
+  finalRetryDone,
+  closesPending,
+  knownCleanupPending,
+  unconfirmedOwnership,
+  cleanupFailed,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const action = state.control.hostCleanupAction(
+    initialRetryDone,
+    closesAwaited,
+    finalRetryDone,
+    closesPending,
+    knownCleanupPending,
+    unconfirmedOwnership,
+    cleanupFailed,
+  );
+  if (!Number.isSafeInteger(action) || action < 0 || action > 4) {
+    fail('InvalidExecutionSiteHostCleanupAction');
   }
   return action;
 }

@@ -2545,6 +2545,25 @@ pub fn strategy_site_retained_holding_action(
 }
 
 ///|
+#export_name("strategyHostCleanupAction")
+pub fn strategy_host_cleanup_action(
+  initial_retry_done : Bool,
+  closes_awaited : Bool,
+  final_retry_done : Bool,
+  closes_pending : Bool,
+  known_cleanup_pending : Bool,
+  unconfirmed_ownership : Bool,
+  cleanup_failed : Bool,
+) -> Int {
+  @strategy.host_cleanup_runtime_action_code(
+    @strategy.prepare_host_cleanup_step(
+      initial_retry_done, closes_awaited, final_retry_done, closes_pending, known_cleanup_pending,
+      unconfirmed_ownership, cleanup_failed,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRemoteDispatchPrepare")
 pub fn strategy_remote_dispatch_prepare(
   coordinator_authority : String,

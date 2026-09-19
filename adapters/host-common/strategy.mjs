@@ -3,7 +3,8 @@
 // Installed entries are implementation code, not user-supplied success proofs.
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   executionSiteCandidate,
-  executionSiteDescription, executionSiteOperationAvailable,
+  executionSiteDescription, executionSiteHostCleanupAction,
+  executionSiteOperationAvailable,
   executionSitePlacements, failedExecutionSiteOperationAction,
   installExecutionSites,
   prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
@@ -849,6 +850,19 @@ export async function runInstalledStrategy(
         // Only an explicit recovery handle authorizes retry; never run Compute.
         const errors = [];
         const attempted = new Set();
+        let initialRetryDone = false;
+        let closesAwaited = false;
+        let finalRetryDone = false;
+        const knownCleanupPending = () => {
+          for (const handle of pendingCleanup) {
+            try {
+              if (handle.status().pending) return true;
+            } catch {
+              return true;
+            }
+          }
+          return false;
+        };
         const retryKnown = async () => {
           for (const handle of [...pendingCleanup]) {
             if (attempted.has(handle)) continue;
@@ -859,16 +873,37 @@ export async function runInstalledStrategy(
             } catch (error) { errors.push(error); }
           }
         };
-        // A retained output close may wait for a failed Transfer's source pin,
-        // while that pin belongs to an already known recovery handle. Progress
-        // known operation cleanup first, then observe every initiated close.
-        // Close failures can contribute new explicit handles, so run one more
-        // pass after those Promises have settled.
-        await retryKnown();
-        await Promise.all([...pendingCloses]);
-        await retryKnown();
-        if (errors.length) throw new AggregateError(errors, 'Strategy cleanup failed');
-        return !cleanupPending();
+        for (let step = 0; step < 8; step++) {
+          const action = executionSiteHostCleanupAction(
+            siteInstallation,
+            initialRetryDone,
+            closesAwaited,
+            finalRetryDone,
+            pendingCloses.size !== 0,
+            knownCleanupPending(),
+            unconfirmedRelease.size !== 0 ||
+              unconfirmedSiteOperations.size !== 0,
+            errors.length !== 0,
+          );
+          if (action === 0) {
+            await retryKnown();
+            if (!initialRetryDone) initialRetryDone = true;
+            else finalRetryDone = true;
+            continue;
+          }
+          if (action === 1) {
+            await Promise.all([...pendingCloses]);
+            closesAwaited = true;
+            continue;
+          }
+          if (action === 2) return false;
+          if (action === 3) {
+            throw new AggregateError(errors, 'Strategy cleanup failed');
+          }
+          if (action === 4) return true;
+          throw new StrategyHostError('InvalidStrategyCleanupProgress');
+        }
+        throw new StrategyHostError('StrategyCleanupDidNotConverge');
       })().finally(() => { cleanupInFlight = undefined; });
       return cleanupInFlight;
     },
