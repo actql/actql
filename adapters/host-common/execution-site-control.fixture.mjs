@@ -168,5 +168,23 @@ export function createExecutionSiteControlFixture() {
     beginTeardown(site) { site.accepting = false; },
     revoke(site) { site.accepting = false; site.revoked = true; },
     status,
+    selectCandidate(durations, keys) {
+      if (!Array.isArray(durations) || !Array.isArray(keys) ||
+          durations.length !== keys.length) return -2;
+      let selected = -1;
+      for (let index = 0; index < durations.length; index++) {
+        if (typeof durations[index] !== 'bigint' || durations[index] < 0n ||
+            typeof keys[index] !== 'string' || keys[index].length === 0) {
+          return -2;
+        }
+        if (keys.indexOf(keys[index]) !== index) return -3;
+        if (selected < 0 || durations[index] < durations[selected] ||
+            durations[index] === durations[selected] &&
+              keys[index] < keys[selected]) {
+          selected = index;
+        }
+      }
+      return selected;
+    },
   });
 }

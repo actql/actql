@@ -6,7 +6,8 @@ import {bindExecutionSiteCandidate, executionSiteCandidate,
   executionSitePlacements, installExecutionSites,
   prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
-  startExecutionSiteOperation} from './execution-sites.mjs';
+  selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
+  './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
 import {storeCompletedResultPublicationPayload} from
@@ -433,27 +434,20 @@ export async function runInstalledStrategy(
       }
       const managedTask = prepared.length ? core.nextTask(setup) : -1;
       for (const candidate of prepared) {
-        const duration = candidate.siteCandidate.durationMilliseconds;
-        const key = candidate.siteCandidate.selectionKey;
-        if (candidate.task.task !== managedTask ||
-            typeof duration !== 'bigint' || duration < 0n ||
-            typeof key !== 'string' || key.length === 0) {
+        if (candidate.task.task !== managedTask) {
           throw new StrategyHostError('InvalidManagedCandidate');
         }
       }
-      if (new Set(prepared.map(value => value.siteCandidate.selectionKey)).size !==
-          prepared.length) {
-        throw new StrategyHostError('DuplicateManagedSelectionKey');
-      }
-      prepared.sort((left, right) => {
-        const a = left.siteCandidate.durationMilliseconds;
-        const b = right.siteCandidate.durationMilliseconds;
-        if (a !== b) return a < b ? -1 : 1;
-        const leftKey = left.siteCandidate.selectionKey;
-        const rightKey = right.siteCandidate.selectionKey;
-        return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
-      });
-      const managed = prepared[0];
+      const managedCandidate = prepared.length === 0 ? -1
+        : selectExecutionSiteCandidateIndex(
+          prepared.map(value => value.siteCandidate),
+          {
+            invalid: 'InvalidManagedCandidate',
+            duplicate: 'DuplicateManagedSelectionKey',
+          },
+        );
+      const managed = managedCandidate < 0
+        ? undefined : prepared[managedCandidate];
       if (!managed && Array.isArray(managedInputs) && managedInputs.length !== 0) {
         const retainedInputs = managedInputs.filter(producer =>
           managedOutputs.has(producer));
@@ -535,15 +529,10 @@ export async function runInstalledStrategy(
             }));
           }
         }
-        placementCandidates.sort((left, right) => {
-          if (left.durationMilliseconds !== right.durationMilliseconds) {
-            return left.durationMilliseconds < right.durationMilliseconds
-              ? -1 : 1;
-          }
-          return left.selectionKey < right.selectionKey ? -1
-            : left.selectionKey > right.selectionKey ? 1 : 0;
-        });
-        siteCandidate = placementCandidates[0];
+        const selectedPlacement = placementCandidates.length === 0 ? -1
+          : selectExecutionSiteCandidateIndex(placementCandidates);
+        siteCandidate = selectedPlacement < 0
+          ? undefined : placementCandidates[selectedPlacement];
       }
       if (!siteCandidate || siteCandidate.excluded !== undefined) {
         throw new StrategyHostError(

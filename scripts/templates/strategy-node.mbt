@@ -2553,6 +2553,15 @@ pub fn strategy_site_status(site : @site.ExecutionSite) -> Array[Int64] {
 }
 
 ///|
+#export_name("strategySiteSelectCandidate")
+pub fn strategy_site_select_candidate(
+  durations : Array[Int64],
+  selection_keys : Array[String],
+) -> Int {
+  @site.select_site_candidate_index(durations, selection_keys)
+}
+
+///|
 #export_name("strategyRemoteDispatchPrepare")
 pub fn strategy_remote_dispatch_prepare(
   coordinator_authority : String,

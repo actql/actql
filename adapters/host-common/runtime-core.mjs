@@ -48,6 +48,7 @@ function siteControl(moon) {
     beginTeardown: moon.strategySiteBeginTeardown,
     revoke: moon.strategySiteRevoke,
     status: moon.strategySiteStatus,
+    selectCandidate: moon.strategySiteSelectCandidate,
   });
   siteControls.set(moon, control);
   return control;

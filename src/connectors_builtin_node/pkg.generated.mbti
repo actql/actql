@@ -530,6 +530,8 @@ pub fn strategy_site_revoke(@execution_site.ExecutionSite) -> Unit
 
 pub fn strategy_site_revoked(@execution_site.ExecutionSite) -> Bool
 
+pub fn strategy_site_select_candidate(Array[Int64], Array[String]) -> Int
+
 pub fn strategy_site_settle_operation(@execution_site.SiteOperation) -> Bool
 
 pub fn strategy_site_settle_transfer_destination(@execution_site.SiteTransfer) -> Bool

@@ -20,6 +20,8 @@ pub fn retain_site_transfer_holding(SiteTransfer, Int64) -> SiteHolding?
 
 pub fn revoke_site(ExecutionSite) -> Unit
 
+pub fn select_site_candidate_index(Array[Int64], Array[String]) -> Int
+
 pub fn settle_site_operation(SiteOperation) -> Bool
 
 pub fn settle_site_transfer_destination(SiteTransfer) -> Bool

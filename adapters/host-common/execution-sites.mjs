@@ -35,6 +35,7 @@ const controlMethods = [
   'settleTransferSource', 'settleTransferDestination',
   'retainTransferHolding', 'retainHolding', 'releaseHolding',
   'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
+  'selectCandidate',
 ];
 
 function checkedControl(control) {
@@ -218,6 +219,39 @@ export function executionSitePlacements(installation, contribution) {
   const placed = state.placement.get(contribution);
   if (!placed) fail('ForeignExecutionSiteContribution');
   return placed;
+}
+
+// Candidate facts are produced by environment placement adapters, while the
+// portable Site control owns the cost and stable-key decision.
+export function selectExecutionSiteCandidateIndex(
+  candidates,
+  {
+    invalid = 'InvalidExecutionSiteCandidateSet',
+    duplicate = 'DuplicateExecutionSiteSelectionKey',
+  } = {},
+) {
+  if (!Array.isArray(candidates)) fail(invalid);
+  if (candidates.length === 0) return -1;
+  let control;
+  for (const candidate of candidates) {
+    if (candidate === null || typeof candidate !== 'object' ||
+        candidate.excluded !== undefined) {
+      fail(invalid);
+    }
+    const state = controlled(siteState(candidate.site));
+    if (control !== undefined && control !== state.control) fail(invalid);
+    control = state.control;
+  }
+  const selected = control.selectCandidate(
+    candidates.map(candidate => candidate.durationMilliseconds),
+    candidates.map(candidate => candidate.selectionKey),
+  );
+  if (selected === -3) fail(duplicate);
+  if (!Number.isSafeInteger(selected) || selected < 0 ||
+      selected >= candidates.length) {
+    fail(invalid);
+  }
+  return selected;
 }
 
 export function executionSiteTransferProvider(installation) {
