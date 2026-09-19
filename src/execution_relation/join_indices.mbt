@@ -101,8 +101,7 @@ fn[L : IndexedRows, R : IndexedRows] compare_join_indices(
     match charge_comparison_pair(control, l, r) {
       Ok(_) => ()
       Err(ComparisonChargeLimit) => return Err(Limit)
-      Err(ComparisonChargeInvalidOperand) =>
-        return Err(Scalar(InvalidOperand))
+      Err(ComparisonChargeInvalidOperand) => return Err(Scalar(InvalidOperand))
     }
     let c = match (l, r) {
       (Null, Null) => 0
@@ -165,6 +164,7 @@ fn[L : IndexedRows, R : IndexedRows] inner_join_indices(
   max_output_rows : Int,
   control : ControlBudget,
   workspace : RowWorkspace,
+  right_tie_order? : Array[ColumnOrder] = [],
 ) -> Result[Array[(Int, Int)], JoinIndexIssue] {
   if keys.is_empty() ||
     max_output_rows < 0 ||
@@ -190,6 +190,12 @@ fn[L : IndexedRows, R : IndexedRows] inner_join_indices(
         return Err(InvalidInput)
       }
       order.push({ column: rc, descending: false, nulls_first: true, })
+    }
+    for term in right_tie_order {
+      if term.column < 0 || term.column >= right.column_count() {
+        return Err(InvalidInput)
+      }
+      order.push(term)
     }
     // Both inputs are checked even when the opposite input is empty.
     if validate_join_index_input(left, keys, true, fail_null, control) is Err(e) {

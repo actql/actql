@@ -234,17 +234,18 @@ fn assertion_admitted_value(
   match kind {
     "resource" =>
       issued_resource_value(
-        contract,
-        "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         live,
-      ).value |> capture
+      ).value
+      |> capture
     "artifact" => issued_artifact_value(contract, live).value |> capture
     _ =>
       @admitted.admit(contract, input_cursor(wire), {
         max_nodes: 100,
         max_depth: 10,
         max_text_bytes: 1000,
-      }).unwrap().value |> capture
+      }).unwrap().value
+      |> capture
   }
 }
 
@@ -255,18 +256,17 @@ test "row assertions preserve every relation value payload" {
     ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
     ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
     (
-      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}",
-      "\"1.20\"", "ordinary",
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+      "ordinary",
     ),
     ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
     (
-      "{\"type\":\"timestamp\",\"nullable\":true}",
-      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+      "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
     ),
     ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
     (
-      "{\"type\":\"json\",\"nullable\":true}",
-      "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+      "{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
     ),
     (
       "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
@@ -320,13 +320,13 @@ test "unique assertions compare every key domain including owned references" {
     ("{\"type\":\"string\",\"nullable\":false}", "\"é\"", "ordinary"),
     ("{\"type\":\"number\",\"nullable\":false}", "1", "ordinary"),
     (
-      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}",
-      "\"1.20\"", "ordinary",
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}", "\"1.20\"",
+      "ordinary",
     ),
     ("{\"type\":\"boolean\",\"nullable\":false}", "true", "ordinary"),
     (
-      "{\"type\":\"timestamp\",\"nullable\":false}",
-      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+      "{\"type\":\"timestamp\",\"nullable\":false}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
     ),
     ("{\"type\":\"date\",\"nullable\":false}", "\"0000-02-29\"", "ordinary"),
     (
@@ -368,11 +368,12 @@ test "unique assertion work and workspace bounds are exact at scale" {
   validate_unique_rows(input, keys, ordinals, control, workspace).unwrap()
   let used = maximum - control.remaining
   let peak = workspace.peak
-  for (work, space, success) in [
-    (used, peak, true),
-    (used - 1, peak, false),
-    (used, peak - 1, false),
-  ] {
+  for
+    (work, space, success) in [
+      (used, peak, true),
+      (used - 1, peak, false),
+      (used, peak - 1, false),
+    ] {
     let result = validate_unique_rows(
       input,
       keys,

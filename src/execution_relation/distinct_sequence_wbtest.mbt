@@ -146,7 +146,13 @@ fn distinct_input_owner(
   ).unwrap()
   let carrier = @carrier.relation(@carrier.typed_rows(schema))
   let checked = @pipeline.check_with_evidence(
-    input_cursor(if whole { "[{\"distinct\":true}]" } else { "[{\"distinct\":[\"key\"]}]" }),
+    input_cursor(
+      if whole {
+        "[{\"distinct\":true}]"
+      } else {
+        "[{\"distinct\":[\"key\"]}]"
+      },
+    ),
     [("seed", @pipeline.CarrierInput(carrier))],
     None,
     Some(input_cursor("\"seed\"")),
@@ -174,18 +180,20 @@ fn distinct_input_owner(
 
 ///|
 test "whole-row distinct compares every key domain including owned references" {
-  let payload = select_checked_contract("{\"type\":\"number\",\"nullable\":false}")
+  let payload = select_checked_contract(
+    "{\"type\":\"number\",\"nullable\":false}",
+  )
   let cases = [
     ("{\"type\":\"string\",\"nullable\":false}", "\"é\"", "ordinary"),
     ("{\"type\":\"number\",\"nullable\":false}", "1", "ordinary"),
     (
-      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}",
-      "\"1.20\"", "ordinary",
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}", "\"1.20\"",
+      "ordinary",
     ),
     ("{\"type\":\"boolean\",\"nullable\":false}", "true", "ordinary"),
     (
-      "{\"type\":\"timestamp\",\"nullable\":false}",
-      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+      "{\"type\":\"timestamp\",\"nullable\":false}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
     ),
     ("{\"type\":\"date\",\"nullable\":false}", "\"0000-02-29\"", "ordinary"),
     (
@@ -208,7 +216,8 @@ test "whole-row distinct compares every key domain including owned references" {
       ["distinct_0"],
       100000,
       10000,
-    ).unwrap() |> ignore
+    ).unwrap()
+    |> ignore
     let live = Ref(true)
     let value = assertion_admitted_value(key, wire, kind, live)
     let kernel = row_kernel(owner, 0)
@@ -237,18 +246,17 @@ test "keyed distinct accepts every relation value payload domain" {
     ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
     ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
     (
-      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}",
-      "\"1.20\"", "ordinary",
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+      "ordinary",
     ),
     ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
     (
-      "{\"type\":\"timestamp\",\"nullable\":true}",
-      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+      "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
     ),
     ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
     (
-      "{\"type\":\"json\",\"nullable\":true}",
-      "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+      "{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
     ),
     (
       "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",

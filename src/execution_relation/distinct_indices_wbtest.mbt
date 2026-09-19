@@ -141,11 +141,12 @@ test "distinct work and workspace bounds are exact at scale" {
   )
   let used = maximum - control.remaining
   let peak = workspace.peak
-  for (work, space, success) in [
-    (used, peak, true),
-    (used - 1, peak, false),
-    (used, peak - 1, false),
-  ] {
+  for
+    (work, space, success) in [
+      (used, peak, true),
+      (used - 1, peak, false),
+      (used, peak - 1, false),
+    ] {
     let result = distinct_indices(
       input,
       [0],

@@ -72,18 +72,17 @@ test "cross join preserves every relation value domain and NULL" {
     ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
     ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
     (
-      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}",
-      "\"1.20\"", "ordinary",
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+      "ordinary",
     ),
     ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
     (
-      "{\"type\":\"timestamp\",\"nullable\":true}",
-      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+      "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
     ),
     ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
     (
-      "{\"type\":\"json\",\"nullable\":true}",
-      "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+      "{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
     ),
     (
       "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
@@ -117,8 +116,7 @@ test "cross join preserves every relation value domain and NULL" {
     let value = match kind {
       "resource" =>
         issued_resource_value(
-          contract,
-          "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           live,
         ).value
       "artifact" => issued_artifact_value(contract, live).value
@@ -130,10 +128,10 @@ test "cross join preserves every relation value domain and NULL" {
         }).unwrap().value
     }
     let null = @admitted.admit(contract, input_cursor("null"), {
-      max_nodes: 1,
-      max_depth: 0,
-      max_text_bytes: 0,
-    }).unwrap().value
+        max_nodes: 1,
+        max_depth: 0,
+        max_text_bytes: 0,
+      }).unwrap().value
     let result = evaluate_cross_join_rows(
       kernel,
       AdmittedTable({

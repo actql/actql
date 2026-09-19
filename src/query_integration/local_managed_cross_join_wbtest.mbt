@@ -149,30 +149,26 @@ test "Local managed cross join cancellation publishes nothing and reclaims" {
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
       wire: retained_attempt_wire_limits(),
-      row: {
-        max_bytes: 100,
-        max_nodes: 20,
-        max_depth: 4,
-        max_text_bytes: 100,
-      },
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
       max_batch_bytes: 64,
     },
     None,
   ).unwrap()
-  let owner = @strategy.graph_task_owner(
-    @strategy.captured_dag_graph(run),
-    1,
-  ).unwrap()
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
   let setup = @local_driver.prepare_local_managed_dispatch(
-    installed,
-    [],
-    @execution.process_managed_obligations(owner),
-    0L,
-  ).unwrap().unwrap()
+      installed,
+      [],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
   let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
   (operations.close)()
   assert_true((operations.execute)() is Err(_))
-  assert_true((operations.complete)(1, operations.storage_bytes, fn() { true }) is Err(_))
+  assert_true(
+    (operations.complete)(1, operations.storage_bytes, fn() { true }) is Err(_),
+  )
   (operations.settle)().unwrap()
   (operations.cleanup_refresh)() |> ignore
   assert_false(@strategy.captured_task_completed(run, 1))

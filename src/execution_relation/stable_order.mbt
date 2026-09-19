@@ -30,8 +30,7 @@ fn[T : IndexedRows] compare_row_indices(
     match charge_comparison_pair(control, left, right) {
       Ok(_) => ()
       Err(ComparisonChargeLimit) => return Err(Limit)
-      Err(ComparisonChargeInvalidOperand) =>
-        return Err(Scalar(InvalidOperand))
+      Err(ComparisonChargeInvalidOperand) => return Err(Scalar(InvalidOperand))
     }
     let comparison = match (left, right) {
       (Null, Null) => 0
