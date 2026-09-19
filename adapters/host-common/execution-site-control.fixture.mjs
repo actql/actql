@@ -186,6 +186,30 @@ export function createExecutionSiteControlFixture() {
       }
       return selected;
     },
+    planCandidate(value) {
+      const length = value.transferRequired.length;
+      if (![value.sharedTransfer, value.sourceRevoked,
+        value.estimateAvailable, value.transferBytes, value.retainedBytes,
+        value.executionBytes].every(array => array.length === length)) {
+        return [7, 0n];
+      }
+      if (value.durationMilliseconds === null ||
+          value.startupMilliseconds === null) return [1, 0n];
+      if (!value.capacitySupported) return [2, 0n];
+      let duration = value.durationMilliseconds + value.startupMilliseconds;
+      for (let index = 0; index < length; index++) {
+        if (!value.transferRequired[index]) continue;
+        if (!value.acceptsSiteTransfer) return [3, 0n];
+        if (!value.transferProviderAvailable) return [4, 0n];
+        if (value.sourceRevoked[index]) return [5, 0n];
+        if (!value.estimateAvailable[index]) return [6, 0n];
+        if (!value.sharedTransfer[index]) {
+          if (value.transferMilliseconds === null) return [1, 0n];
+          duration += value.transferMilliseconds;
+        }
+      }
+      return [0, duration];
+    },
     failedOperationAction(cleanupRequired, cleanupStopped, settled) {
       if (settled) return 2;
       if (cleanupRequired && !cleanupStopped) return 0;

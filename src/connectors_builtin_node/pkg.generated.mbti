@@ -520,6 +520,8 @@ pub fn strategy_site_failed_operation_action(Bool, Bool, Bool) -> Int
 
 pub fn strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
+pub fn strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
 pub fn strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool
 
 pub fn strategy_site_release_holding(@execution_site.SiteHolding) -> Bool

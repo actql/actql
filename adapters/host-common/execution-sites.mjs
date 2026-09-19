@@ -17,10 +17,11 @@ const fail = (code, details) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
-const duration = value => value === null ||
-  (typeof value === 'bigint' && value >= 0n);
-const bytes = value => typeof value === 'bigint' && value >= 0n;
 const maximumBytes = 9223372036854775807n;
+const duration = value => value === null ||
+  (typeof value === 'bigint' && value >= 0n && value <= maximumBytes);
+const bytes = value => typeof value === 'bigint' &&
+  value >= 0n && value <= maximumBytes;
 const siteState = site => sites.get(site) ?? fail('ForeignExecutionSite');
 const sameInputOccurrence = (left, right) =>
   left.task === right.task &&
@@ -35,7 +36,7 @@ const controlMethods = [
   'settleTransferSource', 'settleTransferDestination',
   'retainTransferHolding', 'retainHolding', 'releaseHolding',
   'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
-  'selectCandidate',
+  'selectCandidate', 'planCandidate',
   'failedOperationAction',
 ];
 
@@ -293,20 +294,21 @@ export function executionSiteCandidate({
   }
   const destination = controlled(siteState(site));
   if (!destination.control.available(destination.handle)) return undefined;
-  if (durationMilliseconds === null || destination.startupMilliseconds === null) {
-    return Object.freeze({excluded: 'MissingDurationEstimate'});
-  }
-  if (!destination.control.capacitySupports(
+  const capacitySupported = destination.control.capacitySupports(
     destination.handle,
     capacity.retainedBytes,
     capacity.executionBytes,
-  )) {
-    return Object.freeze({excluded: 'ExecutionSiteCapacityEstimateExceeded'});
-  }
-  let estimated = durationMilliseconds + destination.startupMilliseconds;
+  );
   const transfers = [];
   const inputSites = [];
   const provider = installed.policy.transferProvider;
+  const transferRequired = [];
+  const sharedTransfer = [];
+  const sourceRevoked = [];
+  const estimateAvailable = [];
+  const transferBytes = [];
+  const retainedBytes = [];
+  const executionBytes = [];
   for (const input of inputs) {
     if (!input || typeof input !== 'object' ||
         !Number.isSafeInteger(input.task) || input.task < 0 ||
@@ -332,28 +334,63 @@ export function executionSiteCandidate({
     if (input.transferMode !== undefined && !independentCopy) {
       fail('InvalidExecutionSiteCandidate');
     }
-    if (input.site === site && !independentCopy) continue;
+    if (input.site === site && !independentCopy) {
+      transferRequired.push(false);
+      sharedTransfer.push(false);
+      sourceRevoked.push(false);
+      estimateAvailable.push(false);
+      transferBytes.push(0n);
+      retainedBytes.push(0n);
+      executionBytes.push(0n);
+      continue;
+    }
     if (input.task < 1) fail('InvalidExecutionSiteCandidate');
-    if (acceptsSiteTransfer !== true) {
-      return Object.freeze({excluded: 'UnsupportedTransferRepresentation'});
-    }
-    if (!provider) return Object.freeze({excluded: 'MissingTransferProvider'});
-    if (source.control.revoked(source.handle)) {
-      return Object.freeze({excluded: 'SourceSiteRevoked'});
-    }
     const shared = transfers.find(value =>
       sameInputOccurrence(value.input, input));
-    const estimate = shared?.estimate ?? provider.estimate(input.siteMaterial);
-    if (!estimate) return Object.freeze({excluded: 'MissingTransferEstimate'});
-    if (![estimate.transferBytes, estimate.retainedBytes,
-      estimate.executionBytes].every(value => bytes(value))) {
+    const estimate = shared?.estimate ?? provider?.estimate(input.siteMaterial);
+    if (estimate !== undefined &&
+        ![estimate.transferBytes, estimate.retainedBytes,
+          estimate.executionBytes].every(value => bytes(value))) {
       fail('InvalidTransferEstimate');
     }
-    if (destination.transferMilliseconds === null) {
-      return Object.freeze({excluded: 'MissingDurationEstimate'});
+    transferRequired.push(true);
+    sharedTransfer.push(shared !== undefined);
+    sourceRevoked.push(source.control.revoked(source.handle));
+    estimateAvailable.push(estimate !== undefined);
+    transferBytes.push(estimate?.transferBytes ?? 0n);
+    retainedBytes.push(estimate?.retainedBytes ?? 0n);
+    executionBytes.push(estimate?.executionBytes ?? 0n);
+    if (estimate !== undefined) {
+      transfers.push(Object.freeze({input, estimate, sharedWith: shared?.input}));
     }
-    if (!shared) estimated += destination.transferMilliseconds;
-    transfers.push(Object.freeze({input, estimate, sharedWith: shared?.input}));
+  }
+  const plan = destination.control.planCandidate(Object.freeze({
+    durationMilliseconds,
+    startupMilliseconds: destination.startupMilliseconds,
+    capacitySupported,
+    acceptsSiteTransfer,
+    transferProviderAvailable: provider !== undefined,
+    transferMilliseconds: destination.transferMilliseconds,
+    transferRequired: Object.freeze(transferRequired),
+    sharedTransfer: Object.freeze(sharedTransfer),
+    sourceRevoked: Object.freeze(sourceRevoked),
+    estimateAvailable: Object.freeze(estimateAvailable),
+    transferBytes: Object.freeze(transferBytes),
+    retainedBytes: Object.freeze(retainedBytes),
+    executionBytes: Object.freeze(executionBytes),
+  }));
+  if (!Array.isArray(plan) || plan.length !== 2 ||
+      !Number.isSafeInteger(plan[0]) || typeof plan[1] !== 'bigint') {
+    fail('InvalidExecutionSiteCandidate');
+  }
+  const exclusions = [undefined, 'MissingDurationEstimate',
+    'ExecutionSiteCapacityEstimateExceeded',
+    'UnsupportedTransferRepresentation', 'MissingTransferProvider',
+    'SourceSiteRevoked', 'MissingTransferEstimate'];
+  if (plan[0] !== 0) {
+    const excluded = exclusions[plan[0]];
+    if (excluded === undefined) fail('InvalidExecutionSiteCandidate');
+    return Object.freeze({excluded});
   }
   return Object.freeze({
     excluded: undefined,
@@ -369,7 +406,7 @@ export function executionSiteCandidate({
     inputSites: Object.freeze(inputSites),
     transfers: Object.freeze(transfers),
     capacity: Object.freeze({...capacity}),
-    durationMilliseconds: estimated,
+    durationMilliseconds: plan[1],
     selectionKey: `${contribution.managedSelectionKey}\u0000${destination.key}\u0000${destination.generation}`,
   });
 }

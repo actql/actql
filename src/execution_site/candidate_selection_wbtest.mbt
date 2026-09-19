@@ -14,3 +14,117 @@ test "Site candidate choice rejects malformed and duplicate facts" {
   assert_eq(select_site_candidate_index([1L], [""]), -2)
   assert_eq(select_site_candidate_index([1L, 2L], ["site", "site"]), -3)
 }
+
+///|
+test "Site candidate plan owns applicability and distinct Transfer cost" {
+  let accepted = plan_site_candidate(
+    Some(10L),
+    Some(2L),
+    true,
+    true,
+    true,
+    Some(3L),
+    [false, true, true],
+    [false, false, true],
+    [false, false, false],
+    [false, true, true],
+    [0L, 8L, 8L],
+    [0L, 16L, 16L],
+    [0L, 4L, 4L],
+  )
+  assert_eq(accepted, SiteCandidateAccepted(15L))
+  assert_eq(
+    plan_site_candidate(
+      Some(10L),
+      Some(2L),
+      true,
+      false,
+      true,
+      Some(3L),
+      [true],
+      [false],
+      [false],
+      [true],
+      [8L],
+      [16L],
+      [4L],
+    ),
+    SiteCandidateTransferUnsupported,
+  )
+  assert_eq(
+    plan_site_candidate(
+      Some(10L),
+      Some(2L),
+      true,
+      true,
+      true,
+      Some(3L),
+      [true],
+      [false],
+      [true],
+      [true],
+      [8L],
+      [16L],
+      [4L],
+    ),
+    SiteCandidateSourceRevoked,
+  )
+  assert_eq(
+    plan_site_candidate(
+      Some(10L),
+      Some(2L),
+      false,
+      true,
+      true,
+      Some(3L),
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+    ),
+    SiteCandidateCapacityExceeded,
+  )
+}
+
+///|
+test "Site candidate plan rejects malformed facts and duration overflow" {
+  assert_eq(
+    plan_site_candidate(
+      Some(9223372036854775807L),
+      Some(1L),
+      true,
+      true,
+      true,
+      Some(1L),
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+    ),
+    SiteCandidateInvalid,
+  )
+  assert_eq(
+    plan_site_candidate(
+      Some(1L),
+      Some(1L),
+      true,
+      true,
+      true,
+      Some(1L),
+      [false],
+      [false],
+      [false],
+      [true],
+      [0L],
+      [0L],
+      [0L],
+    ),
+    SiteCandidateInvalid,
+  )
+}

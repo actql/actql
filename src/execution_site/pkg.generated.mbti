@@ -12,6 +12,8 @@ pub fn create_site(String, Int, String, Int, Int, Int64, Int64) -> ExecutionSite
 
 pub fn failed_site_operation_action_code(FailedSiteOperationAction) -> Int
 
+pub fn plan_site_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> SiteCandidatePlanResult
+
 pub fn prepare_failed_site_operation_step(Bool, Bool, Bool) -> FailedSiteOperationAction
 
 pub fn release_site_cleanup(SiteCleanup) -> Bool
@@ -39,6 +41,8 @@ pub fn settle_site_transfer_source(SiteTransfer) -> Bool
 pub fn site_available(ExecutionSite) -> Bool
 
 pub fn site_binding_current(ExecutionSite, Int, String) -> Bool
+
+pub fn site_candidate_plan_projection(SiteCandidatePlanResult) -> (Int, Int64)
 
 pub fn site_capacity_supports(ExecutionSite, Int64, Int64) -> Bool
 
@@ -69,6 +73,17 @@ pub(all) enum FailedSiteOperationAction {
   FailedSiteAwaitStop
   FailedSiteSettle
   FailedSiteFinished
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SiteCandidatePlanResult {
+  SiteCandidateAccepted(Int64)
+  SiteCandidateMissingDuration
+  SiteCandidateCapacityExceeded
+  SiteCandidateTransferUnsupported
+  SiteCandidateTransferProviderMissing
+  SiteCandidateSourceRevoked
+  SiteCandidateTransferEstimateMissing
+  SiteCandidateInvalid
 } derive(Eq, @debug.Debug)
 
 type SiteCleanup

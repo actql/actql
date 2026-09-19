@@ -49,6 +49,23 @@ function siteControl(moon) {
     revoke: moon.strategySiteRevoke,
     status: moon.strategySiteStatus,
     selectCandidate: moon.strategySiteSelectCandidate,
+    planCandidate: value => tuplePair(
+      moon.strategySitePlanCandidate(
+        value.durationMilliseconds,
+        value.startupMilliseconds,
+        value.capacitySupported,
+        value.acceptsSiteTransfer,
+        value.transferProviderAvailable,
+        value.transferMilliseconds,
+        value.transferRequired,
+        value.sharedTransfer,
+        value.sourceRevoked,
+        value.estimateAvailable,
+        value.transferBytes,
+        value.retainedBytes,
+        value.executionBytes,
+      ),
+    ),
     failedOperationAction: moon.strategySiteFailedOperationAction,
   });
   siteControls.set(moon, control);

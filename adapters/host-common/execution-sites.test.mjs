@@ -171,6 +171,48 @@ test('candidate comparison facts are pure and missing estimates are explicit', (
   assert.equal(executionSiteStatus(b).activeOperations, 0);
 });
 
+test('Site candidate facts fit the portable signed 64-bit boundary', () => {
+  const tooLarge = 9223372036854775808n;
+  assert.throws(() => createInProcessExecutionSite({
+    key: 'oversized-duration',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+    startupMilliseconds: tooLarge,
+  }), {code: 'InvalidExecutionSite'});
+
+  const source = site('bounded-source');
+  const destination = site('bounded-destination');
+  const implementation = contribution('bounded-implementation');
+  const installation = installExecutionSites(prepareExecutionSitePolicy({
+    sites: [source, destination],
+    placements: new Map([['bounded-implementation', [destination]]]),
+    transferProvider: transferProvider({
+      estimate: () => ({
+        transferBytes: tooLarge,
+        retainedBytes: 1n,
+        executionBytes: 1n,
+      }),
+      copy() {},
+    }),
+  }), [implementation]);
+  assert.throws(() => executionSiteCandidate({
+    installation,
+    contribution: implementation,
+    site: destination,
+    task: 2,
+    registration: implementation.registration,
+    inputs: [Object.freeze({
+      task: 1,
+      material: {},
+      site: source,
+      siteMaterial: {},
+      materialGeneration: {},
+    })],
+    durationMilliseconds: 1n,
+    acceptsSiteTransfer: true,
+  }), {code: 'InvalidTransferEstimate'});
+});
+
 test('binding rechecks Site state and teardown waits for live owners', () => {
   const a = site('a', 4, {maxConcurrentOperations: 1});
   const implementation = contribution('implementation');
