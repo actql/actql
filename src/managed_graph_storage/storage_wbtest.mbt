@@ -133,7 +133,7 @@ test "declared graph collapses equal payloads and closes endpoints" {
   assert_true(edge_property(graph, 0, 0) is Some(_))
   assert_true(retained_value_bytes(graph) > 0)
   assert_true(measured_input_value_bytes(graph) > retained_value_bytes(graph))
-  assert_true(construction_work(graph) > 0)
+  assert_eq(construction_work(graph), 37)
   assert_true(retained_workspace_slots(graph) > 0)
 }
 
@@ -187,6 +187,14 @@ test "graph construction rejects conflicts missing endpoints and preallocation o
     append_node(tiny, number(1.0), [text("a")]) is Err(WorkspaceLimit),
   )
   assert_true(finish(tiny) is Err(Closed))
+
+  let work_short = prepare(graph_fixture(), DeclaredNodes, {
+    ..limits(),
+    max_work: 4,
+  }).unwrap()
+  assert_true(
+    append_node(work_short, number(1.0), [text("a")]) is Err(WorkLimit),
+  )
 
   let cancelled = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
   append_node(cancelled, number(1.0), [text("a")]).unwrap()

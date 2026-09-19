@@ -200,8 +200,12 @@ fn encoded_values(
   pending_bytes : Int,
   pending_work : Int,
 ) -> Result[(String, Int), Issue] {
-  if pending_work > builder.limits.max_work - builder.work ||
-    values.length() + 1 > builder.limits.max_work - builder.work - pending_work {
+  if pending_work > builder.limits.max_work - builder.work {
+    return Err(WorkLimit)
+  }
+  let remaining_work = builder.limits.max_work - builder.work - pending_work
+  let node_limit = Int::min(builder.limits.max_value_nodes, remaining_work)
+  if node_limit < 1 {
     return Err(WorkLimit)
   }
   if pending_bytes > builder.limits.max_total_value_bytes - builder.value_bytes {
@@ -215,20 +219,21 @@ fn encoded_values(
     return Err(ValueLimit)
   }
   try {
-    let out = @encode.writer(
-      cap,
-      builder.limits.max_value_nodes,
-      builder.limits.max_value_depth,
-    )
+    let out = @encode.writer(cap, node_limit, builder.limits.max_value_depth)
     @encode.begin_array(out)
     for value in values {
       @value.emit_wire_value(value.value, out)
     }
     @encode.end_array(out)
-    let text = @encode.finish(out)
-    Ok((text, values.length() + 1))
+    let (text, _, nodes, _) = @encode.finish_text_usage(out)
+    Ok((text, nodes))
   } catch {
-    _ => Err(ValueLimit)
+    _ =>
+      if node_limit < builder.limits.max_value_nodes {
+        Err(WorkLimit)
+      } else {
+        Err(ValueLimit)
+      }
   }
 }
 
@@ -241,9 +246,12 @@ fn encoded_edge_identity(
   pending_bytes : Int,
   pending_work : Int,
 ) -> Result[(String, Int), Issue] {
-  let entries = 4
-  if pending_work > builder.limits.max_work - builder.work ||
-    entries > builder.limits.max_work - builder.work - pending_work {
+  if pending_work > builder.limits.max_work - builder.work {
+    return Err(WorkLimit)
+  }
+  let remaining_work = builder.limits.max_work - builder.work - pending_work
+  let node_limit = Int::min(builder.limits.max_value_nodes, remaining_work)
+  if node_limit < 1 {
     return Err(WorkLimit)
   }
   if pending_bytes > builder.limits.max_total_value_bytes - builder.value_bytes {
@@ -257,11 +265,7 @@ fn encoded_edge_identity(
     return Err(ValueLimit)
   }
   try {
-    let out = @encode.writer(
-      cap,
-      builder.limits.max_value_nodes,
-      builder.limits.max_value_depth,
-    )
+    let out = @encode.writer(cap, node_limit, builder.limits.max_value_depth)
     @encode.begin_array(out)
     @value.emit_wire_value(source.value, out)
     @value.emit_wire_value(target.value, out)
@@ -270,9 +274,15 @@ fn encoded_edge_identity(
       None => @encode.null_value(out)
     }
     @encode.end_array(out)
-    Ok((@encode.finish(out), entries))
+    let (text, _, nodes, _) = @encode.finish_text_usage(out)
+    Ok((text, nodes))
   } catch {
-    _ => Err(ValueLimit)
+    _ =>
+      if node_limit < builder.limits.max_value_nodes {
+        Err(WorkLimit)
+      } else {
+        Err(ValueLimit)
+      }
   }
 }
 

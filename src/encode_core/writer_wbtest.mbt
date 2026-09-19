@@ -25,6 +25,19 @@ test "exact writer preserves text and emits a single structural document" {
 }
 
 ///|
+test "text finalization reports usage from the same traversal" {
+  let output = writer(100, 10, 4)
+  begin_array(output)
+  number_value(output, 1.0)
+  begin_object(output)
+  key(output, "x")
+  string_value(output, "é")
+  end_object(output)
+  end_array(output)
+  assert_eq(finish_text_usage(output), ("[1,{\"x\":\"é\"}]", 14, 4, 2))
+}
+
+///|
 test "UTF8 and escaped bytes are bounded and failure poisons output" {
   for sample in [("😀", 6), ("é", 4), ("\n", 4), ("\u0001", 8), ("", 2)] {
     let (text, size) = sample

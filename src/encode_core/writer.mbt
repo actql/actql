@@ -484,10 +484,24 @@ pub fn end_object(w : Writer) -> Unit raise EncodeFailure {
 
 ///|
 pub fn finish(w : Writer) -> String raise EncodeFailure {
+  finish_text_usage(w).0
+}
+
+///|
+/// Close one text writer and return the retained text with exact UTF-8 byte,
+/// value-node, and peak-depth usage from that same traversal.
+pub fn finish_text_usage(
+  w : Writer,
+) -> (String, Int, Int, Int) raise EncodeFailure {
   active(w)
   guard w.output is TextOutput(output) else { fail(w, InvalidStructure) }
   finish_state(w)
-  output.to_string()
+  (
+    output.to_string(),
+    w.max_bytes - w.remaining_bytes,
+    w.max_nodes - w.remaining_nodes,
+    w.peak_depth,
+  )
 }
 
 ///|
