@@ -349,6 +349,21 @@ fn charge_bound_literal(
 }
 
 ///|
+fn graph_predicate_fields(
+  predicate : @graph.CheckedPredicate,
+) -> Array[(String, @relation.ReferenceTarget)]? {
+  let references : Array[(String, @relation.ReferenceTarget)] = []
+  for index in 0..<@graph.predicate_reference_count(predicate) {
+    guard @graph.predicate_reference_name(predicate, index) is Some(name) &&
+      @graph.predicate_reference_field(predicate, index) is Some(field) else {
+      return None
+    }
+    references.push((name, @relation.InputField(field)))
+  }
+  Some(references)
+}
+
+///|
 pub fn lower_expression(
   bound : BoundPrepared,
   step_index : Int,
@@ -402,13 +417,22 @@ fn lower_expression_measured(
         guard @graph.match_predicate(checked) is Some(predicate) else {
           expression_fail(step.source, MissingCheckedBinding)
         }
-        let references : Array[(String, @relation.ReferenceTarget)] = []
-        for index in 0..<@graph.predicate_reference_count(predicate) {
-          guard @graph.predicate_reference_name(predicate, index) is Some(name) &&
-            @graph.predicate_reference_field(predicate, index) is Some(field) else {
-            expression_fail(step.source, MissingResolvedField(""))
-          }
-          references.push((name, @relation.InputField(field)))
+        guard graph_predicate_fields(predicate) is Some(references) else {
+          expression_fail(step.source, MissingResolvedField(""))
+        }
+        (@graph.predicate_expression(predicate), references)
+      }
+      GraphSubgraphValue(checked) => {
+        let predicate = match binding_index {
+          0 => @graph.selector_predicate(@graph.subgraph_nodes(checked))
+          1 => @graph.subgraph_edges(checked)
+          _ => None
+        }
+        guard predicate is Some(predicate) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard graph_predicate_fields(predicate) is Some(references) else {
+          expression_fail(step.source, MissingResolvedField(""))
         }
         (@graph.predicate_expression(predicate), references)
       }

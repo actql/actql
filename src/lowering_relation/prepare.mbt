@@ -61,6 +61,7 @@ pub enum Payload {
   GraphMeanValue(@graph.CheckedMean)
   GraphMatchRows(@graph.CheckedMatch)
   GraphReachRows(@graph.CheckedReach)
+  GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
@@ -213,6 +214,7 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Edges => "SGA.match_edges"
       }
     GraphReachRows(_) => "SGA.reachable"
+    GraphSubgraphValue(_) => "SGA.subgraph"
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
@@ -271,7 +273,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
       }
     GraphMatch(value) => Some(GraphMatchRows(value))
     Reach(value) => Some(GraphReachRows(value))
-    Subgraph(..) | Traverse(..) | Shortest(..) => None
+    Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
+    Traverse(..) | Shortest(..) => None
     GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
     GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
@@ -413,6 +416,16 @@ pub fn prepare(
           1,
         )
       GraphReachRows(_) => ("reach", 1)
+      GraphSubgraphValue(checked) =>
+        (
+          "subgraph",
+          if @graph.selector_form(@graph.subgraph_nodes(checked))
+            is @graph.RelationIds(..) {
+            2
+          } else {
+            1
+          },
+        )
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
@@ -539,6 +552,7 @@ pub fn prepare(
       GraphMeanValue(_) => None
       GraphMatchRows(_) => None
       GraphReachRows(_) => None
+      GraphSubgraphValue(_) => None
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None

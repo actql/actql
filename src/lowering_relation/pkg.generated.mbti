@@ -829,6 +829,13 @@ pub(all) enum GraphRelationIssue {
   GraphRelationPreparationLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphSubgraphIssue {
+  InvalidGraphSubgraphLimits
+  InvalidGraphSubgraphWiring
+  GraphSubgraphPreparationLimit
+  GraphSubgraphExpression(ExpressionIssue)
+}
+
 pub(all) enum GroupIssue {
   GroupNotFound
   InvalidGroupLimits
@@ -986,6 +993,7 @@ pub enum Payload {
   GraphMeanValue(@graph_typing.CheckedMean)
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphReachRows(@graph_typing.CheckedReach)
+  GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
@@ -1057,6 +1065,8 @@ type PreparedGraphRelation
 
 type PreparedGraphStructural
 
+type PreparedGraphSubgraph
+
 type PreparedGraphUnion
 
 type PreparedGroup
@@ -1121,6 +1131,7 @@ pub enum PreparedStep {
   GraphMeanStep(PreparedGraphMean)
   GraphMatchStep(PreparedGraphMatch)
   GraphReachStep(PreparedGraphReach)
+  GraphSubgraphStep(PreparedGraphSubgraph)
   GraphRelationStep(PreparedGraphRelation)
 }
 
@@ -1179,6 +1190,7 @@ pub(all) enum SequenceIssue {
   GraphMeanFailure(Int, GraphMeanIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphReachFailure(Int, GraphReachIssue)
+  GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
 }
 
