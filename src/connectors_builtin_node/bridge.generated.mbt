@@ -2159,6 +2159,20 @@ pub fn strategy_host_transfer_release(
 }
 
 ///|
+#export_name("strategyHostTransferReceiptMatches")
+pub fn strategy_host_transfer_receipt_matches(
+  receipt : @strategy.ManagedTransferReceipt,
+  transfer : @strategy.ManagedTransfer,
+  source_task : Int,
+  transferred_bytes : Int64,
+  retained_bytes : Int64,
+) -> Bool {
+  @strategy.captured_managed_transfer_receipt_matches(
+    receipt, transfer, source_task, transferred_bytes, retained_bytes,
+  )
+}
+
+///|
 #export_name("strategyHostTransferPending")
 pub fn strategy_host_transfer_pending(
   transfer : @strategy.ManagedTransfer,

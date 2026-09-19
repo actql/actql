@@ -24,11 +24,6 @@ const pending = handle => {
   if (!handle || typeof member(handle, 'status') !== 'function') return true;
   try { return handle.status()?.pending !== false; } catch { return true; }
 };
-const exactInteger = (value, expected) => value === expected ||
-  (typeof value === 'bigint' && typeof expected === 'number' &&
-    Number.isSafeInteger(expected) && value === BigInt(expected)) ||
-  (typeof value === 'number' && Number.isSafeInteger(value) &&
-    typeof expected === 'bigint' && BigInt(value) === expected);
 const validDestinationShape = destination =>
   destination !== null && typeof destination === 'object' &&
   destination.material !== null &&
@@ -464,13 +459,15 @@ export function createManagedSiteTransferCoordinator(
       state.destinationVerified = true;
       const receipt = driveTransferCommit(state);
       const receiptFields = core.transferReceipt(receipt);
-      if (!Array.isArray(receiptFields) || receiptFields.length !== 5 ||
-          !exactInteger(receiptFields[0], occurrence.task) ||
+      if (!core.transferReceiptMatches(
+        receipt,
+        transfer,
+        occurrence.task,
+        destination.bytes,
+        destination.retainedBytes,
+      ) || !Array.isArray(receiptFields) || receiptFields.length !== 5 ||
           !(typeof receiptFields[1] === 'bigint' && receiptFields[1] > 0n ||
-            Number.isSafeInteger(receiptFields[1]) && receiptFields[1] > 0) ||
-          !exactInteger(receiptFields[2], destination.bytes) ||
-          !exactInteger(receiptFields[3], destination.retainedBytes) ||
-          !exactInteger(receiptFields[4], 1)) {
+            Number.isSafeInteger(receiptFields[1]) && receiptFields[1] > 0)) {
         throw fail('InvalidTransferReceipt');
       }
       const entry = {

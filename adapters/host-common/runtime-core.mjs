@@ -1468,6 +1468,10 @@ export function runtimeCore(moon) {
     transferRelease: (value, receipt) => checked(
       moon.strategyHostTransferRelease(value, receipt),
     ),
+    transferReceiptMatches: (receipt, transfer, source, bytes, retained) =>
+      moon.strategyHostTransferReceiptMatches(
+        receipt, transfer, source, bytes, retained,
+      ),
     transferPending: moon.strategyHostTransferPending,
     transferDestinationAdmitted: value =>
       moon.strategyHostTransferDestinationAdmitted(

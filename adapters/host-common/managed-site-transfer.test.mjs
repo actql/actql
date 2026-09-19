@@ -77,6 +77,11 @@ function coreFor(input, logicalMaterial, events = []) {
       return [receipt.transfer.sourceTask, receipt.transfer.attempt,
         receipt.transfer.transferred, receipt.retained, 1];
     },
+    transferReceiptMatches(receipt, transfer, source, bytes, retained) {
+      return receipt.transfer === transfer && !transfer.released &&
+        transfer.completed && receipt.transfer.sourceTask === source &&
+        receipt.transfer.transferred === bytes && receipt.retained === retained;
+    },
     transferAbort(_setup, transfer, confirmed) {
       assert.equal(confirmed, true);
       transfer.settled = true;

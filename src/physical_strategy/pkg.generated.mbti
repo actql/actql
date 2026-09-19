@@ -55,6 +55,8 @@ pub fn captured_managed_transfer_receipt_available(ManagedTransferReceipt) -> Bo
 
 pub fn captured_managed_transfer_receipt_bytes(ManagedTransferReceipt) -> (Int64, Int64)
 
+pub fn captured_managed_transfer_receipt_matches(ManagedTransferReceipt, ManagedTransfer, Int, Int64, Int64) -> Bool
+
 pub fn captured_managed_transfer_receipt_source(ManagedTransferReceipt) -> Int
 
 pub fn captured_next_managed_input_count(CapturedDAG) -> Int?

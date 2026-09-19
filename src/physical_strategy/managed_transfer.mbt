@@ -259,3 +259,23 @@ pub fn captured_managed_transfer_receipt_available(
   receipt.transfer.holding is Some(holding) &&
   @resources.holding_available(receipt.owner.ledger, holding)
 }
+
+///|
+/// Bind an adapter-visible receipt to the exact completed Transfer and the
+/// measurements used to construct its durable Host record. The attempt number
+/// is an occurrence identifier; matching byte counts do not authorize a
+/// foreign receipt or a released destination holding.
+pub fn captured_managed_transfer_receipt_matches(
+  receipt : ManagedTransferReceipt,
+  transfer : ManagedTransfer,
+  source_task : Int,
+  transferred_bytes : Int64,
+  retained_bytes : Int64,
+) -> Bool {
+  physical_equal(receipt.transfer, transfer) &&
+  receipt.source_task == source_task &&
+  receipt.attempt > 0 &&
+  receipt.transferred_bytes == transferred_bytes &&
+  receipt.retained_bytes == retained_bytes &&
+  captured_managed_transfer_receipt_available(receipt)
+}

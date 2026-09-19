@@ -208,6 +208,8 @@ pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Boo
 
 pub fn strategy_host_transfer_receipt(@physical_strategy.ManagedTransferReceipt) -> Array[Int64]
 
+pub fn strategy_host_transfer_receipt_matches(@physical_strategy.ManagedTransferReceipt, @physical_strategy.ManagedTransfer, Int, Int64, Int64) -> Bool
+
 pub fn strategy_host_transfer_release(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransferReceipt) -> Bool raise NodeHostFailure
 
 pub fn strategy_host_transfer_settle(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
