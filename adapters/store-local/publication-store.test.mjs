@@ -2393,6 +2393,86 @@ test('independent Transfer holdings share bytes but release independently',
     assert.equal(store.status().objectCount, 0);
   });
 
+test('sealed Transfer holding is reused without uploading source again',
+  async t => {
+    const {store} = await fixture(t);
+    const prepared = await preparePhysical(store, 'sealed');
+    const source = physicalHolding(
+      digest('sealed source holding'),
+      digest('sealed manifest'),
+      [{cid: prepared.cid, byte_count: prepared.bytes}],
+    );
+    await store.commitPhysicalHolding(source, [prepared.prepared]);
+    const destination = physicalHolding(
+      digest('sealed destination holding'),
+      source.manifest_cid,
+      source.objects,
+    );
+    assert.deepEqual(await store.sharePhysicalHolding(
+      source.holding_cid,
+      destination,
+    ), {record: destination, created: true});
+    assert.equal(store.status().storedBytes, 6);
+    assert.equal(store.status().objectCount, 1);
+
+    assert.equal((await store.retirePhysicalHolding(
+      source.holding_cid,
+    )).deleted, true);
+    const chunks = [];
+    await store.consumePhysicalHolding(
+      destination.holding_cid,
+      0,
+      chunk => chunks.push(Buffer.from(chunk)),
+    );
+    assert.equal(Buffer.concat(chunks).toString('utf8'), 'sealed');
+    assert.equal((await store.retirePhysicalHolding(
+      destination.holding_cid,
+    )).deleted, true);
+    assert.equal(store.status().storedBytes, 0);
+  });
+
+test('sealed Transfer reuse rejects a different manifest or object order',
+  async t => {
+    const {store} = await fixture(t);
+    const first = await preparePhysical(store, 'first');
+    const second = await preparePhysical(store, 'second');
+    const source = physicalHolding(
+      digest('ordered source holding'),
+      digest('ordered source manifest'),
+      [
+        {cid: first.cid, byte_count: first.bytes},
+        {cid: second.cid, byte_count: second.bytes},
+      ],
+    );
+    await store.commitPhysicalHolding(
+      source,
+      [first.prepared, second.prepared],
+    );
+    const differentManifest = physicalHolding(
+      digest('different manifest holding'),
+      digest('different manifest'),
+      source.objects,
+    );
+    await assert.rejects(
+      store.sharePhysicalHolding(source.holding_cid, differentManifest),
+      {code: 'PublicationPhysicalHoldingConflict'},
+    );
+    const reordered = physicalHolding(
+      digest('reordered holding'),
+      source.manifest_cid,
+      [...source.objects].reverse(),
+    );
+    await assert.rejects(
+      store.sharePhysicalHolding(source.holding_cid, reordered),
+      {code: 'PublicationPhysicalHoldingConflict'},
+    );
+    assert.equal(await store.inspectPhysicalHolding(
+      differentManifest.holding_cid,
+    ), undefined);
+    assert.equal(await store.inspectPhysicalHolding(reordered.holding_cid),
+      undefined);
+  });
+
 test('physical holding retirement waits for the exact active reader',
   async t => {
     const {store} = await fixture(t);

@@ -3215,6 +3215,62 @@ export async function openLocalPublicationStore(
     return Object.freeze({record, created: true});
   };
 
+  const sharePhysicalHolding = async (sourceHoldingCid, value) => {
+    active();
+    cidHex(sourceHoldingCid);
+    const admitted = admitPhysicalHolding(value);
+    const record = admitted.record;
+    if (sourceHoldingCid === record.holding_cid) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+    const operation = materialRetentionBusy.then(async () => {
+      if (await readPhysicalHoldingDeletion(sourceHoldingCid) !== undefined ||
+          await readPhysicalHoldingDeletion(record.holding_cid) !== undefined) {
+        fail('PublicationPhysicalHoldingRetiring');
+      }
+      const source = await readPhysicalHolding(sourceHoldingCid);
+      if (source === undefined) {
+        fail('PublicationPhysicalHoldingUnavailable');
+      }
+      const expectedObjects = Buffer.from(JSON.stringify(source.objects));
+      const requestedObjects = Buffer.from(JSON.stringify(record.objects));
+      if (source.manifest_cid !== record.manifest_cid ||
+          !expectedObjects.equals(requestedObjects)) {
+        fail('PublicationPhysicalHoldingConflict');
+      }
+      const current = await readPhysicalHolding(record.holding_cid);
+      if (current !== undefined) {
+        if (!Buffer.from(JSON.stringify(current), 'utf8').equals(
+          admitted.bytes,
+        )) {
+          fail('PublicationPhysicalHoldingConflict');
+        }
+        await verifyPhysicalHoldingObjects(current);
+        return Object.freeze({record: current, created: false});
+      }
+      await verifyPhysicalHoldingObjects(source);
+      try {
+        await writeExclusive(
+          physicalHoldingPath(record.holding_cid),
+          admitted.bytes,
+        );
+      } catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        const installed = await readBounded(
+          physicalHoldingPath(record.holding_cid),
+          configuration.maxObjectBytes,
+        );
+        if (!installed.equals(admitted.bytes)) {
+          fail('PublicationPhysicalHoldingConflict');
+        }
+      }
+      await syncDirectory(physicalHoldingsDirectory);
+      return Object.freeze({record, created: true});
+    });
+    materialRetentionBusy = operation.catch(() => {});
+    return await operation;
+  };
+
   const inspectPhysicalHolding = async holdingCid => {
     active();
     cidHex(holdingCid);
@@ -4019,6 +4075,7 @@ export async function openLocalPublicationStore(
     createObjectWriter,
     createPreparedObjectWriter,
     commitPhysicalHolding,
+    sharePhysicalHolding,
     inspectPhysicalHolding,
     consumePhysicalHolding,
     retirePhysicalHolding,

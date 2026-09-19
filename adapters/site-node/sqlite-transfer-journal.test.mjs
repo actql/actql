@@ -128,6 +128,75 @@ test('Transfer transition remains recoverable when control commit throws',
     );
   });
 
+test('destination commit evidence is durable before lifecycle commit',
+  async t => {
+    const {open} = await fixture(t);
+    const journal = open();
+    const transfer = request('transfer-store', 'store');
+    const accepted = journal.accept(transfer, control);
+    journal.advance(control.prepareStart(accepted.record), control);
+    journal.advance(
+      control.prepareSourceSettled(accepted.record, true, true),
+      control,
+    );
+    const receipt = control.prepareDestinationReceipt(
+      transfer,
+      'destination-material-a',
+    );
+    assert.deepEqual(
+      control.destinationReceiptProjection(
+        journal.commitDestinationReceipt(receipt, transfer, control),
+      ),
+      control.destinationReceiptProjection(receipt),
+    );
+    journal.close();
+
+    const reopened = open();
+    t.after(() => reopened.close());
+    const restored = reopened.accept(transfer, control);
+    assert.deepEqual(
+      control.destinationReceiptProjection(
+        reopened.inspectDestinationReceipt(transfer, control),
+      ),
+      control.destinationReceiptProjection(receipt),
+    );
+    reopened.advance(
+      control.prepareDestinationCommit(restored.record),
+      control,
+    );
+    assert.deepEqual(
+      reopened.inspect(transfer, control).state,
+      [3, 2, 3, 1, 0, 1, 1, 0, 1],
+    );
+  });
+
+test('destination evidence collision cannot replace an accepted receipt',
+  async t => {
+    const {open} = await fixture(t);
+    const journal = open();
+    t.after(() => journal.close());
+    const transfer = request('transfer-store', 'store');
+    const accepted = journal.accept(transfer, control);
+    journal.advance(control.prepareStart(accepted.record), control);
+    journal.advance(
+      control.prepareSourceSettled(accepted.record, true, true),
+      control,
+    );
+    const first = control.prepareDestinationReceipt(transfer, 'material-a');
+    const second = control.prepareDestinationReceipt(transfer, 'material-b');
+    journal.commitDestinationReceipt(first, transfer, control);
+    assert.throws(
+      () => journal.commitDestinationReceipt(second, transfer, control),
+      {code: 'RemoteTransferDestinationReceiptCollision'},
+    );
+    assert.deepEqual(
+      control.destinationReceiptProjection(
+        journal.inspectDestinationReceipt(transfer, control),
+      ),
+      control.destinationReceiptProjection(first),
+    );
+  });
+
 test('concurrent journal handles share one atomic capacity authority',
   async t => {
     const {open} = await fixture(t, {maxTransfers: 1});

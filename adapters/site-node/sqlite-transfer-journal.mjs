@@ -98,6 +98,32 @@ export function openSqliteTransferJournal(root, {
           transfer_attempt
         )
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS destination_receipts (
+        coordinator_authority TEXT NOT NULL,
+        destination_site_key TEXT NOT NULL,
+        destination_site_generation INTEGER NOT NULL,
+        transfer_attempt TEXT NOT NULL,
+        request_cid TEXT NOT NULL,
+        receipt_cid TEXT NOT NULL,
+        receipt_json TEXT NOT NULL,
+        PRIMARY KEY (
+          coordinator_authority,
+          destination_site_key,
+          destination_site_generation,
+          transfer_attempt
+        ),
+        FOREIGN KEY (
+          coordinator_authority,
+          destination_site_key,
+          destination_site_generation,
+          transfer_attempt
+        ) REFERENCES transfers (
+          coordinator_authority,
+          destination_site_key,
+          destination_site_generation,
+          transfer_attempt
+        )
+      ) STRICT;
     `);
     transaction(database, () => {
       const version = database.prepare(
@@ -107,13 +133,17 @@ export function openSqliteTransferJournal(root, {
         const insert = database.prepare(
           'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
         );
-        insert.run('schema_version', 'actql-remote-transfer-journal/0.1');
+        insert.run('schema_version', 'actql-remote-transfer-journal/0.2');
         insert.run('destination_site_key', destinationSiteKey);
         insert.run(
           'destination_site_generation',
           String(destinationSiteGeneration),
         );
-      } else if (version.value !== 'actql-remote-transfer-journal/0.1') {
+      } else if (version.value === 'actql-remote-transfer-journal/0.1') {
+        database.prepare(`
+          UPDATE journal_metadata SET value = ? WHERE key = ?
+        `).run('actql-remote-transfer-journal/0.2', 'schema_version');
+      } else if (version.value !== 'actql-remote-transfer-journal/0.2') {
         fail('UnsupportedRemoteTransferJournalVersion');
       }
       const metadata = Object.fromEntries(database.prepare(`
@@ -183,6 +213,23 @@ export function openSqliteTransferJournal(root, {
       AND source_access_stopped = ?
       AND destination_temporary_reclaimed = ?
       AND object_use_released = ? AND destination_material_available = ?
+  `);
+  const selectDestinationReceipt = database.prepare(`
+    SELECT request_cid, receipt_cid, receipt_json
+    FROM destination_receipts
+    WHERE coordinator_authority = ? AND destination_site_key = ?
+      AND destination_site_generation = ? AND transfer_attempt = ?
+  `);
+  const insertDestinationReceipt = database.prepare(`
+    INSERT INTO destination_receipts (
+      coordinator_authority,
+      destination_site_key,
+      destination_site_generation,
+      transfer_attempt,
+      request_cid,
+      receipt_cid,
+      receipt_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const ensureOpen = () => {
@@ -327,6 +374,88 @@ export function openSqliteTransferJournal(root, {
         fail('RemoteTransferJournalControlDiverged');
       }
       return record;
+    },
+    commitDestinationReceipt(receipt, request, control) {
+      ensureOpen();
+      requireControl(control);
+      if (typeof control.destinationReceiptJson !== 'function' ||
+          typeof control.destinationReceiptIdentity !== 'function' ||
+          typeof control.admitDestinationReceiptJson !== 'function' ||
+          typeof control.destinationReceiptProjection !== 'function' ||
+          typeof control.prepareDestinationCommit !== 'function') {
+        fail('MissingRemoteTransferControl');
+      }
+      const {key, generation} = checkedKey(request, control);
+      const requestCid = control.identity(request);
+      const receiptCid = control.destinationReceiptIdentity(receipt);
+      const receiptJson = control.destinationReceiptJson(receipt);
+      const projection = control.destinationReceiptProjection(receipt);
+      const requestProjection = control.requestProjection(request);
+      if (!Array.isArray(projection) || projection.length !== 7 ||
+          projection.some(value => !text(value)) ||
+          projection[0] !== receiptCid || projection[1] !== requestCid ||
+          projection[2] !== key[1] || Number(projection[3]) !== generation ||
+          projection[5] !== requestProjection[7] ||
+          projection[6] !== requestProjection[11] ||
+          Buffer.byteLength(receiptJson, 'utf8') > 4096) {
+        fail('InvalidRemoteTransferDestinationReceipt');
+      }
+      return transaction(database, () => {
+        const transfer = select.get(key[0], key[1], generation, key[3]);
+        if (transfer === undefined || transfer.request_cid !== requestCid) {
+          fail('RemoteTransferJournalRecordMissing');
+        }
+        control.prepareDestinationCommit(restore(transfer, control).record);
+        const existing = selectDestinationReceipt.get(
+          key[0], key[1], generation, key[3],
+        );
+        if (existing !== undefined) {
+          if (existing.request_cid !== requestCid ||
+              existing.receipt_cid !== receiptCid ||
+              existing.receipt_json !== receiptJson) {
+            fail('RemoteTransferDestinationReceiptCollision');
+          }
+          return control.admitDestinationReceiptJson(
+            existing.receipt_json,
+            request,
+            existing.receipt_cid,
+          );
+        }
+        insertDestinationReceipt.run(
+          key[0],
+          key[1],
+          generation,
+          key[3],
+          requestCid,
+          receiptCid,
+          receiptJson,
+        );
+        return control.admitDestinationReceiptJson(
+          receiptJson,
+          request,
+          receiptCid,
+        );
+      });
+    },
+    inspectDestinationReceipt(request, control) {
+      ensureOpen();
+      requireControl(control);
+      if (typeof control.admitDestinationReceiptJson !== 'function') {
+        fail('MissingRemoteTransferControl');
+      }
+      const {key, generation} = checkedKey(request, control);
+      const row = selectDestinationReceipt.get(
+        key[0], key[1], generation, key[3],
+      );
+      if (row === undefined) return undefined;
+      if (row.request_cid !== control.identity(request)) {
+        fail('RemoteTransferCollision');
+      }
+      return control.admitDestinationReceiptJson(
+        row.receipt_json,
+        request,
+        row.receipt_cid,
+      );
     },
     recover(control) {
       ensureOpen();
