@@ -6,6 +6,7 @@ type Client
 
 ///|
 pub fn load_library(_path : String) -> Result[Library, NativeHttpIssue] {
+  ignore(@utf8.encode(""))
   Err(UnsupportedTarget)
 }
 

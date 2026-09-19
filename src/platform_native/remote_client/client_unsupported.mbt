@@ -5,6 +5,7 @@ pub fn dispatch(
   _url : String,
   _request : @remote.DispatchRequest,
 ) -> Result[@remote.RemoteDispatchResponse, NativeRemoteClientIssue] {
+  ignore(@utf8.encode(""))
   Err(UnsupportedTarget)
 }
 
