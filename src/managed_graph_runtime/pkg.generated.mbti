@@ -51,7 +51,11 @@ pub fn prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_re
 
 pub fn producer_read_available(ProducerRead) -> Bool
 
+pub fn producer_read_input_index(ProducerRead) -> Int
+
 pub fn producer_read_matches_reference(ProducerRead, CompletionReference) -> Bool
+
+pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
 
 pub fn producer_read_same(ProducerRead, ProducerRead) -> Bool
 

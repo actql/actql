@@ -13,8 +13,8 @@ readable coverage manifest is authoritative for individual operation status.
 | Lowering | All seventeen SGA operations now reach typed canonical occurrences; TEA, VecA, Bridges, and VecA expressions remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Common lifecycle and exact producer reads now own typed Relation and Graph generations; Graph construction installs retention before accepting values | Connect Events and Vectors views without separate lifecycle state machines, then join every Carrier to physical task completion |
-| Runtime material | Bounded immutable Graph storage now enforces typed identities, properties, endpoint closure, duplicate laws, and pre-allocation admission; no Graph provider is connected yet | Connect Graph storage to the common Carrier lifecycle and registered providers, then add Events and Vectors without forced copies |
-| Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; kernels and environment yield are not connected yet | Move every potentially long kernel into bounded steps and add real environment yield between steps |
+| Runtime material | Bounded immutable Graph storage now enforces typed identities, properties, endpoint closure, duplicate laws, and pre-allocation admission; normalize uses it through managed Graph completion, but no standard Host Graph provider is connected yet | Connect Graph storage to registered providers, then add Events and Vectors without forced copies |
+| Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; normalize is the first connected kernel, but environment yield is not connected yet | Move every remaining potentially long kernel into bounded steps and add real environment yield between steps |
 | Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | Existing Effect-free path accepts ordered Relations | Connect every new Relation result and Carrier projection through that path |
@@ -65,11 +65,15 @@ Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,
 component policy, resolved guards, and bounds. Delta application retains its
-exact produced input and selected field. They still lack their Carrier
-provider, managed execution, two-consumer connection, and publication
-connection. The other SGA operations still lack portable Local lowering as
-well. Graph projection already defines evidence laws; execution must consume
-rather than recreate them.
+exact produced input and selected field. Normalize now copies an exact managed
+Graph input into an independently retained managed Graph generation through
+bounded work units. Its portable tests cover pre-allocation limits, kernel
+cancellation observation, and two exact downstream reads on JS, Wasm, and
+native. Standard Host selection, actual downstream computations, environment
+cancellation delivery, independent consumer release, and publication remain
+open. The other SGA operations still lack portable Local kernels. Graph
+projection already defines evidence laws; execution must consume rather than
+recreate them.
 
 ### VecA
 

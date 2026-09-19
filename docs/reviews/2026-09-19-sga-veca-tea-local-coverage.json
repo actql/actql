@@ -49,8 +49,19 @@
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_basic_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/normalize_wbtest.mbt"
+      ]
     },
     {
       "family": "SGA",

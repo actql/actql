@@ -265,6 +265,16 @@ pub fn producer_read_available(value : ProducerRead) -> Bool {
 }
 
 ///|
+pub fn producer_read_receiver(value : ProducerRead) -> @lower.BoundPrepared {
+  @lifecycle.producer_read_receiver(value.core)
+}
+
+///|
+pub fn producer_read_input_index(value : ProducerRead) -> Int {
+  @lifecycle.producer_read_input_index(value.core)
+}
+
+///|
 pub fn producer_read_same(left : ProducerRead, right : ProducerRead) -> Bool {
   @lifecycle.producer_read_same(left.core, right.core)
 }
