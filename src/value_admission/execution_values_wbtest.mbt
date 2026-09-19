@@ -14,6 +14,28 @@ test "computed scalar constructors preserve exact contracts" {
 }
 
 ///|
+test "computed text measures Unicode scalar and UTF-8 bounds separately" {
+  let text = @contract.string_contract(
+    nullable=false,
+    min_length=Some(1L),
+    max_codepoints=Some(1L),
+    max_utf8_bytes=Some(4L),
+  ).unwrap()
+  assert_true(checked_text_value("😀", text) is Some(_))
+  assert_true(
+    checked_text_value(
+      "😀",
+      @contract.string_contract(
+        nullable=false,
+        max_codepoints=Some(1L),
+        max_utf8_bytes=Some(3L),
+      ).unwrap(),
+    )
+    is None,
+  )
+}
+
+///|
 test "event clocks use the declared numeric or UTC encoding" {
   let number = @contract.primitive(@contract.NumberType, nullable=false)
   let timestamp = @contract.primitive(@contract.TimestampType, nullable=false)

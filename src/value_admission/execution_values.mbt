@@ -19,8 +19,8 @@ pub fn checked_text_value(
   guard !contract.nullable && contract.shape is @contract.Text(bounds) else {
     return None
   }
-  let bytes = value.length()
-  guard text_value(value, bytes) is Some(text) &&
+  guard @scalar.admit_utf8_length(value, 2147483647) is Ok(bytes) &&
+    text_value(value, bytes) is Some(text) &&
     @scalar.unicode_scalar_count(value) is Some(codepoints) else {
     return None
   }
