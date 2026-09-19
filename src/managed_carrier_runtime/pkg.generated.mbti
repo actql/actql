@@ -37,7 +37,15 @@ pub fn[E, T] completion_reference(Completed[E, T]) -> CompletionReference
 
 pub fn completion_reference_available(CompletionReference) -> Bool
 
+pub fn completion_reference_kind(CompletionReference) -> @carrier_contract.Kind
+
 pub fn[E, T] completion_reference_matches(CompletionReference, Completed[E, T]) -> Bool
+
+pub fn completion_reference_matches_port(CompletionReference, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn completion_reference_same(CompletionReference, CompletionReference) -> Bool
+
+pub fn completion_reference_storage_bytes(CompletionReference) -> Int64?
 
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
@@ -54,6 +62,16 @@ pub fn[E, T] producer_read_matches_reference(ProducerRead[E, T], CompletionRefer
 pub fn[E, T] producer_read_payload(ProducerRead[E, T]) -> T?
 
 pub fn[E, T] producer_read_receiver(ProducerRead[E, T]) -> @lowering_relation.BoundPrepared
+
+pub fn[E, T] producer_read_reference(ProducerRead[E, T]) -> ProducerReadReference
+
+pub fn producer_read_reference_available(ProducerReadReference) -> Bool
+
+pub fn producer_read_reference_matches_input(ProducerReadReference, @lowering_relation.BoundPrepared, Int) -> Bool
+
+pub fn producer_read_reference_matches_output(ProducerReadReference, CompletionReference) -> Bool
+
+pub fn producer_read_reference_same(ProducerReadReference, ProducerReadReference) -> Bool
 
 pub fn[E, T] producer_read_same(ProducerRead[E, T], ProducerRead[E, T]) -> Bool
 
@@ -111,6 +129,8 @@ pub(all) enum ProducerReadIssue {
   ProducerTargetMismatch
   ProducerUnavailable
 } derive(Eq, @debug.Debug)
+
+type ProducerReadReference
 
 type Receipt
 

@@ -71,7 +71,19 @@ struct Completed[E, T] {
 /// serialized handle, content identity or read authorization.
 struct CompletionReference {
   identity : Ref[Unit]
+  binding : Binding
+  storage_bytes : Int64
   available : () -> Bool
+}
+
+///|
+/// Type-erased proof of one exact receiving use site. It carries no payload
+/// access and cannot be converted back into a typed read handle.
+struct ProducerReadReference {
+  identity : Ref[Unit]
+  receiver : @lower.BoundPrepared
+  input_index : Int
+  output : CompletionReference
 }
 
 ///|
@@ -301,12 +313,51 @@ pub fn[E, T] completed_storage_bytes(value : Completed[E, T]) -> Int64? {
 pub fn[E, T] completion_reference(
   value : Completed[E, T],
 ) -> CompletionReference {
-  { identity: value.identity, available: fn() { completed_available(value) }, }
+  {
+    identity: value.identity,
+    binding: value.retained.receipt.binding,
+    storage_bytes: value.retained.storage_bytes,
+    available: fn() { completed_available(value) },
+  }
 }
 
 ///|
 pub fn completion_reference_available(value : CompletionReference) -> Bool {
   (value.available)()
+}
+
+///|
+pub fn completion_reference_same(
+  left : CompletionReference,
+  right : CompletionReference,
+) -> Bool {
+  physical_equal(left.identity, right.identity)
+}
+
+///|
+pub fn completion_reference_kind(value : CompletionReference) -> @carrier.Kind {
+  binding_kind(value.binding)
+}
+
+///|
+pub fn completion_reference_matches_port(
+  value : CompletionReference,
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+) -> Bool {
+  binding_matches(value.binding, owner, target) &&
+  completion_reference_available(value)
+}
+
+///|
+pub fn completion_reference_storage_bytes(
+  value : CompletionReference,
+) -> Int64? {
+  if completion_reference_available(value) {
+    Some(value.storage_bytes)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -397,4 +448,49 @@ pub fn[E, T] producer_read_matches_reference(
 ) -> Bool {
   completion_reference_matches(reference, value.output) &&
   producer_read_available(value)
+}
+
+///|
+pub fn[E, T] producer_read_reference(
+  value : ProducerRead[E, T],
+) -> ProducerReadReference {
+  {
+    identity: value.identity,
+    receiver: value.receiver,
+    input_index: value.input_index,
+    output: completion_reference(value.output),
+  }
+}
+
+///|
+pub fn producer_read_reference_available(value : ProducerReadReference) -> Bool {
+  completion_reference_available(value.output)
+}
+
+///|
+pub fn producer_read_reference_same(
+  left : ProducerReadReference,
+  right : ProducerReadReference,
+) -> Bool {
+  physical_equal(left.identity, right.identity)
+}
+
+///|
+pub fn producer_read_reference_matches_input(
+  value : ProducerReadReference,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+) -> Bool {
+  physical_equal(value.receiver, receiver) &&
+  value.input_index == input_index &&
+  producer_read_reference_available(value)
+}
+
+///|
+pub fn producer_read_reference_matches_output(
+  value : ProducerReadReference,
+  output : CompletionReference,
+) -> Bool {
+  completion_reference_same(value.output, output) &&
+  producer_read_reference_available(value)
 }

@@ -19,6 +19,8 @@ pub fn cancel_output(OutputBuilder) -> Bool
 
 pub fn completed_available(Completed) -> Bool
 
+pub fn completed_carrier_reference(Completed) -> @managed_carrier_runtime.CompletionReference
+
 pub fn completed_evidence(Completed) -> Evidence?
 
 pub fn completed_measure(Completed) -> @managed_carrier_runtime.Measure
@@ -50,6 +52,8 @@ pub fn prepare_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target,
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed) -> Result[ProducerRead, Issue]
 
 pub fn producer_read_available(ProducerRead) -> Bool
+
+pub fn producer_read_carrier_reference(ProducerRead) -> @managed_carrier_runtime.ProducerReadReference
 
 pub fn producer_read_input_index(ProducerRead) -> Int
 

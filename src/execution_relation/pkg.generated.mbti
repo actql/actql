@@ -3,9 +3,11 @@ package "actql/actql/execution_relation"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/numeric_reduction",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
@@ -87,6 +89,8 @@ pub fn authorize_managed_identity_execution_attempt(ManagedIdentityIssuanceCapab
 
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
+pub fn[P] bind_carrier_managed_completion_attempt(CarrierManagedCompletionPort[P], ManagedExecutionAttempt) -> Bool
+
 pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
 
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
@@ -108,6 +112,8 @@ pub fn cancel_admitted_input(AdmittedInput) -> Bool
 pub fn cancel_admitted_output(AdmittedOutput) -> Bool
 
 pub fn cancel_admitted_output_stream(AdmittedOutputStream) -> Bool
+
+pub fn[P] cancel_carrier_managed_completion_port(CarrierManagedCompletionPort[P]) -> Bool
 
 pub fn cancel_completed_export_receipt(CompletedOutputExportReceipt) -> Unit
 
@@ -157,7 +163,37 @@ pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
 
 pub fn captured_usage(CapturedRows) -> ValueUsage
 
+pub fn carrier_managed_completed_output_available(CarrierManagedCompletedOutput) -> Bool
+
+pub fn carrier_managed_completed_output_kind(CarrierManagedCompletedOutput) -> @carrier_contract.Kind
+
+pub fn carrier_managed_completed_output_matches_attempt(CarrierManagedCompletedOutput, ManagedExecutionAttempt) -> Bool
+
+pub fn carrier_managed_completed_output_matches_inputs(CarrierManagedCompletedOutput, Array[CarrierManagedProducerRead]) -> Bool
+
+pub fn carrier_managed_completed_output_matches_port(CarrierManagedCompletedOutput, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn carrier_managed_completed_output_obligations(CarrierManagedCompletedOutput) -> ManagedObligations
+
+pub fn carrier_managed_completed_output_storage_bytes(CarrierManagedCompletedOutput) -> Int64?
+
+pub fn carrier_managed_completed_reference(CarrierManagedCompletedOutput) -> CarrierManagedCompletionReference
+
+pub fn carrier_managed_completed_reference_available(CarrierManagedCompletionReference) -> Bool
+
+pub fn carrier_managed_completed_reference_matches(CarrierManagedCompletionReference, CarrierManagedCompletedOutput) -> Bool
+
+pub fn carrier_managed_producer_read_available(CarrierManagedProducerRead) -> Bool
+
+pub fn carrier_managed_producer_read_carrier_reference(CarrierManagedProducerRead) -> @managed_carrier_runtime.ProducerReadReference
+
+pub fn carrier_managed_producer_read_matches_input(CarrierManagedProducerRead, @lowering_relation.BoundPrepared, Int) -> Bool
+
+pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierManagedProducerRead) -> Bool
+
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
+
+pub fn[P] complete_carrier_managed_output(CarrierManagedCompletionPort[P], P) -> Result[CarrierManagedCompletedOutput, TrustedOutputIssue]
 
 pub fn[P, T] complete_managed_output(ManagedCompletionPort[P, T], P) -> Result[ManagedCompletedOutput[T], TrustedOutputIssue]
 
@@ -481,6 +517,10 @@ pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typin
 
 pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, RowWireLimits, Int) -> Result[AdmittedOutputStream, OutputStreamIssue]
 
+pub fn[P] prepare_carrier_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[CarrierManagedProducerRead], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
+
+pub fn prepare_carrier_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference) -> Result[CarrierManagedProducerRead, TrustedOutputIssue]
+
 pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
@@ -558,6 +598,8 @@ pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_
 pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
 
 pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead) -> Bool) -> RetainedScanReuse?
+
+pub fn process_carrier_managed_obligations(@lowering_relation.BoundPrepared) -> ManagedObligations
 
 pub fn process_managed_obligations(@lowering_relation.BoundPrepared) -> ManagedObligations
 
@@ -736,6 +778,14 @@ pub(all) enum CaptureOrigin {
 } derive(Eq, @debug.Debug)
 
 type CapturedRows
+
+type CarrierManagedCompletedOutput
+
+type CarrierManagedCompletionPort[P]
+
+type CarrierManagedCompletionReference
+
+type CarrierManagedProducerRead
 
 pub(all) enum CompletedExportIssue {
   Unavailable

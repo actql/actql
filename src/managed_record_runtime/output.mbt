@@ -237,6 +237,13 @@ pub fn completed_reference(value : Completed) -> CompletionReference {
 }
 
 ///|
+pub fn completed_carrier_reference(
+  value : Completed,
+) -> @lifecycle.CompletionReference {
+  @lifecycle.completion_reference(value.core)
+}
+
+///|
 pub fn completed_reference_available(value : CompletionReference) -> Bool {
   @lifecycle.completion_reference_available(value.core)
 }
@@ -291,4 +298,11 @@ pub fn producer_read_matches_reference(
   reference : CompletionReference,
 ) -> Bool {
   @lifecycle.producer_read_matches_reference(value.core, reference.core)
+}
+
+///|
+pub fn producer_read_carrier_reference(
+  value : ProducerRead,
+) -> @lifecycle.ProducerReadReference {
+  @lifecycle.producer_read_reference(value.core)
 }

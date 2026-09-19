@@ -174,6 +174,11 @@ test "carrier lifecycle binds independent exact producer use sites" {
   let reference = completion_reference(completed)
   assert_true(producer_read_matches_reference(first, reference))
   assert_true(producer_read_matches_reference(second, reference))
+  let erased = producer_read_reference(first)
+  assert_true(producer_read_reference_matches_input(erased, receiver, 0))
+  assert_true(producer_read_reference_matches_output(erased, reference))
+  assert_eq(completion_reference_kind(reference), @carrier.RelationKind)
+  assert_eq(completion_reference_storage_bytes(reference), Some(16L))
   assert_true(
     prepare_producer_read(receiver, 1, owner, completed) is Err(InvalidInput),
   )

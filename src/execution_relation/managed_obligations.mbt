@@ -184,6 +184,15 @@ pub fn process_managed_obligations(
 }
 
 ///|
+/// Default process-managed obligations for a non-Relation Carrier. Carrier
+/// laws remain mandatory, but no row-content identity is manufactured.
+pub fn process_carrier_managed_obligations(
+  owner : @lower.BoundPrepared,
+) -> ManagedObligations {
+  prepare_managed_obligations(owner, [], ManagedUse, MaterialBinding, 0).unwrap()
+}
+
+///|
 pub fn managed_obligations_owner(
   obligations : ManagedObligations,
 ) -> @lower.BoundPrepared {
