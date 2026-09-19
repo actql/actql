@@ -408,7 +408,8 @@ fn lower_expression_measured(
       | NestRows(_)
       | BasicGraph(_)
       | StructuralGraph(_)
-      | GraphUnion(_) => expression_fail(step.source, MissingCheckedBinding)
+      | GraphUnion(_)
+      | GraphMeanValue(_) => expression_fail(step.source, MissingCheckedBinding)
     }
     guard @relation.binding_at(op, binding_index) is Some(binding) else {
       expression_fail(step.source, MissingCheckedBinding)

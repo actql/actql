@@ -307,7 +307,8 @@ fn prepare_kernel_measured(
     | NestRows(_)
     | BasicGraph(_)
     | StructuralGraph(_)
-    | GraphUnion(_) => return Err(MissingKernelNode)
+    | GraphUnion(_)
+    | GraphMeanValue(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)

@@ -177,7 +177,8 @@ pub fn prepare_kernel_roots(
     | NestStep(_)
     | GraphBasicStep(_)
     | GraphStructuralStep(_)
-    | GraphUnionStep(_) => return Err(NotExpressionKernel)
+    | GraphUnionStep(_)
+    | GraphMeanStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
@@ -236,7 +237,8 @@ fn prepare_root_range(
       | NestStep(_)
       | GraphBasicStep(_)
       | GraphStructuralStep(_)
-      | GraphUnionStep(_) => continue
+      | GraphUnionStep(_)
+      | GraphMeanStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {
           Select(_)

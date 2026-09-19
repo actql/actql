@@ -58,6 +58,7 @@ pub enum Payload {
   BasicGraph(@graph.CheckedGraph)
   StructuralGraph(@graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
+  GraphMeanValue(@graph.CheckedMean)
 }
 
 ///|
@@ -200,6 +201,7 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Subtract => "SGA.diff_structural"
       }
     GraphUnion(_) => "SGA.union_structural"
+    GraphMeanValue(_) => "SGA.mean_structural"
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -263,8 +265,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | GraphApply(..) => None
     GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
-    GraphMean(_)
-    | GraphConstruction(..)
+    GraphMean(value) => Some(GraphMeanValue(value))
+    GraphConstruction(..)
     | Vector(_)
     | Nearest(..)
     | Pool(_)
@@ -388,6 +390,8 @@ pub fn prepare(
           2,
         )
       GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
+      GraphMeanValue(value) =>
+        ("mean_graphs", @graph.mean_sample_count(@graph.mean_options(value)))
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -508,6 +512,7 @@ pub fn prepare(
       BasicGraph(_) => None
       StructuralGraph(_) => None
       GraphUnion(_) => None
+      GraphMeanValue(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

@@ -175,6 +175,7 @@ pub fn local_managed_sequence_supported(
       @lower.GraphBasicStep(_) => false
       @lower.GraphStructuralStep(_) => false
       @lower.GraphUnionStep(_) => false
+      @lower.GraphMeanStep(_) => false
     }
   })
 }

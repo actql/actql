@@ -385,7 +385,8 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.NestStep(_)
       | @lower.GraphBasicStep(_)
       | @lower.GraphStructuralStep(_)
-      | @lower.GraphUnionStep(_) => false
+      | @lower.GraphUnionStep(_)
+      | @lower.GraphMeanStep(_) => false
     }
   })
 }

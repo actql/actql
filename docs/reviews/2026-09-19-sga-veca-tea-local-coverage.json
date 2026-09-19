@@ -217,8 +217,10 @@
       "output": "graph",
       "canonical": ["SGA.mean_structural"],
       "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_mean_test.mbt"]
     },
     {
       "family": "TEA",
