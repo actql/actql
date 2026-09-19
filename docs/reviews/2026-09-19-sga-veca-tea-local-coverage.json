@@ -180,8 +180,19 @@
       "variants": ["conflict laws", "equal semantic ids", "shared storage"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_union_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_union_test.mbt",
+        "src/local_sga/graft_wbtest.mbt"
+      ]
     },
     {
       "family": "SGA",

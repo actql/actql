@@ -67,13 +67,15 @@ operations retain checked property laws. Basic operations preserve direction,
 component policy, resolved guards, and bounds. Delta application retains its
 exact produced input and selected field. Normalize now copies an exact managed
 Graph input into an independently retained managed Graph generation through
-bounded work units. Its portable tests cover pre-allocation limits, kernel
-cancellation observation, and two exact downstream reads on JS, Wasm, and
-native. Standard Host selection, actual downstream computations, environment
-cancellation delivery, independent consumer release, and publication remain
-open. The other SGA operations still lack portable Local kernels. Graph
-projection already defines evidence laws; execution must consume rather than
-recreate them.
+bounded work units. Graft consumes two exact positioned inputs, preserves a
+repeated material occurrence, collapses an equal declaration, and rejects a
+conflicting payload atomically. Their portable tests cover pre-allocation
+limits, kernel cancellation observation, and managed Graph generations on JS,
+Wasm, and native. Standard Host selection, actual downstream computations,
+environment cancellation delivery, independent consumer release, and
+publication remain open. The other SGA operations still lack portable Local
+kernels. Graph projection already defines evidence laws; execution must
+consume rather than recreate them.
 
 ### VecA
 

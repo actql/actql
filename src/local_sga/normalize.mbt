@@ -45,20 +45,12 @@ fn copy_node(
   state : NormalizeState,
   index : Int,
 ) -> Result[Unit, NormalizeIssue] {
-  guard @storage.node_identity(state.source, index) is Some(identity) else {
-    return Err(InputUnavailable)
-  }
-  let properties = []
-  for field in 0..<state.node_fields {
-    guard @storage.node_property(state.source, index, field) is Some(value) else {
-      return Err(InputUnavailable)
-    }
-    properties.push(value)
-  }
   guard state.output is Some(output) else { return Err(InvalidKernel) }
-  @graph.append_node(output, identity, properties).map_err(issue => {
-    Output(issue)
-  })
+  match copy_graph_node(state.source, output, state.node_fields, index) {
+    Ok(_) => Ok(())
+    Err(Unavailable) => Err(InputUnavailable)
+    Err(GraphCopyIssue::Output(issue)) => Err(Output(issue))
+  }
 }
 
 ///|
@@ -66,23 +58,12 @@ fn copy_edge(
   state : NormalizeState,
   index : Int,
 ) -> Result[Unit, NormalizeIssue] {
-  guard @storage.edge_endpoints(state.source, index) is Some((source, target)) &&
-    @storage.node_identity(state.source, source) is Some(source_id) &&
-    @storage.node_identity(state.source, target) is Some(target_id) &&
-    @storage.edge_label(state.source, index) is Some(label) else {
-    return Err(InputUnavailable)
-  }
-  let properties = []
-  for field in 0..<state.edge_fields {
-    guard @storage.edge_property(state.source, index, field) is Some(value) else {
-      return Err(InputUnavailable)
-    }
-    properties.push(value)
-  }
   guard state.output is Some(output) else { return Err(InvalidKernel) }
-  @graph.append_edge(output, source_id, target_id, label, properties).map_err(issue => {
-    Output(issue)
-  })
+  match copy_graph_edge(state.source, output, state.edge_fields, index) {
+    Ok(_) => Ok(())
+    Err(Unavailable) => Err(InputUnavailable)
+    Err(GraphCopyIssue::Output(issue)) => Err(Output(issue))
+  }
 }
 
 ///|

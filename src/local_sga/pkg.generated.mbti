@@ -10,9 +10,19 @@ import {
 }
 
 // Values
+pub fn advance_graft(GraftExecution, Int) -> Result[GraftPoll, GraftIssue]
+
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
+pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
+
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
+
+pub fn graft_cleanup_pending(GraftExecution) -> Bool
+
+pub fn graft_max_noninterruptible_value_nodes(GraftExecution) -> Int
+
+pub fn graft_stopped(GraftExecution) -> Bool
 
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
 
@@ -20,11 +30,30 @@ pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
 
 pub fn normalize_stopped(NormalizeExecution) -> Bool
 
+pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
+
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
 // Errors
 
 // Types and methods
+type GraftExecution
+
+pub(all) enum GraftIssue {
+  InvalidGraftKernel
+  InvalidGraftLimits
+  GraftInputUnavailable
+  GraftOutput(@managed_graph_runtime.Issue)
+  GraftExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum GraftPoll {
+  GraftContinue(progress~ : Int64, work~ : Int64)
+  GraftComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
+  GraftFailed(GraftIssue, progress~ : Int64, work~ : Int64)
+  GraftStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type NormalizeExecution
 
 pub(all) enum NormalizeIssue {
