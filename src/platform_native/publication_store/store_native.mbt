@@ -5,6 +5,7 @@ struct Store {
   authority_cid : String
   capacity_bytes : Int64
   max_objects : Int64
+  max_record_bytes : Int
   active_writers : Map[String, Bool]
   active_readers : Map[String, Int]
   mut closed : Bool
@@ -56,6 +57,35 @@ struct PayloadDelivery {
 }
 
 ///|
+struct ConfirmedPayloadDelivery {
+  source : PayloadDelivery
+  progress : @publication.DeliverySinkProgress
+  mut closed : Bool
+}
+
+///|
+struct ResultDelivery {
+  store : Store
+  source : ConfirmedPayloadDelivery
+  index : @publication.PublicationContract
+  manifest : @publication.PublicationContract
+  grant : @publication.PublicationContract
+  retention : @publication.PublicationContract
+  result_name : String
+  attempt : @publication.PublicationContract
+  streaming : @publication.PublicationContract
+  mut record_revision : Int64
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  mut source_summary : NativePublicationDeliverySummary?
+  mut failure_confirmed : Int64?
+  mut terminal_observed_at : String
+  mut succeeded : NativeResultDeliverySuccess?
+  mut closed : Bool
+}
+
+///|
 fn[T] protocol(
   result : Result[T, @payload.PublicationPayloadIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
@@ -94,7 +124,10 @@ pub fn open_store(
   max_objects : Int64,
   max_record_bytes : Int64,
 ) -> Result[Store, NativePublicationStoreIssue] {
-  if capacity_bytes < 0L || max_objects < 1L || max_record_bytes < 1L {
+  if capacity_bytes < 0L ||
+    max_objects < 1L ||
+    max_record_bytes < 1L ||
+    max_record_bytes > 2147483647L {
     return Err(InvalidConfiguration)
   }
   let root = match @filesystem.open_root(root_path) {
@@ -112,6 +145,7 @@ pub fn open_store(
     authority_cid,
     capacity_bytes,
     max_objects,
+    max_record_bytes: max_record_bytes.to_int(),
     active_writers: Map([]),
     active_readers: Map([]),
     closed: false,
@@ -698,6 +732,169 @@ fn delivery(
 }
 
 ///|
+fn[T] sink_progress(
+  result : Result[T, @publication.DeliverySinkProgressIssue],
+) -> Result[T, NativePublicationStoreIssue] {
+  match result {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(SinkProgress(issue))
+  }
+}
+
+///|
+fn[T] delivery_issuance(
+  result : Result[T, @publication.DeliveryIssuanceIssue],
+) -> Result[T, NativePublicationStoreIssue] {
+  match result {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(DeliveryIssuance(issue))
+  }
+}
+
+///|
+fn put_publication_contract(
+  store : Store,
+  contract : @publication.PublicationContract,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let identity = @publication.publication_contract_identity(contract)
+  let body = @utf8.encode(@publication.publication_contract_json(contract))
+  match store.database.insert("publication_contract", identity, body) {
+    Ok(_) => Ok(())
+    Err(@sqlite.Collision) => {
+      let existing = match
+        store.database.read("publication_contract", identity) {
+        Ok(value) => value
+        Err(issue) => return Err(Database(issue))
+      }
+      if existing.body == body {
+        Ok(())
+      } else {
+        Err(StateCollision)
+      }
+    }
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+fn read_publication_contract(
+  store : Store,
+  name : String,
+  identity : String,
+) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
+  let stored = match store.database.read("publication_contract", identity) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  let wire = @utf8.decode(stored.body) catch { _ => return Err(StateCollision) }
+  let contract = match
+    @publication.admit_publication_contract(
+      name,
+      wire,
+      store.max_record_bytes,
+      store.max_record_bytes,
+      64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(StateCollision)
+  }
+  if @publication.publication_contract_identity(contract) != identity {
+    return Err(StateCollision)
+  }
+  Ok(contract)
+}
+
+///|
+fn delivery_attempt_key(attempt_id : String) -> String {
+  @sha.hex(@sha.digest(@utf8.encode(attempt_id)))
+}
+
+///|
+fn claim_delivery_attempt(
+  store : Store,
+  attempt_id : String,
+  attempt : @publication.PublicationContract,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let identity = @publication.publication_contract_identity(attempt)
+  match
+    store.database.insert(
+      "delivery_attempt",
+      delivery_attempt_key(attempt_id),
+      @utf8.encode(identity),
+    ) {
+    Ok(_) => Ok(())
+    Err(@sqlite.Collision) => {
+      let existing = match
+        store.database.read(
+          "delivery_attempt",
+          delivery_attempt_key(attempt_id),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Database(issue))
+      }
+      if existing.body == @utf8.encode(identity) {
+        Err(ExistingDeliveryAttempt)
+      } else {
+        Err(StateCollision)
+      }
+    }
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+fn append_initial_delivery_record(
+  store : Store,
+  attempt : @publication.PublicationContract,
+  record : @publication.PublicationContract,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  match put_publication_contract(store, record) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let key = @publication.publication_contract_identity(attempt)
+  let body = @utf8.encode(@publication.publication_contract_json(record))
+  match store.database.insert("delivery_record_head", key, body) {
+    Ok(revision) => Ok(revision)
+    Err(@sqlite.Collision) => Err(DeliveryAttemptUnresolved)
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+fn append_next_delivery_record(
+  store : Store,
+  attempt : @publication.PublicationContract,
+  expected_revision : Int64,
+  record : @publication.PublicationContract,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  match put_publication_contract(store, record) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let key = @publication.publication_contract_identity(attempt)
+  let body = @utf8.encode(@publication.publication_contract_json(record))
+  match
+    store.database.compare_exchange(
+      "delivery_record_head", key, expected_revision, body,
+    ) {
+    Ok(revision) => Ok(revision)
+    Err(@sqlite.Collision) => {
+      let existing = match store.database.read("delivery_record_head", key) {
+        Ok(value) => value
+        Err(issue) => return Err(Database(issue))
+      }
+      if existing.body == body {
+        Ok(existing.revision)
+      } else {
+        Err(StateCollision)
+      }
+    }
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
 fn queue_delivery_output(
   stream : PayloadDelivery,
   output : String,
@@ -795,6 +992,44 @@ pub fn Store::open_payload_delivery(
     delivery_digest: None,
     closed: false,
   })
+}
+
+///|
+/// Open a delivery that keeps Store reads separate from sink confirmation.
+/// `next` exposes at most one bounded chunk. The caller must confirm that
+/// exact chunk before requesting another one, and must explicitly confirm the
+/// sink's successful end even when the representation is empty.
+pub fn Store::open_confirmed_payload_delivery(
+  self : Store,
+  material_generation_cid : String,
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  input_chunk_bytes : Int,
+  max_row_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_delivery_bytes : Int64,
+) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue] {
+  let source = match
+    self.open_payload_delivery(
+      material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
+      max_nodes, max_depth, max_delivery_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let progress = match
+    sink_progress(
+      @publication.prepare_delivery_sink_progress(max_delivery_bytes),
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(source.close())
+      return Err(issue)
+    }
+  }
+  Ok({ source, progress, closed: false, })
 }
 
 ///|
@@ -946,6 +1181,634 @@ pub fn PayloadDelivery::close(
   }
   self.closed = true
   Ok(())
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::next(
+  self : ConfirmedPayloadDelivery,
+  max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match sink_progress(self.progress.prepare_next()) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let chunk = match self.source.next(max_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match sink_progress(self.progress.offer(chunk.bytes, chunk.eof)) {
+    Ok(_) => Ok(chunk)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::confirm_chunk(
+  self : ConfirmedPayloadDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  sink_progress(self.progress.confirm_chunk())
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::fail_chunk(
+  self : ConfirmedPayloadDelivery,
+  confirmed_prefix_bytes : Int,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let confirmed = match
+    sink_progress(self.progress.fail_chunk(confirmed_prefix_bytes)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.source.close() {
+    Ok(_) => {
+      self.closed = true
+      Ok(confirmed)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::fail(
+  self : ConfirmedPayloadDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let confirmed = match sink_progress(self.progress.fail()) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.source.close() {
+    Ok(_) => {
+      self.closed = true
+      Ok(confirmed)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::confirm_sink_finished(
+  self : ConfirmedPayloadDelivery,
+) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let source = match self.source.finish() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let confirmed = match sink_progress(self.progress.confirm_finished()) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if source.bytes != confirmed.confirmed_bytes ||
+    source.delivery_digest != confirmed.delivered_sha256 {
+    return Err(StateCollision)
+  }
+  self.closed = true
+  Ok(source)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::close(
+  self : ConfirmedPayloadDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  match self.source.close() {
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Begin one formally admitted Result delivery. The immutable attempt and its
+/// initial streaming record are durable before any payload byte is exposed.
+pub fn Store::begin_result_delivery(
+  self : Store,
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  binding : @publication.PublicationContract,
+  material_generation_cid : String,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  requested_at : String,
+  schema_wire : String,
+  fields : Array[String],
+  input_chunk_bytes : Int,
+  max_row_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_delivery_bytes : Int64,
+) -> Result[ResultDelivery, NativePublicationStoreIssue] {
+  if self.closed || max_delivery_bytes < 0L || max_delivery_bytes > 2147483647L {
+    return Err(InvalidConfiguration)
+  }
+  if !@publication.result_read_grant_valid_at(grant, requested_at) ||
+    !@publication.result_read_grant_allows_bytes(
+      grant,
+      max_delivery_bytes.to_int(),
+    ) {
+    return Err(DeliveryLimit)
+  }
+  let availability = match
+    delivery_issuance(
+      @publication.result_read_availability(
+        manifest, result_name, retention, requested_at,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if availability != "available" {
+    return Err(DeliveryLimit)
+  }
+  let attempt = match
+    delivery_issuance(
+      @publication.issue_delivery_attempt(
+        index, manifest, grant, result_name, format, attempt_id, requested_at, max_wire_bytes,
+        max_nodes, max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let info = match self.inspect_payload(material_generation_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !info.physical_digest.has_prefix("sha256:") {
+    return Err(DigestMismatch)
+  }
+  let facts : @publication.DeliveryPayloadFacts = {
+    store_authority_cid: self.authority_cid,
+    material_generation_cid,
+    logical_result_cid: info.logical_relation_cid,
+    result_schema_cid: info.result_schema_cid,
+    ordering_evidence_cid: info.ordering_evidence_cid,
+    codec_contract_cid: info.durable_codec_cid,
+    result_fields: fields.copy(),
+    result_schema_wire: schema_wire,
+    row_count: info.row_count,
+    byte_count: info.generation.size,
+    physical_sha256: info.physical_digest[7:].to_owned(),
+  }
+  match
+    delivery_issuance(
+      @publication.validate_delivery_payload_binding(
+        index, manifest, attempt, binding, facts, max_wire_bytes, max_nodes, max_depth,
+      ),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  for contract in [index, manifest, grant, retention, binding, attempt] {
+    match put_publication_contract(self, contract) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  match claim_delivery_attempt(self, attempt_id, attempt) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let streaming = match
+    delivery_issuance(
+      @publication.issue_delivery_record(
+        attempt,
+        None,
+        "streaming",
+        0,
+        "exact",
+        None,
+        None,
+        None,
+        None,
+        requested_at,
+        [],
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let record_revision = match
+    append_initial_delivery_record(self, attempt, streaming) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let source = match
+    self.open_confirmed_payload_delivery(
+      material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
+      max_nodes, max_depth, max_delivery_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    store: self,
+    source,
+    index,
+    manifest,
+    grant,
+    retention,
+    result_name,
+    attempt,
+    streaming,
+    record_revision,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    source_summary: None,
+    failure_confirmed: None,
+    terminal_observed_at: "",
+    succeeded: None,
+    closed: false,
+  })
+}
+
+///|
+pub fn ResultDelivery::attempt_cid(self : ResultDelivery) -> String {
+  @publication.publication_contract_identity(self.attempt)
+}
+
+///|
+pub fn ResultDelivery::next(
+  self : ResultDelivery,
+  max_bytes : Int,
+  observed_at : String,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  if self.closed || self.succeeded is Some(_) {
+    return Err(Closed)
+  }
+  if !@publication.result_read_grant_valid_at(self.grant, observed_at) {
+    return Err(DeliveryLimit)
+  }
+  let availability = match
+    delivery_issuance(
+      @publication.result_read_availability(
+        self.manifest,
+        self.result_name,
+        self.retention,
+        observed_at,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if availability != "available" {
+    return Err(DeliveryLimit)
+  }
+  self.source.next(max_bytes)
+}
+
+///|
+pub fn ResultDelivery::confirm_chunk(
+  self : ResultDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  if self.closed || self.succeeded is Some(_) {
+    return Err(Closed)
+  }
+  self.source.confirm_chunk()
+}
+
+///|
+pub fn ResultDelivery::confirm_sink_finished(
+  self : ResultDelivery,
+  observed_at : String,
+) -> Result[NativeResultDeliverySuccess, NativePublicationStoreIssue] {
+  match self.succeeded {
+    Some(value) => return Ok(value)
+    None => ()
+  }
+  if self.closed {
+    return Err(Closed)
+  }
+  if !@publication.result_read_grant_valid_at(self.grant, observed_at) {
+    return Err(DeliveryLimit)
+  }
+  let availability = match
+    delivery_issuance(
+      @publication.result_read_availability(
+        self.manifest,
+        self.result_name,
+        self.retention,
+        observed_at,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if availability != "available" {
+    return Err(DeliveryLimit)
+  }
+  let summary = match self.source_summary {
+    Some(value) => value
+    None => {
+      let value = match self.source.confirm_sink_finished() {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      self.source_summary = Some(value)
+      value
+    }
+  }
+  if !@publication.result_read_grant_allows_bytes(
+      self.grant,
+      summary.bytes.to_int(),
+    ) {
+    return Err(DeliveryLimit)
+  }
+  if self.terminal_observed_at.is_empty() {
+    self.terminal_observed_at = observed_at
+  }
+  if !summary.delivery_digest.has_prefix("sha256:") {
+    return Err(DigestMismatch)
+  }
+  let delivered_sha256 = summary.delivery_digest[7:].to_owned()
+  let receipt = match
+    delivery_issuance(
+      @publication.issue_result_delivery_receipt(
+        self.index,
+        self.manifest,
+        self.grant,
+        self.attempt,
+        summary.bytes.to_int(),
+        delivered_sha256,
+        self.max_wire_bytes,
+        self.max_nodes,
+        self.max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match put_publication_contract(self.store, receipt) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let succeeded = match
+    delivery_issuance(
+      @publication.issue_delivery_record(
+        self.attempt,
+        Some(self.streaming),
+        "succeeded",
+        summary.bytes.to_int(),
+        "exact",
+        None,
+        Some(delivered_sha256),
+        Some(receipt),
+        None,
+        self.terminal_observed_at,
+        [],
+        self.max_wire_bytes,
+        self.max_nodes,
+        self.max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.record_revision = match
+    append_next_delivery_record(
+      self.store,
+      self.attempt,
+      self.record_revision,
+      succeeded,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    delivery_issuance(
+      @publication.validate_delivery_success_evidence(
+        self.attempt,
+        receipt,
+        succeeded,
+      ),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let result : NativeResultDeliverySuccess = {
+    delivery_attempt_cid: @publication.publication_contract_identity(
+      self.attempt,
+    ),
+    delivery_record_cid: @publication.publication_contract_identity(succeeded),
+    result_delivery_receipt_cid: @publication.publication_contract_identity(
+      receipt,
+    ),
+    confirmed_bytes: summary.bytes,
+    delivered_sha256,
+  }
+  self.succeeded = Some(result)
+  self.closed = true
+  Ok(result)
+}
+
+///|
+/// Terminate a failed or cancelled attempt after reporting the sink-confirmed
+/// prefix of the one outstanding chunk, if any. The payload reader is stopped
+/// before the terminal record is committed, while a durability failure keeps
+/// this session retryable without reading or sending more payload.
+pub fn ResultDelivery::terminate(
+  self : ResultDelivery,
+  confirmed_prefix_bytes : Int?,
+  cancellation_observed : Bool,
+  exposure : String,
+  possible_unconfirmed_max_bytes : Int?,
+  failure_cid : String?,
+  observed_at : String,
+) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
+  if self.succeeded is Some(_) || self.closed {
+    return Err(Closed)
+  }
+  let confirmed = match self.failure_confirmed {
+    Some(value) => value
+    None => {
+      let value = match confirmed_prefix_bytes {
+        Some(prefix) =>
+          match self.source.fail_chunk(prefix) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+        None =>
+          match self.source.fail() {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+      }
+      self.failure_confirmed = Some(value)
+      value
+    }
+  }
+  if confirmed > 2147483647L {
+    return Err(InvalidConfiguration)
+  }
+  if self.terminal_observed_at.is_empty() {
+    self.terminal_observed_at = observed_at
+  }
+  let action = @publication.prepare_delivery_failure_terminal(
+    cancellation_observed,
+  )
+  let state = @publication.delivery_failure_terminal_state(action)
+  let terminal = match
+    delivery_issuance(
+      @publication.issue_delivery_record(
+        self.attempt,
+        Some(self.streaming),
+        state,
+        confirmed.to_int(),
+        exposure,
+        possible_unconfirmed_max_bytes,
+        None,
+        None,
+        failure_cid,
+        self.terminal_observed_at,
+        [],
+        self.max_wire_bytes,
+        self.max_nodes,
+        self.max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.record_revision = match
+    append_next_delivery_record(
+      self.store,
+      self.attempt,
+      self.record_revision,
+      terminal,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.closed = true
+  Ok({
+    delivery_attempt_cid: @publication.publication_contract_identity(
+      self.attempt,
+    ),
+    delivery_record_cid: @publication.publication_contract_identity(terminal),
+    confirmed_bytes: confirmed,
+    state,
+  })
+}
+
+///|
+pub fn ResultDelivery::close(
+  self : ResultDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  match self.source.close() {
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Reconcile the latest durable terminal or unresolved fact for one delivery
+/// occurrence after a process restart. This does not authorize a new delivery
+/// or imply that its source material remains available.
+pub fn Store::inspect_result_delivery(
+  self : Store,
+  attempt_id : String,
+) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let mapped = match
+    self.database.read("delivery_attempt", delivery_attempt_key(attempt_id)) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  let attempt_cid = @utf8.decode(mapped.body) catch {
+    _ => return Err(StateCollision)
+  }
+  let attempt = match
+    read_publication_contract(self, "delivery_attempt", attempt_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let head = match self.database.read("delivery_record_head", attempt_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  let record_wire = @utf8.decode(head.body) catch {
+    _ => return Err(StateCollision)
+  }
+  let record = match
+    @publication.admit_publication_contract(
+      "delivery_record",
+      record_wire,
+      self.max_record_bytes,
+      self.max_record_bytes,
+      64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(StateCollision)
+  }
+  let projection = match
+    delivery_issuance(@publication.project_delivery_record(record)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if projection.delivery_attempt_cid != attempt_cid {
+    return Err(StateCollision)
+  }
+  match projection.result_delivery_receipt_cid {
+    Some(receipt_cid) => {
+      let receipt = match
+        read_publication_contract(self, "result_delivery_receipt", receipt_cid) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        delivery_issuance(
+          @publication.validate_delivery_success_evidence(
+            attempt, receipt, record,
+          ),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    None => ()
+  }
+  Ok({
+    delivery_attempt_cid: attempt_cid,
+    delivery_record_cid: @publication.publication_contract_identity(record),
+    state: projection.state,
+    confirmed_bytes: projection.confirmed_byte_count,
+    delivered_sha256: projection.delivered_sha256,
+    result_delivery_receipt_cid: projection.result_delivery_receipt_cid,
+  })
 }
 
 ///|

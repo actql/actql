@@ -25,6 +25,38 @@ fn native_payload_request(
 }
 
 ///|
+fn native_bound_payload_request(
+  authority : String,
+  token : String,
+  schema_cid : String,
+  ordering_cid : String,
+  codec_cid : String,
+  max_bytes : Int64,
+  row_count : Int64,
+) -> @payload.PublicationPayloadRequest {
+  @payload.prepare_publication_payload_request(
+    authority,
+    native_payload_cid(token + "-attempt"),
+    native_payload_cid(token + "-material"),
+    native_payload_cid(token + "-definition"),
+    native_payload_cid(token + "-relation"),
+    schema_cid,
+    ordering_cid,
+    codec_cid,
+    max_bytes,
+    row_count,
+  ).unwrap()
+}
+
+///|
+fn native_contract(
+  name : String,
+  body : String,
+) -> @publication.PublicationContract {
+  @publication.seal_publication_contract(name, body, 65536, 512, 16).unwrap()
+}
+
+///|
 fn native_delivery_all(
   stream : PayloadDelivery,
   chunk_bytes : Int,
@@ -268,6 +300,371 @@ test "empty native JSONL still reaches an explicit delivery end" {
   )
   store.reclaim_payload(info.material_generation_cid).unwrap()
   assert_true(store.close().unwrap())
+}
+
+///|
+test "native delivery separates source reads from sink confirmation" {
+  guard native_payload_fixture("confirmed-delivery", 128L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let token = "confirmed-delivery-" + @env.now().to_string()
+  let request = native_payload_request(authority, token, 64L, row_count=1L)
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"[{\"n\":1}]").unwrap()
+  let info = writer.seal().unwrap()
+  let stream = store
+    .open_confirmed_payload_delivery(
+      info.material_generation_cid,
+      "jsonl",
+      "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}",
+      ["n"],
+      3,
+      64,
+      8,
+      4,
+      64L,
+    )
+    .unwrap()
+  let first = stream.next(4).unwrap()
+  assert_true(
+    stream.next(4)
+    is Err(SinkProgress(@publication.DeliverySinkChunkOutstanding)),
+  )
+  assert_eq(stream.confirm_chunk().unwrap(), first.bytes.length().to_int64())
+  let output : Array[Byte] = []
+  for byte in first.bytes {
+    output.push(byte)
+  }
+  while true {
+    let chunk = stream.next(4).unwrap()
+    for byte in chunk.bytes {
+      output.push(byte)
+    }
+    if chunk.bytes.length() > 0 {
+      ignore(stream.confirm_chunk().unwrap())
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  let summary = stream.confirm_sink_finished().unwrap()
+  let expected = "{\"n\":1}\n"
+  assert_eq(@utf8.decode_lossy(Bytes::from_array(output)), expected)
+  assert_eq(summary.bytes, @utf8.encode(expected).length().to_int64())
+  assert_eq(
+    summary.delivery_digest,
+    "sha256:" + @sha.text_hex(expected).unwrap(),
+  )
+  store.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "empty native delivery needs explicit sink finish confirmation" {
+  guard native_payload_fixture("confirmed-empty", 128L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let token = "confirmed-empty-" + @env.now().to_string()
+  let request = native_payload_request(authority, token, 16L, row_count=0L)
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"[]").unwrap()
+  let info = writer.seal().unwrap()
+  let stream = store
+    .open_confirmed_payload_delivery(
+      info.material_generation_cid,
+      "jsonl",
+      "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}",
+      ["n"],
+      2,
+      64,
+      8,
+      4,
+      0L,
+    )
+    .unwrap()
+  let terminal = stream.next(1).unwrap()
+  assert_true(terminal.eof)
+  assert_eq(terminal.bytes, b"")
+  let summary = stream.confirm_sink_finished().unwrap()
+  assert_eq(summary.bytes, 0L)
+  assert_eq(
+    summary.delivery_digest,
+    "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  )
+  store.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native formal delivery durably binds attempt receipt and success" {
+  guard native_payload_fixture("formal-delivery", 256L)
+    is Some((store, authority, library)) else {
+    return
+  }
+  let token = "formal-delivery-" + @env.now().to_string()
+  let schema_wire = "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}"
+  let schema_cid = "sha256:8eb90081d3d6698fc88cf5ba2d9c906b9f28f67e03693d8919b4e5c11e4ed80f"
+  let ordering_cid = native_payload_cid(token + "-ordering")
+  let codec_cid = native_payload_cid(token + "-codec")
+  let request = native_bound_payload_request(
+    authority, token, schema_cid, ordering_cid, codec_cid, 64L, 1L,
+  )
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"[{\"n\":1}]").unwrap()
+  let info = writer.seal().unwrap()
+  let run_definition_cid = native_payload_cid(token + "-run")
+  let invocation_cid = native_payload_cid(token + "-invocation")
+  let retention = native_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    native_payload_cid(token + "-retention") +
+    "\",\"effective_data_policy_cid\":\"" +
+    native_payload_cid(token + "-data-policy") +
+    "\",\"available_until\":\"2026-09-21T00:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-22T00:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-22T00:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    native_payload_cid(token + "-metadata-policy") +
+    "\",\"metadata_delete_by\":\"2026-09-23T00:00:00.000Z\"," +
+    "\"clock_contract_cid\":\"" +
+    native_payload_cid(token + "-clock") +
+    "\"}",
+  )
+  let artifact = native_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    info.result_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"logical_result_cid\":\"" +
+    info.logical_relation_cid +
+    "\",\"result_schema_cid\":\"" +
+    info.result_schema_cid +
+    "\",\"ordering_evidence_cid\":\"" +
+    info.ordering_evidence_cid +
+    "\",\"actual_row_count\":1,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    native_payload_cid(token + "-data-policy") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    @publication.publication_contract_identity(retention) +
+    "\",\"provenance_evidence_cids\":[]}",
+  )
+  let manifest = native_contract(
+    "result_manifest",
+    "{\"version\":\"actql-result-manifest/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"results\":{\"answer\":" +
+    @publication.publication_contract_json(artifact) +
+    "}}",
+  )
+  let binding = native_contract(
+    "durable_result_binding",
+    "{\"version\":\"actql-durable-result-binding/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"result_definition_cid\":\"" +
+    info.result_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"logical_result_cid\":\"" +
+    info.logical_relation_cid +
+    "\",\"result_schema_cid\":\"" +
+    info.result_schema_cid +
+    "\",\"ordering_evidence_cid\":\"" +
+    info.ordering_evidence_cid +
+    "\",\"codec_contract_cid\":\"" +
+    info.durable_codec_cid +
+    "\",\"result_fields\":[\"n\"],\"material_generation_cid\":\"" +
+    info.material_generation_cid +
+    "\",\"store_authority_cid\":\"" +
+    authority +
+    "\",\"effective_retention_policy_cid\":\"" +
+    @publication.publication_contract_identity(retention) +
+    "\",\"row_count\":1,\"byte_count\":" +
+    info.generation.size.to_string() +
+    ",\"physical_sha256\":\"" +
+    info.physical_digest[7:].to_owned() +
+    "\"}",
+  )
+  let index = native_contract(
+    "public_index_entry",
+    "{\"version\":\"actql-public-index-entry/0.1\"," +
+    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    native_payload_cid(token + "-scope") +
+    "\",\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"result_manifest_cid\":\"" +
+    @publication.publication_contract_identity(manifest) +
+    "\",\"run_receipt_cid\":\"" +
+    native_payload_cid(token + "-receipt") +
+    "\",\"captured_run_cid\":\"" +
+    native_payload_cid(token + "-captured") +
+    "\",\"durable_result_binding_cids\":[\"" +
+    @publication.publication_contract_identity(binding) +
+    "\"],\"publication_request_cid\":\"" +
+    native_payload_cid(token + "-publication-request") +
+    "\",\"publication_attempt_cid\":\"" +
+    native_payload_cid(token + "-publication-attempt") +
+    "\",\"committed_at\":\"2026-09-20T00:00:00.000Z\"}",
+  )
+  let grant = @publication.issue_result_read_grant(
+    index,
+    manifest,
+    ["answer"],
+    ["jsonl"],
+    "principal",
+    "download",
+    native_payload_cid(token + "-ceiling"),
+    64,
+    1,
+    "2026-09-21T00:00:00.000Z",
+    native_payload_cid(token + "-authorization"),
+    native_payload_cid(token + "-egress"),
+    65536,
+    512,
+    16,
+  ).unwrap()
+  let success_attempt_id = token + "-delivery-attempt"
+  let delivery = store
+    .begin_result_delivery(
+      index,
+      manifest,
+      grant,
+      retention,
+      binding,
+      info.material_generation_cid,
+      "answer",
+      "jsonl",
+      success_attempt_id,
+      "2026-09-20T01:00:00.000Z",
+      schema_wire,
+      ["n"],
+      3,
+      64,
+      65536,
+      512,
+      16,
+      64L,
+    )
+    .unwrap()
+  let delivered : Array[Byte] = []
+  while true {
+    let chunk = delivery.next(3, "2026-09-20T01:00:01.000Z").unwrap()
+    for byte in chunk.bytes {
+      delivered.push(byte)
+    }
+    if chunk.bytes.length() > 0 {
+      ignore(delivery.confirm_chunk().unwrap())
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  let success = delivery
+    .confirm_sink_finished("2026-09-20T01:00:02.000Z")
+    .unwrap()
+  assert_eq(@utf8.decode_lossy(Bytes::from_array(delivered)), "{\"n\":1}\n")
+  assert_eq(success.confirmed_bytes, 8L)
+  assert_eq(success.delivered_sha256, @sha.text_hex("{\"n\":1}\n").unwrap())
+  assert_true(success.delivery_attempt_cid == delivery.attempt_cid())
+  assert_true(
+    store.begin_result_delivery(
+      index,
+      manifest,
+      grant,
+      retention,
+      binding,
+      info.material_generation_cid,
+      "answer",
+      "jsonl",
+      success_attempt_id,
+      "2026-09-20T01:00:00.000Z",
+      schema_wire,
+      ["n"],
+      3,
+      64,
+      65536,
+      512,
+      16,
+      64L,
+    )
+    is Err(ExistingDeliveryAttempt),
+  )
+  let cancelled_attempt_id = token + "-cancelled-attempt"
+  let cancelled = store
+    .begin_result_delivery(
+      index,
+      manifest,
+      grant,
+      retention,
+      binding,
+      info.material_generation_cid,
+      "answer",
+      "jsonl",
+      cancelled_attempt_id,
+      "2026-09-20T01:00:03.000Z",
+      schema_wire,
+      ["n"],
+      3,
+      64,
+      65536,
+      512,
+      16,
+      64L,
+    )
+    .unwrap()
+  let exposed = cancelled.next(3, "2026-09-20T01:00:04.000Z").unwrap()
+  assert_eq(exposed.bytes.length(), 3)
+  let failure = cancelled
+    .terminate(
+      Some(1),
+      true,
+      "unknown_additional",
+      Some(2),
+      Some(native_payload_cid(token + "-failure")),
+      "2026-09-20T01:00:05.000Z",
+    )
+    .unwrap()
+  assert_eq(failure.state, "cancelled")
+  assert_eq(failure.confirmed_bytes, 1L)
+  let durable_success = store
+    .inspect_result_delivery(success_attempt_id)
+    .unwrap()
+  assert_eq(durable_success.state, "succeeded")
+  assert_eq(
+    durable_success.result_delivery_receipt_cid,
+    Some(success.result_delivery_receipt_cid),
+  )
+  let durable_failure = store
+    .inspect_result_delivery(cancelled_attempt_id)
+    .unwrap()
+  assert_eq(durable_failure.state, "cancelled")
+  assert_eq(durable_failure.confirmed_bytes, 1L)
+  store.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_true(store.close().unwrap())
+  let reopened = open_store(
+    library,
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
+    authority,
+    256L,
+    8L,
+    65536L,
+  ).unwrap()
+  assert_eq(
+    reopened.inspect_result_delivery(success_attempt_id).unwrap().state,
+    "succeeded",
+  )
+  assert_true(reopened.inspect_payload(info.material_generation_cid) is Err(_))
+  assert_true(reopened.close().unwrap())
 }
 
 ///|

@@ -11,6 +11,12 @@ type PayloadReader
 type PayloadDelivery
 
 ///|
+type ConfirmedPayloadDelivery
+
+///|
+type ResultDelivery
+
+///|
 pub fn open_store(
   _library : @sqlite.Library,
   _root_path : String,
@@ -107,6 +113,22 @@ pub fn Store::open_payload_delivery(
 }
 
 ///|
+pub fn Store::open_confirmed_payload_delivery(
+  _self : Store,
+  _material_generation_cid : String,
+  _format : String,
+  _schema_wire : String,
+  _fields : Array[String],
+  _input_chunk_bytes : Int,
+  _max_row_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+  _max_delivery_bytes : Int64,
+) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn PayloadDelivery::next(
   _self : PayloadDelivery,
   _max_bytes : Int,
@@ -125,6 +147,132 @@ pub fn PayloadDelivery::finish(
 pub fn PayloadDelivery::close(
   _self : PayloadDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::next(
+  _self : ConfirmedPayloadDelivery,
+  _max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::confirm_chunk(
+  _self : ConfirmedPayloadDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::fail_chunk(
+  _self : ConfirmedPayloadDelivery,
+  _confirmed_prefix_bytes : Int,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::fail(
+  _self : ConfirmedPayloadDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::confirm_sink_finished(
+  _self : ConfirmedPayloadDelivery,
+) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ConfirmedPayloadDelivery::close(
+  _self : ConfirmedPayloadDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::begin_result_delivery(
+  _self : Store,
+  _index : @publication.PublicationContract,
+  _manifest : @publication.PublicationContract,
+  _grant : @publication.PublicationContract,
+  _retention : @publication.PublicationContract,
+  _binding : @publication.PublicationContract,
+  _material_generation_cid : String,
+  _result_name : String,
+  _format : String,
+  _attempt_id : String,
+  _requested_at : String,
+  _schema_wire : String,
+  _fields : Array[String],
+  _input_chunk_bytes : Int,
+  _max_row_bytes : Int,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+  _max_delivery_bytes : Int64,
+) -> Result[ResultDelivery, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ResultDelivery::attempt_cid(_self : ResultDelivery) -> String {
+  ""
+}
+
+///|
+pub fn ResultDelivery::next(
+  _self : ResultDelivery,
+  _max_bytes : Int,
+  _observed_at : String,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ResultDelivery::confirm_chunk(
+  _self : ResultDelivery,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ResultDelivery::confirm_sink_finished(
+  _self : ResultDelivery,
+  _observed_at : String,
+) -> Result[NativeResultDeliverySuccess, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ResultDelivery::terminate(
+  _self : ResultDelivery,
+  _confirmed_prefix_bytes : Int?,
+  _cancellation_observed : Bool,
+  _exposure : String,
+  _possible_unconfirmed_max_bytes : Int?,
+  _failure_cid : String?,
+  _observed_at : String,
+) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ResultDelivery::close(
+  _self : ResultDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::inspect_result_delivery(
+  _self : Store,
+  _attempt_id : String,
+) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
 

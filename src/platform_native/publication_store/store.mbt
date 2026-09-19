@@ -12,10 +12,14 @@ pub(all) enum NativePublicationStoreIssue {
   DigestMismatch
   Delivery(@publication.DeliverySerializationIssue)
   RowFrame(@publication.DurableResultRowFrameIssue)
+  SinkProgress(@publication.DeliverySinkProgressIssue)
+  DeliveryIssuance(@publication.DeliveryIssuanceIssue)
   DeliveryLimit
   DeliveryIncomplete
   CleanupPending
   ReaderBusy
+  ExistingDeliveryAttempt
+  DeliveryAttemptUnresolved
 }
 
 ///|
@@ -50,4 +54,31 @@ pub(all) struct NativePublicationDeliverySummary {
   bytes : Int64
   rows : Int64
   delivery_digest : String
+}
+
+///|
+pub(all) struct NativeResultDeliverySuccess {
+  delivery_attempt_cid : String
+  delivery_record_cid : String
+  result_delivery_receipt_cid : String
+  confirmed_bytes : Int64
+  delivered_sha256 : String
+}
+
+///|
+pub(all) struct NativeResultDeliveryFailure {
+  delivery_attempt_cid : String
+  delivery_record_cid : String
+  confirmed_bytes : Int64
+  state : String
+}
+
+///|
+pub(all) struct NativeResultDeliveryStatus {
+  delivery_attempt_cid : String
+  delivery_record_cid : String
+  state : String
+  confirmed_bytes : Int64
+  delivered_sha256 : String?
+  result_delivery_receipt_cid : String?
 }
