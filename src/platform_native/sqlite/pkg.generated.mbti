@@ -12,10 +12,17 @@ pub fn Database::close(Self) -> Unit
 pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
+pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, NativeSqliteIssue]
 
 type Library
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::version(Self) -> String
+
+pub(all) struct NativeJournalEntry {
+  key : String
+  revision : Int64
+  body : Bytes
+}
 
 pub(all) struct NativeJournalValue {
   revision : Int64

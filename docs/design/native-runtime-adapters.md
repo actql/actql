@@ -109,6 +109,13 @@ the corresponding MoonBit transition commits. A lost response can reconcile
 the identical installed body; a different body at that revision is a state
 collision, not permission to overwrite or retry execution.
 
+Restart recovery scans one record at a time in stable binary key order. The
+physical adapter returns only the stored key, revision, and bounded body.
+MoonBit re-admits the canonical record, verifies that its attempt occurrence
+derives the stored key, checks the revision, and restores the common state.
+An alias key or malformed body stops recovery instead of acquiring execution
+or cleanup authority.
+
 ## Supported native profiles
 
 The initial native product profiles are:

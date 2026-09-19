@@ -18,3 +18,10 @@ pub(all) struct NativeJournalValue {
   revision : Int64
   body : Bytes
 }
+
+///|
+pub(all) struct NativeJournalEntry {
+  key : String
+  revision : Int64
+  body : Bytes
+}

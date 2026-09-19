@@ -48,6 +48,16 @@ extern "C" fn database_read_ffi(
 ) -> Int = "actql_native_sqlite_database_read"
 
 ///|
+#borrow(database, scope, after_key)
+extern "C" fn database_scan_after_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  after_key : Bytes,
+  after_key_length : Int,
+) -> Int = "actql_native_sqlite_database_scan_after"
+
+///|
 #borrow(database, scope, key, body)
 extern "C" fn database_insert_ffi(
   database : Database,
@@ -79,6 +89,10 @@ extern "C" fn database_result_revision_ffi(database : Database) -> Int64 = "actq
 ///|
 #borrow(database)
 extern "C" fn database_result_body_ffi(database : Database) -> Bytes = "actql_native_sqlite_database_result_body"
+
+///|
+#borrow(database)
+extern "C" fn database_result_key_ffi(database : Database) -> Bytes = "actql_native_sqlite_database_result_key"
 
 ///|
 #borrow(database)
@@ -171,6 +185,39 @@ pub fn Database::read(
   } else {
     Err(operation_issue(self, code))
   }
+}
+
+///|
+/// Returns the next record in binary key order without materializing the
+/// remaining namespace. An empty cursor starts at the first record.
+pub fn Database::scan_after(
+  self : Database,
+  scope : String,
+  after_key : String,
+) -> Result[NativeJournalEntry, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let after_key_bytes = @utf8.encode(after_key)
+  if !valid_name(scope_bytes) || after_key_bytes.length() > 512 {
+    return Err(InvalidName)
+  }
+  let code = database_scan_after_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    after_key_bytes,
+    after_key_bytes.length(),
+  )
+  if code != 0 {
+    return Err(operation_issue(self, code))
+  }
+  let key = @utf8.decode(database_result_key_ffi(self)) catch {
+    _ => return Err(Physical("invalid stored journal key"))
+  }
+  Ok({
+    key,
+    revision: database_result_revision_ffi(self),
+    body: database_result_body_ffi(self),
+  })
 }
 
 ///|

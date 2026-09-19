@@ -27,6 +27,15 @@ pub fn Journal::accept(
 }
 
 ///|
+pub fn Journal::recover_after(
+  _self : Journal,
+  after_key : String,
+) -> Result[(String, @remote.DispatchRecord)?, NativeRemoteJournalIssue] {
+  ignore(after_key)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::commit_transition(
   _self : Journal,
   transition : @remote.DispatchTransition,

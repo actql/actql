@@ -22,12 +22,24 @@ test "native SQLite journal persists and fences competing revisions" {
     fail("empty journal scope was accepted")
   }
   assert_eq(first.insert("dispatch", "one", b"accepted").unwrap(), 0L)
+  assert_eq(first.insert("dispatch", "three", b"later").unwrap(), 0L)
+  assert_eq(first.insert("other", "two", b"separate").unwrap(), 0L)
   guard first.insert("dispatch", "one", b"duplicate") is Err(Collision) else {
     fail("duplicate journal insert was accepted")
   }
   let initial = second.read("dispatch", "one").unwrap()
   assert_eq(initial.revision, 0L)
   assert_eq(initial.body, b"accepted")
+  let first_entry = second.scan_after("dispatch", "").unwrap()
+  assert_eq(first_entry.key, "one")
+  assert_eq(first_entry.revision, 0L)
+  assert_eq(first_entry.body, b"accepted")
+  let second_entry = second.scan_after("dispatch", first_entry.key).unwrap()
+  assert_eq(second_entry.key, "three")
+  assert_eq(second_entry.body, b"later")
+  guard second.scan_after("dispatch", second_entry.key) is Err(NotFound) else {
+    fail("journal scan did not end at the namespace boundary")
+  }
   assert_eq(
     first.compare_exchange("dispatch", "one", 0L, b"running").unwrap(),
     1L,

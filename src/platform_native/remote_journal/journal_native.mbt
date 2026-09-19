@@ -102,6 +102,41 @@ pub fn Journal::accept(
 }
 
 ///|
+/// Restores the next durable dispatch after the supplied journal cursor.
+/// Returning one record at a time keeps restart recovery bounded.
+pub fn Journal::recover_after(
+  self : Journal,
+  after_key : String,
+) -> Result[(String, @remote.DispatchRecord)?, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let entry = match self.database.scan_after("site_dispatch", after_key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let durable = match @remote.admit_durable_dispatch_record(entry.body) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let expected_key = match
+    @remote.durable_dispatch_record_attempt_identity(durable) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if entry.key != expected_key ||
+    entry.revision !=
+    @remote.durable_dispatch_record_revision(durable).to_int64() {
+    return Err(StateCollision)
+  }
+  match @remote.restore_durable_dispatch_record(self.control, durable) {
+    Ok(record) => Ok(Some((entry.key, record)))
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
 pub fn Journal::commit_transition(
   self : Journal,
   transition : @remote.DispatchTransition,

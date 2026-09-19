@@ -110,10 +110,49 @@ test "native remote journal durably accepts reconciles and fences transitions" {
     262144L,
     test_control(reopened_site),
   ).unwrap()
+  let recovered = reopened.recover_after("").unwrap().unwrap()
+  assert_eq(
+    recovered.0,
+    @remote.dispatch_request_attempt_identity(request).unwrap(),
+  )
+  assert_eq(@remote.dispatch_record_revision(recovered.1), 2)
+  assert_true(reopened.recover_after(recovered.0).unwrap() is None)
   let (reopened_kind, reopened_record) = reopened.accept(request).unwrap()
   assert_eq(reopened_kind, @remote.ExistingDispatch)
   assert_eq(@remote.dispatch_record_revision(reopened_record), 2)
   assert_eq(@remote.dispatch_record_state_codes(reopened_record)[0], 2)
   assert_true(reopened.close())
   assert_false(reopened.close())
+}
+
+///|
+test "native remote recovery rejects a durable key alias" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-alias-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(site),
+  ).unwrap()
+  let request = test_request("dispatch-alias")
+  let (_, record) = journal.accept(request).unwrap()
+  let body = @utf8.encode(@remote.dispatch_record_durable_json(record).unwrap())
+  let physical = library.open_database(database_path, 262144L).unwrap()
+  ignore(physical.insert("site_dispatch", "alias", body).unwrap())
+  physical.close()
+  guard journal.recover_after("") is Err(StateCollision) else {
+    fail("durable record under a foreign key was restored")
+  }
+  assert_true(journal.close())
 }

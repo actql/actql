@@ -70,6 +70,8 @@ typedef struct {
   char *error;
   unsigned char *result_body;
   int32_t result_body_length;
+  unsigned char *result_key;
+  int32_t result_key_length;
   int64_t result_revision;
   int64_t max_body_bytes;
   bool opened;
@@ -110,8 +112,11 @@ static moonbit_bytes_t actql_copy_message(const char *text) {
 
 static void actql_clear_result(actql_native_sqlite_database *database) {
   free(database->result_body);
+  free(database->result_key);
   database->result_body = NULL;
+  database->result_key = NULL;
   database->result_body_length = 0;
+  database->result_key_length = 0;
   database->result_revision = 0;
   actql_replace_error(&database->error, NULL);
 }
@@ -158,8 +163,10 @@ static void actql_native_sqlite_database_finalize(void *value) {
   actql_native_sqlite_database_close(database);
   free(database->error);
   free(database->result_body);
+  free(database->result_key);
   database->error = NULL;
   database->result_body = NULL;
+  database->result_key = NULL;
   if (database->library != NULL) {
     moonbit_decref(database->library);
     database->library = NULL;
@@ -519,6 +526,100 @@ int32_t actql_native_sqlite_database_read(
   return result;
 }
 
+int32_t actql_native_sqlite_database_scan_after(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t after_key,
+  int32_t after_key_length
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "SELECT record_key, revision, body FROM actql_records "
+    "WHERE namespace = ?1 AND record_key > ?2 "
+    "ORDER BY record_key COLLATE BINARY LIMIT 1",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare journal scan failed");
+    return actql_operation_code(code);
+  }
+  int code_namespace = database->library->bind_text(
+    statement,
+    1,
+    (const char *)namespace_bytes,
+    namespace_length,
+    SQLITE_TRANSIENT
+  );
+  int code_key = code_namespace == SQLITE_OK
+    ? database->library->bind_text(
+        statement,
+        2,
+        (const char *)after_key,
+        after_key_length,
+        SQLITE_TRANSIENT
+      )
+    : code_namespace;
+  int32_t result = 0;
+  if (code_key != SQLITE_OK) {
+    actql_database_error(database, "bind journal scan cursor failed");
+    result = actql_operation_code(code_key);
+  }
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code == SQLITE_DONE) {
+      result = 1;
+    } else if (code != SQLITE_ROW) {
+      actql_database_error(database, "scan journal records failed");
+      result = actql_operation_code(code);
+    } else {
+      int key_length = database->library->column_bytes(statement, 0);
+      const void *key = database->library->column_blob(statement, 0);
+      sqlite3_int64 revision = database->library->column_int64(statement, 1);
+      int body_length = database->library->column_bytes(statement, 2);
+      const void *body = database->library->column_blob(statement, 2);
+      if (key_length <= 0 || key_length > 512 || revision < 0 ||
+          body_length < 0 || body_length > database->max_body_bytes ||
+          body_length > INT32_MAX) {
+        actql_replace_error(&database->error, "invalid stored journal record");
+        result = -1;
+      } else {
+        unsigned char *key_copy = malloc((size_t)key_length);
+        unsigned char *body_copy = body_length == 0
+          ? NULL
+          : malloc((size_t)body_length);
+        if (key_copy == NULL || (body_length > 0 && body_copy == NULL)) {
+          free(key_copy);
+          free(body_copy);
+          actql_replace_error(&database->error, "journal scan allocation failed");
+          result = -1;
+        } else {
+          memcpy(key_copy, key, (size_t)key_length);
+          if (body_length > 0) {
+            memcpy(body_copy, body, (size_t)body_length);
+          }
+          database->result_key = key_copy;
+          database->result_key_length = key_length;
+          database->result_body = body_copy;
+          database->result_body_length = body_length;
+          database->result_revision = (int64_t)revision;
+        }
+      }
+    }
+  }
+  int finalize_code = database->library->finalize(statement);
+  if (result == 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize journal scan failed");
+    return actql_operation_code(finalize_code);
+  }
+  return result;
+}
+
 int32_t actql_native_sqlite_database_insert(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
@@ -677,6 +778,13 @@ moonbit_bytes_t actql_native_sqlite_database_result_body(
 ) {
   if (database == NULL) return actql_copy_bytes(NULL, 0);
   return actql_copy_bytes(database->result_body, database->result_body_length);
+}
+
+moonbit_bytes_t actql_native_sqlite_database_result_key(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL) return actql_copy_bytes(NULL, 0);
+  return actql_copy_bytes(database->result_key, database->result_key_length);
 }
 
 void actql_native_sqlite_close_database(

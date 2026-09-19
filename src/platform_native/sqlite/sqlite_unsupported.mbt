@@ -37,6 +37,17 @@ pub fn Database::read(
 }
 
 ///|
+pub fn Database::scan_after(
+  _self : Database,
+  scope : String,
+  after_key : String,
+) -> Result[NativeJournalEntry, NativeSqliteIssue] {
+  ignore(scope)
+  ignore(after_key)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::insert(
   _self : Database,
   scope : String,
