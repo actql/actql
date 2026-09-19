@@ -382,6 +382,8 @@ pub fn strategy_remote_dispatch_json(@remote_site_protocol.DispatchRequest) -> S
 
 pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
+pub fn strategy_remote_dispatch_reply_json(@remote_site_protocol.DispatchRecord) -> String raise NodeHostFailure
+
 pub fn strategy_remote_dispatch_response_admit_json(String, @remote_site_protocol.DispatchRequest, Bool) -> @remote_site_protocol.RemoteDispatchResponse raise NodeHostFailure
 
 pub fn strategy_remote_dispatch_response_evidence(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteExecutionEvidence?
@@ -449,6 +451,8 @@ pub fn strategy_remote_managed_output_subject_prepare(String, String, String, St
 pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.RemoteManagedOutputSubject) -> Array[String]
 
 pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 

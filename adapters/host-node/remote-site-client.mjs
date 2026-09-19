@@ -5,6 +5,46 @@ const fail = (code, cause, details = {}) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 
+export function projectRemoteDispatchResponse(
+  control,
+  dispatch,
+  admitted,
+  {statusReply = false} = {},
+) {
+  const projection = control.responseProjection(admitted);
+  const evidence = control.responseEvidence(admitted);
+  const subject = control.responseSubject(admitted);
+  const measurement = control.responseMeasurement(admitted);
+  return Object.freeze({
+    dispatchRequestCid: control.identity(dispatch),
+    revision: projection[0],
+    state: Object.freeze(projection.slice(1)),
+    ...(statusReply ? {
+      evidence,
+      evidenceCid: evidence === undefined
+        ? undefined
+        : control.evidenceIdentity(evidence),
+      evidenceWire: evidence === undefined
+        ? undefined
+        : control.evidenceJson(evidence),
+      measurement,
+      measurementCid: measurement === undefined
+        ? undefined
+        : control.managedOutputMeasurementIdentity(measurement),
+      measurementWire: measurement === undefined
+        ? undefined
+        : control.managedOutputMeasurementJson(measurement),
+      subject,
+      subjectCid: subject === undefined
+        ? undefined
+        : control.managedOutputSubjectIdentity(subject),
+      subjectWire: subject === undefined
+        ? undefined
+        : control.managedOutputSubjectJson(subject),
+    } : {}),
+  });
+}
+
 async function exchangeRemoteDispatch({
   origin,
   ca,
@@ -89,38 +129,12 @@ async function exchangeRemoteDispatch({
           }), {code: 'InvalidRemoteSiteResponse'}));
           return;
         }
-        const projection = control.responseProjection(admitted);
-        const evidence = control.responseEvidence(admitted);
-        const subject = control.responseSubject(admitted);
-        const measurement = control.responseMeasurement(admitted);
-        resolve(Object.freeze({
-          dispatchRequestCid: control.identity(dispatch),
-          revision: projection[0],
-          state: Object.freeze(projection.slice(1)),
-          ...(query ? {
-            evidence,
-            evidenceCid: evidence === undefined
-              ? undefined
-              : control.evidenceIdentity(evidence),
-            evidenceWire: evidence === undefined
-              ? undefined
-              : control.evidenceJson(evidence),
-            measurement,
-            measurementCid: measurement === undefined
-              ? undefined
-              : control.managedOutputMeasurementIdentity(measurement),
-            measurementWire: measurement === undefined
-              ? undefined
-              : control.managedOutputMeasurementJson(measurement),
-            subject,
-            subjectCid: subject === undefined
-              ? undefined
-              : control.managedOutputSubjectIdentity(subject),
-            subjectWire: subject === undefined
-              ? undefined
-              : control.managedOutputSubjectJson(subject),
-          } : {}),
-        }));
+        resolve(projectRemoteDispatchResponse(
+          control,
+          dispatch,
+          admitted,
+          {statusReply: query},
+        ));
       });
     });
     request.on('error', reject);

@@ -155,6 +155,15 @@ cryptography, and SQLite libraries are used through thin environment adapters.
 The integration slice must measure polling delay, connection count, idle cost,
 and cancellation behavior before the transport choice is finalized.
 
+The Coordinator-side outbound gateway is a physical HTTPS adapter. It queues
+an already admitted canonical dispatch for one exact Site generation and
+returns only MoonBit-generated envelopes. The authenticated Site polls that
+endpoint and posts a MoonBit-generated observation after making its own
+admission durable. The gateway does not grant execution, infer completion, or
+choose whether a task may be retried. A disconnected waiter leaves the exact
+dispatch available for reconciliation instead of silently authorizing a new
+execution occurrence.
+
 The required Remote Site tests cover an authenticated loopback subprocess and
 separated native Site networks. They use distinct Store roots and may not use
 shared memory, a shared filesystem, or a shared absolute path as the data

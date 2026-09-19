@@ -3149,6 +3149,28 @@ pub fn strategy_remote_dispatch_json(
 }
 
 ///|
+#export_name("strategyRemotePollDispatchJson")
+pub fn strategy_remote_poll_dispatch_json(
+  request : @remote.DispatchRequest,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_dispatch_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchReplyJson")
+pub fn strategy_remote_dispatch_reply_json(
+  record : @remote.DispatchRecord,
+) -> String raise NodeHostFailure {
+  match @remote.remote_dispatch_reply_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteDispatchAdmitJson")
 pub fn strategy_remote_dispatch_admit_json(
   body : String,
