@@ -149,6 +149,25 @@ explicit terminal observation before its zero-byte digest can be finalized.
 Failure before terminal delivery keeps the payload reader pinned until the
 caller closes it or a later cleanup owner confirms release.
 
+The formal native delivery path additionally verifies that the committed
+Manifest, read grant, retention policy, durable Result binding, and exact
+payload generation describe the same Result occurrence. Its immutable attempt
+and initial streaming record are durable before a byte is exposed. Store reads
+and sink confirmation are separate: at most one bounded chunk is outstanding,
+only its sink-confirmed prefix advances delivery accounting, and even an empty
+delivery requires an explicit successful sink-end observation. A successful
+end issues the canonical delivery receipt and terminal record before it is
+reported. A failed or cancelled end records the confirmed prefix and exposure
+state without converting an unconfirmed suffix into success.
+
+Delivery contracts and the latest append-only record head are stored in the
+same SQLite authority and can be re-admitted after process restart. A terminal
+success remains an auditable historical fact after its payload is reclaimed;
+current material availability is checked separately. This native Store layer
+does not itself grant caller authorization or decide dynamic revocation. The
+standard Host must perform those checks before each physical use and before
+accepting the terminal receipt.
+
 ## HTTPS integration
 
 The native HTTPS adapter uses the maintained libcurl easy API through a thin C
