@@ -42,6 +42,7 @@ fn attach_fragment_budgets(
       @lower.WindowStep(_) => ()
       @lower.AppendStep(_) => ()
       @lower.SetStep(_) => ()
+      @lower.GraphUnionStep(_) => return Err(InputSet)
       @lower.NestStep(kernel) =>
         for key in 0..<@lower.nest_kernel_key_count(kernel) {
           let pair = @lower.nest_kernel_key_at(kernel, key).unwrap()

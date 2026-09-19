@@ -16,6 +16,7 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
+  GraphUnionStep(PreparedGraphUnion)
 }
 
 ///|
@@ -151,6 +152,13 @@ pub fn prepare_sequence(
         }
         NestStep(kernel)
       }
+      GraphUnion(_) => {
+        let prepared = match prepare_graph_union_node(owner.prepared.nodes[i]) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        GraphUnionStep(prepared)
+      }
       Values(values) => {
         let prepared = match
           prepare_values_node(owner, i, max_rows=rows, max_cells=cells) {
@@ -241,6 +249,7 @@ pub fn emit_sequence_steps(
       AppendStep(v) => emit_append_kernel(v, out)
       SetStep(v) => emit_set_kernel(v, out)
       NestStep(v) => emit_nest_kernel(v, out)
+      GraphUnionStep(v) => emit_graph_union_node(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

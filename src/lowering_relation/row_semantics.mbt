@@ -211,7 +211,7 @@ pub fn kernel_input_schema(kernel : PreparedKernel) -> @schema.Schema {
 
 ///|
 pub fn kernel_output_schema(kernel : PreparedKernel) -> @schema.Schema {
-  kernel.owner.prepared.nodes[kernel.step_index].output_schema
+  kernel.owner.prepared.nodes[kernel.step_index].output_schema.unwrap()
 }
 
 ///|

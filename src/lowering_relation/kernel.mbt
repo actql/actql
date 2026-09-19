@@ -304,7 +304,8 @@ fn prepare_kernel_measured(
     | CrossJoinRows(_)
     | AppendRows(_)
     | SetRows(_)
-    | NestRows(_) => return Err(MissingKernelNode)
+    | NestRows(_)
+    | GraphUnion(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)

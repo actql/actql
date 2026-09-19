@@ -172,6 +172,7 @@ pub fn local_managed_sequence_supported(
       @lower.CrossJoinStep(_) => true
       @lower.JoinStep(_) => true
       @lower.NestStep(_) => true
+      @lower.GraphUnionStep(_) => false
     }
   })
 }

@@ -5,7 +5,7 @@ struct Prepared {
   owner : @pipeline.CheckedPipeline
   nodes : Array[PreparedNode]
   input_ids : Array[String]
-  input_schemas : Array[@schema.Schema]
+  input_schemas : Array[@schema.Schema?]
   input_carriers : Array[@carrier.Carrier]
   usage : Usage
 }
@@ -20,7 +20,7 @@ struct PreparedNode {
   payload : Payload
   inputs : Array[String]
   input_targets : Array[@pipeline.Target]
-  output_schema : @schema.Schema
+  output_schema : @schema.Schema?
   output_carrier : @carrier.Carrier
   source : @decode.Cursor
 }
@@ -55,6 +55,7 @@ pub enum Payload {
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
+  GraphUnion(@graph.CheckedUnion)
 }
 
 ///|
@@ -183,6 +184,7 @@ pub fn operation(value : PreparedNode) -> String {
     // Nest lowers to a registered multi-node expansion whose final node is a
     // projection. There is no REL.nest operation in the AoA registry.
     NestRows(_) => "REL.select"
+    GraphUnion(_) => "SGA.union_structural"
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -238,9 +240,9 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | GraphEquality(..)
     | GraphDiff(..)
     | GraphApply(..)
-    | GraphStructural(..)
-    | GraphUnion(_)
-    | GraphMean(_)
+    | GraphStructural(..) => None
+    GraphUnion(v) => Some(GraphUnion(v))
+    GraphMean(_)
     | GraphConstruction(..)
     | Vector(_)
     | Nearest(..)
@@ -270,7 +272,7 @@ pub fn prepare(
   }
   let nodes : Array[PreparedNode] = []
   let input_ids : Array[String] = []
-  let input_schemas : Array[@schema.Schema] = []
+  let input_schemas : Array[@schema.Schema?] = []
   let input_carriers : Array[@carrier.Carrier] = []
   let used : Map[String, Bool] = Map([])
   let mut work = 0
@@ -289,11 +291,14 @@ pub fn prepare(
     bytes += id.length() // Generated identifiers are ASCII, on every target.
     used[id] = true
     input_ids.push(id)
-    guard @pipeline.carrier_at(checked, @pipeline.Input(i)) is Some(carrier) &&
-      @pipeline.schema_at(checked, @pipeline.Input(i)) is Some(schema) else {
+    guard @pipeline.carrier_at(checked, @pipeline.Input(i)) is Some(carrier) else {
       return Err({ kind: InvalidCheckedWiring, source: root, })
     }
     input_carriers.push(carrier)
+    let schema = @pipeline.schema_at(checked, @pipeline.Input(i))
+    if @carrier.kind(carrier) == @carrier.RelationKind && schema is None {
+      return Err({ kind: InvalidCheckedWiring, source: root, })
+    }
     input_schemas.push(schema)
   }
   for i = 0; i < count; i = i + 1 {
@@ -308,8 +313,12 @@ pub fn prepare(
       return Err({ kind: OperationNotImplemented, source: step.source, })
     }
     guard @pipeline.carrier_at(checked, @pipeline.Step(i))
-      is Some(output_carrier) &&
-      @pipeline.step_schema(step) is Some(output_schema) else {
+      is Some(output_carrier) else {
+      return Err({ kind: InvalidCheckedWiring, source: step.source, })
+    }
+    let output_schema = @pipeline.step_schema(step)
+    if @carrier.kind(output_carrier) == @carrier.RelationKind &&
+      output_schema is None {
       return Err({ kind: InvalidCheckedWiring, source: step.source, })
     }
     let (preferred, arity) = match payload {
@@ -338,6 +347,7 @@ pub fn prepare(
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
+      GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -455,6 +465,7 @@ pub fn prepare(
       SetRows(_) => None
       CrossJoinRows(_) => None
       NestRows(_) => None
+      GraphUnion(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {
@@ -523,7 +534,7 @@ pub fn prepare(
       guard @pipeline.input_occurrence_at(step, j) is Some(occurrence) else {
         return Err({ kind: InvalidCheckedWiring, source: step.source, })
       }
-      if @pipeline.schema_at(checked, occurrence.target) is None {
+      if @pipeline.carrier_at(checked, occurrence.target) is None {
         return Err({ kind: InvalidCheckedWiring, source: step.source, })
       }
       let resolved = match occurrence.target {

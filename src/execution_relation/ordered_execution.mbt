@@ -70,6 +70,7 @@ fn prepare_ordered_budgets(
       | @lower.AppendStep(_)
       | @lower.SetStep(_)
       | @lower.NestStep(_) => ()
+      @lower.GraphUnionStep(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {

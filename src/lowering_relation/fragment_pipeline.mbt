@@ -25,7 +25,8 @@ pub fn prepare_fragment_pipeline(
     | CrossJoinStep(_)
     | AppendStep(_)
     | SetStep(_)
-    | NestStep(_) => Err(NotExpressionKernel)
+    | NestStep(_)
+    | GraphUnionStep(_) => Err(NotExpressionKernel)
   }
 }
 

@@ -26,14 +26,14 @@
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
   "shared_gaps": [
-    "ordered_typed_task_inputs",
     "carrier_aware_completion",
     "bounded_step_execution",
     "cancellation_delivery_and_stop",
     "family_artifact_isolation"
   ],
   "shared_completed": [
-    "canonical_aoa_inventory"
+    "canonical_aoa_inventory",
+    "ordered_typed_task_inputs"
   ],
   "operations": [
     {
@@ -153,9 +153,10 @@
       "output": "graph",
       "canonical": ["SGA.union_structural"],
       "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "canonical finite-list contract conflicts with binary-fold text"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_union_test.mbt"]
     },
     {
       "family": "SGA",
@@ -174,9 +175,8 @@
       "output": "graph",
       "canonical": ["SGA.subgraph"],
       "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "canonical operation absent from registry"
+      "status": "missing",
+      "owner": "local-sga"
     },
     {
       "family": "SGA",
@@ -185,9 +185,8 @@
       "output": "relation",
       "canonical": ["SGA.equal"],
       "variants": ["equal", "not equal", "representation difference"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "canonical operation absent from registry"
+      "status": "missing",
+      "owner": "local-sga"
     },
     {
       "family": "SGA",
@@ -206,9 +205,8 @@
       "output": "graph",
       "canonical": ["SGA.mean_structural"],
       "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "canonical operation absent from registry"
+      "status": "missing",
+      "owner": "local-sga"
     },
     {
       "family": "TEA",
@@ -247,9 +245,8 @@
       "output": "relation",
       "canonical": ["TEA.time_series"],
       "variants": ["literal/parameter endpoints", "empty", "nonempty", "overflow"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "canonical operation absent from registry"
+      "status": "missing",
+      "owner": "local-tea"
     },
     {
       "family": "TEA",
@@ -258,9 +255,8 @@
       "output": "relation",
       "canonical": ["TEA.join.interval"],
       "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "canonical operation absent from registry"
+      "status": "missing",
+      "owner": "local-tea"
     },
     {
       "family": "TEA",
@@ -339,9 +335,8 @@
       "output": "relation",
       "canonical": ["VEC.merge_rankings"],
       "variants": ["maximum", "weighted sum", "finite-list reciprocal rank", "tie completion", "repeated inputs"],
-      "status": "blocked",
-      "owner": "shared-aoa",
-      "blocker": "registry is binary but reciprocal-rank fusion is finite-list"
+      "status": "missing",
+      "owner": "local-veca"
     },
     {
       "family": "Bridge",

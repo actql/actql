@@ -11,7 +11,7 @@ pub fn preparation_input_schema(
   prepared : Prepared,
   index : Int,
 ) -> @schema.Schema? {
-  prepared.input_schemas.get(index)
+  prepared.input_schemas.get(index).unwrap_or(None)
 }
 
 ///|
@@ -52,6 +52,13 @@ pub fn node_input_count(node : PreparedNode) -> Int {
 
 ///|
 pub fn node_output_schema(node : PreparedNode) -> @schema.Schema {
+  node.output_schema.unwrap()
+}
+
+///|
+/// Relation schema when this node produces a Relation. Other Carrier kinds do
+/// not acquire a synthetic row schema at the shared lowering boundary.
+pub fn node_relation_schema(node : PreparedNode) -> @schema.Schema? {
   node.output_schema
 }
 
@@ -68,8 +75,8 @@ pub fn preparation_schema_at(
   target : @pipeline.Target,
 ) -> @schema.Schema? {
   match target {
-    Input(index) => prepared.input_schemas.get(index)
-    Step(index) => prepared.nodes.get(index).map(node => node.output_schema)
+    Input(index) => prepared.input_schemas.get(index).unwrap_or(None)
+    Step(index) => prepared.nodes.get(index).bind(node => node.output_schema)
   }
 }
 

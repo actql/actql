@@ -174,7 +174,8 @@ pub fn prepare_kernel_roots(
     | CrossJoinStep(_)
     | AppendStep(_)
     | SetStep(_)
-    | NestStep(_) => return Err(NotExpressionKernel)
+    | NestStep(_)
+    | GraphUnionStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
@@ -230,7 +231,8 @@ fn prepare_root_range(
       | CrossJoinStep(_)
       | AppendStep(_)
       | SetStep(_)
-      | NestStep(_) => continue
+      | NestStep(_)
+      | GraphUnionStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {
           Select(_)

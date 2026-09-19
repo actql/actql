@@ -405,7 +405,8 @@ fn lower_expression_measured(
       | CrossJoinRows(_)
       | AppendRows(_)
       | SetRows(_)
-      | NestRows(_) => expression_fail(step.source, MissingCheckedBinding)
+      | NestRows(_)
+      | GraphUnion(_) => expression_fail(step.source, MissingCheckedBinding)
     }
     guard @relation.binding_at(op, binding_index) is Some(binding) else {
       expression_fail(step.source, MissingCheckedBinding)

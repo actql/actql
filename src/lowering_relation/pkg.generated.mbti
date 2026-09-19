@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing",
+  "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_append",
@@ -405,6 +406,8 @@ pub fn node_input_target(PreparedNode, Int) -> @pipeline_typing.Target?
 pub fn node_output_carrier(PreparedNode) -> @carrier_contract.Carrier
 
 pub fn node_output_schema(PreparedNode) -> @relation_schema.Schema
+
+pub fn node_relation_schema(PreparedNode) -> @relation_schema.Schema?
 
 pub fn node_values_row_count(PreparedNode) -> Int?
 
@@ -944,6 +947,7 @@ pub enum Payload {
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
   NestRows(@relation_nest.CheckedNest)
+  GraphUnion(@graph_typing.CheckedUnion)
 }
 
 pub(all) enum PivotIssue {
@@ -999,6 +1003,8 @@ pub(all) enum PreparedFrameBoundary {
   PreparedFollowing(Int64)
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
+
+type PreparedGraphUnion
 
 type PreparedGroup
 
@@ -1056,6 +1062,7 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
+  GraphUnionStep(PreparedGraphUnion)
 }
 
 type PreparedValues

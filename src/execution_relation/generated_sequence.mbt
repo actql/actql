@@ -382,7 +382,8 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_)
-      | @lower.NestStep(_) => false
+      | @lower.NestStep(_)
+      | @lower.GraphUnionStep(_) => false
     }
   })
 }
