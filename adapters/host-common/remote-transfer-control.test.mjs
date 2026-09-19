@@ -52,6 +52,29 @@ test('Remote Transfer control binds route without adapter-owned identity', () =>
   );
 });
 
+test('Remote Transfer canonical wire is admitted by common control', () => {
+  const original = control.prepare(request('direct'));
+  const wire = control.requestJson(original);
+  const manifest = control.manifestJson(original);
+  const restored = control.admitJson(
+    wire,
+    manifest,
+    control.identity(original),
+    control.requestProjection(original)[7],
+    request('direct').limits,
+  );
+  assert.equal(control.identity(restored), control.identity(original));
+  assert.equal(control.requestJson(restored), wire);
+  assert.equal(control.manifestJson(restored), manifest);
+  assert.throws(() => control.admitJson(
+    `${wire} `,
+    manifest,
+    control.identity(original),
+    control.requestProjection(original)[7],
+    request('direct').limits,
+  ));
+});
+
 test('direct Transfer commits only after durable stop and integrity', () => {
   const record = control.open(control.prepare(request('direct')));
   commit(control.prepareStart(record));

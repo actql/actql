@@ -4323,6 +4323,38 @@ pub fn strategy_remote_transfer_json(
 }
 
 ///|
+#export_name("strategyRemoteTransferManifestJson")
+pub fn strategy_remote_transfer_manifest_json(
+  request : @transfer.RemoteTransferRequest,
+) -> String raise NodeHostFailure {
+  match @transfer.request_manifest_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferAdmitJson")
+pub fn strategy_remote_transfer_admit_json(
+  body : String,
+  manifest_body : String,
+  claimed_request_cid : String,
+  claimed_manifest_cid : String,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> @transfer.RemoteTransferRequest raise NodeHostFailure {
+  match
+    @transfer.admit_request_json(
+      body, manifest_body, claimed_request_cid, claimed_manifest_cid, max_chunks,
+      max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteTransferProjection")
 pub fn strategy_remote_transfer_projection(
   request : @transfer.RemoteTransferRequest,

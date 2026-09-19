@@ -9,6 +9,8 @@ import {
 // Values
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
+pub fn admit_request_json(String, String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
+
 pub fn commit_transition(RemoteTransferTransition, Bool) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
 pub fn open_record(RemoteTransferRequest) -> RemoteTransferRecord
@@ -32,6 +34,8 @@ pub fn record_projection(RemoteTransferRecord) -> Array[Int]
 pub fn request_cid(RemoteTransferRequest) -> String
 
 pub fn request_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
+
+pub fn request_manifest_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
 
 pub fn request_projection(RemoteTransferRequest) -> Array[String]
 

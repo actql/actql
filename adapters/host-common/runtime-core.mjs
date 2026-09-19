@@ -591,6 +591,32 @@ function remoteTransferControl(moon) {
     ),
     identity: moon.strategyRemoteTransferIdentity,
     requestJson: value => checked(moon.strategyRemoteTransferJson(value)),
+    manifestJson: value => checked(
+      moon.strategyRemoteTransferManifestJson(value),
+    ),
+    admitJson: (
+      body,
+      manifestBody,
+      claimedRequestCid,
+      claimedManifestCid,
+      limits,
+    ) => {
+      if (limits === null || typeof limits !== 'object' ||
+          !Number.isSafeInteger(limits.maxChunks) || limits.maxChunks < 0 ||
+          !Number.isSafeInteger(limits.maxManifestBytes) ||
+          limits.maxManifestBytes < 0) {
+        throw new TypeError('Invalid Remote Transfer wire limits');
+      }
+      return checked(moon.strategyRemoteTransferAdmitJson(
+        body,
+        manifestBody,
+        claimedRequestCid,
+        claimedManifestCid,
+        limits.maxChunks,
+        limits.maxManifestBytes,
+        int64(limits.maxReferencedBytes, 'referenced-byte limit'),
+      ));
+    },
     requestProjection: moon.strategyRemoteTransferProjection,
     open: moon.strategyRemoteTransferOpen,
     prepareStart: value => checked(
