@@ -1893,6 +1893,7 @@ test('portable control validates Receipt and Captured Run references',
       authorize,
       suppliedFrameLimits,
       use,
+      frameControl,
     ) {
       return deliveryStore.withCommittedResultRows(
         indexKey,
@@ -1903,6 +1904,7 @@ test('portable control validates Receipt and Captured Run references',
           Object.freeze({...metadata, rowCount: 0}),
           async _emit => undefined,
         ),
+        frameControl,
       );
     },
   });

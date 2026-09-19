@@ -19,7 +19,6 @@ import {
 } from 'node:fs/promises';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
-import {createRetainedRowFrames} from './row-frames.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
@@ -2618,11 +2617,17 @@ export async function openLocalPublicationStore(
     authorize,
     frameLimits,
     use,
+    frameControl,
   ) => {
     if (!exactKeys(frameLimits, [
       'maxRowBytes', 'maxDepth', 'maxFrameBytes',
     ]) || !Object.values(frameLimits).every(quantity) ||
-        typeof use !== 'function') {
+        typeof use !== 'function' || frameControl === null ||
+        typeof frameControl !== 'object' ||
+        typeof frameControl.prepareDurableResultRowFrames !== 'function' ||
+        typeof frameControl.feedDurableResultRowFrames !== 'function' ||
+        typeof frameControl.finishDurableResultRowFrames !== 'function' ||
+        typeof frameControl.cancelDurableResultRowFrames !== 'function') {
       fail('InvalidPublicationRowConsumer');
     }
     return withCommittedResult(
@@ -2637,23 +2642,32 @@ export async function openLocalPublicationStore(
             fail('InvalidPublicationRowConsumer');
           }
           rowsConsumed = true;
-          const frames = createRetainedRowFrames({
+          const frames = frameControl.prepareDurableResultRowFrames({
             maxBytes: metadata.payloadBytes,
             maxRows: metadata.rowCount,
             maxRowBytes: frameLimits.maxRowBytes,
             maxDepth: frameLimits.maxDepth,
             maxFrameBytes: frameLimits.maxFrameBytes,
-          }, accept);
+          });
+          let rowIndex = 0;
           try {
-            const physical = await consume(chunk => frames.feed(chunk));
-            const summary = frames.finish();
+            const physical = await consume(async chunk => {
+              const rows = frameControl.feedDurableResultRowFrames(
+                frames, chunk,
+              );
+              for (const row of rows) {
+                await accept(row, rowIndex);
+                rowIndex++;
+              }
+            });
+            const summary = frameControl.finishDurableResultRowFrames(frames);
             if (summary.rows !== metadata.rowCount ||
                 summary.bytes !== physical.bytes) {
               fail('PublicationDurableBindingMismatch');
             }
             return summary;
           } catch (error) {
-            frames.cancel();
+            frameControl.cancelDurableResultRowFrames(frames);
             throw error;
           }
         };

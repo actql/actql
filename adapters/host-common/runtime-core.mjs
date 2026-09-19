@@ -1830,6 +1830,44 @@ function publicationControl(moon) {
     finishResultDelivery(serializer) {
       return checked(moon.strategyFinishResultDelivery(serializer));
     },
+    prepareDurableResultRowFrames(limits) {
+      if (limits === null || typeof limits !== 'object' ||
+          !Number.isSafeInteger(limits.maxBytes) || limits.maxBytes < 0 ||
+          !Number.isSafeInteger(limits.maxRows) || limits.maxRows < 0 ||
+          !Number.isSafeInteger(limits.maxRowBytes) ||
+          limits.maxRowBytes < 1 ||
+          !Number.isSafeInteger(limits.maxDepth) || limits.maxDepth < 1 ||
+          !Number.isSafeInteger(limits.maxFrameBytes) ||
+          limits.maxFrameBytes < 1) {
+        throw new TypeError('Invalid durable Result row-frame limits');
+      }
+      return checked(moon.strategyPrepareDurableResultRowFrames(
+        limits.maxBytes,
+        limits.maxRows,
+        limits.maxRowBytes,
+        limits.maxDepth,
+        limits.maxFrameBytes,
+      ));
+    },
+    feedDurableResultRowFrames(frames, chunk) {
+      if (!(chunk instanceof Uint8Array)) {
+        throw new TypeError('Invalid durable Result row-frame chunk');
+      }
+      return checked(moon.strategyFeedDurableResultRowFrames(frames, chunk));
+    },
+    finishDurableResultRowFrames(frames) {
+      const summary = checked(
+        moon.strategyFinishDurableResultRowFrames(frames),
+      );
+      if (!Array.isArray(summary) || summary.length !== 2 ||
+          summary.some(value => !Number.isSafeInteger(value) || value < 0)) {
+        throw new TypeError('Invalid durable Result row-frame summary');
+      }
+      return Object.freeze({bytes: summary[0], rows: summary[1]});
+    },
+    cancelDurableResultRowFrames(frames) {
+      moon.strategyCancelDurableResultRowFrames(frames);
+    },
   });
   publicationControls.set(moon, control);
   return control;

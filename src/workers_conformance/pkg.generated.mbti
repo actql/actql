@@ -11,6 +11,7 @@ import {
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
   "actql/actql/physical_strategy",
+  "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
@@ -32,6 +33,8 @@ pub fn async_strategy_admit_pending_source_state_advance(String, @run_publicatio
 
 pub fn async_strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise AsyncHostFailure
 
+pub fn async_strategy_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
+
 pub fn async_strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn async_strategy_delivery_failure_terminal_action(Bool) -> Int
@@ -51,6 +54,10 @@ pub fn async_strategy_effect_free_publication_commit_valid(@run_publication.Publ
 pub fn async_strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn async_strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
+
+pub fn async_strategy_feed_durable_result_row_frames(@run_publication.DurableResultRowFrames, Bytes) -> Array[String] raise AsyncHostFailure
+
+pub fn async_strategy_finish_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Array[Int] raise AsyncHostFailure
 
 pub fn async_strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise AsyncHostFailure
 
@@ -254,6 +261,8 @@ pub fn async_strategy_manifest_result_names(@run_publication.PublicationContract
 
 pub fn async_strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise AsyncHostFailure
 
+pub fn async_strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise AsyncHostFailure
+
 pub fn async_strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise AsyncHostFailure
 
 pub fn async_strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise AsyncHostFailure
@@ -305,6 +314,38 @@ pub fn async_strategy_remote_budget_identity(@remote_site_protocol.RemoteDispatc
 pub fn async_strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBudget) -> String raise AsyncHostFailure
 
 pub fn async_strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_activate_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_manifest_admit_json(String, String) -> @remote_bundle.RemoteBundleManifest raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_manifest_identity(@remote_bundle.RemoteBundleManifest) -> String
+
+pub fn async_strategy_remote_bundle_manifest_json(@remote_bundle.RemoteBundleManifest) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_manifest_prepare(String, String, String, String, String, Int64, String, String, String) -> @remote_bundle.RemoteBundleManifest raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_manifest_projection(@remote_bundle.RemoteBundleManifest) -> Array[String]
+
+pub fn async_strategy_remote_bundle_open(@remote_bundle.RemoteBundleManifest) -> @remote_bundle.RemoteBundleRecord
+
+pub fn async_strategy_remote_bundle_reclaim_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_record_projection(@remote_bundle.RemoteBundleRecord) -> Array[String]
+
+pub fn async_strategy_remote_bundle_record_restore(@remote_bundle.RemoteBundleManifest, Int, Int, Int) -> @remote_bundle.RemoteBundleRecord raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_release_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_retain_prepare(@remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_transition_commit(@remote_bundle.RemoteBundleTransition, Bool) -> @remote_bundle.RemoteBundleRecord raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_transition_key(@remote_bundle.RemoteBundleTransition) -> String
+
+pub fn async_strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleTransition) -> (Array[String], Array[String])
 
 pub fn async_strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
@@ -770,6 +811,8 @@ pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunE
 
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
+pub fn strategy_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
+
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
@@ -789,6 +832,10 @@ pub fn strategy_effect_free_publication_commit_valid(@run_publication.Publicatio
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
+
+pub fn strategy_feed_durable_result_row_frames(@run_publication.DurableResultRowFrames, Bytes) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_finish_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Array[Int] raise NodeHostFailure
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
@@ -992,6 +1039,8 @@ pub fn strategy_manifest_result_names(@run_publication.PublicationContract, Int,
 
 pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise NodeHostFailure
 
+pub fn strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
+
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
@@ -1043,6 +1092,38 @@ pub fn strategy_remote_budget_identity(@remote_site_protocol.RemoteDispatchBudge
 pub fn strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBudget) -> String raise NodeHostFailure
 
 pub fn strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activate_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_manifest_admit_json(String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_manifest_identity(@remote_bundle.RemoteBundleManifest) -> String
+
+pub fn strategy_remote_bundle_manifest_json(@remote_bundle.RemoteBundleManifest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_manifest_prepare(String, String, String, String, String, Int64, String, String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_manifest_projection(@remote_bundle.RemoteBundleManifest) -> Array[String]
+
+pub fn strategy_remote_bundle_open(@remote_bundle.RemoteBundleManifest) -> @remote_bundle.RemoteBundleRecord
+
+pub fn strategy_remote_bundle_reclaim_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_record_projection(@remote_bundle.RemoteBundleRecord) -> Array[String]
+
+pub fn strategy_remote_bundle_record_restore(@remote_bundle.RemoteBundleManifest, Int, Int, Int) -> @remote_bundle.RemoteBundleRecord raise NodeHostFailure
+
+pub fn strategy_remote_bundle_release_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_retain_prepare(@remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_transition_commit(@remote_bundle.RemoteBundleTransition, Bool) -> @remote_bundle.RemoteBundleRecord raise NodeHostFailure
+
+pub fn strategy_remote_bundle_transition_key(@remote_bundle.RemoteBundleTransition) -> String
+
+pub fn strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleTransition) -> (Array[String], Array[String])
 
 pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
@@ -1457,6 +1538,7 @@ pub(all) suberror AsyncHostFailure {
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
+  RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
 }
 
@@ -1472,6 +1554,7 @@ pub(all) suberror NodeHostFailure {
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
+  RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
 }
 

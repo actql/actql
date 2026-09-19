@@ -1,0 +1,67 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/remote_bundle"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_bundle_manifest_json(String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
+
+pub fn bundle_manifest_identity(RemoteBundleManifest) -> String
+
+pub fn bundle_manifest_json(RemoteBundleManifest) -> Result[String, RemoteBundleIssue]
+
+pub fn bundle_manifest_projection(RemoteBundleManifest) -> Array[String]
+
+pub fn bundle_record_projection(RemoteBundleRecord) -> Array[String]
+
+pub fn bundle_transition_key(RemoteBundleTransition) -> String
+
+pub fn bundle_transition_projection(RemoteBundleTransition) -> (Array[String], Array[String])
+
+pub fn commit_bundle_transition(RemoteBundleTransition, Bool) -> Result[RemoteBundleRecord, RemoteBundleIssue]
+
+pub fn open_bundle_record(RemoteBundleManifest) -> RemoteBundleRecord
+
+pub fn prepare_bundle_activate(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_drain(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_manifest(String, String, String, String, String, Int64, String, String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
+
+pub fn prepare_bundle_reclaim(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_release(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_retain(RemoteBundleRecord, Int) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[RemoteBundleRecord, RemoteBundleIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum RemoteBundleIssue {
+  InvalidBundle
+  BundleIdentityMismatch
+  InvalidBundleState
+  BundleOwnerLimit
+  BundleTransitionNotDurable
+} derive(Eq, @debug.Debug)
+
+type RemoteBundleManifest
+
+pub(all) enum RemoteBundlePhase {
+  BundleInstalled
+  BundleActive
+  BundleDraining
+  BundleReclaimed
+} derive(Eq, @debug.Debug)
+
+type RemoteBundleRecord
+
+type RemoteBundleTransition
+
+// Type aliases
+
+// Traits

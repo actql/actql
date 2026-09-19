@@ -1630,6 +1630,55 @@ pub fn strategy_finish_result_delivery(
 }
 
 ///|
+#export_name("strategyPrepareDurableResultRowFrames")
+pub fn strategy_prepare_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> @publication.DurableResultRowFrames raise NodeHostFailure {
+  match
+    @publication.prepare_durable_result_row_frames(
+      max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyFeedDurableResultRowFrames")
+pub fn strategy_feed_durable_result_row_frames(
+  frames : @publication.DurableResultRowFrames,
+  chunk : Bytes,
+) -> Array[String] raise NodeHostFailure {
+  match @publication.feed_durable_result_row_frames(frames, chunk) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyFinishDurableResultRowFrames")
+pub fn strategy_finish_durable_result_row_frames(
+  frames : @publication.DurableResultRowFrames,
+) -> Array[Int] raise NodeHostFailure {
+  match @publication.finish_durable_result_row_frames(frames) {
+    Ok(value) => [value.bytes, value.rows]
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCancelDurableResultRowFrames")
+pub fn strategy_cancel_durable_result_row_frames(
+  frames : @publication.DurableResultRowFrames,
+) -> Unit {
+  @publication.cancel_durable_result_row_frames(frames)
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],

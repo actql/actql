@@ -426,6 +426,7 @@ export async function deliverPublishedResult(options) {
           write(control.nextResultDeliveryRow(serializer, row)));
         await write(control.finishResultDelivery(serializer));
       },
+      control,
     );
     const finishedAt = trustedNow(now);
     await requireCurrentAuthorization(authorize, {

@@ -45,6 +45,7 @@ pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
 type Root
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
+pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
 type Writer

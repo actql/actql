@@ -20,6 +20,8 @@ pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValu
 
 pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
+pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
+
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
 pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
@@ -41,6 +43,10 @@ pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) 
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
+
+pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
+
+pub fn finish_durable_result_row_frames(DurableResultRowFrames) -> Result[DurableResultRowFrameSummary, DurableResultRowFrameIssue]
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
@@ -103,6 +109,8 @@ pub fn prepare_delivery_failure_terminal(Bool) -> DeliveryFailureTerminalAction
 pub fn prepare_delivery_record_retry_step(Int, Int) -> DeliveryRecordRetryAction
 
 pub fn prepare_durable_payload_failure_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> DurablePayloadFailureAction
+
+pub fn prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> Result[DurableResultRowFrames, DurableResultRowFrameIssue]
 
 pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
 
@@ -312,6 +320,29 @@ pub(all) enum DurableResultBindingIssue {
   DurableBindingEncoding
   DurableBindingContract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum DurableResultRowFrameIssue {
+  DurableRowFrameInvalidLimits
+  DurableRowFrameClosed
+  DurableRowFrameByteLimit
+  DurableRowFrameInvalidArray
+  DurableRowFrameTrailingContent
+  DurableRowFrameInvalidSeparator
+  DurableRowFrameInvalidObject
+  DurableRowFrameRowLimit
+  DurableRowFrameRowSizeLimit
+  DurableRowFrameDepthLimit
+  DurableRowFrameInvalidNesting
+  DurableRowFrameInvalidUtf8
+  DurableRowFrameIncomplete
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DurableResultRowFrameSummary {
+  bytes : Int
+  rows : Int
+} derive(Eq, @debug.Debug)
+
+type DurableResultRowFrames
 
 pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryConfirmSucceededRecord
