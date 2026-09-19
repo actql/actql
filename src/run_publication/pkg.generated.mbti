@@ -38,6 +38,8 @@ pub fn delivery_record_retry_action_code(DeliveryRecordRetryAction) -> Int
 
 pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
+
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
@@ -99,6 +101,8 @@ pub fn prepare_committed_publication_finalization(PublicationContract?) -> Publi
 pub fn prepare_delivery_failure_terminal(Bool) -> DeliveryFailureTerminalAction
 
 pub fn prepare_delivery_record_retry_step(Int, Int) -> DeliveryRecordRetryAction
+
+pub fn prepare_durable_payload_failure_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> DurablePayloadFailureAction
 
 pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
 
@@ -287,6 +291,14 @@ pub(all) enum DeliveryTransitionIssue {
   DeliveryPriorRecordMismatch
   DeliveryStateMismatch
   ConfirmedBytesDecreased
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DurablePayloadFailureAction {
+  DurablePayloadCancelWriter
+  DurablePayloadReleasePrepared
+  DurablePayloadCancelExport
+  DurablePayloadFailureFinished
+  DurablePayloadFailureInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DurableResultBindingIssue {

@@ -1504,6 +1504,29 @@ function outputExportControl(moon, publications) {
       });
     },
     cancel: moon.strategyHostOutputExportCancel,
+    payloadFailureAction(
+      writerExists,
+      writerSealed,
+      writerCancelAttempted,
+      preparedPending,
+      preparedReleaseAttempted,
+      exportExists,
+      exportReleased,
+      exportCancelAttempted,
+    ) {
+      return moon.strategyDurablePayloadFailureAction(
+        writerExists,
+        writerSealed,
+        writerCancelAttempted,
+        preparedPending,
+        preparedReleaseAttempted,
+        exportExists,
+        exportReleased,
+        exportCancelAttempted,
+      );
+    },
+    cleanupOwnerAction:
+      publications.publicationCleanupOwnerAction,
   });
 }
 

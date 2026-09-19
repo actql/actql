@@ -4,11 +4,14 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import * as moon from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {
   storeCompletedOutputPayload,
   storeCompletedResultPayload,
   storeCompletedResultPublicationPayload,
 } from './durable-result-payload.mjs';
+import {runtimeCore} from './runtime-core.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -37,6 +40,7 @@ const limits = Object.freeze({
   maxSchemaDepth: 10,
   maxBatchBytes: 32,
 });
+const payloadProgress = runtimeCore(moon).outputExportControl;
 const unusedContractControl = Object.freeze({
   admit() { throw new Error('unexpected semantic admission'); },
   recordTransition() { throw new Error('unexpected record transition'); },
@@ -66,6 +70,8 @@ async function fixture(t) {
 function exportFixture(parts, text, hooks = {}) {
   let index = 0;
   return Object.freeze({
+    payloadFailureAction: payloadProgress.payloadFailureAction,
+    cleanupOwnerAction: payloadProgress.cleanupOwnerAction,
     begin(output, supplied) {
       assert.equal(output, hooks.output);
       assert.equal(supplied, limits);
@@ -358,6 +364,8 @@ test('immutable and primitive failures retain every cleanup owner', async () => 
       createObjectWriter() { return writer; },
     });
     const control = Object.freeze({
+      payloadFailureAction: payloadProgress.payloadFailureAction,
+      cleanupOwnerAction: payloadProgress.cleanupOwnerAction,
       begin() { return {}; },
       next() { throw primary; },
       finish() { throw new Error('unexpected finish'); },

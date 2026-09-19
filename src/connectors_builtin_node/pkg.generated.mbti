@@ -66,6 +66,8 @@ pub fn strategy_delivery_result_definition_cid(@run_publication.PublicationContr
 
 pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
 
+pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool

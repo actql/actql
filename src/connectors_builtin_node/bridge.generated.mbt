@@ -909,6 +909,26 @@ pub fn strategy_publication_cleanup_owner_action(
 }
 
 ///|
+#export_name("strategyDurablePayloadFailureAction")
+pub fn strategy_durable_payload_failure_action(
+  writer_exists : Bool,
+  writer_sealed : Bool,
+  writer_cancel_attempted : Bool,
+  prepared_pending : Bool,
+  prepared_release_attempted : Bool,
+  export_exists : Bool,
+  export_released : Bool,
+  export_cancel_attempted : Bool,
+) -> Int {
+  @publication.durable_payload_failure_action_code(
+    @publication.prepare_durable_payload_failure_step(
+      writer_exists, writer_sealed, writer_cancel_attempted, prepared_pending, prepared_release_attempted,
+      export_exists, export_released, export_cancel_attempted,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRunPublicationChainValid")
 pub fn strategy_run_publication_chain_valid(
   run_definition : @publication.PublicationContract,

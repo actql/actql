@@ -53,3 +53,37 @@ test "publication cleanup retries each live owner independently" {
     PublicationCleanupOwnerInvalid,
   )
 }
+
+///|
+test "durable payload cleanup keeps physical responsibilities ordered" {
+  assert_eq(
+    prepare_durable_payload_failure_step(
+      true, false, false, true, false, true, false, false,
+    ),
+    DurablePayloadCancelWriter,
+  )
+  assert_eq(
+    prepare_durable_payload_failure_step(
+      true, false, true, true, false, true, false, false,
+    ),
+    DurablePayloadReleasePrepared,
+  )
+  assert_eq(
+    prepare_durable_payload_failure_step(
+      true, false, true, true, true, true, false, false,
+    ),
+    DurablePayloadCancelExport,
+  )
+  assert_eq(
+    prepare_durable_payload_failure_step(
+      true, false, true, true, true, true, false, true,
+    ),
+    DurablePayloadFailureFinished,
+  )
+  assert_eq(
+    prepare_durable_payload_failure_step(
+      false, true, false, false, false, false, false, false,
+    ),
+    DurablePayloadFailureInvalid,
+  )
+}

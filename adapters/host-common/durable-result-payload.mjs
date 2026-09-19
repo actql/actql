@@ -21,7 +21,8 @@ function validStore(store) {
 
 function validControl(control) {
   return control !== null && typeof control === 'object' &&
-    ['begin', 'next', 'finish', 'identity', 'cancel']
+    ['begin', 'next', 'finish', 'identity', 'cancel',
+      'payloadFailureAction', 'cleanupOwnerAction']
       .every(name => typeof control[name] === 'function');
 }
 
@@ -48,7 +49,7 @@ function validIdentity(value) {
       value.schemaBytes;
 }
 
-function payloadFailure(reason, cleanupErrors, cleanupOwners) {
+function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
   // The caller's throwable can be a primitive or an immutable Error. Keep all
   // cleanup metadata on an envelope owned by this adapter.
   const failure = new DurableResultPayloadError(
@@ -69,10 +70,43 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners) {
     failure.cleanupHandle = Object.freeze({
       status,
       async retry() {
-        for (const owner of cleanupOwners) {
-          if (!owner.pending()) continue;
-          try { await owner.retry(); }
-          catch (error) { cleanupErrors.push(error); }
+        let currentOwner = 0;
+        let statusChecked = false;
+        let pending = false;
+        let retryAvailable = false;
+        let retryAttempted = false;
+        while (true) {
+          const action = control.cleanupOwnerAction(
+            currentOwner,
+            cleanupOwners.length,
+            statusChecked,
+            pending,
+            retryAvailable,
+            retryAttempted,
+          );
+          if (action === 0) {
+            pending = cleanupOwners[currentOwner].pending();
+            retryAvailable = typeof cleanupOwners[currentOwner].retry ===
+              'function';
+            statusChecked = true;
+            continue;
+          }
+          if (action === 1) {
+            retryAttempted = true;
+            try { await cleanupOwners[currentOwner].retry(); }
+            catch (error) { cleanupErrors.push(error); }
+            continue;
+          }
+          if (action === 2) {
+            currentOwner++;
+            statusChecked = false;
+            pending = false;
+            retryAvailable = false;
+            retryAttempted = false;
+            continue;
+          }
+          if (action === 3) break;
+          fail('InvalidDurableResultPayloadCleanupProgress');
         }
         return update();
       },
@@ -258,42 +292,73 @@ async function storeCompletedPayload(
   } catch (reason) {
     const cleanupErrors = [];
     const cleanupOwners = [];
-    if (writer !== undefined && !sealed) {
-      try { await writer.cancel(); }
+    let writerCancelAttempted = false;
+    let preparedReleaseAttempted = false;
+    let exportCancelAttempted = false;
+    let preparedPending = false;
+    if (prepared !== undefined) {
+      try { preparedPending = prepared.status().pending === true; }
       catch (error) {
         cleanupErrors.push(error);
-        cleanupOwners.push(Object.freeze({
-          pending: () => writer.status().reservationHeld === true ||
-            writer.status().custodyPending === true,
-          retry: () => writer.cancel(),
-        }));
+        preparedPending = true;
       }
     }
-    if (prepared?.status().pending === true) {
-      try { await prepared.release(); }
-      catch (error) {
-        cleanupErrors.push(error);
-        cleanupOwners.push(Object.freeze({
-          pending: () => prepared.status().pending === true,
-          retry: () => prepared.retry(),
-        }));
+    while (true) {
+      const action = control.payloadFailureAction(
+        writer !== undefined,
+        sealed,
+        writerCancelAttempted,
+        preparedPending,
+        preparedReleaseAttempted,
+        exportHandle !== undefined,
+        exportReleased,
+        exportCancelAttempted,
+      );
+      if (action === 0) {
+        writerCancelAttempted = true;
+        try { await writer.cancel(); }
+        catch (error) {
+          cleanupErrors.push(error);
+          cleanupOwners.push(Object.freeze({
+            pending: () => writer.status().reservationHeld === true ||
+              writer.status().custodyPending === true,
+            retry: () => writer.cancel(),
+          }));
+        }
+        continue;
       }
-    }
-    if (exportHandle !== undefined && !exportReleased) {
-      try {
-        control.cancel(exportHandle);
-        exportReleased = true;
-      } catch (error) {
-        cleanupErrors.push(error);
-        cleanupOwners.push(Object.freeze({
-          pending: () => !exportReleased,
-          retry: async () => {
-            control.cancel(exportHandle);
-            exportReleased = true;
-          },
-        }));
+      if (action === 1) {
+        preparedReleaseAttempted = true;
+        try { await prepared.release(); }
+        catch (error) {
+          cleanupErrors.push(error);
+          cleanupOwners.push(Object.freeze({
+            pending: () => prepared.status().pending === true,
+            retry: () => prepared.retry(),
+          }));
+        }
+        continue;
       }
+      if (action === 2) {
+        exportCancelAttempted = true;
+        try {
+          control.cancel(exportHandle);
+          exportReleased = true;
+        } catch (error) {
+          cleanupErrors.push(error);
+          cleanupOwners.push(Object.freeze({
+            pending: () => !exportReleased,
+            retry: async () => {
+              control.cancel(exportHandle);
+              exportReleased = true;
+            },
+          }));
+        }
+        continue;
+      }
+      if (action === 3) break;
+      fail('InvalidDurableResultPayloadFailureProgress');
     }
-    throw payloadFailure(reason, cleanupErrors, cleanupOwners);
+    throw payloadFailure(reason, cleanupErrors, cleanupOwners, control);
   }
 }

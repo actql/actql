@@ -99,3 +99,56 @@ pub fn publication_cleanup_owner_action_code(
     PublicationCleanupOwnerInvalid => 4
   }
 }
+
+///|
+/// Cleanup progression for one failed durable Result payload export. Writer
+/// reclamation, prepared custody release, and logical export cancellation are
+/// separate responsibilities and are attempted in that order.
+pub(all) enum DurablePayloadFailureAction {
+  DurablePayloadCancelWriter
+  DurablePayloadReleasePrepared
+  DurablePayloadCancelExport
+  DurablePayloadFailureFinished
+  DurablePayloadFailureInvalid
+} derive(Eq, Debug)
+
+///|
+pub fn prepare_durable_payload_failure_step(
+  writer_exists : Bool,
+  writer_sealed : Bool,
+  writer_cancel_attempted : Bool,
+  prepared_pending : Bool,
+  prepared_release_attempted : Bool,
+  export_exists : Bool,
+  export_released : Bool,
+  export_cancel_attempted : Bool,
+) -> DurablePayloadFailureAction {
+  if (writer_sealed && !writer_exists) ||
+    (writer_cancel_attempted && writer_sealed) ||
+    (export_released && !export_exists) {
+    return DurablePayloadFailureInvalid
+  }
+  if writer_exists && !writer_sealed && !writer_cancel_attempted {
+    return DurablePayloadCancelWriter
+  }
+  if prepared_pending && !prepared_release_attempted {
+    return DurablePayloadReleasePrepared
+  }
+  if export_exists && !export_released && !export_cancel_attempted {
+    return DurablePayloadCancelExport
+  }
+  DurablePayloadFailureFinished
+}
+
+///|
+pub fn durable_payload_failure_action_code(
+  action : DurablePayloadFailureAction,
+) -> Int {
+  match action {
+    DurablePayloadCancelWriter => 0
+    DurablePayloadReleasePrepared => 1
+    DurablePayloadCancelExport => 2
+    DurablePayloadFailureFinished => 3
+    DurablePayloadFailureInvalid => 4
+  }
+}
