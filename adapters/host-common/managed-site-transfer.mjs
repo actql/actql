@@ -29,15 +29,12 @@ const exactInteger = (value, expected) => value === expected ||
     Number.isSafeInteger(expected) && value === BigInt(expected)) ||
   (typeof value === 'number' && Number.isSafeInteger(value) &&
     typeof expected === 'bigint' && BigInt(value) === expected);
-const validDestination = (destination, estimate, source) =>
+const validDestinationShape = destination =>
   destination !== null && typeof destination === 'object' &&
   destination.material !== null &&
   typeof destination.material === 'object' &&
-  destination.material !== source.siteMaterial &&
-  destination.material !== source.material &&
   destination.generation !== null &&
   typeof destination.generation === 'object' &&
-  destination.generation !== source.materialGeneration &&
   Number.isSafeInteger(destination.rows) && destination.rows >= 0 &&
   Number.isSafeInteger(destination.batches) && destination.batches >= 0 &&
   Number.isSafeInteger(destination.maxBatchRows) &&
@@ -45,10 +42,8 @@ const validDestination = (destination, estimate, source) =>
   Number.isSafeInteger(destination.maxBatchBytes) &&
   destination.maxBatchBytes > 0 &&
   typeof destination.bytes === 'bigint' && destination.bytes >= 0n &&
-  destination.bytes <= estimate.transferBytes &&
   typeof destination.retainedBytes === 'bigint' &&
   destination.retainedBytes >= 0n &&
-  destination.retainedBytes <= estimate.retainedBytes &&
   typeof destination.close === 'function' &&
   typeof destination.status === 'function';
 const TRANSFER_AWAIT_SOURCE_STOP = 0;
@@ -446,7 +441,21 @@ export function createManagedSiteTransferCoordinator(
       state.destinationReclaimed = destination == null;
       state.destinationCloseAttempted = destination == null;
       state.sourceAccessStopped = true;
-      if (!validDestination(destination, estimate, occurrence)) {
+      if (!validDestinationShape(destination) ||
+          !core.transferDestinationAdmitted(Object.freeze({
+            distinctMaterial: destination.material !== occurrence.siteMaterial &&
+              destination.material !== occurrence.material,
+            distinctGeneration:
+              destination.generation !== occurrence.materialGeneration,
+            rows: destination.rows,
+            batches: destination.batches,
+            maxBatchRows: destination.maxBatchRows,
+            maxBatchBytes: destination.maxBatchBytes,
+            transferredBytes: destination.bytes,
+            retainedBytes: destination.retainedBytes,
+            transferLimit: estimate.transferBytes,
+            retentionLimit: estimate.retainedBytes,
+          }))) {
         throw fail('InvalidTransferDestination');
       }
       if (!executionSiteTransferOperationAvailable(siteOperation)) {

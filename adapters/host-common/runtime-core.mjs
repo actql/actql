@@ -1469,6 +1469,19 @@ export function runtimeCore(moon) {
       moon.strategyHostTransferRelease(value, receipt),
     ),
     transferPending: moon.strategyHostTransferPending,
+    transferDestinationAdmitted: value =>
+      moon.strategyHostTransferDestinationAdmitted(
+        value.distinctMaterial,
+        value.distinctGeneration,
+        value.rows,
+        value.batches,
+        value.maxBatchRows,
+        value.maxBatchBytes,
+        value.transferredBytes,
+        value.retainedBytes,
+        value.transferLimit,
+        value.retentionLimit,
+      ),
     transferCommitAction: (
       transfer,
       sourceAccessStopped,

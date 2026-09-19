@@ -202,6 +202,8 @@ pub fn strategy_host_transfer_commit_action(@physical_strategy.ManagedTransfer, 
 
 pub fn strategy_host_transfer_complete(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise NodeHostFailure
 
+pub fn strategy_host_transfer_destination_admitted(Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
+
 pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool
 
 pub fn strategy_host_transfer_receipt(@physical_strategy.ManagedTransferReceipt) -> Array[Int64]

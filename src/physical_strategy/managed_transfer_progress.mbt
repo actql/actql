@@ -19,6 +19,46 @@ pub(all) enum ManagedTransferRuntimeAction {
 } derive(Eq, Debug)
 
 ///|
+/// Bounded facts observed after a representation provider has finished one
+/// destination copy. Object ownership and callable adapter methods remain
+/// environment concerns; common code decides whether the observed generation
+/// and measurements are admissible for the selected Transfer estimate.
+pub(all) struct ManagedTransferDestinationFacts {
+  distinct_material : Bool
+  distinct_generation : Bool
+  rows : Int
+  batches : Int
+  max_batch_rows : Int
+  max_batch_bytes : Int
+  transferred_bytes : Int64
+  retained_bytes : Int64
+}
+
+///|
+/// Admit one independently owned Transfer destination against the exact
+/// pre-execution ceilings. A provider cannot turn a shared handle, aliased
+/// generation, malformed batching report, or post-copy overrun into a common
+/// completion merely by returning a structurally valid adapter object.
+pub fn managed_transfer_destination_admitted(
+  facts : ManagedTransferDestinationFacts,
+  transfer_limit : Int64,
+  retention_limit : Int64,
+) -> Bool {
+  transfer_limit >= 0L &&
+  retention_limit >= 0L &&
+  facts.distinct_material &&
+  facts.distinct_generation &&
+  facts.rows >= 0 &&
+  facts.batches >= 0 &&
+  facts.max_batch_rows > 0 &&
+  facts.max_batch_bytes > 0 &&
+  facts.transferred_bytes >= 0L &&
+  facts.transferred_bytes <= transfer_limit &&
+  facts.retained_bytes >= 0L &&
+  facts.retained_bytes <= retention_limit
+}
+
+///|
 /// Plan successful destination adoption one physical fact at a time.
 pub fn prepare_managed_transfer_commit_step(
   transfer : ManagedTransfer,

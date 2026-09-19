@@ -169,6 +169,8 @@ pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn managed_failure_runtime_action_code(ManagedFailureRuntimeAction) -> Int
 
+pub fn managed_transfer_destination_admitted(ManagedTransferDestinationFacts, Int64, Int64) -> Bool
+
 pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
 
 pub fn next_captured_task(CapturedDAG) -> Int?
@@ -393,6 +395,17 @@ pub(all) enum ManagedFailureRuntimeAction {
 } derive(Eq, @debug.Debug)
 
 type ManagedTransfer
+
+pub(all) struct ManagedTransferDestinationFacts {
+  distinct_material : Bool
+  distinct_generation : Bool
+  rows : Int
+  batches : Int
+  max_batch_rows : Int
+  max_batch_bytes : Int
+  transferred_bytes : Int64
+  retained_bytes : Int64
+}
 
 type ManagedTransferReceipt
 

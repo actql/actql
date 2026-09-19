@@ -2167,6 +2167,36 @@ pub fn strategy_host_transfer_pending(
 }
 
 ///|
+#export_name("strategyHostTransferDestinationAdmitted")
+pub fn strategy_host_transfer_destination_admitted(
+  distinct_material : Bool,
+  distinct_generation : Bool,
+  rows : Int,
+  batches : Int,
+  max_batch_rows : Int,
+  max_batch_bytes : Int,
+  transferred_bytes : Int64,
+  retained_bytes : Int64,
+  transfer_limit : Int64,
+  retention_limit : Int64,
+) -> Bool {
+  @strategy.managed_transfer_destination_admitted(
+    {
+      distinct_material,
+      distinct_generation,
+      rows,
+      batches,
+      max_batch_rows,
+      max_batch_bytes,
+      transferred_bytes,
+      retained_bytes,
+    },
+    transfer_limit,
+    retention_limit,
+  )
+}
+
+///|
 #export_name("strategyHostTransferCommitAction")
 pub fn strategy_host_transfer_commit_action(
   transfer : @strategy.ManagedTransfer,

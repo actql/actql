@@ -87,6 +87,19 @@ function coreFor(input, logicalMaterial, events = []) {
       receipt.transfer.released = true;
       events.push(['release', receipt.transfer.attempt]);
     },
+    transferDestinationAdmitted(value) {
+      return value.distinctMaterial && value.distinctGeneration &&
+        Number.isSafeInteger(value.rows) && value.rows >= 0 &&
+        Number.isSafeInteger(value.batches) && value.batches >= 0 &&
+        Number.isSafeInteger(value.maxBatchRows) && value.maxBatchRows > 0 &&
+        Number.isSafeInteger(value.maxBatchBytes) && value.maxBatchBytes > 0 &&
+        typeof value.transferredBytes === 'bigint' &&
+        value.transferredBytes >= 0n &&
+        value.transferredBytes <= value.transferLimit &&
+        typeof value.retainedBytes === 'bigint' &&
+        value.retainedBytes >= 0n &&
+        value.retainedBytes <= value.retentionLimit;
+    },
     transferCommitAction(
       transfer,
       sourceAccessStopped,

@@ -153,3 +153,53 @@ test "successful transfer release keeps both holdings independent" {
     TransferFinished,
   )
 }
+
+///|
+test "transfer destination admission owns common bounds and independence" {
+  let valid : ManagedTransferDestinationFacts = {
+    distinct_material: true,
+    distinct_generation: true,
+    rows: 2,
+    batches: 1,
+    max_batch_rows: 128,
+    max_batch_bytes: 4096,
+    transferred_bytes: 16L,
+    retained_bytes: 32L,
+  }
+  assert_true(managed_transfer_destination_admitted(valid, 16L, 32L))
+  assert_false(
+    managed_transfer_destination_admitted(
+      { ..valid, distinct_material: false, },
+      16L,
+      32L,
+    ),
+  )
+  assert_false(
+    managed_transfer_destination_admitted(
+      { ..valid, distinct_generation: false, },
+      16L,
+      32L,
+    ),
+  )
+  assert_false(
+    managed_transfer_destination_admitted(
+      { ..valid, transferred_bytes: 17L, },
+      16L,
+      32L,
+    ),
+  )
+  assert_false(
+    managed_transfer_destination_admitted(
+      { ..valid, retained_bytes: 33L, },
+      16L,
+      32L,
+    ),
+  )
+  assert_false(
+    managed_transfer_destination_admitted(
+      { ..valid, max_batch_rows: 0, },
+      16L,
+      32L,
+    ),
+  )
+}
