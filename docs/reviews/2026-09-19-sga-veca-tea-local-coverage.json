@@ -371,6 +371,8 @@
       ],
       "layer_evidence": [
         "src/lowering_relation/vector_test.mbt",
+        "portability/corpus/vector-numeric.json",
+        "src/vector_numeric/fixture.generated_wbtest.mbt",
         "src/vector_numeric/numeric_wbtest.mbt",
         "src/local_veca/normalize_wbtest.mbt"
       ]
@@ -395,6 +397,8 @@
       ],
       "layer_evidence": [
         "src/lowering_relation/vector_test.mbt",
+        "portability/corpus/vector-numeric.json",
+        "src/vector_numeric/fixture.generated_wbtest.mbt",
         "src/vector_numeric/numeric_wbtest.mbt",
         "src/value_admission/key_order_wbtest.mbt",
         "src/local_veca/score_wbtest.mbt"

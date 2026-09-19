@@ -1,1 +1,3 @@
 supported_targets = "+js+wasm+native"
+
+formatter(ignore: [ "fixture.generated_wbtest.mbt" ])

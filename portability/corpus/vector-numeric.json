@@ -1,0 +1,175 @@
+{
+  "version": "actql-vector-numeric-vectors/0.1",
+  "encoding": "binary64_hex_bits",
+  "cases": [
+    {
+      "id": "quantize_positive_zero",
+      "kind": "quantize",
+      "input": "0000000000000000",
+      "expected": "0000000000000000"
+    },
+    {
+      "id": "quantize_negative_zero",
+      "kind": "quantize",
+      "input": "8000000000000000",
+      "expected": "0000000000000000"
+    },
+    {
+      "id": "quantize_tie_to_even_lower",
+      "kind": "quantize",
+      "input": "3ff0000010000000",
+      "expected": "3ff0000000000000"
+    },
+    {
+      "id": "quantize_tie_to_even_upper",
+      "kind": "quantize",
+      "input": "3ff0000030000000",
+      "expected": "3ff0000040000000"
+    },
+    {
+      "id": "quantize_minimum_binary32_subnormal",
+      "kind": "quantize",
+      "input": "36a0000000000000",
+      "expected": "36a0000000000000"
+    },
+    {
+      "id": "quantize_half_minimum_subnormal",
+      "kind": "quantize",
+      "input": "3690000000000000",
+      "expected": "0000000000000000"
+    },
+    {
+      "id": "quantize_maximum_binary32",
+      "kind": "quantize",
+      "input": "47efffffe0000000",
+      "expected": "47efffffe0000000"
+    },
+    {
+      "id": "quantize_binary32_overflow",
+      "kind": "quantize",
+      "input": "47f0000000000000",
+      "issue": "NonFinite"
+    },
+    {
+      "id": "quantize_positive_infinity",
+      "kind": "quantize",
+      "input": "7ff0000000000000",
+      "issue": "NonFinite"
+    },
+    {
+      "id": "quantize_nan",
+      "kind": "quantize",
+      "input": "7ff8000000000000",
+      "issue": "NonFinite"
+    },
+    {
+      "id": "normalize_three_four",
+      "kind": "normalize",
+      "input": ["4008000000000000", "4010000000000000"],
+      "sum": "4039000000000000",
+      "divisor": "4014000000000000",
+      "expected": ["3fe3333340000000", "3fe99999a0000000"]
+    },
+    {
+      "id": "normalize_sqrt_boundary",
+      "kind": "normalize",
+      "input": ["3ff0000000000000", "3ff0000000000000"],
+      "sum": "4000000000000000",
+      "divisor": "3ff6a09e667f3bcd",
+      "expected": ["3fe6a09e60000000", "3fe6a09e60000000"]
+    },
+    {
+      "id": "normalize_binary32_subnormal",
+      "kind": "normalize",
+      "input": ["36a0000000000000"],
+      "sum": "2d50000000000000",
+      "divisor": "36a0000000000000",
+      "expected": ["3ff0000000000000"]
+    },
+    {
+      "id": "normalize_zero_vector",
+      "kind": "normalize",
+      "input": ["8000000000000000", "0000000000000000"],
+      "sum": "0000000000000000",
+      "issue": "ZeroVector"
+    },
+    {
+      "id": "normalize_nonfinite_component",
+      "kind": "normalize",
+      "input": ["7ff0000000000000"],
+      "issue": "NonFinite"
+    },
+    {
+      "id": "score_dot",
+      "kind": "score",
+      "metric": "dot",
+      "left": ["4008000000000000", "4010000000000000"],
+      "right": ["4010000000000000", "4008000000000000"],
+      "expected": "4038000000000000"
+    },
+    {
+      "id": "score_cosine",
+      "kind": "score",
+      "metric": "cosine",
+      "left": ["4008000000000000", "4010000000000000"],
+      "right": ["4010000000000000", "4008000000000000"],
+      "expected": "3feeb851eb851eb8"
+    },
+    {
+      "id": "score_negative_l2_sqrt_boundary",
+      "kind": "score",
+      "metric": "l2",
+      "left": ["4008000000000000", "4010000000000000"],
+      "right": ["4010000000000000", "4008000000000000"],
+      "expected": "bff6a09e667f3bcd"
+    },
+    {
+      "id": "score_dimension_order_rounding",
+      "kind": "score",
+      "metric": "dot",
+      "left": [
+        "4190000000000000",
+        "3ff0000000000000",
+        "c190000000000000"
+      ],
+      "right": [
+        "41a0000000000000",
+        "3ff0000000000000",
+        "41a0000000000000"
+      ],
+      "expected": "0000000000000000"
+    },
+    {
+      "id": "score_subnormal_dot",
+      "kind": "score",
+      "metric": "dot",
+      "left": ["36a0000000000000"],
+      "right": ["3ff0000000000000"],
+      "expected": "36a0000000000000"
+    },
+    {
+      "id": "score_cosine_zero_vector",
+      "kind": "score",
+      "metric": "cosine",
+      "left": ["0000000000000000", "8000000000000000"],
+      "right": ["4010000000000000", "4008000000000000"],
+      "expected": "0000000000000000"
+    },
+    {
+      "id": "score_l2_positive_zero",
+      "kind": "score",
+      "metric": "l2",
+      "left": ["3ff0000000000000", "3ff0000000000000"],
+      "right": ["3ff0000000000000", "3ff0000000000000"],
+      "expected": "0000000000000000"
+    },
+    {
+      "id": "score_nonfinite_component",
+      "kind": "score",
+      "metric": "dot",
+      "left": ["7ff8000000000000"],
+      "right": ["3ff0000000000000"],
+      "issue": "NonFinite"
+    }
+  ]
+}

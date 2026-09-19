@@ -84,9 +84,12 @@ Vectors input. It applies binary32 input and output quantization, preserves the
 specified dimension-order binary64 norm fold, rejects zero vectors, admits
 record workspace before temporary construction, and publishes a distinct
 managed generation. Its tests cover cancellation observation and two exact
-downstream producer reads on JS, Wasm, and native. Environment cancellation
-delivery, independent consumer release, and standard Host selection remain
-open, so normalization is not complete. Checked typed lowering also emits
+downstream producer reads on JS, Wasm, and native. An independent fixed-bit
+corpus covers binary32 ties, subnormals, overflow, signed zero, binary64 fold
+order, square-root boundaries, and nonfinite rejection on all three targets.
+Environment cancellation delivery, independent consumer release, and standard
+Host selection remain open, so normalization is not complete. Checked typed
+lowering also emits
 `VEC.score_sort`, including bound query values, without reading frontend syntax
 again. Scoring now executes the pinned dot, cosine, and negative-L2 folds,
 orders finite results by descending score and typed semantic identity, and
@@ -94,7 +97,8 @@ constructs a distinct managed Vectors generation through bounded work units.
 It admits query, ordering, temporary, and retained-output workspace before
 execution. Portable tests cover empty-input query validation, score ties,
 cancellation observation, two exact downstream reads, and JS, Wasm, and native.
-The independent numerical corpus, standard Host selection, environment
+The independent fixed-bit corpus exercises every score metric and its specified
+rounding and failure boundaries. Standard Host selection, environment
 cancellation delivery, independent consumer release, and publication remain
 open, so scoring is not complete. The other three VecA operations still lack
 portable Local kernels.
