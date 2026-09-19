@@ -742,6 +742,28 @@ function publicationControl(moon) {
     recordAllowsCommit(record) {
       return moon.strategyPublicationRecordAllowsCommit(token(record));
     },
+    publicationAttemptAction(record, activeChecked, indexIssued) {
+      return moon.strategyPublicationAttemptAction(
+        record === undefined ? undefined : token(record),
+        activeChecked,
+        indexIssued,
+      );
+    },
+    publicationCancellationAction(record) {
+      return moon.strategyPublicationCancellationAction(
+        record === undefined ? undefined : token(record),
+      );
+    },
+    committedPublicationFinalizationAction(record) {
+      return moon.strategyCommittedPublicationFinalizationAction(
+        record === undefined ? undefined : token(record),
+      );
+    },
+    supersededPublicationFinalizationAction(record) {
+      return moon.strategySupersededPublicationFinalizationAction(
+        record === undefined ? undefined : token(record),
+      );
+    },
     runChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, limits) {
       return moon.strategyRunPublicationChainValid(

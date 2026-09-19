@@ -54,6 +54,8 @@ pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunE
 
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
+pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
+
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
 pub fn strategy_delivery_result_definition_cid(@run_publication.PublicationContract, @run_publication.PublicationContract) -> String raise NodeHostFailure
@@ -269,6 +271,10 @@ pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializ
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_publication_attempt_action(@run_publication.PublicationContract?, Bool, Bool) -> Int
+
+pub fn strategy_publication_cancellation_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_publication_contract_identity(@run_publication.PublicationContract) -> String
 
@@ -567,6 +573,8 @@ pub fn strategy_site_start_transfer(@execution_site.ExecutionSite, @execution_si
 pub fn strategy_site_status(@execution_site.ExecutionSite) -> Array[Int64]
 
 pub fn strategy_site_transfer_available(@execution_site.SiteTransfer) -> Bool
+
+pub fn strategy_superseded_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 

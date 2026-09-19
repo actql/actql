@@ -33,7 +33,10 @@ function validateControl(control) {
   if (control === null || typeof control !== 'object' ||
       !['issuePublicationRequest', 'issuePublicationAttempt',
         'issuePublicIndexEntry', 'issuePublicationRecord',
-        'effectFreeChainValid', 'effectFreeCommitValid', 'admit']
+        'publicationAttemptAction', 'publicationCancellationAction',
+        'committedPublicationFinalizationAction',
+        'supersededPublicationFinalizationAction', 'effectFreeChainValid',
+        'effectFreeCommitValid', 'admit']
         .every(name => typeof control[name] === 'function')) {
     fail('InvalidRunPublicationControl');
   }
@@ -41,8 +44,8 @@ function validateControl(control) {
 
 function validateStore(store) {
   if (store === null || typeof store !== 'object' ||
-      !['putPublicationContract', 'createAttempt', 'latestRecord',
-        'latestRecordContract', 'appendRecord', 'commitIndex',
+      !['putPublicationContract', 'createAttempt', 'latestRecordContract',
+        'appendRecord', 'commitIndex',
         'inspectCommittedIndex', 'confirmCommittedIndex',
         'readPublicationContract',
         'validateCommittedEvidence', 'retireUncommittedPublication']
@@ -221,11 +224,10 @@ async function appendState(
 async function finishCommittedAttempt(
   store, control, attempt, index, now, limits,
 ) {
-  const value = await store.latestRecord(attempt.identity);
-  if (value?.state === 'succeeded') return;
   const previous = await store.latestRecordContract(attempt.identity);
-  if (previous === undefined ||
-      !['committing', 'publication_unknown'].includes(value?.state)) {
+  const action = control.committedPublicationFinalizationAction(previous);
+  if (action === 0) return;
+  if (action !== 1) {
     fail('InvalidCommittedPublicationAttempt');
   }
   try {
@@ -233,8 +235,9 @@ async function finishCommittedAttempt(
       store, control, attempt, previous, 'succeeded', now(), limits, index,
     );
   } catch (error) {
+    const current = await store.latestRecordContract(attempt.identity);
     if (error?.code !== 'PublicationRecordConflict' ||
-        (await store.latestRecord(attempt.identity))?.state !== 'succeeded') {
+        control.committedPublicationFinalizationAction(current) !== 0) {
       throw error;
     }
   }
@@ -243,14 +246,10 @@ async function finishCommittedAttempt(
 async function finishSupersededAttempt(
   store, control, attempt, now, limits,
 ) {
-  const value = await store.latestRecord(attempt.identity);
-  if (value === undefined ||
-      ['cancelled', 'failed', 'succeeded'].includes(value.state)) {
-    return;
-  }
   const previous = await store.latestRecordContract(attempt.identity);
-  if (previous === undefined ||
-      !['committing', 'publication_unknown'].includes(value.state)) {
+  const action = control.supersededPublicationFinalizationAction(previous);
+  if (action === 0 || action === 3) return;
+  if (action !== 2) {
     fail('InvalidSupersededPublicationAttempt');
   }
   try {
@@ -266,8 +265,9 @@ async function finishSupersededAttempt(
       true,
     );
   } catch (error) {
+    const current = await store.latestRecordContract(attempt.identity);
     if (error?.code !== 'PublicationRecordConflict' ||
-        (await store.latestRecord(attempt.identity))?.state !== 'cancelled') {
+        control.supersededPublicationFinalizationAction(current) !== 3) {
       throw error;
     }
   }
@@ -307,10 +307,9 @@ async function requireActiveAttempt(
 ) {
   try { signal?.throwIfAborted(); }
   catch (reason) {
-    const value = await store.latestRecord(attempt.identity);
     const previous = await store.latestRecordContract(attempt.identity);
-    if (previous !== undefined &&
-        ['preparing', 'committing'].includes(value?.state)) {
+    const action = control.publicationCancellationAction(previous);
+    if (action === 1 || action === 2) {
       await appendState(
         store,
         control,
@@ -320,7 +319,7 @@ async function requireActiveAttempt(
         now(),
         limits,
         undefined,
-        value.state === 'committing',
+        action === 2,
       );
     }
     throw reason;
@@ -445,44 +444,55 @@ export async function publishEffectFreeRun(options) {
   signal?.throwIfAborted();
   await persistContracts(store, [...contracts, publicationRequest]);
   await store.createAttempt(publicationAttempt.wire);
-  let recordValue = await store.latestRecord(publicationAttempt.identity);
   let record = await store.latestRecordContract(publicationAttempt.identity);
-  if (record === undefined) {
-    record = await appendState(
-      store, control, publicationAttempt, undefined, 'preparing', now(), limits,
+  let activeChecked = false;
+  let index;
+  while (true) {
+    const action = control.publicationAttemptAction(
+      record, activeChecked, index !== undefined,
     );
-    recordValue = JSON.parse(record.wire);
+    if (action === 0) {
+      record = await appendState(
+        store, control, publicationAttempt, undefined, 'preparing', now(),
+        limits,
+      );
+      activeChecked = false;
+      continue;
+    }
+    if (action === 1) {
+      await requireActiveAttempt(
+        signal, store, control, publicationAttempt, now, limits,
+      );
+      activeChecked = true;
+      continue;
+    }
+    if (action === 2) {
+      record = await appendState(
+        store, control, publicationAttempt, record, 'committing', now(),
+        limits,
+      );
+      activeChecked = false;
+      continue;
+    }
+    if (action === 3) {
+      index = control.issuePublicIndexEntry({
+        runDefinition: evidence.runDefinition,
+        invocation: evidence.invocation,
+        manifest: evidence.manifest,
+        receipt: evidence.receipt,
+        capturedRun: evidence.capturedRun,
+        durableBindings: evidence.durableBindings,
+        request: publicationRequest,
+        attempt: publicationAttempt,
+      }, now(), limits);
+      continue;
+    }
+    if (action === 4) break;
+    if (action === 5) fail('RunPublicationReconciliationRequired');
+    if (action === 6) fail('CommittedPublicationIndexMissing');
+    if (action === 7) fail('RunPublicationAttemptTerminal');
+    fail('InvalidRunPublicationProgress');
   }
-  if (recordValue.state === 'preparing') {
-    await requireActiveAttempt(
-      signal, store, control, publicationAttempt, now, limits,
-    );
-    record = await appendState(
-      store, control, publicationAttempt, record, 'committing', now(), limits,
-    );
-    recordValue = JSON.parse(record.wire);
-  }
-  if (recordValue.state === 'succeeded') {
-    fail('CommittedPublicationIndexMissing');
-  }
-  if (recordValue.state !== 'committing') {
-    fail(recordValue.state === 'publication_unknown'
-      ? 'RunPublicationReconciliationRequired'
-      : 'RunPublicationAttemptTerminal');
-  }
-  await requireActiveAttempt(
-    signal, store, control, publicationAttempt, now, limits,
-  );
-  const index = control.issuePublicIndexEntry({
-    runDefinition: evidence.runDefinition,
-    invocation: evidence.invocation,
-    manifest: evidence.manifest,
-    receipt: evidence.receipt,
-    capturedRun: evidence.capturedRun,
-    durableBindings: evidence.durableBindings,
-    request: publicationRequest,
-    attempt: publicationAttempt,
-  }, now(), limits);
   let committed;
   try {
     committed = await store.commitIndex(

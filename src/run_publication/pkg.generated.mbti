@@ -88,9 +88,21 @@ pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[Stri
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
+pub fn prepare_committed_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
+
+pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> PublicationAttemptRuntimeAction
+
+pub fn prepare_publication_cancellation_step(PublicationContract?) -> PublicationCancellationAction
+
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
 
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
+
+pub fn prepare_superseded_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
+
+pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
+
+pub fn publication_cancellation_action_code(PublicationCancellationAction) -> Int
 
 pub fn publication_contract_identity(PublicationContract) -> String
 
@@ -99,6 +111,8 @@ pub fn publication_contract_identity_field(PublicationContract) -> String
 pub fn publication_contract_json(PublicationContract) -> String
 
 pub fn publication_contract_name(PublicationContract) -> String
+
+pub fn publication_finalization_action_code(PublicationFinalizationAction) -> Int
 
 pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], PublicationContract, PublicationContract, String) -> Bool
 
@@ -246,6 +260,24 @@ pub(all) enum DurableResultBindingIssue {
 
 type PendingSourceStateAdvance
 
+pub(all) enum PublicationAttemptRuntimeAction {
+  PublicationAppendPreparing
+  PublicationCheckActive
+  PublicationAppendCommitting
+  PublicationIssueIndex
+  PublicationCommitIndex
+  PublicationRequireReconciliation
+  PublicationRejectMissingIndex
+  PublicationRejectTerminal
+  PublicationAttemptInvalid
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationCancellationAction {
+  PublicationCancellationRethrow
+  PublicationCancelPreparing
+  PublicationCancelCommitting
+} derive(Eq, @debug.Debug)
+
 pub(all) enum PublicationCommitIssuanceIssue {
   CommitIssuanceWrongContract
   CommitIssuanceEmptyInventory
@@ -280,6 +312,14 @@ pub(all) enum PublicationContractIssue {
   IdentityMismatch
   ConditionalField(String)
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationFinalizationAction {
+  PublicationFinalizationFinished
+  PublicationAppendSucceeded
+  PublicationAppendSuperseded
+  PublicationSupersededConfirmed
+  PublicationFinalizationInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PublicationInventoryIssue {

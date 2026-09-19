@@ -771,6 +771,50 @@ pub fn strategy_publication_record_allows_commit(
 }
 
 ///|
+#export_name("strategyPublicationAttemptAction")
+pub fn strategy_publication_attempt_action(
+  record : @publication.PublicationContract?,
+  active_checked : Bool,
+  index_issued : Bool,
+) -> Int {
+  @publication.publication_attempt_runtime_action_code(
+    @publication.prepare_publication_attempt_step(
+      record, active_checked, index_issued,
+    ),
+  )
+}
+
+///|
+#export_name("strategyPublicationCancellationAction")
+pub fn strategy_publication_cancellation_action(
+  record : @publication.PublicationContract?,
+) -> Int {
+  @publication.publication_cancellation_action_code(
+    @publication.prepare_publication_cancellation_step(record),
+  )
+}
+
+///|
+#export_name("strategyCommittedPublicationFinalizationAction")
+pub fn strategy_committed_publication_finalization_action(
+  record : @publication.PublicationContract?,
+) -> Int {
+  @publication.publication_finalization_action_code(
+    @publication.prepare_committed_publication_finalization(record),
+  )
+}
+
+///|
+#export_name("strategySupersededPublicationFinalizationAction")
+pub fn strategy_superseded_publication_finalization_action(
+  record : @publication.PublicationContract?,
+) -> Int {
+  @publication.publication_finalization_action_code(
+    @publication.prepare_superseded_publication_finalization(record),
+  )
+}
+
+///|
 #export_name("strategyRunPublicationChainValid")
 pub fn strategy_run_publication_chain_valid(
   run_definition : @publication.PublicationContract,
