@@ -15,6 +15,16 @@ test "semantic ports retain exact resolved occurrences and output schema" {
   assert_true(@lowering_relation.node_input_target(node, 1) is None)
   assert_true(@lowering_relation.node_input_target(node, -1) is None)
   let schema = @lowering_relation.node_output_schema(node)
+  assert_eq(
+    @carrier.kind(@lowering_relation.node_output_carrier(node)),
+    @carrier.RelationKind,
+  )
+  assert_eq(
+    @carrier.kind(
+      @lowering_relation.preparation_carrier_at(prepared, @pipeline.Step(2)).unwrap(),
+    ),
+    @carrier.RelationKind,
+  )
   assert_eq(@schema.field_count(schema), 1)
   assert_eq(
     @schema.reference_name(@schema.field_at(schema, 0).unwrap().name),

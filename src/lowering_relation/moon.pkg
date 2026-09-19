@@ -22,10 +22,10 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/carrier_contract" @carrier,
 }
 
 import {
   "actql/actql/source_value" @source,
-  "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/debug",
 } for "test"

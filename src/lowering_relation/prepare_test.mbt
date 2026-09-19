@@ -111,6 +111,12 @@ test "external input alias never collides with generated node ids" {
   let prepared = @lowering_relation.prepare(p, limits()).unwrap()
   let node = @lowering_relation.node_at(prepared, 0).unwrap()
   assert_eq(@lowering_relation.input_id(prepared, 0), Some("input_0"))
+  assert_eq(
+    @carrier.kind(
+      @lowering_relation.preparation_input_carrier(prepared, 0).unwrap(),
+    ),
+    @carrier.RelationKind,
+  )
   assert_eq(@lowering_relation.node_id(node), "select_0")
   assert_eq(@lowering_relation.input_ids(node), ["input_0"])
   assert_eq(

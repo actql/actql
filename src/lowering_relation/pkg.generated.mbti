@@ -2,6 +2,7 @@
 package "actql/actql/lowering_relation"
 
 import {
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/expression_syntax",
@@ -401,6 +402,8 @@ pub fn node_input_count(PreparedNode) -> Int
 
 pub fn node_input_target(PreparedNode, Int) -> @pipeline_typing.Target?
 
+pub fn node_output_carrier(PreparedNode) -> @carrier_contract.Carrier
+
 pub fn node_output_schema(PreparedNode) -> @relation_schema.Schema
 
 pub fn node_values_row_count(PreparedNode) -> Int?
@@ -448,6 +451,10 @@ pub fn pivot_output_schema(PreparedPivot) -> @relation_schema.Schema
 pub fn pivot_result_contract(PreparedPivot) -> @value_contract.Contract
 
 pub fn pivot_value(PreparedPivot) -> @relation_schema.FieldName
+
+pub fn preparation_carrier_at(Prepared, @pipeline_typing.Target) -> @carrier_contract.Carrier?
+
+pub fn preparation_input_carrier(Prepared, Int) -> @carrier_contract.Carrier?
 
 pub fn preparation_input_count(Prepared) -> Int
 

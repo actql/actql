@@ -6,6 +6,7 @@ struct Prepared {
   nodes : Array[PreparedNode]
   input_ids : Array[String]
   input_schemas : Array[@schema.Schema]
+  input_carriers : Array[@carrier.Carrier]
   usage : Usage
 }
 
@@ -20,6 +21,7 @@ struct PreparedNode {
   inputs : Array[String]
   input_targets : Array[@pipeline.Target]
   output_schema : @schema.Schema
+  output_carrier : @carrier.Carrier
   source : @decode.Cursor
 }
 
@@ -269,6 +271,7 @@ pub fn prepare(
   let nodes : Array[PreparedNode] = []
   let input_ids : Array[String] = []
   let input_schemas : Array[@schema.Schema] = []
+  let input_carriers : Array[@carrier.Carrier] = []
   let used : Map[String, Bool] = Map([])
   let mut work = 0
   let mut references = 0
@@ -286,9 +289,11 @@ pub fn prepare(
     bytes += id.length() // Generated identifiers are ASCII, on every target.
     used[id] = true
     input_ids.push(id)
-    guard @pipeline.schema_at(checked, @pipeline.Input(i)) is Some(schema) else {
+    guard @pipeline.carrier_at(checked, @pipeline.Input(i)) is Some(carrier) &&
+      @pipeline.schema_at(checked, @pipeline.Input(i)) is Some(schema) else {
       return Err({ kind: InvalidCheckedWiring, source: root, })
     }
+    input_carriers.push(carrier)
     input_schemas.push(schema)
   }
   for i = 0; i < count; i = i + 1 {
@@ -302,7 +307,9 @@ pub fn prepare(
     guard classify(step.operation) is Some(payload) else {
       return Err({ kind: OperationNotImplemented, source: step.source, })
     }
-    guard @pipeline.step_schema(step) is Some(output_schema) else {
+    guard @pipeline.carrier_at(checked, @pipeline.Step(i))
+      is Some(output_carrier) &&
+      @pipeline.step_schema(step) is Some(output_schema) else {
       return Err({ kind: InvalidCheckedWiring, source: step.source, })
     }
     let (preferred, arity) = match payload {
@@ -540,6 +547,7 @@ pub fn prepare(
       inputs: refs,
       input_targets,
       output_schema,
+      output_carrier,
       source: step.source,
     })
   }
@@ -548,6 +556,7 @@ pub fn prepare(
     nodes,
     input_ids,
     input_schemas,
+    input_carriers,
     usage: {
       nodes: count + inputs + expansions,
       references,
