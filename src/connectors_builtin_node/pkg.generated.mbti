@@ -454,6 +454,8 @@ pub fn strategy_remote_restart_count(@remote_site_protocol.SiteRestartTransition
 
 pub fn strategy_remote_restart_metadata(@remote_site_protocol.SiteRestartTransition) -> Array[String]
 
+pub fn strategy_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_remote_runtime_cleanup_plan(@remote_site_protocol.DispatchRecord, Bool, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
 pub fn strategy_remote_runtime_failure_plan(@remote_site_protocol.DispatchRecord, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure

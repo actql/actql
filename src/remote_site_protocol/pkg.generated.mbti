@@ -17,6 +17,8 @@ pub fn admit_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], A
 
 pub fn admit_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64, String) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
+pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
+
 pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorDispatchIntentRecord), DispatchIssue]
 
 pub fn commit_coordinator_dispatch_transition(CoordinatorDispatchTransition, Bool) -> Result[Unit, DispatchIssue]
@@ -189,6 +191,8 @@ pub fn remote_managed_output_subject_retention(RemoteManagedOutputSubject) -> (S
 
 pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[Array[String], DispatchIssue]
 
+pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
+
 pub fn remote_runtime_record_startable(DispatchRecord) -> Bool
 
 pub fn remote_runtime_step_action_code(RemoteRuntimeStep) -> Int
@@ -308,6 +312,18 @@ pub(all) enum RemoteRuntimeAction {
   RuntimeSettleThenPersist
   RuntimeReclaimResources
   RuntimeFinished
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteRuntimeAdmission {
+  RuntimeAdmissionReady
+  RuntimeAdmissionReuseActive
+  RuntimeAdmissionClosed
+  RuntimeAdmissionRecordMismatch
+  RuntimeAdmissionRegistrationUnavailable
+  RuntimeAdmissionBudgetUnavailable
+  RuntimeAdmissionSiteUnavailable
+  RuntimeAdmissionCapacityUnsupported
+  RuntimeAdmissionAlreadyStarted
 } derive(Eq, @debug.Debug)
 
 type RemoteRuntimeStep

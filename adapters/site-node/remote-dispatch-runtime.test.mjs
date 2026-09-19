@@ -236,6 +236,52 @@ test('unprovisioned budget is rejected before durable admission', async t => {
   assert.equal(executions, 0);
 });
 
+test('revoked Site is rejected before remote execution starts', async t => {
+  let executions = 0;
+  const f = await fixture(t, async () => {
+    executions++;
+    return managedOutput();
+  });
+  const dispatch = request();
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch),
+    dispatch,
+    f.control,
+  );
+  runtime.siteControl.revoke(f.selectedSite);
+  assert.equal(f.dispatchRuntime.supports(dispatch), false);
+  assert.throws(
+    () => f.dispatchRuntime.start(dispatch, record),
+    {code: 'RemoteSiteUnavailable'},
+  );
+  assert.equal(executions, 0);
+  assert.deepEqual(f.control.status(record), [0, 0, 0, 0, 0]);
+});
+
+test('Site revocation during execution cannot issue completion evidence',
+  async t => {
+    let finishExecution;
+    let closes = 0;
+    const executing = new Promise(resolve => { finishExecution = resolve; });
+    const f = await fixture(t, async () => {
+      await executing;
+      return managedOutput({async close() { closes++; }});
+    });
+    const dispatch = request();
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    const operation = f.dispatchRuntime.start(dispatch, record);
+    runtime.siteControl.revoke(f.selectedSite);
+    finishExecution();
+    await assert.rejects(operation, {code: 'RemoteSiteOperationUnavailable'});
+    assert.equal(closes, 1);
+    assert.equal(f.store.inspectEvidence(dispatch, f.control), undefined);
+    assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
+  });
+
 test('runtime rejects a record from a different dispatch occurrence',
   async t => {
     let executions = 0;

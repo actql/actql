@@ -3493,6 +3493,26 @@ pub fn strategy_remote_runtime_startable(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeAdmission")
+pub fn strategy_remote_runtime_admission(
+  runtime_closed : Bool,
+  record_matches : Bool,
+  registration_available : Bool,
+  budget_available : Bool,
+  active_dispatch : Bool,
+  site_available : Bool,
+  capacity_supported : Bool,
+  record_startable : Bool,
+) -> Int {
+  @remote.remote_runtime_admission_code(
+    @remote.classify_remote_runtime_admission(
+      runtime_closed, record_matches, registration_available, budget_available, active_dispatch,
+      site_available, capacity_supported, record_startable,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRemoteRuntimeFailurePlan")
 pub fn strategy_remote_runtime_failure_plan(
   record : @remote.DispatchRecord,

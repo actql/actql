@@ -11,6 +11,74 @@ pub(all) enum RemoteRuntimeAction {
 } derive(Eq, Debug)
 
 ///|
+/// Common admission result for a physical remote runtime. Environment
+/// adapters report installed resources and current Site observations; they do
+/// not choose whether a request may start or reuse an active occurrence.
+pub(all) enum RemoteRuntimeAdmission {
+  RuntimeAdmissionReady
+  RuntimeAdmissionReuseActive
+  RuntimeAdmissionClosed
+  RuntimeAdmissionRecordMismatch
+  RuntimeAdmissionRegistrationUnavailable
+  RuntimeAdmissionBudgetUnavailable
+  RuntimeAdmissionSiteUnavailable
+  RuntimeAdmissionCapacityUnsupported
+  RuntimeAdmissionAlreadyStarted
+} derive(Eq, Debug)
+
+///|
+/// Classify runtime admission in a stable order. An already active exact
+/// dispatch is reusable even if the Site stops accepting new work; it is not a
+/// new execution. Site and capacity facts still gate every new occurrence.
+pub fn classify_remote_runtime_admission(
+  runtime_closed : Bool,
+  record_matches : Bool,
+  registration_available : Bool,
+  budget_available : Bool,
+  active_dispatch : Bool,
+  site_available : Bool,
+  capacity_supported : Bool,
+  record_startable : Bool,
+) -> RemoteRuntimeAdmission {
+  if runtime_closed {
+    RuntimeAdmissionClosed
+  } else if !record_matches {
+    RuntimeAdmissionRecordMismatch
+  } else if !registration_available {
+    RuntimeAdmissionRegistrationUnavailable
+  } else if !budget_available {
+    RuntimeAdmissionBudgetUnavailable
+  } else if active_dispatch {
+    RuntimeAdmissionReuseActive
+  } else if !site_available {
+    RuntimeAdmissionSiteUnavailable
+  } else if !capacity_supported {
+    RuntimeAdmissionCapacityUnsupported
+  } else if !record_startable {
+    RuntimeAdmissionAlreadyStarted
+  } else {
+    RuntimeAdmissionReady
+  }
+}
+
+///|
+/// Stable adapter projection. These codes are local control results, not wire
+/// state or durable protocol identity.
+pub fn remote_runtime_admission_code(admission : RemoteRuntimeAdmission) -> Int {
+  match admission {
+    RuntimeAdmissionReady => 0
+    RuntimeAdmissionReuseActive => 1
+    RuntimeAdmissionClosed => 2
+    RuntimeAdmissionRecordMismatch => 3
+    RuntimeAdmissionRegistrationUnavailable => 4
+    RuntimeAdmissionBudgetUnavailable => 5
+    RuntimeAdmissionSiteUnavailable => 6
+    RuntimeAdmissionCapacityUnsupported => 7
+    RuntimeAdmissionAlreadyStarted => 8
+  }
+}
+
+///|
 /// One portable progression decision for a remote execution occurrence.
 /// Physical resource observations are inputs; the resulting transition and
 /// ordering are owned by the common protocol.

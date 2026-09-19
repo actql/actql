@@ -801,6 +801,35 @@ test "runtime failure planning owns settlement ordering" {
 }
 
 ///|
+test "runtime admission owns start and active resend precedence" {
+  assert_eq(
+    classify_remote_runtime_admission(
+      false, true, true, true, false, true, true, true,
+    ),
+    RuntimeAdmissionReady,
+  )
+  assert_eq(
+    classify_remote_runtime_admission(
+      false, true, true, true, true, false, false, false,
+    ),
+    RuntimeAdmissionReuseActive,
+  )
+  assert_eq(
+    classify_remote_runtime_admission(
+      false, true, true, true, false, false, true, true,
+    ),
+    RuntimeAdmissionSiteUnavailable,
+  )
+  assert_eq(
+    classify_remote_runtime_admission(
+      false, false, false, false, false, false, false, false,
+    ),
+    RuntimeAdmissionRecordMismatch,
+  )
+  assert_eq(remote_runtime_admission_code(RuntimeAdmissionAlreadyStarted), 8)
+}
+
+///|
 test "runtime cleanup waits for stop then advances one durable fact at a time" {
   let state = journal()
   let bundle = cid(

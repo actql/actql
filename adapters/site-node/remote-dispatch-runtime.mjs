@@ -117,6 +117,7 @@ export function createRemoteDispatchRuntime({
       typeof control.managedRuntimeRegistrationScope !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.status !== 'function' ||
+      typeof control.runtimeAdmission !== 'function' ||
       typeof control.runtimeStartable !== 'function' ||
       typeof control.prepareRuntimeFailure !== 'function' ||
       typeof control.prepareRuntimeCleanup !== 'function' ||
@@ -141,6 +142,7 @@ export function createRemoteDispatchRuntime({
       typeof siteControl.available !== 'function' ||
       typeof siteControl.capacitySupports !== 'function' ||
       typeof siteControl.startOperation !== 'function' ||
+      typeof siteControl.operationAvailable !== 'function' ||
       typeof siteControl.settleOperation !== 'function' ||
       typeof siteControl.retainOperationHolding !== 'function' ||
       typeof siteControl.releaseHolding !== 'function' ||
@@ -194,6 +196,33 @@ export function createRemoteDispatchRuntime({
   };
   const budgetFor = dispatch =>
     provisionedBudgets.get(control.dispatchBudgetIdentity(dispatch));
+  const admissionFor = (
+    dispatch,
+    record,
+    registration,
+    budget,
+    activeDispatch,
+  ) => {
+    const registered = registration !== undefined;
+    const budgeted = budget !== undefined;
+    const siteAvailable = registered && siteControl.available(registration.site);
+    const capacitySupported = registered && budgeted && siteAvailable &&
+      siteControl.capacitySupports(
+        registration.site,
+        budget.retainedBytes,
+        budget.executionBytes,
+      );
+    return control.runtimeAdmission(
+      closed,
+      record === undefined || control.recordMatchesDispatch(record, dispatch),
+      registered,
+      budgeted,
+      activeDispatch,
+      siteAvailable,
+      capacitySupported,
+      record === undefined || control.runtimeStartable(record),
+    );
+  };
   const cleanupState = entry => {
     const handle = entry.handle;
     if (handle === undefined ||
@@ -404,6 +433,9 @@ export function createRemoteDispatchRuntime({
       output = await registration.execute(Object.freeze({dispatch, signal}));
       signal?.throwIfAborted();
       checkedOutput(output);
+      if (!siteControl.operationAvailable(operationState.operation)) {
+        fail('RemoteSiteOperationUnavailable');
+      }
       operationState.siteHolding = siteControl.retainOperationHolding(
         operationState.operation,
         output.retainedBytes,
@@ -486,37 +518,38 @@ export function createRemoteDispatchRuntime({
 
   return Object.freeze({
     supports(dispatch) {
-      if (closed) return false;
       const registration = registrationFor(dispatch);
       const budget = budgetFor(dispatch);
-      return registration !== undefined && budget !== undefined &&
-        siteControl.available(registration.site) &&
-        siteControl.capacitySupports(
-          registration.site,
-          budget.retainedBytes,
-          budget.executionBytes,
-        );
+      return admissionFor(
+        dispatch,
+        undefined,
+        registration,
+        budget,
+        false,
+      ) === 0;
     },
     start(dispatch, record, signal) {
-      if (closed) fail('RemoteDispatchRuntimeClosed');
-      if (!control.recordMatchesDispatch(record, dispatch)) {
-        fail('RemoteDispatchRecordMismatch');
-      }
       const registration = registrationFor(dispatch);
-      if (registration === undefined) fail('RemoteRuntimeUnsupported');
       const budget = budgetFor(dispatch);
-      if (budget === undefined || !siteControl.capacitySupports(
-        registration.site,
-        budget.retainedBytes,
-        budget.executionBytes,
-      )) {
-        fail('RemoteDispatchBudgetUnsupported');
-      }
       const identity = control.identity(dispatch);
       const prior = active.get(identity);
-      if (prior !== undefined) return prior.operation;
-      if (!control.runtimeStartable(record)) {
-        fail('RemoteDispatchAlreadyStarted');
+      const admission = admissionFor(
+        dispatch,
+        record,
+        registration,
+        budget,
+        prior !== undefined,
+      );
+      if (admission === 1) return prior.operation;
+      const failure = [undefined, undefined, 'RemoteDispatchRuntimeClosed',
+        'RemoteDispatchRecordMismatch', 'RemoteRuntimeUnsupported',
+        'RemoteDispatchBudgetUnsupported', 'RemoteSiteUnavailable',
+        'RemoteDispatchBudgetUnsupported', 'RemoteDispatchAlreadyStarted'][
+        admission
+      ];
+      if (failure !== undefined) fail(failure);
+      if (admission !== 0) {
+        fail('InvalidRemoteRuntimeAdmission');
       }
       const controller = new AbortController();
       const abort = () => controller.abort(signal?.reason);

@@ -383,6 +383,7 @@ function remoteSiteControl(moon) {
     prepareEvidenceRejection: value => checked(
       moon.strategyRemotePrepareEvidenceRejection(value),
     ),
+    runtimeAdmission: moon.strategyRemoteRuntimeAdmission,
     runtimeStartable: moon.strategyRemoteRuntimeStartable,
     prepareRuntimeFailure: (value, cancelled, stopConfirmed) => checked(
       moon.strategyRemoteRuntimeFailurePlan(
