@@ -8,6 +8,10 @@ import {
 // Values
 pub fn admit(String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64) -> Result[PhysicalManifest, PhysicalManifestIssue]
 
+pub fn admit_contracts(String, Array[Int], Int) -> Result[PhysicalContracts, PhysicalManifestIssue]
+
+pub fn contract_projection(PhysicalContracts) -> Array[String]
+
 pub fn projection(PhysicalManifest) -> Array[String]
 
 // Errors
@@ -17,6 +21,13 @@ pub(all) struct PhysicalChunk {
   cid : String
   byte_length : Int64
   row_count : Int
+}
+
+pub(all) struct PhysicalContracts {
+  schema_contract : String
+  schema_contract_cid : String
+  view_contract : String
+  view_contract_cid : String
 }
 
 pub(all) struct PhysicalManifest {

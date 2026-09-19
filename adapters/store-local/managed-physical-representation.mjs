@@ -1,10 +1,8 @@
 // Installed representation contracts for one checked managed output. These
 // pins describe physical decoding and logical row order; neither is a logical
 // content identity or permission to publish the result.
-import {createHash} from 'node:crypto';
 import {snapshotPhysicalManifest} from './managed-manifest.mjs';
 
-const sha = text => `sha256:${createHash('sha256').update(text).digest('hex')}`;
 const cid = value => typeof value === 'string' &&
   /^sha256:[a-f0-9]{64}$/.test(value);
 const quantity = value => Number.isSafeInteger(value) && value >= 0;
@@ -16,32 +14,30 @@ export function managedPhysicalRepresentation(
   if (!body || !cid(body.cid) || !quantity(body.bytes) ||
       !quantity(rowCount) || !cid(codecContractCid) ||
       typeof fieldsFrame !== 'string' || !Array.isArray(storageOrder) ||
-      storageOrder.some(value => !quantity(value))) {
+      storageOrder.some(value => !quantity(value)) || control === null ||
+      typeof control !== 'object' ||
+      typeof control.physicalRepresentationContracts !== 'function') {
     fail('InvalidManagedPhysicalRepresentation');
   }
-  let fields;
-  try { fields = JSON.parse(fieldsFrame); }
-  catch { fail('InvalidManagedPhysicalRepresentation'); }
-  if (!Array.isArray(fields) || fields.length !== storageOrder.length ||
-      new Set(storageOrder).size !== storageOrder.length ||
-      storageOrder.some(index => index >= fields.length)) {
+  const contractLimit = 4096 + Buffer.byteLength(fieldsFrame);
+  let contracts;
+  try {
+    contracts = control.physicalRepresentationContracts(
+      fieldsFrame, storageOrder, contractLimit,
+    );
+  } catch {
     fail('InvalidManagedPhysicalRepresentation');
   }
-  const storedFields = storageOrder.map(index => fields[index]);
-  const schemaContract = JSON.stringify({
-    fields: storedFields,
-    version: 'actql-managed-physical-schema/0.1',
-  });
-  const schemaContractCid = sha(schemaContract);
-  const viewContract = JSON.stringify({
-    order: 'managed-output-occurrence-ascending',
-    schema_contract_cid: schemaContractCid,
-    version: 'actql-managed-physical-view/0.1',
-  });
+  if (!Array.isArray(contracts) || contracts.length !== 5 ||
+      contracts[0] !== 'ok' || typeof contracts[1] !== 'string' ||
+      !cid(contracts[2]) || typeof contracts[3] !== 'string' ||
+      !cid(contracts[4])) fail('InvalidManagedPhysicalRepresentation');
+  const [, schemaContract, schemaContractCid, viewContract,
+    viewContractCid] = contracts;
   const manifest = {
     version: 'actql-managed-physical-manifest/0.1',
     schema_contract_cid: schemaContractCid,
-    view_contract_cid: sha(viewContract),
+    view_contract_cid: viewContractCid,
     codec_contract_cid: codecContractCid,
     row_count: rowCount,
     chunks: [{
@@ -52,7 +48,7 @@ export function managedPhysicalRepresentation(
   };
   const admitted = snapshotPhysicalManifest(manifest, {
     maxChunks: 1,
-    maxManifestBytes: 4096 + Buffer.byteLength(fieldsFrame),
+    maxManifestBytes: contractLimit,
     maxReferencedBytes: body.bytes,
   }, control);
   return Object.freeze({

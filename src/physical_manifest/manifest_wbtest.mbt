@@ -4,6 +4,55 @@ fn cid(unit : String) -> String {
 }
 
 ///|
+test "physical schema and view identities are portable" {
+  let admitted = admit_contracts(
+    (
+      #|[["id","DOUBLE",null,null],["名前","VARCHAR",null,null]]
+    ),
+    [1, 0],
+    4096,
+  ).unwrap()
+  assert_eq(
+    admitted.schema_contract,
+    (
+      #|{"fields":[["名前","VARCHAR",null,null],["id","DOUBLE",null,null]],"version":"actql-managed-physical-schema/0.1"}
+    ),
+  )
+  assert_eq(
+    admitted.schema_contract_cid,
+    "sha256:ac51c20f5f452e5963e3f60642c23b73302ec5d3b59d05dceb7d3d13f1a11af3",
+  )
+  assert_eq(
+    admitted.view_contract_cid,
+    "sha256:ea76b21bf9e99331b43f5aff2a67ab6b42a3e684df388e2d7dbcae4635aa2869",
+  )
+}
+
+///|
+test "physical contract admission rejects malformed fields and storage order" {
+  for
+    fields in [
+      (
+        #|{"id":"DOUBLE"}
+      ),
+      (
+        #|[["id","DOUBLE",null]]
+      ),
+      (
+        #|[["id","DOUBLE",0,null]]
+      ),
+    ] {
+    assert_true(admit_contracts(fields, [0], 4096) is Err(InvalidManifest))
+  }
+  let fields =
+    #|[["id","DOUBLE",null,null],["n","DOUBLE",null,null]]
+  assert_true(admit_contracts(fields, [0], 4096) is Err(InvalidManifest))
+  assert_true(admit_contracts(fields, [0, 0], 4096) is Err(InvalidManifest))
+  assert_true(admit_contracts(fields, [0, 2], 4096) is Err(InvalidManifest))
+  assert_true(admit_contracts(fields, [0, 1], 16) is Err(InvalidManifest))
+}
+
+///|
 test "ordered physical manifest has one portable identity" {
   let admitted = admit(
     "actql-managed-physical-manifest/0.1",

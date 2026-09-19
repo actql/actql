@@ -28,3 +28,20 @@ pub fn physical_manifest_admit(
     Err(RowCountMismatch) => ["error", "row-count"]
   }
 }
+
+///|
+#export_name("physicalRepresentationContracts")
+pub fn physical_representation_contracts(
+  fields_frame : String,
+  storage_order : Array[Int],
+  max_contract_bytes : Int,
+) -> Array[String] {
+  match
+    @manifest.admit_contracts(fields_frame, storage_order, max_contract_bytes) {
+    Ok(value) => ["ok", ..@manifest.contract_projection(value)]
+    Err(InvalidManifest) => ["error", "invalid"]
+    Err(ManifestLimit) => ["error", "limit"]
+    Err(CountOverflow) => ["error", "overflow"]
+    Err(RowCountMismatch) => ["error", "row-count"]
+  }
+}
