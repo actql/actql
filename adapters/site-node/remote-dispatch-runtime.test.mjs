@@ -12,6 +12,13 @@ import {createRemoteDispatchRuntime, prepareRemoteRuntimeRegistration} from
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
+const dispatchBudget = runtime.remoteSiteControl.prepareBudget({
+  retainedBytes: 64n,
+  executionBytes: 16n,
+});
+const dispatchBudgetCid = runtime.remoteSiteControl.budgetIdentity(
+  dispatchBudget,
+);
 
 function site() {
   return runtime.siteControl.create(Object.freeze({
@@ -40,7 +47,7 @@ function request(overrides = {}) {
     strategyRevision: 'strategy/1',
     inputBindingCid: cid('1'),
     obligationsCid: cid('2'),
-    budgetCid: cid('3'),
+    budgetCid: dispatchBudgetCid,
     grantCid: cid('4'),
     ...overrides,
   }));
@@ -71,14 +78,16 @@ async function fixture(t, execute, {autoClose = true} = {}) {
   });
   const dispatchRuntime = createRemoteDispatchRuntime({
     control,
+    siteControl: runtime.siteControl,
     store,
     registrations: [registration],
+    budgets: [dispatchBudget],
   });
   t.after(async () => {
     if (autoClose) await dispatchRuntime.close();
     store.close();
   });
-  return {control, dispatchRuntime, journal, root, store};
+  return {control, dispatchRuntime, journal, root, selectedSite, store};
 }
 
 test('registered runtime durably executes, evidences, and releases output',
@@ -91,6 +100,7 @@ test('registered runtime durably executes, evidences, and releases output',
         materialGeneration: 'material-generation-a',
         holdingEvidenceCid: cid('c'),
         evidenceSubjectCid: cid('d'),
+        retainedBytes: 8n,
         async close() { closes++; },
       });
     });
@@ -113,9 +123,17 @@ test('registered runtime durably executes, evidences, and releases output',
       () => f.dispatchRuntime.start(dispatch, record),
       {code: 'RemoteDispatchAlreadyStarted'},
     );
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 1n, 0n, 8n, 0n, 0n],
+    );
     assert.equal(await f.dispatchRuntime.release(dispatch), true);
     assert.equal(closes, 1);
     assert.deepEqual(f.control.status(record), [3, 2, 2, 0, 0]);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+    );
   });
 
 test('unsupported grant is rejected before durable admission or execution',
@@ -129,6 +147,40 @@ test('unsupported grant is rejected before durable admission or execution',
     assert.equal(f.dispatchRuntime.supports(dispatch), false);
     assert.equal(f.store.inspect(dispatch, f.control), undefined);
     assert.equal(executions, 0);
+  });
+
+test('unprovisioned budget is rejected before durable admission', async t => {
+  let executions = 0;
+  const f = await fixture(t, async () => {
+    executions++;
+    throw new Error('must not execute');
+  });
+  const dispatch = request({budgetCid: cid('3')});
+  assert.equal(f.dispatchRuntime.supports(dispatch), false);
+  assert.equal(f.store.inspect(dispatch, f.control), undefined);
+  assert.equal(executions, 0);
+});
+
+test('runtime rejects a record from a different dispatch occurrence',
+  async t => {
+    let executions = 0;
+    const f = await fixture(t, async () => {
+      executions++;
+      throw new Error('must not execute');
+    });
+    const expected = request();
+    const foreign = request({dispatchId: 'dispatch-b', taskAttempt: 2});
+    const foreignRecord = f.store.accept(
+      f.control.prepareAdmission(f.journal, foreign),
+      foreign,
+      f.control,
+    );
+    assert.throws(
+      () => f.dispatchRuntime.start(expected, foreignRecord),
+      {code: 'RemoteDispatchRecordMismatch'},
+    );
+    assert.equal(executions, 0);
+    assert.deepEqual(f.control.status(foreignRecord), [0, 0, 0, 0, 0]);
   });
 
 test('executor failure is durably failed without completion evidence',
@@ -145,8 +197,36 @@ test('executor failure is durably failed without completion evidence',
       f.dispatchRuntime.start(dispatch, record),
       error => error === failure,
     );
-    assert.deepEqual(f.control.status(record), [4, 0, 0, 0, 0]);
+    assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
     assert.equal(f.store.inspectEvidence(dispatch, f.control), undefined);
+  });
+
+test('output above retained reservation fails and releases Site capacity',
+  async t => {
+    let closes = 0;
+    const f = await fixture(t, async () => Object.freeze({
+      materialGeneration: 'oversized-material',
+      holdingEvidenceCid: cid('c'),
+      evidenceSubjectCid: cid('d'),
+      retainedBytes: 65n,
+      async close() { closes++; },
+    }));
+    const dispatch = request();
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    await assert.rejects(
+      f.dispatchRuntime.start(dispatch, record),
+      {code: 'RemoteSiteHoldingRejected'},
+    );
+    assert.equal(closes, 1);
+    assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+    );
   });
 
 test('unconfirmed executor stop retains cleanup until retry confirms it',
@@ -173,9 +253,17 @@ test('unconfirmed executor stop retains cleanup until retry confirms it',
       error => error === failure,
     );
     assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [1n, 0n, 0n, 0n, 0n, 64n, 16n],
+    );
     assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
     assert.equal(retries, 1);
     assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+    );
   });
 
 test('cancelled unknown execution reconciles as cancellation after stop',

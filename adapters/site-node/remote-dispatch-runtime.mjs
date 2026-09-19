@@ -64,6 +64,7 @@ export function prepareRemoteRuntimeRegistration({
     key: keyOf(control.executionCapabilityScope(capability)),
     capability,
     issuer,
+    site,
     execute,
   });
 }
@@ -74,15 +75,23 @@ function checkedOutput(value) {
     'evidenceSubjectCid',
     'holdingEvidenceCid',
     'materialGeneration',
+    'retainedBytes',
   ]) || !text(value.materialGeneration) ||
       !text(value.holdingEvidenceCid) || !text(value.evidenceSubjectCid) ||
+      typeof value.retainedBytes !== 'bigint' || value.retainedBytes < 0n ||
       typeof value.close !== 'function') {
     fail('InvalidRemoteExecutionOutput');
   }
   return value;
 }
 
-export function createRemoteDispatchRuntime({control, store, registrations} = {}) {
+export function createRemoteDispatchRuntime({
+  control,
+  siteControl,
+  store,
+  registrations,
+  budgets,
+} = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.executionScope !== 'function' ||
       typeof control.identity !== 'function' ||
@@ -101,10 +110,22 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
       typeof control.prepareEvidenceRejection !== 'function' ||
       typeof control.prepareRelease !== 'function' ||
       typeof control.prepareReleased !== 'function' ||
+      typeof control.budgetIdentity !== 'function' ||
+      typeof control.budgetCapacity !== 'function' ||
+      typeof control.dispatchBudgetIdentity !== 'function' ||
+      typeof control.recordMatchesDispatch !== 'function' ||
+      siteControl === null || typeof siteControl !== 'object' ||
+      typeof siteControl.available !== 'function' ||
+      typeof siteControl.capacitySupports !== 'function' ||
+      typeof siteControl.startOperation !== 'function' ||
+      typeof siteControl.operationAvailable !== 'function' ||
+      typeof siteControl.settleOperation !== 'function' ||
+      typeof siteControl.retainOperationHolding !== 'function' ||
+      typeof siteControl.releaseHolding !== 'function' ||
       store === null || typeof store !== 'object' ||
       typeof store.advance !== 'function' ||
       typeof store.advanceEvidence !== 'function' ||
-      !Array.isArray(registrations)) {
+      !Array.isArray(registrations) || !Array.isArray(budgets)) {
     fail('InvalidRemoteDispatchRuntime');
   }
   const installed = new Map();
@@ -114,12 +135,27 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
       'execute',
       'issuer',
       'key',
+      'site',
     ]) || !text(registration.key) ||
         typeof registration.execute !== 'function' ||
         installed.has(registration.key)) {
       fail('InvalidRemoteRuntimeRegistration');
     }
     installed.set(registration.key, registration);
+  }
+  const provisionedBudgets = new Map();
+  for (const budget of budgets) {
+    const identity = control.budgetIdentity(budget);
+    const capacity = control.budgetCapacity(budget);
+    if (!text(identity) || !Array.isArray(capacity) || capacity.length !== 2 ||
+        capacity.some(value => typeof value !== 'bigint' || value < 0n) ||
+        provisionedBudgets.has(identity)) {
+      fail('InvalidRemoteDispatchBudget');
+    }
+    provisionedBudgets.set(identity, Object.freeze({
+      retainedBytes: capacity[0],
+      executionBytes: capacity[1],
+    }));
   }
   const active = new Map();
   const owners = new Map();
@@ -130,6 +166,8 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
     const key = keyOf(control.executionScope(dispatch));
     return installed.get(key);
   };
+  const budgetFor = dispatch =>
+    provisionedBudgets.get(control.dispatchBudgetIdentity(dispatch));
   const markUnknown = (record, primary) => {
     try {
       store.advance(control.prepareUnknown(record), record, control);
@@ -160,6 +198,15 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
     }
   };
   const reconcileCleanup = async (identity, entry) => {
+    let recordState = control.status(entry.record);
+    if (recordState[0] <= 2 && recordState[2] !== 3) {
+      store.advance(
+        control.prepareUnknown(entry.record),
+        entry.record,
+        control,
+      );
+      recordState = control.status(entry.record);
+    }
     let state = cleanupState(entry);
     entry.diagnostics.push(...state.errors);
     if (state.pending && typeof member(entry.handle, 'retry') === 'function') {
@@ -172,7 +219,13 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
       entry.diagnostics.push(...state.errors);
     }
     if (state.pending) return false;
-    let recordState = control.status(entry.record);
+    if (entry.operation !== undefined && !entry.operationSettled) {
+      if (!siteControl.settleOperation(entry.operation)) {
+        fail('RemoteSiteOperationSettlementRejected');
+      }
+      entry.operationSettled = true;
+    }
+    recordState = control.status(entry.record);
     if (recordState[0] === 6) {
       const transition = entry.cancelled
         ? control.prepareReconciledCancellation(entry.record)
@@ -202,7 +255,8 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
     pendingCleanup.delete(identity);
     return true;
   };
-  const releaseOwner = async (identity, record, owner) => {
+  const releaseOwner = async (identity, owner) => {
+    const {record} = owner;
     const state = control.status(record);
     if (state[2] === 2 || state[2] === 5) {
       owners.delete(identity);
@@ -212,7 +266,16 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
       store.advance(control.prepareRelease(record), record, control);
     }
     try {
-      await owner.close();
+      if (!owner.outputClosed) {
+        await owner.output.close();
+        owner.outputClosed = true;
+      }
+      if (!owner.holdingReleased) {
+        if (!siteControl.releaseHolding(owner.siteHolding)) {
+          fail('RemoteSiteHoldingReleaseRejected');
+        }
+        owner.holdingReleased = true;
+      }
     } catch (error) {
       markUnknown(record, error);
       throw error;
@@ -221,7 +284,24 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
     owners.delete(identity);
     return true;
   };
-  const failExecution = async (identity, record, output, error, signal) => {
+  const releaseEmptyRecord = record => {
+    let state = control.status(record);
+    if (state[2] === 0 || state[2] === 3) {
+      store.advance(control.prepareRelease(record), record, control);
+      state = control.status(record);
+    }
+    if (state[2] === 1) {
+      store.advance(control.prepareReleased(record), record, control);
+    }
+  };
+  const failExecution = async (
+    identity,
+    record,
+    output,
+    operationState,
+    error,
+    signal,
+  ) => {
     const state = control.status(record);
     if (state[0] === 0 && signal?.aborted) {
       store.advance(control.prepareCancelled(record), record, control);
@@ -234,9 +314,18 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
           cancelled: signal?.aborted === true,
           primary: error,
           diagnostics: [],
+          operation: operationState.operation,
+          operationSettled: operationState.settled,
         });
         markUnknown(record, error);
       } else {
+        if (operationState.operation !== undefined &&
+            !operationState.settled) {
+          if (!siteControl.settleOperation(operationState.operation)) {
+            fail('RemoteSiteOperationSettlementRejected');
+          }
+          operationState.settled = true;
+        }
         const transition = signal?.aborted
           ? control.prepareCancelled(record)
           : control.prepareFailed(record);
@@ -251,21 +340,35 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
     }
     if (output && typeof output.close === 'function' &&
         member(error, 'cleanupPending') !== true) {
-      owners.set(identity, {record, output});
+      const owner = {
+        record,
+        output,
+        outputClosed: false,
+        siteHolding: operationState.siteHolding,
+        holdingReleased: operationState.siteHolding === undefined,
+      };
+      owners.set(identity, owner);
       try {
-        await releaseOwner(identity, record, output);
+        await releaseOwner(identity, owner);
       } catch (cleanupError) {
         throw new AggregateError(
           [error, cleanupError],
           'Remote execution and cleanup failed',
         );
       }
+    } else if (member(error, 'cleanupPending') !== true) {
+      releaseEmptyRecord(record);
     }
     throw error;
   };
-  const run = async (registration, dispatch, record, signal) => {
+  const run = async (registration, budget, dispatch, record, signal) => {
     const identity = control.identity(dispatch);
     let output;
+    const operationState = {
+      operation: undefined,
+      settled: false,
+      siteHolding: undefined,
+    };
     try {
       signal?.throwIfAborted();
       store.advance(
@@ -273,12 +376,39 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
         record,
         control,
       );
+      operationState.operation = siteControl.startOperation(
+        registration.site,
+        budget.retainedBytes,
+        budget.executionBytes,
+      );
+      if (operationState.operation === undefined ||
+          operationState.operation === null) {
+        fail('RemoteSiteCapacityRejected');
+      }
       signal?.throwIfAborted();
       store.advance(control.prepareExecution(record), record, control);
       output = await registration.execute(Object.freeze({dispatch, signal}));
       checkedOutput(output);
+      operationState.siteHolding = siteControl.retainOperationHolding(
+        operationState.operation,
+        output.retainedBytes,
+      );
+      if (operationState.siteHolding === undefined ||
+          operationState.siteHolding === null) {
+        fail('RemoteSiteHoldingRejected');
+      }
+      if (!siteControl.settleOperation(operationState.operation)) {
+        fail('RemoteSiteOperationSettlementRejected');
+      }
+      operationState.settled = true;
       store.advance(control.prepareSettled(record), record, control);
-      owners.set(identity, {record, output});
+      owners.set(identity, {
+        record,
+        output,
+        outputClosed: false,
+        siteHolding: operationState.siteHolding,
+        holdingReleased: false,
+      });
       store.advance(control.prepareRetained(
         record,
         output.materialGeneration,
@@ -302,26 +432,52 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
         state: Object.freeze([...control.status(record)]),
       });
     } catch (error) {
-      return failExecution(identity, record, output, error, signal);
+      return failExecution(
+        identity,
+        record,
+        output,
+        operationState,
+        error,
+        signal,
+      );
     }
   };
 
   return Object.freeze({
     supports(dispatch) {
       if (closed) return false;
-      return registrationFor(dispatch) !== undefined;
+      const registration = registrationFor(dispatch);
+      const budget = budgetFor(dispatch);
+      return registration !== undefined && budget !== undefined &&
+        siteControl.available(registration.site) &&
+        siteControl.capacitySupports(
+          registration.site,
+          budget.retainedBytes,
+          budget.executionBytes,
+        );
     },
     start(dispatch, record, signal) {
       if (closed) fail('RemoteDispatchRuntimeClosed');
+      if (!control.recordMatchesDispatch(record, dispatch)) {
+        fail('RemoteDispatchRecordMismatch');
+      }
       const registration = registrationFor(dispatch);
       if (registration === undefined) fail('RemoteRuntimeUnsupported');
+      const budget = budgetFor(dispatch);
+      if (budget === undefined || !siteControl.capacitySupports(
+        registration.site,
+        budget.retainedBytes,
+        budget.executionBytes,
+      )) {
+        fail('RemoteDispatchBudgetUnsupported');
+      }
       const identity = control.identity(dispatch);
       const prior = active.get(identity);
       if (prior !== undefined) return prior;
       if (control.status(record)[0] !== 0) {
         fail('RemoteDispatchAlreadyStarted');
       }
-      const operation = run(registration, dispatch, record, signal)
+      const operation = run(registration, budget, dispatch, record, signal)
         .finally(() => active.delete(identity));
       operation.catch(() => {});
       active.set(identity, operation);
@@ -334,7 +490,7 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
       const identity = control.identity(dispatch);
       const owner = owners.get(identity);
       if (owner === undefined) return false;
-      return releaseOwner(identity, owner.record, owner.output);
+      return releaseOwner(identity, owner);
     },
     async cleanup(dispatch) {
       const identity = control.identity(dispatch);
@@ -349,7 +505,7 @@ export function createRemoteDispatchRuntime({control, store, registrations} = {}
       const failures = [];
       for (const [identity, owner] of [...owners]) {
         try {
-          await releaseOwner(identity, owner.record, owner.output);
+          await releaseOwner(identity, owner);
         } catch (error) {
           failures.push(error);
         }

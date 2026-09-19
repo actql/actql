@@ -9,6 +9,8 @@ import {
 // Values
 pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
+pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
+
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
 pub fn commit_dispatch_acceptance(DispatchAdmission, Bool) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
@@ -25,11 +27,15 @@ pub fn dispatch_admission_kind(DispatchAdmission) -> DispatchAcceptance
 
 pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, DispatchIssue]
 
+pub fn dispatch_record_matches_request(DispatchRecord, DispatchRequest) -> Bool
+
 pub fn dispatch_record_revision(DispatchRecord) -> Int
 
 pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool)
 
 pub fn dispatch_record_state_codes(DispatchRecord) -> Array[Int]
+
+pub fn dispatch_request_budget_cid(DispatchRequest) -> String
 
 pub fn dispatch_request_execution_scope(DispatchRequest) -> Array[String]
 
@@ -81,6 +87,8 @@ pub fn prepare_reconcile_failed_execution(DispatchRecord) -> Result[DispatchTran
 
 pub fn prepare_reject_execution_evidence(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
+pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudget, DispatchIssue]
+
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
@@ -90,6 +98,12 @@ pub fn register_remote_evidence_issuer(@execution_site.ExecutionSite, String, St
 pub fn register_remote_execution_capability(@execution_site.ExecutionSite, String, String, String, String, String) -> Result[RemoteExecutionCapability, DispatchIssue]
 
 pub fn remote_completion_evidence_available(DispatchRecord) -> Bool
+
+pub fn remote_dispatch_budget_capacity(RemoteDispatchBudget) -> (Int64, Int64)
+
+pub fn remote_dispatch_budget_cid(RemoteDispatchBudget) -> String
+
+pub fn remote_dispatch_budget_json(RemoteDispatchBudget) -> Result[String, DispatchIssue]
 
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
@@ -157,6 +171,8 @@ pub(all) enum RemoteCleanupState {
   CleanupForceLost
   CleanupRecoveredAfterLoss
 } derive(Eq, @debug.Debug)
+
+type RemoteDispatchBudget
 
 type RemoteEvidenceIssuer
 

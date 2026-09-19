@@ -14,6 +14,13 @@ import {queryRemoteDispatch, sendRemoteDispatch} from
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
+const dispatchBudget = runtime.remoteSiteControl.prepareBudget({
+  retainedBytes: 64n,
+  executionBytes: 16n,
+});
+const dispatchBudgetCid = runtime.remoteSiteControl.budgetIdentity(
+  dispatchBudget,
+);
 
 function openssl(root, ...arguments_) {
   execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
@@ -93,7 +100,7 @@ const dispatch = (dispatchId = 'dispatch-a', revision = 'local/1') =>
     strategyRevision: 'strategy/1',
     inputBindingCid: cid('1'),
     obligationsCid: cid('2'),
-    budgetCid: cid('3'),
+    budgetCid: dispatchBudgetCid,
     grantCid: cid('4'),
   }));
 
@@ -128,8 +135,10 @@ async function startFixture(root, material) {
         materialGeneration: 'material-generation-a',
         holdingEvidenceCid: cid('c'),
         evidenceSubjectCid: cid('d'),
+        retainedBytes: '8',
       },
     },
+    budgets: [{retainedBytes: '64', executionBytes: '16'}],
   }), {mode: 0o600});
   const child = fork(
     new URL('./https-agent-fixture.mjs', import.meta.url),

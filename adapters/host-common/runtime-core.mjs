@@ -89,6 +89,26 @@ function remoteSiteControl(moon) {
       return checked(moon.strategyRemoteDispatchAdmit(...values));
     },
     identity: moon.strategyRemoteDispatchIdentity,
+    prepareBudget: configuration => checked(
+      moon.strategyRemoteBudgetPrepare(
+        configuration.retainedBytes,
+        configuration.executionBytes,
+      ),
+    ),
+    admitBudget: configuration => checked(
+      moon.strategyRemoteBudgetAdmit(
+        configuration.retainedBytes,
+        configuration.executionBytes,
+        configuration.budgetCid,
+      ),
+    ),
+    budgetIdentity: moon.strategyRemoteBudgetIdentity,
+    budgetJson: value => checked(moon.strategyRemoteBudgetJson(value)),
+    budgetCapacity: value => tuplePair(
+      moon.strategyRemoteBudgetCapacity(value),
+    ),
+    dispatchBudgetIdentity: moon.strategyRemoteDispatchBudgetIdentity,
+    recordMatchesDispatch: moon.strategyRemoteRecordMatchesDispatch,
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
     journalKey: moon.strategyRemoteDispatchJournalKey,
     executionScope: moon.strategyRemoteDispatchExecutionScope,

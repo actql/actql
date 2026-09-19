@@ -276,7 +276,19 @@ pub fn strategy_remote_admission_json(@remote_site_protocol.DispatchAdmission) -
 
 pub fn strategy_remote_admission_prepare(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchAdmission raise NodeHostFailure
 
+pub fn strategy_remote_budget_admit(Int64, Int64, String) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
+
+pub fn strategy_remote_budget_capacity(@remote_site_protocol.RemoteDispatchBudget) -> (Int64, Int64)
+
+pub fn strategy_remote_budget_identity(@remote_site_protocol.RemoteDispatchBudget) -> String
+
+pub fn strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBudget) -> String raise NodeHostFailure
+
+pub fn strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
+
 pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_budget_identity(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn strategy_remote_dispatch_execution_scope(@remote_site_protocol.DispatchRequest) -> Array[String]
 
@@ -341,6 +353,8 @@ pub fn strategy_remote_prepare_retained(@remote_site_protocol.DispatchRecord, St
 pub fn strategy_remote_prepare_settled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_prepare_unknown(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_record_matches_dispatch(@remote_site_protocol.DispatchRecord, @remote_site_protocol.DispatchRequest) -> Bool
 
 pub fn strategy_remote_record_restore(@remote_site_protocol.DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Unit raise NodeHostFailure
 

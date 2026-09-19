@@ -2571,6 +2571,63 @@ pub fn strategy_remote_dispatch_identity(
 }
 
 ///|
+#export_name("strategyRemoteBudgetPrepare")
+pub fn strategy_remote_budget_prepare(
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @remote.RemoteDispatchBudget raise NodeHostFailure {
+  match @remote.prepare_remote_dispatch_budget(retained_bytes, execution_bytes) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBudgetAdmit")
+pub fn strategy_remote_budget_admit(
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  claimed_budget_cid : String,
+) -> @remote.RemoteDispatchBudget raise NodeHostFailure {
+  match
+    @remote.admit_remote_dispatch_budget(
+      retained_bytes,
+      execution_bytes,
+      claimed_budget_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBudgetIdentity")
+pub fn strategy_remote_budget_identity(
+  budget : @remote.RemoteDispatchBudget,
+) -> String {
+  @remote.remote_dispatch_budget_cid(budget)
+}
+
+///|
+#export_name("strategyRemoteBudgetJson")
+pub fn strategy_remote_budget_json(
+  budget : @remote.RemoteDispatchBudget,
+) -> String raise NodeHostFailure {
+  match @remote.remote_dispatch_budget_json(budget) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBudgetCapacity")
+pub fn strategy_remote_budget_capacity(
+  budget : @remote.RemoteDispatchBudget,
+) -> (Int64, Int64) {
+  @remote.remote_dispatch_budget_capacity(budget)
+}
+
+///|
 #export_name("strategyRemoteDispatchJson")
 pub fn strategy_remote_dispatch_json(
   request : @remote.DispatchRequest,
@@ -2595,6 +2652,23 @@ pub fn strategy_remote_dispatch_execution_scope(
   request : @remote.DispatchRequest,
 ) -> Array[String] {
   @remote.dispatch_request_execution_scope(request)
+}
+
+///|
+#export_name("strategyRemoteDispatchBudgetIdentity")
+pub fn strategy_remote_dispatch_budget_identity(
+  request : @remote.DispatchRequest,
+) -> String {
+  @remote.dispatch_request_budget_cid(request)
+}
+
+///|
+#export_name("strategyRemoteRecordMatchesDispatch")
+pub fn strategy_remote_record_matches_dispatch(
+  record : @remote.DispatchRecord,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.dispatch_record_matches_request(record, request)
 }
 
 ///|

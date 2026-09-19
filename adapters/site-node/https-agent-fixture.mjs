@@ -39,13 +39,21 @@ const registration = prepareRemoteRuntimeRegistration({
   ...configuration.runtime,
   execute: async () => Object.freeze({
     ...configuration.runtime.output,
+    retainedBytes: BigInt(configuration.runtime.output.retainedBytes),
     async close() {},
   }),
 });
+const budgets = configuration.budgets.map(budget =>
+  runtime.remoteSiteControl.prepareBudget({
+    retainedBytes: BigInt(budget.retainedBytes),
+    executionBytes: BigInt(budget.executionBytes),
+  }));
 const dispatchRuntime = createRemoteDispatchRuntime({
   control: runtime.remoteSiteControl,
+  siteControl: runtime.siteControl,
   store,
   registrations: [registration],
+  budgets,
 });
 const agent = await startHttpsRemoteSiteAgent({
   key,

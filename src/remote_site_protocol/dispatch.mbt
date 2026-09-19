@@ -21,6 +21,15 @@ struct DispatchRequest {
 }
 
 ///|
+/// A pre-provisioned dispatch budget binds exact Site retention and execution
+/// capacity before a remote operation can start.
+struct RemoteDispatchBudget {
+  retained_bytes : Int64
+  execution_bytes : Int64
+  budget_cid : String
+}
+
+///|
 /// A Host-registered issuer is scoped to one live Site generation, runtime,
 /// Connector revision and evidence kind. Possessing Site identity alone does
 /// not authorize every assertion the Site could make.
@@ -323,6 +332,104 @@ fn request_identity(request : DispatchRequest) -> Result[String, DispatchIssue] 
     Ok(value) => Ok("sha256:" + value)
     Err(_) => Err(InvalidDispatch)
   }
+}
+
+///|
+fn emit_remote_dispatch_budget_body(
+  budget : RemoteDispatchBudget,
+) -> Result[String, DispatchIssue] {
+  let writer = @encode.writer(1024, 8, 2) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "execution_bytes")
+    @encode.string_value(writer, budget.execution_bytes.to_string())
+    @encode.key(writer, "retained_bytes")
+    @encode.string_value(writer, budget.retained_bytes.to_string())
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-dispatch-budget/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
+fn remote_dispatch_budget_identity(
+  budget : RemoteDispatchBudget,
+) -> Result[String, DispatchIssue] {
+  let body = match emit_remote_dispatch_budget_body(budget) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @sha.text_hex(body) {
+    Ok(value) => Ok("sha256:" + value)
+    Err(_) => Err(InvalidDispatch)
+  }
+}
+
+///|
+pub fn prepare_remote_dispatch_budget(
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[RemoteDispatchBudget, DispatchIssue] {
+  if retained_bytes < 0L || execution_bytes < 0L {
+    return Err(InvalidDispatch)
+  }
+  let pending : RemoteDispatchBudget = {
+    retained_bytes,
+    execution_bytes,
+    budget_cid: "pending",
+  }
+  let identity = match remote_dispatch_budget_identity(pending) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..pending, budget_cid: identity, })
+}
+
+///|
+pub fn admit_remote_dispatch_budget(
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  claimed_budget_cid : String,
+) -> Result[RemoteDispatchBudget, DispatchIssue] {
+  let budget = match
+    prepare_remote_dispatch_budget(retained_bytes, execution_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if budget.budget_cid != claimed_budget_cid {
+    Err(DispatchIdentityMismatch)
+  } else {
+    Ok(budget)
+  }
+}
+
+///|
+pub fn remote_dispatch_budget_cid(budget : RemoteDispatchBudget) -> String {
+  budget.budget_cid
+}
+
+///|
+pub fn remote_dispatch_budget_json(
+  budget : RemoteDispatchBudget,
+) -> Result[String, DispatchIssue] {
+  if budget.retained_bytes < 0L ||
+    budget.execution_bytes < 0L ||
+    remote_dispatch_budget_identity(budget) != Ok(budget.budget_cid) {
+    return Err(InvalidDispatch)
+  }
+  emit_remote_dispatch_budget_body(budget)
+}
+
+///|
+pub fn remote_dispatch_budget_capacity(
+  budget : RemoteDispatchBudget,
+) -> (Int64, Int64) {
+  (budget.retained_bytes, budget.execution_bytes)
 }
 
 ///|
@@ -634,6 +741,19 @@ pub fn dispatch_request_execution_scope(
     request.strategy_revision,
     request.grant_cid,
   ]
+}
+
+///|
+pub fn dispatch_request_budget_cid(request : DispatchRequest) -> String {
+  request.budget_cid
+}
+
+///|
+pub fn dispatch_record_matches_request(
+  record : DispatchRecord,
+  request : DispatchRequest,
+) -> Bool {
+  record.request.dispatch_request_cid == request.dispatch_request_cid
 }
 
 ///|

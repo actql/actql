@@ -79,6 +79,14 @@ native settlement, output retention, evidence, and release each use a durable
 MoonBit-prepared transition; the adapter does not infer terminal success from
 the handler Promise alone.
 
+The request budget identity resolves to a pre-provisioned canonical budget
+body with exact retained and execution byte ceilings. The Site admits both
+ceilings atomically through the portable execution-capacity authority before
+physical execution. Output retention converts only the measured bytes within
+that reservation into a Site holding. Execution capacity is not returned while
+native stop remains unconfirmed, and the holding is returned only after the
+corresponding material cleanup succeeds.
+
 If a handler returns before physical stop is confirmed, the durable execution
 and cleanup states become unknown. The runtime retains the exact cleanup
 authority and cannot release the responsibility merely because its Promise has

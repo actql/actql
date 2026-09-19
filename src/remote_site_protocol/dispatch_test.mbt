@@ -137,6 +137,25 @@ fn restart(
 }
 
 ///|
+test "dispatch budget has exact portable capacity identity" {
+  let budget = prepare_remote_dispatch_budget(7L, 3L).unwrap()
+  assert_eq(
+    remote_dispatch_budget_cid(budget),
+    "sha256:0ce75ae8786ca7a9136f6a4e7158ea77a5b67b948d9b2540502936dd7115215b",
+  )
+  assert_eq(
+    remote_dispatch_budget_json(budget).unwrap(),
+    "{\"execution_bytes\":\"3\",\"retained_bytes\":\"7\",\"version\":\"actql-remote-dispatch-budget/0.1\"}",
+  )
+  assert_eq(remote_dispatch_budget_capacity(budget), (7L, 3L))
+  assert_true(prepare_remote_dispatch_budget(-1L, 0L) is Err(InvalidDispatch))
+  assert_true(
+    admit_remote_dispatch_budget(7L, 4L, remote_dispatch_budget_cid(budget))
+    is Err(DispatchIdentityMismatch),
+  )
+}
+
+///|
 test "dispatch retransmission reconciles without admitting another attempt" {
   let state = journal()
   let bundle = cid(
