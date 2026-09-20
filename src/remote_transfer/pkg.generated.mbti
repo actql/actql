@@ -127,6 +127,8 @@ pub fn restore_record(RemoteTransferRequest, Array[Int]) -> Result[RemoteTransfe
 
 pub fn restore_store_use_record(RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> Result[RemoteTransferStoreUseRecord, RemoteTransferIssue]
 
+pub fn store_upload_progress(RemoteTransferRecord) -> RemoteStoreUploadProgress
+
 pub fn store_use_cid(RemoteTransferStoreUse) -> String
 
 pub fn store_use_projection(RemoteTransferStoreUse) -> Array[String]
@@ -154,6 +156,14 @@ pub(all) enum RemoteDirectTransferProgress {
   DirectTransferSourceSettled
   DirectTransferCommitted
   DirectTransferReconciliationRequired
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteStoreUploadProgress {
+  StoreUploadStart
+  StoreUploadCopying
+  StoreUploadSealed
+  StoreUploadCommitted
+  StoreUploadReconciliationRequired
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RemoteTransferAttemptState {

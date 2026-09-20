@@ -71,6 +71,22 @@ test "direct retry progression is decided by common lifecycle state" {
 }
 
 ///|
+test "Store upload progression separates seal from destination commit" {
+  let record = open_record(state_request(TransferStore))
+  assert_eq(store_upload_progress(record), StoreUploadStart)
+  ignore(apply(prepare_start(record).unwrap()))
+  assert_eq(store_upload_progress(record), StoreUploadCopying)
+  ignore(apply(prepare_source_settled(record, true, true).unwrap()))
+  assert_eq(store_upload_progress(record), StoreUploadSealed)
+  ignore(apply(prepare_destination_commit(record).unwrap()))
+  assert_eq(store_upload_progress(record), StoreUploadCommitted)
+  assert_eq(
+    store_upload_progress(open_record(state_request(DirectStream))),
+    StoreUploadReconciliationRequired,
+  )
+}
+
+///|
 test "rejected integrity cannot be replaced within one Transfer attempt" {
   let record = open_record(state_request(DirectStream))
   ignore(apply(prepare_start(record).unwrap()))

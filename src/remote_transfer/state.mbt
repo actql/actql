@@ -513,6 +513,48 @@ pub fn direct_transfer_progress(
 }
 
 ///|
+pub(all) enum RemoteStoreUploadProgress {
+  StoreUploadStart
+  StoreUploadCopying
+  StoreUploadSealed
+  StoreUploadCommitted
+  StoreUploadReconciliationRequired
+} derive(Eq, Debug)
+
+///|
+pub fn store_upload_progress(
+  record : RemoteTransferRecord,
+) -> RemoteStoreUploadProgress {
+  if record.request.route != TransferStore {
+    return StoreUploadReconciliationRequired
+  }
+  match record.attempt {
+    TransferAdmitted => StoreUploadStart
+    TransferCopying =>
+      if !record.source_access_stopped &&
+        record.object == TransferObjectUploading &&
+        record.integrity == TransferIntegrityPending &&
+        record.cleanup == TransferCleanupActive {
+        StoreUploadCopying
+      } else if record.source_access_stopped &&
+        record.object == TransferObjectSealed &&
+        record.integrity == TransferIntegrityVerified &&
+        record.cleanup == TransferCleanupActive {
+        StoreUploadSealed
+      } else {
+        StoreUploadReconciliationRequired
+      }
+    TransferDestinationCommitted =>
+      if record_is_destination_committed(record) {
+        StoreUploadCommitted
+      } else {
+        StoreUploadReconciliationRequired
+      }
+    _ => StoreUploadReconciliationRequired
+  }
+}
+
+///|
 fn restored_state_valid(record : RemoteTransferRecord) -> Bool {
   if record.revision < 0 {
     return false

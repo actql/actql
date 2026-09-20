@@ -10,9 +10,13 @@ import {
 // Values
 pub fn admit_direct_source(@remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[Unit, NativeRemoteTransferClientIssue]
 
+pub fn admit_store_source(@remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[Unit, NativeRemoteTransferClientIssue]
+
 pub fn send_direct_transfer(@http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
 pub fn send_durable_direct_transfer(@remote_transfer_journal.Journal, @http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
+
+pub fn send_durable_store_upload(@remote_transfer_journal.Journal, @http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
 // Errors
 

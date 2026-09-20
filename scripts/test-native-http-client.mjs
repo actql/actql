@@ -74,6 +74,9 @@ let server;
 let outboundPolls = 0;
 let nativeTransferCid;
 let nativeTransferChunks = 0;
+let nativeStoreTransferCid;
+let nativeStoreTransferChunks = 0;
+let nativeStoreTransferSealed = false;
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -116,6 +119,10 @@ try {
       '/v1/sites/native-destination/generations/3/transfers';
     const nativeTransferRequest = request.url === nativeTransferBase ||
       request.url?.startsWith(`${nativeTransferBase}/`);
+    const nativeStoreTransferBase = '/v1/transfer-store/uploads';
+    const nativeStoreTransferRequest =
+      request.url === nativeStoreTransferBase ||
+      request.url?.startsWith(`${nativeStoreTransferBase}/`);
     if (request.url === '/disconnect') {
       request.socket.destroy();
       return;
@@ -142,7 +149,8 @@ try {
     }
     const genericPut = request.method === 'PUT' &&
       request.url === '/generic-put';
-    if (!nativeTransferRequest && !genericPut && (request.method !== 'POST' ||
+    if (!nativeTransferRequest && !nativeStoreTransferRequest && !genericPut &&
+        (request.method !== 'POST' ||
         ![
           '/probe',
           '/generic-post-empty',
@@ -170,6 +178,79 @@ try {
       chunks.push(chunk);
     }
     const body = Buffer.concat(chunks).toString('utf8');
+    if (request.url === nativeStoreTransferBase && request.method === 'POST') {
+      let envelope;
+      try { envelope = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      if (typeof envelope?.manifest !== 'string' ||
+          typeof envelope?.request !== 'string' ||
+          typeof request.headers['actql-transfer-cid'] !== 'string' ||
+          typeof request.headers['actql-manifest-cid'] !== 'string') {
+        response.writeHead(400).end();
+        return;
+      }
+      const requestCid = request.headers['actql-transfer-cid'];
+      if (nativeStoreTransferCid !== undefined &&
+          nativeStoreTransferCid !== requestCid) {
+        response.writeHead(409).end();
+        return;
+      }
+      nativeStoreTransferCid = requestCid;
+      response.writeHead(nativeStoreTransferSealed ? 200 : 201, {
+        'content-type': 'application/json',
+      });
+      response.end(nativeStoreTransferSealed
+        ? JSON.stringify({requestCid, sealed: true})
+        : JSON.stringify({
+            requestCid,
+            sealed: false,
+            nextChunk: nativeStoreTransferChunks,
+          }));
+      return;
+    }
+    if (nativeStoreTransferRequest &&
+        request.url !== nativeStoreTransferBase) {
+      const suffix = request.url.slice(nativeStoreTransferBase.length + 1);
+      const parts = suffix.split('/');
+      if (decodeURIComponent(parts[0] ?? '') !== nativeStoreTransferCid) {
+        response.writeHead(404).end();
+        return;
+      }
+      if (request.method === 'PUT' && parts[1] === 'chunks') {
+        const index = Number(parts[2]);
+        const expected = index === 0 ? 'store-alpha' :
+          index === 1 ? '保存' : null;
+        if (nativeStoreTransferSealed || expected === null ||
+            index !== nativeStoreTransferChunks || body !== expected ||
+            request.headers['content-type'] !==
+            'application/octet-stream') {
+          response.writeHead(400).end();
+          return;
+        }
+        nativeStoreTransferChunks += 1;
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeStoreTransferCid,
+          nextChunk: nativeStoreTransferChunks,
+        }));
+        return;
+      }
+      if (request.method === 'POST' && parts[1] === 'commit' &&
+          nativeStoreTransferChunks === 2 && body === '') {
+        nativeStoreTransferSealed = true;
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeStoreTransferCid,
+          sealed: true,
+        }));
+        return;
+      }
+      response.writeHead(409).end();
+      return;
+    }
     if (request.url === nativeTransferBase && request.method === 'POST') {
       let envelope;
       try { envelope = JSON.parse(body); }
