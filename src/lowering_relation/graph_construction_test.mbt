@@ -52,6 +52,29 @@ fn explicit_graph_construction_checked() -> @pipeline.CheckedPipeline {
 }
 
 ///|
+fn self_loop_graph_construction_checked() -> @pipeline.CheckedPipeline {
+  @pipeline.check_carriers(
+    cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"id\",\"target\":\"id\"," +
+      "\"fields\":[]}},\"as\":\"g\"}]",
+    ),
+    [("rows", graph_construction_rows())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+}
+
+///|
 test "explicit Graph construction lowers exact repeated input roles" {
   let sequence = explicit_graph_construction_sequence()
   guard @lowering_relation.sequence_step(sequence, 0)
@@ -183,4 +206,32 @@ test "explicit Graph construction accounts for its finite expansion" {
     ] {
     assert_true(@lowering_relation.prepare_sequence(owner, limited) is Err(_))
   }
+}
+
+///|
+test "explicit Graph construction projects a shared endpoint once" {
+  let checked = self_loop_graph_construction_checked()
+  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    prepared,
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  let encoded = @encode.finish(writer)
+  assert_true(
+    encoded.contains(
+      "\"id\":\"graph_edges_0\",\"in\":[\"input_0\"]," +
+      "\"op\":\"REL.select\",\"params\":{\"columns\":[" +
+      "{\"from\":\"id\",\"to\":\"id\"}]}",
+    ),
+  )
+  assert_false(
+    encoded.contains(
+      "{\"from\":\"id\",\"to\":\"id\"}," + "{\"from\":\"id\",\"to\":\"id\"}",
+    ),
+  )
 }

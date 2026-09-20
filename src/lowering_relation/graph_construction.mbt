@@ -5,6 +5,8 @@ struct PreparedGraphConstruction {
   node : PreparedNode
   graph : @carrier.Graph
   names : @carrier.GraphRowNames
+  node_projection : Array[@schema.FieldName]
+  edge_projection : Array[@schema.FieldName]
   expansion : Array[PreparedGraphConstructionExpansionNode]
 }
 
@@ -67,6 +69,20 @@ pub(all) enum GraphConstructionIssue {
 } derive(Eq, Debug)
 
 ///|
+fn graph_projection_push_unique(
+  fields : Array[@schema.FieldName],
+  field : @schema.FieldName,
+) -> Unit {
+  let name = @schema.reference_name(field)
+  for existing in fields {
+    if @schema.reference_name(existing) == name {
+      return
+    }
+  }
+  fields.push(field)
+}
+
+///|
 fn prepare_graph_construction_node(
   node : PreparedNode,
   step~ : Int,
@@ -83,36 +99,48 @@ fn prepare_graph_construction_node(
     return Err(InvalidGraphConstruction)
   }
   let (identity, source, target, label) = @carrier.graph_row_fields(names)
-  let fields : Array[@schema.FieldName] = [identity, source, target]
+  let node_projection : Array[@schema.FieldName] = []
+  let edge_projection : Array[@schema.FieldName] = []
+  graph_projection_push_unique(node_projection, identity)
+  graph_projection_push_unique(edge_projection, source)
+  graph_projection_push_unique(edge_projection, target)
   match label {
-    Some(field) => fields.push(field)
+    Some(field) => graph_projection_push_unique(edge_projection, field)
     None => ()
   }
-  for
-    properties in [
-      @carrier.graph_node_properties(graph),
-      @carrier.graph_edge_properties(graph),
-    ] {
-    for index in 0..<@carrier.field_count(properties) {
-      fields.push(@carrier.field_at(properties, index).unwrap().name)
-    }
+  let node_properties = @carrier.graph_node_properties(graph)
+  for index in 0..<@carrier.field_count(node_properties) {
+    graph_projection_push_unique(
+      node_projection,
+      @carrier.field_at(node_properties, index).unwrap().name,
+    )
   }
+  let edge_properties = @carrier.graph_edge_properties(graph)
+  for index in 0..<@carrier.field_count(edge_properties) {
+    graph_projection_push_unique(
+      edge_projection,
+      @carrier.field_at(edge_properties, index).unwrap().name,
+    )
+  }
+  let projection_count = node_projection.length() + edge_projection.length()
   let mut used_names = 0
-  for field in fields {
-    let bytes = @utf8.encode(@schema.reference_name(field)).length()
-    if fields.length() > max_entries ||
-      used_names > max_name_bytes - bytes ||
-      fields.length() > max_work {
-      return Err(InvalidGraphConstruction)
+  for projection in [node_projection, edge_projection] {
+    for field in projection {
+      let bytes = @utf8.encode(@schema.reference_name(field)).length()
+      if projection_count > max_entries ||
+        used_names > max_name_bytes - bytes ||
+        projection_count > max_work {
+        return Err(InvalidGraphConstruction)
+      }
+      used_names += bytes
     }
-    used_names += bytes
   }
   Ok(
     (
-      { step, node, graph, names, expansion, },
-      fields.length(),
+      { step, node, graph, names, node_projection, edge_projection, expansion, },
+      projection_count,
       used_names,
-      fields.length(),
+      projection_count,
     ),
   )
 }
@@ -333,15 +361,8 @@ fn emit_graph_construction_node(
   )
   @encode.key(out, "columns")
   @encode.begin_array(out)
-  emit_graph_projection_column(out, node)
-  for
-    index in 0..<@carrier.field_count(
-      @carrier.graph_node_properties(prepared.graph),
-    ) {
-    emit_graph_projection_column(
-      out,
-      @carrier.field_at(@carrier.graph_node_properties(prepared.graph), index).unwrap().name,
-    )
+  for field in prepared.node_projection {
+    emit_graph_projection_column(out, field)
   }
   @encode.end_array(out)
   end_graph_construction_node(out)
@@ -354,20 +375,8 @@ fn emit_graph_construction_node(
   )
   @encode.key(out, "columns")
   @encode.begin_array(out)
-  emit_graph_projection_column(out, source)
-  emit_graph_projection_column(out, target)
-  match label {
-    Some(field) => emit_graph_projection_column(out, field)
-    None => ()
-  }
-  for
-    index in 0..<@carrier.field_count(
-      @carrier.graph_edge_properties(prepared.graph),
-    ) {
-    emit_graph_projection_column(
-      out,
-      @carrier.field_at(@carrier.graph_edge_properties(prepared.graph), index).unwrap().name,
-    )
+  for field in prepared.edge_projection {
+    emit_graph_projection_column(out, field)
   }
   @encode.end_array(out)
   end_graph_construction_node(out)
