@@ -429,7 +429,9 @@ fn join_graph_capacity_material(
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
-  let window = variant == "window_fixed" || variant == "window_sliding"
+  let window = variant == "window_fixed" ||
+    variant == "window_sliding" ||
+    variant == "window_parameter"
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
@@ -471,6 +473,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if variant == "window_parameter" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":{" +
+    "\"$param\":\"window_size\"}}}"
   } else if session {
     "{\"session\":{\"by\":" +
     (if session_global { "[]" } else { "[\"payload\"]" }) +
@@ -490,7 +495,13 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
+  (if variant == "window_parameter" {
+    ",\"window_size\":{\"type\":\"number\",\"nullable\":false}"
+  } else {
+    ""
+  }) +
+  "}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
   "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
@@ -3154,7 +3165,8 @@ fn query_checked_program_fixture(
           } else {
             10
           },
-          parameter_count=if local_carrier_vectors_variant == "score_parameter" {
+          parameter_count=if local_carrier_vectors_variant == "score_parameter" ||
+            local_carrier_events_variant == "window_parameter" {
             2
           } else {
             1
