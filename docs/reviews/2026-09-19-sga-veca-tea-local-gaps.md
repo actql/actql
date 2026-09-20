@@ -339,8 +339,11 @@ canonical reference, exact numeric, eager NULL, and bounded-step regressions
 pass on JS, Wasm, and native. The checked Program carries its selected VecA
 expression profile into every generated owner, so the standard Host executes
 the expression and two downstream Compute consumers release independently.
-Environment cancellation delivery and publication remain open, so this
-expression is partial.
+Formal publication is connected. Environment cancellation remains open because
+the generic Local fallback drains the outer `OrderedBindings` Relation task in
+one synchronous advance even though the expression frame itself is resumable.
+Closing this layer requires a bounded outer row evaluator, not a test-only
+quantum change or a second VecA expression implementation.
 `vector_concat` now preserves authored operand and component order, evaluates
 every operand eagerly once, and builds one output component per resumable step.
 It admits work and workspace before builder construction and cancels private

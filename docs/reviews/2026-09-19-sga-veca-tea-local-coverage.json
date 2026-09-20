@@ -1169,6 +1169,7 @@
       "canonical": ["expression.vector_score"],
       "variants": ["cosine/dot/l2", "nullable/non-null", "demanded evaluation"],
       "status": "partial",
+      "blocker": "Environment cancellation requires a bounded outer OrderedBindings row evaluator; the expression frame is resumable but the generic Local fallback drains the complete Relation task synchronously.",
       "owner": "local-veca",
       "completed_layers": [
         "contract",
