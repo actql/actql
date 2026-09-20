@@ -247,16 +247,16 @@ pub fn[T] execute_local_managed_fixed_compute(
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(prepared),
   )
-  let managed = @connector.managed_fixed_compute_request_inputs(request)
-  if managed.length() != inputs.length() {
+  let bindings = @connector.managed_fixed_compute_request_bindings(request)
+  if bindings.length() != inputs.length() {
     return Err(UnsupportedInputShape)
   }
   for index, input in inputs {
-    if !physical_equal(
+    if !@execution.managed_input_binding_matches_input(
+        bindings[index],
         @execution.producer_read_receiver(input),
-        @execution.managed_producer_read_receiver(managed[index]),
+        index,
       ) ||
-      @execution.producer_read_input_index(input) != index ||
       !@execution.producer_read_available(input) {
       return Err(ForeignPreparation)
     }

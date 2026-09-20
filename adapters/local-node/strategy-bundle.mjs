@@ -104,9 +104,20 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           producers.length !== inputCount) {
         return undefined;
       }
-      const inputs = producers.map(producer => outputs.get(producer));
+      const inputs = producers.map(producer => {
+        const managed = outputs.get(producer);
+        if (managed != null) return managed;
+        // Producer zero is the checked Acquisition boundary. Other ordinary
+        // task outputs remain on the legacy dispatcher until a common Host
+        // contract admits their mixed lifecycle explicitly.
+        return producer === 0 ? Object.freeze({
+          task: producer,
+          capturedRelation: true,
+        }) : undefined;
+      });
       if (inputs.some(input => input == null)) return undefined;
-      const relationInputs = inputs.filter(input => input.carrierMaterial == null);
+      const relationInputs = inputs.filter(input =>
+        input.carrierMaterial == null && input.capturedRelation !== true);
       const rowPlan = planManagedInputRows(relationInputs.map(input =>
         input.siteMaterial ?? input.material));
       if (rowPlan === undefined) return undefined;
@@ -114,11 +125,18 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         typeof moon.strategyModule_local_RelationOutput === 'function' &&
         typeof moon.strategyModule_local_CarrierOutput === 'function' &&
         typeof moon.strategyModule_local_ManagedCarrierDispatch === 'function';
+      if (inputs.some(input => input.capturedRelation === true) &&
+          typeof moon.strategyModule_local_CapturedRelationInput !==
+            'function') {
+        return undefined;
+      }
       if (!carrierAware && inputs.some(input => input.carrierMaterial != null)) {
         return undefined;
       }
       const managedOutputs = carrierAware
-        ? inputs.map(input => input.carrierMaterial == null
+        ? inputs.map(input => input.capturedRelation === true
+          ? moon.strategyModule_local_CapturedRelationInput()
+          : input.carrierMaterial == null
           ? moon.strategyModule_local_RelationOutput(input.completed)
           : moon.strategyModule_local_CarrierOutput(
             input.completed,
@@ -135,6 +153,13 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         ),
       );
       if (managedConfiguration == null) return undefined;
+      if (inputs.some(input => input.capturedRelation === true) &&
+          (typeof moon.strategyModule_local_ManagedUsesProvider !==
+            'function' ||
+           moon.strategyModule_local_ManagedUsesProvider(
+             managedConfiguration) !== true)) {
+        return undefined;
+      }
       const siteCapacity = managedSiteCapacity(
         moon.strategyModule_local_ManagedCapacity(managedConfiguration));
       if (!Array.isArray(siteCapacity) || siteCapacity.length !== 2 ||
@@ -150,7 +175,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           retainedBytes: siteCapacity[0],
           executionBytes: siteCapacity[1],
         }),
-        inputs: Object.freeze(inputs),
+        inputs: Object.freeze(inputs.filter(input =>
+          input.capturedRelation !== true)),
+        dispatchInputs: Object.freeze(inputs),
         outputs,
         releasableProducers: Object.freeze(
           moon.strategyHostReleasableManagedProducers(setup)),
@@ -160,8 +187,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     },
     async runPrepared(prepared, signal) {
       signal?.throwIfAborted();
-      const plannedMaterials = prepared.inputs.map(input =>
-        input.carrierMaterial == null
+      const dispatchInputs = prepared.dispatchInputs ?? prepared.inputs;
+      const plannedMaterials = dispatchInputs.map(input =>
+        input.carrierMaterial == null && input.capturedRelation !== true
           ? input.siteMaterial ?? input.material
           : undefined).filter(material => material !== undefined);
       const preparedRowPlan = prepared.rowPlan ??
@@ -180,8 +208,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       let available = true;
       try {
         const transfers = operations.inputs;
-        const relationInputs = prepared.inputs.filter(
-          input => input.carrierMaterial == null);
+        const relationInputs = dispatchInputs.filter(input =>
+          input.carrierMaterial == null && input.capturedRelation !== true);
         if (!Array.isArray(transfers) ||
             transfers.length !== relationInputs.length) {
           throw new Error('InvalidLocalManagedInputCount');

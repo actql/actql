@@ -53,6 +53,38 @@ test "explicit retained conversion enables Local and survives source copy loss" 
 }
 
 ///|
+test "ordinary Relation reads retain exact managed consumer bindings" {
+  let owner = capture_fixture()
+  let live = Ref(true)
+  let (source, _) = retained_fixture(owner, live)
+  let receiver = typed_receiver(owner, "[{\"select\":[\"n\"]}]")
+  let read = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, owner, source).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+  let binding = ordinary_relation_input_binding(read)
+  assert_true(managed_input_binding_matches_input(binding, receiver, 0))
+  assert_true(managed_input_binding_matches_ordinary_read(binding, read))
+  assert_eq(
+    managed_input_binding_profile_cid(binding),
+    managed_execution_profile_cid(selected_managed_execution_profile()),
+  )
+  let other = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, owner, source).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+  assert_false(producer_read_same_binding(read, other))
+  assert_false(managed_input_binding_matches_ordinary_read(binding, other))
+  live.val = false
+  assert_false(managed_input_binding_available(binding))
+  assert_false(managed_input_binding_matches_ordinary_read(binding, read))
+}
+
+///|
 test "conversion preserves logical restrictions and completed consumer independence" {
   let owner = capture_fixture()
   let (source, _) = retained_fixture(owner, Ref(true))

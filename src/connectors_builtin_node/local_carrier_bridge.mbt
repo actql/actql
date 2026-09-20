@@ -7,6 +7,14 @@ pub fn local_managed_relation_output(
 }
 
 ///|
+#export_name("strategyModule_local_CapturedRelationInput")
+pub fn local_managed_captured_relation_input() -> @binding10.LocalManagedAvailableOutput[
+  Int,
+] {
+  @binding10.local_managed_captured_relation_input()
+}
+
+///|
 #export_name("strategyModule_local_CarrierOutput")
 pub fn local_managed_carrier_output(
   output : @execution.CarrierManagedCompletedOutput,
@@ -43,4 +51,12 @@ pub fn local_managed_carrier_dispatch(
     Err(MissingImplementation) => raise InvalidCommand
     Err(Implementation(issue)) => raise Execution(issue)
   }
+}
+
+///|
+#export_name("strategyModule_local_ManagedUsesProvider")
+pub fn local_managed_uses_provider(
+  setup : @binding10.LocalManagedDispatchConfiguration[Int],
+) -> Bool {
+  @binding10.local_managed_dispatch_uses_provider(setup)
 }

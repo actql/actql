@@ -8,8 +8,30 @@ struct ManagedInputBinding {
   input_index : Int
   profile_cid : String
   available : () -> Bool
+  ordinary : ProducerRead?
   relation : ManagedCompletionReference?
   carrier : CarrierManagedCompletionReference?
+}
+
+///|
+/// Admit an exact ordinary Relation producer at a managed consumer boundary.
+/// This preserves the original completion and receiving-port evidence; it does
+/// not manufacture a managed producer occurrence or infer identity from rows.
+pub fn ordinary_relation_input_binding(
+  value : ProducerRead,
+) -> ManagedInputBinding {
+  {
+    identity: Ref(()),
+    receiver: producer_read_receiver(value),
+    input_index: producer_read_input_index(value),
+    profile_cid: managed_execution_profile_cid(
+      selected_managed_execution_profile(),
+    ),
+    available: fn() { producer_read_available(value) },
+    ordinary: Some(value),
+    relation: None,
+    carrier: None,
+  }
 }
 
 ///|
@@ -22,6 +44,7 @@ pub fn[T] managed_relation_input_binding(
     input_index: value.input_index,
     profile_cid: managed_execution_profile_cid(value.output.profile),
     available: fn() { managed_producer_read_available(value) },
+    ordinary: None,
     relation: Some(managed_completed_reference(value.output)),
     carrier: None,
   }
@@ -37,6 +60,7 @@ pub fn managed_carrier_input_binding(
     input_index: value.input_index,
     profile_cid: managed_execution_profile_cid(value.output.profile),
     available: fn() { carrier_managed_producer_read_available(value) },
+    ordinary: None,
     relation: None,
     carrier: Some(carrier_managed_completed_reference(value.output)),
   }
@@ -79,6 +103,20 @@ pub fn managed_input_binding_matches_relation_reference(
   value.relation
   .map(actual => {
     managed_completed_reference_same(actual, reference) &&
+    managed_input_binding_available(value)
+  })
+  .unwrap_or(false)
+}
+
+///|
+/// Match only the exact ordinary receiving binding retained by the graph.
+pub fn managed_input_binding_matches_ordinary_read(
+  value : ManagedInputBinding,
+  read : ProducerRead,
+) -> Bool {
+  value.ordinary
+  .map(actual => {
+    producer_read_same_binding(actual, read) &&
     managed_input_binding_available(value)
   })
   .unwrap_or(false)

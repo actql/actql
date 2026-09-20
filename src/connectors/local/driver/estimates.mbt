@@ -124,10 +124,10 @@ pub fn estimate_local_installed_offers(
 /// comparison. Missing policy or quantities stay unknown. This function is
 /// pure: completed producer metadata is inspected without acquiring a
 /// representation use right or reserving execution resources.
-fn[T] local_managed_estimate_lines(
+fn local_managed_estimate_lines(
   installed : LocalDispatchModule,
   task : Int,
-  inputs : Array[@execution.ManagedProducerRead[T]],
+  row_counts : Array[Int],
 ) -> Result[Array[@cost.SerialEstimateLine], LocalEstimateIssue] {
   guard task > 0 else { return Err(InvalidConfiguration) }
   guard installed.estimate_configuration is Some(configuration) else {
@@ -141,10 +141,37 @@ fn[T] local_managed_estimate_lines(
   guard configuration.schedules.get(task - 1) is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
+  let mut rows = 0L
+  let mut rows_known = true
+  for count in row_counts {
+    let value = count.to_int64()
+    if value < 0L || value > 9223372036854775807L - rows {
+      rows_known = false
+    } else if rows_known {
+      rows += value
+    }
+  }
+  let pairs = if row_counts.length() == 2 {
+    let left = row_counts[0].to_int64()
+    let right = row_counts[1].to_int64()
+    if left < 0L ||
+      right < 0L ||
+      (right > 0L && left > 9223372036854775807L / right) {
+      None
+    } else {
+      Some(left * right)
+    }
+  } else {
+    Some(0L)
+  }
   @cost.evaluate_rate_schedule(
     schedule,
-    @host.managed_task_estimate_quantities(inputs).rows,
+    if rows_known {
+      Some(rows)
+    } else {
+      None
+    },
     None,
-    @host.managed_task_estimate_quantities(inputs).pairs,
+    pairs,
   ).map_err(issue => LocalEstimateIssue::Rate(issue))
 }

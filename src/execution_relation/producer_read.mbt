@@ -161,6 +161,19 @@ pub fn producer_read_input_index(value : ProducerRead) -> Int {
 }
 
 ///|
+/// Compare exact receiving use-site evidence. Equal values, schemas, producer
+/// occurrences, or input indexes cannot substitute for the binding retained by
+/// the common graph.
+pub fn producer_read_same_binding(
+  left : ProducerRead,
+  right : ProducerRead,
+) -> Bool {
+  physical_equal(left.bound.identity, right.bound.identity) &&
+  physical_equal(left.bound.receiver, right.bound.receiver) &&
+  left.bound.input_index == right.bound.input_index
+}
+
+///|
 /// Recheck external completion provenance before a new import/execution starts.
 /// Immutable cell access alone is not permission to start another computation.
 pub fn producer_read_available(value : ProducerRead) -> Bool {

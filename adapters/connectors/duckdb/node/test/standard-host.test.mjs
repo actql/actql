@@ -723,6 +723,119 @@ async function exerciseStrategyGraph(
     try { await connection.run('DELETE FROM records'); await connection.run(sql); }
     finally { connection.closeSync(); db.closeSync(); }
   }
+  const pagedEventsProgram = {
+    version: 'actql/0.1',
+    id: 'paged-events',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{
+      id: 'a',
+      inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [
+        {filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'},
+      ],
+      results: {r: {from: 'captured', fields: ['id']}},
+    }, {
+      id: 'events',
+      inputs: {rows: {result: {stage: 'a', result: 'r'}}},
+      steps: [{
+        from: 'rows',
+        to_events: {id: 'id', time: 'id'},
+      }, {
+        window_events: {kind: 'fixed', size: 2},
+      }, {
+        events: true,
+        as: 'out',
+      }],
+      results: {
+        r: {
+          from: 'out',
+          fields: ['id', 'window_start_ms', 'window_end_ms'],
+        },
+      },
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'events', result: 'r'}}},
+      steps: [{
+        select: ['id', 'window_start_ms', 'window_end_ms'],
+        as: 'out',
+      }],
+      results: {
+        r: {
+          from: 'out',
+          fields: ['id', 'window_start_ms', 'window_end_ms'],
+        },
+      },
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'events', result: 'r'}}},
+      steps: [{select: ['window_start_ms', 'id'], as: 'out'}],
+      results: {
+        r: {from: 'out', fields: ['window_start_ms', 'id']},
+      },
+    }],
+    results: {published: {from: {stage: 'consumer_a', result: 'r'}}},
+  };
+  const runPagedEvents = async maxChunkRows => {
+    await replaceRows(
+      'INSERT INTO records VALUES (4,40),(1,NULL),(2,20),(3,30)',
+    );
+    const paged = fixture.strategyFixtureTeaCreate(
+      ...args,
+      JSON.stringify(pagedEventsProgram),
+    );
+    const capture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(paged),
+      {...suppliedLimits, maxChunkRows, maxChunkBytes: 4096},
+    );
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(paged, capture.source()), true);
+      const setup = fixture.strategyFixtureTeaSubset(paged);
+      assert.deepEqual(hostRuntime.strategyHostManagedProducers(setup), [0]);
+      execution = await runCapturedStrategy(
+        setup,
+        {},
+        new AbortController().signal,
+      );
+      assert.equal(
+        execution.status,
+        'host-tasks-completed',
+        JSON.stringify({
+          failure: execution.failure?.stack,
+          failureCause: execution.failure?.cause,
+          exclusions: execution.candidateExclusions,
+          comparisons: execution.candidateComparisons,
+          completed: execution.completed,
+        }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
+      );
+      assert.deepEqual(
+        execution.completed.map(value => value.realization),
+        Array(3).fill('local-managed'),
+      );
+      return Object.freeze({
+        observation: JSON.parse(capture.document()).output,
+        first: fixture.strategyFixtureCid(paged, 2),
+        second: fixture.strategyFixtureCid(paged, 3),
+      });
+    } finally {
+      await execution?.close();
+      if (execution !== undefined) {
+        assert.equal(execution.cleanupPending(), false);
+        assert.equal(await execution.cleanup(), true);
+        assert.equal(execution.usage().heldBytes, 0n);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+      capture.close();
+    }
+  };
+  const singleRowPages = await runPagedEvents(1);
+  const wholeObservation = await runPagedEvents(100);
+  assert.deepEqual(singleRowPages, wholeObservation);
+  assert.equal(singleRowPages.observation.row_count, 3);
+  assert.notEqual(singleRowPages.first, undefined);
+  assert.notEqual(singleRowPages.second, undefined);
   // The same fixed capture can run with no DuckDB Compute registration or
   // settings. The standard entry/bridge are unchanged for the third module.
   const numericProgram = JSON.parse(program);

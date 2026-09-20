@@ -36,11 +36,15 @@ pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?
 
 pub fn local_dispatch_work_slots() -> Int
 
+pub fn[T] local_managed_captured_relation_input() -> LocalManagedAvailableOutput[T]
+
 pub fn[T] local_managed_carrier_output(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material) -> LocalManagedAvailableOutput[T]
 
 pub fn[T] local_managed_dispatch_duration(LocalManagedDispatchConfiguration[T]) -> Int64?
 
 pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration[T]) -> (Int64, Int64)?
+
+pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration[T]) -> Bool
 
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 
@@ -143,6 +147,7 @@ pub(all) struct LocalManagedAdvance {
 }
 
 pub enum LocalManagedAvailableOutput[T] {
+  CapturedRelationInput
   RelationOutput(@execution_relation.ManagedCompletedOutput[T])
   CarrierOutput(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material)
 }

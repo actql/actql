@@ -8,7 +8,7 @@ struct LocalManagedDispatchConfiguration[T] {
   prepared : @connector.PreparedManagedCompute[T, @execution.GeneratedSequence]
   sequence : @execution.GeneratedSequence
   provider : @local.ManagedProvider?
-  relation_inputs : Array[@execution.ManagedProducerRead[T]]
+  relation_inputs : Array[LocalManagedRelationInput[T]]
   provider_inputs : Array[LocalManagedPreparedInput]
   completion_inputs : Array[@execution.ManagedInputBinding]
   execution : @execution.SequenceExecutionLimits
@@ -24,11 +24,19 @@ struct LocalManagedDispatchConfiguration[T] {
 
 ///|
 pub enum LocalManagedAvailableOutput[T] {
+  CapturedRelationInput
   RelationOutput(@execution.ManagedCompletedOutput[T])
   CarrierOutput(
     @execution.CarrierManagedCompletedOutput,
     @carrier_runtime.Material
   )
+}
+
+///|
+pub fn[T] local_managed_captured_relation_input() -> LocalManagedAvailableOutput[
+  T,
+] {
+  CapturedRelationInput
 }
 
 ///|
@@ -50,6 +58,12 @@ pub fn[T] local_managed_carrier_output(
 priv enum LocalManagedPreparedInput {
   PreparedRelation(Int)
   PreparedCarrier(@carrier_runtime.ProducerView)
+}
+
+///|
+priv enum LocalManagedRelationInput[T] {
+  OrdinaryRelationInput(@execution.ProducerRead)
+  ManagedRelationInput(@execution.ManagedProducerRead[T])
 }
 
 ///|
@@ -147,6 +161,29 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   }
   for index, output in outputs {
     match output {
+      CapturedRelationInput => {
+        let value = match
+          @strategy.captured_task_input(
+            installed.run,
+            task,
+            @local.local_module_max_work(installed.implementation),
+            imports.wire.max_bytes,
+            input_index=index,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Execution(issue))
+        }
+        if @execution.producer_read_row_count(value) >
+          @local.local_module_managed_capacity(installed.implementation).max_rows {
+          return Err(Configuration(CommonInputRows))
+        }
+        let relation_index = relation_inputs.length()
+        relation_inputs.push(OrdinaryRelationInput(value))
+        provider_inputs.push(PreparedRelation(relation_index))
+        completion_inputs.push(
+          @execution.ordinary_relation_input_binding(value),
+        )
+      }
       RelationOutput(output) =>
         match
           @strategy.captured_managed_task_input(
@@ -159,7 +196,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
           ) {
           Ok(value) => {
             let relation_index = relation_inputs.length()
-            relation_inputs.push(value)
+            relation_inputs.push(ManagedRelationInput(value))
             provider_inputs.push(PreparedRelation(relation_index))
             completion_inputs.push(
               @execution.managed_relation_input_binding(value),
@@ -220,7 +257,8 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   }
   let request_result = if provider_inputs.any(input => {
       input is PreparedCarrier(_)
-    }) {
+    }) ||
+    relation_inputs.any(input => input is OrdinaryRelationInput(_)) {
     @connector.prepare_managed_fixed_compute_request_for_bindings(
       owner,
       completion_inputs,
@@ -230,7 +268,12 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   } else {
     @connector.prepare_managed_fixed_compute_request_for_owner(
       owner,
-      relation_inputs,
+      relation_inputs.filter_map(input => {
+        match input {
+          ManagedRelationInput(value) => Some(value)
+          OrdinaryRelationInput(_) => None
+        }
+      }),
       @local.local_module_managed_capacity(installed.implementation),
       obligations,
     )
@@ -245,7 +288,18 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     Err(issue) => return Err(Configuration(issue))
   }
   let estimates = match
-    local_managed_estimate_lines(installed, task, relation_inputs) {
+    local_managed_estimate_lines(
+      installed,
+      task,
+      relation_inputs.map(input => {
+        match input {
+          OrdinaryRelationInput(value) =>
+            @execution.producer_read_row_count(value)
+          ManagedRelationInput(value) =>
+            @execution.managed_producer_read_row_count(value)
+        }
+      }),
+    ) {
     Ok(value) => value
     Err(_) => return Err(Configuration(InvalidLimits))
   }
@@ -388,6 +442,15 @@ pub fn[T] local_managed_dispatch_duration(
 }
 
 ///|
+/// True only when a registered family provider owns this execution. Ordinary
+/// Relation-only work may remain on the established Local dispatcher.
+pub fn[T] local_managed_dispatch_uses_provider(
+  setup : LocalManagedDispatchConfiguration[T],
+) -> Bool {
+  setup.provider is Some(_)
+}
+
+///|
 /// Safe Site sub-scope bounds for the selected managed execution. The Run
 /// ledger remains the aggregate authority; these bounds prevent one Site from
 /// consuming capacity assigned to another Site.
@@ -417,7 +480,7 @@ pub fn[T] start_local_managed_dispatch(
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
-  let managed_inputs = setup.relation_inputs
+  let relation_inputs = setup.relation_inputs
   let obligations = @connector.managed_fixed_compute_request_obligations(
     request,
   )
@@ -498,20 +561,31 @@ pub fn[T] start_local_managed_dispatch(
       setup.capacity,
       setup.join_output_ceilings,
       fn(_sequence) {
-        for input in managed_inputs {
-          let bridge = match
-            @execution.prepare_managed_producer_bridge(
-              input,
-              setup.imports.max_rows,
-              setup.imports.values,
-              setup.imports.wire.max_nodes,
-              setup.imports.wire.max_bytes,
-            ) {
-            Ok(value) => value
-            Err(_) => return Err(@strategy.RunIssue::Compute(InputUnavailable))
+        for input in relation_inputs {
+          match input {
+            OrdinaryRelationInput(read) =>
+              if @execution.producer_read_has_cell_access(read) {
+                reads.push(Some(read))
+              } else {
+                return Err(@strategy.RunIssue::Compute(InputUnavailable))
+              }
+            ManagedRelationInput(input) => {
+              let bridge = match
+                @execution.prepare_managed_producer_bridge(
+                  input,
+                  setup.imports.max_rows,
+                  setup.imports.values,
+                  setup.imports.wire.max_nodes,
+                  setup.imports.wire.max_bytes,
+                ) {
+                Ok(value) => value
+                Err(_) =>
+                  return Err(@strategy.RunIssue::Compute(InputUnavailable))
+              }
+              bridges.push(bridge)
+              reads.push(None)
+            }
           }
-          bridges.push(bridge)
-          reads.push(None)
         }
         let operations : @connector.ManagedExecutionOperations[
           @strategy.RunIssue,
@@ -610,10 +684,14 @@ pub fn[T] start_local_managed_dispatch(
       ),
     )
   }
-  let transfers = Array::makei(bridges.length(), index => {
-    let bridge = bridges[index]
-    LocalManagedInputTransfer::{
-      input: managed_inputs[index],
+  let transfers = []
+  let mut bridge_index = 0
+  for read_index, input in relation_inputs {
+    guard input is ManagedRelationInput(managed) else { continue }
+    let bridge = bridges[bridge_index]
+    bridge_index += 1
+    transfers.push(LocalManagedInputTransfer::{
+      input: managed,
       append: fn(row) {
         let bytes = match
           managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
@@ -639,14 +717,14 @@ pub fn[T] start_local_managed_dispatch(
             setup.imports.wire.max_bytes,
           ) {
           Ok(value) => {
-            reads[index] = Some(value)
+            reads[read_index] = Some(value)
             Ok(())
           }
           Err(_) => Err(Configuration(InputUnavailable))
         }
       },
-    }
-  })
+    })
+  }
   let output_target = @lower.preparation_output_target(
     @lower.bound_preparation(
       @connector.managed_fixed_compute_request_owner(request),

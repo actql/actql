@@ -890,8 +890,9 @@ pub fn captured_carrier_managed_task_input(
 
 ///|
 /// Exact producers of the next managed task in receiving input-port order.
-/// Missing, external, or incomplete topology returns an empty set; concrete
-/// managed completions are still checked independently during preparation.
+/// Missing or incomplete topology returns an empty set. Producer zero denotes
+/// the exact Acquisition output; concrete ordinary or managed completions are
+/// still checked independently during preparation.
 pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
   guard next_captured_task(run) is Some(task) && !run.inputs[task].is_empty() else {
     return []
@@ -901,11 +902,11 @@ pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
     if edge.consumer == task &&
       edge.input >= 0 &&
       edge.input < producers.length() &&
-      edge.producer > 0 {
+      edge.producer >= 0 {
       producers[edge.input] = edge.producer
     }
   }
-  if producers.any(producer => producer <= 0) {
+  if producers.any(producer => producer < 0) {
     []
   } else {
     producers
@@ -1259,7 +1260,12 @@ fn captured_mixed_managed_inputs_match(
         break
       }
     }
-    guard selected is Some(edge) && edge.producer > 0 else { return false }
+    guard selected is Some(edge) && edge.producer >= 0 else { return false }
+    let ordinary_matches = run.inputs[task][port]
+      .map(read => {
+        @execution.managed_input_binding_matches_ordinary_read(input, read)
+      })
+      .unwrap_or(false)
     let relation_matches = managed_task_output_reference(run, edge.producer)
       .map(reference => {
         @execution.managed_input_binding_matches_relation_reference(
@@ -1276,7 +1282,10 @@ fn captured_mixed_managed_inputs_match(
         )
       })
       .unwrap_or(false)
-    if relation_matches == carrier_matches {
+    let matches = (if ordinary_matches { 1 } else { 0 }) +
+      (if relation_matches { 1 } else { 0 }) +
+      (if carrier_matches { 1 } else { 0 })
+    if matches != 1 {
       return false
     }
   }
