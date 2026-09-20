@@ -2,7 +2,7 @@
 // extensibility from names or a successful test against an already-built core.
 import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
@@ -65,6 +65,16 @@ for (const name of readdirSync(join(root, 'src'))) {
   } else {
     cpSync(join(root, 'src', name), join(isolated, 'src', name), {recursive: true});
   }
+}
+// Rebuild generated composition packages in isolation while retaining their
+// handwritten common Carrier adapters. Omitting the whole package silently
+// changes managed execution semantics instead of testing connector addition.
+for (const path of [
+  'src/connectors_builtin/local_carrier_dispatch.mbt',
+  'src/connectors_builtin_node/local_carrier_bridge.mbt',
+]) {
+  mkdirSync(dirname(join(isolated, path)), {recursive: true});
+  cpSync(join(root, path), join(isolated, path));
 }
 
 const hash = data => createHash('sha256').update(data).digest('hex');
