@@ -37,6 +37,8 @@ pub fn admitted_output_target(AdmittedOutputRows) -> @pipeline_typing.Target
 
 pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage
 
+pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
+
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
@@ -124,6 +126,8 @@ pub fn cancel_completed_output_export(CompletedOutputExport) -> Unit
 pub fn cancel_completed_output_import(CompletedOutputImport) -> Bool
 
 pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) -> Unit
+
+pub fn cancel_completed_result_relation_export(CompletedResultRelationExportPreparation) -> Bool
 
 pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
 
@@ -300,6 +304,8 @@ pub fn finish_completed_output_export(CompletedOutputExport) -> Result[(Complete
 pub fn finish_completed_output_import(CompletedOutputImport) -> Result[CompletedOutput, CompletedImportIssue]
 
 pub fn finish_completed_relation_export(CompletedOutputExport) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue]
+
+pub fn finish_completed_result_relation_export_preparation(CompletedResultRelationExportPreparation) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn finish_fixed_join_stream(FixedJoinStream) -> Result[FixedJoinValidation, RowIssue]
 
@@ -735,6 +741,8 @@ pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
+pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
+
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn[T] try_bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> Result[ManagedIdentityIssuer[T], ManagedIdentityIssuanceIssue]
@@ -870,6 +878,8 @@ pub(all) struct CompletedRelationExportMeasurement {
 }
 
 type CompletedRelationExportReceipt
+
+type CompletedResultRelationExportPreparation
 
 pub(all) enum CompletedResultViewIssue {
   InvalidLimits

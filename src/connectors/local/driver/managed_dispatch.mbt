@@ -40,6 +40,14 @@ pub struct LocalManagedDispatchOperations[T] {
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool
   execution_stopped : () -> Bool
+  prepare_finalization : (T, Int64, () -> Bool) -> Result[
+    Unit,
+    LocalDispatchIssue,
+  ]
+  advance_finalization : (Int) -> Result[
+    LocalManagedAdvance,
+    LocalDispatchIssue,
+  ]
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : (T, Int64, () -> Bool) -> Result[
     @execution.ManagedCompletedOutput[T],
@@ -271,62 +279,6 @@ pub fn[T] local_managed_dispatch_site_capacity(
 }
 
 ///|
-/// Establish the exact checked Result view without changing its projection or
-/// order. The physical ordered-row stream is consumed only by the bounded
-/// canonical writer and is not exposed as publication success.
-fn local_managed_result_identity(
-  output : @execution.CompletedOutput,
-  occurrence : @execution.ManagedResultOccurrence,
-  imports : @local.LocalImportLimits,
-  execution : @execution.SequenceExecutionLimits,
-) -> String? {
-  let stream = match
-    @execution.prepare_completed_result_relation_export(
-      output,
-      occurrence,
-      {
-        max_fields: imports.wire.max_columns,
-        max_mapping_work: imports.wire.max_order_work,
-        max_order_work: execution.max_work,
-        max_workspace_entries: imports.max_rows,
-      },
-      imports.max_rows,
-      imports.values,
-      imports.wire,
-      imports.wire,
-      {
-        max_fields: imports.wire.max_columns,
-        max_bytes: imports.wire.max_bytes,
-        max_nodes: imports.wire.max_nodes,
-        max_depth: imports.wire.max_depth,
-      },
-      imports.max_batch_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  while true {
-    match @execution.next_completed_output_export(stream) {
-      Ok(Some(_)) => continue
-      Ok(None) => break
-      Err(_) => {
-        @execution.cancel_completed_output_export(stream)
-        return None
-      }
-    }
-  }
-  let receipt = match @execution.finish_completed_relation_export(stream) {
-    Ok((receipt, _)) => receipt
-    Err(_) => return None
-  }
-  let cid = @execution.logical_relation_cid(
-    @execution.completed_relation_export_identity(receipt),
-  )
-  @execution.cancel_completed_relation_export_receipt(receipt)
-  Some(cid)
-}
-
-///|
 pub fn[T] start_local_managed_dispatch(
   setup : LocalManagedDispatchConfiguration[T],
 ) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue] {
@@ -343,6 +295,59 @@ pub fn[T] start_local_managed_dispatch(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
   let managed_inputs = @connector.managed_fixed_compute_request_inputs(request)
+  let obligations = @connector.managed_fixed_compute_request_obligations(
+    request,
+  )
+  let identity_requirements = @execution.managed_obligations_identities(
+    obligations,
+  ).filter(requirement => requirement.need is @execution.EstablishedBy(_))
+  let finalization_started = Ref(false)
+  let finalization_ready = Ref(false)
+  let finalization_cancelled = Ref(false)
+  let finalization_row = Ref(0)
+  let finalization_identity = Ref(0)
+  let finalization_work_remaining = Ref(setup.execution.max_work)
+  let finalization_payload : Ref[T?] = Ref(None)
+  let finalization_available : Ref[(() -> Bool)?] = Ref(None)
+  let finalization_values : Ref[@execution.ManagedOutputValues?] = Ref(None)
+  let finalization_receipt : Ref[@execution.ManagedOutputValueReceipt?] = Ref(
+    None,
+  )
+  let finalization_retention : Ref[
+    @execution.ManagedOutputRetentionPort[
+      (@execution.ManagedOutputValueReceipt, T, Int64, () -> Bool),
+      T,
+    ]?,
+  ] = Ref(None)
+  let finalization_material : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(
+    None,
+  )
+  let finalization_stream : Ref[@execution.CompletedOutputExport?] = Ref(None)
+  let finalization_result_preparation : Ref[
+    @execution.CompletedResultRelationExportPreparation?,
+  ] = Ref(None)
+  let finalization_cids : Array[String?] = Array::make(
+    identity_requirements.length(),
+    None,
+  )
+  let finalization_completed : Ref[@execution.ManagedCompletedOutput[T]?] = Ref(
+    None,
+  )
+  let cancel_finalization = fn() {
+    finalization_cancelled.val = true
+    if finalization_values.val is Some(values) {
+      @execution.cancel_managed_output_values(values) |> ignore
+    }
+    if finalization_retention.val is Some(port) {
+      @execution.cancel_managed_output_retention_port(port) |> ignore
+    }
+    if finalization_stream.val is Some(stream) {
+      @execution.cancel_completed_output_export(stream)
+    }
+    if finalization_result_preparation.val is Some(preparation) {
+      @execution.cancel_completed_result_relation_export(preparation) |> ignore
+    }
+  }
   let bound = match
     @connector.bind_prepared_managed_execution(
       setup.choice,
@@ -370,6 +375,7 @@ pub fn[T] start_local_managed_dispatch(
         ] = {
           cancel: fn() {
             live.val = false
+            cancel_finalization()
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
@@ -380,6 +386,7 @@ pub fn[T] start_local_managed_dispatch(
           dispose: fn() {
             disposed.val = true
             live.val = false
+            cancel_finalization()
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
@@ -587,10 +594,14 @@ pub fn[T] start_local_managed_dispatch(
             numeric~,
           ) {
           Ok(value) => value
-          Err(issue) => return Err(Configuration(issue))
+          Err(issue) => {
+            execution_finished.val = true
+            return Err(Configuration(issue))
+          }
         }
         if numeric_count > 0 &&
           !@strategy.seal_task_numeric_reductions(setup.run, execution) {
+          execution_finished.val = true
           return Err(Execution(ForeignCandidate))
         }
         let independent = match
@@ -600,7 +611,10 @@ pub fn[T] start_local_managed_dispatch(
             setup.imports.wire.max_columns,
           ) {
           Ok(value) => value
-          Err(issue) => return Err(ManagedCopy(issue))
+          Err(issue) => {
+            execution_finished.val = true
+            return Err(ManagedCopy(issue))
+          }
         }
         ordinary.val = Some(independent)
         execution_finished.val = true
@@ -629,22 +643,30 @@ pub fn[T] start_local_managed_dispatch(
     advance,
     request_cancel: fn() {
       let changed = live.val
+      live.val = false
+      cancel_finalization()
       @strategy.close_task_execution(setup.run, execution)
       changed
     },
     execution_stopped: fn() {
-      match provider_execution.val {
+      let compute_stopped = match provider_execution.val {
         Some(active) => @local.managed_provider_stopped(active)
         None => execution_finished.val || !live.val
       }
+      compute_stopped &&
+      (
+        !finalization_started.val ||
+        finalization_ready.val ||
+        finalization_cancelled.val
+      )
     },
-    settle: fn() {
-      @strategy.settle_task_execution(setup.run, execution, true).map_err(issue => {
-        Execution(Physical(issue))
-      })
-    },
-    complete: fn(payload, storage_bytes, available) {
-      guard ordinary.val is Some(output) &&
+    prepare_finalization: fn(payload, storage_bytes, available) {
+      if finalization_started.val ||
+        !execution_finished.val ||
+        finalization_cancelled.val {
+        return Err(Configuration(InvalidLimits))
+      }
+      guard ordinary.val is Some(_) &&
         output_target is Some(target) &&
         storage_bytes == setup.capacity.retained_bytes &&
         available() else {
@@ -662,13 +684,12 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(issue) => return Err(ManagedValues(issue))
       }
-      let receipt_ref : Ref[@execution.ManagedOutputValueReceipt?] = Ref(None)
       let retention = match
         @execution.prepare_managed_output_retention_port(values, fn(
           proof : (@execution.ManagedOutputValueReceipt, T, Int64, () -> Bool),
         ) {
           let (receipt, proof_payload, bytes, proof_available) = proof
-          if receipt_ref.val is Some(expected) &&
+          if finalization_receipt.val is Some(expected) &&
             physical_equal(receipt, expected) &&
             bytes == storage_bytes &&
             proof_available() &&
@@ -681,7 +702,33 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(_) => return Err(Configuration(InvalidLimits))
       }
-      for row in 0..<@execution.completed_row_count(output) {
+      finalization_payload.val = Some(payload)
+      finalization_available.val = Some(available)
+      finalization_values.val = Some(values)
+      finalization_retention.val = Some(retention)
+      finalization_started.val = true
+      Ok(())
+    },
+    advance_finalization: fn(quantum) {
+      if quantum <= 0 ||
+        !finalization_started.val ||
+        finalization_ready.val ||
+        finalization_cancelled.val {
+        return Err(Configuration(InvalidLimits))
+      }
+      guard ordinary.val is Some(output) &&
+        output_target is Some(target) &&
+        finalization_values.val is Some(values) &&
+        finalization_available.val is Some(available) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      let mut work = 0
+      let rows = @execution.completed_row_count(output)
+      while work < quantum && finalization_row.val < rows {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        let row = finalization_row.val
         match
           @execution.append_completed_projection_managed_values(
             values, output, row,
@@ -701,90 +748,242 @@ pub fn[T] start_local_managed_dispatch(
             }
           Err(issue) => return Err(ManagedValues(issue))
         }
+        finalization_row.val += 1
+        finalization_work_remaining.val -= 1
+        work += 1
       }
-      let receipt = match @execution.finish_managed_output_values(values) {
-        Ok(value) => value
-        Err(_) => return Err(Configuration(InvalidLimits))
+      if work == quantum {
+        return Ok({
+          complete: false,
+          progress: finalization_row.val.to_int64(),
+          work: work.to_int64(),
+        })
       }
-      receipt_ref.val = Some(receipt)
-      let material = match
-        @execution.retain_managed_output(
-          retention,
-          (receipt, payload, storage_bytes, available),
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(ManagedRetention(issue))
+      if finalization_material.val is None {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        let receipt = match @execution.finish_managed_output_values(values) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InvalidLimits))
+        }
+        finalization_receipt.val = Some(receipt)
+        guard finalization_payload.val is Some(payload) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        guard finalization_retention.val is Some(retention) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        let material = match
+          @execution.retain_managed_output(
+            retention,
+            (receipt, payload, setup.capacity.retained_bytes, available),
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(ManagedRetention(issue))
+        }
+        finalization_material.val = Some(material)
+        finalization_work_remaining.val -= 1
+        work += 1
+      }
+      while work < quantum &&
+            finalization_identity.val < identity_requirements.length() {
+        let index = finalization_identity.val
+        let requirement = identity_requirements[index]
+        if finalization_stream.val is None {
+          match
+            (requirement.domain, requirement.subject, requirement.occurrence) {
+            (@execution.OrderedRows, @execution.TaskOutput, None) => {
+              let stream = match
+                @execution.prepare_completed_output_export(
+                  output,
+                  setup.imports.max_rows,
+                  setup.imports.values,
+                  setup.imports.wire,
+                  setup.imports.max_batch_bytes,
+                ) {
+                Ok(value) => value
+                Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+              }
+              finalization_stream.val = Some(stream)
+            }
+            (@execution.LogicalRelation, @execution.NamedResult, Some(result)) => {
+              if finalization_result_preparation.val is None {
+                let preparation = match
+                  @execution.start_completed_result_relation_export(
+                    output,
+                    result,
+                    {
+                      max_fields: setup.imports.wire.max_columns,
+                      max_mapping_work: setup.imports.wire.max_order_work,
+                      max_order_work: setup.execution.max_work,
+                      max_workspace_entries: setup.imports.max_rows,
+                    },
+                    setup.imports.max_rows,
+                    setup.imports.values,
+                    setup.imports.wire,
+                    setup.imports.wire,
+                    {
+                      max_fields: setup.imports.wire.max_columns,
+                      max_bytes: setup.imports.wire.max_bytes,
+                      max_nodes: setup.imports.wire.max_nodes,
+                      max_depth: setup.imports.wire.max_depth,
+                    },
+                    setup.imports.max_batch_bytes,
+                  ) {
+                  Ok(value) => value
+                  Err(_) =>
+                    return Err(Configuration(LogicalIdentityUnsupported))
+                }
+                finalization_result_preparation.val = Some(preparation)
+              }
+              let preparation = finalization_result_preparation.val.unwrap()
+              let remaining = Int::min(
+                quantum - work,
+                finalization_work_remaining.val,
+              )
+              if remaining < 1 {
+                return Err(Configuration(InvalidLimits))
+              }
+              let (ready, used) = match
+                @execution.advance_completed_result_relation_export(
+                  preparation, remaining,
+                ) {
+                Ok(value) => value
+                Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+              }
+              finalization_work_remaining.val -= used
+              work += used
+              if !ready {
+                return Ok({
+                  complete: false,
+                  progress: (finalization_row.val + finalization_identity.val).to_int64(),
+                  work: work.to_int64(),
+                })
+              }
+              let stream = match
+                @execution.finish_completed_result_relation_export_preparation(
+                  preparation,
+                ) {
+                Ok(value) => value
+                Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+              }
+              finalization_result_preparation.val = None
+              finalization_stream.val = Some(stream)
+            }
+            _ => return Err(Configuration(LogicalIdentityUnsupported))
+          }
+        }
+        guard finalization_stream.val is Some(stream) else {
+          return Err(Configuration(LogicalIdentityUnsupported))
+        }
+        if work == quantum {
+          break
+        }
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        match @execution.next_completed_output_export(stream) {
+          Ok(Some(_)) => {
+            finalization_work_remaining.val -= 1
+            work += 1
+          }
+          Ok(None) => {
+            let cid = match requirement.domain {
+              @execution.OrderedRows => {
+                let receipt = match
+                  @execution.finish_completed_output_export(stream) {
+                  Ok((value, _)) => value
+                  Err(_) =>
+                    return Err(Configuration(LogicalIdentityUnsupported))
+                }
+                let identity = @execution.output_stream_identity(
+                    @execution.completed_export_content(receipt),
+                  ).0
+                @execution.cancel_completed_export_receipt(receipt)
+                identity
+              }
+              @execution.LogicalRelation => {
+                let receipt = match
+                  @execution.finish_completed_relation_export(stream) {
+                  Ok((value, _)) => value
+                  Err(_) =>
+                    return Err(Configuration(LogicalIdentityUnsupported))
+                }
+                let identity = @execution.logical_relation_cid(
+                  @execution.completed_relation_export_identity(receipt),
+                )
+                @execution.cancel_completed_relation_export_receipt(receipt)
+                identity
+              }
+              _ => return Err(Configuration(LogicalIdentityUnsupported))
+            }
+            finalization_cids[index] = Some(cid)
+            finalization_stream.val = None
+            finalization_identity.val += 1
+            finalization_work_remaining.val -= 1
+            work += 1
+          }
+          Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+        }
+      }
+      if finalization_identity.val < identity_requirements.length() {
+        return Ok({
+          complete: false,
+          progress: (finalization_row.val + finalization_identity.val).to_int64(),
+          work: work.to_int64(),
+        })
+      }
+      guard finalization_material.val is Some(material) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      if finalization_work_remaining.val < 1 {
+        return Err(Configuration(InvalidLimits))
       }
       let identity_issuers = []
-      let obligations = @connector.managed_fixed_compute_request_obligations(
-        request,
-      )
       let completion_preparation = @execution.generated_completion_preparation(
         setup.sequence,
       )
-      for requirement in @execution.managed_obligations_identities(obligations) {
-        if requirement.need is @execution.EstablishedBy(_) {
-          let canonical_contract_cid = match requirement.domain {
-            @execution.OrderedRows =>
-              @execution.ordered_rows_canonical_contract_cid()
-            @execution.LogicalRelation =>
-              @execution.logical_relation_canonical_contract_cid()
-            _ => return Err(Configuration(LogicalIdentityUnsupported))
-          }
-          let capability = match
-            @execution.register_managed_identity_issuance_capability(
-              requirement.domain,
-              requirement.subject,
-              requirement.occurrence,
-              canonical_contract_cid,
-            ) {
-            Ok(value) => value
-            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
-          }
-          let permit = match
-            @execution.authorize_managed_identity_execution_attempt(
-              capability, execution_attempt, completion_preparation, requirement,
-            ) {
-            Ok(value) => value
-            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
-          }
-          let occurrence = requirement.occurrence
-          let issuer = match
-            @execution.try_bind_managed_identity_issuer(permit, material, fn(
-              source,
-            ) {
-              if !physical_equal(source, material) || !available() {
-                return None
-              }
-              match (requirement.domain, requirement.subject, occurrence) {
-                (@execution.OrderedRows, @execution.TaskOutput, None) =>
-                  match
-                    @execution.identify_completed_rows(
-                      output,
-                      setup.imports.wire,
-                    ) {
-                    Ok(identity) => Some(@execution.row_wire_cid(identity))
-                    Err(_) => None
-                  }
-                (
-                  @execution.LogicalRelation,
-                  @execution.NamedResult,
-                  Some(result),
-                ) =>
-                  local_managed_result_identity(
-                    output,
-                    result,
-                    setup.imports,
-                    setup.execution,
-                  )
-                _ => None
-              }
-            }) {
-            Ok(value) => value
-            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
-          }
-          identity_issuers.push(issuer)
+      for index, requirement in identity_requirements {
+        let canonical_contract_cid = match requirement.domain {
+          @execution.OrderedRows =>
+            @execution.ordered_rows_canonical_contract_cid()
+          @execution.LogicalRelation =>
+            @execution.logical_relation_canonical_contract_cid()
+          _ => return Err(Configuration(LogicalIdentityUnsupported))
         }
+        let capability = match
+          @execution.register_managed_identity_issuance_capability(
+            requirement.domain,
+            requirement.subject,
+            requirement.occurrence,
+            canonical_contract_cid,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+        }
+        let permit = match
+          @execution.authorize_managed_identity_execution_attempt(
+            capability, execution_attempt, completion_preparation, requirement,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+        }
+        let cid = finalization_cids[index]
+        let issuer = match
+          @execution.try_bind_managed_identity_issuer(permit, material, fn(
+            source,
+          ) {
+            if physical_equal(source, material) && available() {
+              cid
+            } else {
+              None
+            }
+          }) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+        }
+        identity_issuers.push(issuer)
       }
       let completion = match
         @execution.prepare_managed_completion_port(
@@ -813,15 +1012,13 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(_) => return Err(Configuration(InvalidLimits))
       }
-      for requirement in @execution.managed_obligations_identities(obligations) {
-        if requirement.need is @execution.EstablishedBy(_) {
-          match
-            @execution.establish_managed_completed_identity_requirement(
-              completed, requirement,
-            ) {
-            Ok(_) => ()
-            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
-          }
+      for requirement in identity_requirements {
+        match
+          @execution.establish_managed_completed_identity_requirement(
+            completed, requirement,
+          ) {
+          Ok(_) => ()
+          Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
         }
       }
       for
@@ -833,6 +1030,40 @@ pub fn[T] start_local_managed_dispatch(
         if !@execution.managed_completed_deadline_satisfied(completed, deadline) {
           return Err(Configuration(LogicalIdentityUnsupported))
         }
+      }
+      finalization_completed.val = Some(completed)
+      finalization_ready.val = true
+      finalization_work_remaining.val -= 1
+      work += 1
+      Ok({
+        complete: true,
+        progress: (rows + identity_requirements.length()).to_int64(),
+        work: work.to_int64(),
+      })
+    },
+    settle: fn() {
+      let failed_or_stopped = !live.val ||
+        (execution_finished.val && ordinary.val is None)
+      if !finalization_ready.val &&
+        !finalization_cancelled.val &&
+        !failed_or_stopped {
+        return Err(Configuration(InvalidLimits))
+      }
+      @strategy.settle_task_execution(setup.run, execution, true).map_err(issue => {
+        Execution(Physical(issue))
+      })
+    },
+    complete: fn(payload, storage_bytes, available) {
+      guard finalization_ready.val &&
+        finalization_payload.val is Some(expected_payload) &&
+        physical_equal(payload, expected_payload) &&
+        storage_bytes == setup.capacity.retained_bytes &&
+        finalization_available.val is Some(expected_available) &&
+        expected_available() &&
+        available() &&
+        finalization_material.val is Some(material) &&
+        finalization_completed.val is Some(completed) else {
+        return Err(Configuration(InvalidLimits))
       }
       let allocation = match
         @strategy.retain_task_execution_allocation(
@@ -878,7 +1109,11 @@ pub fn[T] start_local_managed_dispatch(
     },
     material: fn() { retained.val },
     storage_bytes: setup.capacity.retained_bytes,
-    close: fn() { @strategy.close_task_execution(setup.run, execution) },
+    close: fn() {
+      live.val = false
+      cancel_finalization()
+      @strategy.close_task_execution(setup.run, execution)
+    },
     cleanup_refresh: fn() {
       let provider_reclaimed = match provider_execution.val {
         None => true

@@ -143,6 +143,8 @@ pub struct LocalManagedDispatchOperations[T] {
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool
   execution_stopped : () -> Bool
+  prepare_finalization : (T, Int64, () -> Bool) -> Result[Unit, LocalDispatchIssue]
+  advance_finalization : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : (T, Int64, () -> Bool) -> Result[@execution_relation.ManagedCompletedOutput[T], LocalDispatchIssue]
   output_rows : () -> Int

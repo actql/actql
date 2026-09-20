@@ -12,6 +12,7 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
 
 const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
 const managedWorkQuantum = 256;
+const managedFinalizationQuantum = 32;
 
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
@@ -51,6 +52,36 @@ const runManagedExecution = async (operations, checked, signal) => {
     }
     await yieldToHost();
   }
+};
+
+const runManagedFinalization = async (
+  operations, checked, signal, payload, storageBytes, available,
+) => {
+  signal?.throwIfAborted();
+  checked(operations.prepare_finalization(
+    payload,
+    storageBytes,
+    available,
+  ));
+  while (true) {
+    if (signal?.aborted) {
+      stopBoundedExecution(operations, checked);
+      signal.throwIfAborted();
+    }
+    const observation = checked(
+      operations.advance_finalization(managedFinalizationQuantum),
+    );
+    if (observation?.complete === true) break;
+    if (observation == null || observation.complete !== false ||
+        typeof observation.progress !== 'bigint' ||
+        typeof observation.work !== 'bigint' || observation.progress < 0n ||
+        observation.work <= 0n ||
+        observation.work > BigInt(managedFinalizationQuantum)) {
+      throw new Error('InvalidLocalManagedFinalizationAdvance');
+    }
+    await yieldToHost();
+  }
+  signal?.throwIfAborted();
 };
 
 export function localStrategyContribution(moon, setup, checked, configuration) {
@@ -171,10 +202,24 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             if (prepared.siteCompletionReady?.() === false) {
               throw new Error('ExecutionSiteCompletionNotReady');
             }
+            const payload = nextMaterial++;
+            const boundedFinalization =
+              typeof operations.prepare_finalization === 'function' &&
+              typeof operations.advance_finalization === 'function';
+            if (boundedFinalization) {
+              await runManagedFinalization(
+                operations,
+                checked,
+                signal,
+                payload,
+                operations.storage_bytes,
+                () => available,
+              );
+            }
             checked(operations.settle());
             recordManagedFailureExecutionSettled(failureProgress);
             completed = checked(operations.complete(
-              nextMaterial++,
+              payload,
               operations.storage_bytes,
               () => available,
             ));

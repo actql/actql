@@ -42,8 +42,14 @@ test "Local managed execution admits checked zero-input values without a dummy p
   (operations.execute)().unwrap()
   assert_eq((operations.output_rows)(), 1)
   assert_eq((operations.output_row)(0).unwrap(), "{\"id\":7}")
-  (operations.settle)().unwrap()
   let available = Ref(true)
+  (operations.prepare_finalization)(7, operations.storage_bytes, fn() {
+    available.val
+  }).unwrap()
+  while !(operations.advance_finalization)(16).unwrap().complete {
+
+  }
+  (operations.settle)().unwrap()
   let completed = (operations.complete)(7, operations.storage_bytes, fn() {
     available.val
   }).unwrap()

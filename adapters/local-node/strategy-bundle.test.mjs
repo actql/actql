@@ -449,6 +449,77 @@ test('bounded Local yields so cancellation reaches the active kernel',
     ]);
   });
 
+test('bounded Local yields while finalizing a completed kernel', async () => {
+  const setup = {}, registration = {}, configuration = {};
+  const events = [];
+  let cancelled = false, cleanupCalls = 0, finalizationSteps = 0;
+  const operations = {
+    inputs: [],
+    execute: () => assert.fail('bounded execution used execute'),
+    advance: quantum => {
+      events.push(['execute', quantum]);
+      return ok({complete: true, progress: 1n, work: 1n});
+    },
+    prepare_finalization() {
+      events.push('prepare-finalization');
+      return ok();
+    },
+    advance_finalization(quantum) {
+      events.push(['finalize', quantum]);
+      finalizationSteps++;
+      return ok({complete: false, progress: BigInt(finalizationSteps), work: 1n});
+    },
+    request_cancel() {
+      events.push('cancel');
+      cancelled = true;
+      return true;
+    },
+    execution_stopped: () => cancelled,
+    settle() { events.push('settle'); return ok(); },
+    complete: () => assert.fail('cancelled finalization completed'),
+    close() { events.push('close'); },
+    cleanup_refresh() {
+      events.push('cleanup');
+      cleanupCalls++;
+      return cancelled && cleanupCalls > 1;
+    },
+    storage_bytes: 0,
+  };
+  const entry = localStrategyContribution({
+    strategyModule_local_Registration: () => registration,
+    strategyHostRegistrationSelectionKey: () => 'local',
+    strategyHostNextTask: () => 1,
+    strategyHostManagedProducers: () => [],
+    strategyHostManagedInputCount: () => 0,
+    strategyHostManagedRequiresLogicalIdentity: () => ok(false),
+    strategyHostReleasableManagedProducers: () => [],
+    strategyModule_local_ManagedDispatch: () => ok(configuration),
+    strategyModule_local_ManagedDuration: () => 1n,
+    strategyModule_local_ManagedCapacity: () => [0n, 0n],
+    strategyModule_local_ManagedStart: () => ok(operations),
+  }, setup, checked);
+  const prepared = await entry.prepareNext(new Map());
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 0);
+  const failure = await entry.runPrepared(prepared, controller.signal)
+    .then(() => assert.fail('cancelled finalization completed'), error => error);
+  assert.equal(failure.name, 'AbortError');
+  assert.equal(finalizationSteps, 1);
+  assert.equal(failure.cleanupPending, true);
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.deepEqual(events, [
+    ['execute', 256],
+    'prepare-finalization',
+    ['finalize', 32],
+    'cancel',
+    'close',
+    'settle',
+    'cleanup',
+    'cleanup',
+  ]);
+});
+
 test('standard Host runs Local with mixed memory and provider inputs',
   async () => {
     for (const memoryFirst of [true, false]) {

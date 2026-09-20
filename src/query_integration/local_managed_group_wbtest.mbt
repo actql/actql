@@ -200,6 +200,15 @@ fn run_local_managed_test_task(
     Err(@local_driver.Configuration(_)) =>
       fail("Local managed dispatch configuration failed")
   }
+  (operations.prepare_finalization)(payload, operations.storage_bytes, fn() {
+    available.val
+  }).unwrap()
+  while true {
+    let observation = (operations.advance_finalization)(16).unwrap()
+    if observation.complete {
+      break
+    }
+  }
   (operations.settle)().unwrap()
   let completed = match
     (operations.complete)(payload, operations.storage_bytes, fn() {

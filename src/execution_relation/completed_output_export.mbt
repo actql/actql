@@ -24,6 +24,21 @@ struct CompletedOutputExport {
 }
 
 ///|
+/// Resumable preparation for a checked Named Result view. Projection mapping
+/// and stable ordering complete before the canonical row stream is exposed.
+struct CompletedResultRelationExportPreparation {
+  rows : CompletedResultRowsPreparation
+  max_rows : Int
+  values : ValueLimits
+  payload_wire : RowWireLimits
+  logical_wire : RowWireLimits
+  schema_limits : RelationSchemaIdentityLimits
+  max_batch_bytes : Int
+  mut stream : CompletedOutputExport?
+  mut closed : Bool
+}
+
+///|
 /// One exact export, consumable only with storage bound to its content receipt.
 struct CompletedOutputExportReceipt {
   export_identity : Ref[Unit]
@@ -146,6 +161,103 @@ pub fn prepare_completed_result_relation_export(
 }
 
 ///|
+pub fn start_completed_result_relation_export(
+  source : CompletedOutput,
+  occurrence : ManagedResultOccurrence,
+  result_view : CompletedResultViewLimits,
+  max_rows : Int,
+  values : ValueLimits,
+  payload_wire : RowWireLimits,
+  logical_wire : RowWireLimits,
+  schema_limits : RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue] {
+  let rows = match
+    start_completed_result_rows(source, occurrence, result_view) {
+    Ok(value) => value
+    Err(issue) => return Err(ResultView(issue))
+  }
+  Ok({
+    rows,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+    stream: None,
+    closed: false,
+  })
+}
+
+///|
+pub fn cancel_completed_result_relation_export(
+  value : CompletedResultRelationExportPreparation,
+) -> Bool {
+  if value.closed {
+    false
+  } else {
+    value.closed = true
+    cancel_completed_result_rows(value.rows) |> ignore
+    if value.stream is Some(stream) {
+      cancel_completed_output_export(stream)
+    }
+    true
+  }
+}
+
+///|
+pub fn advance_completed_result_relation_export(
+  value : CompletedResultRelationExportPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), CompletedExportIssue] {
+  if value.closed || quantum <= 0 {
+    return Err(Closed)
+  }
+  if value.stream is Some(_) {
+    return Ok((true, 0))
+  }
+  let (done, work) = match advance_completed_result_rows(value.rows, quantum) {
+    Ok(result) => result
+    Err(issue) => return Err(ResultView(issue))
+  }
+  if done {
+    let rows = match finish_completed_result_rows(value.rows) {
+      Ok(result) => result
+      Err(issue) => return Err(ResultView(issue))
+    }
+    let stream = match
+      prepare_completed_export_rows(
+        value.rows.source,
+        rows,
+        value.max_rows,
+        value.values,
+        value.payload_wire,
+        Some(value.logical_wire),
+        Some(value.schema_limits),
+        value.max_batch_bytes,
+      ) {
+      Ok(result) => result
+      Err(issue) => return Err(issue)
+    }
+    value.stream = Some(stream)
+  }
+  Ok((value.stream is Some(_), work))
+}
+
+///|
+pub fn finish_completed_result_relation_export_preparation(
+  value : CompletedResultRelationExportPreparation,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  if value.closed {
+    return Err(Closed)
+  }
+  guard value.stream is Some(stream) else { return Err(NotFinished) }
+  value.closed = true
+  Ok(stream)
+}
+
+///|
 fn prepare_completed_export(
   source : CompletedOutput,
   result_view : (ManagedResultOccurrence, CompletedResultViewLimits)?,
@@ -169,6 +281,22 @@ fn prepare_completed_export(
         Err(issue) => return Err(ResultView(issue))
       }
   }
+  prepare_completed_export_rows(
+    source, rows, max_rows, values, wire, logical_wire, schema_limits, max_batch_bytes,
+  )
+}
+
+///|
+fn prepare_completed_export_rows(
+  source : CompletedOutput,
+  rows : CompletedExportRows,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  logical_wire : RowWireLimits?,
+  schema_limits : RelationSchemaIdentityLimits?,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
   if max_rows < 0 || IndexedRows::row_count(rows) > max_rows {
     return Err(Admission(CaptureLimit))
   }

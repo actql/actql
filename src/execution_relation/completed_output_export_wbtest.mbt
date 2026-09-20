@@ -304,6 +304,73 @@ test "Named Result export applies its exact projection and total order as views"
 }
 
 ///|
+test "Named Result view preparation advances and cancels in bounded steps" {
+  let owner = result_export_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  let preparation = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  let mut advances = 0
+  while true {
+    let (complete, work) = advance_completed_result_relation_export(
+      preparation, 1,
+    ).unwrap()
+    advances += 1
+    assert_true(work <= 1)
+    if complete {
+      break
+    }
+  }
+  assert_true(advances > 2)
+  let stream = finish_completed_result_relation_export_preparation(preparation).unwrap()
+  let text = StringBuilder()
+  while next_completed_output_export(stream).unwrap() is Some(part) {
+    text.write_string(part)
+  }
+  let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
+  text.write_string(tail)
+  assert_eq(text.to_string(), "[{\"s\":\"😀\"},{\"s\":\"é\"}]")
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    "sha256:f690ca53202a4e4fd0736d14fb759522c904e416982f72d2dbbdbb7a63332fbb",
+  )
+  cancel_completed_relation_export_receipt(receipt)
+
+  let cancelled = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  assert_eq(
+    advance_completed_result_relation_export(cancelled, 1).unwrap(),
+    (false, 1),
+  )
+  assert_true(cancel_completed_result_relation_export(cancelled))
+  assert_true(
+    finish_completed_result_relation_export_preparation(cancelled)
+    is Err(Closed),
+  )
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "Named Result export rejects foreign occurrence and exact view limits" {
   let owner = result_export_owner()
   let source = export_fixture(owner)

@@ -1839,6 +1839,12 @@ async function exerciseStrategyGraph(
     rows: 40,
     step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
     fields: ['node_id', 'component_id', 'component_size'],
+  }, {
+    name: 'degree-finalization',
+    rows: 40,
+    cancelDuringFinalization: true,
+    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
+    fields: ['node', 'degree'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const graphCancellationProgram = structuredClone(graphProgramBase);
@@ -1886,6 +1892,7 @@ async function exerciseStrategyGraph(
     let cancellationScheduled = false;
     let managedStarts = 0;
     const advanceObservations = [];
+    const finalizationObservations = [];
     const lifecycleObservations = [];
     try {
       assert.equal(
@@ -1915,9 +1922,27 @@ async function exerciseStrategyGraph(
             const execution = checked(started);
             const observed = new Proxy(execution, {
               get(operation, name, operationReceiver) {
-                if (name !== 'advance' && name !== 'request_cancel' &&
+                if (name !== 'advance' &&
+                    name !== 'advance_finalization' &&
+                    name !== 'request_cancel' &&
                     name !== 'execution_stopped' && name !== 'cleanup_refresh') {
                   return Reflect.get(operation, name, operationReceiver);
+                }
+                if (name === 'advance_finalization') {
+                  return quantum => {
+                    const result = operation.advance_finalization(quantum);
+                    const observation = checked(result);
+                    finalizationObservations.push({start, observation});
+                    if (cancellationCase.cancelDuringFinalization &&
+                        start === 2 &&
+                        observation?.complete === false &&
+                        observation.work > 0n && !cancellationScheduled) {
+                      sawOperationWork = true;
+                      cancellationScheduled = true;
+                      setTimeout(() => graphCancellation.abort(), 0);
+                    }
+                    return result;
+                  };
                 }
                 if (name !== 'advance') {
                   return (...arguments_) => {
@@ -1934,7 +1959,8 @@ async function exerciseStrategyGraph(
                       !constructionComplete) {
                     constructionProgress += observation.progress;
                     constructionComplete = constructionProgress === 80n;
-                  } else if (constructionComplete &&
+                  } else if (!cancellationCase.cancelDuringFinalization &&
+                      constructionComplete &&
                       observation?.complete === false &&
                       observation.work > 0n && !cancellationScheduled) {
                     sawOperationWork = true;
@@ -1975,6 +2001,14 @@ async function exerciseStrategyGraph(
           typeof value === 'bigint' ? value.toString() : value),
       );
       assert.equal(graphCancellation.signal.aborted, true);
+      if (cancellationCase.cancelDuringFinalization) {
+        assert.equal(
+          finalizationObservations.some(value =>
+            value.observation?.complete === false &&
+            value.observation.work > 0n),
+          true,
+        );
+      }
       assert.equal(cancellationExecution.status, 'host-tasks-failed');
       assert.equal(cancellationExecution.failure?.name, 'AbortError');
       assert.deepEqual(
