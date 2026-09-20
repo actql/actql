@@ -233,6 +233,154 @@ test "managed completion distinguishes delayed identity from source lifetime" {
 }
 
 ///|
+test "managed identity establishment rejects issuer reentry" {
+  let owner = capture_fixture()
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let live = Ref(true)
+  let material = managed_test_material(owner, Step(1), live)
+  let contract = ordered_rows_canonical_contract_cid()
+  let cid = "sha256:" + "a".repeat(64)
+  let requirement : ManagedIdentityRequirement = {
+    domain: OrderedRows,
+    subject: TaskOutput,
+    occurrence: None,
+    need: EstablishedBy(BeforeDiscard),
+  }
+  let obligations = prepare_managed_obligations(
+    owner,
+    [requirement],
+    ManagedUse,
+    MaterialBinding,
+    1,
+  ).unwrap()
+  let attempt = issue_managed_execution_attempt()
+  let capability = register_managed_identity_issuance_capability(
+    OrderedRows,
+    TaskOutput,
+    None,
+    contract,
+  ).unwrap()
+  let permit = authorize_managed_identity_execution_attempt(
+    capability, attempt, preparation, requirement,
+  ).unwrap()
+  let completed : Ref[ManagedCompletedOutput[Int]?] = Ref(None)
+  let calls = Ref(0)
+  let reentrant : Ref[ManagedIdentityEstablishmentIssue?] = Ref(None)
+  let issuer = try_bind_managed_identity_issuer(permit, material, _ => {
+    calls.val += 1
+    guard completed.val is Some(output) else { return None }
+    reentrant.val = match
+      establish_managed_completed_identity(output, OrderedRows, TaskOutput) {
+      Ok(_) => None
+      Err(issue) => Some(issue)
+    }
+    Some(cid)
+  }).unwrap()
+  let port = prepare_managed_completion_port(
+    managed_test_profile(),
+    preparation,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(material),
+    obligations~,
+    identity_issuer=issuer,
+    attempt~,
+  ).unwrap()
+  let output = complete_managed_output(port, ()).unwrap()
+  completed.val = Some(output)
+  establish_managed_completed_identity(output, OrderedRows, TaskOutput).unwrap()
+  assert_eq(reentrant.val, Some(ConflictingIdentity))
+  assert_eq(calls.val, 1)
+  assert_eq(
+    managed_completed_identity_status(output, OrderedRows, TaskOutput),
+    Some(EstablishedSourceRetained(contract, cid)),
+  )
+  establish_managed_completed_identity(output, OrderedRows, TaskOutput).unwrap()
+  assert_eq(calls.val, 1)
+}
+
+///|
+test "managed identity establishment clears source-loss transitions" {
+  let owner = capture_fixture()
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let live = Ref(true)
+  let material = managed_test_material(owner, Step(1), live)
+  let contract = ordered_rows_canonical_contract_cid()
+  let cid = "sha256:" + "b".repeat(64)
+  let requirement : ManagedIdentityRequirement = {
+    domain: OrderedRows,
+    subject: TaskOutput,
+    occurrence: None,
+    need: EstablishedBy(BeforeDiscard),
+  }
+  let obligations = prepare_managed_obligations(
+    owner,
+    [requirement],
+    ManagedUse,
+    MaterialBinding,
+    1,
+  ).unwrap()
+  let attempt = issue_managed_execution_attempt()
+  let capability = register_managed_identity_issuance_capability(
+    OrderedRows,
+    TaskOutput,
+    None,
+    contract,
+  ).unwrap()
+  let permit = authorize_managed_identity_execution_attempt(
+    capability, attempt, preparation, requirement,
+  ).unwrap()
+  let calls = Ref(0)
+  let issuer = try_bind_managed_identity_issuer(permit, material, _ => {
+    calls.val += 1
+    if calls.val == 1 {
+      live.val = false
+    }
+    Some(cid)
+  }).unwrap()
+  let port = prepare_managed_completion_port(
+    managed_test_profile(),
+    preparation,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(material),
+    obligations~,
+    identity_issuer=issuer,
+    attempt~,
+  ).unwrap()
+  let output = complete_managed_output(port, ()).unwrap()
+  assert_true(
+    establish_managed_completed_identity(output, OrderedRows, TaskOutput)
+    is Err(UnverifiedIdentity),
+  )
+  assert_eq(
+    managed_completed_identity_status(output, OrderedRows, TaskOutput),
+    Some(UnestablishedSourceUnavailable),
+  )
+  live.val = true
+  establish_managed_completed_identity(output, OrderedRows, TaskOutput).unwrap()
+  assert_eq(calls.val, 2)
+  assert_eq(
+    managed_completed_identity_status(output, OrderedRows, TaskOutput),
+    Some(EstablishedSourceRetained(contract, cid)),
+  )
+}
+
+///|
 test "managed completion establishes plural Named Result occurrences independently" {
   let owner = result_export_owner()
   let preparation = prepare_completion(

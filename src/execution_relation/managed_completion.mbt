@@ -47,6 +47,7 @@ priv struct ManagedCompletedIdentity {
   requirement : ManagedIdentityRequirement
   canonical_contract_cid : Ref[String?]
   cid : Ref[String?]
+  establishing : Ref[Ref[Unit]?]
 }
 
 ///|
@@ -393,6 +394,7 @@ pub fn[P, T] complete_managed_output(
       requirement,
       canonical_contract_cid: Ref(None),
       cid: Ref(None),
+      establishing: Ref(None),
     }),
     identity_issuers: port.identity_issuers,
     attempt: port.attempt,
@@ -554,6 +556,9 @@ fn[T] establish_managed_completed_identity_record(
     (None, None) => ()
     _ => return Err(ConflictingIdentity)
   }
+  if identity.establishing.val is Some(_) {
+    return Err(ConflictingIdentity)
+  }
   if !managed_completed_output_available(output) {
     return Err(SourceUnavailable)
   }
@@ -574,18 +579,36 @@ fn[T] establish_managed_completed_identity_record(
     ) {
     return Err(UnverifiedIdentity)
   }
-  guard (issuer.issue)(output.material) is Some(cid) else {
+  let token = Ref(())
+  identity.establishing.val = Some(token)
+  let issued = (issuer.issue)(output.material)
+  guard identity.establishing.val is Some(active) &&
+    physical_equal(active, token) else {
+    return Err(ConflictingIdentity)
+  }
+  guard issued is Some(cid) else {
+    identity.establishing.val = None
     return Err(UnverifiedIdentity)
   }
   let canonical_contract_cid = issuer.permit.capability.canonical_contract_cid
   if !valid_managed_cid(canonical_contract_cid) || !valid_managed_cid(cid) {
+    identity.establishing.val = None
     return Err(InvalidIdentity)
   }
   if !managed_completed_output_available(output) {
+    identity.establishing.val = None
     return Err(UnverifiedIdentity)
+  }
+  match (identity.canonical_contract_cid.val, identity.cid.val) {
+    (None, None) => ()
+    _ => {
+      identity.establishing.val = None
+      return Err(ConflictingIdentity)
+    }
   }
   identity.canonical_contract_cid.val = Some(canonical_contract_cid)
   identity.cid.val = Some(cid)
+  identity.establishing.val = None
   Ok(())
 }
 
