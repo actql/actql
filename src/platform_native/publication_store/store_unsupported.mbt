@@ -380,3 +380,10 @@ pub fn Store::capacity_usage(
 pub fn Store::close(_self : Store) -> Result[Bool, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+#warnings("-unused_value")
+fn retain_native_imports() -> Unit {
+  ignore(@sha.hasher())
+  ignore(@utf8.encode(""))
+}
