@@ -370,11 +370,55 @@
       "input": "graph",
       "output": "relation",
       "canonical": ["SGA.reachable"],
-      "variants": ["selector forms", "cycles", "self loops", "bounded depth"],
+      "variants": [
+        "incoming",
+        "outgoing",
+        "both",
+        "cycles",
+        "self loops",
+        "bounded depth"
+      ],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_reach_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_reach_test.mbt",
+        "src/local_sga/reach.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "bounded_reach_standard_host_and_publication",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "4606d221",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "SGA",

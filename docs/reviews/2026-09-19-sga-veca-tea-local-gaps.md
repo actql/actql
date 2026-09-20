@@ -12,16 +12,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 28/39 entries have kernels and managed completion, 27/39 reach the standard Host, and 23/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 28/39 entries have resource and three-target kernel evidence | Implement and register the remaining 11 entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; 29/39 entries have kernels and managed completion, 28/39 reach the standard Host, and 24/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 29/39 entries have resource and three-target kernel evidence | Implement and register the remaining 10 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 19/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections and equality, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 23/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality and reach, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 24/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 28/39, standard Host 27/39,
-consumer lifetime 23/39, cancellation 19/39, and publication 23/39. These are
+kernel/managed/resources/three-target evidence 29/39, standard Host 28/39,
+consumer lifetime 24/39, cancellation 19/39, and publication 24/39. These are
 layer counts, not operation completion: 18 entries are `complete` and 21 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -840,6 +840,17 @@ The generated artifacts are nonempty and independently identified by SHA-256.
 This closes the shared packaging gap without removing complete-language
 checker or contract metadata from the RelA-only artifact. It does not change
 the 18/39 operation completion count.
+
+At `4606d221`, `reach` executes through a resumable indexed graph walk. The
+kernel admits its adjacency, traversal, sort, and output workspace before
+allocation; preserves incoming, outgoing, and bidirectional minimum depths;
+and emits canonical node identity order. The registered provider carries the
+exact Graph binding through managed Relation completion, two downstream
+computations, independent release, and Effect-free Named Result publication.
+The direct kernel and standard Host fixtures pass on JS, Wasm, and native.
+Environment-delivered cancellation and the remaining classified boundary
+cases are not yet recorded, so `reach` remains partial rather than increasing
+the operation completion count.
 
 The Graph Bridge now lowers explicit node and edge sources through one finite
 typed expansion without collapsing repeated input positions. The expansion
