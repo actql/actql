@@ -71,11 +71,27 @@
         "standard_host",
         "consumer_lifetime",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/normalize_wbtest.mbt"
+        "src/local_sga/normalize_wbtest.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "managed_normalization_bridge_and_environment_cancellation",
+          "layers": ["managed", "standard_host", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "88f94892",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {

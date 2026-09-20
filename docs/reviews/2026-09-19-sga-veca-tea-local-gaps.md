@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 6/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 7/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The Effect-free path also publishes and retrieves managed vector expression results; 7/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 6/39, and publication 7/39. These are
+consumer lifetime 15/39, cancellation 7/39, and publication 7/39. These are
 layer counts, not operation completion: six entries are `complete` and 33 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -201,7 +201,13 @@ operations retain checked property laws. Basic operations preserve direction,
 component policy, resolved guards, and bounds. Delta application retains its
 exact produced input and selected field. Normalize now copies an exact managed
 Graph input into an independently retained managed Graph generation through
-bounded work units. Graft consumes two exact positioned inputs, preserves a
+bounded work units. The registered Graph provider now runs that generation
+through the formal Graph-to-Relation Bridge, two Relation consumers, and final
+reclamation on all three portable targets. A real environment timer also
+delivers cancellation during normalization, observes stop, and completes
+cleanup without exposing a partial generation. A same-Carrier SGA consumer of
+the normalized generation remains open, so `normalize_graph` is still partial.
+Graft consumes two exact positioned inputs, preserves a
 repeated material occurrence, collapses an equal declaration, and rejects a
 conflicting payload atomically. Their portable tests cover pre-allocation
 limits, kernel cancellation observation, and managed Graph generations on JS,
