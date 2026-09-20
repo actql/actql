@@ -4,6 +4,7 @@
 /// native Store owns only durable physical operations.
 pub(all) enum NativeRunPublicationIssue {
   InvalidConfiguration
+  AccessDenied
   CommitConflict
   Store(@store.NativePublicationStoreIssue)
   Issuance(@publication.PublicationCommitIssuanceIssue)
@@ -63,19 +64,46 @@ pub(all) struct NativeRunPublicationResult {
 }
 
 ///|
+/// Exact facts presented to the Host publication authority. The first check
+/// precedes Store lookup, so denial cannot reveal whether a scoped Run is
+/// already published. The commit check binds the candidate index.
+pub(all) struct NativeRunPublicationAuthorization {
+  stage : String
+  tenant_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  publication_request_cid : String
+  public_index_entry_cid : String?
+}
+
+///|
+struct NativeRunPublicationAuthority {
+  authorize : (NativeRunPublicationAuthorization) -> Bool
+}
+
+///|
 /// Standard native publication service. It contains only common limits and
 /// the physical Store authority; callers cannot replace the portable contract
 /// implementation with environment-specific callbacks.
 struct NativeRunPublicationService {
   store : @store.Store
+  authority : NativeRunPublicationAuthority
   max_wire_bytes : Int
   max_nodes : Int
   max_depth : Int
 }
 
 ///|
+pub fn install_native_run_publication_authority(
+  authorize : (NativeRunPublicationAuthorization) -> Bool,
+) -> NativeRunPublicationAuthority {
+  { authorize, }
+}
+
+///|
 pub fn install_native_run_publication_service(
   store : @store.Store,
+  authority : NativeRunPublicationAuthority,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -83,7 +111,38 @@ pub fn install_native_run_publication_service(
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     Err(InvalidConfiguration)
   } else {
-    Ok({ store, max_wire_bytes, max_nodes, max_depth, })
+    Ok({ store, authority, max_wire_bytes, max_nodes, max_depth, })
+  }
+}
+
+///|
+fn authorize(
+  service : NativeRunPublicationService,
+  intent : NativeRunPublicationIntent,
+  run_definition : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  stage : String,
+  index : @publication.PublicationContract?,
+) -> Result[Unit, NativeRunPublicationIssue] {
+  let index_cid = match index {
+    Some(value) => Some(@publication.publication_contract_identity(value))
+    None => None
+  }
+  if (service.authority.authorize)({
+      stage,
+      tenant_id: intent.tenant_id,
+      authority_scope_cid: intent.authority_scope_cid,
+      run_definition_cid: @publication.publication_contract_identity(
+        run_definition,
+      ),
+      publication_request_cid: @publication.publication_contract_identity(
+        request,
+      ),
+      public_index_entry_cid: index_cid,
+    }) {
+    Ok(())
+  } else {
+    Err(AccessDenied)
   }
 }
 
@@ -242,11 +301,24 @@ fn inspect_existing_commit(
   }
   match existing {
     None => Ok(None)
-    Some(index) =>
+    Some(index) => {
+      match
+        authorize(
+          service,
+          intent,
+          evidence.run_definition,
+          request,
+          "return_committed",
+          Some(index),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       match validate_existing_commit(service, evidence, request, index) {
         Ok(value) => Ok(Some(value))
         Err(issue) => Err(issue)
       }
+    }
   }
 }
 
@@ -265,6 +337,18 @@ pub fn publish_effect_free_run_native(
   }
   let request = match issue_request(service, evidence, intent) {
     Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    authorize(
+      service,
+      intent,
+      evidence.run_definition,
+      request,
+      "request",
+      None,
+    ) {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   match inspect_existing_commit(service, evidence, intent, request) {
@@ -307,6 +391,18 @@ pub fn publish_effect_free_run_native(
       ),
     ) {
     Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    authorize(
+      service,
+      intent,
+      evidence.run_definition,
+      request,
+      "commit",
+      Some(index),
+    ) {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let committed = service.store.commit_publication(

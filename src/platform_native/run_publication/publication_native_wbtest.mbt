@@ -342,7 +342,16 @@ test "standard native publication reconciles one durable Run commit" {
   let authority = publication_test_cid(token + "-store-authority")
   let library = @sqlite.load_library(library_path).unwrap()
   let store = @store.open_store(library, root, authority, 1024L, 8L, 65536L).unwrap()
-  let service = install_native_run_publication_service(store, 65536, 4096, 32).unwrap()
+  let authorization_stages : Array[String] = []
+  let publication_authority = install_native_run_publication_authority(fn(
+    authorization,
+  ) {
+    authorization_stages.push(authorization.stage)
+    true
+  })
+  let service = install_native_run_publication_service(
+    store, publication_authority, 65536, 4096, 32,
+  ).unwrap()
   let (evidence, intent, occurrence) = publication_test_fixture(
     store, authority, token,
   )
@@ -366,6 +375,9 @@ test "standard native publication reconciles one durable Run commit" {
   assert_true(retry.idempotent)
   assert_eq(retry.public_index_entry_cid, first.public_index_entry_cid)
   assert_eq(retry.publication_attempt_cid, first.publication_attempt_cid)
+  assert_eq(authorization_stages, [
+    "request", "commit", "request", "return_committed",
+  ])
   let conflicting_intent : NativeRunPublicationIntent = {
     ..intent,
     publication_policy_cid: publication_test_cid(token + "-other-policy"),
@@ -376,10 +388,21 @@ test "standard native publication reconciles one durable Run commit" {
     )
     is Err(CommitConflict),
   )
+  let denied = install_native_run_publication_service(
+    store,
+    install_native_run_publication_authority(fn(_) { false }),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    publish_effect_free_run_native(denied, evidence, intent, retry_occurrence)
+    is Err(AccessDenied),
+  )
   assert_true(store.close().unwrap())
   let reopened = @store.open_store(library, root, authority, 1024L, 8L, 65536L).unwrap()
   let reopened_service = install_native_run_publication_service(
-    reopened, 65536, 4096, 32,
+    reopened, publication_authority, 65536, 4096, 32,
   ).unwrap()
   let after_restart = publish_effect_free_run_native(
     reopened_service, evidence, intent, retry_occurrence,

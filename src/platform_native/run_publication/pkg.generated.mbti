@@ -6,7 +6,9 @@ import {
 }
 
 // Values
-pub fn install_native_run_publication_service(@publication_store.Store, Int, Int, Int) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
+pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
+
+pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
 
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
@@ -28,6 +30,17 @@ pub(all) struct NativeEffectFreePublicationEvidence {
   captured_run : @actql/actql/run_publication.PublicationContract
 }
 
+type NativeRunPublicationAuthority
+
+pub(all) struct NativeRunPublicationAuthorization {
+  stage : String
+  tenant_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  publication_request_cid : String
+  public_index_entry_cid : String?
+}
+
 pub(all) struct NativeRunPublicationIntent {
   tenant_id : String
   authority_scope_cid : String
@@ -38,6 +51,7 @@ pub(all) struct NativeRunPublicationIntent {
 
 pub(all) enum NativeRunPublicationIssue {
   InvalidConfiguration
+  AccessDenied
   CommitConflict
   Store(@publication_store.NativePublicationStoreIssue)
   Issuance(@actql/actql/run_publication.PublicationCommitIssuanceIssue)

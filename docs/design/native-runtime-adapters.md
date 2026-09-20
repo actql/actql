@@ -96,10 +96,13 @@ The standard native publication service accepts the complete checked
 Effect-free Run evidence plus an immutable publication intent. It issues the
 publication request, attempt, and public-index contracts through the portable
 owner rather than accepting environment-authored contracts. Before creating
-an occurrence it resolves the one scoped committed index. An exact retry,
-concurrent winner, or restart-visible commit is re-admitted and validated
-against the complete chain; a changed policy or target is a conflict. The
-single Store index insertion remains the durable visibility boundary.
+an occurrence it checks Host authority before resolving the one scoped
+committed index, then rechecks authority against the candidate index before
+commit. Denial therefore reveals neither publication existence nor a retained
+index identity. An exact retry, concurrent winner, or restart-visible commit
+is re-admitted and validated against the complete chain; a changed policy or
+target is a conflict. The single Store index insertion remains the durable
+visibility boundary.
 
 The standard native Result-access service follows the portable access
 progression: request authorization, committed Result resolution, initial
