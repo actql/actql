@@ -71,6 +71,8 @@ pub fn close_capability_registry(CapabilityRegistry) -> Unit
 
 pub fn execute_synchronous_compute(SynchronousCompute) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]
 
+pub fn[E, P] execution_lifecycle(ExecutionOperations[E, P]) -> ExecutionLifecycleOperations[E]
+
 pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost.DurationEstimate
 
 pub fn fixed_compute_candidate_quantities(FixedComputeCandidate) -> QueryQuantities
@@ -102,6 +104,8 @@ pub fn[A, C] installed_acquisition_implementations(InstalledBundles[A, C]) -> Ca
 pub fn[A, C] installed_bundle_registry(InstalledBundles[A, C]) -> CapabilityRegistry
 
 pub fn[A, C] installed_compute_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[C]
+
+pub fn[E] managed_execution_lifecycle(ManagedExecutionOperations[E]) -> ExecutionLifecycleOperations[E]
 
 pub fn[T] managed_fixed_compute_candidate_duration(ManagedFixedComputeCandidate[T]) -> @physical_cost.DurationEstimate
 
@@ -273,6 +277,15 @@ pub(all) struct ExecutionCapacity {
   retained_bytes : Int64
   scratch_bytes : Int64
   execution_bytes : Int64
+}
+
+pub(all) struct ExecutionLifecycleOperations[E] {
+  cancel : () -> Unit
+  dispose : () -> Unit
+  settled : () -> Unit
+  retention_released : () -> Bool
+  released : () -> Unit
+  ready : () -> Result[Unit, E]
 }
 
 pub(all) struct ExecutionOperations[E, P] {

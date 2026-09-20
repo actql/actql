@@ -26,6 +26,20 @@ pub(all) struct ExecutionOperations[E, P] {
 }
 
 ///|
+pub fn[E, P] execution_lifecycle(
+  operations : ExecutionOperations[E, P],
+) -> ExecutionLifecycleOperations[E] {
+  {
+    cancel: operations.cancel,
+    dispose: operations.dispose,
+    settled: operations.settled,
+    retention_released: operations.retention_released,
+    released: operations.released,
+    ready: operations.ready,
+  }
+}
+
+///|
 pub(all) enum ExecutionPreparationIssue[E] {
   Candidate(FixedComputeIssue)
   Implementation(E)

@@ -1,7 +1,18 @@
 ///|
-/// Lifecycle facts for a managed-profile installed execution. Managed output
-/// verification/publication uses its typed completion port, so no legacy
-/// CompletedOutput finisher or publication hook exists here.
+/// Common physical lifecycle facts for every installed execution. Output
+/// verification and completion authority are separate typed boundaries.
+pub(all) struct ExecutionLifecycleOperations[E] {
+  cancel : () -> Unit
+  dispose : () -> Unit
+  settled : () -> Unit
+  retention_released : () -> Bool
+  released : () -> Unit
+  ready : () -> Result[Unit, E]
+}
+
+///|
+/// Compatibility surface for managed implementations while callers migrate to
+/// the common lifecycle owner. It contains no completion authority.
 pub(all) struct ManagedExecutionOperations[E] {
   cancel : () -> Unit
   dispose : () -> Unit
@@ -9,6 +20,20 @@ pub(all) struct ManagedExecutionOperations[E] {
   retention_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
+}
+
+///|
+pub fn[E] managed_execution_lifecycle(
+  operations : ManagedExecutionOperations[E],
+) -> ExecutionLifecycleOperations[E] {
+  {
+    cancel: operations.cancel,
+    dispose: operations.dispose,
+    settled: operations.settled,
+    retention_released: operations.retention_released,
+    released: operations.released,
+    ready: operations.ready,
+  }
 }
 
 ///|

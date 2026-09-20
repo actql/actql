@@ -9,7 +9,8 @@ struct TaskExecution {
   reservation : @resources.Reservation
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
-  mut hooks : TaskExecutionHooks?
+  mut hooks : @connector.ExecutionLifecycleOperations[RunIssue]?
+  legacy_completion : LegacyTaskCompletion?
   mut execution_settled : Bool
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
@@ -100,59 +101,43 @@ fn[I] select_task_numeric_reductions(
 }
 
 ///|
-/// Common physical lifecycle with explicitly distinct publication families.
-/// A managed execution cannot be coerced into the legacy output finisher.
-priv enum TaskExecutionHooks {
-  Legacy(@connector.ExecutionOperations[RunIssue, TaskPublication])
-  Managed(@connector.ManagedExecutionOperations[RunIssue])
+/// Temporary one-way adapter for product callers not yet migrated to typed
+/// managed completion. It has no independent lifecycle or output store.
+priv struct LegacyTaskCompletion {
+  finish : () -> Result[@execution.CompletedOutput, RunIssue]
+  publish : (TaskPublication) -> Result[Unit, RunIssue]
 }
 
 ///|
 fn task_execution_cancel(execution : TaskExecution) -> Unit {
-  match execution.hooks.unwrap() {
-    Legacy(hooks) => (hooks.cancel)()
-    Managed(hooks) => (hooks.cancel)()
-  }
+  (execution.hooks.unwrap().cancel)()
 }
 
 ///|
 fn task_execution_settled(execution : TaskExecution) -> Unit {
-  match execution.hooks.unwrap() {
-    Legacy(hooks) => (hooks.settled)()
-    Managed(hooks) => (hooks.settled)()
-  }
+  (execution.hooks.unwrap().settled)()
 }
 
 ///|
 fn task_execution_ready(execution : TaskExecution) -> Result[Unit, RunIssue] {
-  match execution.hooks.unwrap() {
-    Legacy(hooks) => (hooks.ready)()
-    Managed(hooks) => (hooks.ready)()
-  }
+  (execution.hooks.unwrap().ready)()
 }
 
 ///|
 fn task_execution_dispose(execution : TaskExecution) -> Unit {
-  match execution.hooks.unwrap() {
-    Legacy(hooks) => (hooks.dispose)()
-    Managed(hooks) => (hooks.dispose)()
-  }
+  (execution.hooks.unwrap().dispose)()
 }
 
 ///|
 fn task_execution_retention_released(execution : TaskExecution) -> Bool {
-  match execution.hooks.unwrap() {
-    Legacy(hooks) => (hooks.retention_released)()
-    Managed(hooks) => (hooks.retention_released)()
-  }
+  (execution.hooks.unwrap().retention_released)()
 }
 
 ///|
-fn task_execution_released(hooks : TaskExecutionHooks) -> Unit {
-  match hooks {
-    Legacy(hooks) => (hooks.released)()
-    Managed(hooks) => (hooks.released)()
-  }
+fn task_execution_released(
+  hooks : @connector.ExecutionLifecycleOperations[RunIssue],
+) -> Unit {
+  (hooks.released)()
 }
 
 ///|
@@ -288,7 +273,8 @@ pub fn[I, T] start_captured_managed_execution(
           }
         }),
         scratch,
-        hooks: Some(Managed(hooks)),
+        hooks: Some(@connector.managed_execution_lifecycle(hooks)),
+        legacy_completion: None,
         execution_settled: false,
         disposed: false,
         failed_holding: None,
@@ -438,7 +424,11 @@ fn[T] start_task_execution(
           }
         }),
         scratch,
-        hooks: Some(Legacy(hooks)),
+        hooks: Some(@connector.execution_lifecycle(hooks)),
+        legacy_completion: Some({
+          finish: hooks.finish,
+          publish: hooks.publish,
+        }),
         execution_settled: false,
         disposed: false,
         failed_holding: None,
@@ -798,7 +788,7 @@ pub fn complete_task_execution(
   if execution.disposed || !execution.execution_settled {
     return Err(Physical(InvalidCharge))
   }
-  guard execution.hooks.unwrap() is Legacy(hooks) else {
+  guard execution.legacy_completion is Some(completion) else {
     return Err(ForeignCandidate)
   }
   if execution.resident is Some(resource) {
@@ -826,7 +816,7 @@ pub fn complete_task_execution(
     Err(issue) => return Err(Physical(issue))
   }
   execution.retained_bytes = None
-  match (hooks.finish)() {
+  match (completion.finish)() {
     Ok(output) => {
       match
         publish_task_completion(run, task, output, holding, ForeignCandidate, fn(
@@ -839,7 +829,7 @@ pub fn complete_task_execution(
               Ok(_) => ()
             }
           }
-          (hooks.publish)(publication)
+          (completion.publish)(publication)
         }) {
         Err(issue) => {
           execution.failed_holding = Some(holding)
