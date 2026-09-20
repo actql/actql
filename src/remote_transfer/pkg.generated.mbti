@@ -37,6 +37,8 @@ pub fn destination_receipt_json(RemoteTransferDestinationReceipt) -> Result[Stri
 
 pub fn destination_receipt_projection(RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn direct_transfer_cleanup_confirmed(RemoteTransferRecord) -> Bool
+
 pub fn direct_transfer_progress(RemoteTransferRecord) -> RemoteDirectTransferProgress
 
 pub fn durable_remote_transfer_record_journal_identity(DurableRemoteTransferRecord) -> Result[String, RemoteTransferIssue]

@@ -669,6 +669,10 @@ pub fn async_strategy_remote_runtime_success_action(@remote_site_protocol.Dispat
 
 pub fn async_strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 
+pub fn async_strategy_remote_transfer_admission_envelope_admit_json(String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_admission_envelope_json(@remote_transfer.RemoteTransferRequest) -> String raise AsyncHostFailure
+
 pub fn async_strategy_remote_transfer_admit_json(String, String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_chunk_byte_lengths(@remote_transfer.RemoteTransferRequest) -> Array[Int64]
@@ -691,6 +695,8 @@ pub fn async_strategy_remote_transfer_destination_receipt_prepare(@remote_transf
 
 pub fn async_strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn async_strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
+
 pub fn async_strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
@@ -707,15 +713,33 @@ pub fn async_strategy_remote_transfer_prepare(String, String, Int, String, Int, 
 
 pub fn async_strategy_remote_transfer_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
 
+pub fn async_strategy_remote_transfer_record_is_destination_committed(@remote_transfer.RemoteTransferRecord) -> Bool
+
 pub fn async_strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
 
 pub fn async_strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
 
+pub fn async_strategy_remote_transfer_reply_admit_json(String, @remote_transfer.RemoteTransferRequest) -> @remote_transfer.RemoteTransferRecord raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_reply_json(@remote_transfer.RemoteTransferRecord) -> String raise AsyncHostFailure
+
 pub fn async_strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_upload_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, Int) -> @remote_transfer.RemoteTransferStoreUploadReply raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_upload_reply_json(@remote_transfer.RemoteTransferRequest, Int, Int, Bool) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_upload_reply_projection(@remote_transfer.RemoteTransferStoreUploadReply) -> Array[String]
+
+pub fn async_strategy_remote_transfer_store_use_cancellation_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferStoreUseCancellationReply raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_use_cancellation_reply_json(@remote_transfer.RemoteTransferRequest, String) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_use_cancellation_reply_projection(@remote_transfer.RemoteTransferStoreUseCancellationReply) -> Array[String]
 
 pub fn async_strategy_remote_transfer_store_use_cleanup_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise AsyncHostFailure
 
@@ -736,6 +760,12 @@ pub fn async_strategy_remote_transfer_store_use_projection(@remote_transfer.Remo
 pub fn async_strategy_remote_transfer_store_use_record_projection(@remote_transfer.RemoteTransferStoreUseRecord) -> Array[String]
 
 pub fn async_strategy_remote_transfer_store_use_record_restore(@remote_transfer.RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> @remote_transfer.RemoteTransferStoreUseRecord raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_use_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, String, Int) -> @remote_transfer.RemoteTransferStoreUseReply raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_use_reply_json(@remote_transfer.RemoteTransferRequest, String, Int, Bool) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_transfer_store_use_reply_projection(@remote_transfer.RemoteTransferStoreUseReply) -> Array[String]
 
 pub fn async_strategy_remote_transfer_store_use_start_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise AsyncHostFailure
 
@@ -1553,6 +1583,10 @@ pub fn strategy_remote_runtime_success_action(@remote_site_protocol.DispatchReco
 
 pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 
+pub fn strategy_remote_transfer_admission_envelope_admit_json(String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
+
+pub fn strategy_remote_transfer_admission_envelope_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
+
 pub fn strategy_remote_transfer_admit_json(String, String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
 
 pub fn strategy_remote_transfer_chunk_byte_lengths(@remote_transfer.RemoteTransferRequest) -> Array[Int64]
@@ -1575,6 +1609,8 @@ pub fn strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.Rem
 
 pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
+
 pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
 pub fn strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
@@ -1591,15 +1627,33 @@ pub fn strategy_remote_transfer_prepare(String, String, Int, String, Int, String
 
 pub fn strategy_remote_transfer_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
 
+pub fn strategy_remote_transfer_record_is_destination_committed(@remote_transfer.RemoteTransferRecord) -> Bool
+
 pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
 
 pub fn strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
 
 pub fn strategy_remote_transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
 
+pub fn strategy_remote_transfer_reply_admit_json(String, @remote_transfer.RemoteTransferRequest) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_reply_json(@remote_transfer.RemoteTransferRecord) -> String raise NodeHostFailure
+
 pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
 pub fn strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_upload_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, Int) -> @remote_transfer.RemoteTransferStoreUploadReply raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_upload_reply_json(@remote_transfer.RemoteTransferRequest, Int, Int, Bool) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_upload_reply_projection(@remote_transfer.RemoteTransferStoreUploadReply) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_cancellation_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferStoreUseCancellationReply raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_cancellation_reply_json(@remote_transfer.RemoteTransferRequest, String) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_cancellation_reply_projection(@remote_transfer.RemoteTransferStoreUseCancellationReply) -> Array[String]
 
 pub fn strategy_remote_transfer_store_use_cleanup_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
 
@@ -1620,6 +1674,12 @@ pub fn strategy_remote_transfer_store_use_projection(@remote_transfer.RemoteTran
 pub fn strategy_remote_transfer_store_use_record_projection(@remote_transfer.RemoteTransferStoreUseRecord) -> Array[String]
 
 pub fn strategy_remote_transfer_store_use_record_restore(@remote_transfer.RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, String, Int) -> @remote_transfer.RemoteTransferStoreUseReply raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_reply_json(@remote_transfer.RemoteTransferRequest, String, Int, Bool) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_reply_projection(@remote_transfer.RemoteTransferStoreUseReply) -> Array[String]
 
 pub fn strategy_remote_transfer_store_use_start_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
 

@@ -724,6 +724,8 @@ pub fn strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.Rem
 
 pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
+
 pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
 pub fn strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
@@ -739,6 +741,8 @@ pub fn strategy_remote_transfer_open(@remote_transfer.RemoteTransferRequest) -> 
 pub fn strategy_remote_transfer_prepare(String, String, Int, String, Int, String, Int, String, String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64, Int64, Int64, String, String, String) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
 
 pub fn strategy_remote_transfer_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn strategy_remote_transfer_record_is_destination_committed(@remote_transfer.RemoteTransferRecord) -> Bool
 
 pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
 
