@@ -139,7 +139,20 @@ function remoteSiteControl(moon) {
     dispatchBudgetIdentity: moon.strategyRemoteDispatchBudgetIdentity,
     recordMatchesDispatch: moon.strategyRemoteRecordMatchesDispatch,
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
-    pollJson: value => checked(moon.strategyRemotePollDispatchJson(value)),
+    prepareInputBinding: (body, maxBytes = 1_048_576) => checked(
+      moon.strategyRemoteInputBindingPrepare(body, maxBytes),
+    ),
+    inputBindingIdentity: moon.strategyRemoteInputBindingIdentity,
+    inputBindingMatchesDispatch:
+      moon.strategyRemoteInputBindingMatchesDispatch,
+    pollJson: (value, binding) => checked(
+      moon.strategyRemotePollDispatchJson(value, binding),
+    ),
+    admitPollDispatch: body => checked(
+      moon.strategyRemotePollDispatchAdmit(body),
+    ),
+    pollDispatchRequest: moon.strategyRemotePollDispatchRequest,
+    pollDispatchBindingBody: moon.strategyRemotePollDispatchBindingBody,
     pollQueryJson: value => checked(moon.strategyRemotePollQueryJson(value)),
     pollNotSeenJson: value => checked(
       moon.strategyRemotePollNotSeenJson(value),

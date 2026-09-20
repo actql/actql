@@ -3138,11 +3138,70 @@ pub fn strategy_remote_dispatch_json(
 #export_name("strategyRemotePollDispatchJson")
 pub fn strategy_remote_poll_dispatch_json(
   request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
 ) -> String raise NodeHostFailure {
-  match @remote.remote_poll_dispatch_json(request) {
+  match @remote.remote_poll_dispatch_json(request, binding) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteInputBindingPrepare")
+pub fn strategy_remote_input_binding_prepare(
+  body : String,
+  max_bytes : Int,
+) -> @remote.RemoteInputBinding raise NodeHostFailure {
+  match @remote.prepare_remote_input_binding(body, max_bytes) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteInputBindingIdentity")
+pub fn strategy_remote_input_binding_identity(
+  binding : @remote.RemoteInputBinding,
+) -> String {
+  @remote.remote_input_binding_cid(binding)
+}
+
+///|
+#export_name("strategyRemoteInputBindingMatchesDispatch")
+pub fn strategy_remote_input_binding_matches_dispatch(
+  binding : @remote.RemoteInputBinding,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.remote_input_binding_matches_dispatch(binding, request)
+}
+
+///|
+#export_name("strategyRemotePollDispatchAdmit")
+pub fn strategy_remote_poll_dispatch_admit(
+  body : String,
+) -> @remote.RemotePollDispatch raise NodeHostFailure {
+  match @remote.admit_remote_poll_dispatch_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePollDispatchRequest")
+pub fn strategy_remote_poll_dispatch_request(
+  dispatch : @remote.RemotePollDispatch,
+) -> @remote.DispatchRequest {
+  @remote.remote_poll_dispatch_request(dispatch)
+}
+
+///|
+#export_name("strategyRemotePollDispatchBindingBody")
+pub fn strategy_remote_poll_dispatch_binding_body(
+  dispatch : @remote.RemotePollDispatch,
+) -> String {
+  @remote.remote_input_binding_body(
+    @remote.remote_poll_dispatch_input_binding(dispatch),
+  )
 }
 
 ///|

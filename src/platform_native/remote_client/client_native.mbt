@@ -143,7 +143,8 @@ pub fn poll(
 ) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
   match poll_operation(client, url) {
     Ok(None) => Ok(None)
-    Ok(Some(@remote.Dispatch(request))) => Ok(Some(request))
+    Ok(Some(@remote.Dispatch(dispatch))) =>
+      Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
     Ok(Some(@remote.Query(_))) => Err(Protocol(@remote.InvalidDispatch))
     Err(issue) => Err(issue)
   }

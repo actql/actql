@@ -9,7 +9,7 @@ import {
 }
 
 // Values
-pub fn install_native_remote_runtime_registration(@execution_site.ExecutionSite, String, String, String, String, String, String, (@remote_site_protocol.DispatchRequest) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue]
+pub fn install_native_remote_runtime_registration(@execution_site.ExecutionSite, String, String, String, String, String, String, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue]
 
 pub fn open_native_remote_runtime(@remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[NativeRemoteRuntimeRegistration], Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[NativeRemoteRuntime, NativeRemoteRuntimeIssue]
 
@@ -47,7 +47,7 @@ pub fn NativeRemoteRuntime::cleanup(Self, @remote_site_protocol.DispatchRequest)
 pub fn NativeRemoteRuntime::cleanup_pending(Self) -> Bool
 pub fn NativeRemoteRuntime::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::release(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
-pub fn NativeRemoteRuntime::start(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::start(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
 
 pub(all) struct NativeRemoteRuntimeCompletion {
   dispatch_request_cid : String

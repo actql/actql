@@ -215,6 +215,8 @@ pub fn prepare_reject_execution_evidence(DispatchRecord) -> Result[DispatchTrans
 
 pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudget, DispatchIssue]
 
+pub fn prepare_remote_input_binding(String, Int) -> Result[RemoteInputBinding, DispatchIssue]
+
 pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
 
 pub fn prepare_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64) -> Result[RemoteManagedOutputSubject, DispatchIssue]
@@ -267,6 +269,12 @@ pub fn remote_execution_evidence_json(RemoteExecutionEvidence) -> Result[String,
 
 pub fn remote_execution_evidence_matches_dispatch(RemoteExecutionEvidence, DispatchRequest) -> Bool
 
+pub fn remote_input_binding_body(RemoteInputBinding) -> String
+
+pub fn remote_input_binding_cid(RemoteInputBinding) -> String
+
+pub fn remote_input_binding_matches_dispatch(RemoteInputBinding, DispatchRequest) -> Bool
+
 pub fn remote_managed_output_evidence_kind() -> String
 
 pub fn remote_managed_output_measurement_cid(RemoteManagedOutputMeasurement) -> String
@@ -295,7 +303,9 @@ pub fn remote_managed_output_subject_retention(RemoteManagedOutputSubject) -> (S
 
 pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[Array[String], DispatchIssue]
 
-pub fn remote_poll_dispatch_json(DispatchRequest) -> Result[String, DispatchIssue]
+pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBinding
+
+pub fn remote_poll_dispatch_json(DispatchRequest, RemoteInputBinding) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 
@@ -479,6 +489,8 @@ pub(all) enum RemoteExecutionState {
   ExecutionUnknown
 } derive(Eq, @debug.Debug)
 
+type RemoteInputBinding
+
 type RemoteManagedOutputMeasurement
 
 type RemoteManagedOutputSubject
@@ -486,7 +498,7 @@ type RemoteManagedOutputSubject
 type RemotePollDispatch
 
 pub(all) enum RemotePollOperation {
-  Dispatch(DispatchRequest)
+  Dispatch(RemotePollDispatch)
   Query(DispatchRequest)
 }
 

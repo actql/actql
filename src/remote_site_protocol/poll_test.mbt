@@ -1,14 +1,25 @@
 ///|
 test "outbound poll preserves the exact canonical dispatch request" {
   let request = coordinator_request("dispatch-poll", 31)
-  let body = remote_poll_dispatch_json(request).unwrap()
+  let binding = prepare_remote_input_binding("{}", 16).unwrap()
+  let body = remote_poll_dispatch_json(request, binding).unwrap()
   let admitted = admit_remote_poll_dispatch_json(body).unwrap()
   assert_eq(
     dispatch_request_identity(remote_poll_dispatch_request(admitted)),
     dispatch_request_identity(request),
   )
+  assert_eq(
+    remote_input_binding_body(remote_poll_dispatch_input_binding(admitted)),
+    "{}",
+  )
   assert_true(
     admit_remote_poll_dispatch_json(body.replace(old="site-a", new="site-b"))
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    admit_remote_poll_dispatch_json(
+      body.replace(old="{}", new="{\"changed\":true}"),
+    )
     is Err(InvalidDispatch),
   )
 }

@@ -102,8 +102,12 @@ test "native remote runtime owns success failure and cleanup progression" {
     "strategy/1",
     operation_capability,
     issuer_capability,
-    _request => {
-      executions[0] += 1
+    (_request, binding) => {
+      if @remote.remote_input_binding_body(binding) == "{}" {
+        executions[0] += 1
+      } else {
+        executions[0] += 1000
+      }
       if executions[0] == 2 {
         return prepare_native_remote_failure(
           "native-stop-pending",
@@ -186,7 +190,7 @@ test "native remote runtime owns success failure and cleanup progression" {
       "local/1",
       "strategy/1",
       runtime_test_cid(
-        "1111111111111111111111111111111111111111111111111111111111111111",
+        "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
       ),
       runtime_test_cid(
         "2222222222222222222222222222222222222222222222222222222222222222",
@@ -196,8 +200,9 @@ test "native remote runtime owns success failure and cleanup progression" {
       operation_capability,
     ).unwrap()
   }
+  let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let first = request("dispatch-a")
-  let completion = runtime.start(first).unwrap()
+  let completion = runtime.start(first, input_binding).unwrap()
   assert_eq(
     completion.dispatch_request_cid,
     @remote.dispatch_request_identity(first),
@@ -207,7 +212,9 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_true(runtime.release(first).unwrap())
   assert_eq(released[0], 2)
   let second = request("dispatch-b")
-  assert_true(runtime.start(second) is Err(Physical("native-stop-pending")))
+  assert_true(
+    runtime.start(second, input_binding) is Err(Physical("native-stop-pending")),
+  )
   assert_true(runtime.cleanup_pending())
   assert_true(runtime.cleanup(second).unwrap())
   assert_eq(stopped[0], 1)
@@ -218,8 +225,8 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_eq(status[6], 0L)
   assert_eq(status[7], 0L)
   assert_eq(status[8], 0L)
-  runtime.start(request("dispatch-c")).unwrap() |> ignore
-  runtime.start(request("dispatch-d")).unwrap() |> ignore
+  runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
+  runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
   assert_true(runtime.close() is Err(CleanupPending("output")))
   assert_eq(released[0], 4)
   assert_false(runtime.close().unwrap())

@@ -70,6 +70,9 @@ export async function startHttpsRemoteSiteAgent({
       siteGeneration < 0 || journal === undefined || store === undefined ||
       control === null || typeof control !== 'object' ||
       typeof control.runtimeStartable !== 'function' ||
+      typeof control.admitPollDispatch !== 'function' ||
+      typeof control.pollDispatchRequest !== 'function' ||
+      typeof control.pollDispatchBindingBody !== 'function' ||
       typeof admitDispatchJson !== 'function' ||
       dispatchRuntime === null || typeof dispatchRuntime !== 'object' ||
       typeof dispatchRuntime.supports !== 'function' ||
@@ -119,7 +122,18 @@ export async function startHttpsRemoteSiteAgent({
         return;
       }
       const body = await readBounded(request, maxRequestBytes);
-      const dispatch = admitDispatchJson(control, body, claimed, maxRequestBytes);
+      let inputBindingBody;
+      let dispatch;
+      if (admissionRequest) {
+        const envelope = control.admitPollDispatch(body);
+        dispatch = control.pollDispatchRequest(envelope);
+        inputBindingBody = control.pollDispatchBindingBody(envelope);
+        if (control.identity(dispatch) !== claimed) {
+          fail('RemoteDispatchIdentityMismatch');
+        }
+      } else {
+        dispatch = admitDispatchJson(control, body, claimed, maxRequestBytes);
+      }
       const keyParts = control.journalKey(dispatch);
       if (keyParts[0] !== authority || keyParts[1] !== siteKey ||
           Number(keyParts[2]) !== siteGeneration) {
@@ -191,7 +205,7 @@ export async function startHttpsRemoteSiteAgent({
       }
       const record = store.accept(admission, dispatch, control);
       if (control.runtimeStartable(record)) {
-        dispatchRuntime.start(dispatch, record);
+        dispatchRuntime.start(dispatch, record, undefined, inputBindingBody);
       }
       replyCanonical(response, control.replyJson(record));
     } catch (error) {

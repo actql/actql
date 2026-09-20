@@ -2902,11 +2902,70 @@ pub fn strategy_remote_dispatch_json(
 #export_name("strategyRemotePollDispatchJson")
 pub fn strategy_remote_poll_dispatch_json(
   request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
 ) -> String raise NodeHostFailure {
-  match @remote.remote_poll_dispatch_json(request) {
+  match @remote.remote_poll_dispatch_json(request, binding) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteInputBindingPrepare")
+pub fn strategy_remote_input_binding_prepare(
+  body : String,
+  max_bytes : Int,
+) -> @remote.RemoteInputBinding raise NodeHostFailure {
+  match @remote.prepare_remote_input_binding(body, max_bytes) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteInputBindingIdentity")
+pub fn strategy_remote_input_binding_identity(
+  binding : @remote.RemoteInputBinding,
+) -> String {
+  @remote.remote_input_binding_cid(binding)
+}
+
+///|
+#export_name("strategyRemoteInputBindingMatchesDispatch")
+pub fn strategy_remote_input_binding_matches_dispatch(
+  binding : @remote.RemoteInputBinding,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.remote_input_binding_matches_dispatch(binding, request)
+}
+
+///|
+#export_name("strategyRemotePollDispatchAdmit")
+pub fn strategy_remote_poll_dispatch_admit(
+  body : String,
+) -> @remote.RemotePollDispatch raise NodeHostFailure {
+  match @remote.admit_remote_poll_dispatch_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePollDispatchRequest")
+pub fn strategy_remote_poll_dispatch_request(
+  dispatch : @remote.RemotePollDispatch,
+) -> @remote.DispatchRequest {
+  @remote.remote_poll_dispatch_request(dispatch)
+}
+
+///|
+#export_name("strategyRemotePollDispatchBindingBody")
+pub fn strategy_remote_poll_dispatch_binding_body(
+  dispatch : @remote.RemotePollDispatch,
+) -> String {
+  @remote.remote_input_binding_body(
+    @remote.remote_poll_dispatch_input_binding(dispatch),
+  )
 }
 
 ///|
@@ -3905,6 +3964,189 @@ pub fn strategy_remote_runtime_startable(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeCustodyCreate")
+pub fn strategy_remote_runtime_custody_create() -> @remote.RemoteRuntimeCustody {
+  @remote.create_remote_runtime_custody()
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyAcquireOperation")
+pub fn strategy_remote_runtime_custody_acquire_operation(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_acquire_operation(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodySettleOperation")
+pub fn strategy_remote_runtime_custody_settle_operation(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_settle_operation(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyOperationSettled")
+pub fn strategy_remote_runtime_custody_operation_settled(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_operation_settled(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyOperationAcquired")
+pub fn strategy_remote_runtime_custody_operation_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_operation_acquired(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyAcquireOutput")
+pub fn strategy_remote_runtime_custody_acquire_output(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_acquire_output(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyReleaseOutput")
+pub fn strategy_remote_runtime_custody_release_output(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_release_output(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyOutputReleased")
+pub fn strategy_remote_runtime_custody_output_released(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_output_released(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyOutputAcquired")
+pub fn strategy_remote_runtime_custody_output_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_output_acquired(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyAcquireHolding")
+pub fn strategy_remote_runtime_custody_acquire_holding(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_acquire_holding(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyReleaseHolding")
+pub fn strategy_remote_runtime_custody_release_holding(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_release_holding(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyHoldingReleased")
+pub fn strategy_remote_runtime_custody_holding_released(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_holding_released(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyHoldingAcquired")
+pub fn strategy_remote_runtime_custody_holding_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_holding_acquired(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyAcquireBundle")
+pub fn strategy_remote_runtime_custody_acquire_bundle(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_acquire_bundle(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyReleaseBundle")
+pub fn strategy_remote_runtime_custody_release_bundle(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_release_bundle(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyBundleReleased")
+pub fn strategy_remote_runtime_custody_bundle_released(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_bundle_released(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyBundleAcquired")
+pub fn strategy_remote_runtime_custody_bundle_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_bundle_acquired(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyRecordFailure")
+pub fn strategy_remote_runtime_custody_record_failure(
+  custody : @remote.RemoteRuntimeCustody,
+  cancelled : Bool,
+  stop_required : Bool,
+  stop_confirmed : Bool,
+) -> Bool {
+  @remote.remote_runtime_custody_record_failure(
+    custody, cancelled, stop_required, stop_confirmed,
+  )
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyConfirmStop")
+pub fn strategy_remote_runtime_custody_confirm_stop(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_confirm_stop(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyStopPending")
+pub fn strategy_remote_runtime_custody_stop_pending(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_stop_pending(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyResourcesReclaimed")
+pub fn strategy_remote_runtime_custody_resources_reclaimed(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_resources_reclaimed(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeSuccessAction")
+pub fn strategy_remote_runtime_success_action(
+  record : @remote.DispatchRecord,
+  custody : @remote.RemoteRuntimeCustody,
+) -> Int raise NodeHostFailure {
+  match @remote.prepare_remote_runtime_success(record, custody) {
+    Ok(value) => @remote.remote_runtime_success_action_code(value)
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteRuntimeAdmission")
 pub fn strategy_remote_runtime_admission(
   runtime_closed : Bool,
@@ -3939,6 +4181,18 @@ pub fn strategy_remote_runtime_failure_plan(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeOwnedFailurePlan")
+pub fn strategy_remote_runtime_owned_failure_plan(
+  record : @remote.DispatchRecord,
+  custody : @remote.RemoteRuntimeCustody,
+) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
+  match @remote.prepare_owned_remote_runtime_failure(record, custody) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteRuntimeCleanupPlan")
 pub fn strategy_remote_runtime_cleanup_plan(
   record : @remote.DispatchRecord,
@@ -3950,6 +4204,18 @@ pub fn strategy_remote_runtime_cleanup_plan(
     @remote.prepare_remote_runtime_cleanup(
       record, cancelled, stop_confirmed, resources_reclaimed,
     ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRuntimeOwnedCleanupPlan")
+pub fn strategy_remote_runtime_owned_cleanup_plan(
+  record : @remote.DispatchRecord,
+  custody : @remote.RemoteRuntimeCustody,
+) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
+  match @remote.prepare_owned_remote_runtime_cleanup(record, custody) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }

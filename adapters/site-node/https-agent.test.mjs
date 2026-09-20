@@ -116,7 +116,8 @@ const dispatch = (
     connectorRegistration: 'local',
     connectorRevision: revision,
     strategyRevision: 'strategy/1',
-    inputBindingCid: cid('1'),
+    inputBindingCid:
+      'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
     obligationsCid: cid('2'),
     budgetCid: dispatchBudgetCid,
     evidenceIssuerCapabilityCid: cid('b'),
@@ -324,6 +325,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       key: material.coordinatorKey,
       control: runtime.remoteSiteControl,
       dispatch: request,
+      inputBindingBody: '{}',
     };
     const first = await coordinator.dispatch(options);
     assert.equal(first.dispatchRequestCid, runtime.remoteSiteControl.identity(request));
@@ -431,6 +433,7 @@ test('exact retransmission bypasses new-work capacity and admission closure',
       key: material.coordinatorKey,
       control: runtime.remoteSiteControl,
       dispatch: request,
+      inputBindingBody: '{}',
     };
     await sendRemoteDispatch(options);
     for (let attempt = 0; attempt < 100 && fixture.executionStarts() === 0;
@@ -478,6 +481,7 @@ test('authenticated cancellation waits for physical handler exit', async t => {
     key: material.coordinatorKey,
     control: runtime.remoteSiteControl,
     dispatch: request,
+    inputBindingBody: '{}',
   };
   await sendRemoteDispatch(options);
   await assert.rejects(
@@ -517,7 +521,12 @@ test('Agent close retries runtime cleanup without reopening admission',
       siteGeneration: 1,
       journal: {},
       store: {},
-      control: {runtimeStartable: () => false},
+      control: {
+        runtimeStartable: () => false,
+        admitPollDispatch() {},
+        pollDispatchRequest() {},
+        pollDispatchBindingBody() {},
+      },
       admitDispatchJson() {},
       dispatchRuntime: {
         supports: () => false,
@@ -555,7 +564,12 @@ test('concurrent Agent close calls share one runtime cleanup attempt',
       siteGeneration: 1,
       journal: {},
       store: {},
-      control: {runtimeStartable: () => false},
+      control: {
+        runtimeStartable: () => false,
+        admitPollDispatch() {},
+        pollDispatchRequest() {},
+        pollDispatchBindingBody() {},
+      },
       admitDispatchJson() {},
       dispatchRuntime: {
         supports: () => false,

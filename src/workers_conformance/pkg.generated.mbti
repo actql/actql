@@ -491,6 +491,12 @@ pub fn async_strategy_remote_historical_restore(@remote_site_protocol.SiteDispat
 
 pub fn async_strategy_remote_inactive_bundle_reclaim_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
 
+pub fn async_strategy_remote_input_binding_identity(@remote_site_protocol.RemoteInputBinding) -> String
+
+pub fn async_strategy_remote_input_binding_matches_dispatch(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn async_strategy_remote_input_binding_prepare(String, Int) -> @remote_site_protocol.RemoteInputBinding raise AsyncHostFailure
+
 pub fn async_strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise AsyncHostFailure
 
 pub fn async_strategy_remote_issue_managed_output_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteManagedOutputSubject) -> @remote_site_protocol.RemoteExecutionEvidence raise AsyncHostFailure
@@ -529,7 +535,13 @@ pub fn async_strategy_remote_managed_output_subject_projection(@remote_site_prot
 
 pub fn async_strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise AsyncHostFailure
 
-pub fn async_strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
+pub fn async_strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise AsyncHostFailure
+
+pub fn async_strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String
+
+pub fn async_strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_poll_dispatch_request(@remote_site_protocol.RemotePollDispatch) -> @remote_site_protocol.DispatchRequest
 
 pub fn async_strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise AsyncHostFailure
 
@@ -595,7 +607,53 @@ pub fn async_strategy_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Boo
 
 pub fn async_strategy_remote_runtime_cleanup_plan(@remote_site_protocol.DispatchRecord, Bool, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise AsyncHostFailure
 
+pub fn async_strategy_remote_runtime_custody_acquire_bundle(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_acquire_holding(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_acquire_operation(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_acquire_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_bundle_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_bundle_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_confirm_stop(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_create() -> @remote_site_protocol.RemoteRuntimeCustody
+
+pub fn async_strategy_remote_runtime_custody_holding_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_holding_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_operation_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_operation_settled(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_output_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_output_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_record_failure(@remote_site_protocol.RemoteRuntimeCustody, Bool, Bool, Bool) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_release_bundle(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_release_holding(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_release_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_resources_reclaimed(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_settle_operation(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn async_strategy_remote_runtime_custody_stop_pending(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
 pub fn async_strategy_remote_runtime_failure_plan(@remote_site_protocol.DispatchRecord, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise AsyncHostFailure
+
+pub fn async_strategy_remote_runtime_owned_cleanup_plan(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> @remote_site_protocol.RemoteRuntimeStep raise AsyncHostFailure
+
+pub fn async_strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> @remote_site_protocol.RemoteRuntimeStep raise AsyncHostFailure
 
 pub fn async_strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise AsyncHostFailure
 
@@ -604,6 +662,8 @@ pub fn async_strategy_remote_runtime_startable(@remote_site_protocol.DispatchRec
 pub fn async_strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
 
 pub fn async_strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_runtime_success_action(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> Int raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 
@@ -1313,6 +1373,12 @@ pub fn strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJour
 
 pub fn strategy_remote_inactive_bundle_reclaim_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
+pub fn strategy_remote_input_binding_identity(@remote_site_protocol.RemoteInputBinding) -> String
+
+pub fn strategy_remote_input_binding_matches_dispatch(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_input_binding_prepare(String, Int) -> @remote_site_protocol.RemoteInputBinding raise NodeHostFailure
+
 pub fn strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
 
 pub fn strategy_remote_issue_managed_output_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteManagedOutputSubject) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
@@ -1351,7 +1417,13 @@ pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.R
 
 pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
 
-pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+pub fn strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise NodeHostFailure
+
+pub fn strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String
+
+pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_dispatch_request(@remote_site_protocol.RemotePollDispatch) -> @remote_site_protocol.DispatchRequest
 
 pub fn strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise NodeHostFailure
 
@@ -1417,7 +1489,53 @@ pub fn strategy_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Boo
 
 pub fn strategy_remote_runtime_cleanup_plan(@remote_site_protocol.DispatchRecord, Bool, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
+pub fn strategy_remote_runtime_custody_acquire_bundle(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_acquire_holding(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_acquire_operation(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_acquire_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_bundle_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_bundle_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_confirm_stop(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_create() -> @remote_site_protocol.RemoteRuntimeCustody
+
+pub fn strategy_remote_runtime_custody_holding_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_holding_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_operation_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_operation_settled(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_output_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_output_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_record_failure(@remote_site_protocol.RemoteRuntimeCustody, Bool, Bool, Bool) -> Bool
+
+pub fn strategy_remote_runtime_custody_release_bundle(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_release_holding(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_release_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_resources_reclaimed(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_settle_operation(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_stop_pending(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
 pub fn strategy_remote_runtime_failure_plan(@remote_site_protocol.DispatchRecord, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_owned_cleanup_plan(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
 pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
@@ -1426,6 +1544,8 @@ pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -
 pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
 
 pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_runtime_success_action(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> Int raise NodeHostFailure
 
 pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 

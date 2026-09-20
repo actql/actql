@@ -45,7 +45,8 @@ const remoteRequestBody = JSON.stringify({
   dispatch_id: 'dispatch-native-remote',
   evidence_issuer_capability_cid: `sha256:${'b'.repeat(64)}`,
   grant_cid: `sha256:${'4'.repeat(64)}`,
-  input_binding_cid: `sha256:${'1'.repeat(64)}`,
+  input_binding_cid:
+    'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
   obligations_cid: `sha256:${'2'.repeat(64)}`,
   run_definition_cid: `sha256:${'0'.repeat(64)}`,
   runtime_bundle_cid: `sha256:${'a'.repeat(64)}`,
@@ -58,6 +59,9 @@ const remoteRequestBody = JSON.stringify({
 });
 const remoteRequestCid = `sha256:${createHash('sha256')
   .update(remoteRequestBody).digest('hex')}`;
+const remoteInputBindingBody = '{}';
+const remoteInputBindingCid = `sha256:${createHash('sha256')
+  .update(remoteInputBindingBody).digest('hex')}`;
 
 let server;
 let outboundPolls = 0;
@@ -147,12 +151,16 @@ try {
       }
       outboundPolls += 1;
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({
+      response.end(JSON.stringify(outboundPolls <= 2 ? {
+        dispatch_request_cid: remoteRequestCid,
+        input_binding_cid: remoteInputBindingCid,
+        input_binding_json: remoteInputBindingBody,
+        request_json: remoteRequestBody,
+        version: 'actql-remote-poll-dispatch/0.2',
+      } : {
         dispatch_request_cid: remoteRequestCid,
         request_json: remoteRequestBody,
-        version: outboundPolls <= 2
-          ? 'actql-remote-poll-dispatch/0.1'
-          : 'actql-remote-poll-query/0.1',
+        version: 'actql-remote-poll-query/0.1',
       }));
       return;
     }

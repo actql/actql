@@ -158,6 +158,8 @@ export function createRemoteDispatchRuntime({
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.executionScope !== 'function' ||
+      typeof control.prepareInputBinding !== 'function' ||
+      typeof control.inputBindingMatchesDispatch !== 'function' ||
       typeof control.managedRuntimeRegistrationScope !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.status !== 'function' ||
@@ -521,6 +523,7 @@ export function createRemoteDispatchRuntime({
     record,
     signal,
     bundleHoldId,
+    inputBindingBody,
   ) => {
     const identity = control.identity(dispatch);
     let output;
@@ -591,6 +594,7 @@ export function createRemoteDispatchRuntime({
           output = await registration.execute(Object.freeze({
             bundle,
             dispatch,
+            inputBindingBody,
             signal,
           }));
           checkedOutput(output);
@@ -717,7 +721,14 @@ export function createRemoteDispatchRuntime({
         false,
       ) === 0;
     },
-    start(dispatch, record, signal) {
+    start(dispatch, record, signal, inputBindingBody) {
+      if (typeof inputBindingBody !== 'string') {
+        fail('RemoteInputBindingMissing');
+      }
+      const inputBinding = control.prepareInputBinding(inputBindingBody);
+      if (!control.inputBindingMatchesDispatch(inputBinding, dispatch)) {
+        fail('RemoteInputBindingMismatch');
+      }
       const registration = registrationFor(dispatch);
       const budget = budgetFor(dispatch);
       const identity = control.identity(dispatch);
@@ -752,6 +763,7 @@ export function createRemoteDispatchRuntime({
         record,
         controller.signal,
         bundleHoldId,
+        inputBindingBody,
       ).finally(() => {
         signal?.removeEventListener('abort', abort);
         active.delete(identity);

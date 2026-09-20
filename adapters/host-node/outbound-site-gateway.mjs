@@ -75,6 +75,7 @@ export async function startHttpsOutboundSiteGateway({
       control === null || typeof control !== 'object' ||
       typeof control.identity !== 'function' ||
       typeof control.journalKey !== 'function' ||
+      typeof control.prepareInputBinding !== 'function' ||
       typeof control.pollJson !== 'function' ||
       typeof control.pollQueryJson !== 'function' ||
       typeof control.admitPollNotSeen !== 'function' ||
@@ -107,34 +108,44 @@ export async function startHttpsOutboundSiteGateway({
     if (binding === undefined) fail('OutboundSiteBindingUnavailable');
     return binding;
   };
-  const entryFor = (dispatch, operation) => {
+  const entryFor = (dispatch, operation, inputBindingBody) => {
     const identity = control.identity(dispatch);
     const key = `${operation}:${identity}`;
     let entry = pending.get(key);
-    if (entry !== undefined) return entry;
+    if (entry !== undefined) {
+      if (operation === 'dispatch' &&
+          entry.inputBindingBody !== inputBindingBody) {
+        fail('OutboundDispatchBindingCollision');
+      }
+      return entry;
+    }
     if (admissionClosed) fail('OutboundSiteGatewayClosed');
     if (pending.size >= maxPendingDispatches) {
       fail('OutboundSiteGatewayCapacityExceeded');
     }
-    const binding = exactBinding(dispatch);
+    const siteBinding = exactBinding(dispatch);
+    const inputBinding = operation === 'dispatch'
+      ? control.prepareInputBinding(inputBindingBody)
+      : undefined;
     entry = {
-      binding,
+      binding: siteBinding,
       dispatch,
       identity,
+      inputBindingBody,
       key,
       operation,
       envelope: operation === 'query'
         ? control.pollQueryJson(dispatch)
-        : control.pollJson(dispatch),
+        : control.pollJson(dispatch, inputBinding),
       sequence: sequence++,
       waiters: new Set(),
     };
     pending.set(key, entry);
     return entry;
   };
-  const waitFor = (dispatch, signal, operation) => {
+  const waitFor = (dispatch, signal, operation, inputBindingBody) => {
     if (signal?.aborted) return Promise.reject(signal.reason);
-    const entry = entryFor(dispatch, operation);
+    const entry = entryFor(dispatch, operation, inputBindingBody);
     return new Promise((resolve, reject) => {
       const waiter = {resolve, reject, signal, abort: undefined};
       if (signal !== undefined) {
@@ -274,13 +285,15 @@ export async function startHttpsOutboundSiteGateway({
   return Object.freeze({
     origin: `https://${host}:${address.port}`,
     port: address.port,
-    dispatch({dispatch, signal} = {}) {
-      if (dispatch === undefined) fail('InvalidOutboundDispatch');
-      return waitFor(dispatch, signal, 'dispatch');
+    dispatch({dispatch, inputBindingBody, signal} = {}) {
+      if (dispatch === undefined || typeof inputBindingBody !== 'string') {
+        fail('InvalidOutboundDispatch');
+      }
+      return waitFor(dispatch, signal, 'dispatch', inputBindingBody);
     },
     query({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');
-      return waitFor(dispatch, signal, 'query');
+      return waitFor(dispatch, signal, 'query', undefined);
     },
     pending() {
       return pending.size;

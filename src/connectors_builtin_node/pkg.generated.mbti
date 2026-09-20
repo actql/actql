@@ -520,6 +520,12 @@ pub fn strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJour
 
 pub fn strategy_remote_inactive_bundle_reclaim_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
+pub fn strategy_remote_input_binding_identity(@remote_site_protocol.RemoteInputBinding) -> String
+
+pub fn strategy_remote_input_binding_matches_dispatch(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_input_binding_prepare(String, Int) -> @remote_site_protocol.RemoteInputBinding raise NodeHostFailure
+
 pub fn strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
 
 pub fn strategy_remote_issue_managed_output_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteManagedOutputSubject) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
@@ -558,7 +564,13 @@ pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.R
 
 pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
 
-pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+pub fn strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise NodeHostFailure
+
+pub fn strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String
+
+pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_dispatch_request(@remote_site_protocol.RemotePollDispatch) -> @remote_site_protocol.DispatchRequest
 
 pub fn strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise NodeHostFailure
 

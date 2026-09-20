@@ -47,7 +47,8 @@ function request(overrides = {}) {
     connectorRegistration: 'local',
     connectorRevision: 'local/1',
     strategyRevision: 'strategy/1',
-    inputBindingCid: cid('1'),
+    inputBindingCid:
+      'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
     obligationsCid: cid('2'),
     budgetCid: dispatchBudgetCid,
     evidenceIssuerCapabilityCid: cid('b'),
@@ -182,7 +183,12 @@ test('registered runtime durably executes, evidences, and releases output',
       dispatch,
       f.control,
     );
-    const completed = await f.dispatchRuntime.start(dispatch, record);
+    const completed = await f.dispatchRuntime.start(
+      dispatch,
+      record,
+      undefined,
+      '{}',
+    );
     assert.equal(executions, 1);
     assert.deepEqual(completed.state, [3, 2, 0, 1, 0]);
     assert.equal(completed.revision, 5);
@@ -191,7 +197,7 @@ test('registered runtime durably executes, evidences, and releases output',
       f.control.evidenceIdentity(completed.evidence),
     );
     assert.throws(
-      () => f.dispatchRuntime.start(dispatch, record),
+      () => f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
       {code: 'RemoteDispatchAlreadyStarted'},
     );
     assert.deepEqual(
@@ -224,7 +230,7 @@ test('failed physical reclaim remains owned and retryable', async t => {
     dispatch,
     f.control,
   );
-  await f.dispatchRuntime.start(dispatch, record);
+  await f.dispatchRuntime.start(dispatch, record, undefined, '{}');
   await assert.rejects(
     f.dispatchRuntime.release(dispatch),
     error => error === failure,
@@ -297,7 +303,7 @@ test('revoked Site is rejected before remote execution starts', async t => {
   runtime.siteControl.revoke(f.selectedSite);
   assert.equal(f.dispatchRuntime.supports(dispatch), false);
   assert.throws(
-    () => f.dispatchRuntime.start(dispatch, record),
+    () => f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
     {code: 'RemoteSiteUnavailable'},
   );
   assert.equal(executions, 0);
@@ -322,7 +328,12 @@ test('Site revocation during execution cannot issue completion evidence',
       dispatch,
       f.control,
     );
-    const operation = f.dispatchRuntime.start(dispatch, record);
+    const operation = f.dispatchRuntime.start(
+      dispatch,
+      record,
+      undefined,
+      '{}',
+    );
     await started;
     runtime.siteControl.revoke(f.selectedSite);
     finishExecution();
@@ -347,12 +358,37 @@ test('runtime rejects a record from a different dispatch occurrence',
       f.control,
     );
     assert.throws(
-      () => f.dispatchRuntime.start(expected, foreignRecord),
+      () => f.dispatchRuntime.start(expected, foreignRecord, undefined, '{}'),
       {code: 'RemoteDispatchRecordMismatch'},
     );
     assert.equal(executions, 0);
     assert.deepEqual(f.control.status(foreignRecord), [0, 0, 0, 0, 0]);
   });
+
+test('runtime rejects a mismatched input binding before execution', async t => {
+  let executions = 0;
+  const f = await fixture(t, async () => {
+    executions++;
+    throw new Error('must not execute');
+  });
+  const dispatch = request();
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch),
+    dispatch,
+    f.control,
+  );
+  assert.throws(
+    () => f.dispatchRuntime.start(
+      dispatch,
+      record,
+      undefined,
+      '{"changed":true}',
+    ),
+    {code: 'RemoteInputBindingMismatch'},
+  );
+  assert.equal(executions, 0);
+  assert.deepEqual(f.control.status(record), [0, 0, 0, 0, 0]);
+});
 
 test('executor failure is durably failed without completion evidence',
   async t => {
@@ -365,7 +401,7 @@ test('executor failure is durably failed without completion evidence',
       f.control,
     );
     await assert.rejects(
-      f.dispatchRuntime.start(dispatch, record),
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
       error => error === failure,
     );
     assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
@@ -387,7 +423,7 @@ test('output above retained reservation fails and releases Site capacity',
       f.control,
     );
     await assert.rejects(
-      f.dispatchRuntime.start(dispatch, record),
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
       {code: 'RemoteSiteHoldingRejected'},
     );
     assert.equal(closes, 1);
@@ -419,7 +455,12 @@ test('cancellation retains Site capacity until executor stop is observed',
       dispatch,
       f.control,
     );
-    const operation = f.dispatchRuntime.start(dispatch, record);
+    const operation = f.dispatchRuntime.start(
+      dispatch,
+      record,
+      undefined,
+      '{}',
+    );
     await entered;
     assert.equal(f.dispatchRuntime.cancel(dispatch), true);
     assert.deepEqual(f.control.status(record), [2, 0, 0, 0, 0]);
@@ -456,7 +497,7 @@ test('unconfirmed executor stop retains cleanup until retry confirms it',
       f.control,
     );
     await assert.rejects(
-      f.dispatchRuntime.start(dispatch, record),
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
       error => error === failure,
     );
     assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
@@ -498,7 +539,7 @@ test('cancelled unknown execution reconciles as cancellation after stop',
       f.control,
     );
     await assert.rejects(
-      f.dispatchRuntime.start(dispatch, record, controller.signal),
+      f.dispatchRuntime.start(dispatch, record, controller.signal, '{}'),
       error => error === failure,
     );
     assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
@@ -528,7 +569,9 @@ test('cleanup status errors remain unknown until a later observation',
       dispatch,
       f.control,
     );
-    await assert.rejects(f.dispatchRuntime.start(dispatch, record));
+    await assert.rejects(
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+    );
     assert.equal(await f.dispatchRuntime.cleanup(dispatch), false);
     assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
     statusMode = 'malformed';
@@ -555,7 +598,9 @@ test('missing cleanup authority keeps runtime close explicitly pending',
       dispatch,
       f.control,
     );
-    await assert.rejects(f.dispatchRuntime.start(dispatch, record));
+    await assert.rejects(
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+    );
     await assert.rejects(
       f.dispatchRuntime.close(),
       error => error.code === 'RemoteRuntimeCleanupPending' &&
@@ -604,7 +649,7 @@ test('failure journal errors retain delayed native cleanup ownership',
         f.control,
       );
       await assert.rejects(
-        f.dispatchRuntime.start(dispatch, record),
+        f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
         error => error instanceof AggregateError &&
           error.errors[0] === nativeFailure &&
           error.errors[1] === persistenceFailure,
@@ -644,7 +689,7 @@ test('output and holding survive failure journal errors until cleanup',
       f.control,
     );
     await assert.rejects(
-      f.dispatchRuntime.start(dispatch, record),
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
       error => error instanceof AggregateError &&
         error.errors[0] === primary &&
         error.errors[1] === persistenceFailure,

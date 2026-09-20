@@ -64,6 +64,13 @@ Connector registration and revisions, input binding, obligations, budget, and
 grant. It excludes future execution results and transport nonces. Its identity
 is independent of the transport encoding.
 
+The input binding is a bounded canonical Connector control document. The
+Coordinator sends its exact body with the dispatch, and the Site recomputes its
+identity before durable acceptance or physical execution. A retransmission may
+reuse the same dispatch only with the same binding body. The control document
+does not carry bulk relation bytes: those remain subject to the direct or
+Store-mediated Transfer contracts.
+
 The Site journal key includes the Coordinator authority, Site identity and
 generation, and dispatch occurrence. An exact request retransmission is
 reconciled without additional native work. Reusing a dispatch occurrence for

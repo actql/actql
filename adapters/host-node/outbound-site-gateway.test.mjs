@@ -128,7 +128,8 @@ function dispatch(overrides = {}) {
     connectorRegistration: 'local',
     connectorRevision: 'local/1',
     strategyRevision: 'strategy/1',
-    inputBindingCid: cid('1'),
+    inputBindingCid:
+      'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
     obligationsCid: cid('2'),
     budgetCid: cid('3'),
     evidenceIssuerCapabilityCid: cid('b'),
@@ -172,7 +173,10 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       },
     });
     const request = dispatch();
-    const completion = coordinator.dispatch({dispatch: request});
+    const completion = coordinator.dispatch({
+      dispatch: request,
+      inputBindingBody: '{}',
+    });
     assert.equal(gateway.pending(), 1);
     const path = '/v1/sites/site-a/generations/1/outbound';
     const siteMaterial = {
@@ -182,12 +186,10 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     };
     const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
     assert.equal(polled.status, 200);
-    const envelope = JSON.parse(polled.body);
-    const received = control.admitJson(
-      envelope.request_json,
-      envelope.dispatch_request_cid,
-    );
+    const envelope = control.admitPollDispatch(polled.body);
+    const received = control.pollDispatchRequest(envelope);
     assert.equal(control.identity(received), control.identity(request));
+    assert.equal(control.pollDispatchBindingBody(envelope), '{}');
     const altered = await post(
       gateway.origin,
       `${path}/observations`,
@@ -321,18 +323,32 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.equal(siteAcceptCount, 1);
     assert.equal(gateway.pending(), 0);
 
-    const retransmitFirst = gateway.dispatch({dispatch: request});
-    const retransmitSecond = gateway.dispatch({dispatch: request});
+    const retransmitFirst = gateway.dispatch({
+      dispatch: request,
+      inputBindingBody: '{}',
+    });
+    const retransmitSecond = gateway.dispatch({
+      dispatch: request,
+      inputBindingBody: '{}',
+    });
+    assert.throws(
+      () => gateway.dispatch({
+        dispatch: request,
+        inputBindingBody: '{"changed":true}',
+      }),
+      {code: 'OutboundDispatchBindingCollision'},
+    );
     assert.equal(gateway.pending(), 1);
     const retransmitPoll = await post(
       gateway.origin,
       `${path}/poll`,
       siteMaterial,
     );
-    const retransmitEnvelope = JSON.parse(retransmitPoll.body);
-    const retransmitRequest = control.admitJson(
-      retransmitEnvelope.request_json,
-      retransmitEnvelope.dispatch_request_cid,
+    const retransmitEnvelope = control.admitPollDispatch(
+      retransmitPoll.body,
+    );
+    const retransmitRequest = control.pollDispatchRequest(
+      retransmitEnvelope,
     );
     siteAcceptCount++;
     const retransmitRecord = siteStore.accept(
@@ -352,18 +368,18 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.equal(gateway.pending(), 0);
 
     const collision = dispatch({connectorRevision: 'local/2'});
-    const collisionWaiter = gateway.dispatch({dispatch: collision});
+    const collisionWaiter = gateway.dispatch({
+      dispatch: collision,
+      inputBindingBody: '{}',
+    });
     void collisionWaiter.catch(() => {});
     const collisionPoll = await post(
       gateway.origin,
       `${path}/poll`,
       siteMaterial,
     );
-    const collisionEnvelope = JSON.parse(collisionPoll.body);
-    const collisionRequest = control.admitJson(
-      collisionEnvelope.request_json,
-      collisionEnvelope.dispatch_request_cid,
-    );
+    const collisionEnvelope = control.admitPollDispatch(collisionPoll.body);
+    const collisionRequest = control.pollDispatchRequest(collisionEnvelope);
     assert.throws(
       () => siteStore.accept(
         control.prepareAdmission(siteJournal, collisionRequest),
@@ -410,6 +426,7 @@ test('outbound cancellation cannot admit work before dispatch', async t => {
   assert.equal(
     await gateway.dispatch({
       dispatch: request,
+      inputBindingBody: '{}',
       signal: preAborted.signal,
     }).catch(error => error),
     preAbortReason,
@@ -431,13 +448,18 @@ test('outbound cancellation cannot admit work before dispatch', async t => {
   const second = new AbortController();
   const firstWaiter = gateway.dispatch({
     dispatch: request,
+    inputBindingBody: '{}',
     signal: first.signal,
   });
   const secondWaiter = gateway.dispatch({
     dispatch: request,
+    inputBindingBody: '{}',
     signal: second.signal,
   });
-  const survivor = gateway.dispatch({dispatch: request});
+  const survivor = gateway.dispatch({
+    dispatch: request,
+    inputBindingBody: '{}',
+  });
   const firstReason = new Error('first waiter left');
   const secondReason = new Error('second waiter left');
   first.abort(firstReason);
@@ -448,11 +470,8 @@ test('outbound cancellation cannot admit work before dispatch', async t => {
 
   const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
   assert.equal(polled.status, 200);
-  const envelope = JSON.parse(polled.body);
-  const received = control.admitJson(
-    envelope.request_json,
-    envelope.dispatch_request_cid,
-  );
+  const envelope = control.admitPollDispatch(polled.body);
+  const received = control.pollDispatchRequest(envelope);
   const site = runtime.siteControl.create({
     key: 'site-a',
     generation: 1,

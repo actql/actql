@@ -49,12 +49,13 @@ struct NativeRemoteRuntimeRegistration {
   capability : @remote.RemoteExecutionCapability
   issuer : @remote.RemoteEvidenceIssuer
   key : String
-  execute : (@remote.DispatchRequest) -> NativeRemotePhysicalExecution
+  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution
 }
 
 ///|
 priv struct NativeRemoteRuntimeOwner {
   request : @remote.DispatchRequest
+  binding : @remote.RemoteInputBinding
   record : @remote.DispatchRecord
   registration : NativeRemoteRuntimeRegistration
   custody : @remote.RemoteRuntimeCustody
@@ -174,7 +175,7 @@ pub fn install_native_remote_runtime_registration(
   strategy_revision : String,
   operation_capability_cid : String,
   issuer_capability_cid : String,
-  execute : (@remote.DispatchRequest) -> NativeRemotePhysicalExecution,
+  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution,
 ) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue] {
   let capability = match
     @remote.register_remote_execution_capability(
@@ -638,7 +639,7 @@ fn NativeRemoteRuntime::run_success(
         }
       }
       @remote.RuntimeExecutePhysical =>
-        match (owner.registration.execute)(owner.request) {
+        match (owner.registration.execute)(owner.request, owner.binding) {
           NativeRemoteOutputReady(output) => {
             owner.output = Some(output)
             if !@remote.remote_runtime_custody_acquire_output(owner.custody) {
@@ -955,6 +956,7 @@ fn NativeRemoteRuntime::run_success(
 pub fn NativeRemoteRuntime::start(
   self : NativeRemoteRuntime,
   request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
 ) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue] {
   if self.closed {
     return Err(Closed)
@@ -962,6 +964,9 @@ pub fn NativeRemoteRuntime::start(
   let identity = @remote.dispatch_request_identity(request)
   if self.pending_cleanup.contains(identity) {
     return Err(CleanupPending("dispatch"))
+  }
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err(Protocol(@remote.DispatchIdentityMismatch))
   }
   match self.owners.get(identity) {
     Some(owner) => return native_remote_runtime_completion(owner)
@@ -1012,6 +1017,7 @@ pub fn NativeRemoteRuntime::start(
   }
   let owner : NativeRemoteRuntimeOwner = {
     request,
+    binding,
     record,
     registration,
     custody: @remote.create_remote_runtime_custody(),

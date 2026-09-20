@@ -237,7 +237,8 @@ fn poll_once(
   }
   let result = match operation {
     None => Ok("{\"kind\":\"idle\"}")
-    Some(@remote.Dispatch(request)) =>
+    Some(@remote.Dispatch(dispatch)) => {
+      let request = @remote.remote_poll_dispatch_request(dispatch)
       match
         @client.acknowledge_acceptance(
           journal, client, observation_url, request,
@@ -250,6 +251,7 @@ fn poll_once(
           )
         Err(issue) => Err("dispatch " + client_issue_code(issue))
       }
+    }
     Some(@remote.Query(request)) =>
       match
         @client.acknowledge_status(journal, client, observation_url, request) {

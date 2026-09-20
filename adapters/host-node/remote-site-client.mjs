@@ -53,6 +53,7 @@ async function exchangeRemoteDispatch({
   servername = 'localhost',
   control,
   dispatch,
+  inputBindingBody,
   signal,
   maxResponseBytes = 16_384,
 } = {}, operation = 'dispatch') {
@@ -60,6 +61,8 @@ async function exchangeRemoteDispatch({
       key === undefined || !text(servername) ||
       control === null || typeof control !== 'object' ||
       typeof control.requestJson !== 'function' ||
+      typeof control.prepareInputBinding !== 'function' ||
+      typeof control.pollJson !== 'function' ||
       typeof control.journalKey !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.admitResponseJson !== 'function' ||
@@ -68,10 +71,16 @@ async function exchangeRemoteDispatch({
       typeof control.responseSubject !== 'function' ||
       typeof control.responseMeasurement !== 'function' ||
       dispatch === undefined || !Number.isSafeInteger(maxResponseBytes) ||
-      maxResponseBytes <= 0) {
+      maxResponseBytes <= 0 ||
+      (operation === 'dispatch' && typeof inputBindingBody !== 'string')) {
     fail('InvalidRemoteSiteClientConfiguration');
   }
-  const body = control.requestJson(dispatch);
+  const body = operation === 'dispatch'
+    ? control.pollJson(
+      dispatch,
+      control.prepareInputBinding(inputBindingBody),
+    )
+    : control.requestJson(dispatch);
   const bodyBytes = Buffer.from(body, 'utf8');
   const parts = control.journalKey(dispatch);
   const suffix = operation === 'query'
