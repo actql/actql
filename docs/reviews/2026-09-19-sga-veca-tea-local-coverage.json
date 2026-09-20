@@ -117,7 +117,6 @@
         "consumer_lifetime",
         "publication",
         "resources",
-        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
@@ -707,6 +706,21 @@
             "src/local_tea/session.mbt",
             "src/local_tea_provider/events_pipeline.mbt",
             "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "session_variants_and_named_result_publication",
+          "layers": [
+            "standard_host",
+            "two_consumers",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "790ac5d8",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
           ]
         },
         {
