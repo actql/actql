@@ -12,16 +12,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 24/39 entries have kernels and managed completion, 22/39 reach the standard Host, and 12/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 24/39 entries have resource and three-target kernel evidence | Implement and register the remaining 15 entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; 25/39 entries have kernels and managed completion, 23/39 reach the standard Host, and 13/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 25/39 entries have resource and three-target kernel evidence | Implement and register the remaining 14 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected, but only 1/39 entries currently records complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`; 1/39 entries records publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 24/39, standard Host 22/39,
-consumer lifetime 12/39, cancellation 1/39, and publication 1/39. These are
+kernel/managed/resources/three-target evidence 25/39, standard Host 23/39,
+consumer lifetime 13/39, cancellation 1/39, and publication 1/39. These are
 layer counts, not operation completion: all 39 entries remain `partial` until
 their classified variants and required layers close on one verified SHA.
 
@@ -198,8 +198,14 @@ empty selection remains a valid completed Relation, and cancellation cleanup
 releases private state. The registered standard Host reaches two independent
 downstream Relation computations and final reclamation on JS, Wasm, and
 native. Typed property predicates, formal publication, and environment
-cancellation delivery remain open, so `match_edges` remains partial. The
-remaining SGA operations still lack portable Local kernels.
+cancellation delivery remain open, so `match_edges` remains partial. Bounded
+Graph diagnostics now emit strict node, edge, and total-degree violations in
+canonical identity order. Their output is atomic under row limits, structural
+workspace is admitted before allocation, and the registered standard Host
+reaches two independent downstream Relation computations and final reclaim on
+all three targets. Formal publication and environment cancellation delivery
+remain open, so `graph_bounds` remains partial. The remaining SGA operations
+still lack portable Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
 
