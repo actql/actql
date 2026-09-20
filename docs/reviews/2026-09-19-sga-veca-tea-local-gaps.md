@@ -17,11 +17,11 @@ readable coverage manifest is authoritative for individual operation status.
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected, but only 1/39 entries currently records complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`; 1/39 entries records publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
+| Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, and `degree` outputs; 3/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 26/39, standard Host 24/39,
-consumer lifetime 14/39, cancellation 1/39, and publication 1/39. These are
+consumer lifetime 14/39, cancellation 1/39, and publication 3/39. These are
 layer counts, not operation completion: all 39 entries remain `partial` until
 their classified variants and required layers close on one verified SHA.
 
@@ -203,14 +203,16 @@ Graph diagnostics now emit strict node, edge, and total-degree violations in
 canonical identity order. Their output is atomic under row limits, structural
 workspace is admitted before allocation, and the registered standard Host
 reaches two independent downstream Relation computations and final reclaim on
-all three targets. Formal publication and environment cancellation delivery
-remain open, so `graph_bounds` remains partial. Directional degree metrics now count
+all three targets. The Effect-free Named Result path publishes and retrieves
+the retained diagnostics through the formal Store. Environment cancellation
+delivery remains open, so `graph_bounds` remains partial. Directional degree metrics now count
 incoming, outgoing, and total incidences in canonical node order, including
 two total incidences for a self-loop. The shared bounded kernel admits its
 workspace before allocation, emits its Relation atomically, and reaches two
 independent downstream computations and final reclaim through the registered
-standard Host on all three targets. Formal publication and environment
-cancellation delivery remain open, so `degree` remains partial. The remaining
+standard Host on all three targets. The Effect-free Named Result path also
+publishes and retrieves the retained total-degree result. Environment
+cancellation delivery remains open, so `degree` remains partial. The remaining
 SGA operations still lack portable Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.

@@ -252,6 +252,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "three_targets"
       ],
@@ -280,6 +281,16 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "83dcc2d2",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
@@ -300,6 +311,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "three_targets"
       ],
@@ -325,6 +337,16 @@
           "evidence": [
             "src/local_sga/graph_bounds.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "83dcc2d2",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         }
