@@ -353,6 +353,8 @@ pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
 
 pub fn strategy_fixture_sga_components_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
+pub fn strategy_fixture_sga_components_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
 pub fn strategy_fixture_sga_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]

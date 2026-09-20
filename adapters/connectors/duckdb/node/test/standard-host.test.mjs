@@ -20,6 +20,7 @@ import {runCapturedInternalStrategy,
 import {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
+import {localStrategyContribution} from '../../local-node/strategy-bundle.mjs';
 import {
   prepareManagedIdentityPolicy,
 } from '../../../../host-node/managed-identity-policy.mjs';
@@ -1556,6 +1557,15 @@ async function exerciseStrategyGraph(
       {node_id: 1, component_id: 1, component_size: 2},
       {node_id: 2, component_id: 1, component_size: 2},
     ],
+  }, {
+    name: 'components-strong',
+    step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
+    fields: ['node_id', 'component_id', 'component_size'],
+    secondFields: ['component_id', 'component_size'],
+    expected: [
+      {node_id: 1, component_id: 1, component_size: 2},
+      {node_id: 2, component_id: 1, component_size: 2},
+    ],
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
@@ -1567,7 +1577,7 @@ async function exerciseStrategyGraph(
     graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
     graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
     graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
-    const createSgaFixture = publicationCase.name === 'components-weak'
+    const createSgaFixture = publicationCase.name.startsWith('components-')
       ? fixture.strategyFixtureSgaComponentsCreate
       : fixture.strategyFixtureSgaCreate;
     const sgaFixture = createSgaFixture(
@@ -1651,6 +1661,181 @@ async function exerciseStrategyGraph(
       sgaCapture.close();
       await sgaPublicationStore?.close();
       await rm(sgaPublicationDirectory, {recursive: true, force: true});
+    }
+  }
+  const componentCancellationProgram = structuredClone(graphProgramBase);
+  componentCancellationProgram.stages[1].steps[0].values.rows =
+    Array.from({length: 40}, (_, index) => ({
+      id: index + 1,
+      src: index + 1,
+      dst: (index + 1) % 40 + 1,
+      node_name: `node-${index + 1}`,
+      weight: index + 1,
+    }));
+  componentCancellationProgram.stages[2].steps[1] = {
+    from: 'g', components: {kind: 'strong'}, as: 'out',
+  };
+  const componentFields = ['node_id', 'component_id', 'component_size'];
+  componentCancellationProgram.stages[2].results.r.fields = componentFields;
+  componentCancellationProgram.stages[3].steps[0].select = componentFields;
+  componentCancellationProgram.stages[3].results.r.fields = componentFields;
+  componentCancellationProgram.stages[4].steps[0].select =
+    ['component_id', 'component_size'];
+  componentCancellationProgram.stages[4].results.r.fields =
+    ['component_id', 'component_size'];
+  componentCancellationProgram.stages[5].steps[0].select = ['node_id'];
+  componentCancellationProgram.stages[5].results.r.fields = ['node_id'];
+  const cancellationFixture = fixture.strategyFixtureSgaComponentsSizedCreate(
+    ...sgaEnvironmentArguments(args),
+    JSON.stringify(componentCancellationProgram),
+    40n,
+  );
+  const cancellationCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(cancellationFixture),
+    suppliedLimits,
+  );
+  const componentCancellation = new AbortController();
+  let cancellationExecution;
+  let constructionProgress = 0n;
+  let constructionComplete = false;
+  let sawComponentWork = false;
+  let cancellationScheduled = false;
+  let managedStarts = 0;
+  const advanceObservations = [];
+  const lifecycleObservations = [];
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        cancellationFixture,
+        cancellationCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureSgaSubset(cancellationFixture);
+    assert.equal(
+      hostRuntime.strategyHostConfigureManagedIdentity(
+        setup, false, false, false, false,
+      ),
+      true,
+    );
+    const observedRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_ManagedStart') {
+          return Reflect.get(target, property, receiver);
+        }
+        return configuration => {
+          const start = ++managedStarts;
+          const started = target.strategyModule_local_ManagedStart(
+            configuration,
+          );
+          const execution = checked(started);
+          const observed = new Proxy(execution, {
+            get(operation, name, operationReceiver) {
+              if (name !== 'advance' && name !== 'request_cancel' &&
+                  name !== 'execution_stopped' && name !== 'cleanup_refresh') {
+                return Reflect.get(operation, name, operationReceiver);
+              }
+              if (name !== 'advance') {
+                return (...arguments_) => {
+                  const result = operation[name](...arguments_);
+                  lifecycleObservations.push({start, name, result});
+                  return result;
+                };
+              }
+              return quantum => {
+                const result = operation.advance(quantum);
+                const observation = checked(result);
+                advanceObservations.push({start, observation});
+                if (observation?.complete === false &&
+                    !constructionComplete) {
+                  constructionProgress += observation.progress;
+                  constructionComplete = constructionProgress === 80n;
+                } else if (constructionComplete &&
+                    observation?.complete === false &&
+                    observation.work > 0n && !cancellationScheduled) {
+                  sawComponentWork = true;
+                  cancellationScheduled = true;
+                  setTimeout(() => componentCancellation.abort(), 0);
+                }
+                return result;
+              };
+            },
+          });
+          return {$tag: 1, _0: observed};
+        };
+      },
+    });
+    const contribution = localStrategyContribution(
+      observedRuntime,
+      setup,
+      checked,
+      undefined,
+    );
+    cancellationExecution = await runInstalledStrategy(
+      setup,
+      runtimeCore(hostRuntime),
+      [contribution],
+      componentCancellation.signal,
+    );
+    assert.equal(managedStarts, 2);
+    assert.equal(
+      constructionProgress,
+      80n,
+      JSON.stringify(advanceObservations, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value),
+    );
+    assert.equal(
+      sawComponentWork,
+      true,
+      JSON.stringify(advanceObservations, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value),
+    );
+    assert.equal(componentCancellation.signal.aborted, true);
+    assert.equal(cancellationExecution.status, 'host-tasks-failed');
+    assert.equal(cancellationExecution.failure?.name, 'AbortError');
+    assert.deepEqual(
+      cancellationExecution.completed.map(value => value.task),
+      [1],
+    );
+  } finally {
+    cancellationCapture.close();
+    await cancellationExecution?.close();
+    if (cancellationExecution) {
+      let cleaned = false;
+      for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+        cleaned = await cancellationExecution.cleanup();
+        if (cleaned) break;
+        assert.equal(cancellationExecution.cleanupPending(), true);
+      }
+      assert.equal(
+        cleaned,
+        true,
+        JSON.stringify({
+          usage: cancellationExecution.usage(),
+          failurePending: cancellationExecution.failure?.cleanupPending,
+          failureStatus:
+            cancellationExecution.failure?.cleanupHandle?.status?.(),
+          lifecycleObservations,
+        }, (_, value) =>
+          typeof value === 'bigint' ? value.toString() : value),
+      );
+      assert.equal(
+        lifecycleObservations.some(value =>
+          value.name === 'execution_stopped' && value.result === true),
+        true,
+      );
+      assert.equal(
+        lifecycleObservations.some(value =>
+          value.name === 'cleanup_refresh' && value.result === true),
+        true,
+      );
+      assert.equal(cancellationExecution.cleanupPending(), false);
+      assert.equal(cancellationExecution.usage().heldBytes, 0n);
+      assert.equal(
+        cancellationExecution.usage().reservedExecutionBytes,
+        0n,
+      );
     }
   }
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(

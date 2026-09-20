@@ -506,7 +506,13 @@ pub fn[T] start_local_managed_dispatch(
     if execution_finished.val {
       return Ok({ complete: true, progress: 0L, work: 0L, })
     }
-    if !live.val || disposed.val || reads.any(value => value is None) {
+    if reads.any(value => value is None) {
+      return Err(Configuration(InputUnavailable))
+    }
+    // Disposal prevents starting work, but an already-started bounded
+    // provider must still receive one final advance after cancellation so it
+    // can report an actual stop. Cleanup cannot substitute for that report.
+    if (!live.val || disposed.val) && provider_execution.val is None {
       return Err(Configuration(InputUnavailable))
     }
     let exact = reads.map(value => value.unwrap())

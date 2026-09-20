@@ -20,6 +20,7 @@ fn issued_fixture_checked(
   join? : Bool = false,
   sga? : Bool = false,
   components? : Bool = false,
+  components_rows? : Int64 = 2L,
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -49,7 +50,7 @@ fn issued_fixture_checked(
     },
   ).unwrap()
   let evidence = if components {
-    [components_fixture_capacity(environment, "graph")]
+    [components_fixture_capacity(environment, "graph", rows=components_rows)]
   } else if join {
     guard @syntax.stage_count(program) == 5 else {
       fail("join fixture requires five authored Stages")
