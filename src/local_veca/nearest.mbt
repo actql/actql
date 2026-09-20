@@ -1,11 +1,38 @@
 ///|
 priv struct NearestInputView {
-  read : @execution.ProducerRead
+  source : NearestProducerInputValue
   vectors : @carrier.Vectors
-  schema : @schema.Schema
+  records : Int
   identity_count : Int
   component_name : String
   dimensions : Int
+}
+
+///|
+/// One exact checked producer use site for a nearest-neighbor operand.
+/// Relation and Vectors inputs retain their distinct runtime authorities.
+struct NearestProducerInput {
+  value : NearestProducerInputValue
+}
+
+///|
+priv enum NearestProducerInputValue {
+  RelationProducer(@execution.ProducerRead)
+  CarrierProducer(@carrier_runtime.ProducerView)
+}
+
+///|
+pub fn nearest_relation_producer(
+  value : @execution.ProducerRead,
+) -> NearestProducerInput {
+  { value: RelationProducer(value), }
+}
+
+///|
+pub fn nearest_carrier_producer(
+  value : @carrier_runtime.ProducerView,
+) -> NearestProducerInput {
+  { value: CarrierProducer(value), }
 }
 
 ///|
@@ -182,7 +209,57 @@ fn nearest_workspace(
 
 ///|
 fn nearest_input_available(input : NearestInputView) -> Bool {
-  @execution.producer_read_available(input.read)
+  match input.source {
+    RelationProducer(read) => @execution.producer_read_available(read)
+    CarrierProducer(view) =>
+      @carrier_runtime.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn nearest_input_field_count(input : NearestInputView, record : Int) -> Int? {
+  match input.source {
+    RelationProducer(read) =>
+      if record >= 0 && record < input.records {
+        Some(@schema.field_count(@execution.producer_read_schema(read)))
+      } else {
+        None
+      }
+    CarrierProducer(view) =>
+      match @carrier_runtime.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn nearest_input_field(
+  input : NearestInputView,
+  record : Int,
+  field : Int,
+  limits : @value.Limits,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match input.source {
+    RelationProducer(read) => {
+      let schema_field = @schema.field_at(
+        @execution.producer_read_schema(read),
+        field,
+      )
+      let value = @execution.producer_read_checked_cell(
+        read, record, field, limits,
+      )
+      match (schema_field, value) {
+        (Some(schema_field), Some(value)) => Some((schema_field.name, value))
+        _ => None
+      }
+    }
+    CarrierProducer(view) =>
+      match @carrier_runtime.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -217,23 +294,22 @@ fn begin_nearest_record(state : NearestState) -> Unit {
 ///|
 fn read_nearest_field(state : NearestState) -> Result[Unit, NearestIssue] {
   let input = current_input(state)
-  guard @schema.field_at(input.schema, state.field) is Some(field) &&
-    @execution.producer_read_checked_cell(
-      input.read,
+  guard nearest_input_field(
+      input,
       state.record,
       state.field,
       state.value_limits,
     )
-    is Some(value) else {
+    is Some((name, value)) else {
     return Err(InvalidNearestRecord(state.reading_queries, state.record))
   }
-  if @schema.reference_name(field.name) == input.component_name {
+  if @schema.reference_name(name) == input.component_name {
     if state.source_vector is Some(_) {
       return Err(InvalidNearestRecord(state.reading_queries, state.record))
     }
     state.source_vector = Some(value)
   }
-  state.current_field = Some((field.name, value))
+  state.current_field = Some((name, value))
   state.identity_probe = 0
   state.phase = MatchInputIdentity
   Ok(())
@@ -642,7 +718,7 @@ fn nearest_step(
     match state.phase {
       BeginInputRecord => {
         let input = current_input(state)
-        if state.record < @execution.producer_read_row_count(input.read) {
+        if state.record < input.records {
           begin_nearest_record(state)
         } else {
           state.sort_target = if state.reading_queries {
@@ -663,7 +739,15 @@ fn nearest_step(
       }
       ReadInputField => {
         let input = current_input(state)
-        if state.field < @schema.field_count(input.schema) {
+        guard nearest_input_field_count(input, state.record)
+          is Some(field_count) else {
+          return @bounded.Failed(
+            InvalidNearestRecord(state.reading_queries, state.record),
+            progress,
+            used,
+          )
+        }
+        if state.field < field_count {
           used += 1
           match read_nearest_field(state) {
             Ok(_) => ()
@@ -888,18 +972,39 @@ fn cleanup_nearest_state(state : NearestState) -> Bool {
 }
 
 ///|
-fn nearest_relation_input(
+fn nearest_producer_view(
   prepared : @lower.PreparedVector,
   side : @vector.NearestSide,
-  read : @execution.ProducerRead,
+  input : NearestProducerInput,
   owner : @lower.BoundPrepared,
   step : Int,
   edge : Int,
 ) -> NearestInputView? {
-  guard @lower.vector_nearest_requires_bridge(prepared, side) == Some(true) &&
-    @lower.vector_nearest_input_vectors(prepared, side) is Some(vectors) &&
-    @execution.producer_read_matches_operation_input(read, owner, step, edge) else {
+  guard @lower.vector_nearest_input_vectors(prepared, side) is Some(vectors) else {
     return None
+  }
+  let (source, records) = match input.value {
+    RelationProducer(read) => {
+      guard @lower.vector_nearest_requires_bridge(prepared, side) == Some(true) &&
+        @execution.producer_read_matches_operation_input(
+          read, owner, step, edge,
+        ) else {
+        return None
+      }
+      (RelationProducer(read), @execution.producer_read_row_count(read))
+    }
+    CarrierProducer(view) => {
+      let reference = @carrier_runtime.producer_view_read_reference(view)
+      guard @lower.vector_nearest_requires_bridge(prepared, side) == Some(false) &&
+        @carrier_runtime.producer_view_kind(view) == @carrier.VectorsKind &&
+        @carrier_runtime.producer_read_reference_matches_operation_input(
+          reference, owner, step, edge,
+        ) &&
+        @carrier_runtime.producer_view_record_count(view) is Some(records) else {
+        return None
+      }
+      (CarrierProducer(view), records)
+    }
   }
   let dimensions = @carrier.vector_dimensions(vectors)
   if dimensions < 1.0 ||
@@ -908,9 +1013,9 @@ fn nearest_relation_input(
     return None
   }
   Some({
-    read,
+    source,
     vectors,
-    schema: @execution.producer_read_schema(read),
+    records,
     identity_count: @carrier.vector_identity_count(vectors),
     component_name: @schema.reference_name(
       @carrier.vector_components(vectors).name,
@@ -920,19 +1025,19 @@ fn nearest_relation_input(
 }
 
 ///|
-pub fn start_nearest_relations(
+fn start_nearest_producers(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
-  candidates : @execution.ProducerRead,
-  queries : @execution.ProducerRead,
+  candidates : NearestProducerInput,
+  queries : NearestProducerInput,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
-  inputs : Array[@execution.ProducerRead],
+  inputs : Array[@execution.TrustedOutputInput],
 ) -> Result[NearestExecution, NearestIssue] {
   if max_rows < 0 ||
     max_workspace_slots < 0 ||
@@ -955,7 +1060,7 @@ pub fn start_nearest_relations(
     @lower.operation(node) == "VEC.knn_join" else {
     return Err(InvalidNearestKernel)
   }
-  guard nearest_relation_input(
+  guard nearest_producer_view(
       prepared,
       @evidence.Candidates,
       candidates,
@@ -966,7 +1071,7 @@ pub fn start_nearest_relations(
     is Some(candidate_input) else {
     return Err(InvalidNearestKernel)
   }
-  guard nearest_relation_input(
+  guard nearest_producer_view(
       prepared,
       @evidence.Queries,
       queries,
@@ -991,8 +1096,8 @@ pub fn start_nearest_relations(
     return Err(InvalidNearestKernel)
   }
   let k = k64.to_int()
-  let candidate_count = @execution.producer_read_row_count(candidates)
-  let query_count = @execution.producer_read_row_count(queries)
+  let candidate_count = candidate_input.records
+  let query_count = query_input.records
   let selected = Int::min(k, candidate_count)
   guard nearest_checked_multiply(query_count, selected) is Some(output_rows) &&
     output_rows <= max_rows else {
@@ -1022,7 +1127,7 @@ pub fn start_nearest_relations(
   let live = Ref(true)
   let accepted = Ref(false)
   let port = match
-    @execution.prepare_trusted_output_port(
+    @execution.prepare_trusted_output_port_with_inputs(
       preparation,
       @pipeline.Step(step),
       max_entries,
@@ -1104,6 +1209,83 @@ pub fn start_nearest_relations(
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
+}
+
+///|
+fn nearest_trusted_input(
+  value : NearestProducerInput,
+) -> @execution.TrustedOutputInput {
+  match value.value {
+    RelationProducer(read) => @execution.trusted_output_relation_input(read)
+    CarrierProducer(view) =>
+      @execution.trusted_output_carrier_input(
+        @carrier_runtime.producer_view_read_reference(view),
+      )
+  }
+}
+
+///|
+/// Start nearest-neighbor execution from its exact ordered Relation or Vectors
+/// producer use sites. Each side is checked against its prepared Carrier role.
+pub fn start_nearest_inputs(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  candidates : NearestProducerInput,
+  queries : NearestProducerInput,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[NearestExecution, NearestIssue] {
+  start_nearest_producers(
+    control,
+    preparation,
+    sequence,
+    step,
+    candidates,
+    queries,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    [nearest_trusted_input(candidates), nearest_trusted_input(queries)],
+  )
+}
+
+///|
+/// Compatibility entry point for the established Relation/Relation path.
+pub fn start_nearest_relations(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  candidates : @execution.ProducerRead,
+  queries : @execution.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[NearestExecution, NearestIssue] {
+  start_nearest_producers(
+    control,
+    preparation,
+    sequence,
+    step,
+    nearest_relation_producer(candidates),
+    nearest_relation_producer(queries),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs.map(@execution.trusted_output_relation_input),
+  )
 }
 
 ///|

@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_record_runtime",
   "actql/actql/managed_record_storage",
   "actql/actql/value_admission",
@@ -33,11 +34,15 @@ pub fn cleanup_ranking(RankingExecution) -> Result[Bool, RankingIssue]
 
 pub fn cleanup_score(ScoreExecution) -> Result[Bool, ScoreIssue]
 
+pub fn nearest_carrier_producer(@managed_carrier_runtime.ProducerView) -> NearestProducerInput
+
 pub fn nearest_cleanup_pending(NearestExecution) -> Bool
 
 pub fn nearest_max_noninterruptible_value_bytes(NearestExecution) -> Int
 
 pub fn nearest_max_noninterruptible_value_nodes(NearestExecution) -> Int
+
+pub fn nearest_relation_producer(@execution_relation.ProducerRead) -> NearestProducerInput
 
 pub fn nearest_stopped(NearestExecution) -> Bool
 
@@ -70,6 +75,8 @@ pub fn score_max_noninterruptible_value_bytes(ScoreExecution) -> Int
 pub fn score_max_noninterruptible_value_nodes(ScoreExecution) -> Int
 
 pub fn score_stopped(ScoreExecution) -> Bool
+
+pub fn start_nearest_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[NearestExecution, NearestIssue]
 
 pub fn start_nearest_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @execution_relation.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
 
@@ -109,6 +116,8 @@ pub enum NearestPoll {
   NearestFailed(NearestIssue, progress~ : Int64, work~ : Int64)
   NearestStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
+
+type NearestProducerInput
 
 type NormalizeExecution
 

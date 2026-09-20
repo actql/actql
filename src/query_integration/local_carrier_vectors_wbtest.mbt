@@ -1217,3 +1217,398 @@ test "standard Host validates empty nearest corpus" {
 test "standard Host validates empty nearest queries" {
   run_standard_nearest_provider("nearest_empty_queries")
 }
+
+///|
+fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
+  @carrier_contract.vectors(
+    @carrier_contract.rows(
+      [
+        (
+          @schema.Unqualified("id"),
+          Some(
+            @value_contract.primitive(
+              @value_contract.NumberType,
+              nullable=false,
+            ),
+          ),
+        ),
+        (
+          @schema.Unqualified("embedding"),
+          Some(@value_contract.vector_contract(2.0, nullable=false).unwrap()),
+        ),
+      ],
+      field_set=@carrier_contract.Closed,
+      max_fields=2,
+      max_name_bytes=11,
+    ).unwrap(),
+    ids=[@schema.Unqualified("id")],
+    components=@schema.Unqualified("embedding"),
+    max_identity_fields=1,
+  ).unwrap()
+}
+
+///|
+fn direct_nearest_relation_carrier() -> @carrier_contract.Carrier {
+  guard direct_nearest_vector_carrier()
+    is @carrier_contract.VectorValue(vectors) else {
+    abort("vectors")
+  }
+  @carrier_contract.relation(@carrier_contract.vector_records(vectors))
+}
+
+///|
+fn direct_nearest_bind(
+  checked : @pipeline.CheckedPipeline,
+) -> @lower.BoundPrepared {
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn direct_nearest_vector_owner() -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_carriers(
+      input_cursor(
+        "[{\"from\":\"rows\",\"to_vectors\":{" +
+        "\"id\":\"id\",\"vector\":\"embedding\"}}]",
+      ),
+      [("rows", direct_nearest_relation_carrier())],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_nearest_owner(
+  candidates : @lower.BoundPrepared,
+  queries : @lower.BoundPrepared,
+  candidate_relation? : Bool = false,
+  query_relation? : Bool = false,
+) -> @lower.BoundPrepared {
+  let candidate_roles = if candidate_relation {
+    ",\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\""
+  } else {
+    ""
+  }
+  let query_roles = if query_relation {
+    ",\"query_id\":\"id\",\"query_vector\":\"embedding\""
+  } else {
+    ""
+  }
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"candidates\",\"nearest\":{" +
+        "\"queries\":\"queries\",\"metric\":\"dot\",\"k\":2" +
+        candidate_roles +
+        query_roles +
+        "}}]",
+      ),
+      [
+        (
+          "candidates",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(candidates)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "queries",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(queries)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"candidates\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_nearest_relation_owner(rows : String) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check(
+      input_cursor(
+        "[{\"values\":{\"schema\":{" +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+        "\"nullable\":false}},\"rows\":" +
+        rows +
+        "},\"as\":\"rows\"}]",
+      ),
+      [],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_nearest_relation_output(
+  owner : @lower.BoundPrepared,
+) -> @execution.CompletedOutput raise {
+  let completed = @execution.execute_generated_sequence(
+    task_test_generated(owner),
+    [],
+    compute_test_limits(),
+  ).unwrap()
+  @execution.completed_output(completed, @pipeline.Step(0)).unwrap()
+}
+
+///|
+fn run_direct_nearest_provider(
+  owner : @lower.BoundPrepared,
+  inputs : Array[@local_connector.ManagedProviderInput],
+) -> Unit raise {
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut output = None
+  while output is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("nearest returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("nearest provider failed")
+      @local_connector.Stopped(..) => fail("nearest provider stopped")
+    }
+  }
+  let result = output.unwrap()
+  assert_eq(@execution.completed_row_count(result), 4)
+  assert_true(@execution.completed_cell(result, 0, 0) is Some(Number(3.0)))
+  assert_true(@execution.completed_cell(result, 0, 1) is Some(Number(10.0)))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
+fn direct_nearest_number(value : Double) -> @admitted.CheckedValue {
+  @admitted.admit(
+    @value_contract.primitive(@value_contract.NumberType, nullable=false),
+    input_cursor(value.to_string()),
+    { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+  ).unwrap()
+}
+
+///|
+fn direct_nearest_vector(text : String) -> @admitted.CheckedValue {
+  @admitted.admit(
+    @value_contract.vector_contract(2.0, nullable=false).unwrap(),
+    input_cursor(text),
+    { max_nodes: 3, max_depth: 2, max_text_bytes: 0, },
+  ).unwrap()
+}
+
+///|
+fn direct_nearest_material(
+  owner : @lower.BoundPrepared,
+  records : Array[(Double, String)],
+) -> @carrier_runtime.Material {
+  let output = @records.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    carrier_vectors_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  for record in records {
+    @records.append_record(output, [
+      (@schema.Unqualified("id"), direct_nearest_number(record.0)),
+      (@schema.Unqualified("embedding"), direct_nearest_vector(record.1)),
+    ]).unwrap()
+  }
+  @records.completed_material(@records.finish_output(output).unwrap()).unwrap()
+}
+
+///|
+test "registered VecA provider consumes exact Vectors inputs" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [
+    (2.0, "[1,0]"),
+    (1.0, "[1,0]"),
+    (3.0, "[0,1]"),
+  ])
+  let query_material = direct_nearest_material(queries, [
+    (20.0, "[1,0]"),
+    (10.0, "[0,1]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  run_direct_nearest_provider(owner, [
+    @local_connector.managed_provider_carrier_input(candidate_view),
+    @local_connector.managed_provider_carrier_input(query_view),
+  ])
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "registered VecA provider rejects reversed Vectors bindings" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [(1.0, "[1,0]")])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1,0]")])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(query_view),
+      @local_connector.managed_provider_carrier_input(candidate_view),
+    ],
+    10,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(execution, 1).unwrap()
+    is @local_connector.Failed(_),
+  )
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "registered VecA provider consumes Relation and Vectors inputs" {
+  let candidates = direct_nearest_relation_owner(
+    "[{\"id\":2,\"embedding\":[1,0]}," +
+    "{\"id\":1,\"embedding\":[1,0]}," +
+    "{\"id\":3,\"embedding\":[0,1]}]",
+  )
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries, candidate_relation=true)
+  let candidate_output = direct_nearest_relation_output(candidates)
+  let candidate_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  let query_material = direct_nearest_material(queries, [
+    (20.0, "[1,0]"),
+    (10.0, "[0,1]"),
+  ])
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  run_direct_nearest_provider(owner, [
+    @local_connector.managed_provider_relation_input(candidate_read),
+    @local_connector.managed_provider_carrier_input(query_view),
+  ])
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "registered VecA provider consumes Vectors and Relation inputs" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_relation_owner(
+    "[{\"id\":20,\"embedding\":[1,0]}," + "{\"id\":10,\"embedding\":[0,1]}]",
+  )
+  let owner = direct_nearest_owner(candidates, queries, query_relation=true)
+  let candidate_material = direct_nearest_material(candidates, [
+    (2.0, "[1,0]"),
+    (1.0, "[1,0]"),
+    (3.0, "[0,1]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_output = direct_nearest_relation_output(queries)
+  let query_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  run_direct_nearest_provider(owner, [
+    @local_connector.managed_provider_carrier_input(candidate_view),
+    @local_connector.managed_provider_relation_input(query_read),
+  ])
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+}

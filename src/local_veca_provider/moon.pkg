@@ -9,7 +9,6 @@ import {
   "actql/actql/local_bridge" @bridge,
   "actql/actql/local_veca" @veca,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/relation_evidence" @evidence,
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @storage,
   "actql/actql/pipeline_typing" @pipeline,

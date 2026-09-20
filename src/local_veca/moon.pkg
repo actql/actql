@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/managed_record_runtime" @records,
+  "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/managed_record_storage" @storage,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,

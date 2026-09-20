@@ -25,7 +25,8 @@ priv enum VectorExecution {
 priv struct Execution {
   generated : @execution.GeneratedSequence
   sequence : @lower.PreparedSequence
-  inputs : Array[@execution.ProducerRead]
+  inputs : Array[@local.ManagedProviderInput]
+  relation_inputs : Array[@execution.ProducerRead]?
   control : @bounded.Control
   limits : @storage.Limits
   storage_bytes : Int64
@@ -74,19 +75,12 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @execution.generated_prepared_sequence(sequence),
         0,
       )
-      is Some(@lower.VectorStep(vector)) &&
+      is Some(@lower.VectorStep(_)) &&
       @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
       return false
     }
     let operation = @lower.operation(node)
-    return operation == "VEC.merge_rankings" ||
-      (
-        operation == "VEC.knn_join" &&
-        @lower.vector_nearest_requires_bridge(vector, @evidence.Candidates) ==
-        Some(true) &&
-        @lower.vector_nearest_requires_bridge(vector, @evidence.Queries) ==
-        Some(true)
-      )
+    return operation == "VEC.merge_rankings" || operation == "VEC.knn_join"
   }
   if count < 2 {
     return false
@@ -163,6 +157,30 @@ fn reset_stage(value : Execution) -> Unit {
 }
 
 ///|
+fn relation_inputs(
+  inputs : Array[@local.ManagedProviderInput],
+) -> Array[@execution.ProducerRead]? {
+  let relations = []
+  for input in inputs {
+    match input {
+      @local.RelationInput(read) => relations.push(read)
+      @local.CarrierInput(_) => return None
+    }
+  }
+  Some(relations)
+}
+
+///|
+fn nearest_input(
+  input : @local.ManagedProviderInput,
+) -> @veca.NearestProducerInput {
+  match input {
+    @local.RelationInput(read) => @veca.nearest_relation_producer(read)
+    @local.CarrierInput(view) => @veca.nearest_carrier_producer(view)
+  }
+}
+
+///|
 fn continue_poll(
   value : Execution,
   progress : Int64,
@@ -228,14 +246,16 @@ fn advance_execution(
   while true {
     match value.phase {
       StartRows => {
-        guard value.inputs.length() == 1 else { return fail_execution(value) }
+        guard value.relation_inputs is Some(inputs) && inputs.length() == 1 else {
+          return fail_execution(value)
+        }
         if value.relation_pool {
           let started = match
             @veca.start_relation_pool(
               value.control,
               value.sequence,
               0,
-              value.inputs[0],
+              inputs[0],
               value.limits,
               value.storage_bytes,
               fn() { true },
@@ -253,7 +273,7 @@ fn advance_execution(
             value.control,
             value.sequence,
             0,
-            value.inputs[0],
+            inputs[0],
             value.limits,
             value.storage_bytes,
             fn() { true },
@@ -498,7 +518,8 @@ fn advance_execution(
         }
       }
       StartProjection => {
-        guard value.transformed is Some(output) else {
+        guard value.transformed is Some(output) &&
+          value.relation_inputs is Some(inputs) else {
           return fail_execution(value)
         }
         let input = match value.projection_input {
@@ -531,7 +552,7 @@ fn advance_execution(
             },
             value.limits.max_workspace_slots,
             value.max_value_bytes,
-            value.inputs,
+            inputs,
           ) {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
@@ -584,13 +605,13 @@ fn advance_execution(
       StartNearest => {
         guard value.inputs.length() == 2 else { return fail_execution(value) }
         let started = match
-          @veca.start_nearest_relations(
+          @veca.start_nearest_inputs(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
             0,
-            value.inputs[0],
-            value.inputs[1],
+            nearest_input(value.inputs[0]),
+            nearest_input(value.inputs[1]),
             value.max_rows,
             {
               max_nodes: value.limits.max_value_nodes,
@@ -601,7 +622,6 @@ fn advance_execution(
             value.limits.max_workspace_slots,
             value.limits.max_workspace_slots,
             value.max_value_bytes,
-            value.inputs,
           ) {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
@@ -650,13 +670,16 @@ fn advance_execution(
         }
       }
       StartRanking => {
+        guard value.relation_inputs is Some(inputs) else {
+          return fail_execution(value)
+        }
         let started = match
           @veca.start_ranking(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
             0,
-            value.inputs,
+            inputs,
             value.max_rows,
             {
               max_nodes: value.limits.max_value_nodes,
@@ -807,7 +830,7 @@ pub fn provider(
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
 ) -> @local.ManagedProvider {
-  @local.managed_provider(
+  @local.managed_provider_with_inputs(
     accepts,
     fn(sequence) {
       if accepts(sequence) {
@@ -842,10 +865,15 @@ pub fn provider(
       } else {
         None
       }
+      let relations = relation_inputs(inputs)
+      if direct_operation != Some("VEC.knn_join") && relations is None {
+        return Err(@connector.Execution(@execution.InputSet))
+      }
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
         inputs: inputs.copy(),
+        relation_inputs: relations,
         control: @bounded.control(),
         limits,
         storage_bytes,
