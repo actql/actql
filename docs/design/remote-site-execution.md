@@ -234,6 +234,17 @@ The source pin follows actual source access. Once source access has stopped,
 destination cleanup cannot prolong that pin if it no longer refers to the
 source. Destination holding and cleanup remain independently accountable.
 
+The native Store route uses the same portable request, reply, lifecycle, and
+receipt owners as the Node route. Its HTTPS adapter sends or receives one
+admitted physical chunk per bounded operation. The source-side journal records
+the sealed Store object before releasing source access. The destination first
+reserves aggregate capacity, installs independently owned file generations,
+and durably records the exact destination receipt before asking the Transfer
+Store to complete the reader occurrence. A restart verifies the retained file
+generations and receipt instead of uploading or downloading the payload again.
+The filesystem and SQLite adapters report physical results; they do not decide
+Transfer completion.
+
 The common Transfer record is persisted as one canonical body containing the
 re-admitted request, physical manifest, and independent attempt, object,
 integrity, and cleanup states. Its journal key identifies the Transfer
