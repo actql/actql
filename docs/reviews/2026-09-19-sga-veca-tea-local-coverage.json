@@ -336,8 +336,44 @@
       "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
       "status": "partial",
       "owner": "local-tea",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/session.mbt",
+        "src/local_tea_provider/events_pipeline.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "bounded_session_assignment_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "two_consumers",
+            "resource_admission",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d1e3201e",
+          "evidence": [
+            "src/local_tea/session.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "TEA",

@@ -222,13 +222,20 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 
-One operation still lacks portable Local execution. Checked typed lowering
-emits `TEA.watermark.label`, `TEA.dedupe`, and
+All eight TEA operations now have portable Local kernels. Checked typed
+lowering emits `TEA.watermark.label`, `TEA.dedupe`, and
 `TEA.window.session_assign`, while time series has both checked lowering and
 portable execution. Dedupe retains repeated partition positions,
 stable order terms, null placement, and the mandatory tie failure. Session
 retains its exact roles, grouping positions, clock encoding, and resolved
-literal or bound gap. Interval join now has typed canonical lowering for all
+literal or bound gap. Its bounded merge kernel orders by partition, time, and
+event identity, applies the strict closed-open gap boundary, and preserves the
+original event identity while adding stable session labels. Relation rows pass
+through the registered Events bridges and standard Host to two downstream
+computations with overlapping holdings, independent release, and final ledger
+reclamation on JS, Wasm, and native. Global partitions, parameterized gaps,
+publication, and environment cancellation delivery remain open, so session
+assignment is partial. Interval join now has typed canonical lowering for all
 four join kinds, both temporal modes and time domains, repeated equality keys,
 projections, and resolved output guards. Interval and as-of joins execute
 through bounded kernels and the standard Host, reach two downstream
