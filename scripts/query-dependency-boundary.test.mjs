@@ -511,7 +511,10 @@ test('concrete DuckDB task construction and lifecycle stay in the connector driv
   assert.doesNotMatch(api, /CapturedDuckDBTask|DuckDBComputeAttempt|start_captured_duckdb_task|captured_duckdb_(?:attempt|execution)/);
   assert.ok(!dependencies('physical_strategy').includes('connectors/duckdb/driver'));
   const driver = readFileSync('src/connectors/duckdb/driver/execution.mbt', 'utf8');
-  assert.match(driver, /@strategy\.start_captured_execution\(/);
+  assert.match(driver, /@strategy\.start_captured_materializing_execution\(/);
+  assert.match(driver, /@strategy\.complete_deferred_materializing_task_execution\(/);
+  assert.doesNotMatch(driver, /@connector\.bind_prepared_execution\(/);
+  assert.doesNotMatch(driver, /@strategy\.complete_task_execution\(/);
   assert.doesNotMatch(driver, /reserve_attempt|retain_allocation|settle_reservation/);
 });
 

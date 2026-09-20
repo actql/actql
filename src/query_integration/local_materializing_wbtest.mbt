@@ -15,7 +15,7 @@ test "Local materializing execution uses the common reservation and exact retain
     ).unwrap()
     let producer_execution = @duckdb_driver.captured_duckdb_execution(producer)
     @strategy.settle_task_execution(run, producer_execution, true).unwrap()
-    @strategy.complete_task_execution(run, producer_execution).unwrap()
+    @duckdb_driver.complete_captured_duckdb_task(run, producer).unwrap()
     captured_graph_local(run, 2).unwrap()
     let input = @strategy.captured_task_input(run, 3, 100, 10000).unwrap()
     assert_false(@execution.producer_read_has_cell_access(input))

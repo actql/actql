@@ -39,7 +39,6 @@ pub fn start_captured_duckdb_task(
   resident? : DuckDBResidentInputs,
   retained_storage? : (Int64, () -> Bool),
   auxiliary_retention_bytes? : Int64,
-  common_completion? : Bool = false,
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
   let retained_required = retained_storage is Some(_)
   guard (if retained_required {
@@ -187,62 +186,24 @@ pub fn start_captured_duckdb_task(
     }
     Ok(retention + bytes)
   }
-  let bound = if common_completion {
-    @connector.bind_prepared_materializing_execution(
-      choice,
-      prepared,
-      capacity,
-      ceilings,
-      fn(_) { start_attempt() },
-      retained_bytes~,
-    )
-  } else {
-    @connector.bind_prepared_execution(
-      choice,
-      prepared,
-      capacity,
-      ceilings,
-      fn(_) {
-        start_attempt().map(value => {
-          let (attempt, lifecycle) = value
-          let operations : @connector.ExecutionOperations[
-            @strategy.RunIssue,
-            @strategy.TaskPublication,
-          ] = {
-            cancel: lifecycle.cancel,
-            dispose: lifecycle.dispose,
-            settled: lifecycle.settled,
-            retention_released: lifecycle.retention_released,
-            released: lifecycle.released,
-            ready: lifecycle.ready,
-            finish: fn() {
-              match @compute.complete_duckdb_compute_attempt(attempt) {
-                Err(issue) => Err(compute_failure(issue))
-                Ok(output) => Ok(output)
-              }
-            },
-            publish: fn(_) { Ok(()) },
-          }
-          (attempt, operations)
-        })
-      },
-      retained_bytes~,
-    )
-  }
+  let bound = @connector.bind_prepared_materializing_execution(
+    choice,
+    prepared,
+    capacity,
+    ceilings,
+    fn(_) { start_attempt() },
+    retained_bytes~,
+  )
   let bound = match bound {
     Ok(value) => value
     Err(issue) => return Err(Compute(issue))
   }
-  let started = if common_completion {
-    @strategy.start_captured_materializing_execution(
-      run,
-      task,
-      bound,
-      resident?,
-    )
-  } else {
-    @strategy.start_captured_execution(run, task, bound, resident?)
-  }
+  let started = @strategy.start_captured_materializing_execution(
+    run,
+    task,
+    bound,
+    resident?,
+  )
   match started {
     Err(issue) => Err(issue)
     Ok((attempt, execution)) =>
@@ -267,6 +228,21 @@ pub fn captured_duckdb_completed_output(
     Ok(output) => Ok(output)
     Err(issue) => Err(compute_failure(issue))
   }
+}
+
+///|
+/// Commit one exact DuckDB task through the common materializing boundary.
+/// The Connector supplies only its admitted physical output; it has no
+/// separate finish or publication authority.
+pub fn complete_captured_duckdb_task(
+  run : @strategy.CapturedDAG,
+  task : CapturedDuckDBTask,
+) -> Result[Unit, @strategy.RunIssue] {
+  @strategy.complete_deferred_materializing_task_execution(
+    run,
+    task.execution,
+    fn() { captured_duckdb_completed_output(task) },
+  )
 }
 
 ///|

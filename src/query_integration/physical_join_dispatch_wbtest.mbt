@@ -336,10 +336,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         reserved,
       )
       assert_true(
-        @strategy.complete_task_execution(
-          run,
-          @duckdb_driver.captured_duckdb_execution(attempt),
-        )
+        @duckdb_driver.complete_captured_duckdb_task(run, attempt)
         is Err(Stopped),
       )
       assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
@@ -390,10 +387,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     ).unwrap()
     transport.settled = Some(@duckdb_driver.captured_duckdb_attempt(attempt))
     assert_true(
-      @strategy.complete_task_execution(
-        run,
-        @duckdb_driver.captured_duckdb_execution(attempt),
-      )
+      @duckdb_driver.complete_captured_duckdb_task(run, attempt)
       is Err(Physical(InvalidCharge)),
     )
     @strategy.charge_task_execution_transfer(
@@ -412,10 +406,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         @duckdb_driver.captured_duckdb_execution(attempt),
       ).unwrap()
     }
-    @strategy.complete_task_execution(
-      run,
-      @duckdb_driver.captured_duckdb_execution(attempt),
-    ).unwrap()
+    @duckdb_driver.complete_captured_duckdb_task(run, attempt).unwrap()
     @strategy.close_captured_task_output(run, 1)
     @strategy.close_captured_task_output(run, 2)
     let count = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()

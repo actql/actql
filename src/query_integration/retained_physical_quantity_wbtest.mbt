@@ -25,7 +25,7 @@ test "retained representation settles physical bytes without changing logical id
       Some(bytes),
     )
     @strategy.settle_task_execution(run, execution, true).unwrap()
-    let completion = @strategy.complete_task_execution(run, execution)
+    let completion = @duckdb_driver.complete_captured_duckdb_task(run, task)
     if bytes <= 100L {
       assert_true(completion is Ok(_))
       let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()

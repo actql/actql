@@ -41,7 +41,7 @@ test "task retention waits for physical cleanup independently of native stop and
         )
       }
       @strategy.settle_task_execution(run, execution, true).unwrap()
-      let completed = @strategy.complete_task_execution(run, execution)
+      let completed = @duckdb_driver.complete_captured_duckdb_task(run, attempt)
       if mode == 0 {
         assert_true(completed is Ok(_))
         assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))

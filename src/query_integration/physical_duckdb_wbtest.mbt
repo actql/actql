@@ -116,15 +116,9 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
               @duckdb_driver.captured_duckdb_execution(attempt),
               true,
             ).unwrap()
-            @strategy.complete_task_execution(
-              run,
-              @duckdb_driver.captured_duckdb_execution(attempt),
-            ).unwrap()
+            @duckdb_driver.complete_captured_duckdb_task(run, attempt).unwrap()
             assert_true(
-              @strategy.complete_task_execution(
-                run,
-                @duckdb_driver.captured_duckdb_execution(attempt),
-              )
+              @duckdb_driver.complete_captured_duckdb_task(run, attempt)
               is Err(ForeignCandidate),
             )
             attempts.push(attempt)
@@ -167,10 +161,7 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     let (other_run, _) = captured_graph_fixture()
     let other = captured_graph_duckdb_start(other_run, 1, { settled: None, })
     assert_true(
-      @strategy.complete_task_execution(
-        run,
-        @duckdb_driver.captured_duckdb_execution(other),
-      )
+      @duckdb_driver.complete_captured_duckdb_task(run, other)
       is Err(ForeignCandidate),
     )
     assert_true(
@@ -195,11 +186,7 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
       true,
     ).unwrap()
     assert_true(
-      @strategy.complete_task_execution(
-        run,
-        @duckdb_driver.captured_duckdb_execution(attempt),
-      )
-      is Err(_),
+      @duckdb_driver.complete_captured_duckdb_task(run, attempt) is Err(_),
     )
     assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
     assert_true(@strategy.next_captured_task(run) is None)

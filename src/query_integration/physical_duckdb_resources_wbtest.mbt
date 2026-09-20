@@ -133,10 +133,7 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   captured_graph_duckdb_receive(attempt, 1)
   transport.settled = Some(@duckdb_driver.captured_duckdb_attempt(attempt))
   assert_true(
-    @strategy.complete_task_execution(
-      run,
-      @duckdb_driver.captured_duckdb_execution(attempt),
-    )
+    @duckdb_driver.complete_captured_duckdb_task(run, attempt)
     is Err(Physical(InvalidCharge)),
   )
   assert_false(@strategy.captured_task_completed(run, 1))
@@ -147,10 +144,7 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   ).unwrap()
   let before_complete = @resources.ledger_usage(ledger)
   assert_true(before_complete.reserved_execution_bytes > 0L)
-  @strategy.complete_task_execution(
-    run,
-    @duckdb_driver.captured_duckdb_execution(attempt),
-  ).unwrap()
+  @duckdb_driver.complete_captured_duckdb_task(run, attempt).unwrap()
   let complete = @resources.ledger_usage(ledger)
   assert_eq(complete.holdings, before_complete.holdings + 1)
   assert_eq(complete.held_bytes, before_complete.reserved_retention_bytes)
@@ -169,10 +163,7 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   let b = captured_graph_duckdb_start(run, 2, { settled: None, })
   assert_eq(@resources.ledger_usage(ledger).attempts, complete.attempts + 1)
   assert_true(
-    @strategy.complete_task_execution(
-      run,
-      @duckdb_driver.captured_duckdb_execution(attempt),
-    )
+    @duckdb_driver.complete_captured_duckdb_task(run, attempt)
     is Err(ForeignCandidate),
   )
   @strategy.stop_captured_dag(run)
@@ -237,11 +228,7 @@ test "common native cancellation and failed completion preserve staged cleanup a
         true,
       ).unwrap()
       assert_true(
-        @strategy.complete_task_execution(
-          run,
-          @duckdb_driver.captured_duckdb_execution(attempt),
-        )
-        is Err(issue) &&
+        @duckdb_driver.complete_captured_duckdb_task(run, attempt) is Err(issue) &&
         @duckdb_driver.duckdb_compute_failure(issue) is Some(_),
       )
       assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
