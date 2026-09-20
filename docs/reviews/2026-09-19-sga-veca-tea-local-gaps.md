@@ -22,7 +22,7 @@ readable coverage manifest is authoritative for individual operation status.
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
 consumer lifetime 15/39, cancellation 6/39, and publication 7/39. These are
-layer counts, not operation completion: five entries are `complete` and 34 remain
+layer counts, not operation completion: six entries are `complete` and 33 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -220,9 +220,12 @@ standard Host re-admits the exact managed Relation generation in MoonBit
 before the existing publication contract runs. The output remains retained
 through publication even when an unrelated later task completes. Literal
 true and false predicates now execute through the bounded node scan and the
-standard Host with two downstream consumers on all three targets. Typed
-property predicates and environment cancellation delivery remain open, so
-`match_nodes` remains partial. Edge matching now executes absent, empty, and
+standard Host with two downstream consumers on all three targets. Checked
+node-property predicates use the same resumable expression evaluator as row
+execution, with bounded binding preparation and workspace admission. The real
+environment timer covers predicate cancellation, stop observation, and final
+reclamation, while the formal path publishes the exact filtered result.
+`match_nodes` is complete. Edge matching now executes absent, empty, and
 repeated type filters plus literal predicates through a bounded scan and
 stable canonical edge ordering. Workspace is admitted before the sort arrays,
 empty selection remains a valid completed Relation, and cancellation cleanup
