@@ -506,6 +506,22 @@
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "relation_relation_oversized_k_empty_queries",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e8f06d62",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
         }
       ]
     },
