@@ -2020,10 +2020,11 @@ pub fn NativeRuntimeBundleStore::active(
 /// Bind the physically observed component to the exact active bundle. The
 /// caller obtains no runtime authority for installed, inactive, mismatched, or
 /// physically changed bytes.
-pub fn NativeRuntimeBundleStore::bind_active_component(
+fn NativeRuntimeBundleStore::bind_active_component(
   self : NativeRuntimeBundleStore,
   observed_component_cid : String,
   observed_target_triple : String,
+  process_hold_id : String,
 ) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue] {
   let catalog = match load_catalog(self) {
     Ok(value) => value
@@ -2054,8 +2055,75 @@ pub fn NativeRuntimeBundleStore::bind_active_component(
       projection[7],
       projection[8],
       projection[9],
+      process_hold_id,
     ),
   )
+}
+
+///|
+/// Verify the exact active component and durably retain its process-level
+/// bundle holding in one retryable operation. A supervisor must keep the
+/// returned holding until physical process stop is confirmed; dispatch-level
+/// holdings remain independent.
+pub fn NativeRuntimeBundleStore::acquire_active_component(
+  self : NativeRuntimeBundleStore,
+  observed_component_cid : String,
+  observed_target_triple : String,
+  process_hold_id : String,
+) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue] {
+  if !bounded(process_hold_id, 512) {
+    return Err(InvalidConfiguration)
+  }
+  let binding = match
+    self.bind_active_component(
+      observed_component_cid, observed_target_triple, process_hold_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    self.retain(binding.runtime_bundle_cid, process_hold_id, "runtime-process") {
+    Ok(_) => Ok(binding)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Revalidate the active component and its exact process holding before a
+/// runtime can admit more work. Historical component identity alone never
+/// restores current execution authority.
+pub fn NativeRuntimeBundleStore::verify_active_component_binding(
+  self : NativeRuntimeBundleStore,
+  binding : NativeActiveRuntimeBinding,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  let catalog = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard active_cid(catalog) is Some(active) &&
+    active == binding.runtime_bundle_cid &&
+    entry_index(catalog, active) is Some(index) else {
+    return Err(MissingBundle)
+  }
+  let entry = catalog.entries[index]
+  match verify_component(self, entry) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let projection = @bundle.bundle_manifest_projection(entry.manifest)
+  if projection[5] != binding.component_cid ||
+    projection[4] != binding.target_triple ||
+    projection[7] != binding.connector_registration ||
+    projection[8] != binding.connector_revision ||
+    projection[9] != binding.strategy_revision {
+    return Err(ComponentMismatch)
+  }
+  for hold in entry.holds {
+    if hold.hold_id == binding.process_hold_id && hold.kind == "runtime-process" {
+      return Ok(())
+    }
+  }
+  Err(MissingBundle)
 }
 
 ///|

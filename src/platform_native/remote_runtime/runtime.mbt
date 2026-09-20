@@ -73,6 +73,7 @@ pub(all) enum NativeRemotePhysicalExecution {
 ///|
 struct NativeRemoteRuntimeRegistration {
   site : @site.ExecutionSite
+  active_runtime : @bundle.NativeActiveRuntimeBinding
   runtime_bundle_cid : String
   capability : @remote.RemoteExecutionCapability
   issuer : @remote.RemoteEvidenceIssuer
@@ -234,7 +235,7 @@ fn scope_key(scope : Array[String]) -> String {
 ///|
 fn install_native_remote_runtime_scope(
   site : @site.ExecutionSite,
-  runtime_bundle_cid : String,
+  active_runtime : @bundle.NativeActiveRuntimeBinding,
   connector_registration : String,
   connector_revision : String,
   strategy_revision : String,
@@ -246,6 +247,9 @@ fn install_native_remote_runtime_scope(
     @remote.RemoteDispatchBudget,
   ) -> NativeRemotePhysicalExecution,
 ) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue] {
+  let runtime_bundle_cid = @bundle.native_active_runtime_bundle_cid(
+    active_runtime,
+  )
   let capability = match
     @remote.register_remote_execution_capability(
       site, runtime_bundle_cid, connector_registration, connector_revision, strategy_revision,
@@ -274,6 +278,7 @@ fn install_native_remote_runtime_scope(
   }
   Ok({
     site,
+    active_runtime,
     runtime_bundle_cid,
     capability,
     issuer,
@@ -325,16 +330,13 @@ pub fn install_native_remote_runtime_registry_registration(
     }
     installed[executor.key] = executor
   }
-  let runtime_bundle_cid = @bundle.native_active_runtime_bundle_cid(
-    active_runtime,
-  )
   let (connector_registration, connector_revision, strategy_revision) = @bundle.native_active_runtime_connector_scope(
     active_runtime,
   )
   let registration = match
     install_native_remote_runtime_scope(
       site,
-      runtime_bundle_cid,
+      active_runtime,
       connector_registration,
       connector_revision,
       strategy_revision,
@@ -1202,6 +1204,11 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   guard active is Some(snapshot) else { return Err(RuntimeUnsupported) }
   if snapshot.runtime_bundle_cid != registration.runtime_bundle_cid {
     return Err(RuntimeUnsupported)
+  }
+  match
+    self.bundles.verify_active_component_binding(registration.active_runtime) {
+    Ok(_) => ()
+    Err(issue) => return Err(Bundle(issue))
   }
   match self.bundles.verify(registration.runtime_bundle_cid) {
     Ok(_) => ()

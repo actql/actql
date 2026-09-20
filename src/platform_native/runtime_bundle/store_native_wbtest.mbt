@@ -263,31 +263,31 @@ test "native bundle operations survive restart and preserve shared code" {
   root.reclaim_generation(excess_name, excess_generation).unwrap()
   assert_eq(first.state, ["0", "0", "0"])
   assert_true(
-    store.bind_active_component(
+    store.acquire_active_component(
       "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
-      "aarch64-apple-darwin",
+      "aarch64-apple-darwin", "runtime-process:first",
     )
     is Err(MissingBundle),
   )
   store.activate(first.runtime_bundle_cid).unwrap() |> ignore
   assert_true(
-    store.bind_active_component(
+    store.acquire_active_component(
       "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "aarch64-apple-darwin",
+      "aarch64-apple-darwin", "runtime-process:first",
     )
     is Err(ComponentMismatch),
   )
   assert_true(
-    store.bind_active_component(
+    store.acquire_active_component(
       "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
-      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-gnu", "runtime-process:first",
     )
     is Err(ComponentMismatch),
   )
   let binding = store
-    .bind_active_component(
+    .acquire_active_component(
       "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
-      "aarch64-apple-darwin",
+      "aarch64-apple-darwin", "runtime-process:first",
     )
     .unwrap()
   assert_eq(native_active_runtime_bundle_cid(binding), first.runtime_bundle_cid)
@@ -303,11 +303,16 @@ test "native bundle operations survive restart and preserve shared code" {
     native_active_runtime_connector_scope(binding),
     ("local", "local/1", "strategy/1"),
   )
+  assert_eq(
+    native_active_runtime_process_hold_id(binding),
+    "runtime-process:first",
+  )
+  store.verify_active_component_binding(binding).unwrap()
   store.retain(first.runtime_bundle_cid, "attempt-a", "dispatch").unwrap()
   |> ignore
   store.activate(second.runtime_bundle_cid).unwrap() |> ignore
   assert_eq(store.inspect(first.runtime_bundle_cid).unwrap().unwrap().state, [
-    "3", "2", "1",
+    "4", "2", "2",
   ])
   assert_true(
     open_runtime_bundle_store(
@@ -355,6 +360,10 @@ test "native bundle operations survive restart and preserve shared code" {
     second.runtime_bundle_cid,
   )
   assert_true(reopened.release("attempt-a").unwrap())
+  assert_true(reopened.release("runtime-process:first").unwrap())
+  assert_true(
+    reopened.verify_active_component_binding(binding) is Err(MissingBundle),
+  )
   reopened.rollback(first.runtime_bundle_cid).unwrap() |> ignore
   reopened.activate(second.runtime_bundle_cid).unwrap() |> ignore
   reopened.reclaim(first.runtime_bundle_cid).unwrap() |> ignore
@@ -367,9 +376,10 @@ test "native bundle operations survive restart and preserve shared code" {
   assert_true(root.verify_generation(artifact_name, generation))
   reopened.drain(second.runtime_bundle_cid).unwrap() |> ignore
   assert_true(
-    reopened.bind_active_component(
+    reopened.acquire_active_component(
       native_active_runtime_component_cid(binding),
       native_active_runtime_target_triple(binding),
+      "runtime-process:drained",
     )
     is Err(MissingBundle),
   )

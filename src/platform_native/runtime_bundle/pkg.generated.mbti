@@ -18,6 +18,8 @@ pub fn native_active_runtime_component_cid(NativeActiveRuntimeBinding) -> String
 
 pub fn native_active_runtime_connector_scope(NativeActiveRuntimeBinding) -> (String, String, String)
 
+pub fn native_active_runtime_process_hold_id(NativeActiveRuntimeBinding) -> String
+
 pub fn native_active_runtime_target_triple(NativeActiveRuntimeBinding) -> String
 
 pub fn open_runtime_bundle_store(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleAuthority], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue]
@@ -34,6 +36,7 @@ pub struct NativeActiveRuntimeBinding {
   connector_registration : String
   connector_revision : String
   strategy_revision : String
+  process_hold_id : String
 }
 
 pub(all) struct NativeRuntimeBundleAuthority {
@@ -74,11 +77,11 @@ pub(all) struct NativeRuntimeBundleSnapshot {
 }
 
 type NativeRuntimeBundleStore
+pub fn NativeRuntimeBundleStore::acquire_active_component(Self, String, String, String) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::activate(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::active(Self) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::adopt(Self, String, String, String, String, String, String, @filesystem.NativeFileGeneration) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::begin_install(Self, String, String, String, String, String, String) -> Result[NativeRuntimeBundleInstaller, NativeRuntimeBundleStoreIssue]
-pub fn NativeRuntimeBundleStore::bind_active_component(Self, String, String) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::close(Self) -> Result[Bool, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::drain(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
@@ -92,6 +95,7 @@ pub fn NativeRuntimeBundleStore::release(Self, String) -> Result[Bool, NativeRun
 pub fn NativeRuntimeBundleStore::retain(Self, String, String, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::rollback(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::verify(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::verify_active_component_binding(Self, NativeActiveRuntimeBinding) -> Result[Unit, NativeRuntimeBundleStoreIssue]
 
 pub(all) enum NativeRuntimeBundleStoreIssue {
   UnsupportedTarget

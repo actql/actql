@@ -77,7 +77,11 @@ test "outbound agent observes durable acceptance before one execution" {
   |> ignore
   bundles.activate(bundle_cid).unwrap() |> ignore
   let active_runtime = bundles
-    .bind_active_component("sha256:" + @sha.hex(component), target)
+    .acquire_active_component(
+      "sha256:" + @sha.hex(component),
+      target,
+      "runtime-process:native-agent-test",
+    )
     .unwrap()
   let site = @site.create_site(
     "native-agent-site", 1, bundle_cid, 2, 2, 1024L, 1024L,
@@ -365,6 +369,7 @@ test "outbound agent observes durable acceptance before one execution" {
   assert_eq(exact_retry_revision, release_revision)
   assert_eq(executions[0], 1)
   assert_true(runtime.close().unwrap())
+  assert_true(bundles.release("runtime-process:native-agent-test").unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
 }

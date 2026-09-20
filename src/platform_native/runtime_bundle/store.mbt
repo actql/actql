@@ -49,6 +49,7 @@ pub struct NativeActiveRuntimeBinding {
   connector_registration : String
   connector_revision : String
   strategy_revision : String
+  process_hold_id : String
 }
 
 ///|
@@ -60,6 +61,7 @@ fn native_active_runtime_binding(
   connector_registration : String,
   connector_revision : String,
   strategy_revision : String,
+  process_hold_id : String,
 ) -> NativeActiveRuntimeBinding {
   {
     runtime_bundle_cid,
@@ -68,6 +70,7 @@ fn native_active_runtime_binding(
     connector_registration,
     connector_revision,
     strategy_revision,
+    process_hold_id,
   }
 }
 
@@ -101,4 +104,13 @@ pub fn native_active_runtime_connector_scope(
     binding.connector_revision,
     binding.strategy_revision,
   )
+}
+
+///|
+/// Durable bundle holding owned by the exact launched Site process. The
+/// supervisor releases it only after that process is confirmed stopped.
+pub fn native_active_runtime_process_hold_id(
+  binding : NativeActiveRuntimeBinding,
+) -> String {
+  binding.process_hold_id
 }

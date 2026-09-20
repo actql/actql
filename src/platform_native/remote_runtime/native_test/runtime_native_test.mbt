@@ -73,7 +73,11 @@ test "native remote runtime owns success failure and cleanup progression" {
   |> ignore
   bundles.activate(bundle_cid).unwrap() |> ignore
   let active_runtime = bundles
-    .bind_active_component("sha256:" + @sha.hex(component), target)
+    .acquire_active_component(
+      "sha256:" + @sha.hex(component),
+      target,
+      "runtime-process:native-runtime-test",
+    )
     .unwrap()
   let site = @site.create_site(
     "native-runtime-site", 1, bundle_cid, 2, 2, 1024L, 1024L,
@@ -380,6 +384,13 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_false(runtime.cleanup_pending())
   runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
   runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
+  assert_true(bundles.release("runtime-process:native-runtime-test").unwrap())
+  let executions_before_released_process = executions[0]
+  assert_true(
+    runtime.start(request("dispatch-after-process-stop"), input_binding)
+    is Err(@runtime.Bundle(@bundle.MissingBundle)),
+  )
+  assert_eq(executions[0], executions_before_released_process)
   assert_true(runtime.close() is Err(@runtime.CleanupPending("output")))
   assert_eq(released[0], 6)
   assert_false(runtime.close().unwrap())
