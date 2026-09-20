@@ -919,14 +919,30 @@ function remoteBundleControl(moon) {
     prepareDrain: record => checked(
       moon.strategyRemoteBundleDrainPrepare(record),
     ),
+    prepareActiveDrain: (activeBundleCid, record) => checked(
+      moon.strategyRemoteActiveBundleDrainPrepare(activeBundleCid, record),
+    ),
     prepareRetain: (record, maxOwners) => checked(
       moon.strategyRemoteBundleRetainPrepare(record, maxOwners),
+    ),
+    prepareActiveRetain: (activeBundleCid, record, maxOwners) => checked(
+      moon.strategyRemoteActiveBundleRetainPrepare(
+        activeBundleCid,
+        record,
+        maxOwners,
+      ),
     ),
     prepareRelease: record => checked(
       moon.strategyRemoteBundleReleasePrepare(record),
     ),
     prepareReclaim: record => checked(
       moon.strategyRemoteBundleReclaimPrepare(record),
+    ),
+    prepareInactiveReclaim: (activeBundleCid, record) => checked(
+      moon.strategyRemoteInactiveBundleReclaimPrepare(
+        activeBundleCid,
+        record,
+      ),
     ),
     transitionProjection: transition => tuplePair(
       moon.strategyRemoteBundleTransitionProjection(transition),

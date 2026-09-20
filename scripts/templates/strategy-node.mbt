@@ -5057,12 +5057,41 @@ pub fn strategy_remote_bundle_drain_prepare(
 }
 
 ///|
+#export_name("strategyRemoteActiveBundleDrainPrepare")
+pub fn strategy_remote_active_bundle_drain_prepare(
+  active_bundle_cid : String?,
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_active_bundle_drain(active_bundle_cid, record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteBundleRetainPrepare")
 pub fn strategy_remote_bundle_retain_prepare(
   record : @bundle.RemoteBundleRecord,
   max_owners : Int,
 ) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
   match @bundle.prepare_bundle_retain(record, max_owners) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteActiveBundleRetainPrepare")
+pub fn strategy_remote_active_bundle_retain_prepare(
+  active_bundle_cid : String?,
+  record : @bundle.RemoteBundleRecord,
+  max_owners : Int,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_active_bundle_retain(
+    active_bundle_cid,
+    record,
+    max_owners,
+  ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -5085,6 +5114,18 @@ pub fn strategy_remote_bundle_reclaim_prepare(
   record : @bundle.RemoteBundleRecord,
 ) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
   match @bundle.prepare_bundle_reclaim(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteInactiveBundleReclaimPrepare")
+pub fn strategy_remote_inactive_bundle_reclaim_prepare(
+  active_bundle_cid : String?,
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_inactive_bundle_reclaim(active_bundle_cid, record) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }

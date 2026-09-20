@@ -207,6 +207,10 @@ test('runtime bundle activation has one portable transaction decision', () => {
   assert.match(activation, /control\.prepareActivation\(/);
   assert.match(activation, /control\.commitActivation\(/);
   assert.doesNotMatch(activation, /control\.prepareActivate\(/);
+  assert.match(adapter, /control\.prepareActiveDrain\(/);
+  assert.match(adapter, /control\.prepareActiveRetain\(/);
+  assert.match(adapter, /control\.prepareInactiveReclaim\(/);
+  assert.doesNotMatch(adapter, /RemoteBundleNotActive|RemoteBundleStillActive/);
 });
 
 test('DuckDB SQL and physical values belong to the connector package group', () => {

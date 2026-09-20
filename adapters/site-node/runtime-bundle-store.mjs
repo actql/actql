@@ -259,7 +259,8 @@ export async function openRuntimeBundleStore(root, {
       'identity', 'json', 'admitJson', 'projection', 'open', 'restore',
       'prepareActivation', 'activationTransitionCount',
       'activationTransitionAt', 'commitActivation', 'prepareDrain',
-      'prepareRetain', 'prepareRelease', 'prepareReclaim',
+      'prepareActiveDrain', 'prepareRetain', 'prepareActiveRetain',
+      'prepareRelease', 'prepareReclaim', 'prepareInactiveReclaim',
       'transitionProjection', 'transitionKey', 'commitTransition',
       'recordProjection',
     ]) {
@@ -430,10 +431,11 @@ export async function openRuntimeBundleStore(root, {
         const value = restore(row, control);
         const state = control.recordProjection(value.record);
         if (state[1] === '2') return value;
-        if (activeRow.get('active_bundle_cid').value !== runtimeBundleCid) {
-          fail('RemoteBundleNotActive');
-        }
-        const transition = control.prepareDrain(value.record);
+        const activeBundleCid = activeRow.get('active_bundle_cid').value;
+        const transition = control.prepareActiveDrain(
+          activeBundleCid === '' ? undefined : activeBundleCid,
+          value.record,
+        );
         persist(transition, control);
         setActive.run('', 'active_bundle_cid');
         control.commitTransition(transition, true);
@@ -454,11 +456,14 @@ export async function openRuntimeBundleStore(root, {
           return restore(select.get(runtimeBundleCid), control);
         }
         const currentCid = activeRow.get('active_bundle_cid').value;
-        if (currentCid !== runtimeBundleCid) fail('RemoteBundleNotActive');
         const row = select.get(runtimeBundleCid);
         if (row === undefined) fail('RemoteBundleMissing');
         const value = restore(row, control);
-        const transition = control.prepareRetain(value.record, maxOwners);
+        const transition = control.prepareActiveRetain(
+          currentCid === '' ? undefined : currentCid,
+          value.record,
+          maxOwners,
+        );
         persist(transition, control);
         insertHold.run(holdId, runtimeBundleCid, kind);
         control.commitTransition(transition, true);
@@ -486,16 +491,17 @@ export async function openRuntimeBundleStore(root, {
       active();
       requireControl(control);
       const prepared = transaction(database, () => {
-        if (activeRow.get('active_bundle_cid').value === runtimeBundleCid) {
-          fail('RemoteBundleStillActive');
-        }
+        const currentCid = activeRow.get('active_bundle_cid').value;
         const row = select.get(runtimeBundleCid);
         if (row === undefined) fail('RemoteBundleMissing');
         const value = restore(row, control);
         if (control.recordProjection(value.record)[1] === '3') {
           return Object.freeze({row, transition: undefined});
         }
-        const transition = control.prepareReclaim(value.record);
+        const transition = control.prepareInactiveReclaim(
+          currentCid === '' ? undefined : currentCid,
+          value.record,
+        );
         database.prepare(`
           UPDATE bundles SET reclaim_pending = 1
           WHERE runtime_bundle_cid = ? AND reclaim_pending = 0

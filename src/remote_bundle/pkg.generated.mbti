@@ -38,6 +38,10 @@ pub fn commit_bundle_transition(RemoteBundleTransition, Bool) -> Result[RemoteBu
 
 pub fn open_bundle_record(RemoteBundleManifest) -> RemoteBundleRecord
 
+pub fn prepare_active_bundle_drain(String?, RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_active_bundle_retain(String?, RemoteBundleRecord, Int) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
 pub fn prepare_bundle_activate(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
 pub fn prepare_bundle_activation(RemoteBundleRecord?, RemoteBundleRecord) -> Result[RemoteBundleActivation, RemoteBundleIssue]
@@ -53,6 +57,8 @@ pub fn prepare_bundle_release(RemoteBundleRecord) -> Result[RemoteBundleTransiti
 pub fn prepare_bundle_retain(RemoteBundleRecord, Int) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
 pub fn prepare_bundle_signature_envelope(RemoteBundleManifest, String, String) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue]
+
+pub fn prepare_inactive_bundle_reclaim(String?, RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
 pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[RemoteBundleRecord, RemoteBundleIssue]
 

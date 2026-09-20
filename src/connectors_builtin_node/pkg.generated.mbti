@@ -338,6 +338,10 @@ pub fn strategy_record_result_access_request_authorization(@run_publication.Resu
 
 pub fn strategy_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
 
+pub fn strategy_remote_active_bundle_drain_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_active_bundle_retain_prepare(String?, @remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
 pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
 
 pub fn strategy_remote_admission_is_new(@remote_site_protocol.DispatchAdmission) -> Bool
@@ -513,6 +517,8 @@ pub fn strategy_remote_force_loss_key(@remote_site_protocol.ForceLossTransition)
 pub fn strategy_remote_force_loss_projection(@remote_site_protocol.ForceLossTransition) -> Array[String]
 
 pub fn strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_inactive_bundle_reclaim_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
 pub fn strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
 

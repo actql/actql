@@ -483,6 +483,21 @@ pub fn prepare_bundle_drain(
 }
 
 ///|
+/// Prepare an explicit active-binding removal. The environment Store supplies
+/// its durable active binding, while MoonBit owns whether that binding permits
+/// the lifecycle transition.
+pub fn prepare_active_bundle_drain(
+  active_bundle_cid : String?,
+  record : RemoteBundleRecord,
+) -> Result[RemoteBundleTransition, RemoteBundleIssue] {
+  guard active_bundle_cid is Some(active) &&
+    active == record.manifest.runtime_bundle_cid else {
+    return Err(InvalidBundleState)
+  }
+  prepare_bundle_drain(record)
+}
+
+///|
 pub fn prepare_bundle_retain(
   record : RemoteBundleRecord,
   max_owners : Int,
@@ -494,6 +509,19 @@ pub fn prepare_bundle_retain(
     return Err(BundleOwnerLimit)
   }
   transition(record, record.phase, record.owners + 1)
+}
+
+///|
+pub fn prepare_active_bundle_retain(
+  active_bundle_cid : String?,
+  record : RemoteBundleRecord,
+  max_owners : Int,
+) -> Result[RemoteBundleTransition, RemoteBundleIssue] {
+  guard active_bundle_cid is Some(active) &&
+    active == record.manifest.runtime_bundle_cid else {
+    return Err(InvalidBundleState)
+  }
+  prepare_bundle_retain(record, max_owners)
 }
 
 ///|
@@ -515,6 +543,17 @@ pub fn prepare_bundle_reclaim(
     return Err(InvalidBundleState)
   }
   transition(record, BundleReclaimed, 0)
+}
+
+///|
+pub fn prepare_inactive_bundle_reclaim(
+  active_bundle_cid : String?,
+  record : RemoteBundleRecord,
+) -> Result[RemoteBundleTransition, RemoteBundleIssue] {
+  if active_bundle_cid == Some(record.manifest.runtime_bundle_cid) {
+    return Err(InvalidBundleState)
+  }
+  prepare_bundle_reclaim(record)
 }
 
 ///|

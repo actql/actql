@@ -91,6 +91,27 @@ test "activation owns the complete drain and activate transaction" {
 }
 
 ///|
+test "active binding gates drain retain and reclaim decisions" {
+  let manifest = bundle_manifest()
+  let cid = bundle_manifest_identity(manifest)
+  let record = open_bundle_record(manifest)
+  assert_true(prepare_active_bundle_drain(None, record) is Err(_))
+  assert_true(prepare_active_bundle_retain(Some(cid), record, 1) is Err(_))
+  assert_true(prepare_inactive_bundle_reclaim(Some(cid), record) is Err(_))
+  commit_bundle_transition(prepare_bundle_activate(record).unwrap(), true).unwrap()
+  |> ignore
+  assert_true(prepare_active_bundle_drain(Some("foreign"), record) is Err(_))
+  let retained = prepare_active_bundle_retain(Some(cid), record, 1).unwrap()
+  commit_bundle_transition(retained, true).unwrap() |> ignore
+  let drained = prepare_active_bundle_drain(Some(cid), record).unwrap()
+  commit_bundle_transition(drained, true).unwrap() |> ignore
+  assert_true(prepare_inactive_bundle_reclaim(None, record) is Err(_))
+  commit_bundle_transition(prepare_bundle_release(record).unwrap(), true).unwrap()
+  |> ignore
+  assert_true(prepare_inactive_bundle_reclaim(None, record) is Ok(_))
+}
+
+///|
 test "bundle signature envelope owns exact preimage and authority binding" {
   let manifest = bundle_manifest()
   let signature = "A".repeat(86)
