@@ -2507,6 +2507,23 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'graphs-equal',
+    rows: 2,
+    advanceQuantum: 1,
+    constructionProgress: 8,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['equal'],
+  }, {
     name: 'graph-bounds',
     rows: 40,
     step: {
@@ -2677,6 +2694,7 @@ async function exerciseStrategyGraph(
       cancellationCase.family === 'time-series';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
+    const unsizedGraph = cancellationCase.name === 'graphs-equal';
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}
       : cancellationCase.operation === 'window-sliding'
@@ -2923,7 +2941,7 @@ async function exerciseStrategyGraph(
             results: {published: {from: {stage: 'vectors', result: 'r'}}},
           }
           : structuredClone(graphProgramBase);
-    if (graphFamily) {
+    if (graphFamily && !unsizedGraph) {
       graphCancellationProgram.stages[1].steps[0].values.rows =
         Array.from({length: cancellationCase.rows}, (_, index) => ({
           id: index + 1,
@@ -2932,6 +2950,8 @@ async function exerciseStrategyGraph(
           node_name: `node-${index + 1}`,
           weight: index + 1,
         }));
+    }
+    if (graphFamily) {
       graphCancellationProgram.stages[2].steps.splice(
         1,
         1,
@@ -2943,7 +2963,9 @@ async function exerciseStrategyGraph(
       graphCancellationProgram.stages[2].results.r.fields = graphFields;
       graphCancellationProgram.stages[3].steps[0].select = graphFields;
       graphCancellationProgram.stages[3].results.r.fields = graphFields;
-      const graphSecondFields = graphFields.slice(1);
+      const graphSecondFields = unsizedGraph
+        ? graphFields
+        : graphFields.slice(1);
       graphCancellationProgram.stages[4].steps[0].select =
         graphSecondFields;
       graphCancellationProgram.stages[4].results.r.fields =
@@ -2963,6 +2985,8 @@ async function exerciseStrategyGraph(
       ? fixture.strategyFixtureTeaCreate
       : vecaFamily
         ? fixture.strategyFixtureVecaCreate
+      : unsizedGraph
+        ? fixture.strategyFixtureSgaCreate
       : cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : fixture.strategyFixtureSgaSizedCreate;
@@ -2971,7 +2995,7 @@ async function exerciseStrategyGraph(
         ? args
         : sgaEnvironmentArguments(args)),
       JSON.stringify(graphCancellationProgram),
-      ...(teaFamily
+      ...(teaFamily || unsizedGraph
         ? []
         : vecaFamily
           ? [orderedContract]
