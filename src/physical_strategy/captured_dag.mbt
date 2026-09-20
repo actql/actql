@@ -6,8 +6,7 @@ struct CapturedDAG {
   offer_owner : StrategyOfferOwner
   mut source : @query.CapturedInputSource?
   ledger : @resources.Ledger
-  completed : Array[@execution.CompletedOutput?]
-  managed_completed : Array[@execution.ManagedCompletionReference?]
+  outputs : Array[CommittedTaskOutput?]
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
@@ -34,6 +33,37 @@ struct CapturedDAG {
   mut managed_host_identity : Bool
   mut managed_identity_policy_sealed : Bool
   managed_selections : Array[@connector.CapabilityRegistration?]
+}
+
+///|
+/// One authoritative committed output slot per checked task. The variants
+/// preserve representation-specific typed access; they are not independent
+/// completion ledgers. A task can occupy this slot only once.
+priv enum CommittedTaskOutput {
+  Materialized(@execution.CompletedOutput)
+  Managed(@execution.ManagedCompletionReference)
+}
+
+///|
+fn materialized_task_output(
+  run : CapturedDAG,
+  task : Int,
+) -> @execution.CompletedOutput? {
+  match run.outputs.get(task).bind(value => value) {
+    Some(Materialized(output)) => Some(output)
+    _ => None
+  }
+}
+
+///|
+fn managed_task_output_reference(
+  run : CapturedDAG,
+  task : Int,
+) -> @execution.ManagedCompletionReference? {
+  match run.outputs.get(task).bind(value => value) {
+    Some(Managed(reference)) => Some(reference)
+    _ => None
+  }
 }
 
 ///|
@@ -332,8 +362,7 @@ pub fn open_captured_dag(
       @query.restrict_captured_source(source, fn() { root_lifetime.live }),
     ),
     ledger,
-    completed: Array::make(count, None),
-    managed_completed: Array::make(count, None),
+    outputs: Array::make(count, None),
     done: Array::make(count, false),
     lifetimes,
     resources,
@@ -782,7 +811,7 @@ pub fn captured_releasable_managed_producers(run : CapturedDAG) -> Array[Int] {
   for producer in 1..<run.done.length() {
     if !run.done[producer] ||
       !run.lifetimes[producer].live ||
-      run.managed_completed.get(producer).bind(value => value) is None {
+      managed_task_output_reference(run, producer) is None {
       continue
     }
     let mut has_consumer = false
@@ -928,7 +957,7 @@ pub fn captured_task_output(
     !run.lifetimes[task].live {
     return None
   }
-  let output = run.completed.get(task).bind(value => value)
+  let output = materialized_task_output(run, task)
   let lifetime = run.lifetimes[task]
   output.map(output => {
     @execution.restrict_completed_output(output, fn() { lifetime.live })
@@ -949,9 +978,7 @@ pub fn[T] captured_managed_task_output_matches(
     !run.lifetimes[task].live {
     return false
   }
-  run.managed_completed
-  .get(task)
-  .bind(value => value)
+  managed_task_output_reference(run, task)
   .map(reference => {
     @execution.managed_completed_reference_matches(reference, output)
   })
@@ -1073,8 +1100,7 @@ fn[T] captured_managed_inputs_match(
     }
     guard selected is Some(edge) &&
       edge.producer > 0 &&
-      run.managed_completed.get(edge.producer).bind(value => value)
-      is Some(reference) &&
+      managed_task_output_reference(run, edge.producer) is Some(reference) &&
       @execution.managed_producer_read_matches_reference(input, reference) else {
       return false
     }

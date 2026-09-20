@@ -69,7 +69,7 @@ pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
 /// Exporting a result outside this run requires the Host to keep its port open
 /// for that external use. This is not a GC/foreign-handle discovery mechanism.
 pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
-  if task < 0 || task >= run.completed.length() {
+  if task < 0 || task >= run.outputs.length() {
     return
   }
   if !task_done(run, task) {
@@ -83,8 +83,7 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
   if task == 0 {
     run.source = None
   }
-  run.completed[task] = None
-  run.managed_completed[task] = None
+  run.outputs[task] = None
   // A cached binding is not a started consumer. Drop our revoked aliases;
   // an in-flight native attempt keeps its input until cleanup is confirmed.
   for edge in run.graph.data {

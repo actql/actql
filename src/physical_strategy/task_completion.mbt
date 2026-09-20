@@ -101,7 +101,7 @@ fn publish_task_completion(
     release_confirmed: fn() { true },
     parents: task_parents(run, task),
   })
-  run.completed[task] = Some(output)
+  run.outputs[task] = Some(Materialized(output))
   run.done[task] = true
   clear_captured_inputs(run, task)
   run.generation += 1
@@ -201,9 +201,8 @@ pub fn[T] complete_managed_task_execution(
     release_confirmed: fn() { true },
     parents: task_parents(run, task),
   })
-  run.completed[task] = None
-  run.managed_completed[task] = Some(
-    @execution.managed_completed_reference(output),
+  run.outputs[task] = Some(
+    Managed(@execution.managed_completed_reference(output)),
   )
   run.done[task] = true
   clear_captured_inputs(run, task)

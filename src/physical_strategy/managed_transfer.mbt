@@ -50,8 +50,7 @@ pub fn begin_captured_managed_transfer(
     run.done.get(source_task) == Some(true) &&
     run.lifetimes.get(source_task) is Some(lifetime) &&
     lifetime.live &&
-    run.managed_completed.get(source_task).bind(value => value)
-    is Some(reference) &&
+    managed_task_output_reference(run, source_task) is Some(reference) &&
     @execution.managed_completed_reference_available(reference) else {
     return Err(MissingOutput)
   }
@@ -146,7 +145,7 @@ pub fn complete_captured_managed_transfer(
     transfer.released {
     return Err(NotReady)
   }
-  guard run.managed_completed.get(transfer.source_task).bind(value => value)
+  guard managed_task_output_reference(run, transfer.source_task)
     is Some(reference) &&
     @execution.managed_completed_reference_available(reference) else {
     return Err(MissingOutput)
