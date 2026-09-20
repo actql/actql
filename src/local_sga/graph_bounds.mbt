@@ -316,6 +316,7 @@ fn graph_bounds_step(
         if state.source_index < @storage.node_count(state.source) {
           state.degrees.push(0L)
           state.selected.push(state.source_index)
+          state.scratch.push(None)
           state.source_index += 1
           used += 1
         } else {
@@ -656,7 +657,7 @@ fn start_graph_diagnostic(
     source_index: 0,
     degrees: [],
     selected: [],
-    scratch: Array::make(nodes, None),
+    scratch: [],
     width: 1,
     run_start: 0,
     middle: 0,
