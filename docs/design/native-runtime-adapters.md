@@ -88,6 +88,9 @@ does not depend on a process-local schema copy retained by the caller.
 Committed Result resolution loads every binding named by the index and asks
 the portable publication owner to select the exact Result occurrence. The
 filesystem adapter does not infer a binding from a material name or path.
+Trusted clock observations use SQLite compare-and-swap to preserve a monotonic
+lower bound per admitted clock contract. A process restart, concurrent reader,
+or wall-clock regression cannot extend a Result's retention interval.
 
 ## SQLite integration
 

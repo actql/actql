@@ -994,6 +994,45 @@ test "native publication commit is unique durable and restart-visible" {
 }
 
 ///|
+test "native trusted clock remains monotonic across restart" {
+  guard native_payload_fixture("trusted-clock", 64L)
+    is Some((store, authority, library)) else {
+    return
+  }
+  let clock = native_payload_cid("trusted-clock-contract")
+  assert_eq(
+    store.observe_trusted_clock(clock, "2026-09-20T01:00:00.000Z").unwrap(),
+    "2026-09-20T01:00:00.000Z",
+  )
+  assert_true(
+    store.observe_trusted_clock(clock, "2026-09-20T00:59:59.999Z")
+    is Err(ClockRegression),
+  )
+  assert_eq(
+    store.observe_trusted_clock(clock, "2026-09-20T01:00:00.001Z").unwrap(),
+    "2026-09-20T01:00:00.001Z",
+  )
+  assert_true(store.close().unwrap())
+  let reopened = open_store(
+    library,
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
+    authority,
+    64L,
+    8L,
+    65536L,
+  ).unwrap()
+  assert_true(
+    reopened.observe_trusted_clock(clock, "2026-09-20T01:00:00.000Z")
+    is Err(ClockRegression),
+  )
+  assert_eq(
+    reopened.observe_trusted_clock(clock, "2026-09-20T01:00:00.002Z").unwrap(),
+    "2026-09-20T01:00:00.002Z",
+  )
+  assert_true(reopened.close().unwrap())
+}
+
+///|
 test "native formal delivery durably binds attempt receipt and success" {
   guard native_payload_fixture("formal-delivery", 256L)
     is Some((store, authority, library)) else {

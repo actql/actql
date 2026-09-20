@@ -250,6 +250,15 @@ pub fn Store::read_result_schema(
 }
 
 ///|
+pub fn Store::observe_trusted_clock(
+  _self : Store,
+  _clock_contract_cid : String,
+  _observed_at : String,
+) -> Result[String, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::resolve_committed_result(
   _self : Store,
   _tenant_id : String,

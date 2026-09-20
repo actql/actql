@@ -18,6 +18,7 @@ pub(all) enum NativePublicationStoreIssue {
   PublicationCommit(@publication.PublicationCommitIssue)
   PublicationCommitIssuance(@publication.PublicationCommitIssuanceIssue)
   PublicationCommitConflict
+  ClockRegression
   DeliveryLimit
   DeliveryIncomplete
   CleanupPending

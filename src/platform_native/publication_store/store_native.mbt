@@ -905,6 +905,62 @@ fn publication_commit_key(
 }
 
 ///|
+/// Persist a monotonic observation for one admitted clock contract. A process
+/// restart or concurrent observer cannot move the durable lower bound back.
+pub fn Store::observe_trusted_clock(
+  self : Store,
+  clock_contract_cid : String,
+  observed_at : String,
+) -> Result[String, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if !@publication.trusted_clock_not_before(None, observed_at) {
+    return Err(ClockRegression)
+  }
+  let body = @utf8.encode(observed_at)
+  for retry = 0; retry < 16; retry = retry + 1 {
+    let current = match
+      self.database.read("trusted_clock", clock_contract_cid) {
+      Ok(value) => Some(value)
+      Err(@sqlite.NotFound) => None
+      Err(issue) => return Err(Database(issue))
+    }
+    match current {
+      None =>
+        match self.database.insert("trusted_clock", clock_contract_cid, body) {
+          Ok(_) => return Ok(observed_at)
+          Err(@sqlite.Collision) => continue
+          Err(issue) => return Err(Database(issue))
+        }
+      Some(value) => {
+        let previous = @utf8.decode(value.body) catch {
+          _ => return Err(StateCollision)
+        }
+        if !@publication.trusted_clock_not_before(Some(previous), observed_at) {
+          return Err(ClockRegression)
+        }
+        if previous == observed_at {
+          return Ok(observed_at)
+        }
+        match
+          self.database.compare_exchange(
+            "trusted_clock",
+            clock_contract_cid,
+            value.revision,
+            body,
+          ) {
+          Ok(_) => return Ok(observed_at)
+          Err(@sqlite.Collision) => continue
+          Err(issue) => return Err(Database(issue))
+        }
+      }
+    }
+  }
+  Err(Database(@sqlite.Busy))
+}
+
+///|
 /// Make one fully validated Run-bound publication visible. Semantic contracts
 /// are durable before the single scoped index row is installed. An exact
 /// retry returns the existing commit; a different publication for the same
