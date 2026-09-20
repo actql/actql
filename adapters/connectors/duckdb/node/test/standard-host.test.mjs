@@ -2183,6 +2183,135 @@ async function exerciseStrategyGraph(
       force: true,
     });
   }
+  const pooledVectorPublicationProgram = structuredClone(
+    carrierVectorPublicationProgram,
+  );
+  pooledVectorPublicationProgram.stages[1].steps[0].values.schema.group =
+    {type: 'number', nullable: false};
+  pooledVectorPublicationProgram.stages[1].steps[0].values.rows = [
+    {id: 1, group: 1, embedding: [3, 4]},
+    {id: 2, group: 1, embedding: [0, 5]},
+  ];
+  pooledVectorPublicationProgram.stages[1].results.r.fields =
+    ['id', 'group', 'embedding'];
+  pooledVectorPublicationProgram.stages[2].steps = [{
+    from: 'rows',
+    to_vectors: {id: 'id', vector: 'embedding'},
+    as: 'source',
+  }, {
+    from: 'source',
+    pool_vectors: {by: ['group'], method: 'sum'},
+    as: 'pooled',
+  }, {
+    from: 'pooled', normalize_vectors: true, as: 'same_carrier',
+  }, {
+    from: 'pooled', vectors: true, as: 'out',
+  }];
+  const pooledFields = ['group', 'embedding', 'member_count'];
+  pooledVectorPublicationProgram.stages[2].results.r.fields = pooledFields;
+  pooledVectorPublicationProgram.stages[3].steps[0].select = pooledFields;
+  pooledVectorPublicationProgram.stages[3].results.r.fields = pooledFields;
+  pooledVectorPublicationProgram.stages[4].steps[0].select =
+    ['member_count', 'embedding', 'group'];
+  pooledVectorPublicationProgram.stages[4].results.r.fields =
+    ['member_count', 'embedding', 'group'];
+  const pooledVectorPublicationFixture = fixture.strategyFixtureVecaCreate(
+    ...args,
+    JSON.stringify(pooledVectorPublicationProgram),
+    orderedContract,
+  );
+  const pooledVectorCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(pooledVectorPublicationFixture),
+    suppliedLimits,
+  );
+  const pooledVectorPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/pooled-vector-publication-entry-',
+  ));
+  let pooledVectorPublicationOwner;
+  let pooledVectorPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        pooledVectorPublicationFixture,
+        pooledVectorCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureVecaSubset(
+      pooledVectorPublicationFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 1);
+    pooledVectorPublicationStore = await openLocalPublicationStore({
+      directory: pooledVectorPublicationDirectory,
+      storeAuthorityCid: hash('pooled-vector-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'pooled-vector-publication-attempt',
+    );
+    pooledVectorPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: pooledVectorPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    );
+    assert.equal(pooledVectorPublicationOwner.status, 'published');
+    assert.equal(
+      pooledVectorPublicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.deepEqual(
+      pooledVectorPublicationOwner.execution.completed.map(
+        value => value.realization,
+      ),
+      Array(4).fill('local-managed'),
+    );
+    const occurrence = pooledVectorPublicationOwner.execution
+      .publicationInventory.occurrences[0];
+    const received = [];
+    await pooledVectorPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(
+      JSON.parse(Buffer.concat(received).toString('utf8')),
+      [{group: 1, embedding: [3, 9], member_count: 2}],
+    );
+  } finally {
+    if (pooledVectorPublicationOwner !== undefined) {
+      await pooledVectorPublicationOwner.close();
+      assert.equal(pooledVectorPublicationOwner.cleanupPending(), false);
+      assert.equal(await pooledVectorPublicationOwner.cleanup(), true);
+      assert.equal(
+        pooledVectorPublicationOwner.execution.usage().heldBytes,
+        0n,
+      );
+      assert.equal(
+        pooledVectorPublicationOwner.execution.usage()
+          .reservedExecutionBytes,
+        0n,
+      );
+    }
+    pooledVectorCapture.close();
+    await pooledVectorPublicationStore?.close();
+    await rm(pooledVectorPublicationDirectory, {
+      recursive: true,
+      force: true,
+    });
+  }
   const graphCancellationCases = [{
     name: 'node-rows',
     rows: 100,
@@ -2309,6 +2438,14 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     constructionProgress: 80,
     fields: ['id', 'embedding', 'score'],
+  }, {
+    name: 'vector-pool',
+    family: 'veca',
+    operation: 'pool',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    fields: ['group', 'embedding', 'member_count'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -2445,6 +2582,7 @@ async function exerciseStrategyGraph(
                 values: {
                   schema: {
                     id: {type: 'number', nullable: false},
+                    group: {type: 'number', nullable: false},
                     embedding: {
                       type: 'vector', dimensions: 2, nullable: false,
                     },
@@ -2453,13 +2591,21 @@ async function exerciseStrategyGraph(
                     {length: cancellationCase.rows},
                     (_, index) => ({
                       id: index + 1,
+                      group: index % 2,
                       embedding: [index + 1, index + 2],
                     }),
                   ),
                 },
                 as: 'out',
               }],
-              results: {r: {from: 'out', fields: ['id', 'embedding']}},
+              results: {
+                r: {
+                  from: 'out',
+                  fields: cancellationCase.operation === 'pool'
+                    ? ['id', 'group', 'embedding']
+                    : ['id', 'embedding'],
+                },
+              },
             }, {
               id: 'vectors',
               inputs: {rows: {result: {stage: 'values', result: 'r'}}},
@@ -2479,6 +2625,22 @@ async function exerciseStrategyGraph(
                 }, {
                   from: 'scored', vectors: true, as: 'out',
                 }]
+                : cancellationCase.operation === 'pool'
+                  ? [{
+                    from: 'rows',
+                    to_vectors: {id: 'id', vector: 'embedding'},
+                    as: 'source',
+                  }, {
+                    from: 'source',
+                    pool_vectors: {by: ['group'], method: 'sum'},
+                    as: 'pooled',
+                  }, {
+                    from: 'pooled',
+                    normalize_vectors: true,
+                    as: 'same_carrier',
+                  }, {
+                    from: 'pooled', vectors: true, as: 'out',
+                  }]
                 : [{
                   from: 'rows',
                   to_vectors: {id: 'id', vector: 'embedding'},
@@ -2492,17 +2654,24 @@ async function exerciseStrategyGraph(
                 }, {
                   from: 'normalized', vectors: true, as: 'out',
                 }],
-              results: {r: {from: 'out', fields: ['id', 'embedding']}},
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
             }, {
               id: 'consumer_a',
               inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
-              steps: [{select: ['id', 'embedding'], as: 'out'}],
-              results: {r: {from: 'out', fields: ['id', 'embedding']}},
+              steps: [{select: cancellationCase.fields, as: 'out'}],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
             }, {
               id: 'consumer_b',
               inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
-              steps: [{select: ['embedding', 'id'], as: 'out'}],
-              results: {r: {from: 'out', fields: ['embedding', 'id']}},
+              steps: [{
+                select: cancellationCase.fields.toReversed(), as: 'out',
+              }],
+              results: {
+                r: {
+                  from: 'out',
+                  fields: cancellationCase.fields.toReversed(),
+                },
+              },
             }],
             results: {published: {from: {stage: 'vectors', result: 'r'}}},
           }

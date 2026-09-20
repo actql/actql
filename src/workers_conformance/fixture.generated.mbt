@@ -716,7 +716,10 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
-  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let pooled = variant == "pool" ||
+    variant == "pool_normalize" ||
+    variant == "pool_shared" ||
+    relation_pool
   let scored = variant == "score_shared" || variant == "score_parameter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
@@ -822,6 +825,14 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"scored\"},{\"from\":\"scored\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"scored\",\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "pool_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}," +
+    "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
+    "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
+    "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +

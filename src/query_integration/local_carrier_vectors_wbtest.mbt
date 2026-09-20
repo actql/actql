@@ -18,7 +18,10 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
-  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let pooled = variant == "pool" ||
+    variant == "pool_normalize" ||
+    variant == "pool_shared" ||
+    relation_pool
   let scored = variant == "score_shared" || variant == "score_parameter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
@@ -124,6 +127,14 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"scored\"},{\"from\":\"scored\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"scored\",\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "pool_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}," +
+    "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
+    "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
+    "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
@@ -423,20 +434,26 @@ fn carrier_vectors_storage_limits() -> @record_storage.Limits {
 fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
-  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let pooled = variant == "pool" ||
+    variant == "pool_normalize" ||
+    variant == "pool_shared" ||
+    relation_pool
   let scored = variant == "score_shared" || variant == "score_parameter"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
     managed_publication=variant == "normalize_shared" ||
-      variant == "score_shared",
+      variant == "score_shared" ||
+      variant == "pool_shared",
     parameter_json=if variant == "score_parameter" {
       "{\"minimum\":1,\"q\":[0,1]}"
     } else {
       "{\"minimum\":1}"
     },
   )
-  if variant == "normalize_shared" || variant == "score_shared" {
+  if variant == "normalize_shared" ||
+    variant == "score_shared" ||
+    variant == "pool_shared" {
     assert_true(
       @strategy.configure_captured_managed_identity_policy(
         run, true, false, false, false,
@@ -597,6 +614,29 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
         @execution.EstablishedSourceRetained(
           @execution.logical_relation_canonical_contract_cid(),
           "sha256:aeb34ab94d8916124de5af23a6bf39b6eff947099c6c6fbf486763662fd794e5",
+        ),
+      ),
+    )
+  } else if variant == "pool_shared" {
+    assert_eq(vector_rows, [
+      "{\"embedding\":[3,9],\"group\":1,\"member_count\":2}",
+    ])
+    let published = @execution.managed_obligations_identities(
+      vector_obligations,
+    ).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(published.length(), 1)
+    assert_eq(
+      @execution.managed_completed_identity_requirement_status(
+        vectors,
+        published[0],
+      ),
+      Some(
+        @execution.EstablishedSourceRetained(
+          @execution.logical_relation_canonical_contract_cid(),
+          "sha256:b986e2eec797d867269e0bf0abbf453d05eb90d845fc5b402fc1beb50464b05f",
         ),
       ),
     )
@@ -1069,6 +1109,11 @@ test "standard Host runs bounded vector pooling provider" {
 ///|
 test "standard Host composes pooling and normalization" {
   run_standard_vectors_provider("pool_normalize")
+}
+
+///|
+test "standard Host shares pooled Vectors with a Carrier consumer" {
+  run_standard_vectors_provider("pool_shared")
 }
 
 ///|
