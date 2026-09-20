@@ -264,7 +264,13 @@ Graft consumes two exact positioned inputs, preserves a
 repeated material occurrence, collapses an equal declaration, and rejects a
 conflicting payload atomically. Their portable tests cover pre-allocation
 limits, kernel cancellation observation, and managed Graph generations on JS,
-Wasm, and native. Node identity-list matching now resolves every checked
+Wasm, and native. The registered provider now accepts two common read-only
+Graph Carrier views, preserves their exact operation-edge bindings, and runs
+the bounded graft output through the formal Graph-to-Relation Bridge. The
+provider and bridge fixture passes on all three portable targets. Standard
+Host scheduling, overlapping downstream lifetimes, publication, and
+environment cancellation remain open before `graft_graph` is complete. Node
+identity-list matching now resolves every checked
 identity through the admitted immutable Graph index before output, sorts by
 semantic identity with bounded merge passes, collapses repeated authored
 identities, and preserves the checked projection schema. A missing identity
