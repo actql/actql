@@ -160,6 +160,23 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
 }
 
 ///|
+fn nearest_publication_cid(variant : String) -> String {
+  if variant == "nearest_l2" {
+    "sha256:6fd5e80b9824a60178c6d632a29a3ade2037dd531c4ab3a7731511da70341685"
+  } else if variant == "nearest_inferred" {
+    "sha256:9fceff97e3f1c2985ffcdb1e8167ad34c6b592525de45530dd84f7ef740aec89"
+  } else if variant == "nearest_k1" {
+    "sha256:cd5ca17c629007382b00c09734661c5827adfcd3c9f5e2e2efcd688ff5648d0c"
+  } else if variant == "nearest_klarge" {
+    "sha256:5634ee66e92ec13e0d328d95045fd9706fe46b3c879e19f5a33a18b8ec7bad46"
+  } else if variant == "nearest_empty" || variant == "nearest_empty_queries" {
+    "sha256:d2889f6d3b43fe20f75149d13eb0585918c94cf3a5b0520f5f9e1525b0846f3d"
+  } else {
+    "sha256:6d303cfa8e4881cd9d7066c505a353c00e1509ccc247bc03332331fa09e8aaff"
+  }
+}
+
+///|
 fn local_vector_ranking_program(variant : String) -> String {
   let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
   let repeated = variant == "ranking_rrf_repeated"
@@ -702,6 +719,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
+    managed_publication=true,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 10,
@@ -710,6 +728,11 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
       retained_bytes: 64000000L,
       execution_bytes: 134217728L,
     }),
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -769,6 +792,9 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   ).unwrap()
 
   let candidates_live = Ref(true)
+  let candidates_obligations = @strategy.captured_next_managed_obligations(
+    run, 10,
+  ).unwrap()
   let (candidates_ops, candidates) = run_local_managed_test_task(
     installed,
     run,
@@ -777,9 +803,11 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [],
     1,
     candidates_live,
+    obligations=candidates_obligations,
   )
   let candidate_rows = local_managed_test_rows(candidates_ops)
   let queries_live = Ref(true)
+  let queries_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (queries_ops, queries) = run_local_managed_test_task(
     installed,
     run,
@@ -788,9 +816,11 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [],
     2,
     queries_live,
+    obligations=queries_obligations,
   )
   let query_rows = local_managed_test_rows(queries_ops)
   let nearest_live = Ref(true)
+  let nearest_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (nearest_ops, nearest) = run_local_managed_test_task(
     installed,
     run,
@@ -799,6 +829,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [candidate_rows, query_rows],
     3,
     nearest_live,
+    obligations=nearest_obligations,
   )
   let nearest_rows = local_managed_test_rows(nearest_ops)
   let expected = if variant == "nearest_empty" ||
@@ -836,8 +867,26 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     ]
   }
   assert_eq(nearest_rows, expected)
+  let published = @execution.managed_obligations_identities(nearest_obligations).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    },
+  )
+  assert_eq(published.length(), 1)
+  match
+    @execution.managed_completed_identity_requirement_status(
+      nearest,
+      published[0],
+    ) {
+    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
+      assert_eq(cid, nearest_publication_cid(variant))
+    }
+    _ => fail("nearest output did not establish publication identity")
+  }
 
   let first_live = Ref(true)
+  let first_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
@@ -846,8 +895,10 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [nearest_rows],
     4,
     first_live,
+    obligations=first_obligations,
   )
   let second_live = Ref(true)
+  let second_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
@@ -856,6 +907,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [nearest_rows],
     5,
     second_live,
+    obligations=second_obligations,
   )
   assert_eq(local_managed_test_rows(first_ops).length(), expected.length())
   assert_eq(local_managed_test_rows(second_ops).length(), expected.length())
