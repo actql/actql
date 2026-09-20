@@ -13,6 +13,10 @@ import {
 }
 
 // Values
+pub fn begin_managed_duckdb_failure_progress(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> ManagedDuckDBFailureProgress
+
+pub fn begin_managed_duckdb_failure_retry_progress() -> ManagedDuckDBFailureRetryProgress
+
 pub fn bind_resident_table(DuckDBResidentStore, @physical_strategy.ResidentTable) -> DuckDBResidentTable?
 
 pub fn borrow_configured_resident_inputs(StrategyComputeHostConfiguration, DuckDBResidentStore, Array[@physical_strategy.ResidentTable], Int, Int, Int) -> Result[DuckDBResidentInputs, @physical_strategy.RunIssue]
@@ -127,9 +131,9 @@ pub fn install_duckdb_resident_estimates(DuckDBDispatchModule, @physical_strateg
 
 pub fn install_duckdb_resource_estimate_policy(DuckDBDispatchModule, DuckDBResourceEstimatePolicy) -> Result[Unit, DuckDBEstimateIssue]
 
-pub fn managed_duckdb_failure_retry_step_code(Bool, Bool, Bool, Bool) -> Int
+pub fn managed_duckdb_failure_progress_action_code(ManagedDuckDBFailureProgress) -> Int
 
-pub fn managed_duckdb_failure_step_code(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn managed_duckdb_failure_retry_progress_action_code(ManagedDuckDBFailureRetryProgress, Bool, Bool) -> Int
 
 pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue
 
@@ -150,6 +154,22 @@ pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, DuckDBResidentSto
 pub fn prepare_resident_store(@physical_strategy.ResidentEnvironment) -> DuckDBResidentStore
 
 pub fn prepare_resident_table(@physical_strategy.CapturedDAG, DuckDBResidentStore, Int, Int64, Int, Int, Int) -> Result[@physical_strategy.ResidentTable, @physical_strategy.RunIssue]
+
+pub fn record_managed_duckdb_execution_cleanup_confirmed(ManagedDuckDBFailureProgress) -> Bool
+
+pub fn record_managed_duckdb_execution_close_attempted(ManagedDuckDBFailureProgress) -> Bool
+
+pub fn record_managed_duckdb_failure_observations(ManagedDuckDBFailureProgress, Bool, Bool, Bool) -> Bool
+
+pub fn record_managed_duckdb_native_retry_attempted(ManagedDuckDBFailureRetryProgress) -> Bool
+
+pub fn record_managed_duckdb_output_cancel_attempted(ManagedDuckDBFailureProgress) -> Bool
+
+pub fn record_managed_duckdb_output_owners_close_attempted(ManagedDuckDBFailureProgress) -> Bool
+
+pub fn record_managed_duckdb_output_reclaim_attempted(ManagedDuckDBFailureProgress) -> Bool
+
+pub fn record_managed_duckdb_output_retry_attempted(ManagedDuckDBFailureRetryProgress) -> Bool
 
 pub fn resident_input_scan_reuse(DuckDBResidentInputs, Int, @execution_relation.ProducerRead) -> @execution_relation.RetainedScanReuse?
 
@@ -242,6 +262,10 @@ pub(all) struct DuckDBResourceEstimateSettings {
   profile : @physical_strategy.ResidentProfile
   schedules : Array[@physical_cost.RateSchedule]
 }
+
+type ManagedDuckDBFailureProgress
+
+type ManagedDuckDBFailureRetryProgress
 
 type ManagedStrategyComputeHostConfiguration[T]
 

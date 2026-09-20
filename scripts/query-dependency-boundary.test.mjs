@@ -169,6 +169,10 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
     'adapters/host-common/managed-failure.mjs',
     'utf8',
   );
+  const duckdbFailure = readFileSync(
+    'adapters/connectors/duckdb/node/managed-failure.mjs',
+    'utf8',
+  );
   assert.match(sites, /MissingExecutionSiteControl/);
   assert.doesNotMatch(sites, /reservedRetentionBytes\s*[+-]=/);
   assert.doesNotMatch(sites, /reservedExecutionBytes\s*[+-]=/);
@@ -216,6 +220,13 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
   assert.doesNotMatch(failure, /let settled\s*=/);
   assert.doesNotMatch(failure, /let closeAttempted\s*=/);
   assert.doesNotMatch(failure, /let refreshed\s*=/);
+  assert.match(duckdbFailure, /managedStrategyFailureBegin/);
+  assert.match(duckdbFailure, /managedStrategyFailureRetryBegin/);
+  assert.doesNotMatch(duckdbFailure, /let outputCancelAttempted\s*=/);
+  assert.doesNotMatch(duckdbFailure, /let outputReclaimAttempted\s*=/);
+  assert.doesNotMatch(duckdbFailure, /let executionCloseAttempted\s*=/);
+  assert.doesNotMatch(duckdbFailure, /let nativeRetryAttempted\s*=/);
+  assert.doesNotMatch(duckdbFailure, /let outputRetryAttempted\s*=/);
   assert.deepEqual(imports('execution_site'), []);
 });
 

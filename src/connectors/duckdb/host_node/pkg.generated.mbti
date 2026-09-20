@@ -235,9 +235,29 @@ pub fn managed_strategy_complete(ManagedComputeNodeRun, ManagedNodeOutput) -> @e
 
 pub fn managed_strategy_create_sql(ManagedComputeNodeRun, Int) -> String raise NodeHostFailure
 
-pub fn managed_strategy_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn managed_strategy_failure_action(@driver.ManagedDuckDBFailureProgress) -> Int
 
-pub fn managed_strategy_failure_retry_action(Bool, Bool, Bool, Bool) -> Int
+pub fn managed_strategy_failure_begin(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @driver.ManagedDuckDBFailureProgress
+
+pub fn managed_strategy_failure_record_execution_cleanup_confirmed(@driver.ManagedDuckDBFailureProgress) -> Bool
+
+pub fn managed_strategy_failure_record_execution_close_attempted(@driver.ManagedDuckDBFailureProgress) -> Bool
+
+pub fn managed_strategy_failure_record_native_retry_attempted(@driver.ManagedDuckDBFailureRetryProgress) -> Bool
+
+pub fn managed_strategy_failure_record_observations(@driver.ManagedDuckDBFailureProgress, Bool, Bool, Bool) -> Bool
+
+pub fn managed_strategy_failure_record_output_cancel_attempted(@driver.ManagedDuckDBFailureProgress) -> Bool
+
+pub fn managed_strategy_failure_record_output_owners_close_attempted(@driver.ManagedDuckDBFailureProgress) -> Bool
+
+pub fn managed_strategy_failure_record_output_reclaim_attempted(@driver.ManagedDuckDBFailureProgress) -> Bool
+
+pub fn managed_strategy_failure_record_output_retry_attempted(@driver.ManagedDuckDBFailureRetryProgress) -> Bool
+
+pub fn managed_strategy_failure_retry_action(@driver.ManagedDuckDBFailureRetryProgress, Bool, Bool) -> Int
+
+pub fn managed_strategy_failure_retry_begin() -> @driver.ManagedDuckDBFailureRetryProgress
 
 pub fn managed_strategy_host_open(@driver.ManagedStrategyComputeHostConfiguration[Int], Int64, Int64, () -> Bool, () -> Bool) -> ManagedComputeNodeRun raise NodeHostFailure
 

@@ -5,6 +5,8 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {settleFailedManagedDuckDB} from '../managed-failure.mjs';
+import * as portableRuntime from
+  '../../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
@@ -101,25 +103,21 @@ export const managedStrategyCleanupRefresh=()=>{
   state().calls.refresh++;
   return true;
 };
-export const managedStrategyFailureAction=(
-  outputCancelAttempted, outputOwnersCloseAttempted,
-  outputReclaimAttempted, executionCloseAttempted, nativeStopped,
-  executionSettled, executionCleanupConfirmed, outputReclaimed,
-)=>{
-  if(!outputCancelAttempted)return 0;
-  if(!outputOwnersCloseAttempted)return 1;
-  if(!outputReclaimAttempted)return 2;
-  if(!executionCloseAttempted)return 3;
-  if(!nativeStopped)return 4;
-  if(!executionSettled)return 5;
-  if(!executionCleanupConfirmed)return 6;
-  if(!outputReclaimed)return 7;
-  return 8;
-};
-export const managedStrategyFailureRetryAction=(
-  nativePending, nativeAttempted, outputPending, outputAttempted,
-)=>nativePending&&!nativeAttempted?0:
-  outputPending&&!outputAttempted?1:2;
+export {
+  managedStrategyFailureBegin,
+  managedStrategyFailureRecordOutputCancelAttempted,
+  managedStrategyFailureRecordOutputOwnersCloseAttempted,
+  managedStrategyFailureRecordOutputReclaimAttempted,
+  managedStrategyFailureRecordExecutionCloseAttempted,
+  managedStrategyFailureRecordObservations,
+  managedStrategyFailureRecordExecutionCleanupConfirmed,
+  managedStrategyFailureAction,
+  managedStrategyFailureRetryBegin,
+  managedStrategyFailureRecordNativeRetryAttempted,
+  managedStrategyFailureRecordOutputRetryAttempted,
+  managedStrategyFailureRetryAction,
+} from ${JSON.stringify(pathToFileURL(join(root,
+  '_build/js/release/build/connectors/duckdb/host_node/host_node.js')).href)};
 `);
     state.controller = new AbortController();
     state.reason = reason;
@@ -240,31 +238,8 @@ test('native and output cleanup retry independently before task release',
         return Object.freeze({pending: false, errors: []});
       },
     });
-    const failureAction = (
-      outputCancelAttempted, outputOwnersCloseAttempted,
-      outputReclaimAttempted, executionCloseAttempted, nativeStopped,
-      executionSettled, executionCleanupConfirmed, outputReclaimed,
-    ) => {
-      if (!outputCancelAttempted) return 0;
-      if (!outputOwnersCloseAttempted) return 1;
-      if (!outputReclaimAttempted) return 2;
-      if (!executionCloseAttempted) return 3;
-      if (!nativeStopped) return 4;
-      if (!executionSettled) return 5;
-      if (!executionCleanupConfirmed) return 6;
-      if (!outputReclaimed) return 7;
-      return 8;
-    };
     const moon = Object.freeze({
-      managedStrategyFailureAction: failureAction,
-      managedStrategyFailureRetryAction(
-        currentNativePending, nativeAttempted,
-        currentOutputPending, outputAttempted,
-      ) {
-        if (currentNativePending && !nativeAttempted) return 0;
-        if (currentOutputPending && !outputAttempted) return 1;
-        return 2;
-      },
+      ...portableRuntime,
       managedOutputCancel() { calls.cancel++; },
       managedStrategyClose() { calls.taskClose++; },
       managedStrategySettle() { calls.settle++; },
@@ -329,22 +304,7 @@ test('failure before output allocation still confirms retention disposal',
     let settlements = 0;
     let refreshes = 0;
     const moon = Object.freeze({
-      managedStrategyFailureAction(
-        outputCancelAttempted, outputOwnersCloseAttempted,
-        outputReclaimAttempted, executionCloseAttempted, nativeStopped,
-        executionSettled, executionCleanupConfirmed, outputReclaimed,
-      ) {
-        if (!outputCancelAttempted) return 0;
-        if (!outputOwnersCloseAttempted) return 1;
-        if (!outputReclaimAttempted) return 2;
-        if (!executionCloseAttempted) return 3;
-        if (!nativeStopped) return 4;
-        if (!executionSettled) return 5;
-        if (!executionCleanupConfirmed) return 6;
-        if (!outputReclaimed) return 7;
-        return 8;
-      },
-      managedStrategyFailureRetryAction: () => 2,
+      ...portableRuntime,
       managedStrategyClose() { closes++; },
       managedStrategySettle() { settlements++; },
       managedStrategyCleanupRefresh() {
@@ -374,22 +334,7 @@ test('failure before task creation has no synthetic cleanup responsibility',
       outputDisposed: false,
     };
     const moon = Object.freeze({
-      managedStrategyFailureAction(
-        outputCancelAttempted, outputOwnersCloseAttempted,
-        outputReclaimAttempted, executionCloseAttempted, nativeStopped,
-        executionSettled, executionCleanupConfirmed, outputReclaimed,
-      ) {
-        if (!outputCancelAttempted) return 0;
-        if (!outputOwnersCloseAttempted) return 1;
-        if (!outputReclaimAttempted) return 2;
-        if (!executionCloseAttempted) return 3;
-        if (!nativeStopped) return 4;
-        if (!executionSettled) return 5;
-        if (!executionCleanupConfirmed) return 6;
-        if (!outputReclaimed) return 7;
-        return 8;
-      },
-      managedStrategyFailureRetryAction: () => 2,
+      ...portableRuntime,
     });
     const reason = new Error('task setup failed');
     const failure = await settleFailedManagedDuckDB(
@@ -400,6 +345,7 @@ test('failure before task creation has no synthetic cleanup responsibility',
     );
     assert.equal(failure.cleanupPending, false);
     assert.equal(failure.cleanupHandle, undefined);
-    assert.equal(lifecycle.executionSettled, true);
+    assert.equal(lifecycle.executionSettled, false,
+      'the portable owner represents a missing execution without a JS write');
     assert.equal(lifecycle.outputDisposed, true);
   });

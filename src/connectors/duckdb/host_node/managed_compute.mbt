@@ -625,36 +625,115 @@ pub fn managed_strategy_cleanup_refresh(
 }
 
 ///|
-/// Portable DuckDB driver decision for one managed failure-cleanup step. The
-/// Node adapter performs only the selected physical operation.
-#export_name("managedStrategyFailureAction")
-pub fn managed_strategy_failure_action(
+/// Begin one opaque portable failure progression. The Node adapter records
+/// physical attempts and observations without owning the progression state.
+#export_name("managedStrategyFailureBegin")
+pub fn managed_strategy_failure_begin(
   output_cancel_attempted : Bool,
-  output_owners_close_attempted : Bool,
   output_reclaim_attempted : Bool,
   execution_close_attempted : Bool,
   native_stopped : Bool,
   execution_settled : Bool,
   execution_cleanup_confirmed : Bool,
   output_reclaimed : Bool,
-) -> Int {
-  @duckdb_driver.managed_duckdb_failure_step_code(
-    output_cancel_attempted, output_owners_close_attempted, output_reclaim_attempted,
-    execution_close_attempted, native_stopped, execution_settled, execution_cleanup_confirmed,
-    output_reclaimed,
+) -> @duckdb_driver.ManagedDuckDBFailureProgress {
+  @duckdb_driver.begin_managed_duckdb_failure_progress(
+    output_cancel_attempted, output_reclaim_attempted, execution_close_attempted,
+    native_stopped, execution_settled, execution_cleanup_confirmed, output_reclaimed,
   )
 }
 
 ///|
-/// Portable retry ordering for independent native and Store cleanup owners.
+#export_name("managedStrategyFailureRecordOutputCancelAttempted")
+pub fn managed_strategy_failure_record_output_cancel_attempted(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_output_cancel_attempted(progress)
+}
+
+///|
+#export_name("managedStrategyFailureRecordOutputOwnersCloseAttempted")
+pub fn managed_strategy_failure_record_output_owners_close_attempted(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_output_owners_close_attempted(progress)
+}
+
+///|
+#export_name("managedStrategyFailureRecordOutputReclaimAttempted")
+pub fn managed_strategy_failure_record_output_reclaim_attempted(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_output_reclaim_attempted(progress)
+}
+
+///|
+#export_name("managedStrategyFailureRecordExecutionCloseAttempted")
+pub fn managed_strategy_failure_record_execution_close_attempted(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_execution_close_attempted(progress)
+}
+
+///|
+#export_name("managedStrategyFailureRecordObservations")
+pub fn managed_strategy_failure_record_observations(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+  native_stopped : Bool,
+  execution_settled : Bool,
+  output_reclaimed : Bool,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_failure_observations(
+    progress, native_stopped, execution_settled, output_reclaimed,
+  )
+}
+
+///|
+#export_name("managedStrategyFailureRecordExecutionCleanupConfirmed")
+pub fn managed_strategy_failure_record_execution_cleanup_confirmed(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_execution_cleanup_confirmed(progress)
+}
+
+///|
+#export_name("managedStrategyFailureAction")
+pub fn managed_strategy_failure_action(
+  progress : @duckdb_driver.ManagedDuckDBFailureProgress,
+) -> Int {
+  @duckdb_driver.managed_duckdb_failure_progress_action_code(progress)
+}
+
+///|
+#export_name("managedStrategyFailureRetryBegin")
+pub fn managed_strategy_failure_retry_begin() -> @duckdb_driver.ManagedDuckDBFailureRetryProgress {
+  @duckdb_driver.begin_managed_duckdb_failure_retry_progress()
+}
+
+///|
+#export_name("managedStrategyFailureRecordNativeRetryAttempted")
+pub fn managed_strategy_failure_record_native_retry_attempted(
+  progress : @duckdb_driver.ManagedDuckDBFailureRetryProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_native_retry_attempted(progress)
+}
+
+///|
+#export_name("managedStrategyFailureRecordOutputRetryAttempted")
+pub fn managed_strategy_failure_record_output_retry_attempted(
+  progress : @duckdb_driver.ManagedDuckDBFailureRetryProgress,
+) -> Bool {
+  @duckdb_driver.record_managed_duckdb_output_retry_attempted(progress)
+}
+
+///|
 #export_name("managedStrategyFailureRetryAction")
 pub fn managed_strategy_failure_retry_action(
+  progress : @duckdb_driver.ManagedDuckDBFailureRetryProgress,
   native_pending : Bool,
-  native_retry_attempted : Bool,
   output_pending : Bool,
-  output_retry_attempted : Bool,
 ) -> Int {
-  @duckdb_driver.managed_duckdb_failure_retry_step_code(
-    native_pending, native_retry_attempted, output_pending, output_retry_attempted,
+  @duckdb_driver.managed_duckdb_failure_retry_progress_action_code(
+    progress, native_pending, output_pending,
   )
 }

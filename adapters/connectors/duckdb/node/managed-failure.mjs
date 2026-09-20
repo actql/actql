@@ -46,8 +46,22 @@ const cleanupState = (handle, required = false) => {
 export async function settleFailedManagedDuckDB(
   moon, checked, state, reason,
 ) {
-  if (!moon || typeof moon.managedStrategyFailureAction !== 'function' ||
-      typeof moon.managedStrategyFailureRetryAction !== 'function' ||
+  const requiredProgressMethods = [
+    'managedStrategyFailureBegin',
+    'managedStrategyFailureRecordOutputCancelAttempted',
+    'managedStrategyFailureRecordOutputOwnersCloseAttempted',
+    'managedStrategyFailureRecordOutputReclaimAttempted',
+    'managedStrategyFailureRecordExecutionCloseAttempted',
+    'managedStrategyFailureRecordObservations',
+    'managedStrategyFailureRecordExecutionCleanupConfirmed',
+    'managedStrategyFailureAction',
+    'managedStrategyFailureRetryBegin',
+    'managedStrategyFailureRecordNativeRetryAttempted',
+    'managedStrategyFailureRecordOutputRetryAttempted',
+    'managedStrategyFailureRetryAction',
+  ];
+  if (!moon || requiredProgressMethods.some(name =>
+    typeof moon[name] !== 'function') ||
       !state || typeof state !== 'object' ||
       !state.lifecycle || typeof state.lifecycle !== 'object') {
     throw new Error('MissingManagedDuckDBFailureProgress');
@@ -57,14 +71,6 @@ export async function settleFailedManagedDuckDB(
   const nativeCleanup = upstreamRequired
     ? member(failure, 'cleanupHandle') : undefined;
   const diagnostics = [...failure.cleanupErrors];
-  let outputCancelAttempted = state.output === undefined;
-  // Even when allocation failed before an owner was created, the portable
-  // close step must establish the retention-release observation explicitly.
-  let outputOwnersCloseAttempted = false;
-  let outputReclaimAttempted = state.store === undefined;
-  let executionCloseAttempted = state.run === undefined;
-  let executionCleanupConfirmed = state.run === undefined;
-  if (state.run === undefined) state.lifecycle.executionSettled = true;
 
   const record = error => { diagnostics.push(error); };
   const nativeState = () => cleanupState(nativeCleanup, upstreamRequired);
@@ -84,25 +90,45 @@ export async function settleFailedManagedDuckDB(
       return Object.freeze({pending: true, errors: Object.freeze([error])});
     }
   };
-  const nextAction = () => moon.managedStrategyFailureAction(
-    outputCancelAttempted,
-    outputOwnersCloseAttempted,
-    outputReclaimAttempted,
-    executionCloseAttempted,
+  const progress = moon.managedStrategyFailureBegin(
+    state.output === undefined,
+    state.store === undefined,
+    state.run === undefined,
     !nativeState().pending,
-    state.lifecycle.executionSettled === true,
-    executionCleanupConfirmed,
+    state.run === undefined || state.lifecycle.executionSettled === true,
+    state.run === undefined,
     !outputState().pending,
   );
+  if (progress === undefined || progress === null) {
+    throw new Error('InvalidManagedDuckDBFailureProgress');
+  }
+  const recordProgress = method => {
+    if (moon[method](progress) !== true) {
+      throw new Error('InvalidManagedDuckDBFailureProgress');
+    }
+  };
+  const nextAction = () => {
+    if (moon.managedStrategyFailureRecordObservations(
+      progress,
+      !nativeState().pending,
+      state.lifecycle.executionSettled === true,
+      !outputState().pending,
+    ) !== true) {
+      throw new Error('InvalidManagedDuckDBFailureProgress');
+    }
+    return moon.managedStrategyFailureAction(progress);
+  };
 
   const cancelOutput = () => {
-    outputCancelAttempted = true;
+    recordProgress('managedStrategyFailureRecordOutputCancelAttempted');
     if (!state.output) return;
     try { moon.managedOutputCancel(state.output); }
     catch (error) { record(error); }
   };
   const closeOutputOwners = () => {
-    outputOwnersCloseAttempted = true;
+    recordProgress(
+      'managedStrategyFailureRecordOutputOwnersCloseAttempted',
+    );
     for (const owner of [state.body, state.store]) {
       if (!owner || typeof member(owner, 'close') !== 'function') continue;
       try { owner.close(); }
@@ -111,29 +137,31 @@ export async function settleFailedManagedDuckDB(
     state.lifecycle.outputDisposed = true;
   };
   const reclaimOutput = async () => {
-    outputReclaimAttempted = true;
+    recordProgress('managedStrategyFailureRecordOutputReclaimAttempted');
     try { await state.store?.cleanup(); }
     catch (error) { record(error); }
   };
   const closeExecution = () => {
-    executionCloseAttempted = true;
+    recordProgress('managedStrategyFailureRecordExecutionCloseAttempted');
     if (!state.run) return;
     try { moon.managedStrategyClose(state.run); }
     catch (error) { record(error); }
   };
   const settleExecution = () => {
-    if (!state.run || state.lifecycle.executionSettled === true) return;
+    if (!state.run) return;
     try {
       checked(moon.managedStrategySettle(state.run, true));
       state.lifecycle.executionSettled = true;
     } catch (error) { record(error); }
   };
   const refreshExecution = () => {
-    if (!state.run || executionCleanupConfirmed) return;
+    if (!state.run) return;
     try {
-      executionCleanupConfirmed = checked(
-        moon.managedStrategyCleanupRefresh(state.run),
-      ) === true;
+      if (checked(moon.managedStrategyCleanupRefresh(state.run)) === true) {
+        recordProgress(
+          'managedStrategyFailureRecordExecutionCleanupConfirmed',
+        );
+      }
     } catch (error) { record(error); }
   };
 
@@ -174,14 +202,12 @@ export async function settleFailedManagedDuckDB(
         if (attempted.has(action)) return false;
         attempted.add(action);
         settleExecution();
-        if (state.lifecycle.executionSettled !== true) return false;
         continue;
       }
       if (action === REFRESH_EXECUTION_CLEANUP) {
         if (attempted.has(action)) return false;
         attempted.add(action);
         refreshExecution();
-        if (!executionCleanupConfirmed) return false;
         continue;
       }
       if (action === FAILURE_FINISHED) return true;
@@ -213,20 +239,26 @@ export async function settleFailedManagedDuckDB(
   const handle = Object.freeze({
     status,
     async retry() {
-      let nativeRetryAttempted = false;
-      let outputRetryAttempted = false;
+      const retryProgress = moon.managedStrategyFailureRetryBegin();
+      if (retryProgress === undefined || retryProgress === null) {
+        throw new Error('InvalidManagedDuckDBFailureRetryProgress');
+      }
       for (let step = 0; step < 4; step++) {
         let action;
         try {
           action = moon.managedStrategyFailureRetryAction(
+            retryProgress,
             nativeState().pending,
-            nativeRetryAttempted,
             outputState().pending,
-            outputRetryAttempted,
           );
         } catch (error) { record(error); break; }
         if (action === RETRY_NATIVE_CLEANUP) {
-          nativeRetryAttempted = true;
+          if (moon.managedStrategyFailureRecordNativeRetryAttempted(
+            retryProgress,
+          ) !== true) {
+            record(new Error('InvalidManagedDuckDBFailureRetryProgress'));
+            break;
+          }
           if (typeof member(nativeCleanup, 'retry') === 'function') {
             try { await nativeCleanup.retry(); }
             catch (error) { record(error); }
@@ -234,7 +266,12 @@ export async function settleFailedManagedDuckDB(
           continue;
         }
         if (action === RETRY_OUTPUT_CLEANUP) {
-          outputRetryAttempted = true;
+          if (moon.managedStrategyFailureRecordOutputRetryAttempted(
+            retryProgress,
+          ) !== true) {
+            record(new Error('InvalidManagedDuckDBFailureRetryProgress'));
+            break;
+          }
           try { await state.store?.cleanup(); }
           catch (error) { record(error); }
           continue;
