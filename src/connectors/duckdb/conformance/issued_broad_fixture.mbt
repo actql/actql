@@ -19,6 +19,7 @@ fn issued_fixture_checked(
   source_override? : String? = None,
   join? : Bool = false,
   sga? : Bool = false,
+  veca? : Bool = false,
   components? : Bool = false,
   components_rows? : Int64 = 2L,
   sga_rows? : Int64? = None,
@@ -67,7 +68,7 @@ fn issued_fixture_checked(
       program,
       @program_check.checking_environment(
         environment,
-        { text_time: false, veca: false, },
+        { text_time: false, veca, },
         { rela: true, sga, tea: false, calendar: false, text_rank: false, },
       ),
       Some(cursor("{\"minimum\":1}")),

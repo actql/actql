@@ -11,6 +11,7 @@ struct StrategyFixture {
   registry_json : String
   values_json : String
   fragment_json : String
+  ordered_json : String?
   mut run : @strategy.CapturedDAG?
 }
 
@@ -79,6 +80,36 @@ pub fn strategy_fixture_sga_create(
     program_json,
     false,
     sga=true,
+  )
+}
+
+///|
+#export_name("strategyFixtureVecaCreate")
+pub fn strategy_fixture_veca_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  ordered_json : String,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    veca=true,
+    ordered_json=Some(ordered_json),
   )
 }
 
@@ -186,6 +217,8 @@ fn strategy_fixture_create_impl(
   join : Bool,
   multiple_resources? : Bool = false,
   sga? : Bool = false,
+  veca? : Bool = false,
+  ordered_json? : String? = None,
   components? : Bool = false,
   components_rows? : Int64 = 2L,
   sga_rows? : Int64? = None,
@@ -197,6 +230,7 @@ fn strategy_fixture_create_impl(
       source_override=Some(program_json),
       join~,
       sga~,
+      veca~,
       components~,
       components_rows~,
       sga_rows~,
@@ -215,6 +249,9 @@ fn strategy_fixture_create_impl(
       checked_override=Some(program),
     )
     let identity = @program_check.source_identity(program)
+    let expression_profiles = @program_check.selected_expression_profiles(
+      program,
+    )
     let owners = Array::makei(@program_check.unit_count(program), index => {
       if index == 0 {
         @duckdb.native_query_owner(@duckdb.native_scan_query(native.scan))
@@ -238,6 +275,10 @@ fn strategy_fixture_create_impl(
           Some(parameters),
           max_parameters=100,
           max_name_bytes=10000,
+          expression_profiles={
+            text_time: expression_profiles.text_time,
+            veca: expression_profiles.veca,
+          },
         ).unwrap()
       }
     })
@@ -293,6 +334,7 @@ fn strategy_fixture_create_impl(
       registry_json,
       values_json,
       fragment_json,
+      ordered_json,
       run: None,
     }
   } catch {

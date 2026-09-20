@@ -7,14 +7,15 @@ pub fn strategy_fixture_module_subset(
   mode : Int,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
-    fixture_generated(
+    fixture_generated_with_ordered(
       @strategy.graph_task_owner(f.graph, i + 1).unwrap(),
       f.registry_json,
       f.values_json,
       f.fragment_json,
       true,
+      f.ordered_json,
     ) catch {
-      _ => abort("invalid fixture generation")
+      _ => abort("invalid fixture generation for task " + (i + 1).to_string())
     }
   })
   @connector_conformance.configure_subset(f.run.unwrap(), generated, mode)

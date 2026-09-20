@@ -439,6 +439,10 @@ test('standard native and broad Node Hosts own verification through real capture
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
   const contracts = await pinnedEngineContracts(root);
+  const [orderedContract] = await pinnedEngineContracts(
+    root,
+    ['registered_ordered'],
+  );
   const args = [JSON.parse(catalog[1]), catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
@@ -687,6 +691,7 @@ test('standard native and broad Node Hosts own verification through real capture
         path,
         grant,
         suppliedLimits,
+        orderedContract,
       );
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
@@ -699,6 +704,7 @@ async function exerciseStrategyGraph(
   path,
   grant,
   suppliedLimits,
+  orderedContract,
 ) {
   const hostRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const stage = (id, producer, filter) => ({ id, inputs: { x: { result: { stage: producer, result: 'r' } } },
@@ -1662,6 +1668,157 @@ async function exerciseStrategyGraph(
       await sgaPublicationStore?.close();
       await rm(sgaPublicationDirectory, {recursive: true, force: true});
     }
+  }
+  const vectorExpressionProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{
+      id: 'a',
+      inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [
+        {filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'},
+      ],
+      results: {r: {from: 'captured', fields: ['id']}},
+    }, {
+      id: 'vectors',
+      inputs: {},
+      steps: [{
+        values: {
+          schema: {
+            id: {type: 'number', nullable: false},
+            left: {type: 'vector', dimensions: 2, nullable: false},
+            right: {type: 'vector', dimensions: 2, nullable: false},
+          },
+          rows: [
+            {id: 1, left: [1, 2], right: [3, 4]},
+            {id: 2, left: [2, 1], right: [4, 3]},
+          ],
+        },
+        as: 'seed',
+      }, {
+        from: 'seed',
+        derive: {
+          score: {
+            vector_score: {
+              left: {field: 'left'},
+              right: {field: 'right'},
+              metric: 'dot',
+            },
+          },
+        },
+        as: 'scored',
+      }, {
+        from: 'scored',
+        derive: {
+          joined: {
+            vector_concat: [{field: 'right'}, {field: 'left'}],
+          },
+        },
+        as: 'out',
+      }],
+      results: {r: {from: 'out', fields: ['id', 'score', 'joined']}},
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+      steps: [{select: ['id', 'score', 'joined'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id', 'score', 'joined']}},
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+      steps: [{select: ['joined', 'id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['joined', 'id']}},
+    }],
+    results: {published: {from: {stage: 'vectors', result: 'r'}}},
+  };
+  const vectorFixture = fixture.strategyFixtureVecaCreate(
+    ...args,
+    JSON.stringify(vectorExpressionProgram),
+    orderedContract,
+  );
+  const vectorCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(vectorFixture),
+    suppliedLimits,
+  );
+  const vectorPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/vector-publication-entry-',
+  ));
+  let vectorPublicationOwner;
+  let vectorPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(vectorFixture, vectorCapture.source()),
+      true,
+    );
+    const setup = fixture.strategyFixtureModuleSubset(vectorFixture, 0);
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 1);
+    vectorPublicationStore = await openLocalPublicationStore({
+      directory: vectorPublicationDirectory,
+      storeAuthorityCid: hash('vector-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'vector-publication-attempt',
+    );
+    vectorPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: vectorPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    );
+    assert.equal(vectorPublicationOwner.status, 'published');
+    assert.equal(
+      vectorPublicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.deepEqual(
+      vectorPublicationOwner.execution.completed.map(
+        value => value.realization,
+      ),
+      Array(3).fill('local-managed'),
+    );
+    const occurrence =
+      vectorPublicationOwner.execution.publicationInventory.occurrences[0];
+    const received = [];
+    await vectorPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(
+      JSON.parse(Buffer.concat(received).toString('utf8')),
+      [
+        {id: 1, score: 11, joined: [3, 4, 1, 2]},
+        {id: 2, score: 11, joined: [4, 3, 2, 1]},
+      ],
+    );
+  } finally {
+    if (vectorPublicationOwner !== undefined) {
+      await vectorPublicationOwner.close();
+      assert.equal(vectorPublicationOwner.cleanupPending(), false);
+      assert.equal(await vectorPublicationOwner.cleanup(), true);
+      assert.equal(vectorPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(
+        vectorPublicationOwner.execution.usage().reservedExecutionBytes,
+        0n,
+      );
+    }
+    vectorCapture.close();
+    await vectorPublicationStore?.close();
+    await rm(vectorPublicationDirectory, {recursive: true, force: true});
   }
   const graphCancellationCases = [{
     name: 'graph-bounds',

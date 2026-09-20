@@ -7,6 +7,25 @@ fn fixture_generated(
   fragment_json : String,
   filter : Bool,
 ) -> @execution.GeneratedSequence raise {
+  fixture_generated_with_ordered(
+    owner,
+    registry_json,
+    values_json,
+    fragment_json,
+    filter,
+    None,
+  )
+}
+
+///|
+fn fixture_generated_with_ordered(
+  owner : @lower.BoundPrepared,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  filter : Bool,
+  ordered_json : String?,
+) -> @execution.GeneratedSequence raise {
   let registry_limits : @execution.RegistryLimits = {
     max_body_bytes: 100000,
     max_body_nodes: 10000,
@@ -66,12 +85,38 @@ fn fixture_generated(
         _ => false
       }
       if required {
+        let ordered = match @lower.sequence_step(sequence, step) {
+          Some(@lower.RowStep(kernel)) =>
+            if @lower.kernel_body(kernel) is @lower.OrderedBindings(_) {
+              Some(
+                @execution.admit_ordered_contract(
+                  registered,
+                  fixture_contract(ordered_json.unwrap()),
+                  registry_limits,
+                ).unwrap(),
+              )
+            } else {
+              None
+            }
+          _ => None
+        }
+        let logical : @lower.FragmentRowLimits = {
+          max_input_rows: 100L,
+          max_value_bytes: 1000L,
+          max_live_value_bytes: 10000L,
+          max_work: 100000L,
+        }
         let pipeline = @lower.prepare_fragment_pipeline(sequence, step, {
           max_roots: 100,
           max_pointer_bytes: 10000,
           max_work: 100000,
         }).unwrap()
-        let request = @lower.prepare_fragment_request(pipeline, 100L, 1000L).unwrap()
+        let request = @lower.prepare_fragment_request(
+          pipeline,
+          100L,
+          1000L,
+          row_limits=if ordered is Some(_) { Some(logical) } else { None },
+        ).unwrap()
         contexts.push(
           @execution.prepare_runtime_fragment(
             request,
@@ -84,12 +129,8 @@ fn fixture_generated(
               max_links: 10000,
             },
             registry_limits,
-            {
-              max_input_rows: 100L,
-              max_value_bytes: 1000L,
-              max_live_value_bytes: 10000L,
-              max_work: 100000L,
-            },
+            logical,
+            ordered~,
           ).unwrap(),
         )
       }
