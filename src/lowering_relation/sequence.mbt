@@ -358,10 +358,22 @@ pub fn prepare_sequence(
         GraphRelationStep(prepared)
       }
       GraphConstructionValue(_) => {
-        let prepared = match
-          prepare_graph_construction_node(owner.prepared.nodes[i]) {
+        let (prepared, used_entries, used_names, used_work) = match
+          prepare_graph_construction_node(
+            owner.prepared.nodes[i],
+            step=i,
+            max_entries=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
           Ok(value) => value
           Err(issue) => return Err(GraphConstructionFailure(i, issue))
+        }
+        bindings -= used_entries
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
         }
         GraphConstructionStep(prepared)
       }

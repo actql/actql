@@ -8,6 +8,8 @@ priv enum RowsToGraphPhase {
   ReadEdgeTarget
   ReadEdgeLabel
   ReadEdgeProperties
+  CheckEdgeSource
+  CheckEdgeTarget
   CommitEdge
   FinishGraph
 }
@@ -295,8 +297,56 @@ fn rows_to_graph_step(
           state.field += 1
           used += 1
         } else {
-          state.phase = CommitEdge
+          state.phase = CheckEdgeSource
         }
+      CheckEdgeSource => {
+        guard state.output is Some(output) && state.source is Some(source) else {
+          return @bounded.Failed(InvalidGraphKernel, progress, used)
+        }
+        used += 1
+        match @graph.contains_declared_node(output, source) {
+          Err(_) =>
+            return @bounded.Failed(
+              InvalidGraphRecord(state.row),
+              progress,
+              used,
+            )
+          Ok(false) => {
+            state.source = None
+            state.target = None
+            state.label = None
+            state.properties = []
+            state.row += 1
+            state.phase = BeginEdge
+            progress += 1
+          }
+          Ok(true) => state.phase = CheckEdgeTarget
+        }
+      }
+      CheckEdgeTarget => {
+        guard state.output is Some(output) && state.target is Some(target) else {
+          return @bounded.Failed(InvalidGraphKernel, progress, used)
+        }
+        used += 1
+        match @graph.contains_declared_node(output, target) {
+          Err(_) =>
+            return @bounded.Failed(
+              InvalidGraphRecord(state.row),
+              progress,
+              used,
+            )
+          Ok(false) => {
+            state.source = None
+            state.target = None
+            state.label = None
+            state.properties = []
+            state.row += 1
+            state.phase = BeginEdge
+            progress += 1
+          }
+          Ok(true) => state.phase = CommitEdge
+        }
+      }
       CommitEdge => {
         guard state.output is Some(output) &&
           state.source is Some(source) &&

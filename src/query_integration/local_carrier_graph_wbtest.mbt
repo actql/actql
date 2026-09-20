@@ -38,6 +38,44 @@ fn carrier_graph_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn carrier_graph_open_endpoint_source_owner() -> @lower.BoundPrepared {
+  let checked = @pipeline.check(
+    input_cursor(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"src\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"dst\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"node_name\":{\"type\":\"string\"," +
+      "\"nullable\":false},\"weight\":{\"type\":\"number\"," +
+      "\"nullable\":false}},\"rows\":[{\"id\":1,\"src\":1," +
+      "\"dst\":2,\"node_name\":\"first\",\"weight\":10}]}," +
+      "\"as\":\"source\"}]",
+    ),
+    [],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn local_carrier_graph_program() -> String {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
@@ -361,6 +399,50 @@ test "bounded Graph edge projection survives Graph reclamation" {
   assert_true(@execution.completed_cell(first, 1, 2) is Some(Number(20.0)))
   assert_true(@execution.completed_cell(second, 0, 0) is Some(Number(10.0)))
   assert_true(@execution.completed_output_available(rows))
+}
+
+///|
+test "explicit Graph construction closes absent edge endpoints" {
+  let source_owner = carrier_graph_open_endpoint_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_owner(source_owner, projection="edge_rows")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let projection_input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let projection = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let rows = finish_graph_to_rows(projection)
+  assert_eq(@local_bridge.cleanup_graph_to_rows(projection), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_eq(@execution.completed_row_count(rows), 0)
 }
 
 ///|

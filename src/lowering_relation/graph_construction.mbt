@@ -1,9 +1,64 @@
 ///|
 /// Checked explicit Graph construction retained without frontend rediscovery.
 struct PreparedGraphConstruction {
+  step : Int
   node : PreparedNode
   graph : @carrier.Graph
   names : @carrier.GraphRowNames
+  expansion : Array[PreparedGraphConstructionExpansionNode]
+}
+
+///|
+/// One registered node in explicit Graph construction's finite expansion.
+priv struct PreparedGraphConstructionExpansionNode {
+  role : String
+  operation : String
+  inputs : Int
+  source_node : Bool
+} derive(Eq)
+
+///|
+fn graph_construction_generated_role_id(step : Int, role : String) -> String {
+  "graph_" + role + "_" + step.to_string()
+}
+
+///|
+fn prepare_graph_construction_expansion() -> Array[
+  PreparedGraphConstructionExpansionNode,
+] {
+  [
+    { role: "nodes", operation: "REL.select", inputs: 1, source_node: false, },
+    { role: "edges", operation: "REL.select", inputs: 1, source_node: false, },
+    {
+      role: "source_closed",
+      operation: "REL.join",
+      inputs: 2,
+      source_node: false,
+    },
+    {
+      role: "target_closed",
+      operation: "REL.join",
+      inputs: 2,
+      source_node: false,
+    },
+    {
+      role: "",
+      operation: "BRIDGE.rows.to_graph",
+      inputs: 2,
+      source_node: true,
+    },
+  ]
+}
+
+///|
+fn graph_construction_expansion_reference_count(
+  expansion : Array[PreparedGraphConstructionExpansionNode],
+) -> Int {
+  let mut count = 0
+  for node in expansion {
+    count += node.inputs
+  }
+  count
 }
 
 ///|
@@ -14,14 +69,52 @@ pub(all) enum GraphConstructionIssue {
 ///|
 fn prepare_graph_construction_node(
   node : PreparedNode,
-) -> Result[PreparedGraphConstruction, GraphConstructionIssue] {
+  step~ : Int,
+  max_entries~ : Int,
+  max_name_bytes~ : Int,
+  max_work~ : Int,
+) -> Result[(PreparedGraphConstruction, Int, Int, Int), GraphConstructionIssue] {
   guard node.payload is GraphConstructionValue(checked) &&
     node.inputs.length() == 2 &&
     @graph.construction_output(checked) is @carrier.GraphValue(graph) &&
-    @carrier.graph_names(graph) is Some(names) else {
+    @carrier.graph_names(graph) is Some(names) &&
+    node.graph_construction_expansion is Some(expansion) &&
+    expansion == prepare_graph_construction_expansion() else {
     return Err(InvalidGraphConstruction)
   }
-  Ok({ node, graph, names, })
+  let (identity, source, target, label) = @carrier.graph_row_fields(names)
+  let fields : Array[@schema.FieldName] = [identity, source, target]
+  match label {
+    Some(field) => fields.push(field)
+    None => ()
+  }
+  for
+    properties in [
+      @carrier.graph_node_properties(graph),
+      @carrier.graph_edge_properties(graph),
+    ] {
+    for index in 0..<@carrier.field_count(properties) {
+      fields.push(@carrier.field_at(properties, index).unwrap().name)
+    }
+  }
+  let mut used_names = 0
+  for field in fields {
+    let bytes = @utf8.encode(@schema.reference_name(field)).length()
+    if fields.length() > max_entries ||
+      used_names > max_name_bytes - bytes ||
+      fields.length() > max_work {
+      return Err(InvalidGraphConstruction)
+    }
+    used_names += bytes
+  }
+  Ok(
+    (
+      { step, node, graph, names, expansion, },
+      fields.length(),
+      used_names,
+      fields.length(),
+    ),
+  )
 }
 
 ///|
@@ -118,24 +211,180 @@ fn emit_graph_properties(
 }
 
 ///|
+fn begin_graph_construction_node(
+  out : @encode.Writer,
+  id : String,
+  inputs : Array[String],
+  operation : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(out)
+  @encode.key(out, "id")
+  @encode.string_value(out, id)
+  @encode.key(out, "in")
+  @encode.begin_array(out)
+  for input in inputs {
+    @encode.string_value(out, input)
+  }
+  @encode.end_array(out)
+  @encode.key(out, "op")
+  @encode.string_value(out, operation)
+  @encode.key(out, "params")
+  @encode.begin_object(out)
+}
+
+///|
+fn end_graph_construction_node(
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.end_object(out)
+  @encode.end_object(out)
+}
+
+///|
+fn emit_graph_projection_column(
+  out : @encode.Writer,
+  field : @schema.FieldName,
+) -> Unit raise @encode.EncodeFailure {
+  let name = @schema.reference_name(field)
+  @encode.begin_object(out)
+  @encode.key(out, "from")
+  @encode.string_value(out, name)
+  @encode.key(out, "to")
+  @encode.string_value(out, name)
+  @encode.end_object(out)
+}
+
+///|
+fn emit_graph_join_column(
+  out : @encode.Writer,
+  side : String,
+  field : @schema.FieldName,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(out)
+  @encode.key(out, "path")
+  @encode.begin_array(out)
+  @encode.string_value(out, side)
+  @encode.string_value(out, @schema.reference_name(field))
+  @encode.end_array(out)
+  @encode.key(out, "type")
+  @encode.string_value(out, "col")
+  @encode.end_object(out)
+}
+
+///|
+fn emit_graph_endpoint_closure(
+  prepared : PreparedGraphConstruction,
+  out : @encode.Writer,
+  id : String,
+  edges : String,
+  nodes : String,
+  endpoint : @schema.FieldName,
+) -> Unit raise @encode.EncodeFailure {
+  let (identity, _, _, _) = @carrier.graph_row_fields(prepared.names)
+  begin_graph_construction_node(out, id, [edges, nodes], "REL.join")
+  @encode.key(out, "how")
+  @encode.string_value(out, "semi")
+  @encode.key(out, "key_pairs")
+  @encode.begin_array(out)
+  @encode.begin_object(out)
+  @encode.key(out, "left")
+  emit_graph_field(endpoint, out)
+  @encode.key(out, "right")
+  emit_graph_field(identity, out)
+  @encode.end_object(out)
+  @encode.end_array(out)
+  @encode.key(out, "null_key")
+  @encode.string_value(out, "no_match")
+  @encode.key(out, "on")
+  @encode.begin_object(out)
+  @encode.key(out, "left")
+  emit_graph_join_column(out, "left", endpoint)
+  @encode.key(out, "op")
+  @encode.string_value(out, "eq")
+  @encode.key(out, "right")
+  emit_graph_join_column(out, "right", identity)
+  @encode.key(out, "type")
+  @encode.string_value(out, "cmp")
+  @encode.end_object(out)
+  end_graph_construction_node(out)
+}
+
+///|
 fn emit_graph_construction_node(
   prepared : PreparedGraphConstruction,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   let (node, source, target, label) = @carrier.graph_row_fields(prepared.names)
-  @encode.begin_object(out)
-  @encode.key(out, "id")
-  @encode.string_value(out, prepared.node.id)
-  @encode.key(out, "in")
+  let nodes = graph_construction_generated_role_id(prepared.step, "nodes")
+  let edges = graph_construction_generated_role_id(prepared.step, "edges")
+  let source_closed = graph_construction_generated_role_id(
+    prepared.step,
+    "source_closed",
+  )
+  let target_closed = graph_construction_generated_role_id(
+    prepared.step,
+    "target_closed",
+  )
+  begin_graph_construction_node(
+    out,
+    nodes,
+    [prepared.node.inputs[0]],
+    "REL.select",
+  )
+  @encode.key(out, "columns")
   @encode.begin_array(out)
-  for input in prepared.node.inputs {
-    @encode.string_value(out, input)
+  emit_graph_projection_column(out, node)
+  for
+    index in 0..<@carrier.field_count(
+      @carrier.graph_node_properties(prepared.graph),
+    ) {
+    emit_graph_projection_column(
+      out,
+      @carrier.field_at(@carrier.graph_node_properties(prepared.graph), index).unwrap().name,
+    )
   }
   @encode.end_array(out)
-  @encode.key(out, "op")
-  @encode.string_value(out, operation(prepared.node))
-  @encode.key(out, "params")
-  @encode.begin_object(out)
+  end_graph_construction_node(out)
+
+  begin_graph_construction_node(
+    out,
+    edges,
+    [prepared.node.inputs[1]],
+    "REL.select",
+  )
+  @encode.key(out, "columns")
+  @encode.begin_array(out)
+  emit_graph_projection_column(out, source)
+  emit_graph_projection_column(out, target)
+  match label {
+    Some(field) => emit_graph_projection_column(out, field)
+    None => ()
+  }
+  for
+    index in 0..<@carrier.field_count(
+      @carrier.graph_edge_properties(prepared.graph),
+    ) {
+    emit_graph_projection_column(
+      out,
+      @carrier.field_at(@carrier.graph_edge_properties(prepared.graph), index).unwrap().name,
+    )
+  }
+  @encode.end_array(out)
+  end_graph_construction_node(out)
+
+  emit_graph_endpoint_closure(
+    prepared, out, source_closed, edges, nodes, source,
+  )
+  emit_graph_endpoint_closure(
+    prepared, out, target_closed, source_closed, nodes, target,
+  )
+
+  begin_graph_construction_node(
+    out,
+    prepared.node.id,
+    [nodes, target_closed],
+    operation(prepared.node),
+  )
   @encode.key(out, "edge")
   @encode.begin_object(out)
   @encode.key(out, "label")
@@ -159,6 +408,5 @@ fn emit_graph_construction_node(
   @encode.key(out, "properties")
   emit_graph_properties(@carrier.graph_node_properties(prepared.graph), out)
   @encode.end_object(out)
-  @encode.end_object(out)
-  @encode.end_object(out)
+  end_graph_construction_node(out)
 }

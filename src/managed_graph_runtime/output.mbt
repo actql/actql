@@ -134,6 +134,19 @@ pub fn append_edge(
 }
 
 ///|
+pub fn contains_declared_node(
+  output : OutputBuilder,
+  identity : @value.CheckedValue,
+) -> Result[Bool, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  @storage.contains_declared_node(output.graph, identity).map_err(issue => {
+    Storage(issue)
+  })
+}
+
+///|
 pub fn cancel_output(output : OutputBuilder) -> Bool {
   output.open = false
   let storage = @storage.cancel(output.graph)

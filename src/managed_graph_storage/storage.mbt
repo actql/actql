@@ -417,6 +417,34 @@ fn checked_label(builder : Builder, label : @value.CheckedValue?) -> Bool {
 }
 
 ///|
+/// Checks one endpoint against the declared node universe without admitting an
+/// edge. Explicit Graph construction uses this before committing either
+/// endpoint closure. The lookup does not mutate builder accounting.
+pub fn contains_declared_node(
+  builder : Builder,
+  identity : @value.CheckedValue,
+) -> Result[Bool, Issue] {
+  if !builder.open {
+    return Err(Closed)
+  }
+  if builder.mode != DeclaredNodes {
+    return Err(WrongMode)
+  }
+  if !contract_equal(
+      builder,
+      @carrier.graph_identity(builder.graph),
+      identity.contract,
+    ) {
+    return Err(InvalidIdentity)
+  }
+  let (key, _, _) = match encoded_values(builder, [identity], 0, 1) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(builder.node_keys.get(key) is Some(_))
+}
+
+///|
 pub fn append_edge(
   builder : Builder,
   source : @value.CheckedValue,

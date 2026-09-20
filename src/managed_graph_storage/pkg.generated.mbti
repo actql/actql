@@ -30,6 +30,8 @@ pub fn carrier(Storage) -> @carrier_contract.Carrier
 
 pub fn construction_work(Storage) -> Int
 
+pub fn contains_declared_node(Builder, @value_admission.CheckedValue) -> Result[Bool, Issue]
+
 pub fn discard(Storage) -> Unit
 
 pub fn edge_count(Storage) -> Int
