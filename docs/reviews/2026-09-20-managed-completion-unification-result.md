@@ -5,13 +5,13 @@ Date: 2026-09-20
 Implementation base: `7a9bc32f` on
 `feat/engine-remote-site-completion`.
 
-Verified implementation head: `84abc691`.
+Verified Engine implementation head: `4b4087f9`.
 
 The branch subsequently hardened the shared remote boundary so a durable
-Coordinator observation is required in addition to Site evidence. That change
-does not alter the Local handoff status below. Its focused JS, Wasm, and native
-integration suites each pass 402/402 tests; the retained-boundary and remote
-runtime suites pass 239/239 and 84/84 respectively.
+Coordinator observation is required in addition to Site evidence. The Engine
+branch then removed the obsolete Connector-owned finish and publication
+authority after every product and conformance caller had moved to the common
+materializing or managed boundary.
 
 The earlier report used the pre-rebase object names `98865fcf` and
 `8a9102f4`. The history rewrite changed commit identities without changing
@@ -64,32 +64,27 @@ native Remote Site product runner still has to supply the recovered material
 handle and this Coordinator fact; the integration fixture is not presented as
 that product runner.
 
-DuckDB standard Hosts opt into lifecycle-only completion. The low-level DuckDB
-preparation default remains a deliberate public compatibility mode, but it
-feeds the same common commit and has no separate output store.
+DuckDB standard Hosts use lifecycle-only completion. The low-level DuckDB
+preparation path no longer selects a compatibility completion mode and cannot
+manufacture Connector-owned finish or publication callbacks.
 
 Resident output is validated and bound to its resident table before the common
 commit. It is not converted, serialized or re-imported. Deferred physical
 verification runs only after the common holding is admitted, preserving the
 existing retention ordering.
 
-## Compatibility boundary
+## Removed compatibility authority
 
 The exported `ExecutionOperations.finish`, `ExecutionOperations.publish`,
-`start_captured_execution`, `complete_task_execution` and `TaskPublication`
-surface remains as a one-way adapter. It is isolated from product
-materializing preparation and cannot complete those executions. It owns no
-parallel task-output state.
+`TaskPublication`, `start_captured_execution`, `complete_task_execution`, and
+the corresponding preparation helpers have been removed. `PreparedExecution`
+now carries only the physical payload and lifecycle observations. The Host
+accepts the exact materialized output at the common completion boundary.
 
-Removal requires both of the following:
-
-1. the Local Carrier workstream rebases and moves Graph, Events and Vectors to
-   the shared typed slot; and
-2. known external low-level API consumers are reviewed or migrated.
-
-Keeping this adapter does not keep the former independent product success path.
-Deleting it before the parallel Local workstream can consume the shared change
-would make the cross-branch migration unsafe.
+Dependency-boundary tests reject reintroduction of these APIs. Local,
+reference, DuckDB, remote-completion fixtures, and `compute_author` all use the
+same common authority. No compatibility output store or Connector publication
+scope remains.
 
 ## Identity, data movement and accounting
 
@@ -110,22 +105,18 @@ existing disposal path confirms release.
 
 ## Local verification
 
-The verified implementation head passed:
+The final Engine removal passed:
 
-- complete MoonBit suites: JS 5,095/5,095, Wasm 5,094/5,094 and
-  native 5,145/5,145;
-- connector SDK tests: JS, Wasm and native, 16/16 each;
-- physical strategy tests: JS, Wasm and native, 16/16 each;
-- query integration tests: JS, Wasm and native, 357/357 each; and
-- retained-boundary Node tests, 239/239;
-- real DuckDB standard Host, managed Host and typed resident join tests, 3/3;
-- documentation and dependency-boundary gates; and
+- query integration tests: JS, Wasm and native, 358/358 each;
+- dependency-boundary tests, 46/46;
+- the complete real DuckDB Node suite, 132/132, including standard Host,
+  managed Host, resident reuse, and the 27-case smoke matrix;
+- `moon check --target all --deny-warn`;
+- documentation gates; and
 - MoonBit format and public API consistency.
 
-The Local and reference integration fixtures also verify that the compatibility
-`complete_task_execution` entry rejects lifecycle-only product executions. The
-real DuckDB resident counters remain on the resident path rather than a batched
-import fallback.
+The real DuckDB resident counters remain on the resident path rather than a
+batched import fallback.
 
 ## Remaining cross-branch work
 
@@ -138,4 +129,5 @@ keep `carrier_managed_completed` as a parallel ledger.
 After that handoff, the integration owner must rerun the affected Local family
 suites, generated API and bundle gates, no-copy counters, full repository gates
 and Linux CI on one fixed SHA. Only that combined candidate can close the whole
-work order and remove compatibility exports whose consumer count reaches zero.
+cross-branch work order. The Engine compatibility exports no longer defer that
+handoff.
