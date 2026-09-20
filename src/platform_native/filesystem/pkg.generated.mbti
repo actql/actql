@@ -25,6 +25,11 @@ pub(all) struct NativeFileGeneration {
   size : Int64
 } derive(Eq, @debug.Debug)
 
+pub(all) struct NativeFileOwnership {
+  device : UInt64
+  inode : UInt64
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NativeFilesystemIssue {
   UnsupportedTarget
   InvalidName
@@ -56,6 +61,7 @@ pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesyst
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
 pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
+pub fn Root::sync_directory(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
 type Writer
@@ -63,6 +69,7 @@ pub fn Writer::append(Self, Bytes) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cancel(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cleanup_pending(Self) -> Bool
 pub fn Writer::is_sealed(Self) -> Bool
+pub fn Writer::ownership(Self) -> NativeFileOwnership
 pub fn Writer::seal(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]
 pub fn Writer::written(Self) -> Int64
 

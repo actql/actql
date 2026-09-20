@@ -170,6 +170,56 @@ fn adopt_native_bundle(
 }
 
 ///|
+fn native_staging_record(
+  store : NativeRuntimeBundleStore,
+  install_id : String,
+  revision : String,
+  phase : NativeRuntimeBundleStagingPhase,
+) -> NativeRuntimeBundleStaging {
+  let runtime_bundle_cid = native_bundle_cid(revision)
+  let manifest = admit_signed_bundle(
+    store.signature_library,
+    store.authorities,
+    "actql-remote-runtime-bundle-signature/0.1",
+    "key-a",
+    runtime_bundle_cid,
+    native_bundle_body(revision),
+    native_bundle_signature(revision),
+    store.target_triple,
+  ).unwrap()
+  let install_key = @sha.hex(
+    @utf8.encode(install_id + "\u0000" + runtime_bundle_cid),
+  )
+  {
+    install_id,
+    manifest,
+    signature_version: "actql-remote-runtime-bundle-signature/0.1",
+    signature_key_id: "key-a",
+    signature: native_bundle_signature(revision),
+    artifact_name: "runtime-bundle-" +
+    @sha.hex(@utf8.encode(runtime_bundle_cid)),
+    staging_name: "runtime-stage-" + install_key,
+    component_bytes: 11L,
+    phase,
+  }
+}
+
+///|
+fn persist_test_staging(
+  store : NativeRuntimeBundleStore,
+  staging : NativeRuntimeBundleStaging,
+) -> Unit {
+  let current = load_catalog(store).unwrap()
+  let values = current.staging.copy()
+  values.push(staging)
+  persist_catalog(
+    store,
+    current,
+    with_catalog_staging(current, current.entries, values),
+  ).unwrap()
+}
+
+///|
 test "native bundle operations survive restart and preserve shared code" {
   guard native_bundle_fixture("lifecycle")
     is Some((store, generation, artifact_name, sqlite, crypto)) else {
@@ -355,6 +405,184 @@ test "native bundle install rejects capacity before creating output" {
 }
 
 ///|
+test "exclusive install conflict never reclaims a preexisting staging file" {
+  guard native_bundle_fixture("stream-existing-stage")
+    is Some((store, _, _, _, _)) else {
+    return
+  }
+  let staging = native_staging_record(
+    store,
+    "install-existing-stage",
+    "4",
+    Intent,
+  )
+  let foreign = store.root.create_writer(staging.staging_name, 7L).unwrap()
+  foreign.append(b"foreign").unwrap()
+  let before = store.root
+    .inspect_generation(staging.staging_name)
+    .unwrap()
+    .unwrap()
+  assert_true(
+    store.begin_install(
+      staging.install_id,
+      staging.signature_version,
+      staging.signature_key_id,
+      staging_cid(staging),
+      @bundle.bundle_manifest_json(staging.manifest).unwrap(),
+      staging.signature,
+    )
+    is Err(Filesystem(@filesystem.Conflict)),
+  )
+  assert_eq(store.inspect_install(staging.install_id).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_eq(
+    store.root.inspect_generation(staging.staging_name).unwrap(),
+    Some(before),
+  )
+  foreign.cancel().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "seal conflict and cancel preserve a preexisting final artifact" {
+  guard native_bundle_fixture("stream-existing-final")
+    is Some((store, _, _, _, _)) else {
+    return
+  }
+  let staging = native_staging_record(
+    store,
+    "install-existing-final",
+    "4",
+    Intent,
+  )
+  let foreign = store.root
+    .create_writer(staging.artifact_name + "-foreign-stage", 7L)
+    .unwrap()
+  foreign.append(b"foreign").unwrap()
+  let foreign_generation = foreign.seal(staging.artifact_name).unwrap()
+  let installer = store
+    .begin_install(
+      staging.install_id,
+      staging.signature_version,
+      staging.signature_key_id,
+      staging_cid(staging),
+      @bundle.bundle_manifest_json(staging.manifest).unwrap(),
+      staging.signature,
+    )
+    .unwrap()
+  installer.append(b"runtime-one").unwrap()
+  assert_true(installer.seal() is Err(Filesystem(@filesystem.Conflict)))
+  installer.cancel().unwrap()
+  assert_eq(store.inspect_install(staging.install_id).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(
+    store.root.verify_generation(staging.artifact_name, foreign_generation),
+  )
+  foreign.cancel().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "recovery rejects a replacement for an owned staging allocation" {
+  guard native_bundle_fixture("stream-owned-replacement")
+    is Some((store, _, _, _, _)) else {
+    return
+  }
+  let intent = native_staging_record(
+    store,
+    "install-owned-replacement",
+    "4",
+    Intent,
+  )
+  persist_test_staging(store, intent)
+  let original = store.root.create_writer(intent.staging_name, 11L).unwrap()
+  let owned = record_staging_phase(
+    store,
+    intent,
+    StagingOwned(original.ownership()),
+  ).unwrap()
+  original.cancel().unwrap()
+  let replacement = store.root.create_writer(intent.staging_name, 11L).unwrap()
+  replacement.append(b"runtime-one").unwrap()
+  let replacement_generation = store.root
+    .inspect_generation(intent.staging_name)
+    .unwrap()
+    .unwrap()
+  assert_true(
+    store.recover_install(intent.install_id)
+    is Err(Filesystem(@filesystem.GenerationMismatch)),
+  )
+  assert_true(
+    store.root.verify_generation(intent.staging_name, replacement_generation),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 11L)
+  assert_true(
+    same_staging_phase(
+      load_catalog(store).unwrap().staging[0].phase,
+      owned.phase,
+    ),
+  )
+  replacement.cancel().unwrap()
+  assert_true(store.recover_install(intent.install_id).unwrap())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "recovery retains reservation until post-unlink sync succeeds" {
+  guard native_bundle_fixture("stream-sync-retry") is Some((store, _, _, _, _)) else {
+    return
+  }
+  let intent = native_staging_record(store, "install-sync-retry", "4", Intent)
+  persist_test_staging(store, intent)
+  let writer = store.root.create_writer(intent.staging_name, 11L).unwrap()
+  let owned = record_staging_phase(
+    store,
+    intent,
+    StagingOwned(writer.ownership()),
+  ).unwrap()
+  writer.append(b"runtime-one").unwrap()
+  let physical = cleanup_operations(store)
+  let mut sync_failures = 2
+  let injected : NativeRuntimeBundleCleanupOperations = {
+    inspect: physical.inspect,
+    reclaim: physical.reclaim,
+    sync: fn() {
+      if sync_failures > 0 {
+        sync_failures = sync_failures - 1
+        Err(Filesystem(@filesystem.Cleanup("injected root sync failure")))
+      } else {
+        (physical.sync)()
+      }
+    },
+  }
+  assert_true(
+    recover_staging_install_with_operations(store, intent.install_id, injected)
+    is Err(Filesystem(@filesystem.Cleanup(_))),
+  )
+  assert_eq(store.root.inspect_generation(intent.staging_name).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 11L)
+  assert_true(store.inspect_install(intent.install_id).unwrap() is Some(_))
+  assert_true(
+    recover_staging_install_with_operations(store, intent.install_id, injected)
+    is Err(Filesystem(@filesystem.Cleanup(_))),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 11L)
+  assert_true(
+    same_staging_phase(
+      load_catalog(store).unwrap().staging[0].phase,
+      owned.phase,
+    ),
+  )
+  assert_true(
+    recover_staging_install_with_operations(store, intent.install_id, injected).unwrap(),
+  )
+  assert_eq(store.inspect_install(intent.install_id).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "native bundle recovery removes sealed precommit staging" {
   guard native_bundle_fixture("stream-recovery") is Some((store, _, _, _, _)) else {
     return
@@ -378,6 +606,7 @@ test "native bundle recovery removes sealed precommit staging" {
     artifact_name: "runtime-bundle-crash-precommit",
     staging_name: "runtime-stage-crash-precommit",
     component_bytes: 11L,
+    phase: Intent,
   }
   let current = load_catalog(store).unwrap()
   let next = with_catalog_staging(current, current.entries, [staging])
@@ -385,6 +614,7 @@ test "native bundle recovery removes sealed precommit staging" {
   let writer = store.root.create_writer(staging.staging_name, 11L).unwrap()
   writer.append(b"runtime-one").unwrap()
   let generation = writer.seal(staging.artifact_name).unwrap()
+  record_staging_phase(store, staging, Sealed(generation)).unwrap() |> ignore
   assert_true(store.root.verify_generation(staging.artifact_name, generation))
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 11L)
   store.recover().unwrap() |> ignore

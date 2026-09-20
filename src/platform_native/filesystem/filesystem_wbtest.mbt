@@ -1,4 +1,8 @@
 ///|
+#borrow(root)
+extern "C" fn test_fail_root_sync(root : Root, failures : Int) -> Unit = "actql_native_filesystem_test_fail_root_sync"
+
+///|
 test "native filesystem rejects a missing root" {
   guard open_root("/actql/missing/native-store") is Err(RootOpen(_)) else {
     fail("missing native Store root was accepted")
@@ -133,4 +137,27 @@ test "native filesystem reclaims only the exact durable generation" {
   assert_false(root.verify_generation(name, generation))
   assert_eq(root.inspect_generation(name).unwrap(), None)
   root.reclaim_generation(name, generation).unwrap()
+}
+
+///|
+test "native filesystem retries directory sync after unlink" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let root = open_root(path).unwrap()
+  let token = @env.now().to_string()
+  let name = "reclaim-sync-object-" + token
+  let writer = root.create_writer("reclaim-sync-stage-" + token, 3L).unwrap()
+  let ownership = writer.ownership()
+  writer.append(b"abc").unwrap()
+  let generation = writer.seal(name).unwrap()
+  assert_eq(ownership.device, generation.device)
+  assert_eq(ownership.inode, generation.inode)
+  test_fail_root_sync(root, 2)
+  assert_true(root.reclaim_generation(name, generation) is Err(Cleanup(_)))
+  assert_eq(root.inspect_generation(name).unwrap(), None)
+  assert_true(root.reclaim_generation(name, generation) is Err(Cleanup(_)))
+  assert_eq(root.inspect_generation(name).unwrap(), None)
+  root.reclaim_generation(name, generation).unwrap()
+  root.sync_directory().unwrap()
 }

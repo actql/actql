@@ -174,6 +174,15 @@ same MoonBit lifecycle owner used by product dispatch. A failed operation does
 not invent a cleanup decision in the command layer: installer cancellation and
 Store close report unresolved durable responsibility as cleanup pending.
 
+The bundle catalog distinguishes a reserved install intent, ownership obtained
+by successful exclusive creation, and the exact sealed generation. Recovery
+may delete only a name whose device and inode match the recorded ownership; it
+does not derive deletion authority from a new directory observation. A crash
+between creation and the durable ownership record leaves a quarantined intent
+rather than authorizing deletion of an unknown file. Removal also retains the
+catalog reservation until directory synchronization succeeds, including when
+retry observes that a prior unlink already removed the name.
+
 The command receives library paths, target scope, authority material, and
 capacity limits explicitly. A versioned trust configuration may name multiple
 public keys and independently mark each key as eligible for new bundle

@@ -75,6 +75,10 @@ extern "C" fn writer_ready_ffi(writer : Writer) -> Bool = "actql_native_filesyst
 
 ///|
 #borrow(writer)
+extern "C" fn writer_conflict_ffi(writer : Writer) -> Bool = "actql_native_filesystem_writer_conflict"
+
+///|
+#borrow(writer)
 extern "C" fn writer_error_ffi(writer : Writer) -> Bytes = "actql_native_filesystem_writer_error"
 
 ///|
@@ -147,6 +151,10 @@ extern "C" fn root_result_inode_ffi(root : Root) -> UInt64 = "actql_native_files
 ///|
 #borrow(root)
 extern "C" fn root_result_size_ffi(root : Root) -> Int64 = "actql_native_filesystem_root_result_size"
+
+///|
+#borrow(root)
+extern "C" fn sync_root_ffi(root : Root) -> Int = "actql_native_filesystem_sync_root"
 
 ///|
 #borrow(root, name)
@@ -257,6 +265,8 @@ pub fn Root::create_writer(
   let writer = create_writer_ffi(self, encoded, encoded.length(), max_bytes)
   if writer_ready_ffi(writer) {
     Ok(writer)
+  } else if writer_conflict_ffi(writer) {
+    Err(Conflict)
   } else {
     Err(WriterCreate(writer_message(writer)))
   }
@@ -323,6 +333,14 @@ pub fn Writer::cleanup_pending(self : Writer) -> Bool {
 }
 
 ///|
+/// Returns the identity acquired by this successful exclusive creation. It is
+/// stable while the staging file grows and grants authority over no other
+/// file.
+pub fn Writer::ownership(self : Writer) -> NativeFileOwnership {
+  { device: writer_device_ffi(self), inode: writer_inode_ffi(self), }
+}
+
+///|
 pub fn Root::verify_generation(
   self : Root,
   name : String,
@@ -365,6 +383,17 @@ pub fn Root::inspect_generation(
     1 => Ok(None)
     2 => Err(GenerationMismatch)
     _ => Err(Read(decode_message(root_error_ffi(self))))
+  }
+}
+
+///|
+/// Confirms durability of prior namespace changes in this Store root. This is
+/// separate from observing that a name is absent.
+pub fn Root::sync_directory(self : Root) -> Result[Unit, NativeFilesystemIssue] {
+  if sync_root_ffi(self) == 0 {
+    Ok(())
+  } else {
+    Err(Cleanup(decode_message(root_error_ffi(self))))
   }
 }
 

@@ -78,6 +78,11 @@ pub fn Writer::cleanup_pending(_self : Writer) -> Bool {
 }
 
 ///|
+pub fn Writer::ownership(_self : Writer) -> NativeFileOwnership {
+  { device: 0UL, inode: 0UL, }
+}
+
+///|
 pub fn Root::verify_generation(
   _self : Root,
   name : String,
@@ -93,6 +98,13 @@ pub fn Root::inspect_generation(
   _self : Root,
   _name : String,
 ) -> Result[NativeFileGeneration?, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::sync_directory(
+  _self : Root,
+) -> Result[Unit, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }
 

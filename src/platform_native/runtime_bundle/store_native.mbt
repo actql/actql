@@ -18,6 +18,13 @@ priv struct NativeRuntimeBundleEntry {
 }
 
 ///|
+priv enum NativeRuntimeBundleStagingPhase {
+  Intent
+  StagingOwned(@filesystem.NativeFileOwnership)
+  Sealed(@filesystem.NativeFileGeneration)
+}
+
+///|
 priv struct NativeRuntimeBundleStaging {
   install_id : String
   manifest : @bundle.RemoteBundleManifest
@@ -27,6 +34,7 @@ priv struct NativeRuntimeBundleStaging {
   artifact_name : String
   staging_name : String
   component_bytes : Int64
+  phase : NativeRuntimeBundleStagingPhase
 }
 
 ///|
@@ -372,8 +380,36 @@ fn emit_entry(
 fn emit_staging(
   writer : @encode.Writer,
   staging : NativeRuntimeBundleStaging,
+  format_version : Int,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
+  if format_version >= 3 {
+    let (phase, device, inode, size) = match staging.phase {
+      Intent => ("intent", "", "", "")
+      StagingOwned(ownership) =>
+        (
+          "staging-owned",
+          ownership.device.to_string(),
+          ownership.inode.to_string(),
+          "",
+        )
+      Sealed(generation) =>
+        (
+          "sealed",
+          generation.device.to_string(),
+          generation.inode.to_string(),
+          generation.size.to_string(),
+        )
+    }
+    @encode.key(writer, "allocation_device")
+    @encode.string_value(writer, device)
+    @encode.key(writer, "allocation_inode")
+    @encode.string_value(writer, inode)
+    @encode.key(writer, "allocation_size")
+    @encode.string_value(writer, size)
+    @encode.key(writer, "allocation_state")
+    @encode.string_value(writer, phase)
+  }
   @encode.key(writer, "artifact_name")
   @encode.string_value(writer, staging.artifact_name)
   @encode.key(writer, "component_bytes")
@@ -416,11 +452,11 @@ fn catalog_bytes(
       emit_entry(writer, entry)
     }
     @encode.end_array(writer)
-    if catalog.format_version == 2 {
+    if catalog.format_version >= 2 {
       @encode.key(writer, "staging")
       @encode.begin_array(writer)
       for staging in catalog.staging {
-        emit_staging(writer, staging)
+        emit_staging(writer, staging, catalog.format_version)
       }
       @encode.end_array(writer)
     }
@@ -429,8 +465,10 @@ fn catalog_bytes(
       writer,
       if catalog.format_version == 1 {
         "actql-native-runtime-bundle-catalog/0.1"
-      } else {
+      } else if catalog.format_version == 2 {
         "actql-native-runtime-bundle-catalog/0.2"
+      } else {
+        "actql-native-runtime-bundle-catalog/0.3"
       },
     )
     @encode.end_object(writer)
@@ -592,12 +630,24 @@ fn decode_entry(
 fn decode_staging(
   store : NativeRuntimeBundleStore,
   cursor : @decode.Cursor,
+  format_version : Int,
 ) -> NativeRuntimeBundleStaging raise NativeBundleCatalogStop {
   let object = decoded(
-    @decode.closed_object(cursor, [
-      "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
-      "signature", "signature_key_id", "signature_version", "staging_name",
-    ]),
+    @decode.closed_object(
+      cursor,
+      if format_version >= 3 {
+        [
+          "allocation_device", "allocation_inode", "allocation_size", "allocation_state",
+          "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
+          "signature", "signature_key_id", "signature_version", "staging_name",
+        ]
+      } else {
+        [
+          "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
+          "signature", "signature_key_id", "signature_version", "staging_name",
+        ]
+      },
+    ),
   )
   let runtime_bundle_cid = text(object, "runtime_bundle_cid")
   let manifest_json = text(object, "manifest_json")
@@ -632,6 +682,46 @@ fn decode_staging(
     artifact_name == staging_name {
     raise NativeBundleCatalogStop
   }
+  let phase = if format_version < 3 {
+    Intent
+  } else {
+    let state = text(object, "allocation_state")
+    let device = text(object, "allocation_device")
+    let inode = text(object, "allocation_inode")
+    let size = text(object, "allocation_size")
+    match state {
+      "intent" => {
+        if !device.is_empty() || !inode.is_empty() || !size.is_empty() {
+          raise NativeBundleCatalogStop
+        }
+        Intent
+      }
+      "staging-owned" => {
+        if device.is_empty() || inode.is_empty() || !size.is_empty() {
+          raise NativeBundleCatalogStop
+        }
+        StagingOwned({
+          device: unsigned_int64(device),
+          inode: unsigned_int64(inode),
+        })
+      }
+      "sealed" => {
+        if device.is_empty() || inode.is_empty() || size.is_empty() {
+          raise NativeBundleCatalogStop
+        }
+        let generation : @filesystem.NativeFileGeneration = {
+          device: unsigned_int64(device),
+          inode: unsigned_int64(inode),
+          size: signed_int64(size),
+        }
+        if generation.size < 0L || generation.size != component_bytes {
+          raise NativeBundleCatalogStop
+        }
+        Sealed(generation)
+      }
+      _ => raise NativeBundleCatalogStop
+    }
+  }
   {
     install_id,
     manifest,
@@ -641,6 +731,7 @@ fn decode_staging(
     artifact_name,
     staging_name,
     component_bytes,
+    phase,
   }
 }
 
@@ -675,6 +766,8 @@ fn admit_catalog(
       1
     } else if version == "actql-native-runtime-bundle-catalog/0.2" {
       2
+    } else if version == "actql-native-runtime-bundle-catalog/0.3" {
+      3
     } else {
       raise NativeBundleCatalogStop
     }
@@ -744,7 +837,7 @@ fn admit_catalog(
       guard @decode.element_at(staging_values, index) is Some(stage_cursor) else {
         raise NativeBundleCatalogStop
       }
-      let stage = decode_staging(store, stage_cursor)
+      let stage = decode_staging(store, stage_cursor, format_version)
       for entry in entries {
         if entry_cid(entry) == staging_cid(stage) ||
           entry.artifact_name == stage.artifact_name {
@@ -828,7 +921,7 @@ fn initial_catalog_bytes(
   catalog_bytes(
     {
       revision: 0L,
-      format_version: 2,
+      format_version: 3,
       active_bundle_cid: None,
       entries: [],
       staging: [],
@@ -869,7 +962,7 @@ fn persist_catalog(
   current : NativeRuntimeBundleCatalog,
   next : NativeRuntimeBundleCatalog,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  if next.format_version != 2 {
+  if next.format_version != 3 {
     return Err(StateCollision)
   }
   let body = match catalog_bytes(next, store.max_record_bytes) {
@@ -897,7 +990,7 @@ fn with_catalog_revision(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
-    format_version: 2,
+    format_version: 3,
     active_bundle_cid,
     entries,
     staging: catalog.staging,
@@ -912,7 +1005,7 @@ fn with_catalog_staging(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
-    format_version: 2,
+    format_version: 3,
     active_bundle_cid: active_cid(catalog),
     entries,
     staging,
@@ -924,12 +1017,12 @@ fn migrate_catalog_if_needed(
   store : NativeRuntimeBundleStore,
   catalog : NativeRuntimeBundleCatalog,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  if catalog.format_version == 2 {
+  if catalog.format_version == 3 {
     return Ok(())
   }
   let next = {
     revision: catalog.revision + 1L,
-    format_version: 2,
+    format_version: 3,
     active_bundle_cid: active_cid(catalog),
     entries: catalog.entries,
     staging: [],
@@ -1238,25 +1331,208 @@ fn remove_staging_at(
 }
 
 ///|
-fn reclaim_staging_name(
-  store : NativeRuntimeBundleStore,
-  name : String,
-) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  let generation = match
-    filesystem_result(store.root.inspect_generation(name)) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match generation {
-    None => Ok(())
-    Some(value) => filesystem_result(store.root.reclaim_generation(name, value))
+fn replace_staging_at(
+  staging : Array[NativeRuntimeBundleStaging],
+  index : Int,
+  value : NativeRuntimeBundleStaging,
+) -> Array[NativeRuntimeBundleStaging] {
+  let result = staging.copy()
+  result[index] = value
+  result
+}
+
+///|
+fn same_staging_phase(
+  left : NativeRuntimeBundleStagingPhase,
+  right : NativeRuntimeBundleStagingPhase,
+) -> Bool {
+  match (left, right) {
+    (Intent, Intent) => true
+    (StagingOwned(left), StagingOwned(right)) => left == right
+    (Sealed(left), Sealed(right)) => left == right
+    _ => false
   }
 }
 
 ///|
-fn recover_staging_install(
+fn allocation_is_owned_by(
+  generation : @filesystem.NativeFileGeneration,
+  ownership : @filesystem.NativeFileOwnership,
+) -> Bool {
+  generation.device == ownership.device && generation.inode == ownership.inode
+}
+
+///|
+priv struct NativeRuntimeBundleCleanupOperations {
+  inspect : (String) -> Result[
+    @filesystem.NativeFileGeneration?,
+    NativeRuntimeBundleStoreIssue,
+  ]
+  reclaim : (String, @filesystem.NativeFileGeneration) -> Result[
+    Unit,
+    NativeRuntimeBundleStoreIssue,
+  ]
+  sync : () -> Result[Unit, NativeRuntimeBundleStoreIssue]
+}
+
+///|
+fn cleanup_operations(
+  store : NativeRuntimeBundleStore,
+) -> NativeRuntimeBundleCleanupOperations {
+  {
+    inspect: name => filesystem_result(store.root.inspect_generation(name)),
+    reclaim: (name, generation) => {
+      filesystem_result(store.root.reclaim_generation(name, generation))
+    },
+    sync: () => filesystem_result(store.root.sync_directory()),
+  }
+}
+
+///|
+fn remove_staging_record(
+  store : NativeRuntimeBundleStore,
+  expected : NativeRuntimeBundleStaging,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  let current = match load_catalog(store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard staging_index(current, expected.install_id) is Some(index) else {
+    return Err(StateCollision)
+  }
+  let actual = current.staging[index]
+  if !same_staging_request(actual, expected) ||
+    !same_staging_phase(actual.phase, expected.phase) {
+    return Err(StateCollision)
+  }
+  let staging = remove_staging_at(current.staging, index)
+  let next = with_catalog_staging(current, current.entries, staging)
+  persist_catalog(store, current, next)
+}
+
+///|
+fn record_staging_phase(
+  store : NativeRuntimeBundleStore,
+  expected : NativeRuntimeBundleStaging,
+  phase : NativeRuntimeBundleStagingPhase,
+) -> Result[NativeRuntimeBundleStaging, NativeRuntimeBundleStoreIssue] {
+  let current = match load_catalog(store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard staging_index(current, expected.install_id) is Some(index) else {
+    return Err(StateCollision)
+  }
+  let actual = current.staging[index]
+  if !same_staging_request(actual, expected) ||
+    !same_staging_phase(actual.phase, expected.phase) {
+    return Err(StateCollision)
+  }
+  let replacement = { ..actual, phase, }
+  let staging = replace_staging_at(current.staging, index, replacement)
+  let next = with_catalog_staging(current, current.entries, staging)
+  match persist_catalog(store, current, next) {
+    Ok(_) => Ok(replacement)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn reclaim_owned_name(
+  operations : NativeRuntimeBundleCleanupOperations,
+  name : String,
+  ownership : @filesystem.NativeFileOwnership,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
+  let generation = match (operations.inspect)(name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match generation {
+    None => Ok(false)
+    Some(value) => {
+      if !allocation_is_owned_by(value, ownership) {
+        return Err(Filesystem(@filesystem.GenerationMismatch))
+      }
+      match (operations.reclaim)(name, value) {
+        Ok(_) => Ok(true)
+        Err(issue) => Err(issue)
+      }
+    }
+  }
+}
+
+///|
+fn recover_staging_allocation(
+  operations : NativeRuntimeBundleCleanupOperations,
+  expected : NativeRuntimeBundleStaging,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  match expected.phase {
+    Intent => {
+      let staging = match (operations.inspect)(expected.staging_name) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let artifact = match (operations.inspect)(expected.artifact_name) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if staging is Some(_) || artifact is Some(_) {
+        return Err(RecoveryRequired)
+      }
+    }
+    StagingOwned(ownership) => {
+      match reclaim_owned_name(operations, expected.staging_name, ownership) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let artifact = match (operations.inspect)(expected.artifact_name) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match artifact {
+        Some(generation) if allocation_is_owned_by(generation, ownership) =>
+          match (operations.reclaim)(expected.artifact_name, generation) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+        // This phase owns the staging allocation, not a foreign preexisting
+        // final name. Only a final name with the recorded ownership can be a
+        // crash residue from seal.
+        Some(_) | None => ()
+      }
+    }
+    Sealed(generation) => {
+      let ownership : @filesystem.NativeFileOwnership = {
+        device: generation.device,
+        inode: generation.inode,
+      }
+      match reclaim_owned_name(operations, expected.staging_name, ownership) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let artifact = match (operations.inspect)(expected.artifact_name) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match artifact {
+        None => ()
+        Some(actual) if actual == generation =>
+          match (operations.reclaim)(expected.artifact_name, actual) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+        Some(_) => return Err(Filesystem(@filesystem.GenerationMismatch))
+      }
+    }
+  }
+  (operations.sync)()
+}
+
+///|
+fn recover_staging_install_with_operations(
   store : NativeRuntimeBundleStore,
   install_id : String,
+  operations : NativeRuntimeBundleCleanupOperations,
 ) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
   if store.active_installers.contains(install_id) {
     return Err(CleanupPending)
@@ -1269,30 +1545,26 @@ fn recover_staging_install(
     return Ok(false)
   }
   let expected = initial.staging[initial_index]
-  match reclaim_staging_name(store, expected.staging_name) {
+  match recover_staging_allocation(operations, expected) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match reclaim_staging_name(store, expected.artifact_name) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  let current = match load_catalog(store) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard staging_index(current, install_id) is Some(index) else {
-    return Err(StateCollision)
-  }
-  if !same_staging_request(current.staging[index], expected) {
-    return Err(StateCollision)
-  }
-  let staging = remove_staging_at(current.staging, index)
-  let next = with_catalog_staging(current, current.entries, staging)
-  match persist_catalog(store, current, next) {
+  match remove_staging_record(store, expected) {
     Ok(_) => Ok(true)
     Err(issue) => Err(issue)
   }
+}
+
+///|
+fn recover_staging_install(
+  store : NativeRuntimeBundleStore,
+  install_id : String,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
+  recover_staging_install_with_operations(
+    store,
+    install_id,
+    cleanup_operations(store),
+  )
 }
 
 ///|
@@ -1352,6 +1624,7 @@ pub fn NativeRuntimeBundleStore::begin_install(
     artifact_name,
     staging_name: "runtime-stage-" + install_key,
     component_bytes,
+    phase: Intent,
   }
   let current = match load_catalog(self) {
     Ok(value) => value
@@ -1398,10 +1671,23 @@ pub fn NativeRuntimeBundleStore::begin_install(
     ) {
     Ok(value) => value
     Err(issue) =>
-      return match recover_staging_install(self, install_id) {
-        Ok(_) => Err(issue)
-        Err(_) => Err(CleanupPending)
+      return match issue {
+        Filesystem(@filesystem.Conflict) =>
+          match remove_staging_record(self, candidate) {
+            Ok(_) => Err(issue)
+            Err(_) => Err(CleanupPending)
+          }
+        _ =>
+          match recover_staging_install(self, install_id) {
+            Ok(_) => Err(issue)
+            Err(_) => Err(CleanupPending)
+          }
       }
+  }
+  match
+    record_staging_phase(self, candidate, StagingOwned(physical.ownership())) {
+    Ok(_) => ()
+    Err(_) => return Err(CleanupPending)
   }
   self.active_installers[install_id] = true
   Ok({
@@ -1448,7 +1734,7 @@ pub fn NativeRuntimeBundleInstaller::seal(
   guard staging_index(initial, self.install_id) is Some(initial_index) else {
     return Err(StateCollision)
   }
-  let expected = initial.staging[initial_index]
+  let mut expected = initial.staging[initial_index]
   if staging_cid(expected) != self.runtime_bundle_cid ||
     self.physical.written() != expected.component_bytes {
     return Err(ComponentMismatch)
@@ -1465,11 +1751,29 @@ pub fn NativeRuntimeBundleInstaller::seal(
     self.sealed_generation = Some(generation)
     self.sealed_digest = "sha256:" + digest
   }
+  let generation = self.sealed_generation.unwrap()
+  expected = match expected.phase {
+    Sealed(recorded) => {
+      if recorded != generation {
+        return Err(StateCollision)
+      }
+      expected
+    }
+    StagingOwned(ownership) => {
+      if !allocation_is_owned_by(generation, ownership) {
+        return Err(ComponentMismatch)
+      }
+      match record_staging_phase(self.store, expected, Sealed(generation)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    }
+    Intent => return Err(StateCollision)
+  }
   let projection = @bundle.bundle_manifest_projection(expected.manifest)
   if self.sealed_digest != projection[5] {
     return Err(ComponentMismatch)
   }
-  let generation = self.sealed_generation.unwrap()
   if generation.size != expected.component_bytes ||
     !self.store.root.verify_generation(expected.artifact_name, generation) {
     return Err(ComponentMismatch)
@@ -1521,7 +1825,19 @@ pub fn NativeRuntimeBundleInstaller::cancel(
     Err(issue) => return Err(issue)
   }
   ignore(self.store.active_installers.remove(self.install_id))
-  match recover_staging_install(self.store, self.install_id) {
+  let current = match load_catalog(self.store) {
+    Ok(value) => value
+    Err(issue) => {
+      self.store.active_installers[self.install_id] = true
+      return Err(issue)
+    }
+  }
+  guard staging_index(current, self.install_id) is Some(index) else {
+    self.store.active_installers[self.install_id] = true
+    return Err(StateCollision)
+  }
+  let expected = current.staging[index]
+  match remove_staging_record(self.store, expected) {
     Ok(_) => {
       self.closed = true
       Ok(())

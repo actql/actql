@@ -20,6 +20,7 @@ typedef struct {
   uint64_t result_device;
   uint64_t result_inode;
   int64_t result_size;
+  int32_t test_sync_failures;
 } actql_native_filesystem_root;
 
 typedef struct {
@@ -45,6 +46,7 @@ typedef struct {
   bool sealed;
   bool cleanup_requested;
   bool cancelled;
+  bool create_conflict;
 } actql_native_filesystem_writer;
 
 typedef struct {
@@ -153,6 +155,19 @@ static bool actql_exact_generation(
   return (uint64_t)status->st_dev == device &&
          (uint64_t)status->st_ino == inode &&
          status->st_size >= 0 && (int64_t)status->st_size == size;
+}
+
+static int actql_sync_root(actql_native_filesystem_root *root) {
+  if (root == NULL || root->fd < 0) {
+    errno = EBADF;
+    return -1;
+  }
+  if (root->test_sync_failures > 0) {
+    root->test_sync_failures -= 1;
+    errno = EIO;
+    return -1;
+  }
+  return fsync(root->fd);
 }
 
 static bool actql_writer_name_matches(
@@ -453,7 +468,13 @@ void *actql_native_filesystem_create_writer(
     0600
   );
   if (writer->fd < 0) {
-    actql_replace_errno_error(&writer->error, "create staging file", errno);
+    int create_error = errno;
+    writer->create_conflict = create_error == EEXIST;
+    actql_replace_errno_error(
+      &writer->error,
+      "create staging file",
+      create_error
+    );
     return writer;
   }
   struct stat status;
@@ -484,6 +505,12 @@ int32_t actql_native_filesystem_writer_ready(
   actql_native_filesystem_writer *writer
 ) {
   return writer != NULL && writer->ready;
+}
+
+int32_t actql_native_filesystem_writer_conflict(
+  actql_native_filesystem_writer *writer
+) {
+  return writer != NULL && writer->create_conflict;
 }
 
 moonbit_bytes_t actql_native_filesystem_writer_error(
@@ -622,7 +649,7 @@ int32_t actql_native_filesystem_writer_seal(
     &writer->staging_present
   );
   if (remove_result != 0) return remove_result;
-  if (fsync(writer->root->fd) != 0) {
+  if (actql_sync_root(writer->root) != 0) {
     actql_replace_errno_error(&writer->error, "sync Store root", errno);
     return -1;
   }
@@ -672,7 +699,7 @@ int32_t actql_native_filesystem_writer_cancel(
     &writer->staging_present
   );
   if (result != 0) return result;
-  if (fsync(writer->root->fd) != 0) {
+  if (actql_sync_root(writer->root) != 0) {
     actql_replace_errno_error(&writer->error, "sync Store root", errno);
     return -1;
   }
@@ -817,7 +844,11 @@ int32_t actql_native_filesystem_reclaim_generation(
   if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0) {
     int stat_error = errno;
     free(name_text);
-    if (stat_error == ENOENT) return 0;
+    if (stat_error == ENOENT) {
+      if (actql_sync_root(root) == 0) return 0;
+      actql_replace_errno_error(&root->error, "sync Store root", errno);
+      return -1;
+    }
     actql_replace_errno_error(
       &root->error,
       "inspect committed file for reclamation",
@@ -842,11 +873,29 @@ int32_t actql_native_filesystem_reclaim_generation(
     return -1;
   }
   free(name_text);
-  if (fsync(root->fd) != 0) {
+  if (actql_sync_root(root) != 0) {
     actql_replace_errno_error(&root->error, "sync Store root", errno);
     return -1;
   }
   return 0;
+}
+
+int32_t actql_native_filesystem_sync_root(
+  actql_native_filesystem_root *root
+) {
+  if (root == NULL || root->fd < 0) return -1;
+  actql_replace_error(&root->error, NULL);
+  if (actql_sync_root(root) == 0) return 0;
+  actql_replace_errno_error(&root->error, "sync Store root", errno);
+  return -1;
+}
+
+void actql_native_filesystem_test_fail_root_sync(
+  actql_native_filesystem_root *root,
+  int32_t failures
+) {
+  if (root == NULL) return;
+  root->test_sync_failures = failures < 0 ? 0 : failures;
 }
 
 void *actql_native_filesystem_open_reader(
