@@ -17,11 +17,11 @@ readable coverage manifest is authoritative for individual operation status.
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected, but only 1/39 entries currently records complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, and `degree` outputs; 3/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
+| Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, `degree`, and `components` outputs; 4/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 1/39, and publication 3/39. These are
+consumer lifetime 15/39, cancellation 1/39, and publication 4/39. These are
 layer counts, not operation completion: all 39 entries remain `partial` until
 their classified variants and required layers close on one verified SHA.
 
@@ -220,8 +220,10 @@ node identity, and output is ordered by component identity and then node
 identity. Exact authored output guards and structural workspace are admitted
 before allocation. Both variants reach two independent downstream Relation
 computations and final reclaim through the registered standard Host on JS,
-Wasm, and native. Formal publication and environment cancellation delivery
-remain open, so `components` remains partial. The remaining SGA operations
+Wasm, and native. The Effect-free Named Result path publishes and retrieves
+the weak-components result through the formal Store while preserving its
+canonical row order. Environment cancellation delivery remains open, so
+`components` remains partial. The remaining SGA operations
 still lack portable Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
