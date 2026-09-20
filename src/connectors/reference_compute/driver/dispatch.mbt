@@ -222,13 +222,20 @@ fn[C, E] execute_numeric_dispatch_with_completion_admission(
   task : @host.PreparedTaskDispatch,
   completion_ready : () -> Bool,
 ) -> Result[Unit, @strategy.RunIssue] {
-  @host.execute_compute_author_work_with_completion_admission(
+  @host.execute_materializing_compute_author_work_with_completion_admission(
     installed.context,
     host,
     task,
     installed.channel,
     attempt => {
-      @numeric.execute_numeric_attempt(attempt).map_err(numeric_dispatch_issue)
+      match @numeric.execute_numeric_attempt(attempt) {
+        Err(issue) => Err(numeric_dispatch_issue(issue))
+        Ok(_) =>
+          match @numeric.numeric_attempt_completed_output(attempt) {
+            Some(output) => Ok(output)
+            None => Err(@strategy.RunIssue::NotReady)
+          }
+      }
     },
     completion_ready,
   )

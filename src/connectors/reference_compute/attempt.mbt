@@ -178,8 +178,7 @@ pub fn numeric_attempt_completed_output(
   attempt : NumericAttempt,
 ) -> @execution.CompletedOutput? {
   match attempt.completed {
-    Some(result) if !attempt.closed && attempt.settled =>
-      Some(numeric_completed_output(result))
+    Some(result) if !attempt.closed => Some(numeric_completed_output(result))
     _ => None
   }
 }
