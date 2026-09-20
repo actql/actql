@@ -12,6 +12,7 @@ struct CapturedDAG {
   resources : Array[TaskRetention?]
   join_limits : Array[Array[(Int, Int64)]]
   interval_search_limits : Array[Array[(Int, Int64)]]
+  asof_search_limits : Array[Array[(Int, Int64)]]
   aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]]
   analytic_envelopes : Array[Array[@connector.AnalyticEnvelope]]
   inputs : Array[Array[@execution.ProducerRead?]]
@@ -207,6 +208,9 @@ pub fn open_captured_dag(
     count,
     _ => [],
   )
+  let asof_search_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => {
+    []
+  })
   let aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]] = Array::makei(
     count,
     _ => [],
@@ -250,6 +254,22 @@ pub fn open_captured_dag(
         }
         if !duplicate {
           interval_search_limits[index].push((step, upper))
+        }
+      }
+      if requirement.disposition is ExecutionCheck(AsOfSearch(check)) {
+        let step = check.site.step
+        let upper = @step_bounds.asof_search_upper(check.product)
+        let mut duplicate = false
+        for (previous_step, previous_upper) in asof_search_limits[index] {
+          if previous_step == step {
+            if previous_upper != upper {
+              return Err(UnsupportedGraph)
+            }
+            duplicate = true
+          }
+        }
+        if !duplicate {
+          asof_search_limits[index].push((step, upper))
         }
       }
       if requirement.disposition is ExecutionCheck(GroupExecution(check)) {
@@ -425,6 +445,7 @@ pub fn open_captured_dag(
     resources,
     join_limits,
     interval_search_limits,
+    asof_search_limits,
     aggregate_limits,
     analytic_envelopes,
     inputs: Array::makei(count, task => {
@@ -1355,6 +1376,24 @@ pub fn captured_task_interval_search_at(
   index : Int,
 ) -> (Int, Int64)? {
   run.interval_search_limits
+  .get(task)
+  .bind(items => items.get(index))
+  .map(pair => pair)
+}
+
+///|
+/// Selected checked as-of-search bounds, retained by exact occurrence.
+pub fn captured_task_asof_search_count(run : CapturedDAG, task : Int) -> Int? {
+  run.asof_search_limits.get(task).map(items => items.length())
+}
+
+///|
+pub fn captured_task_asof_search_at(
+  run : CapturedDAG,
+  task : Int,
+  index : Int,
+) -> (Int, Int64)? {
+  run.asof_search_limits
   .get(task)
   .bind(items => items.get(index))
   .map(pair => pair)
