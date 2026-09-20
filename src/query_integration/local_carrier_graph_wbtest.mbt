@@ -108,6 +108,8 @@ fn is_graph_equality_variant(variant : String) -> Bool {
   variant == "graphs_equal" ||
   variant == "graphs_equal_reverse" ||
   variant == "graphs_equal_self" ||
+  variant == "graphs_nullable_equal" ||
+  variant == "graphs_nullable_null_equal" ||
   variant.has_suffix("unequal")
 }
 
@@ -116,10 +118,25 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
-    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+    "\"node_name\":{\"type\":\"string\",\"nullable\":" +
+    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+    "}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":" +
+    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+    "}}"
+  let first_name = if variant == "graphs_nullable_null_equal" {
+    "null"
+  } else if variant == "graphs_nullable_equal" {
+    "\"x\""
+  } else {
+    "\"first\""
+  }
   let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
-    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"node_name\":" +
+    first_name +
+    ",\"weight\":" +
+    (if variant == "graphs_nullable_null_equal" { "null" } else { "10" }) +
+    "},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
   let graph_equality = is_graph_equality_variant(variant)
@@ -2406,7 +2423,9 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
   } else if variant == "graphs_equal" ||
     variant == "graphs_equal_reverse" ||
-    variant == "graphs_equal_self" {
+    variant == "graphs_equal_self" ||
+    variant == "graphs_nullable_equal" ||
+    variant == "graphs_nullable_null_equal" {
     assert_true(graph_rows[0].contains("\"equal\":true"))
   } else if variant.has_suffix("unequal") {
     assert_true(graph_rows[0].contains("\"equal\":false"))
@@ -2530,6 +2549,8 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_equal", publication=true)
   run_standard_host_graph_relation_path("graphs_equal_reverse")
   run_standard_host_graph_relation_path("graphs_equal_self")
+  run_standard_host_graph_relation_path("graphs_nullable_equal")
+  run_standard_host_graph_relation_path("graphs_nullable_null_equal")
   run_standard_host_graph_relation_path("graphs_unequal")
   run_standard_host_graph_relation_path("graphs_payload_unequal")
 }

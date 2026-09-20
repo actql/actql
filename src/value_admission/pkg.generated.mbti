@@ -20,6 +20,8 @@ pub fn admit_host_usage(ReferenceIssuer, @value_contract.Contract, @decode_core.
 
 pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
+pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
+
 pub fn append_vector_component(VectorBuilder, Double) -> Bool
 
 pub fn array_value(Array[Value]) -> Value
@@ -86,6 +88,8 @@ pub fn reference_same_issuer(ReferenceValue, ReferenceValue) -> Bool
 
 pub fn reference_wire(ReferenceValue) -> String
 
+pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
+
 pub fn text_value(String, Int) -> Value?
 
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
@@ -96,6 +100,22 @@ pub fn timestamp_epoch_milliseconds(String) -> Int64?
 pub struct CheckedValue {
   contract : @value_contract.Contract
   value : Value
+}
+
+type CompleteEquality
+
+pub(all) enum CompleteEqualityIssue {
+  InvalidCompleteEqualityLimits
+  CompleteEqualityLimit
+  CompleteEqualityReferenceUnavailable
+  CompleteEqualityReferenceDomain
+  CompleteEqualityTerminal
+} derive(Eq, @debug.Debug)
+
+pub enum CompleteEqualityPoll {
+  EqualityContinue(work~ : Int)
+  EqualityComplete(equal~ : Bool, work~ : Int)
+  EqualityFailed(CompleteEqualityIssue, work~ : Int)
 }
 
 pub struct DecimalValue {

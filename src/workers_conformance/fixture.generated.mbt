@@ -338,6 +338,17 @@ fn input_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn is_graph_equality_variant(variant : String) -> Bool {
+  variant == "graphs_equal" ||
+  variant == "graphs_equal_reverse" ||
+  variant == "graphs_equal_self" ||
+  variant == "graphs_nullable_equal" ||
+  variant == "graphs_nullable_null_equal" ||
+  variant.has_suffix("unequal")
+}
+
+///|
 /// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
 /// Authored fixture material for join step zero and the catalog's fixed 10000
 /// row Host ceiling. This is input to the checker, not an expected result
@@ -588,12 +599,28 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
-    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+    "\"node_name\":{\"type\":\"string\",\"nullable\":" +
+    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+    "}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":" +
+    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+    "}}"
+  let first_name = if variant == "graphs_nullable_null_equal" {
+    "null"
+  } else if variant == "graphs_nullable_equal" {
+    "\"x\""
+  } else {
+    "\"first\""
+  }
   let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
-    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"node_name\":" +
+    first_name +
+    ",\"weight\":" +
+    (if variant == "graphs_nullable_null_equal" { "null" } else { "10" }) +
+    "},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
+  let graph_equality = is_graph_equality_variant(variant)
   let projection = if variant == "match_nodes" {
     "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
@@ -639,17 +666,40 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
-    "\"graph\":{\"nodes\":{\"from\":" +
-    (if variant == "graphs_payload_unequal" { "\"other\"" } else { "\"rows\"" }) +
-    ",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-    (if variant.has_suffix("unequal") { "\"other\"" } else { "\"rows\"" }) +
-    "," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"graphs_equal\":{\"with\":\"right_graph\"}," +
-    "\"as\":\"out\""
+  } else if graph_equality {
+    let right = if variant == "graphs_equal_self" {
+      ""
+    } else {
+      "\"graph\":{\"nodes\":{\"from\":" +
+      (if variant == "graphs_payload_unequal" {
+        "\"other\""
+      } else {
+        "\"rows\""
+      }) +
+      ",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+      (if variant.has_suffix("unequal") { "\"other\"" } else { "\"rows\"" }) +
+      "," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{"
+    }
+    let left_name = if variant == "graphs_equal_reverse" {
+      "right_graph"
+    } else {
+      "g"
+    }
+    let right_name = if variant == "graphs_equal_reverse" ||
+      variant == "graphs_equal_self" {
+      "g"
+    } else {
+      "right_graph"
+    }
+    right +
+    "\"from\":\"" +
+    left_name +
+    "\",\"graphs_equal\":{\"with\":\"" +
+    right_name +
+    "\"},\"as\":\"out\""
   } else if variant == "edge_projection" {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
@@ -664,7 +714,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
+  } else if graph_equality {
     "\"equal\""
   } else {
     "\"id\",\"node_name\""
@@ -679,7 +729,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
-  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
+  } else if graph_equality {
     "\"equal\""
   } else {
     "\"node_name\""

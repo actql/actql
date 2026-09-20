@@ -190,7 +190,7 @@ type GraphsEqualExecution
 pub(all) enum GraphsEqualIssue {
   InvalidGraphsEqualKernel
   GraphsEqualInputUnavailable
-  GraphsEqualComparison(@value_admission.KeyOrderIssue)
+  GraphsEqualComparison(@value_admission.CompleteEqualityIssue)
   GraphsEqualStorage(@managed_graph_storage.Issue)
   GraphsEqualOutput(@execution_relation.CaptureIssue)
   GraphsEqualCompletion(@execution_relation.TrustedOutputIssue)

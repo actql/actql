@@ -21,6 +21,9 @@ priv struct GraphsEqualState {
   live : Ref[Bool]
   accepted : Ref[Bool]
   port : @execution.TrustedOutputPort[Unit]
+  value_limits : @value.Limits
+  mut comparison : @value.CompleteEquality?
+  mut comparison_failure_work : Int
   mut phase : GraphsEqualPhase
   mut equal : Bool
   mut record : Int
@@ -71,7 +74,7 @@ pub enum GraphsEqualPoll {
 pub(all) enum GraphsEqualIssue {
   InvalidGraphsEqualKernel
   GraphsEqualInputUnavailable
-  GraphsEqualComparison(@value.KeyOrderIssue)
+  GraphsEqualComparison(@value.CompleteEqualityIssue)
   GraphsEqualStorage(@storage.Issue)
   GraphsEqualOutput(@execution.CaptureIssue)
   GraphsEqualCompletion(@execution.TrustedOutputIssue)
@@ -79,13 +82,35 @@ pub(all) enum GraphsEqualIssue {
 } derive(Eq, Debug)
 
 ///|
-fn checked_values_equal(
+fn advance_checked_values_equal(
+  state : GraphsEqualState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
-) -> Result[Bool, GraphsEqualIssue] {
-  @value.compare_key_values(left, right)
-  .map(comparison => comparison == 0)
-  .map_err(issue => GraphsEqualComparison(issue))
+  quantum : Int,
+) -> Result[(Bool, Bool, Int), GraphsEqualIssue] {
+  let comparison = match state.comparison {
+    Some(value) => value
+    None =>
+      match @value.start_complete_equality(left, right, state.value_limits) {
+        Ok(value) => {
+          state.comparison = Some(value)
+          value
+        }
+        Err(issue) => return Err(GraphsEqualComparison(issue))
+      }
+  }
+  match @value.advance_complete_equality(comparison, quantum) {
+    @value.EqualityContinue(work~) => Ok((false, false, work))
+    @value.EqualityComplete(equal~, work~) => {
+      state.comparison = None
+      Ok((true, equal, work))
+    }
+    @value.EqualityFailed(issue, work~) => {
+      state.comparison = None
+      state.comparison_failure_work = work
+      Err(GraphsEqualComparison(issue))
+    }
+  }
 }
 
 ///|
@@ -114,7 +139,8 @@ fn select_equal_node(
 ///|
 fn compare_equal_node_property(
   state : GraphsEqualState,
-) -> Result[Unit, GraphsEqualIssue] {
+  quantum : Int,
+) -> Result[(Bool, Int), GraphsEqualIssue] {
   guard @storage.carrier(state.left) is @carrier.GraphValue(graph) else {
     return Err(GraphsEqualInputUnavailable)
   }
@@ -122,7 +148,7 @@ fn compare_equal_node_property(
   if state.property >= count {
     state.record += 1
     state.phase = SelectNode
-    return Ok(())
+    return Ok((true, 0))
   }
   guard @storage.node_property(state.left, state.record, state.property)
     is Some(left) &&
@@ -130,17 +156,18 @@ fn compare_equal_node_property(
     is Some(right) else {
     return Err(GraphsEqualInputUnavailable)
   }
-  match checked_values_equal(left, right) {
+  match advance_checked_values_equal(state, left, right, quantum) {
     Err(issue) => Err(issue)
-    Ok(false) => {
+    Ok((_, false, work)) => {
       state.equal = false
       state.phase = Emit
-      Ok(())
+      Ok((true, work))
     }
-    Ok(true) => {
+    Ok((true, true, work)) => {
       state.property += 1
-      Ok(())
+      Ok((true, work))
     }
+    Ok((false, true, work)) => Ok((false, work))
   }
 }
 
@@ -174,7 +201,8 @@ fn select_equal_edge(
 ///|
 fn compare_equal_edge_property(
   state : GraphsEqualState,
-) -> Result[Unit, GraphsEqualIssue] {
+  quantum : Int,
+) -> Result[(Bool, Int), GraphsEqualIssue] {
   guard @storage.carrier(state.left) is @carrier.GraphValue(graph) else {
     return Err(GraphsEqualInputUnavailable)
   }
@@ -182,7 +210,7 @@ fn compare_equal_edge_property(
   if state.property >= count {
     state.record += 1
     state.phase = SelectEdge
-    return Ok(())
+    return Ok((true, 0))
   }
   guard @storage.edge_property(state.left, state.record, state.property)
     is Some(left) &&
@@ -190,17 +218,18 @@ fn compare_equal_edge_property(
     is Some(right) else {
     return Err(GraphsEqualInputUnavailable)
   }
-  match checked_values_equal(left, right) {
+  match advance_checked_values_equal(state, left, right, quantum) {
     Err(issue) => Err(issue)
-    Ok(false) => {
+    Ok((_, false, work)) => {
       state.equal = false
       state.phase = Emit
-      Ok(())
+      Ok((true, work))
     }
-    Ok(true) => {
+    Ok((true, true, work)) => {
       state.property += 1
-      Ok(())
+      Ok((true, work))
     }
+    Ok((false, true, work)) => Ok((false, work))
   }
 }
 
@@ -242,13 +271,15 @@ fn graphs_equal_step(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         }
-      CompareNodeProperty => {
-        used += 1
-        match compare_equal_node_property(state) {
-          Ok(_) => ()
-          Err(issue) => return @bounded.Failed(issue, progress, used)
+      CompareNodeProperty =>
+        match compare_equal_node_property(state, quantum - used) {
+          Ok((_, work)) => used += work
+          Err(issue) => {
+            used += state.comparison_failure_work
+            state.comparison_failure_work = 0
+            return @bounded.Failed(issue, progress, used)
+          }
         }
-      }
       SelectEdge =>
         if state.record >= @storage.edge_count(state.left) {
           state.phase = Emit
@@ -259,13 +290,15 @@ fn graphs_equal_step(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         }
-      CompareEdgeProperty => {
-        used += 1
-        match compare_equal_edge_property(state) {
-          Ok(_) => ()
-          Err(issue) => return @bounded.Failed(issue, progress, used)
+      CompareEdgeProperty =>
+        match compare_equal_edge_property(state, quantum - used) {
+          Ok((_, work)) => used += work
+          Err(issue) => {
+            used += state.comparison_failure_work
+            state.comparison_failure_work = 0
+            return @bounded.Failed(issue, progress, used)
+          }
         }
-      }
       Emit => {
         used += 1
         guard state.output is Some(output) &&
@@ -388,6 +421,13 @@ pub fn start_graphs_equal(
     live,
     accepted,
     port,
+    value_limits: {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_text_bytes: limits.max_text_bytes,
+    },
+    comparison: None,
+    comparison_failure_work: 0,
     phase: CompareCounts,
     equal: true,
     record: 0,
