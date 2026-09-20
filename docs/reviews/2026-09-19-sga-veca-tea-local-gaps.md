@@ -439,6 +439,15 @@ physical-strategy, Local connector, and query-integration suites pass 1,079
 tests on each of JS, Wasm, and native. Publication and bounded-step
 cancellation remain open, so interval join remains partial.
 
+At `47ea7883`, as-of join reaches one typed canonical `TEA.join.asof`
+occurrence without rediscovering frontend syntax. The prepared step retains
+both admitted join kinds, all three directions, number and timestamp domains,
+repeated equality keys, exact left identity, completed right tie-break fields,
+resolved tolerance, and canonical projection metadata. Local selection remains
+closed until the selected as-of search product and bounded evaluator are
+connected. The lowering suite passes 202 tests on each of JS, Wasm, and native.
+This is not kernel, managed execution, publication, or cancellation evidence.
+
 The Graph Bridge now lowers explicit node and edge sources into one typed
 `BRIDGE.rows.to_graph` occurrence without collapsing repeated input positions.
 Its bounded runtime constructs immutable Graph storage, projects both node and

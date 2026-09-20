@@ -421,8 +421,16 @@
       "output": "relation",
       "canonical": ["TEA.join.asof"],
       "variants": ["relation/events left", "left/inner", "backward/forward/nearest", "identity completion", "tie completion"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/asof_join_test.mbt"
+      ]
     },
     {
       "family": "TEA",
