@@ -473,18 +473,28 @@ pass 1,084 tests on each of JS, Wasm, and native. Events-left execution,
 publication, and bounded-step cancellation remain open, so as-of join remains
 partial.
 
-The Graph Bridge now lowers explicit node and edge sources into one typed
-`BRIDGE.rows.to_graph` occurrence without collapsing repeated input positions.
-Its bounded runtime constructs immutable Graph storage, projects both node and
-edge rows, and revalidates values against the exact Relation output contracts.
+The Graph Bridge now lowers explicit node and edge sources through one finite
+typed expansion without collapsing repeated input positions. The expansion
+projects the selected branch fields, closes both edge endpoints against the
+declared node universe with deterministic semi-joins, and then reaches one
+`BRIDGE.rows.to_graph` occurrence. The same expansion descriptor controls
+preparation budgets, canonical occurrence enumeration, and wire emission.
+Exact metadata and expansion limits succeed, while one-short entry, name,
+work, node, reference, and identifier limits fail before emission. The fused
+Local path applies the same endpoint-closure law instead of hiding different
+Graph semantics inside the Bridge. Its bounded runtime constructs immutable
+Graph storage, projects both node and edge rows, and revalidates values against
+the exact Relation output contracts.
 The registered provider runs construction and projection through the standard
 Host. Its fixtures cover quantum-one progress, pre-allocation workspace
 rejection, cancellation observation and cleanup, two overlapping downstream
 computations, independent release, Graph reclamation before Relation use, and
 a zeroed final ledger. All five Graph fixtures pass on JS, Wasm, and native.
-Concise endpoint-derived construction, collision failures, formal publication,
-and environment cancellation delivery remain open, so all three Graph Bridge
-entries remain partial.
+The explicit construction fixture excludes an edge whose target is absent,
+retains present endpoints and repeated logical roles, and agrees across JS,
+Wasm, and native. Concise endpoint-derived construction, collision failures,
+formal publication, and environment cancellation delivery remain open, so all
+three Graph Bridge entries remain partial.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

@@ -680,9 +680,29 @@
       ],
       "layer_evidence": [
         "src/lowering_relation/graph_construction.mbt",
+        "src/lowering_relation/graph_construction_test.mbt",
         "src/local_bridge/graph.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "explicit_graph_projection_endpoint_closure_and_finite_expansion",
+          "layers": [
+            "lowering",
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d3080fa9",
+          "evidence": [
+            "src/lowering_relation/graph_construction.mbt",
+            "src/lowering_relation/graph_construction_test.mbt",
+            "src/local_bridge/graph.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
       ]
     },
     {
