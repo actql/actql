@@ -15,14 +15,14 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 4/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 5/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, `degree`, and `components` outputs; 4/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path also publishes and retrieves managed vector expression results; 6/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 4/39, and publication 4/39. These are
-layer counts, not operation completion: three entries are `complete` and 36 remain
+consumer lifetime 15/39, cancellation 5/39, and publication 6/39. These are
+layer counts, not operation completion: four entries are `complete` and 35 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -146,6 +146,30 @@ review findings without expanding the Local milestone.
 
 Focused JS, Wasm, and native suites pass for Graph lowering, Local TEA, and
 managed completion. Full same-SHA acceptance and Linux CI remain pending.
+
+## Closed review findings after `b460132b`
+
+Commit `2924d72b` closes the as-of provisional-tie finding. Candidate rows are
+not allowed to fail an equal-ranked tie while a later row can still become the
+unique better candidate. The final selected class alone is checked for an
+unresolved tie. All candidate permutations and the standard Host
+counterexample preserve the registered result and failure order on JS, Wasm,
+and native.
+
+Commit `047d0bd1` moves retained-output admission, Result view preparation,
+stable ordering, and logical identity scans into resumable finalization. The
+Node Host yields between bounded steps, so cancellation can be delivered
+during finalization. Cancellation closes unfinished admission, view, and
+identity state without publishing a completion; stop confirmation and
+resource reclamation remain distinct.
+
+The finalization regressions cover cancellation from a real timer, unchanged
+ordered Result identity, no completion publication after cancellation, and
+final ledger reclamation. The affected execution and query-integration suites
+pass 1,100 tests on each of JS, Wasm, and native. The retained boundary passes
+232 tests, the Workers adapter passes 24 tests, and tracked public interfaces
+agree across targets. These focused results do not replace final same-SHA
+Linux CI.
 
 ## Family execution gaps
 
@@ -452,6 +476,14 @@ result into two downstream Compute consumers, releases them independently, and
 returns the ledger to zero. The complete program-check and query-integration
 suites pass 677 tests on each target; the portable API and family coverage
 gates pass. This is not cancellation-delivery or publication evidence.
+
+At `f59e17eb`, the same expression pipeline reaches the Effect-free Named
+Result path. The standard Host publishes and retrieves the ordered rows with
+both the numeric score and concatenated vector intact, while retaining the two
+downstream Compute consumers and final ledger reclamation. This closes the
+publication layer for both expressions. `vector_score` still lacks its own
+environment-cancellation evidence, so only `vector_concat` reaches complete
+status.
 
 At `842825f8`, bounded event deduplication preserves the checked partition
 and order terms, fails unresolved top ties before output publication, and

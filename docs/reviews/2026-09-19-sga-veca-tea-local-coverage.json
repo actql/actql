@@ -49,7 +49,8 @@
     "bounded_provider_stop_after_disposal",
     "stable_graph_construction_projection",
     "bounded_session_identity_generation",
-    "monotonic_identity_issuance"
+    "monotonic_identity_issuance",
+    "bounded_result_finalization"
   ],
   "operations": [
     {
@@ -1177,6 +1178,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "three_targets"
       ],
@@ -1185,7 +1187,20 @@
         "src/lowering_relation/ordered_references_test.mbt",
         "src/execution_relation/expression_wbtest.mbt",
         "src/vector_numeric/fixture.generated_wbtest.mbt",
-        "src/query_integration/local_managed_values_wbtest.mbt"
+        "src/query_integration/local_managed_values_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "f59e17eb",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/duckdb_conformance/strategy_fixture.mbt"
+          ]
+        }
       ]
     },
     {
@@ -1195,7 +1210,7 @@
       "output": "vector",
       "canonical": ["expression.vector_concat"],
       "variants": ["arity two/many", "dimension overflow", "null propagation", "demanded evaluation"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
         "contract",
@@ -1205,6 +1220,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "cancellation",
         "three_targets"
@@ -1213,7 +1229,20 @@
         "src/lowering_relation/expression_test.mbt",
         "src/lowering_relation/ordered_references_test.mbt",
         "src/execution_relation/expression_wbtest.mbt",
-        "src/query_integration/local_managed_values_wbtest.mbt"
+        "src/query_integration/local_managed_values_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "f59e17eb",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/duckdb_conformance/strategy_fixture.mbt"
+          ]
+        }
       ]
     }
   ],
@@ -1268,6 +1297,24 @@
           "name": "standard Host graph cancellation",
           "path": "adapters/duckdb-node/test/standard-host.test.mjs",
           "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "vector_concat",
+      "sha": "047d0bd1",
+      "suites": [
+        {
+          "name": "portable vector expression conformance",
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and retrieval",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["native"],
           "result": "passed"
         }
       ]
