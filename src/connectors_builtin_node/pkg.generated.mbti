@@ -632,15 +632,23 @@ pub fn strategy_remote_runtime_custody_acquire_operation(@remote_site_protocol.R
 
 pub fn strategy_remote_runtime_custody_acquire_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
 
+pub fn strategy_remote_runtime_custody_bundle_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
 pub fn strategy_remote_runtime_custody_bundle_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
 
 pub fn strategy_remote_runtime_custody_confirm_stop(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
 
 pub fn strategy_remote_runtime_custody_create() -> @remote_site_protocol.RemoteRuntimeCustody
 
+pub fn strategy_remote_runtime_custody_holding_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
 pub fn strategy_remote_runtime_custody_holding_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
 
+pub fn strategy_remote_runtime_custody_operation_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
 pub fn strategy_remote_runtime_custody_operation_settled(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_output_acquired(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
 
 pub fn strategy_remote_runtime_custody_output_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
 
@@ -671,6 +679,8 @@ pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -
 pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
 
 pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_runtime_success_action(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> Int raise NodeHostFailure
 
 pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 

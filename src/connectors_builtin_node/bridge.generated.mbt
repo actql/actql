@@ -3935,6 +3935,14 @@ pub fn strategy_remote_runtime_custody_operation_settled(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeCustodyOperationAcquired")
+pub fn strategy_remote_runtime_custody_operation_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_operation_acquired(custody)
+}
+
+///|
 #export_name("strategyRemoteRuntimeCustodyAcquireOutput")
 pub fn strategy_remote_runtime_custody_acquire_output(
   custody : @remote.RemoteRuntimeCustody,
@@ -3956,6 +3964,14 @@ pub fn strategy_remote_runtime_custody_output_released(
   custody : @remote.RemoteRuntimeCustody,
 ) -> Bool {
   @remote.remote_runtime_custody_output_released(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyOutputAcquired")
+pub fn strategy_remote_runtime_custody_output_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_output_acquired(custody)
 }
 
 ///|
@@ -3983,6 +3999,14 @@ pub fn strategy_remote_runtime_custody_holding_released(
 }
 
 ///|
+#export_name("strategyRemoteRuntimeCustodyHoldingAcquired")
+pub fn strategy_remote_runtime_custody_holding_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_holding_acquired(custody)
+}
+
+///|
 #export_name("strategyRemoteRuntimeCustodyAcquireBundle")
 pub fn strategy_remote_runtime_custody_acquire_bundle(
   custody : @remote.RemoteRuntimeCustody,
@@ -4004,6 +4028,14 @@ pub fn strategy_remote_runtime_custody_bundle_released(
   custody : @remote.RemoteRuntimeCustody,
 ) -> Bool {
   @remote.remote_runtime_custody_bundle_released(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeCustodyBundleAcquired")
+pub fn strategy_remote_runtime_custody_bundle_acquired(
+  custody : @remote.RemoteRuntimeCustody,
+) -> Bool {
+  @remote.remote_runtime_custody_bundle_acquired(custody)
 }
 
 ///|
@@ -4041,6 +4073,18 @@ pub fn strategy_remote_runtime_custody_resources_reclaimed(
   custody : @remote.RemoteRuntimeCustody,
 ) -> Bool {
   @remote.remote_runtime_custody_resources_reclaimed(custody)
+}
+
+///|
+#export_name("strategyRemoteRuntimeSuccessAction")
+pub fn strategy_remote_runtime_success_action(
+  record : @remote.DispatchRecord,
+  custody : @remote.RemoteRuntimeCustody,
+) -> Int raise NodeHostFailure {
+  match @remote.prepare_remote_runtime_success(record, custody) {
+    Ok(value) => @remote.remote_runtime_success_action_code(value)
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|

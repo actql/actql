@@ -29,6 +29,17 @@ const RUNTIME_PERSIST_TRANSITION = 1;
 const RUNTIME_SETTLE_THEN_PERSIST = 2;
 const RUNTIME_RECLAIM_RESOURCES = 3;
 const RUNTIME_FINISHED = 4;
+const RUNTIME_ACQUIRE_BUNDLE = 0;
+const RUNTIME_PERSIST_PROVISIONING = 1;
+const RUNTIME_ACQUIRE_OPERATION = 2;
+const RUNTIME_PERSIST_RUNNING = 3;
+const RUNTIME_EXECUTE_PHYSICAL = 4;
+const RUNTIME_ACQUIRE_HOLDING = 5;
+const RUNTIME_SETTLE_OPERATION = 6;
+const RUNTIME_PERSIST_SETTLED = 7;
+const RUNTIME_PERSIST_RETAINED = 8;
+const RUNTIME_PERSIST_EVIDENCE = 9;
+const RUNTIME_SUCCESS_FINISHED = 10;
 
 export function prepareRemoteRuntimeRegistration({
   control,
@@ -169,6 +180,7 @@ export function createRemoteDispatchRuntime({
       typeof control.runtimeCustodyConfirmStop !== 'function' ||
       typeof control.runtimeCustodyStopPending !== 'function' ||
       typeof control.runtimeCustodyResourcesReclaimed !== 'function' ||
+      typeof control.runtimeSuccessAction !== 'function' ||
       typeof control.prepareOwnedRuntimeFailure !== 'function' ||
       typeof control.prepareOwnedRuntimeCleanup !== 'function' ||
       typeof control.prepareRuntimeReclaimUnknown !== 'function' ||
@@ -512,6 +524,10 @@ export function createRemoteDispatchRuntime({
   ) => {
     const identity = control.identity(dispatch);
     let output;
+    let bundle;
+    let evidence;
+    let measurement;
+    let subject;
     const custody = control.createRuntimeCustody();
     const operationState = {
       operation: undefined,
@@ -520,127 +536,161 @@ export function createRemoteDispatchRuntime({
       bundleRetained: false,
     };
     try {
-      signal?.throwIfAborted();
-      bundleStore.retain(
-        registration.runtimeBundleCid,
-        bundleHoldId,
-        'dispatch',
-        bundleControl,
-      );
-      operationState.bundleRetained = true;
-      if (!control.runtimeCustodyAcquireBundle(custody)) {
-        fail('RemoteRuntimeCustodyTransitionRejected');
+      while (true) {
+        signal?.throwIfAborted();
+        const action = control.runtimeSuccessAction(record, custody);
+        if (action === RUNTIME_ACQUIRE_BUNDLE) {
+          bundleStore.retain(
+            registration.runtimeBundleCid,
+            bundleHoldId,
+            'dispatch',
+            bundleControl,
+          );
+          operationState.bundleRetained = true;
+          if (!control.runtimeCustodyAcquireBundle(custody)) {
+            fail('RemoteRuntimeCustodyTransitionRejected');
+          }
+          bundle = await bundleStore.verify(
+            registration.runtimeBundleCid,
+            bundleControl,
+          );
+          continue;
+        }
+        if (action === RUNTIME_PERSIST_PROVISIONING) {
+          store.advance(
+            control.prepareManagedProvisioning(
+              record,
+              registration.capability,
+              registration.issuer,
+            ),
+            record,
+            control,
+          );
+          continue;
+        }
+        if (action === RUNTIME_ACQUIRE_OPERATION) {
+          operationState.operation = siteControl.startOperation(
+            registration.site,
+            budget.retainedBytes,
+            budget.executionBytes,
+          );
+          if (operationState.operation === undefined ||
+              operationState.operation === null) {
+            fail('RemoteSiteCapacityRejected');
+          }
+          if (!control.runtimeCustodyAcquireOperation(custody)) {
+            fail('RemoteRuntimeCustodyTransitionRejected');
+          }
+          continue;
+        }
+        if (action === RUNTIME_PERSIST_RUNNING) {
+          store.advance(control.prepareExecution(record), record, control);
+          continue;
+        }
+        if (action === RUNTIME_EXECUTE_PHYSICAL) {
+          output = await registration.execute(Object.freeze({
+            bundle,
+            dispatch,
+            signal,
+          }));
+          checkedOutput(output);
+          if (!control.runtimeCustodyAcquireOutput(custody)) {
+            fail('RemoteRuntimeCustodyTransitionRejected');
+          }
+          continue;
+        }
+        if (action === RUNTIME_ACQUIRE_HOLDING) {
+          if (!siteControl.operationAvailable(operationState.operation)) {
+            fail('RemoteSiteOperationUnavailable');
+          }
+          operationState.siteHolding = siteControl.retainOperationHolding(
+            operationState.operation,
+            output.retainedBytes,
+          );
+          if (operationState.siteHolding === undefined ||
+              operationState.siteHolding === null) {
+            fail('RemoteSiteHoldingRejected');
+          }
+          if (!control.runtimeCustodyAcquireHolding(custody)) {
+            fail('RemoteRuntimeCustodyTransitionRejected');
+          }
+          continue;
+        }
+        if (action === RUNTIME_SETTLE_OPERATION) {
+          if (!siteControl.settleOperation(operationState.operation)) {
+            fail('RemoteSiteOperationSettlementRejected');
+          }
+          operationState.settled = true;
+          if (!control.runtimeCustodySettleOperation(custody)) {
+            fail('RemoteRuntimeCustodyTransitionRejected');
+          }
+          continue;
+        }
+        if (action === RUNTIME_PERSIST_SETTLED) {
+          store.advance(control.prepareSettled(record), record, control);
+          continue;
+        }
+        if (action === RUNTIME_PERSIST_RETAINED) {
+          owners.set(identity, {
+            record,
+            handle: undefined,
+            custody,
+            primary: undefined,
+            diagnostics: [],
+            operation: operationState.operation,
+            output,
+            siteHolding: operationState.siteHolding,
+            bundleHoldId,
+          });
+          store.advance(control.prepareRetained(
+            record,
+            output.materialGeneration,
+            output.holdingEvidenceCid,
+          ), record, control);
+          continue;
+        }
+        if (action === RUNTIME_PERSIST_EVIDENCE) {
+          measurement = control.prepareManagedOutputMeasurement(
+            output.measurement,
+          );
+          subject = control.prepareManagedOutputSubject(
+            dispatch,
+            output,
+            measurement,
+          );
+          if (!control.managedOutputSubjectMatchesMeasurement(
+            subject,
+            measurement,
+          )) {
+            fail('RemoteManagedOutputMeasurementMismatch');
+          }
+          evidence = control.issueManagedOutputEvidence(
+            registration.issuer,
+            record,
+            subject,
+          );
+          store.advanceEvidence(
+            control.prepareEvidence(record, evidence),
+            evidence,
+            subject,
+            measurement,
+            record,
+            control,
+          );
+          continue;
+        }
+        if (action !== RUNTIME_SUCCESS_FINISHED) {
+          fail('InvalidRemoteRuntimeSuccessPlan');
+        }
+        return Object.freeze({
+          dispatchRequestCid: identity,
+          evidence,
+          measurement,
+          subject,
+          revision: control.revision(record),
+          state: Object.freeze([...control.status(record)]),
+        });
       }
-      const bundle = await bundleStore.verify(
-        registration.runtimeBundleCid,
-        bundleControl,
-      );
-      store.advance(
-        control.prepareManagedProvisioning(
-          record,
-          registration.capability,
-          registration.issuer,
-        ),
-        record,
-        control,
-      );
-      operationState.operation = siteControl.startOperation(
-        registration.site,
-        budget.retainedBytes,
-        budget.executionBytes,
-      );
-      if (operationState.operation === undefined ||
-          operationState.operation === null) {
-        fail('RemoteSiteCapacityRejected');
-      }
-      if (!control.runtimeCustodyAcquireOperation(custody)) {
-        fail('RemoteRuntimeCustodyTransitionRejected');
-      }
-      signal?.throwIfAborted();
-      store.advance(control.prepareExecution(record), record, control);
-      output = await registration.execute(Object.freeze({
-        bundle,
-        dispatch,
-        signal,
-      }));
-      checkedOutput(output);
-      if (!control.runtimeCustodyAcquireOutput(custody)) {
-        fail('RemoteRuntimeCustodyTransitionRejected');
-      }
-      signal?.throwIfAborted();
-      if (!siteControl.operationAvailable(operationState.operation)) {
-        fail('RemoteSiteOperationUnavailable');
-      }
-      operationState.siteHolding = siteControl.retainOperationHolding(
-        operationState.operation,
-        output.retainedBytes,
-      );
-      if (operationState.siteHolding === undefined ||
-          operationState.siteHolding === null) {
-        fail('RemoteSiteHoldingRejected');
-      }
-      if (!control.runtimeCustodyAcquireHolding(custody)) {
-        fail('RemoteRuntimeCustodyTransitionRejected');
-      }
-      if (!siteControl.settleOperation(operationState.operation)) {
-        fail('RemoteSiteOperationSettlementRejected');
-      }
-      operationState.settled = true;
-      if (!control.runtimeCustodySettleOperation(custody)) {
-        fail('RemoteRuntimeCustodyTransitionRejected');
-      }
-      store.advance(control.prepareSettled(record), record, control);
-      owners.set(identity, {
-        record,
-        handle: undefined,
-        custody,
-        primary: undefined,
-        diagnostics: [],
-        operation: operationState.operation,
-        output,
-        siteHolding: operationState.siteHolding,
-        bundleHoldId,
-      });
-      store.advance(control.prepareRetained(
-        record,
-        output.materialGeneration,
-        output.holdingEvidenceCid,
-      ), record, control);
-      const measurement = control.prepareManagedOutputMeasurement(
-        output.measurement,
-      );
-      const subject = control.prepareManagedOutputSubject(
-        dispatch,
-        output,
-        measurement,
-      );
-      if (!control.managedOutputSubjectMatchesMeasurement(
-        subject,
-        measurement,
-      )) {
-        fail('RemoteManagedOutputMeasurementMismatch');
-      }
-      const evidence = control.issueManagedOutputEvidence(
-        registration.issuer,
-        record,
-        subject,
-      );
-      store.advanceEvidence(
-        control.prepareEvidence(record, evidence),
-        evidence,
-        subject,
-        measurement,
-        record,
-        control,
-      );
-      return Object.freeze({
-        dispatchRequestCid: identity,
-        evidence,
-        measurement,
-        subject,
-        revision: control.revision(record),
-        state: Object.freeze([...control.status(record)]),
-      });
     } catch (error) {
       return failExecution(
         identity,

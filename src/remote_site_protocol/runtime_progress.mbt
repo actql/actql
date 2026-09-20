@@ -27,6 +27,24 @@ pub(all) enum RemoteRuntimeAdmission {
 } derive(Eq, Debug)
 
 ///|
+/// Common success progression. Environment adapters perform the selected
+/// physical action and report its exact ownership fact before asking for the
+/// next step.
+pub(all) enum RemoteRuntimeSuccessAction {
+  RuntimeAcquireBundle
+  RuntimePersistProvisioning
+  RuntimeAcquireOperation
+  RuntimePersistRunning
+  RuntimeExecutePhysical
+  RuntimeAcquireHolding
+  RuntimeSettleOperation
+  RuntimePersistSettled
+  RuntimePersistRetained
+  RuntimePersistEvidence
+  RuntimeSuccessFinished
+} derive(Eq, Debug)
+
+///|
 /// Portable ownership state for one physical remote execution occurrence.
 /// Adapter handles remain environment-owned, but the common runtime owns the
 /// facts that decide settlement, stop confirmation, and resource release.
@@ -93,6 +111,13 @@ pub fn remote_runtime_custody_operation_settled(
 }
 
 ///|
+pub fn remote_runtime_custody_operation_acquired(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.operation_acquired
+}
+
+///|
 pub fn remote_runtime_custody_acquire_output(
   custody : RemoteRuntimeCustody,
 ) -> Bool {
@@ -121,6 +146,13 @@ pub fn remote_runtime_custody_output_released(
   custody : RemoteRuntimeCustody,
 ) -> Bool {
   custody.output_released
+}
+
+///|
+pub fn remote_runtime_custody_output_acquired(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.output_acquired
 }
 
 ///|
@@ -155,6 +187,13 @@ pub fn remote_runtime_custody_holding_released(
 }
 
 ///|
+pub fn remote_runtime_custody_holding_acquired(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.holding_acquired
+}
+
+///|
 pub fn remote_runtime_custody_acquire_bundle(
   custody : RemoteRuntimeCustody,
 ) -> Bool {
@@ -183,6 +222,13 @@ pub fn remote_runtime_custody_bundle_released(
   custody : RemoteRuntimeCustody,
 ) -> Bool {
   custody.bundle_released
+}
+
+///|
+pub fn remote_runtime_custody_bundle_acquired(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.bundle_acquired
 }
 
 ///|
@@ -230,6 +276,117 @@ pub fn remote_runtime_custody_resources_reclaimed(
   (!custody.output_acquired || custody.output_released) &&
   (!custody.holding_acquired || custody.holding_released) &&
   (!custody.bundle_acquired || custody.bundle_released)
+}
+
+///|
+/// Select the only valid next success action. Physical output contents are
+/// not inspected here; their registered projection is admitted by the
+/// existing retained-output and evidence transitions.
+pub fn prepare_remote_runtime_success(
+  record : DispatchRecord,
+  custody : RemoteRuntimeCustody,
+) -> Result[RemoteRuntimeSuccessAction, DispatchIssue] {
+  if record.cleanup != CleanupActive ||
+    record.quarantined_capacity ||
+    custody.stop_required ||
+    custody.cancelled ||
+    custody.output_released ||
+    custody.holding_released ||
+    custody.bundle_released {
+    return Err(InvalidTransition)
+  }
+  match record.execution {
+    Accepted => {
+      if record.evidence != NoEvidence || record.material_available {
+        return Err(InvalidTransition)
+      }
+      if !custody.bundle_acquired {
+        Ok(RuntimeAcquireBundle)
+      } else {
+        Ok(RuntimePersistProvisioning)
+      }
+    }
+    Provisioning => {
+      if !custody.bundle_acquired ||
+        record.evidence != NoEvidence ||
+        record.material_available {
+        return Err(InvalidTransition)
+      }
+      if !custody.operation_acquired {
+        Ok(RuntimeAcquireOperation)
+      } else {
+        Ok(RuntimePersistRunning)
+      }
+    }
+    Running => {
+      if !custody.bundle_acquired ||
+        !custody.operation_acquired ||
+        record.evidence != NoEvidence ||
+        record.material_available {
+        return Err(InvalidTransition)
+      }
+      if !custody.output_acquired {
+        Ok(RuntimeExecutePhysical)
+      } else if !custody.holding_acquired {
+        Ok(RuntimeAcquireHolding)
+      } else if !custody.operation_settled {
+        Ok(RuntimeSettleOperation)
+      } else {
+        Ok(RuntimePersistSettled)
+      }
+    }
+    NativeSettled => {
+      if !custody.bundle_acquired ||
+        !custody.operation_acquired ||
+        !custody.operation_settled ||
+        !custody.output_acquired ||
+        !custody.holding_acquired {
+        return Err(InvalidTransition)
+      }
+      match record.evidence {
+        NoEvidence =>
+          if record.material_available {
+            Err(InvalidTransition)
+          } else {
+            Ok(RuntimePersistRetained)
+          }
+        OutputRetained(_, _) =>
+          if record.material_available {
+            Ok(RuntimePersistEvidence)
+          } else {
+            Err(InvalidTransition)
+          }
+        EvidenceDurable(_, _, _) =>
+          if record.material_available {
+            Ok(RuntimeSuccessFinished)
+          } else {
+            Err(InvalidTransition)
+          }
+        EvidenceRejected => Err(InvalidTransition)
+      }
+    }
+    ExecutionFailed | ExecutionCancelled | ExecutionUnknown =>
+      Err(InvalidTransition)
+  }
+}
+
+///|
+pub fn remote_runtime_success_action_code(
+  action : RemoteRuntimeSuccessAction,
+) -> Int {
+  match action {
+    RuntimeAcquireBundle => 0
+    RuntimePersistProvisioning => 1
+    RuntimeAcquireOperation => 2
+    RuntimePersistRunning => 3
+    RuntimeExecutePhysical => 4
+    RuntimeAcquireHolding => 5
+    RuntimeSettleOperation => 6
+    RuntimePersistSettled => 7
+    RuntimePersistRetained => 8
+    RuntimePersistEvidence => 9
+    RuntimeSuccessFinished => 10
+  }
 }
 
 ///|

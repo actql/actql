@@ -462,24 +462,32 @@ function remoteSiteControl(moon) {
       moon.strategyRemoteRuntimeCustodySettleOperation,
     runtimeCustodyOperationSettled:
       moon.strategyRemoteRuntimeCustodyOperationSettled,
+    runtimeCustodyOperationAcquired:
+      moon.strategyRemoteRuntimeCustodyOperationAcquired,
     runtimeCustodyAcquireOutput:
       moon.strategyRemoteRuntimeCustodyAcquireOutput,
     runtimeCustodyReleaseOutput:
       moon.strategyRemoteRuntimeCustodyReleaseOutput,
     runtimeCustodyOutputReleased:
       moon.strategyRemoteRuntimeCustodyOutputReleased,
+    runtimeCustodyOutputAcquired:
+      moon.strategyRemoteRuntimeCustodyOutputAcquired,
     runtimeCustodyAcquireHolding:
       moon.strategyRemoteRuntimeCustodyAcquireHolding,
     runtimeCustodyReleaseHolding:
       moon.strategyRemoteRuntimeCustodyReleaseHolding,
     runtimeCustodyHoldingReleased:
       moon.strategyRemoteRuntimeCustodyHoldingReleased,
+    runtimeCustodyHoldingAcquired:
+      moon.strategyRemoteRuntimeCustodyHoldingAcquired,
     runtimeCustodyAcquireBundle:
       moon.strategyRemoteRuntimeCustodyAcquireBundle,
     runtimeCustodyReleaseBundle:
       moon.strategyRemoteRuntimeCustodyReleaseBundle,
     runtimeCustodyBundleReleased:
       moon.strategyRemoteRuntimeCustodyBundleReleased,
+    runtimeCustodyBundleAcquired:
+      moon.strategyRemoteRuntimeCustodyBundleAcquired,
     runtimeCustodyRecordFailure:
       moon.strategyRemoteRuntimeCustodyRecordFailure,
     runtimeCustodyConfirmStop:
@@ -488,6 +496,9 @@ function remoteSiteControl(moon) {
       moon.strategyRemoteRuntimeCustodyStopPending,
     runtimeCustodyResourcesReclaimed:
       moon.strategyRemoteRuntimeCustodyResourcesReclaimed,
+    runtimeSuccessAction: (record, custody) => checked(
+      moon.strategyRemoteRuntimeSuccessAction(record, custody),
+    ),
     prepareRuntimeFailure: (value, cancelled, stopConfirmed) => checked(
       moon.strategyRemoteRuntimeFailurePlan(
         value,

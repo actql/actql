@@ -225,6 +225,8 @@ pub fn prepare_remote_runtime_failure(DispatchRecord, Bool, Bool) -> Result[Remo
 
 pub fn prepare_remote_runtime_reclaim_unknown(DispatchRecord) -> Result[RemoteRuntimeStep, DispatchIssue]
 
+pub fn prepare_remote_runtime_success(DispatchRecord, RemoteRuntimeCustody) -> Result[RemoteRuntimeSuccessAction, DispatchIssue]
+
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
@@ -315,13 +317,21 @@ pub fn remote_runtime_custody_acquire_operation(RemoteRuntimeCustody) -> Bool
 
 pub fn remote_runtime_custody_acquire_output(RemoteRuntimeCustody) -> Bool
 
+pub fn remote_runtime_custody_bundle_acquired(RemoteRuntimeCustody) -> Bool
+
 pub fn remote_runtime_custody_bundle_released(RemoteRuntimeCustody) -> Bool
 
 pub fn remote_runtime_custody_confirm_stop(RemoteRuntimeCustody) -> Bool
 
+pub fn remote_runtime_custody_holding_acquired(RemoteRuntimeCustody) -> Bool
+
 pub fn remote_runtime_custody_holding_released(RemoteRuntimeCustody) -> Bool
 
+pub fn remote_runtime_custody_operation_acquired(RemoteRuntimeCustody) -> Bool
+
 pub fn remote_runtime_custody_operation_settled(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_output_acquired(RemoteRuntimeCustody) -> Bool
 
 pub fn remote_runtime_custody_output_released(RemoteRuntimeCustody) -> Bool
 
@@ -344,6 +354,8 @@ pub fn remote_runtime_record_startable(DispatchRecord) -> Bool
 pub fn remote_runtime_step_action_code(RemoteRuntimeStep) -> Int
 
 pub fn remote_runtime_step_transition(RemoteRuntimeStep) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn remote_runtime_success_action_code(RemoteRuntimeSuccessAction) -> Int
 
 pub fn restore_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
 
@@ -501,6 +513,20 @@ pub(all) enum RemoteRuntimeAdmission {
 type RemoteRuntimeCustody
 
 type RemoteRuntimeStep
+
+pub(all) enum RemoteRuntimeSuccessAction {
+  RuntimeAcquireBundle
+  RuntimePersistProvisioning
+  RuntimeAcquireOperation
+  RuntimePersistRunning
+  RuntimeExecutePhysical
+  RuntimeAcquireHolding
+  RuntimeSettleOperation
+  RuntimePersistSettled
+  RuntimePersistRetained
+  RuntimePersistEvidence
+  RuntimeSuccessFinished
+} derive(Eq, @debug.Debug)
 
 type SiteDispatchJournal
 

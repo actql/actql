@@ -903,6 +903,85 @@ test "runtime custody owns stop and independent resource release facts" {
 }
 
 ///|
+test "runtime success progression owns every physical and durable step" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let dispatch = request("dispatch-runtime-success", 25, 1, bundle)
+  let (_, record) = accept(state, dispatch)
+  let custody = create_remote_runtime_custody()
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimeAcquireBundle,
+  )
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimePersistProvisioning,
+  )
+  provision(record)
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimeAcquireOperation,
+  )
+  assert_true(remote_runtime_custody_acquire_operation(custody))
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimePersistRunning,
+  )
+  execute(record)
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimeExecutePhysical,
+  )
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimeAcquireHolding,
+  )
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimeSettleOperation,
+  )
+  assert_true(remote_runtime_custody_settle_operation(custody))
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimePersistSettled,
+  )
+  settle(record)
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimePersistRetained,
+  )
+  commit_dispatch_transition(
+    prepare_retain_remote_output(
+      record,
+      "material-generation-a",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    prepare_remote_runtime_success(record, custody).unwrap(),
+    RuntimePersistEvidence,
+  )
+  let evidence = issue_remote_execution_evidence(
+    issuer(state),
+    record,
+    cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_durable_execution_evidence(record, evidence).unwrap(),
+    true,
+  ).unwrap()
+  let finished = prepare_remote_runtime_success(record, custody).unwrap()
+  assert_eq(finished, RuntimeSuccessFinished)
+  assert_eq(remote_runtime_success_action_code(finished), 10)
+}
+
+///|
 test "owned runtime cleanup cannot release while any custody remains" {
   let state = journal()
   let bundle = cid(
