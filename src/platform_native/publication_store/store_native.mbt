@@ -1115,6 +1115,89 @@ pub fn Store::inspect_committed_publication(
 }
 
 ///|
+/// Resolve one authorized Result name through the durable public index. The
+/// portable publication owner selects and validates the exact binding; this
+/// adapter only retrieves the indexed bodies.
+pub fn Store::resolve_committed_result(
+  self : Store,
+  tenant_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  result_name : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[NativeCommittedResult?, NativePublicationStoreIssue] {
+  let index = match
+    self.inspect_committed_publication(
+      tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  let index_read = match
+    delivery_issuance(@publication.project_public_index_read(index)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let manifest = match
+    load_publication_contract(
+      self,
+      "result_manifest",
+      index_read.result_manifest_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let bindings : Array[@publication.PublicationContract] = []
+  for identity in index_read.durable_result_binding_cids {
+    let binding = match
+      load_publication_contract(self, "durable_result_binding", identity) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    bindings.push(binding)
+  }
+  let read = match
+    delivery_issuance(
+      @publication.project_committed_result_read(
+        index, manifest, result_name, bindings,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let retention = match
+    load_publication_contract(
+      self,
+      "result_retention_policy",
+      read.effective_retention_policy_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut selected_binding : @publication.PublicationContract? = None
+  for candidate in bindings {
+    if @publication.publication_contract_identity(candidate) ==
+      read.durable_result_binding_cid {
+      selected_binding = Some(candidate)
+    }
+  }
+  guard selected_binding is Some(binding) else { return Err(StateCollision) }
+  Ok(
+    Some({
+      public_index_entry: index,
+      result_manifest: manifest,
+      retention,
+      binding,
+      read,
+    }),
+  )
+}
+
+///|
 fn require_committed_publication(
   store : Store,
   index : @publication.PublicationContract,

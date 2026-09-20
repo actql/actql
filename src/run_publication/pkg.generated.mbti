@@ -146,9 +146,13 @@ pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, In
 
 pub fn prepare_superseded_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
 
+pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
+
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
 pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]
+
+pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead, DeliveryIssuanceIssue]
 
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
 
@@ -298,6 +302,24 @@ pub(all) enum CapturedRunIssuanceIssue {
 } derive(Eq, @debug.Debug)
 
 type CheckedPublicationInventory
+
+pub(all) struct CommittedResultRead {
+  result_name : String
+  result_artifact_cid : String
+  result_definition_cid : String
+  logical_result_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  effective_retention_policy_cid : String
+  durable_result_binding_cid : String
+  material_generation_cid : String
+  store_authority_cid : String
+  codec_contract_cid : String
+  result_fields : Array[String]
+  row_count : Int64
+  byte_count : Int64
+  physical_sha256 : String
+}
 
 pub(all) enum DeliveryFailureTerminalAction {
   DeliveryAppendFailed
@@ -455,6 +477,15 @@ pub(all) enum ExistingDeliveryAttemptAction {
 } derive(Eq, @debug.Debug)
 
 type PendingSourceStateAdvance
+
+pub(all) struct PublicIndexRead {
+  tenant_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  invocation_cid : String
+  result_manifest_cid : String
+  durable_result_binding_cids : Array[String]
+}
 
 pub(all) enum PublicationAttemptRuntimeAction {
   PublicationAppendPreparing

@@ -93,3 +93,12 @@ pub(all) struct NativePublicationCommit {
   committed : Bool
   idempotent : Bool
 }
+
+///|
+pub(all) struct NativeCommittedResult {
+  public_index_entry : @publication.PublicationContract
+  result_manifest : @publication.PublicationContract
+  retention : @publication.PublicationContract
+  binding : @publication.PublicationContract
+  read : @publication.CommittedResultRead
+}

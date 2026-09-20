@@ -95,6 +95,132 @@ test "serialization profiles have independent fixed identities" {
 }
 
 ///|
+test "committed Result projection selects the exact indexed binding" {
+  let run_definition_cid = delivery_test_cid("1")
+  let invocation_cid = delivery_test_cid("2")
+  let definition_cid = delivery_test_cid("3")
+  let logical_cid = delivery_test_cid("4")
+  let schema_cid = delivery_test_cid("5")
+  let ordering_cid = delivery_test_cid("6")
+  let retention_cid = delivery_test_cid("7")
+  let material_cid = delivery_test_cid("8")
+  let store_cid = delivery_test_cid("9")
+  let codec_cid = delivery_test_cid("a")
+  let physical_digest = "b".repeat(64)
+  let artifact = delivery_test_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"logical_result_cid\":\"" +
+    logical_cid +
+    "\",\"result_schema_cid\":\"" +
+    schema_cid +
+    "\",\"ordering_evidence_cid\":\"" +
+    ordering_cid +
+    "\",\"actual_row_count\":2,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    delivery_test_cid("c") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    retention_cid +
+    "\",\"provenance_evidence_cids\":[\"" +
+    delivery_test_cid("d") +
+    "\"]}",
+  )
+  let manifest = delivery_test_contract(
+    "result_manifest",
+    "{\"version\":\"actql-result-manifest/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"results\":{\"answer\":" +
+    publication_contract_json(artifact) +
+    "}}",
+  )
+  let binding = delivery_test_contract(
+    "durable_result_binding",
+    "{\"version\":\"actql-durable-result-binding/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"result_definition_cid\":\"" +
+    definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"logical_result_cid\":\"" +
+    logical_cid +
+    "\",\"result_schema_cid\":\"" +
+    schema_cid +
+    "\",\"ordering_evidence_cid\":\"" +
+    ordering_cid +
+    "\",\"codec_contract_cid\":\"" +
+    codec_cid +
+    "\",\"result_fields\":[\"value\"]," +
+    "\"material_generation_cid\":\"" +
+    material_cid +
+    "\",\"store_authority_cid\":\"" +
+    store_cid +
+    "\",\"effective_retention_policy_cid\":\"" +
+    retention_cid +
+    "\",\"row_count\":2,\"byte_count\":24,\"physical_sha256\":\"" +
+    physical_digest +
+    "\"}",
+  )
+  let index = delivery_test_contract(
+    "public_index_entry",
+    "{\"version\":\"actql-public-index-entry/0.1\"," +
+    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    delivery_test_cid("e") +
+    "\",\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"result_manifest_cid\":\"" +
+    publication_contract_identity(manifest) +
+    "\",\"run_receipt_cid\":\"" +
+    delivery_test_cid("f") +
+    "\",\"captured_run_cid\":\"" +
+    delivery_test_cid("0") +
+    "\",\"durable_result_binding_cids\":[\"" +
+    publication_contract_identity(binding) +
+    "\"],\"publication_request_cid\":\"" +
+    delivery_test_cid("a") +
+    "\",\"publication_attempt_cid\":\"" +
+    delivery_test_cid("b") +
+    "\",\"committed_at\":\"2026-09-18T00:00:00.000Z\"}",
+  )
+  let index_read = project_public_index_read(index).unwrap()
+  assert_eq(
+    index_read.result_manifest_cid,
+    publication_contract_identity(manifest),
+  )
+  assert_eq(index_read.durable_result_binding_cids, [
+    publication_contract_identity(binding),
+  ])
+  let resolved = project_committed_result_read(index, manifest, "answer", [
+    binding,
+  ]).unwrap()
+  assert_eq(
+    resolved.result_artifact_cid,
+    publication_contract_identity(artifact),
+  )
+  assert_eq(resolved.material_generation_cid, material_cid)
+  assert_eq(resolved.result_fields, ["value"])
+  assert_eq(resolved.row_count, 2L)
+  assert_eq(resolved.byte_count, 24L)
+  assert_true(
+    project_committed_result_read(index, manifest, "missing", [binding])
+    is Err(DeliveryIssuanceUnknownResult("missing")),
+  )
+  assert_true(
+    project_committed_result_read(index, manifest, "answer", [])
+    is Err(DeliveryIssuanceReferenceMismatch("index.bindings")),
+  )
+}
+
+///|
 test "read grant and attempt bind an exact committed Result" {
   let (index, manifest, artifact) = delivery_test_root()
   let retention = delivery_test_contract(

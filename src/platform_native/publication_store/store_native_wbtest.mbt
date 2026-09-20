@@ -945,6 +945,41 @@ test "native publication commit is unique durable and restart-visible" {
     reopened.read_result_schema(binding_read.result_schema_cid).unwrap(),
     fixture.schema_wire,
   )
+  let resolved = reopened
+    .resolve_committed_result(
+      "tenant",
+      fixture.authority_scope_cid,
+      @publication.publication_contract_identity(fixture.run_definition),
+      "answer",
+      65536,
+      4096,
+      32,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    resolved.read.material_generation_cid,
+    fixture.material_generation_cid,
+  )
+  assert_eq(resolved.read.result_schema_cid, binding_read.result_schema_cid)
+  assert_eq(
+    @publication.publication_contract_identity(resolved.result_manifest),
+    @publication.publication_contract_identity(fixture.manifest),
+  )
+  assert_true(
+    reopened.resolve_committed_result(
+      "tenant",
+      fixture.authority_scope_cid,
+      @publication.publication_contract_identity(fixture.run_definition),
+      "missing",
+      65536,
+      4096,
+      32,
+    )
+    is Err(
+      DeliveryIssuance(@publication.DeliveryIssuanceUnknownResult("missing"))
+    ),
+  )
   let stored_manifest = reopened
     .read_publication_contract(
       "result_manifest",

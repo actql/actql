@@ -45,6 +45,41 @@ pub(all) struct DurableResultBindingRead {
 }
 
 ///|
+/// Exact durable references carried by one committed public index. This
+/// projection lets Store adapters retrieve bodies without interpreting the
+/// index contract themselves.
+pub(all) struct PublicIndexRead {
+  tenant_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  invocation_cid : String
+  result_manifest_cid : String
+  durable_result_binding_cids : Array[String]
+}
+
+///|
+/// Portable resolution of one named Result to its exact durable generation.
+/// The Store still opens and verifies physical bytes; this value owns the
+/// cross-contract selection and binding meaning.
+pub(all) struct CommittedResultRead {
+  result_name : String
+  result_artifact_cid : String
+  result_definition_cid : String
+  logical_result_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  effective_retention_policy_cid : String
+  durable_result_binding_cid : String
+  material_generation_cid : String
+  store_authority_cid : String
+  codec_contract_cid : String
+  result_fields : Array[String]
+  row_count : Int64
+  byte_count : Int64
+  physical_sha256 : String
+}
+
+///|
 fn delivery_format_rank(format : String) -> Int? {
   match format {
     "json" => Some(0)
@@ -854,6 +889,136 @@ fn delivery_optional_count(value : @json.CanonicalValue?) -> Int64? {
     Some(@json.Number(number)) => @scalar.read_safe_integer(number)
     _ => None
   }
+}
+
+///|
+pub fn project_public_index_read(
+  index : PublicationContract,
+) -> Result[PublicIndexRead, DeliveryIssuanceIssue] {
+  if index.name != "public_index_entry" {
+    return Err(DeliveryIssuanceWrongContract("public_index_entry"))
+  }
+  guard contract_string(index, "tenant_id") is Some(tenant_id) &&
+    contract_string(index, "authority_scope_cid") is Some(authority_scope_cid) &&
+    contract_string(index, "run_definition_cid") is Some(run_definition_cid) &&
+    contract_string(index, "invocation_cid") is Some(invocation_cid) &&
+    contract_string(index, "result_manifest_cid") is Some(result_manifest_cid) &&
+    contract_string_array(index, "durable_result_binding_cids")
+    is Some(durable_result_binding_cids) &&
+    !durable_result_binding_cids.is_empty() else {
+    return Err(DeliveryIssuanceReferenceMismatch("public_index.references"))
+  }
+  Ok({
+    tenant_id,
+    authority_scope_cid,
+    run_definition_cid,
+    invocation_cid,
+    result_manifest_cid,
+    durable_result_binding_cids,
+  })
+}
+
+///|
+/// Select the one durable binding for a named committed Result. Every binding
+/// listed by the index must be supplied exactly once; missing or additional
+/// bodies are rejected before a physical generation can be opened.
+pub fn project_committed_result_read(
+  index : PublicationContract,
+  manifest : PublicationContract,
+  result_name : String,
+  bindings : Array[PublicationContract],
+) -> Result[CommittedResultRead, DeliveryIssuanceIssue] {
+  match validate_public_read_root(index, manifest) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let index_read = match project_public_index_read(index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @json.object_field(manifest.value, "results") is Some(results) &&
+    @json.object_field(results, result_name) is Some(artifact) &&
+    optional_string(@json.object_field(artifact, "result_artifact_cid"))
+    is Some(result_artifact_cid) &&
+    optional_string(@json.object_field(artifact, "result_definition_cid"))
+    is Some(result_definition_cid) &&
+    optional_string(@json.object_field(artifact, "logical_result_cid"))
+    is Some(logical_result_cid) &&
+    optional_string(@json.object_field(artifact, "result_schema_cid"))
+    is Some(result_schema_cid) &&
+    optional_string(@json.object_field(artifact, "ordering_evidence_cid"))
+    is Some(ordering_evidence_cid) &&
+    optional_string(
+      @json.object_field(artifact, "effective_retention_policy_cid"),
+    )
+    is Some(effective_retention_policy_cid) &&
+    delivery_optional_count(@json.object_field(artifact, "actual_row_count"))
+    is Some(actual_row_count) else {
+    return Err(DeliveryIssuanceUnknownResult(result_name))
+  }
+  if bindings.length() != index_read.durable_result_binding_cids.length() {
+    return Err(DeliveryIssuanceReferenceMismatch("index.bindings"))
+  }
+  let supplied : Array[String] = []
+  let mut selected : PublicationContract? = None
+  for binding in bindings {
+    if binding.name != "durable_result_binding" ||
+      supplied.contains(binding.identity) ||
+      !index_read.durable_result_binding_cids.contains(binding.identity) {
+      return Err(DeliveryIssuanceReferenceMismatch("index.bindings"))
+    }
+    supplied.push(binding.identity)
+    if contract_string(binding, "result_definition_cid") ==
+      Some(result_definition_cid) {
+      if selected is Some(_) {
+        return Err(DeliveryIssuanceDuplicateResult(result_name))
+      }
+      selected = Some(binding)
+    }
+  }
+  if index_read.durable_result_binding_cids.any(identity => {
+      !supplied.contains(identity)
+    }) {
+    return Err(DeliveryIssuanceReferenceMismatch("index.bindings"))
+  }
+  guard selected is Some(binding) &&
+    contract_string(binding, "run_definition_cid") ==
+    Some(index_read.run_definition_cid) &&
+    contract_string(binding, "invocation_cid") ==
+    Some(index_read.invocation_cid) &&
+    contract_string(binding, "logical_result_cid") == Some(logical_result_cid) &&
+    contract_string(binding, "result_schema_cid") == Some(result_schema_cid) &&
+    contract_string(binding, "ordering_evidence_cid") ==
+    Some(ordering_evidence_cid) &&
+    contract_string(binding, "effective_retention_policy_cid") ==
+    Some(effective_retention_policy_cid) &&
+    contract_count(binding, "row_count") == Some(actual_row_count) &&
+    contract_string(binding, "material_generation_cid")
+    is Some(material_generation_cid) &&
+    contract_string(binding, "store_authority_cid") is Some(store_authority_cid) &&
+    contract_string(binding, "codec_contract_cid") is Some(codec_contract_cid) &&
+    contract_string_array(binding, "result_fields") is Some(result_fields) &&
+    contract_count(binding, "byte_count") is Some(byte_count) &&
+    contract_string(binding, "physical_sha256") is Some(physical_sha256) else {
+    return Err(DeliveryIssuanceReferenceMismatch("binding.result"))
+  }
+  Ok({
+    result_name,
+    result_artifact_cid,
+    result_definition_cid,
+    logical_result_cid,
+    result_schema_cid,
+    ordering_evidence_cid,
+    effective_retention_policy_cid,
+    durable_result_binding_cid: binding.identity,
+    material_generation_cid,
+    store_authority_cid,
+    codec_contract_cid,
+    result_fields,
+    row_count: actual_row_count,
+    byte_count,
+    physical_sha256,
+  })
 }
 
 ///|

@@ -250,6 +250,20 @@ pub fn Store::read_result_schema(
 }
 
 ///|
+pub fn Store::resolve_committed_result(
+  _self : Store,
+  _tenant_id : String,
+  _authority_scope_cid : String,
+  _run_definition_cid : String,
+  _result_name : String,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[NativeCommittedResult?, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::begin_result_delivery(
   _self : Store,
   _index : @publication.PublicationContract,

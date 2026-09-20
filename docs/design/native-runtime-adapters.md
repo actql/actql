@@ -85,6 +85,9 @@ Run-bound contract before installing the single scoped public-index row. The
 index row is the visibility boundary. Restart retrieval re-admits the stored
 contract bodies and revalidates the schema wire against its declared CID; it
 does not depend on a process-local schema copy retained by the caller.
+Committed Result resolution loads every binding named by the index and asks
+the portable publication owner to select the exact Result occurrence. The
+filesystem adapter does not infer a binding from a material name or path.
 
 ## SQLite integration
 

@@ -22,6 +22,14 @@ pub fn ConfirmedPayloadDelivery::fail(Self) -> Result[Int64, NativePublicationSt
 pub fn ConfirmedPayloadDelivery::fail_chunk(Self, Int) -> Result[Int64, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::next(Self, Int) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue]
 
+pub(all) struct NativeCommittedResult {
+  public_index_entry : @run_publication.PublicationContract
+  result_manifest : @run_publication.PublicationContract
+  retention : @run_publication.PublicationContract
+  binding : @run_publication.PublicationContract
+  read : @run_publication.CommittedResultRead
+}
+
 pub(all) struct NativePublicationCommit {
   public_index_entry_cid : String
   committed : Bool
@@ -148,6 +156,7 @@ pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_pub
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
+pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
 
 // Type aliases
 
