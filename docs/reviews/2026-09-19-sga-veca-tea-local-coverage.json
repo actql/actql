@@ -620,7 +620,7 @@
       "output": "relation",
       "canonical": ["SGA.equal"],
       "variants": ["equal", "not equal", "representation difference"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -671,10 +671,21 @@
           "evidence": [
             "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
+        },
+        {
+          "scope": "unequal_cardinality_and_payload",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5b3bb4e5",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
-      ],
-      "gaps": [
-        "not-equal payload and cardinality fixtures"
       ]
     },
     {
@@ -1697,6 +1708,24 @@
       "suites": [
         {
           "name": "portable Graph graft and retained consumers",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graphs_equal",
+      "sha": "5b3bb4e5",
+      "suites": [
+        {
+          "name": "portable equal and unequal Graph comparison",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"

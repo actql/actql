@@ -22,7 +22,7 @@ readable coverage manifest is authoritative for individual operation status.
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 28/39, standard Host 27/39,
 consumer lifetime 23/39, cancellation 19/39, and publication 22/39. These are
-layer counts, not operation completion: 17 entries are `complete` and 22 remain
+layer counts, not operation completion: 18 entries are `complete` and 21 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -286,8 +286,10 @@ JS, Wasm, and native. The real Node Host publication path and generated
 Workers fixture are current at `738d19da`. An environment timer now delivers
 cancellation after both Graph operands are constructed; the bounded equality
 kernel observes stop, reports it separately from cleanup, and returns the
-ledger to zero at `092cc87b`. The operation remains partial until independent
-unequal-cardinality and unequal-payload fixtures are recorded.
+ledger to zero at `092cc87b`. Distinct managed Relation inputs now cover both
+unequal edge cardinality and equal-cardinality node payload mismatch through
+the standard Host and two consumers on all portable targets at `5b3bb4e5`.
+This closes `graphs_equal`.
 
 Node identity-list matching now resolves every checked
 identity through the admitted immutable Graph index before output, sorts by
