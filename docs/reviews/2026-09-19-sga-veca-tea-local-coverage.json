@@ -117,6 +117,7 @@
         "consumer_lifetime",
         "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
@@ -721,6 +722,16 @@
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
             "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "dbaebaa2",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/duckdb_conformance/standard_subset.mbt"
           ]
         },
         {

@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 9/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 10/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 10/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 9/39, and publication 10/39. These are
+consumer lifetime 15/39, cancellation 10/39, and publication 10/39. These are
 layer counts, not operation completion: eight entries are `complete` and 31 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -406,8 +406,11 @@ computations with overlapping holdings, independent release, and final ledger
 reclamation on JS, Wasm, and native. Global partitions and parameterized gaps
 now traverse the same standard Host path on all three targets. The ordinary
 session path also establishes its formal Named Result identity before
-publication. Environment cancellation delivery remains open, so session
-assignment is partial. Session identity construction now advances one scalar
+publication. The compiled Node Host delivers timer cancellation during the
+session kernel, observes stop, retries cleanup, and releases all held and
+reserved bytes. The exact Events-input and same-Carrier downstream path still
+remain open, so session assignment is partial. Session identity construction
+now advances one scalar
 part per bounded phase, checks complete UTF-8 prefixes and separators before
 retention, and reclaims partial buffers after cancellation. Interval join now
 has typed canonical lowering for all
@@ -472,8 +475,9 @@ Environment cancellation delivery and Named Result publication remain open,
 so time series is not complete. Session has a portable bounded kernel and a
 registered Relation-to-Events-to-Relation standard-Host path. Its global,
 grouped, literal-gap, and parameter-gap variants now have standard-Host
-evidence, and the grouped literal path has formal publication evidence.
-Environment cancellation evidence remains open and is tracked above.
+evidence, and the grouped literal path has formal publication evidence. Its
+compiled environment cancellation path is also closed. The exact Events-input
+and same-Carrier downstream path remains tracked above.
 
 ### Bridges
 
