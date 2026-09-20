@@ -1290,6 +1290,17 @@
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "all_relation_vectors_input_combinations",
+          "layers": ["kernel", "managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "ab818437",
+          "evidence": [
+            "src/local_veca/nearest.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
         }
       ]
     },

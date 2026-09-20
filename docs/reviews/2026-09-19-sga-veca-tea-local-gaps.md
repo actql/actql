@@ -414,10 +414,14 @@ dot scoring, `k=2`, a candidate-score tie, two overlapping downstream Relation
 computations, independent release, and final ledger reclamation on JS, Wasm,
 and native. The same path now also covers cosine, negative L2, inferred
 Relation roles, `k=1`, `k` greater than corpus size, and empty candidate or
-query sides. The other three Carrier combinations, duplicate identity failures,
-environment cancellation delivery, and publication remain open. Ranking merge
-now has typed canonical lowering for maximum, weighted-sum, and finite-list RRF
-policies. It retains score contracts, omitted versus explicit empty tie-breaks,
+query sides. The registered provider now consumes every formal Relation and
+Vectors input combination without erasing Carrier authority, rejects reversed
+use-site bindings, and preserves source storage after output cleanup on all
+three targets. Standard Host selection for the direct Carrier forms, their
+two-consumer lifetime, duplicate identity failures, environment cancellation
+delivery, and publication remain open. Ranking merge now has typed canonical
+lowering for maximum, weighted-sum, and finite-list RRF policies. It retains
+score contracts, omitted versus explicit empty tie-breaks,
 and ordered repeated RRF inputs as one operation occurrence. RRF now executes
 through a bounded stable-merge kernel and the registered standard Host
 provider. It validates complete inputs and contiguous ranks before applying
@@ -705,6 +709,17 @@ the same standard Host fixture. Query integration passes 403 tests on each of
 JS, Wasm, and native, and all 24 Workers tests pass with a fresh generated
 fixture. Direct Vectors inputs, duplicate identity failures, environment
 cancellation delivery, and final same-SHA Linux CI remain open.
+
+At `ab818437`, the registered VecA provider accepts all four formal nearest
+input combinations: Relation/Relation, Relation/Vectors, Vectors/Relation,
+and Vectors/Vectors. Direct Carrier reads retain their exact producer, input
+position, generation, and availability authority through Relation output
+completion. A reversed pair is rejected without consuming either material,
+and output cleanup leaves both inputs available for their owners to reclaim.
+The focused VecA and query-integration suites pass on JS, Wasm, and native.
+This does not yet establish standard Host selection, two downstream consumers,
+publication, environment cancellation delivery, or final same-SHA Linux CI
+for the three direct Carrier forms.
 
 At `b954085a`, all three ranking-fusion policy families reach canonical
 `VEC.merge_rankings` lowering from checked typed decisions. The RRF fixture
