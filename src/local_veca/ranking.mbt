@@ -167,13 +167,15 @@ fn ranking_checked_multiply(left : Int, right : Int) -> Int? {
 fn ranking_workspace(rows : Int, by : Int, tie : Int, inputs : Int) -> Int? {
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
+    ranking_checked_add(key_width, 5) is Some(output_width) &&
+    ranking_checked_add(key_width, 16) is Some(fixed_width) &&
     ranking_checked_multiply(rows, record_width) is Some(records) &&
-    ranking_checked_multiply(rows, key_width + 5) is Some(outputs) &&
+    ranking_checked_multiply(rows, output_width) is Some(outputs) &&
     ranking_checked_add(records, rows) is Some(first) &&
     ranking_checked_add(first, outputs) is Some(second) &&
     ranking_checked_add(second, rows) is Some(third) &&
     ranking_checked_add(third, inputs) is Some(fourth) &&
-    ranking_checked_add(fourth, key_width + 16) is Some(total) else {
+    ranking_checked_add(fourth, fixed_width) is Some(total) else {
     return None
   }
   Some(total)
