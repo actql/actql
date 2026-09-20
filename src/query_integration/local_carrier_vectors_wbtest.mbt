@@ -5,7 +5,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     variant == "nearest_l2" ||
     variant == "nearest_inferred" ||
     variant == "nearest_k1" ||
-    variant == "nearest_empty" {
+    variant == "nearest_klarge" ||
+    variant == "nearest_empty" ||
+    variant == "nearest_empty_queries" {
     return local_vector_nearest_program(variant)
   }
   let relation_pool = variant == "relation_pool" ||
@@ -126,7 +128,9 @@ fn local_vector_nearest_program(variant : String) -> String {
     "[{\"id\":2,\"embedding\":[1,0]},{\"id\":1," +
     "\"embedding\":[1,0]},{\"id\":3,\"embedding\":[0,1]}]"
   }
-  let query_rows = if inferred {
+  let query_rows = if variant == "nearest_empty_queries" {
+    "[]"
+  } else if inferred {
     "[{\"id\":\"t\",\"embedding\":[1,0]},{\"id\":\"q\"," +
     "\"embedding\":[0,1]}]"
   } else {
@@ -152,7 +156,13 @@ fn local_vector_nearest_program(variant : String) -> String {
   } else {
     "dot"
   }
-  let k = if variant == "nearest_k1" { "1" } else { "2" }
+  let k = if variant == "nearest_k1" {
+    "1"
+  } else if variant == "nearest_klarge" {
+    "5"
+  } else {
+    "2"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
   "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -538,11 +548,18 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     nearest_live,
   )
   let nearest_rows = local_managed_test_rows(nearest_ops)
-  let expected = if variant == "nearest_empty" {
+  let expected = if variant == "nearest_empty" ||
+    variant == "nearest_empty_queries" {
     []
   } else if variant == "nearest_k1" {
     [
       "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":1}", "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}",
+    ]
+  } else if variant == "nearest_klarge" {
+    [
+      "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":1}", "{\"candidate_id\":1,\"query_id\":10,\"rank\":2,\"score\":0}",
+      "{\"candidate_id\":2,\"query_id\":10,\"rank\":3,\"score\":0}", "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}",
+      "{\"candidate_id\":2,\"query_id\":20,\"rank\":2,\"score\":1}", "{\"candidate_id\":3,\"query_id\":20,\"rank\":3,\"score\":0}",
     ]
   } else if variant == "nearest_inferred" {
     [
@@ -680,6 +697,16 @@ test "standard Host enforces nearest k prefix" {
 }
 
 ///|
+test "standard Host caps nearest k at candidate count" {
+  run_standard_nearest_provider("nearest_klarge")
+}
+
+///|
 test "standard Host validates empty nearest corpus" {
   run_standard_nearest_provider("nearest_empty")
+}
+
+///|
+test "standard Host validates empty nearest queries" {
+  run_standard_nearest_provider("nearest_empty_queries")
 }
