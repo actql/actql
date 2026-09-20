@@ -22,6 +22,12 @@ pub fn prepare_score(Metric) -> ScoreFold
 
 pub fn quantize(Double) -> Result[Double, Issue]
 
+pub fn ranking_fuse_step(Double, Double) -> Result[Double, Issue]
+
+pub fn ranking_rrf_contribution(Double, Double, Double) -> Result[Double, Issue]
+
+pub fn ranking_weighted_contribution(Double, Double) -> Result[Double, Issue]
+
 pub fn score_step(ScoreFold, Double, Double) -> Result[Unit, Issue]
 
 pub fn squared_norm_step(Double, Double) -> Result[Double, Issue]
@@ -33,6 +39,7 @@ pub(all) enum Issue {
   NonFinite
   ZeroVector
   InvalidMemberCount
+  InvalidRankingOperand
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Metric {

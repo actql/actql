@@ -44,3 +44,42 @@ test "scores keep zero and failure boundaries distinct" {
   let fold = prepare_score(Dot)
   assert_eq(score_step(fold, 1.0e308, 1.0e308), Err(NonFinite))
 }
+
+///|
+test "weighted ranking rounds each product and fold step" {
+  let left = ranking_weighted_contribution(0.7, 0.6).unwrap()
+  let right = ranking_weighted_contribution(0.2, 0.4).unwrap()
+  assert_eq(left.reinterpret_as_uint64(), 0x3fdae147ae147ae1UL)
+  assert_eq(right.reinterpret_as_uint64(), 0x3fb47ae147ae147cUL)
+  assert_eq(
+    ranking_fuse_step(left, right).unwrap().reinterpret_as_uint64(),
+    0x3fe0000000000000UL,
+  )
+  assert_eq(
+    ranking_weighted_contribution(1.0, -0.1),
+    Err(InvalidRankingOperand),
+  )
+}
+
+///|
+test "RRF ranking preserves occurrence-ordered binary64 arithmetic" {
+  let first = ranking_rrf_contribution(1.0, 60.0, 1.0).unwrap()
+  let second = ranking_rrf_contribution(2.0, 60.0, 2.0).unwrap()
+  let sum = ranking_fuse_step(ranking_fuse_step(0.0, first).unwrap(), second).unwrap()
+  assert_eq(first.reinterpret_as_uint64(), 0x3f90c9714fbcda3bUL)
+  assert_eq(second.reinterpret_as_uint64(), 0x3fa0842108421084UL)
+  assert_eq(sum.reinterpret_as_uint64(), 0x3fa8e8d9b0207da2UL)
+}
+
+///|
+test "RRF ranking rejects invalid positions and nonfinite folds" {
+  assert_eq(
+    ranking_rrf_contribution(1.0, 60.0, 0.0),
+    Err(InvalidRankingOperand),
+  )
+  assert_eq(
+    ranking_rrf_contribution(1.0, 60.5, 1.0),
+    Err(InvalidRankingOperand),
+  )
+  assert_eq(ranking_fuse_step(1.0 / 0.0, 1.0), Err(InvalidRankingOperand))
+}

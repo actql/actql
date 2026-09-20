@@ -3,6 +3,7 @@ pub(all) enum Issue {
   NonFinite
   ZeroVector
   InvalidMemberCount
+  InvalidRankingOperand
 } derive(Eq, Debug)
 
 ///|
@@ -129,6 +130,69 @@ fn product(left : Double, right : Double) -> Result[Double, Issue] {
 ///|
 fn add(sum : Double, value : Double) -> Result[Double, Issue] {
   rounded(sum + value)
+}
+
+///|
+/// Compute one weighted-ranking contribution with an explicit binary64
+/// rounding point. Admission of the score contract remains the caller's
+/// responsibility.
+pub fn ranking_weighted_contribution(
+  score : Double,
+  weight : Double,
+) -> Result[Double, Issue] {
+  if score.is_nan() ||
+    score.is_inf() ||
+    weight.is_nan() ||
+    weight.is_inf() ||
+    weight < 0.0 {
+    return Err(InvalidRankingOperand)
+  }
+  rounded(score * weight)
+}
+
+///|
+/// Compute one reciprocal-rank contribution. Admit both positions as positive
+/// safe-integer binary64 values before the rounded addition and division.
+pub fn ranking_rrf_contribution(
+  weight : Double,
+  rank_constant : Double,
+  rank : Double,
+) -> Result[Double, Issue] {
+  if weight.is_nan() ||
+    weight.is_inf() ||
+    weight < 0.0 ||
+    rank_constant.is_nan() ||
+    rank_constant.is_inf() ||
+    rank_constant < 1.0 ||
+    rank_constant > 9007199254740991.0 ||
+    rank_constant.trunc() != rank_constant ||
+    rank.is_nan() ||
+    rank.is_inf() ||
+    rank < 1.0 ||
+    rank > 9007199254740991.0 ||
+    rank.trunc() != rank {
+    return Err(InvalidRankingOperand)
+  }
+  let denominator = match rounded(rank_constant + rank) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  rounded(weight / denominator)
+}
+
+///|
+/// Add one contribution to the occurrence-ordered binary64 ranking fold.
+pub fn ranking_fuse_step(
+  sum : Double,
+  contribution : Double,
+) -> Result[Double, Issue] {
+  if sum.is_nan() ||
+    sum.is_inf() ||
+    contribution.is_nan() ||
+    contribution.is_inf() {
+    return Err(InvalidRankingOperand)
+  }
+  add(sum, contribution)
 }
 
 ///|
