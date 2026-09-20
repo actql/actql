@@ -2,13 +2,17 @@
 package "actql/actql/platform_native/runtime_bundle"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
   "actql/actql/remote_bundle",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit_signed_bundle(@signature.Library, Array[NativeRuntimeBundleAuthority], String, String, String, String, String, String) -> Result[@remote_bundle.RemoteBundleManifest, NativeRuntimeBundleIssue]
+
+pub fn open_runtime_bundle_store(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleAuthority], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue]
 
 // Errors
 
@@ -27,6 +31,49 @@ pub(all) enum NativeRuntimeBundleIssue {
   Bundle(@remote_bundle.RemoteBundleIssue)
   Signature(@signature.NativeSignatureIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) struct NativeRuntimeBundleSnapshot {
+  runtime_bundle_cid : String
+  manifest_json : String
+  artifact_name : String
+  generation : @filesystem.NativeFileGeneration
+  state : Array[String]
+  reclaim_pending : Bool
+}
+
+type NativeRuntimeBundleStore
+pub fn NativeRuntimeBundleStore::activate(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::active(Self) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::adopt(Self, String, String, String, String, String, String, @filesystem.NativeFileGeneration) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::close(Self) -> Bool
+pub fn NativeRuntimeBundleStore::drain(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::inspect(Self, String) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::list(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::reclaim(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::recover(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::release(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::retain(Self, String, String, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::rollback(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::verify(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+
+pub(all) enum NativeRuntimeBundleStoreIssue {
+  UnsupportedTarget
+  Closed
+  InvalidConfiguration
+  MissingBundle
+  ExistingBundle
+  BundleLimit
+  CapacityExceeded
+  HoldCollision
+  StateCollision
+  ComponentMismatch
+  CleanupPending
+  Bundle(@remote_bundle.RemoteBundleIssue)
+  Signature(@signature.NativeSignatureIssue)
+  Filesystem(@filesystem.NativeFilesystemIssue)
+  Database(@sqlite.NativeSqliteIssue)
+}
 
 // Type aliases
 

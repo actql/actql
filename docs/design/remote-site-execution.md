@@ -246,6 +246,17 @@ Site-local active revision durable in SQLite. These filesystem and SQLite
 operations are environment-specific; canonical identity and every lifecycle
 transition remain MoonBit decisions.
 
+The native filesystem adapter adopts an exact pre-positioned generation only
+after bounded streaming verification of its size, digest, target, issuer, and
+signature. A canonical SQLite catalog atomically binds the active revision,
+portable lifecycle state, owners, physical generation, and retryable reclaim
+responsibility. Reopening the Store re-admits every signed manifest before any
+operation. Shared immutable components use one capacity reservation and are
+deleted only after the final bundle and owner release them. This adoption
+boundary is not yet the standard native package staging and update operation;
+that operation must create or acquire the pre-positioned generation before
+calling the same admission path.
+
 Remote dispatch resolves only a registration for the exact active bundle. It
 retains a durable bundle owner before execution, verifies the installed
 artifact immediately before invoking the registered handler, and releases the

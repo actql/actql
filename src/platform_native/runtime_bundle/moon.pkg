@@ -1,8 +1,16 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
   "actql/actql/remote_bundle" @bundle,
+  "actql/actql/sha256" @sha,
+  "actql/actql/source_value" @source,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
 }
 
 import {
@@ -13,5 +21,9 @@ options(
   targets: {
     "runtime_bundle_native_wbtest.mbt": [ "native" ],
     "runtime_bundle_unsupported_wbtest.mbt": [ "not", "native" ],
+    "store_native.mbt": [ "native" ],
+    "store_native_wbtest.mbt": [ "native" ],
+    "store_unsupported.mbt": [ "not", "native" ],
+    "store_unsupported_wbtest.mbt": [ "not", "native" ],
   },
 )

@@ -211,6 +211,22 @@ test('runtime bundle activation has one portable transaction decision', () => {
   assert.match(adapter, /control\.prepareActiveRetain\(/);
   assert.match(adapter, /control\.prepareInactiveReclaim\(/);
   assert.doesNotMatch(adapter, /RemoteBundleNotActive|RemoteBundleStillActive/);
+
+  const nativeStore = readFileSync(
+    'src/platform_native/runtime_bundle/store_native.mbt',
+    'utf8',
+  );
+  for (const decision of [
+    'prepare_bundle_activation',
+    'prepare_active_bundle_drain',
+    'prepare_active_bundle_retain',
+    'prepare_bundle_release',
+    'prepare_inactive_bundle_reclaim',
+  ]) {
+    assert.match(nativeStore, new RegExp(`@bundle\\.${decision}\\(`));
+  }
+  assert.match(nativeStore, /@bundle\.commit_bundle_activation\(/);
+  assert.match(nativeStore, /@bundle\.commit_bundle_transition\(/);
 });
 
 test('DuckDB SQL and physical values belong to the connector package group', () => {
