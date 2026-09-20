@@ -15,14 +15,14 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 7/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 9/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path also publishes and retrieves managed vector expression results; 7/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 9/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 7/39, and publication 7/39. These are
-layer counts, not operation completion: six entries are `complete` and 33 remain
+consumer lifetime 15/39, cancellation 9/39, and publication 9/39. These are
+layer counts, not operation completion: eight entries are `complete` and 31 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -458,10 +458,15 @@ Events-to-rows execute inside the first registered provider. Rows-to-Vectors
 and Vectors-to-rows now execute inside a second registered provider, with
 normalization between them. Both paths preserve independently managed Carrier
 generations and reach two real downstream Relation computations before final
-ledger reclamation. Standalone Bridge selection, overlapping direct Carrier
-consumer lifetime, page-split coverage, publication, and the three graph
-conversions remain open. A Relation-shaped buffer alone is not evidence of a
-completed conversion.
+ledger reclamation. The Graph-to-node and Graph-to-edge projections now also
+publish and retrieve their exact Relation values, feed two downstream
+computations, and release the retained output independently. A real
+environment timer reaches each Bridge boundary, stop is observed, and final
+cleanup returns all holdings and reservations. Both Graph projection
+operations are complete. Standalone Bridge selection, overlapping direct
+Carrier consumer lifetime, page-split coverage, and Graph construction remain
+open. A Relation-shaped buffer alone is not evidence of a completed
+conversion.
 
 ## Current verification boundary
 
