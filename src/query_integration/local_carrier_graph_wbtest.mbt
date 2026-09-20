@@ -750,6 +750,67 @@ test "registered Graph provider expands repeated semantic input positions" {
 }
 
 ///|
+test "registered Graph provider executes node identity match for two consumers" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(source_owner, "[2,1,2]")
+  let generated = task_test_generated(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let execution = @local_connector.start_managed_provider(
+    provider,
+    generated,
+    [external],
+    2,
+    1000,
+  ).unwrap()
+  let mut output = None
+  while output is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.Failed(_, ..) => fail("Graph match provider failed")
+      @local_connector.Stopped(..) => fail("Graph match provider stopped")
+    }
+  }
+  let completed = output.unwrap()
+  assert_eq(@execution.completed_row_count(completed), 2)
+  assert_true(@execution.completed_cell(completed, 0, 0) is Some(Number(1.0)))
+  assert_true(@execution.completed_cell(completed, 1, 0) is Some(Number(2.0)))
+  assert_true(@execution.completed_output_matches_inputs(completed, [external]))
+  let first = carrier_graph_consumer_output(
+    owner, completed, "[{\"select\":[\"id\",\"node_name\"]}]",
+  )
+  let second = carrier_graph_consumer_output(
+    owner, completed, "[{\"select\":[\"node_name\"]}]",
+  )
+  assert_eq(@execution.completed_row_count(first), 2)
+  assert_eq(@execution.completed_row_count(second), 2)
+  assert_true(@execution.completed_cell(first, 1, 1) is Some(Text("second")))
+  assert_true(@execution.completed_cell(second, 0, 0) is Some(Text("first")))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@execution.completed_output_available(completed))
+  assert_true(@execution.producer_read_available(external))
+}
+
+///|
 test "standard Host runs bounded Graph bridge with two consumers" {
   let (run, issuer) = captured_graph_fixture(local_carrier_graph_chain=true)
   let registry = search_registry()

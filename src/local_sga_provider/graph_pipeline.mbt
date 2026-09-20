@@ -8,6 +8,20 @@ priv enum Phase {
 }
 
 ///|
+priv enum RelationExecution {
+  ProjectionExecution(@bridge.GraphRowsExecution)
+  MatchNodesExecution(@sga.MatchNodesExecution)
+}
+
+///|
+priv enum RelationPoll {
+  RelationContinue(Int64, Int64)
+  RelationComplete(@execution.CompletedOutput, Int64, Int64)
+  RelationFailed(Int64, Int64)
+  RelationStopped(Int64, Int64)
+}
+
+///|
 priv struct Execution {
   generated : @execution.GeneratedSequence
   sequence : @lower.PreparedSequence
@@ -20,7 +34,7 @@ priv struct Execution {
   mut phase : Phase
   mut construction : @bridge.RowsToGraphExecution?
   mut graph : @graph.Completed?
-  mut projection : @bridge.GraphRowsExecution?
+  mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
   mut terminal : Bool
@@ -65,6 +79,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           @lower.carrier_projection_operation(projection) ==
           @projection.EdgeRows
         )
+      (1, @lower.GraphMatchStep(matched)) =>
+        @lower.operation(node) == "SGA.match_nodes" &&
+        @lower.graph_match_nodes(matched) &&
+        !@lower.graph_match_has_predicate(matched) &&
+        @lower.graph_match_id_count(matched) > 0
       _ => false
     }
   })
@@ -240,45 +259,98 @@ fn advance_execution(
           Ok(read) => read
           Err(_) => return fail_execution(value)
         }
-        let started = match
-          @bridge.start_graph_to_rows(
-            value.control,
-            @execution.generated_completion_preparation(value.generated),
-            value.sequence,
-            1,
-            input,
-            value.max_rows,
-            {
-              max_nodes: value.limits.max_value_nodes,
-              max_text_bytes: value.max_value_bytes,
-              max_depth: value.limits.max_value_depth,
-              max_work: value.limits.max_work,
-            },
-            value.limits.max_workspace_slots,
-            value.limits.max_value_bytes,
-            value.limits.max_value_bytes,
-            value.inputs,
-          ) {
-          Ok(execution) => execution
-          Err(_) => return fail_execution(value)
+        let started = match @lower.sequence_step(value.sequence, 1) {
+          Some(@lower.CarrierProjectionStep(_)) =>
+            match
+              @bridge.start_graph_to_rows(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                1,
+                input,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              ) {
+              Ok(execution) => ProjectionExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          Some(@lower.GraphMatchStep(_)) =>
+            match
+              @sga.start_match_nodes(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                1,
+                input,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              ) {
+              Ok(execution) => MatchNodesExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          _ => return fail_execution(value)
         }
-        value.projection = Some(started)
+        value.relation = Some(started)
         value.phase = Projection
         reset_stage(value)
       }
       Projection => {
-        guard value.projection is Some(active) else {
+        guard value.relation is Some(active) else {
           return fail_execution(value)
         }
-        match @bridge.advance_graph_to_rows(active, quantum) {
+        let poll = match active {
+          ProjectionExecution(execution) =>
+            match @bridge.advance_graph_to_rows(execution, quantum) {
+              Ok(@bridge.Continue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@bridge.Complete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@bridge.Failed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@bridge.Stopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          MatchNodesExecution(execution) =>
+            match @sga.advance_match_nodes(execution, quantum) {
+              Ok(@sga.MatchNodesContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.MatchNodesComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.MatchNodesFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.MatchNodesStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+        }
+        match poll {
           Err(_) => return fail_execution(value)
-          Ok(@bridge.Continue(progress~, work~)) => {
+          Ok(RelationContinue(progress, work)) => {
             guard continue_poll(value, progress, work) is Some(poll) else {
               return fail_execution(value)
             }
             return Ok(poll)
           }
-          Ok(@bridge.Complete(output, progress~, work~)) => {
+          Ok(RelationComplete(output, progress, work)) => {
             guard delta(progress, value.stage_progress) is Some(progress_delta) &&
               delta(work, value.stage_work) is Some(work_delta) else {
               return fail_execution(value)
@@ -293,13 +365,13 @@ fn advance_execution(
               ),
             )
           }
-          Ok(@bridge.Failed(_, progress~, work~)) => {
+          Ok(RelationFailed(progress, work)) => {
             guard terminal_poll(value, progress, work, false) is Some(poll) else {
               return fail_execution(value)
             }
             return Ok(poll)
           }
-          Ok(@bridge.Stopped(_, progress~, work~)) => {
+          Ok(RelationStopped(progress, work)) => {
             guard terminal_poll(value, progress, work, true) is Some(poll) else {
               return fail_execution(value)
             }
@@ -330,10 +402,18 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
-  if value.projection is Some(active) {
-    match @bridge.cleanup_graph_to_rows(active) {
-      Ok(_) => ()
-      Err(_) => failed = true
+  if value.relation is Some(active) {
+    match active {
+      ProjectionExecution(execution) =>
+        match @bridge.cleanup_graph_to_rows(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
+      MatchNodesExecution(execution) =>
+        match @sga.cleanup_match_nodes(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -342,8 +422,11 @@ fn cleanup_execution(
     Some(active) => @bridge.rows_to_graph_cleanup_pending(active)
     None => false
   }
-  let projection_pending = match value.projection {
-    Some(active) => @bridge.graph_to_rows_cleanup_pending(active)
+  let projection_pending = match value.relation {
+    Some(ProjectionExecution(active)) =>
+      @bridge.graph_to_rows_cleanup_pending(active)
+    Some(MatchNodesExecution(active)) =>
+      @sga.match_nodes_cleanup_pending(active)
     None => false
   }
   if failed {
@@ -387,7 +470,7 @@ pub fn provider(
         phase: StartConstruction,
         construction: None,
         graph: None,
-        projection: None,
+        relation: None,
         stage_progress: 0L,
         stage_work: 0L,
         terminal: false,

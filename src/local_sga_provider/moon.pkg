@@ -7,6 +7,7 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/execution_relation" @execution,
   "actql/actql/local_bridge" @bridge,
+  "actql/actql/local_sga" @sga,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
