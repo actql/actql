@@ -48,13 +48,17 @@ fn run_native_outbound_operation(
     None => Ok(Idle)
     Some(@remote.Query(request)) =>
       match acknowledge_status(request) {
-        Ok(Some(record)) =>
+        Ok(Some(record)) => {
+          if !@remote.dispatch_record_matches_request(record, request) {
+            return Err(ObservationMismatch)
+          }
           Ok(
             QueryObserved(
               @remote.dispatch_request_identity(request),
               @remote.dispatch_record_revision(record),
             ),
           )
+        }
         Ok(None) => Ok(QueryNotSeen(@remote.dispatch_request_identity(request)))
         Err(issue) => Err(Client(issue))
       }
@@ -62,10 +66,15 @@ fn run_native_outbound_operation(
       let request = @remote.remote_poll_dispatch_request(dispatch)
       let binding = @remote.remote_poll_dispatch_input_binding(dispatch)
       let accepted = [false]
+      let acceptance_mismatch = [false]
       let acceptance_failure : Array[@client.NativeRemoteClientIssue?] = [None]
       let executed = runtime.start_after_acceptance(request, binding, _record => {
         match acknowledge_acceptance(request) {
-          Ok(_) => {
+          Ok(record) => {
+            if !@remote.dispatch_record_matches_request(record, request) {
+              acceptance_mismatch[0] = true
+              return false
+            }
             accepted[0] = true
             true
           }
@@ -79,6 +88,9 @@ fn run_native_outbound_operation(
         Ok(completion) =>
           match acknowledge_status(request) {
             Ok(Some(record)) => {
+              if !@remote.dispatch_record_matches_request(record, request) {
+                return Err(ObservationMismatch)
+              }
               let revision = @remote.dispatch_record_revision(record)
               if revision != completion.revision {
                 Err(ObservationMismatch)
@@ -90,25 +102,35 @@ fn run_native_outbound_operation(
             Err(issue) => Err(CompletionObservationUnknown(completion, issue))
           }
         Err(runtime_issue) =>
-          match acceptance_failure[0] {
-            Some(issue) => Err(Client(issue))
-            None =>
-              if !accepted[0] {
-                Err(Runtime(runtime_issue))
-              } else {
-                match acknowledge_status(request) {
-                  Ok(Some(record)) =>
-                    Err(
-                      RuntimeObserved(
-                        runtime_issue,
-                        @remote.dispatch_record_revision(record),
-                      ),
-                    )
-                  Ok(None) => Err(ObservationMissing)
-                  Err(issue) =>
-                    Err(RuntimeObservationUnknown(runtime_issue, issue))
+          if acceptance_mismatch[0] {
+            Err(ObservationMismatch)
+          } else {
+            match acceptance_failure[0] {
+              Some(issue) => Err(Client(issue))
+              None =>
+                if !accepted[0] {
+                  Err(Runtime(runtime_issue))
+                } else {
+                  match acknowledge_status(request) {
+                    Ok(Some(record)) => {
+                      if !@remote.dispatch_record_matches_request(
+                          record, request,
+                        ) {
+                        return Err(ObservationMismatch)
+                      }
+                      Err(
+                        RuntimeObserved(
+                          runtime_issue,
+                          @remote.dispatch_record_revision(record),
+                        ),
+                      )
+                    }
+                    Ok(None) => Err(ObservationMissing)
+                    Err(issue) =>
+                      Err(RuntimeObservationUnknown(runtime_issue, issue))
+                  }
                 }
-              }
+            }
           }
       }
     }

@@ -203,6 +203,44 @@ test "outbound agent observes durable acceptance before one execution" {
   )
   assert_eq(executions[0], 0)
   assert_eq(status_attempts[0], 0)
+  let foreign = @remote.prepare_dispatch_request(
+    "native-coordinator",
+    agent_test_cid(
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+    "task-agent-foreign",
+    2,
+    "dispatch-agent-foreign",
+    "native-agent-site",
+    1,
+    bundle_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    @remote.remote_input_binding_cid(binding),
+    agent_test_cid(
+      "2222222222222222222222222222222222222222222222222222222222222222",
+    ),
+    @remote.remote_dispatch_budget_cid(budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  let accept_foreign = fn(_request) {
+    acceptance_attempts[0] += 1
+    let (_, record) = journal.accept(foreign).unwrap()
+    Ok(record)
+  }
+  assert_true(
+    run_native_outbound_operation(
+      runtime,
+      Some(dispatch),
+      accept_foreign,
+      report_status,
+    )
+    is Err(ObservationMismatch),
+  )
+  assert_eq(executions[0], 0)
+  assert_eq(status_attempts[0], 0)
   let accept = fn(request) {
     acceptance_attempts[0] += 1
     let (_, record) = journal.accept(request).unwrap()
@@ -231,7 +269,7 @@ test "outbound agent observes durable acceptance before one execution" {
     fail("exact resend was not reconciled")
   }
   assert_eq(executions[0], 1)
-  assert_eq(acceptance_attempts[0], 3)
+  assert_eq(acceptance_attempts[0], 4)
   assert_eq(status_attempts[0], 2)
   let query = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_query_json(request).unwrap(),
@@ -246,8 +284,17 @@ test "outbound agent observes durable acceptance before one execution" {
     fail("query was not reconciled")
   }
   assert_eq(executions[0], 1)
-  assert_eq(acceptance_attempts[0], 3)
+  assert_eq(acceptance_attempts[0], 4)
   assert_eq(status_attempts[0], 3)
+  let report_foreign = fn(_request) {
+    let observation = journal.observation(foreign).unwrap()
+    Ok(Some(@journal.recovered_site_dispatch_record(observation)))
+  }
+  assert_true(
+    run_native_outbound_operation(runtime, Some(query), accept, report_foreign)
+    is Err(ObservationMismatch),
+  )
+  assert_eq(executions[0], 1)
   let lose_status = fn(_request) { Err(@client.Closed) }
   guard run_native_outbound_operation(
       runtime,
