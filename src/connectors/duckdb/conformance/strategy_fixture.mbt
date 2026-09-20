@@ -83,6 +83,36 @@ pub fn strategy_fixture_sga_create(
 }
 
 ///|
+#export_name("strategyFixtureSgaSizedCreate")
+pub fn strategy_fixture_sga_sized_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  rows : Int64,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+    sga_rows=Some(rows),
+  )
+}
+
+///|
 #export_name("strategyFixtureSgaComponentsCreate")
 pub fn strategy_fixture_sga_components_create(
   environment_json : String,
@@ -158,6 +188,7 @@ fn strategy_fixture_create_impl(
   sga? : Bool = false,
   components? : Bool = false,
   components_rows? : Int64 = 2L,
+  sga_rows? : Int64? = None,
 ) -> StrategyFixture {
   try {
     let program = issued_fixture_checked(
@@ -168,6 +199,7 @@ fn strategy_fixture_create_impl(
       sga~,
       components~,
       components_rows~,
+      sga_rows~,
     )
     let native = issued_native_create_impl(
       environment_json,

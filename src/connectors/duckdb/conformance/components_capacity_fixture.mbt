@@ -198,3 +198,51 @@ fn components_fixture_capacity(
     ],
   }
 }
+
+///|
+fn graph_fixture_capacity(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  rows : Int64,
+) -> @context.StageCapacityInput {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let input = components_fixture_proof(
+    "actql.bound.values", rows, "{\"op\":\"source\"}",
+  )
+  let input_cid = @wire.cid(@wire.program_proof_witness(input))
+  let nodes = components_fixture_proof(
+    "actql.bound.graph-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[input_cid],
+    unit="nodes",
+  )
+  let proof_wires = [
+    @wire.program_proof_witness(input),
+    @wire.program_proof_witness(nodes),
+  ]
+  let mixed = @wire.check_mixed_claims(proof_wires, [], {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(mixed, [input, nodes], {
+    max_witnesses: 20,
+    max_references: 100,
+  }).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 20,
+    max_bytes: 20000,
+    max_nodes: 2000,
+    max_depth: 30,
+  }).unwrap()
+  { stage, sources, uses: [], }
+}

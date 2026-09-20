@@ -439,7 +439,7 @@ test('bounded Local yields so cancellation reaches the active kernel',
     await failure.cleanupHandle.retry();
     assert.equal(failure.cleanupHandle.status().pending, false);
     assert.deepEqual(events, [
-      ['advance', 1024],
+      ['advance', 256],
       'cancel',
       ['advance', 1],
       'close',
@@ -541,7 +541,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         })),
         execute: () => assert.fail('bounded managed execution used execute'),
         advance: quantum => {
-          assert.equal(quantum, 1024);
+          assert.equal(quantum, 256);
           advances++;
           return ok({complete: advances === 2, progress: 1n, work: 1n});
         },

@@ -11,6 +11,7 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   '../host-common/managed-failure.mjs';
 
 const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
+const managedWorkQuantum = 256;
 
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
@@ -39,12 +40,13 @@ const runManagedExecution = async (operations, checked, signal) => {
       stopBoundedExecution(operations, checked);
       signal.throwIfAborted();
     }
-    const observation = checked(operations.advance(1024));
+    const observation = checked(operations.advance(managedWorkQuantum));
     if (observation?.complete === true) return;
     if (observation == null || observation.complete !== false ||
         typeof observation.progress !== 'bigint' ||
         typeof observation.work !== 'bigint' || observation.progress < 0n ||
-        observation.work <= 0n || observation.work > 1024n) {
+        observation.work <= 0n ||
+        observation.work > BigInt(managedWorkQuantum)) {
       throw new Error('InvalidLocalManagedAdvance');
     }
     await yieldToHost();
