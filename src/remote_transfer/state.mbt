@@ -464,6 +464,15 @@ pub fn record_request_identity(record : RemoteTransferRecord) -> String {
 }
 
 ///|
+pub fn record_is_destination_committed(record : RemoteTransferRecord) -> Bool {
+  record.attempt == TransferDestinationCommitted &&
+  record.integrity == TransferIntegrityVerified &&
+  record.source_access_stopped &&
+  record.destination_temporary_reclaimed &&
+  record.destination_material_available
+}
+
+///|
 fn restored_state_valid(record : RemoteTransferRecord) -> Bool {
   if record.revision < 0 {
     return false

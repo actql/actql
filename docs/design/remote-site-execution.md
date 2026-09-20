@@ -242,6 +242,15 @@ record while different content for the same occurrence is rejected. Native
 SQLite performs only transactional insert, compare-and-swap, and recovery;
 MoonBit remains the sole authority for valid state combinations.
 
+Direct Transfer admission envelopes and state replies are emitted and
+re-admitted by the same MoonBit owner. The Node receiver and native HTTPS
+client therefore share one request and lifecycle interpretation. The native
+client validates every admitted chunk length and digest before physical I/O,
+sends one bounded chunk per request, and never joins the Result into one bulk
+buffer. HTTPS, mTLS, response bounds, and physical cancellation remain adapter
+operations. A destination commit response becomes usable only after common
+state admission confirms the exact request and committed state.
+
 ## Publication, credentials, and bundles
 
 A Site may stream a checked Result occurrence directly to the Publication

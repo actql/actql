@@ -72,6 +72,8 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
 
 let server;
 let outboundPolls = 0;
+let nativeTransferCid;
+let nativeTransferChunks = 0;
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -110,6 +112,10 @@ try {
     requestCert: true,
     rejectUnauthorized: true,
   }, async (request, response) => {
+    const nativeTransferBase =
+      '/v1/sites/native-destination/generations/3/transfers';
+    const nativeTransferRequest = request.url === nativeTransferBase ||
+      request.url?.startsWith(`${nativeTransferBase}/`);
     if (request.url === '/disconnect') {
       request.socket.destroy();
       return;
@@ -136,7 +142,7 @@ try {
     }
     const genericPut = request.method === 'PUT' &&
       request.url === '/generic-put';
-    if (!genericPut && (request.method !== 'POST' ||
+    if (!nativeTransferRequest && !genericPut && (request.method !== 'POST' ||
         ![
           '/probe',
           '/generic-post-empty',
@@ -164,6 +170,65 @@ try {
       chunks.push(chunk);
     }
     const body = Buffer.concat(chunks).toString('utf8');
+    if (request.url === nativeTransferBase && request.method === 'POST') {
+      let envelope;
+      try { envelope = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      if (typeof envelope?.manifest !== 'string' ||
+          typeof envelope?.request !== 'string' ||
+          typeof request.headers['actql-transfer-cid'] !== 'string' ||
+          typeof request.headers['actql-manifest-cid'] !== 'string') {
+        response.writeHead(400).end();
+        return;
+      }
+      nativeTransferCid = request.headers['actql-transfer-cid'];
+      nativeTransferChunks = 0;
+      response.writeHead(201, {'content-type': 'application/json'});
+      response.end(JSON.stringify({
+        requestCid: nativeTransferCid,
+        state: [0, 0, 0, 0, 0, 0, 0, 1, 0],
+      }));
+      return;
+    }
+    if (nativeTransferRequest && request.url !== nativeTransferBase) {
+      const suffix = request.url.slice(nativeTransferBase.length + 1);
+      const parts = suffix.split('/');
+      if (decodeURIComponent(parts[0] ?? '') !== nativeTransferCid) {
+        response.writeHead(404).end();
+        return;
+      }
+      if (request.method === 'PUT' && parts[1] === 'chunks') {
+        const index = Number(parts[2]);
+        const expected = index === 0 ? 'alpha' : index === 1 ? '日本語' : null;
+        if (expected === null || index !== nativeTransferChunks ||
+            body !== expected || request.headers['content-type'] !==
+            'application/octet-stream') {
+          response.writeHead(400).end();
+          return;
+        }
+        nativeTransferChunks += 1;
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeTransferCid,
+          state: [0, 0, 0, 0, 0, 0, 0, 1, 0],
+        }));
+        return;
+      }
+      if (request.method === 'POST' && parts[1] === 'commit' &&
+          nativeTransferChunks === 2 && body === '') {
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeTransferCid,
+          state: [3, 2, 0, 1, 0, 1, 1, 1, 1],
+        }));
+        return;
+      }
+      response.writeHead(409).end();
+      return;
+    }
     if (request.url === '/generic-put') {
       if (request.method !== 'PUT' || body !== 'chunk-a' ||
           request.headers['content-type'] !== 'application/octet-stream' ||
@@ -378,6 +443,7 @@ try {
     'src/platform_native/http_client',
     'src/platform_native/remote_journal',
     'src/platform_native/remote_transfer_journal',
+    'src/platform_native/remote_transfer_client',
     'src/platform_native/remote_client',
     'src/platform_native/credential_resource',
   ]) {

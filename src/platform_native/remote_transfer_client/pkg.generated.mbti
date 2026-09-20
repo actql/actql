@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_transfer_client"
+
+import {
+  "actql/actql/platform_native/http_client",
+  "actql/actql/remote_transfer",
+}
+
+// Values
+pub fn admit_direct_source(@remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[Unit, NativeRemoteTransferClientIssue]
+
+pub fn send_direct_transfer(@http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeRemoteTransferClientIssue {
+  InvalidRequest
+  SourceMismatch
+  Rejected(Int)
+  Physical(@http_client.NativeHttpIssue)
+  Protocol(@remote_transfer.RemoteTransferIssue)
+}
+
+// Type aliases
+
+// Traits
