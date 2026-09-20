@@ -140,6 +140,8 @@ pub fn complete_carrier_managed_task_execution(CapturedDAG, TaskExecution, @exec
 
 pub fn complete_deferred_materializing_task_execution(CapturedDAG, TaskExecution, () -> Result[@execution_relation.CompletedOutput, RunIssue]) -> Result[Unit, RunIssue]
 
+pub fn complete_carrier_managed_task_execution_with_inputs(CapturedDAG, TaskExecution, @execution_relation.CarrierManagedCompletedOutput, allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedInputBinding]) -> Result[Unit, RunIssue]
+
 pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[Unit, RunIssue]
 
 pub fn complete_materializing_task_execution(CapturedDAG, TaskExecution, @execution_relation.CompletedOutput) -> Result[Unit, RunIssue]

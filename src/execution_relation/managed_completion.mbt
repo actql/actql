@@ -729,6 +729,14 @@ pub fn managed_completed_reference_available(
 }
 
 ///|
+pub fn managed_completed_reference_same(
+  left : ManagedCompletionReference,
+  right : ManagedCompletionReference,
+) -> Bool {
+  @managed_carrier.completion_reference_same(left.lifecycle, right.lifecycle)
+}
+
+///|
 pub fn[T] managed_completed_reference_matches(
   reference : ManagedCompletionReference,
   output : ManagedCompletedOutput[T],

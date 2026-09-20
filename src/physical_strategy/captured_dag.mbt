@@ -1271,13 +1271,12 @@ fn[T] captured_managed_inputs_match(
 }
 
 ///|
-/// Verify every ordered non-Relation Carrier use site against the exact
-/// producer occurrence recorded by this graph. Repeated producers remain
-/// distinct input edges and therefore require distinct read proofs.
-fn captured_carrier_managed_inputs_match(
+/// Verify an ordered mixture of managed Relation and Carrier use sites against
+/// the exact producer occurrences retained by the common graph.
+fn captured_mixed_managed_inputs_match(
   run : CapturedDAG,
   task : Int,
-  inputs : Array[@execution.CarrierManagedProducerRead],
+  inputs : Array[@execution.ManagedInputBinding],
 ) -> Bool {
   if task <= 0 ||
     task >= run.inputs.length() ||
@@ -1285,7 +1284,7 @@ fn captured_carrier_managed_inputs_match(
     return false
   }
   for port, input in inputs {
-    if !@execution.carrier_managed_producer_read_matches_input(
+    if !@execution.managed_input_binding_matches_input(
         input,
         run.graph.owners[task],
         port,
@@ -1299,13 +1298,24 @@ fn captured_carrier_managed_inputs_match(
         break
       }
     }
-    guard selected is Some(edge) &&
-      edge.producer > 0 &&
-      carrier_managed_task_output_reference(run, edge.producer)
-      is Some(reference) &&
-      @execution.carrier_managed_producer_read_matches_reference(
-        input, reference,
-      ) else {
+    guard selected is Some(edge) && edge.producer > 0 else { return false }
+    let relation_matches = managed_task_output_reference(run, edge.producer)
+      .map(reference => {
+        @execution.managed_input_binding_matches_relation_reference(
+          input, reference,
+        )
+      })
+      .unwrap_or(false)
+    let carrier_matches = carrier_managed_task_output_reference(
+      run, edge.producer,
+    )
+      .map(reference => {
+        @execution.managed_input_binding_matches_carrier_reference(
+          input, reference,
+        )
+      })
+      .unwrap_or(false)
+    if relation_matches == carrier_matches {
       return false
     }
   }

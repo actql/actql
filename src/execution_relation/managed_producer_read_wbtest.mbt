@@ -62,6 +62,18 @@ test "managed completed values bind checked projections without legacy identitie
     let input = prepare_managed_producer_read(
       receiver, 0, owner, output, 1000, 10000,
     ).unwrap()
+    let common = managed_relation_input_binding(input)
+    assert_true(managed_input_binding_matches_input(common, receiver, 0))
+    assert_eq(
+      managed_input_binding_profile_cid(common),
+      managed_execution_profile_cid(managed_test_profile()),
+    )
+    assert_true(
+      managed_input_binding_matches_relation_reference(
+        common,
+        managed_completed_reference(output),
+      ),
+    )
     assert_true(physical_equal(managed_producer_read_receiver(input), receiver))
     assert_eq(managed_producer_read_input_index(input), 0)
     assert_eq(managed_producer_read_row_count(input), 2)
@@ -88,6 +100,7 @@ test "managed completed values bind checked projections without legacy identitie
       ),
     )
     live.val = false
+    assert_false(managed_input_binding_available(common))
     assert_false(managed_producer_read_available(input))
     assert_false(managed_producer_read_matches_reference(input, reference))
     assert_true(managed_producer_read_material(input) is None)

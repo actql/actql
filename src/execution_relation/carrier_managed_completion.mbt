@@ -4,7 +4,7 @@ struct CarrierManagedCompletionPort[P] {
   profile : ManagedExecutionProfile
   preparation : CompletionPreparation
   target : @pipeline.Target
-  inputs : Array[CarrierManagedProducerRead]
+  inputs : Array[ManagedInputBinding]
   verify : (P) -> @managed_carrier.CompletionReference?
   obligations : ManagedObligations
   mut attempt : ManagedExecutionAttempt?
@@ -23,7 +23,7 @@ struct CarrierManagedCompletedOutput {
   profile : ManagedExecutionProfile
   preparation : CompletionPreparation
   target : @pipeline.Target
-  inputs : Array[CarrierManagedProducerRead]
+  inputs : Array[ManagedInputBinding]
   obligations : ManagedObligations
   attempt : ManagedExecutionAttempt?
 }
@@ -95,6 +95,35 @@ pub fn[P] prepare_carrier_managed_completion_port(
   obligations? : ManagedObligations,
   attempt? : ManagedExecutionAttempt,
 ) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue] {
+  prepare_carrier_managed_completion_port_with_inputs(
+    profile,
+    preparation,
+    target,
+    max_entries,
+    max_name_bytes,
+    verify,
+    inputs?=inputs.map(values => {
+      values.map(value => managed_carrier_input_binding(value))
+    }),
+    obligations?,
+    attempt?,
+  )
+}
+
+///|
+/// Prepare a Carrier completion from the exact ordered mixed-Carrier input
+/// set. Relation and Carrier payloads remain private to their runtimes.
+pub fn[P] prepare_carrier_managed_completion_port_with_inputs(
+  profile : ManagedExecutionProfile,
+  preparation : CompletionPreparation,
+  target : @pipeline.Target,
+  max_entries : Int,
+  max_name_bytes : Int,
+  verify : (P) -> @managed_carrier.CompletionReference?,
+  inputs? : Array[ManagedInputBinding],
+  obligations? : ManagedObligations,
+  attempt? : ManagedExecutionAttempt,
+) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue] {
   let kind = match
     validate_carrier_completion_target(
       preparation, target, max_entries, max_name_bytes,
@@ -117,8 +146,8 @@ pub fn[P] prepare_carrier_managed_completion_port(
       return Err(ForeignInputs)
     }
     for index, input in selected_inputs {
-      if !carrier_managed_producer_read_matches_input(input, owner, index) ||
-        managed_execution_profile_cid(input.output.profile) !=
+      if !managed_input_binding_matches_input(input, owner, index) ||
+        managed_input_binding_profile_cid(input) !=
         managed_execution_profile_cid(profile) {
         return Err(ForeignInputs)
       }
@@ -185,7 +214,7 @@ pub fn[P] complete_carrier_managed_output(
     return Err(Unverified)
   }
   for input in port.inputs {
-    if !carrier_managed_producer_read_available(input) {
+    if !managed_input_binding_available(input) {
       return Err(ForeignInputs)
     }
   }
@@ -208,7 +237,7 @@ pub fn[P] complete_carrier_managed_output(
     return Err(ForeignOutput)
   }
   for input in port.inputs {
-    if !carrier_managed_producer_read_available(input) {
+    if !managed_input_binding_available(input) {
       return Err(ForeignInputs)
     }
   }
@@ -354,12 +383,23 @@ pub fn carrier_managed_completed_output_matches_inputs(
   value : CarrierManagedCompletedOutput,
   inputs : Array[CarrierManagedProducerRead],
 ) -> Bool {
+  carrier_managed_completed_output_matches_managed_inputs(
+    value,
+    inputs.map(input => managed_carrier_input_binding(input)),
+  )
+}
+
+///|
+pub fn carrier_managed_completed_output_matches_managed_inputs(
+  value : CarrierManagedCompletedOutput,
+  inputs : Array[ManagedInputBinding],
+) -> Bool {
   if value.inputs.length() != inputs.length() {
     return false
   }
   for index, input in inputs {
-    if !carrier_managed_producer_read_same(value.inputs[index], input) ||
-      !carrier_managed_producer_read_available(input) {
+    if !managed_input_binding_same(value.inputs[index], input) ||
+      !managed_input_binding_available(input) {
       return false
     }
   }
@@ -391,4 +431,14 @@ pub fn carrier_managed_completed_reference_matches(
   physical_equal(reference.identity, value.identity) &&
   carrier_managed_completed_reference_available(reference) &&
   carrier_managed_completed_output_available(value)
+}
+
+///|
+pub fn carrier_managed_completed_reference_same(
+  left : CarrierManagedCompletionReference,
+  right : CarrierManagedCompletionReference,
+) -> Bool {
+  physical_equal(left.identity, right.identity) &&
+  carrier_managed_completed_reference_available(left) &&
+  carrier_managed_completed_reference_available(right)
 }

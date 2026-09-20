@@ -216,6 +216,18 @@ test "carrier completion seals exact event attempt and input use site" {
     producer_output,
     @managed_carrier.producer_read_reference(raw_read),
   ).unwrap()
+  let common = managed_carrier_input_binding(input)
+  assert_true(managed_input_binding_matches_input(common, consumer, 0))
+  assert_eq(
+    managed_input_binding_profile_cid(common),
+    managed_execution_profile_cid(selected_managed_execution_profile()),
+  )
+  assert_true(
+    managed_input_binding_matches_carrier_reference(
+      common,
+      carrier_managed_completed_reference(producer_output),
+    ),
+  )
   assert_true(
     carrier_managed_producer_read_matches_reference(
       input,
