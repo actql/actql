@@ -371,6 +371,94 @@ test "Named Result view preparation advances and cancels in bounded steps" {
 }
 
 ///|
+test "Named Result resume rejects a source lost between bounded steps" {
+  let owner = result_export_owner()
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"]," +
+    "\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  for completed_steps in [1, 4, 7] {
+    let permission = Ref(true)
+    let availability_checks = Ref(0)
+    let source = restrict_completed_output(export_fixture(owner), fn() {
+      availability_checks.val += 1
+      permission.val
+    })
+    let preparation = start_completed_result_relation_export(
+      source,
+      occurrence,
+      result_view_limits(),
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      row_wire_limits(),
+      publication_schema_limits(),
+      64,
+    ).unwrap()
+    for _ in 0..<completed_steps {
+      assert_eq(
+        advance_completed_result_relation_export(preparation, 1).unwrap(),
+        (false, 1),
+      )
+    }
+    let checks_before_loss = availability_checks.val
+    let mapping_before_loss = preparation.rows.mapping_work.val
+    let order_before_loss = preparation.rows.order_work.remaining
+    permission.val = false
+    assert_true(
+      advance_completed_result_relation_export(preparation, 1)
+      is Err(ResultView(Unavailable)),
+    )
+    assert_true(availability_checks.val > checks_before_loss)
+    assert_eq(preparation.rows.mapping_work.val, mapping_before_loss)
+    assert_eq(preparation.rows.order_work.remaining, order_before_loss)
+    assert_true(
+      advance_completed_result_relation_export(preparation, 1) is Err(Closed),
+    )
+    assert_true(
+      finish_completed_result_relation_export_preparation(preparation)
+      is Err(Closed),
+    )
+    assert_false(cancel_completed_result_relation_export(preparation))
+  }
+
+  let permission = Ref(true)
+  let source = restrict_completed_output(export_fixture(owner), fn() {
+    permission.val
+  })
+  let prepared_stream = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  while true {
+    let (complete, _) = advance_completed_result_relation_export(
+      prepared_stream, 1,
+    ).unwrap()
+    if complete {
+      break
+    }
+  }
+  permission.val = false
+  assert_true(
+    advance_completed_result_relation_export(prepared_stream, 1)
+    is Err(ResultView(Unavailable)),
+  )
+  assert_true(
+    finish_completed_result_relation_export_preparation(prepared_stream)
+    is Err(Closed),
+  )
+}
+
+///|
 test "Named Result export rejects foreign occurrence and exact view limits" {
   let owner = result_export_owner()
   let source = export_fixture(owner)

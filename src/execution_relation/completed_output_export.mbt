@@ -214,6 +214,10 @@ pub fn advance_completed_result_relation_export(
   if value.closed || quantum <= 0 {
     return Err(Closed)
   }
+  if !completed_output_available(value.rows.source) {
+    cancel_completed_result_relation_export(value) |> ignore
+    return Err(ResultView(Unavailable))
+  }
   if value.stream is Some(_) {
     return Ok((true, 0))
   }

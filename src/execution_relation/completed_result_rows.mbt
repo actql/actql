@@ -251,6 +251,10 @@ fn advance_completed_result_rows(
   if value.closed {
     return Err(Unavailable)
   }
+  if !completed_output_available(value.source) {
+    cancel_completed_result_rows(value) |> ignore
+    return Err(Unavailable)
+  }
   if value.done {
     return Ok((true, 0))
   }
