@@ -20,11 +20,20 @@ pub(all) suberror NodeHostFailure {
 /// Node may drive batches and persist bytes, but only MoonBit owns typed value
 /// interpretation, canonical ordering, admission, and the content receipt.
 struct StrategyHostOutputExport {
-  stream : @execution.CompletedOutputExport
-  definition : @publication.PublicationContract?
-  mut receipt : @execution.CompletedRelationExportReceipt?
-  mut evidence : @publication.ResultOrderingEvidence?
-  mut artifact : @publication.PublicationContract?
+  core : @publication_host.PublicationOutputExport
+}
+
+///|
+fn[T] strategy_publication_output_result(
+  result : Result[T, @publication_host.PublicationOutputExportIssue],
+) -> T raise NodeHostFailure {
+  match result {
+    Ok(value) => value
+    Err(Output(issue)) => raise OutputExport(issue)
+    Err(Evidence(issue)) => raise PublicationEvidence(issue)
+    Err(Capture(issue)) => raise CapturedRun(issue)
+    Err(_) => raise InvalidCommand
+  }
 }
 
 ///|
@@ -1971,46 +1980,46 @@ pub fn strategy_host_output_export_begin(
   max_schema_depth : Int,
   max_batch_bytes : Int,
 ) -> StrategyHostOutputExport raise NodeHostFailure {
-  match
-    @execution.prepare_completed_relation_export(
-      output,
-      max_rows,
-      {
-        max_nodes: max_value_nodes,
-        max_text_bytes: max_value_text_bytes,
-        max_depth: max_value_depth,
-        max_work: max_value_work,
-      },
-      {
-        max_columns,
-        max_order_work,
-        max_bytes: max_wire_bytes,
-        max_nodes: max_wire_nodes,
-        max_depth: max_wire_depth,
-      },
-      {
-        max_columns,
-        max_order_work,
-        max_bytes: max_logical_wire_bytes,
-        max_nodes: max_logical_wire_nodes,
-        max_depth: max_logical_wire_depth,
-      },
-      {
-        max_fields: max_schema_fields,
-        max_bytes: max_schema_bytes,
-        max_nodes: max_schema_nodes,
-        max_depth: max_schema_depth,
-      },
-      max_batch_bytes,
-    ) {
-    Ok(stream) => {
-      stream,
-      definition: None,
-      receipt: None,
-      evidence: None,
-      artifact: None,
-    }
-    Err(issue) => raise OutputExport(issue)
+  {
+    core: strategy_publication_output_result(
+      @publication_host.prepare_publication_output_export(
+        output,
+        {
+          max_result_fields: 0,
+          max_result_mapping_work: 0,
+          max_result_order_work: 0,
+          max_result_workspace_entries: 0,
+          max_rows,
+          values: {
+            max_nodes: max_value_nodes,
+            max_text_bytes: max_value_text_bytes,
+            max_depth: max_value_depth,
+            max_work: max_value_work,
+          },
+          payload_wire: {
+            max_columns,
+            max_order_work,
+            max_bytes: max_wire_bytes,
+            max_nodes: max_wire_nodes,
+            max_depth: max_wire_depth,
+          },
+          logical_wire: {
+            max_columns,
+            max_order_work,
+            max_bytes: max_logical_wire_bytes,
+            max_nodes: max_logical_wire_nodes,
+            max_depth: max_logical_wire_depth,
+          },
+          schema: {
+            max_fields: max_schema_fields,
+            max_bytes: max_schema_bytes,
+            max_nodes: max_schema_nodes,
+            max_depth: max_schema_depth,
+          },
+          max_batch_bytes,
+        },
+      ),
+    ),
   }
 }
 
@@ -2048,76 +2057,47 @@ pub fn strategy_host_result_output_export_begin(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  let graph = @strategy.captured_dag_graph(run)
-  guard @strategy.graph_result_task(graph, result) is Some(task) else {
-    raise InvalidCommand
-  }
-  guard @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
-    raise InvalidCommand
-  }
-  guard @strategy.graph_result_name(graph, result) is Some(result_name) else {
-    raise InvalidCommand
-  }
-  let definition = match
-    @publication.prepare_result_definition(
-      @strategy.graph_program_definition_cid(graph), result_name,
-    ) {
-    Ok(value) => @publication.result_definition_contract(value)
-    Err(_) => raise InvalidCommand
-  }
-  guard @strategy.captured_task_target(run, task) is Some(target) else {
-    raise InvalidCommand
-  }
-  guard @strategy.captured_task_output(run, task, target) is Some(output) else {
-    raise InvalidCommand
-  }
-  match
-    @execution.prepare_completed_result_relation_export(
-      output,
-      occurrence,
-      {
-        max_fields: max_result_fields,
-        max_mapping_work: max_result_mapping_work,
-        max_order_work: max_result_order_work,
-        max_workspace_entries: max_result_workspace_entries,
-      },
-      max_rows,
-      {
-        max_nodes: max_value_nodes,
-        max_text_bytes: max_value_text_bytes,
-        max_depth: max_value_depth,
-        max_work: max_value_work,
-      },
-      {
-        max_columns,
-        max_order_work,
-        max_bytes: max_wire_bytes,
-        max_nodes: max_wire_nodes,
-        max_depth: max_wire_depth,
-      },
-      {
-        max_columns,
-        max_order_work,
-        max_bytes: max_logical_wire_bytes,
-        max_nodes: max_logical_wire_nodes,
-        max_depth: max_logical_wire_depth,
-      },
-      {
-        max_fields: max_schema_fields,
-        max_bytes: max_schema_bytes,
-        max_nodes: max_schema_nodes,
-        max_depth: max_schema_depth,
-      },
-      max_batch_bytes,
-    ) {
-    Ok(stream) => {
-      stream,
-      definition: Some(definition),
-      receipt: None,
-      evidence: None,
-      artifact: None,
-    }
-    Err(issue) => raise OutputExport(issue)
+  {
+    core: strategy_publication_output_result(
+      @publication_host.prepare_captured_result_publication_export(
+        run,
+        result,
+        {
+          max_result_fields,
+          max_result_mapping_work,
+          max_result_order_work,
+          max_result_workspace_entries,
+          max_rows,
+          values: {
+            max_nodes: max_value_nodes,
+            max_text_bytes: max_value_text_bytes,
+            max_depth: max_value_depth,
+            max_work: max_value_work,
+          },
+          payload_wire: {
+            max_columns,
+            max_order_work,
+            max_bytes: max_wire_bytes,
+            max_nodes: max_wire_nodes,
+            max_depth: max_wire_depth,
+          },
+          logical_wire: {
+            max_columns,
+            max_order_work,
+            max_bytes: max_logical_wire_bytes,
+            max_nodes: max_logical_wire_nodes,
+            max_depth: max_logical_wire_depth,
+          },
+          schema: {
+            max_fields: max_schema_fields,
+            max_bytes: max_schema_bytes,
+            max_nodes: max_schema_nodes,
+            max_depth: max_schema_depth,
+          },
+          max_batch_bytes,
+        },
+      ),
+    ),
   }
 }
 
@@ -2126,13 +2106,7 @@ pub fn strategy_host_result_output_export_begin(
 pub fn strategy_host_output_export_next(
   value : StrategyHostOutputExport,
 ) -> String? raise NodeHostFailure {
-  if value.receipt is Some(_) {
-    raise InvalidCommand
-  }
-  match @execution.next_completed_output_export(value.stream) {
-    Ok(part) => part
-    Err(issue) => raise OutputExport(issue)
-  }
+  strategy_publication_output_result(value.core.next())
 }
 
 ///|
@@ -2142,16 +2116,7 @@ pub fn strategy_host_output_export_next(
 pub fn strategy_host_output_export_finish(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  if value.receipt is Some(_) {
-    raise InvalidCommand
-  }
-  match @execution.finish_completed_relation_export(value.stream) {
-    Ok((receipt, tail)) => {
-      value.receipt = Some(receipt)
-      tail
-    }
-    Err(issue) => raise OutputExport(issue)
-  }
+  strategy_publication_output_result(value.core.finish())
 }
 
 ///|
@@ -2159,10 +2124,7 @@ pub fn strategy_host_output_export_finish(
 pub fn strategy_host_output_export_cid(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.output_stream_identity(
-    @execution.completed_relation_export_content(receipt),
-  ).0
+  strategy_publication_output_result(value.core.content_cid())
 }
 
 ///|
@@ -2170,10 +2132,7 @@ pub fn strategy_host_output_export_cid(
 pub fn strategy_host_output_export_bytes(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.output_stream_identity(
-    @execution.completed_relation_export_content(receipt),
-  ).1
+  strategy_publication_output_result(value.core.content_bytes())
 }
 
 ///|
@@ -2181,10 +2140,7 @@ pub fn strategy_host_output_export_bytes(
 pub fn strategy_host_output_export_nodes(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.output_stream_identity(
-    @execution.completed_relation_export_content(receipt),
-  ).2
+  strategy_publication_output_result(value.core.content_nodes())
 }
 
 ///|
@@ -2192,10 +2148,7 @@ pub fn strategy_host_output_export_nodes(
 pub fn strategy_host_output_export_rows(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.output_stream_identity(
-    @execution.completed_relation_export_content(receipt),
-  ).3
+  strategy_publication_output_result(value.core.row_count())
 }
 
 ///|
@@ -2203,10 +2156,7 @@ pub fn strategy_host_output_export_rows(
 pub fn strategy_host_output_export_logical_relation_cid(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.logical_relation_cid(
-    @execution.completed_relation_export_identity(receipt),
-  )
+  strategy_publication_output_result(value.core.logical_relation_cid())
 }
 
 ///|
@@ -2214,10 +2164,7 @@ pub fn strategy_host_output_export_logical_relation_cid(
 pub fn strategy_host_output_export_result_schema_cid(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.relation_schema_cid(
-    @execution.completed_relation_export_schema_identity(receipt),
-  )
+  strategy_publication_output_result(value.core.result_schema_cid())
 }
 
 ///|
@@ -2225,10 +2172,7 @@ pub fn strategy_host_output_export_result_schema_cid(
 pub fn strategy_host_output_export_result_schema_wire(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.relation_schema_wire(
-    @execution.completed_relation_export_schema_identity(receipt),
-  )
+  strategy_publication_output_result(value.core.result_schema_wire())
 }
 
 ///|
@@ -2236,8 +2180,7 @@ pub fn strategy_host_output_export_result_schema_wire(
 pub fn strategy_host_output_export_result_fields(
   value : StrategyHostOutputExport,
 ) -> Array[String] raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.completed_relation_export_field_names(receipt)
+  strategy_publication_output_result(value.core.result_fields())
 }
 
 ///|
@@ -2247,8 +2190,7 @@ pub fn strategy_host_output_export_result_fields(
 pub fn strategy_host_output_export_codec_contract_cid(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(_) else { raise InvalidCommand }
-  @execution.ordered_rows_canonical_contract_cid()
+  strategy_publication_output_result(value.core.codec_contract_cid())
 }
 
 ///|
@@ -2267,34 +2209,17 @@ pub fn strategy_host_output_export_issue_result_evidence(
   max_nodes : Int,
   max_depth : Int,
 ) -> Unit raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  guard value.definition is Some(definition) else { raise InvalidCommand }
-  if value.evidence is Some(_) {
-    raise InvalidCommand
-  }
-  value.evidence = Some(
-    match
-      @publication.issue_result_occurrence_evidence(
-        definition,
-        @execution.logical_relation_cid(
-          @execution.completed_relation_export_identity(receipt),
-        ),
-        @execution.relation_schema_cid(
-          @execution.completed_relation_export_schema_identity(receipt),
-        ),
-        computation_contract_cid,
-        input_relation_cids,
-        scope_cid,
-        effective_data_policy_cid,
-        "actql-common-host",
-        authority_scope_cid,
-        max_wire_bytes,
-        max_nodes,
-        max_depth,
-      ) {
-      Ok(evidence) => evidence
-      Err(issue) => raise PublicationEvidence(issue)
-    },
+  strategy_publication_output_result(
+    value.core.issue_result_evidence(
+      computation_contract_cid,
+      input_relation_cids,
+      scope_cid,
+      effective_data_policy_cid,
+      authority_scope_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ),
   )
 }
 
@@ -2303,11 +2228,8 @@ pub fn strategy_host_output_export_issue_result_evidence(
 pub fn strategy_host_output_export_derivation_evidence_json(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
-    raise InvalidCommand
-  }
   @publication.publication_contract_json(
-    @publication.result_ordering_derivation_contract(evidence),
+    strategy_publication_output_result(value.core.derivation()),
   )
 }
 
@@ -2316,11 +2238,8 @@ pub fn strategy_host_output_export_derivation_evidence_json(
 pub fn strategy_host_output_export_ordering_evidence_json(
   value : StrategyHostOutputExport,
 ) -> String raise NodeHostFailure {
-  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
-    raise InvalidCommand
-  }
   @publication.publication_contract_json(
-    @publication.result_ordering_evidence_contract(evidence),
+    strategy_publication_output_result(value.core.ordering()),
   )
 }
 
@@ -2336,31 +2255,11 @@ pub fn strategy_host_output_export_issue_result_artifact(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.PublicationContract raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  guard value.definition is Some(definition) else { raise InvalidCommand }
-  guard value.evidence is Some(evidence) else { raise InvalidCommand }
-  if value.artifact is Some(_) {
-    raise InvalidCommand
-  }
-  let rows = @execution.output_stream_identity(
-    @execution.completed_relation_export_content(receipt),
-  ).3
-  let artifact = match
-    @publication.issue_complete_result_artifact(
-      definition,
-      invocation,
-      evidence,
-      retention,
-      rows,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => raise InvalidCommand
-  }
-  value.artifact = Some(artifact)
-  artifact
+  strategy_publication_output_result(
+    value.core.issue_artifact(
+      invocation, retention, max_wire_bytes, max_nodes, max_depth,
+    ),
+  )
 }
 
 ///|
@@ -2373,24 +2272,9 @@ pub fn strategy_host_output_export_admit_captured_result_snapshot(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  guard value.definition is Some(definition) else { raise InvalidCommand }
-  guard value.artifact is Some(artifact) else { raise InvalidCommand }
-  let (rows_wire, fields) = match
-    @execution.completed_relation_export_snapshot(
-      value.stream, receipt, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(snapshot) => snapshot
-    Err(issue) => raise OutputExport(issue)
-  }
-  match
-    @publication.admit_captured_result_snapshot(
-      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes,
-      max_depth,
-    ) {
-    Ok(snapshot) => snapshot
-    Err(issue) => raise CapturedRun(issue)
-  }
+  strategy_publication_output_result(
+    value.core.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
+  )
 }
 
 ///|
@@ -2398,10 +2282,7 @@ pub fn strategy_host_output_export_admit_captured_result_snapshot(
 pub fn strategy_host_output_export_schema_bytes(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.relation_schema_usage(
-    @execution.completed_relation_export_schema_identity(receipt),
-  ).0
+  strategy_publication_output_result(value.core.schema_usage()).0
 }
 
 ///|
@@ -2409,10 +2290,7 @@ pub fn strategy_host_output_export_schema_bytes(
 pub fn strategy_host_output_export_schema_nodes(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.relation_schema_usage(
-    @execution.completed_relation_export_schema_identity(receipt),
-  ).1
+  strategy_publication_output_result(value.core.schema_usage()).1
 }
 
 ///|
@@ -2420,10 +2298,7 @@ pub fn strategy_host_output_export_schema_nodes(
 pub fn strategy_host_output_export_schema_fields(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
-  @execution.relation_schema_usage(
-    @execution.completed_relation_export_schema_identity(receipt),
-  ).2
+  strategy_publication_output_result(value.core.schema_usage()).2
 }
 
 ///|
@@ -2431,15 +2306,7 @@ pub fn strategy_host_output_export_schema_fields(
 pub fn strategy_host_output_export_cancel(
   value : StrategyHostOutputExport,
 ) -> Unit {
-  match value.receipt {
-    Some(receipt) => {
-      @execution.cancel_completed_relation_export_receipt(receipt)
-      value.receipt = None
-      value.evidence = None
-      value.artifact = None
-    }
-    None => @execution.cancel_completed_output_export(value.stream)
-  }
+  value.core.cancel()
 }
 
 ///|

@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/run_publication" @publication,
+}

@@ -54,6 +54,7 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/remote_site_completion" @remote_completion,
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/run_publication_host" @publication_host,
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/numeric_reduction" @numeric,
   "moonbitlang/core/env",

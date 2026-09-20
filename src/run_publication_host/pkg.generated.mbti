@@ -1,0 +1,63 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/run_publication_host"
+
+import {
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+  "actql/actql/run_publication",
+}
+
+// Values
+pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
+
+pub fn prepare_publication_output_export(@execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
+
+// Errors
+
+// Types and methods
+type PublicationOutputExport
+pub fn PublicationOutputExport::admit_captured_snapshot(Self, Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::cancel(Self) -> Unit
+pub fn PublicationOutputExport::codec_contract_cid(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::content_bytes(Self) -> Result[Int, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::content_cid(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::content_nodes(Self) -> Result[Int, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::definition(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::derivation(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::finish(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::issue_artifact(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::issue_result_evidence(Self, String, Array[String], String, String, String, Int, Int, Int) -> Result[Unit, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::next(Self) -> Result[String?, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::ordering(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::result_fields(Self) -> Result[Array[String], PublicationOutputExportIssue]
+pub fn PublicationOutputExport::result_schema_cid(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::result_schema_wire(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::row_count(Self) -> Result[Int, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::schema_usage(Self) -> Result[(Int, Int, Int), PublicationOutputExportIssue]
+
+pub(all) enum PublicationOutputExportIssue {
+  InvalidState
+  UnknownResult
+  Output(@execution_relation.CompletedExportIssue)
+  Evidence(@run_publication.ResultEvidenceIssuanceIssue)
+  Artifact(@run_publication.ResultArtifactIssuanceIssue)
+  Capture(@run_publication.CapturedRunIssuanceIssue)
+}
+
+pub(all) struct PublicationOutputExportLimits {
+  max_result_fields : Int
+  max_result_mapping_work : Int
+  max_result_order_work : Int
+  max_result_workspace_entries : Int
+  max_rows : Int
+  values : @execution_relation.ValueLimits
+  payload_wire : @execution_relation.RowWireLimits
+  logical_wire : @execution_relation.RowWireLimits
+  schema : @execution_relation.RelationSchemaIdentityLimits
+  max_batch_bytes : Int
+}
+
+// Type aliases
+
+// Traits

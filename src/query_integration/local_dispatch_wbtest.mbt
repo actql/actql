@@ -130,3 +130,109 @@ test "Local connector installation validates task owners and cannot exchange pre
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
 }
+
+///|
+test "standard Local Host exports the exact checked Named Result through the portable publication owner" {
+  let (run, _) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_result_count(graph), 2)
+  assert_eq(@strategy.graph_result_name(graph, 0), Some("b"))
+  assert_eq(@strategy.graph_result_name(graph, 1), Some("c"))
+  let registry = search_registry()
+  let revision = channel_test_selection(run, registry)
+  let registration = @strategy.strategy_registration(revision, 1).unwrap()
+  let driver = @host_driver.open_dispatch_driver(run)
+  let limits = dispatch_test_limits()
+  let implementation = @local_driver.prepare_local_dispatch_module(
+    driver,
+    registry,
+    registration,
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  let entries = @connector.install_capability_implementations(
+    registry,
+    [
+      (
+        registration,
+        fn(_context : Unit, task, revision, request) {
+          @local_driver.prepare_local_dispatch(
+            implementation, task, revision, request,
+          )
+        },
+      ),
+    ],
+    1,
+  ).unwrap()
+  let host = @host_driver.open_dispatch_host(
+    driver,
+    entries,
+    limits.capacity,
+    100,
+    10000,
+  ).unwrap()
+  while @host_driver.prepare_next_installed_task(host, ()).unwrap()
+        is Some(task) {
+    @local_driver.execute_local_dispatch(implementation, host, task).unwrap()
+  }
+  let result_stream = @publication_host.prepare_captured_result_publication_export(
+    run,
+    1,
+    {
+      max_result_fields: 10,
+      max_result_mapping_work: 100,
+      max_result_order_work: 100,
+      max_result_workspace_entries: 100,
+      max_rows: 100,
+      values: {
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 20,
+        max_work: 10000,
+      },
+      payload_wire: {
+        max_columns: 10,
+        max_order_work: 100,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+      },
+      logical_wire: {
+        max_columns: 10,
+        max_order_work: 100,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+      },
+      schema: {
+        max_fields: 10,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+      },
+      max_batch_bytes: 64,
+    },
+  ).unwrap()
+  let text = StringBuilder()
+  while result_stream.next().unwrap() is Some(chunk) {
+    text.write_string(chunk)
+  }
+  text.write_string(result_stream.finish().unwrap())
+  assert_eq(text.to_string(), "[{\"id\":3}]")
+  assert_eq(result_stream.row_count().unwrap(), 1)
+  assert_eq(result_stream.result_fields().unwrap(), ["id"])
+  assert_true(
+    result_stream.logical_relation_cid().unwrap().has_prefix("sha256:"),
+  )
+  assert_true(result_stream.result_schema_cid().unwrap().has_prefix("sha256:"))
+  result_stream.cancel()
+  for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+}
