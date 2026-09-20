@@ -28,8 +28,7 @@
   "shared_gaps": [
     "carrier_standard_host_dispatch",
     "bounded_step_execution",
-    "cancellation_delivery_and_stop",
-    "family_artifact_isolation"
+    "cancellation_delivery_and_stop"
   ],
   "shared_completed": [
     "canonical_aoa_inventory",
@@ -57,7 +56,8 @@
     "bounded_result_finalization",
     "bounded_finalization_terminal_reports",
     "bounded_result_resume_lifetime",
-    "workers_fixture_freshness"
+    "workers_fixture_freshness",
+    "family_selective_artifacts"
   ],
   "operations": [
     {

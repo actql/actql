@@ -16,7 +16,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 28/39 entries have resource and three-target kernel evidence | Implement and register the remaining 11 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 19/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
-| Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
+| Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections and equality, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 23/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
@@ -816,6 +816,15 @@ reclaims all held and reserved capacity. Ordinary RelA execution remains on
 its established dispatcher. The affected MoonBit suites pass 1,122 tests on
 each of JS, Wasm, and native; the real Node Host, Local adapter, Workers
 generation, and all 24 Workers tests also pass.
+
+At `b636f29c`, the family artifact gate builds the RelA-only Node artifact and
+the SGA, TEA, and VecA provider artifacts with the pinned MoonBit toolchain. It
+derives each transitive package closure from `moon.pkg`, rejects unselected
+family kernel or provider packages, and inspects the final RelA link response.
+The generated artifacts are nonempty and independently identified by SHA-256.
+This closes the shared packaging gap without removing complete-language
+checker or contract metadata from the RelA-only artifact. It does not change
+the 18/39 operation completion count.
 
 The Graph Bridge now lowers explicit node and edge sources through one finite
 typed expansion without collapsing repeated input positions. The expansion
