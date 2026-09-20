@@ -356,6 +356,12 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
+  if variant == "ranking_max" ||
+    variant == "ranking_weighted" ||
+    variant == "ranking_rrf" ||
+    variant == "ranking_rrf_repeated" {
+    return local_vector_ranking_program(variant)
+  }
   if variant == "nearest" ||
     variant == "nearest_cosine" ||
     variant == "nearest_l2" ||
@@ -1672,6 +1678,108 @@ fn local_vector_nearest_program(variant : String) -> String {
   "\"select\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_vector_ranking_program(variant : String) -> String {
+  let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
+  let repeated = variant == "ranking_rrf_repeated"
+  let schema = if rrf {
+    "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"rank\":{\"type\":\"number\",\"nullable\":false}}"
+  } else {
+    "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"score\":{\"type\":\"number\",\"nullable\":false}}"
+  }
+  let left_rows = if rrf {
+    "[{\"q\":1,\"id\":1,\"rank\":1},{\"q\":1,\"id\":2," +
+    "\"rank\":2},{\"q\":2,\"id\":1,\"rank\":1}]"
+  } else {
+    "[{\"q\":1,\"id\":1,\"score\":0.75},{\"q\":1," +
+    "\"id\":2,\"score\":0.5},{\"q\":2,\"id\":1," +
+    "\"score\":0.25}]"
+  }
+  let right_rows = if rrf {
+    "[{\"q\":1,\"id\":3,\"rank\":1},{\"q\":1,\"id\":1," +
+    "\"rank\":2},{\"q\":2,\"id\":1,\"rank\":1}]"
+  } else {
+    "[{\"q\":1,\"id\":1,\"score\":0.5},{\"q\":1," +
+    "\"id\":3,\"score\":0.25},{\"q\":2,\"id\":1," +
+    "\"score\":0.75}]"
+  }
+  let options = if rrf {
+    "\"rank\":\"rank\",\"score_policy\":{\"rrf\":{" +
+    "\"rank_constant\":1,\"weights\":" +
+    (if repeated { "[1,1,2]" } else { "[1,1]" }) +
+    ",\"rank_window\":2}}"
+  } else {
+    let policy = if variant == "ranking_weighted" {
+      "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"
+    } else {
+      "\"max\""
+    }
+    "\"score\":\"score\",\"score_policy\":" +
+    policy +
+    ",\"score_contract\":{\"domain\":\"unit.v1\"," +
+    "\"range\":[0,1],\"normalization\":\"unit.v1\"}"
+  }
+  let fields = "[\"q\",\"id\",\"score\",\"rank\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{" +
+  "\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"left\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  left_rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  (if rrf { "[\"q\",\"id\",\"rank\"]" } else { "[\"q\",\"id\",\"score\"]" }) +
+  "}}},{\"id\":\"right\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  right_rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  (if rrf { "[\"q\",\"id\",\"rank\"]" } else { "[\"q\",\"id\",\"score\"]" }) +
+  "}}},{\"id\":\"fusion\",\"inputs\":{\"left\":{\"result\":{" +
+  "\"stage\":\"left\",\"result\":\"r\"}},\"right\":{\"result\":{" +
+  "\"stage\":\"right\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"from\":\"left\",\"merge_rankings\":{\"with\":" +
+  (if repeated {
+    "[\"right\",\"right\"]"
+  } else if rrf {
+    "[\"right\"]"
+  } else {
+    "\"right\""
+  }) +
+  ",\"by\":[\"q\"],\"candidate\":\"id\"," +
+  options +
+  ",\"k\":2},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"rank\",\"score\",\"id\",\"q\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"rank\",\"score\",\"id\",\"q\"]}}}]," +
   "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
   "\"result\":\"r\"}}}}"
 }
