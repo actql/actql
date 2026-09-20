@@ -1552,6 +1552,27 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'graft',
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graft_graph: {with: 'right_graph'}, as: 'grafted',
+    }, {
+      from: 'grafted', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  }, {
     name: 'match-nodes',
     step: {
       from: 'g',
@@ -2335,6 +2356,25 @@ async function exerciseStrategyGraph(
       from: 'g', normalize_graph: true, as: 'normalized',
     }, {
       from: 'normalized', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'graft',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 160,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graft_graph: {with: 'right_graph'}, as: 'grafted',
+    }, {
+      from: 'grafted', node_rows: true, as: 'out',
     }],
     fields: ['id', 'node_name'],
   }, {

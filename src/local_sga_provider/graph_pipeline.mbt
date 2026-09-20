@@ -46,9 +46,11 @@ priv struct Execution {
   max_rows : Int
   max_value_bytes : Int
   projection_step : Int
+  construction_steps : Int
   mut kernel_step : Int
   mut phase : Phase
-  mut construction : @bridge.RowsToGraphExecution?
+  constructions : Array[@bridge.RowsToGraphExecution]
+  graphs : Array[@graph.Completed]
   mut graph : @graph.Completed?
   mut kernel : GraphExecution?
   mut pending_graph : @graph.Completed?
@@ -96,13 +98,15 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return false
     }
     match (current, step) {
-      (0, @lower.GraphConstructionStep(_)) if !direct_graft =>
-        @lower.operation(node) == "BRIDGE.rows.to_graph"
+      (current, @lower.GraphConstructionStep(_)) if !direct_graft &&
+        current < count - 1 => @lower.operation(node) == "BRIDGE.rows.to_graph"
       (0, @lower.GraphStructuralStep(_)) if direct_graft =>
         @lower.operation(node) == "SGA.graft"
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
+      (current, @lower.GraphStructuralStep(_)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.graft"
       (current, @lower.CarrierProjectionStep(projection)) if current ==
         count - 1 =>
         (
@@ -172,10 +176,16 @@ fn provider_capacity(
 }
 
 ///|
-fn input_at(value : Execution, edge : Int) -> @execution.ProducerRead? {
+fn input_at(
+  value : Execution,
+  step : Int,
+  edge : Int,
+) -> @execution.ProducerRead? {
   let owner = @execution.generated_sequence_owner(value.generated)
   for input in value.inputs {
-    if @execution.producer_read_matches_operation_input(input, owner, 0, edge) {
+    if @execution.producer_read_matches_operation_input(
+        input, owner, step, edge,
+      ) {
       return Some(input)
     }
   }
@@ -251,15 +261,19 @@ fn advance_execution(
   while true {
     match value.phase {
       StartConstruction => {
-        guard input_at(value, 0) is Some(nodes) &&
-          input_at(value, 1) is Some(edges) else {
+        let step = value.graphs.length()
+        if step >= value.construction_steps {
+          return fail_execution(value)
+        }
+        guard input_at(value, step, 0) is Some(nodes) &&
+          input_at(value, step, 1) is Some(edges) else {
           return fail_execution(value)
         }
         let started = match
           @bridge.start_rows_to_graph(
             value.control,
             value.sequence,
-            0,
+            step,
             [nodes, edges],
             value.limits,
             value.storage_bytes,
@@ -269,12 +283,12 @@ fn advance_execution(
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
         }
-        value.construction = Some(started)
+        value.constructions.push(started)
         value.phase = Construction
         reset_stage(value)
       }
       Construction => {
-        guard value.construction is Some(active) else {
+        guard value.constructions.last() is Some(active) else {
           return fail_execution(value)
         }
         match @bridge.advance_rows_to_graph(active, quantum) {
@@ -289,10 +303,17 @@ fn advance_execution(
             guard continue_poll(value, progress, work) is Some(poll) else {
               return fail_execution(value)
             }
-            value.graph = Some(output)
-            value.phase = if value.projection_step > 1 {
+            value.graphs.push(output)
+            value.phase = if value.graphs.length() < value.construction_steps {
+              StartConstruction
+            } else if value.projection_step > value.construction_steps {
+              if value.construction_steps == 1 {
+                value.graph = Some(output)
+                value.graphs.clear()
+              }
               StartKernel
             } else {
+              value.graph = Some(output)
               StartProjection
             }
             if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
@@ -343,6 +364,34 @@ fn advance_execution(
               Ok(execution) => Graft(execution)
               Err(_) => return fail_execution(value)
             }
+          Some(@lower.GraphStructuralStep(_)) => {
+            let reads = []
+            for index, output in value.graphs {
+              match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.kernel_step,
+                  index,
+                  output,
+                ) {
+                Ok(read) => reads.push(read)
+                Err(_) => return fail_execution(value)
+              }
+            }
+            match
+              @sga.start_graft(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                reads,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => Graft(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           Some(@lower.GraphBasicStep(basic)) if @lower.graph_basic_kind(basic) ==
             @lower.NormalizeBasic => {
             guard value.graph is Some(output) else {
@@ -463,7 +512,13 @@ fn advance_execution(
           _ => return fail_execution(value)
         }
         value.kernel = None
-        if value.projection_input is Some(_) {
+        if active is Graft(_) && !value.graphs.is_empty() {
+          for source in value.graphs {
+            discard(Some(source)) |> ignore
+          }
+          value.graphs.clear()
+          value.graph = Some(completed)
+        } else if value.projection_input is Some(_) {
           discard(Some(completed)) |> ignore
         } else {
           discard(value.graph) |> ignore
@@ -811,7 +866,7 @@ fn cleanup_execution(
     return Ok(true)
   }
   let mut failed = false
-  if value.construction is Some(active) {
+  for active in value.constructions {
     match @bridge.cleanup_rows_to_graph(active) {
       Ok(_) => ()
       Err(_) => failed = true
@@ -867,11 +922,17 @@ fn cleanup_execution(
   }
   discard(value.graph) |> ignore
   value.graph = None
+  for graph in value.graphs {
+    discard(Some(graph)) |> ignore
+  }
+  value.graphs.clear()
   discard(value.pending_graph) |> ignore
   value.pending_graph = None
-  let construction_pending = match value.construction {
-    Some(active) => @bridge.rows_to_graph_cleanup_pending(active)
-    None => false
+  let mut construction_pending = false
+  for active in value.constructions {
+    if @bridge.rows_to_graph_cleanup_pending(active) {
+      construction_pending = true
+    }
   }
   let projection_pending = match value.relation {
     Some(ProjectionExecution(active)) =>
@@ -947,6 +1008,22 @@ pub fn provider(
         (!direct_graft && carriers.length() != 0) {
         return Err(@connector.Execution(@execution.InputSet))
       }
+      let construction_steps = if direct_graft {
+        0
+      } else {
+        let mut count = 0
+        while true {
+          match
+            @lower.sequence_step(
+              @execution.generated_prepared_sequence(sequence),
+              count,
+            ) {
+            Some(@lower.GraphConstructionStep(_)) => count += 1
+            _ => break
+          }
+        }
+        count
+      }
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
@@ -961,17 +1038,15 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
         ) -
         1,
-        kernel_step: if direct_graft {
-          0
-        } else {
-          1
-        },
+        construction_steps,
+        kernel_step: construction_steps,
         phase: if direct_graft {
           StartKernel
         } else {
           StartConstruction
         },
-        construction: None,
+        constructions: [],
+        graphs: [],
         graph: None,
         kernel: None,
         pending_graph: None,

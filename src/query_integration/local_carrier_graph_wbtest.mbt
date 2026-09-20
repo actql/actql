@@ -151,6 +151,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "graft" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
+    "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
+    "\"node_rows\":true,\"as\":\"out\""
   } else if variant == "edge_projection" {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
@@ -2393,4 +2401,9 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("degree_both", publication=true)
   run_standard_host_graph_relation_path("components_weak")
   run_standard_host_graph_relation_path("components_strong")
+}
+
+///|
+test "standard Host grafts two Graphs before the Relation bridge" {
+  run_standard_host_graph_relation_path("graft", publication=true)
 }
