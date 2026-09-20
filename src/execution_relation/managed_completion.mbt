@@ -12,7 +12,7 @@ struct ManagedCompletionPort[P, T] {
   bindings : Array[ProducerBindingIdentity]
   verify : (P) -> ManagedRetainedOutput[T]?
   obligations : ManagedObligations
-  identity_issuer : ManagedIdentityIssuer[T]?
+  identity_issuers : Array[ManagedIdentityIssuer[T]]
   mut attempt : ManagedExecutionAttempt?
   mut open : Bool
   mut verifying : Bool
@@ -196,7 +196,7 @@ struct ManagedCompletedOutput[T] {
   managed_bindings : Array[Ref[Unit]]
   material : ManagedRetainedOutput[T]
   identities : Array[ManagedCompletedIdentity]
-  identity_issuer : ManagedIdentityIssuer[T]?
+  identity_issuers : Array[ManagedIdentityIssuer[T]]
   attempt : ManagedExecutionAttempt?
 }
 
@@ -221,6 +221,7 @@ pub fn[P, T] prepare_managed_completion_port(
   managed_inputs? : Array[ManagedProducerRead[T]],
   obligations? : ManagedObligations,
   identity_issuer? : ManagedIdentityIssuer[T],
+  identity_issuers? : Array[ManagedIdentityIssuer[T]],
   attempt? : ManagedExecutionAttempt,
 ) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue] {
   // A fixed-input set has one explicit provenance family, never a partial mix
@@ -260,7 +261,13 @@ pub fn[P, T] prepare_managed_completion_port(
   if !physical_equal(managed_obligations_owner(selected_obligations), owner) {
     return Err(ForeignOutput)
   }
+  let selected_identity_issuers = identity_issuers
+    .map(values => values.copy())
+    .unwrap_or([])
   if identity_issuer is Some(issuer) {
+    selected_identity_issuers.push(issuer)
+  }
+  for index, issuer in selected_identity_issuers {
     if !issuer.valid ||
       !physical_equal(issuer.permit.preparation, preparation) ||
       !selected_obligations.identities.any(requirement => {
@@ -271,9 +278,29 @@ pub fn[P, T] prepare_managed_completion_port(
       }) {
       return Err(ForeignOutput)
     }
-    if attempt is Some(selected) &&
-      !managed_execution_attempt_same(selected, issuer.permit.attempt) {
-      return Err(ForeignOutput)
+    for prior in 0..<index {
+      if managed_identity_requirement_equal(
+          selected_identity_issuers[prior].permit.requirement,
+          issuer.permit.requirement,
+        ) {
+        return Err(ForeignOutput)
+      }
+    }
+  }
+  let selected_attempt = match attempt {
+    Some(value) => Some(value)
+    None =>
+      if selected_identity_issuers.is_empty() {
+        None
+      } else {
+        Some(selected_identity_issuers[0].permit.attempt)
+      }
+  }
+  if selected_attempt is Some(selected) {
+    for issuer in selected_identity_issuers {
+      if !managed_execution_attempt_same(selected, issuer.permit.attempt) {
+        return Err(ForeignOutput)
+      }
     }
   }
   Ok({
@@ -285,12 +312,8 @@ pub fn[P, T] prepare_managed_completion_port(
     managed_inputs: managed_inputs.map(values => values.copy()).unwrap_or([]),
     verify,
     obligations: selected_obligations,
-    identity_issuer,
-    attempt: match (attempt, identity_issuer) {
-      (Some(selected), _) => Some(selected)
-      (None, Some(issuer)) => Some(issuer.permit.attempt)
-      _ => None
-    },
+    identity_issuers: selected_identity_issuers,
+    attempt: selected_attempt,
     open: true,
     verifying: false,
     revoked: false,
@@ -307,9 +330,10 @@ pub fn[P, T] bind_managed_completion_attempt(
   if !port.open || port.attempt is Some(_) {
     return false
   }
-  if port.identity_issuer is Some(issuer) &&
-    !managed_execution_attempt_same(issuer.permit.attempt, attempt) {
-    return false
+  for issuer in port.identity_issuers {
+    if !managed_execution_attempt_same(issuer.permit.attempt, attempt) {
+      return false
+    }
   }
   port.attempt = Some(attempt)
   true
@@ -346,9 +370,10 @@ pub fn[P, T] complete_managed_output(
     Ok(material) => material
     Err(issue) => return Err(issue)
   }
-  if port.identity_issuer is Some(issuer) &&
-    !physical_equal(issuer.material, material) {
-    return Err(ForeignOutput)
+  for issuer in port.identity_issuers {
+    if !physical_equal(issuer.material, material) {
+      return Err(ForeignOutput)
+    }
   }
   let lifecycle = match @managed_carrier.complete(material.core) {
     Ok(value) => value
@@ -368,7 +393,7 @@ pub fn[P, T] complete_managed_output(
       canonical_contract_cid: Ref(None),
       cid: Ref(None),
     }),
-    identity_issuer: port.identity_issuer,
+    identity_issuers: port.identity_issuers,
     attempt: port.attempt,
   })
 }
@@ -392,12 +417,32 @@ fn[T] managed_completed_identity_record(
   output : ManagedCompletedOutput[T],
   domain : ManagedIdentityDomain,
   subject : ManagedIdentitySubject,
+  occurrence : ManagedResultOccurrence?,
 ) -> ManagedCompletedIdentity? {
   for identity in output.identities {
     if identity.requirement.domain == domain &&
       identity.requirement.subject == subject &&
-      identity.requirement.occurrence is None {
+      managed_result_occurrence_equal(
+        identity.requirement.occurrence,
+        occurrence,
+      ) {
       return Some(identity)
+    }
+  }
+  None
+}
+
+///|
+fn[T] managed_completed_identity_issuer(
+  output : ManagedCompletedOutput[T],
+  requirement : ManagedIdentityRequirement,
+) -> ManagedIdentityIssuer[T]? {
+  for issuer in output.identity_issuers {
+    if managed_identity_requirement_equal(
+        issuer.permit.requirement,
+        requirement,
+      ) {
+      return Some(issuer)
     }
   }
   None
@@ -409,8 +454,38 @@ pub fn[T] managed_completed_identity_status(
   domain : ManagedIdentityDomain,
   subject : ManagedIdentitySubject,
 ) -> ManagedIdentityStatus? {
-  guard managed_completed_identity_record(output, domain, subject)
+  guard managed_completed_identity_record(output, domain, subject, None)
     is Some(identity) else {
+    return None
+  }
+  let retained = managed_completed_output_available(output)
+  match (identity.canonical_contract_cid.val, identity.cid.val, retained) {
+    (Some(contract), Some(cid), true) =>
+      Some(EstablishedSourceRetained(contract, cid))
+    (Some(contract), Some(cid), false) =>
+      Some(EstablishedSourceUnavailable(contract, cid))
+    (None, None, true) => Some(UnestablishedSourceRetained)
+    (None, None, false) => Some(UnestablishedSourceUnavailable)
+    _ => None
+  }
+}
+
+///|
+/// Inspect one exact occurrence-aware identity requirement. This is required
+/// for Named Results because aliases of one producer port remain distinct
+/// publication occurrences.
+pub fn[T] managed_completed_identity_requirement_status(
+  output : ManagedCompletedOutput[T],
+  requirement : ManagedIdentityRequirement,
+) -> ManagedIdentityStatus? {
+  guard managed_completed_identity_record(
+      output,
+      requirement.domain,
+      requirement.subject,
+      requirement.occurrence,
+    )
+    is Some(identity) &&
+    managed_identity_requirement_equal(identity.requirement, requirement) else {
     return None
   }
   let retained = managed_completed_output_available(output)
@@ -433,7 +508,7 @@ pub fn[T] establish_managed_completed_identity(
   domain : ManagedIdentityDomain,
   subject : ManagedIdentitySubject,
 ) -> Result[Unit, ManagedIdentityEstablishmentIssue] {
-  guard managed_completed_identity_record(output, domain, subject)
+  guard managed_completed_identity_record(output, domain, subject, None)
     is Some(identity) else {
     return Err(UnknownIdentity)
   }
@@ -445,7 +520,44 @@ pub fn[T] establish_managed_completed_identity(
   if !managed_completed_output_available(output) {
     return Err(SourceUnavailable)
   }
-  guard output.identity_issuer is Some(issuer) else {
+  establish_managed_completed_identity_record(output, identity)
+}
+
+///|
+/// Establish one exact occurrence-aware identity requirement. Each Named
+/// Result occurrence consumes only its own registered issuer.
+pub fn[T] establish_managed_completed_identity_requirement(
+  output : ManagedCompletedOutput[T],
+  requirement : ManagedIdentityRequirement,
+) -> Result[Unit, ManagedIdentityEstablishmentIssue] {
+  guard managed_completed_identity_record(
+      output,
+      requirement.domain,
+      requirement.subject,
+      requirement.occurrence,
+    )
+    is Some(identity) &&
+    managed_identity_requirement_equal(identity.requirement, requirement) else {
+    return Err(UnknownIdentity)
+  }
+  establish_managed_completed_identity_record(output, identity)
+}
+
+///|
+fn[T] establish_managed_completed_identity_record(
+  output : ManagedCompletedOutput[T],
+  identity : ManagedCompletedIdentity,
+) -> Result[Unit, ManagedIdentityEstablishmentIssue] {
+  match (identity.canonical_contract_cid.val, identity.cid.val) {
+    (Some(_), Some(_)) => return Ok(())
+    (None, None) => ()
+    _ => return Err(ConflictingIdentity)
+  }
+  if !managed_completed_output_available(output) {
+    return Err(SourceUnavailable)
+  }
+  guard managed_completed_identity_issuer(output, identity.requirement)
+    is Some(issuer) else {
     return Err(IssuerUnavailable)
   }
   if !physical_equal(issuer.permit.preparation, output.preparation) ||

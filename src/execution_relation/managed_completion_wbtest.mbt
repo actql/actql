@@ -233,6 +233,108 @@ test "managed completion distinguishes delayed identity from source lifetime" {
 }
 
 ///|
+test "managed completion establishes plural Named Result occurrences independently" {
+  let owner = result_export_owner()
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let body = "{\"first\":{\"from\":\"selected\",\"fields\":[\"s\"]},\"second\":{\"from\":\"selected\",\"fields\":[\"n\"]}}"
+  let first = result_export_occurrence(owner, "first", body)
+  let second = result_export_occurrence(owner, "second", body)
+  let first_requirement : ManagedIdentityRequirement = {
+    domain: OrderedRows,
+    subject: NamedResult,
+    occurrence: Some(first),
+    need: EstablishedBy(BeforePublication),
+  }
+  let second_requirement : ManagedIdentityRequirement = {
+    domain: OrderedRows,
+    subject: NamedResult,
+    occurrence: Some(second),
+    need: EstablishedBy(BeforePublication),
+  }
+  let obligations = prepare_managed_obligations(
+    owner,
+    [first_requirement, second_requirement],
+    LogicalContentAddressed,
+    MaterialBinding,
+    2,
+  ).unwrap()
+  let material = managed_test_material(owner, Step(1), Ref(true))
+  let attempt = issue_managed_execution_attempt()
+  let contract = ordered_rows_canonical_contract_cid()
+  let first_capability = register_managed_identity_issuance_capability(
+    OrderedRows,
+    NamedResult,
+    Some(first),
+    contract,
+  ).unwrap()
+  let second_capability = register_managed_identity_issuance_capability(
+    OrderedRows,
+    NamedResult,
+    Some(second),
+    contract,
+  ).unwrap()
+  let first_issuer = try_bind_managed_identity_issuer(
+    authorize_managed_identity_execution_attempt(
+      first_capability, attempt, preparation, first_requirement,
+    ).unwrap(),
+    material,
+    _ => Some("sha256:" + "1".repeat(64)),
+  ).unwrap()
+  let second_issuer = try_bind_managed_identity_issuer(
+    authorize_managed_identity_execution_attempt(
+      second_capability, attempt, preparation, second_requirement,
+    ).unwrap(),
+    material,
+    _ => Some("sha256:" + "2".repeat(64)),
+  ).unwrap()
+  let port = prepare_managed_completion_port(
+    managed_test_profile(),
+    preparation,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(material),
+    obligations~,
+    identity_issuers=[first_issuer, second_issuer],
+    attempt~,
+  ).unwrap()
+  let output = complete_managed_output(port, ()).unwrap()
+  assert_eq(
+    managed_completed_identity_requirement_status(output, first_requirement),
+    Some(UnestablishedSourceRetained),
+  )
+  assert_eq(
+    managed_completed_identity_requirement_status(output, second_requirement),
+    Some(UnestablishedSourceRetained),
+  )
+  establish_managed_completed_identity_requirement(output, first_requirement).unwrap()
+  assert_eq(
+    managed_completed_identity_requirement_status(output, first_requirement),
+    Some(EstablishedSourceRetained(contract, "sha256:" + "1".repeat(64))),
+  )
+  assert_eq(
+    managed_completed_identity_requirement_status(output, second_requirement),
+    Some(UnestablishedSourceRetained),
+  )
+  assert_false(managed_completed_deadline_satisfied(output, BeforePublication))
+  establish_managed_completed_identity_requirement(output, second_requirement).unwrap()
+  assert_true(managed_completed_deadline_satisfied(output, BeforePublication))
+  assert_eq(
+    managed_completed_identity_requirement_status(output, second_requirement),
+    Some(EstablishedSourceRetained(contract, "sha256:" + "2".repeat(64))),
+  )
+  assert_true(
+    managed_completed_identity_status(output, OrderedRows, NamedResult) is None,
+  )
+}
+
+///|
 test "managed identity authority rejects another attempt generation and canonical contract" {
   let owner = capture_fixture()
   let sequence = prepared_sequence(owner)

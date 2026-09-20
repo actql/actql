@@ -263,6 +263,8 @@ pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit,
 
 pub fn[T] establish_managed_completed_identity(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> Result[Unit, ManagedIdentityEstablishmentIssue]
 
+pub fn[T] establish_managed_completed_identity_requirement(ManagedCompletedOutput[T], ManagedIdentityRequirement) -> Result[Unit, ManagedIdentityEstablishmentIssue]
+
 pub fn execute_fixed_input_guarded(GeneratedSequence, CapturedRows, @pipeline_typing.Target, SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, record_values? : Bool, FixedInputGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue]
 
 pub fn execute_fixed_producer_guarded(GeneratedSequence, ProducerRead, @pipeline_typing.Target, SequenceExecutionLimits, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[CompletedSequence, FixedInputGuardIssue]
@@ -376,6 +378,8 @@ pub fn logical_relation_cid(LogicalRelationIdentity) -> String
 pub fn logical_relation_usage(LogicalRelationIdentity) -> (Int, Int, Int)
 
 pub fn[T] managed_completed_deadline_satisfied(ManagedCompletedOutput[T], ManagedIdentityDeadline) -> Bool
+
+pub fn[T] managed_completed_identity_requirement_status(ManagedCompletedOutput[T], ManagedIdentityRequirement) -> ManagedIdentityStatus?
 
 pub fn[T] managed_completed_identity_status(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> ManagedIdentityStatus?
 
@@ -559,7 +563,7 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
-pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T], attempt? : ManagedExecutionAttempt) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T], identity_issuers? : Array[ManagedIdentityIssuer[T]], attempt? : ManagedExecutionAttempt) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
 
