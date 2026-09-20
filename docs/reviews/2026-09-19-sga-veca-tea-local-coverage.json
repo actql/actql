@@ -88,6 +88,7 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
         "consumer_lifetime",
         "resources",
         "three_targets"

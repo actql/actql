@@ -152,13 +152,15 @@ Wasm, and native. Node identity-list matching now resolves every checked
 identity through the admitted immutable Graph index before output, sorts by
 semantic identity with bounded merge passes, collapses repeated authored
 identities, and preserves the checked projection schema. A missing identity
-fails before any Relation is published. The registered provider connects graph
-construction to matching, common managed completion, and two independent
-downstream Relation computations on JS, Wasm, and native. Predicate matching,
-environment cancellation delivery, formal publication, and the full standard
-Host path remain open, so `match_nodes` remains partial. The other SGA
-operations still lack portable Local kernels. Graph projection already defines
-evidence laws; execution must consume rather than recreate them.
+fails before any Relation is published. The standard Host selects the
+registered provider and connects graph construction to matching, common
+managed completion, and two independent downstream Relation computations on
+JS, Wasm, and native. Releasing either consumer does not invalidate the other
+consumer or producer, and final cleanup returns the ledger to zero. Predicate
+matching, environment cancellation delivery, and formal publication remain
+open, so `match_nodes` remains partial. The other SGA operations still lack
+portable Local kernels. Graph projection already defines evidence laws;
+execution must consume rather than recreate them.
 
 ### VecA
 
