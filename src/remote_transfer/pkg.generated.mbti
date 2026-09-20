@@ -13,6 +13,8 @@ pub fn admit_durable_remote_transfer_record(Bytes, Int, Int, Int64) -> Result[Du
 
 pub fn admit_remote_transfer_reply_json(String, RemoteTransferRequest) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
+pub fn admit_remote_transfer_store_upload_reply_json(String, RemoteTransferRequest, RemoteTransferStoreUploadReplyKind) -> Result[RemoteTransferStoreUploadReply, RemoteTransferIssue]
+
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
 pub fn admit_request_json(String, String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
@@ -84,6 +86,10 @@ pub fn record_revision(RemoteTransferRecord) -> Int
 pub fn remote_transfer_record_durable_json(RemoteTransferRecord) -> Result[String, RemoteTransferIssue]
 
 pub fn remote_transfer_reply_json(RemoteTransferRecord) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_store_upload_reply_json(RemoteTransferRequest, RemoteTransferStoreUploadReplyKind, Int, Bool) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_store_upload_reply_projection(RemoteTransferStoreUploadReply) -> Array[String]
 
 pub fn remote_transfer_transition_durable_json(RemoteTransferTransition) -> Result[String, RemoteTransferIssue]
 
@@ -196,6 +202,14 @@ type RemoteTransferRequest
 pub(all) enum RemoteTransferRoute {
   DirectStream
   TransferStore
+} derive(Eq, @debug.Debug)
+
+type RemoteTransferStoreUploadReply
+
+pub(all) enum RemoteTransferStoreUploadReplyKind {
+  StoreUploadAdmissionReply
+  StoreUploadChunkReply
+  StoreUploadCommitReply
 } derive(Eq, @debug.Debug)
 
 type RemoteTransferStoreUse

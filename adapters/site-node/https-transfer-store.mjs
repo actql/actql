@@ -17,6 +17,16 @@ function reply(response, status, body) {
   response.end(bytes);
 }
 
+function replyCanonical(response, status, body) {
+  const bytes = Buffer.from(body, 'utf8');
+  response.writeHead(status, {
+    'content-type': 'application/json',
+    'content-length': String(bytes.byteLength),
+    'cache-control': 'no-store',
+  });
+  response.end(bytes);
+}
+
 async function readBoundedBody(request, maxBytes) {
   const announced = request.headers['content-length'];
   if (announced !== undefined &&
@@ -32,21 +42,6 @@ async function readBoundedBody(request, maxBytes) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks, length);
-}
-
-function parseEnvelope(bytes) {
-  let value;
-  try {
-    value = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes));
-  } catch (error) {
-    fail('InvalidRemoteTransferEnvelope', error);
-  }
-  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).sort().join(',') !== 'manifest,request' ||
-      !text(value.manifest) || !text(value.request)) {
-    fail('InvalidRemoteTransferEnvelope');
-  }
-  return value;
 }
 
 function now(clock) {
@@ -128,6 +123,8 @@ export async function startHttpsTransferObjectStore({
       ca === undefined || !(peerAuthorities instanceof Map) ||
       control === null || typeof control !== 'object' ||
       typeof control.admitJson !== 'function' ||
+      typeof control.admitAdmissionEnvelopeJson !== 'function' ||
+      typeof control.storeUploadReplyJson !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' ||
@@ -181,12 +178,10 @@ export async function startHttpsTransferObjectStore({
     if (!text(claimedRequestCid) || !text(claimedManifestCid)) {
       fail('InvalidRemoteTransferEnvelope');
     }
-    const envelope = parseEnvelope(
-      await readBoundedBody(request, maxControlBytes),
-    );
-    const admitted = control.admitJson(
-      envelope.request,
-      envelope.manifest,
+    const admitted = control.admitAdmissionEnvelopeJson(
+      new TextDecoder('utf-8', {fatal: true}).decode(
+        await readBoundedBody(request, maxControlBytes),
+      ),
       claimedRequestCid,
       claimedManifestCid,
       {maxChunks, maxManifestBytes, maxReferencedBytes},
@@ -234,8 +229,12 @@ export async function startHttpsTransferObjectStore({
           accepted.claimedRequestCid,
         );
         if (existing !== undefined) {
-          reply(response, 200, {requestCid: accepted.claimedRequestCid,
-            sealed: true});
+          replyCanonical(response, 200, control.storeUploadReplyJson(
+            accepted.admitted,
+            'admission',
+            control.chunks(accepted.admitted).length,
+            true,
+          ));
           return;
         }
         let entry = uploads.get(accepted.claimedRequestCid);
@@ -257,11 +256,16 @@ export async function startHttpsTransferObjectStore({
           }
           uploads.set(accepted.claimedRequestCid, entry);
         }
-        reply(response, entry.nextChunk === entry.chunks.length ? 200 : 201, {
-          requestCid: accepted.claimedRequestCid,
-          sealed: false,
-          nextChunk: entry.nextChunk,
-        });
+        replyCanonical(
+          response,
+          entry.nextChunk === entry.chunks.length ? 200 : 201,
+          control.storeUploadReplyJson(
+            accepted.admitted,
+            'admission',
+            entry.nextChunk,
+            false,
+          ),
+        );
         return;
       }
 
@@ -386,7 +390,12 @@ export async function startHttpsTransferObjectStore({
           } finally {
             entry.busy = false;
           }
-          reply(response, 200, {requestCid, nextChunk: entry.nextChunk});
+          replyCanonical(response, 200, control.storeUploadReplyJson(
+            entry.request,
+            'chunk',
+            entry.nextChunk,
+            false,
+          ));
           return;
         }
         if (request.method === 'POST' && parts.length === 5 &&
@@ -403,7 +412,12 @@ export async function startHttpsTransferObjectStore({
             entry.prepared.map(value => value.prepared),
           );
           uploads.delete(requestCid);
-          reply(response, 200, {requestCid, sealed: true});
+          replyCanonical(response, 200, control.storeUploadReplyJson(
+            entry.request,
+            'commit',
+            entry.nextChunk,
+            true,
+          ));
           return;
         }
       }
@@ -606,8 +620,9 @@ export async function startHttpsTransferObjectStore({
 
 async function responseJson(response, maxBytes) {
   const bytes = await readBoundedBody(response, maxBytes);
+  const wire = bytes.toString('utf8');
   let value;
-  try { value = JSON.parse(bytes.toString('utf8')); }
+  try { value = JSON.parse(wire); }
   catch (error) { fail('InvalidRemoteTransferResponse', error); }
   if (response.statusCode !== 200 && response.statusCode !== 201) {
     fail('RemoteTransferRejected', undefined, {
@@ -615,8 +630,11 @@ async function responseJson(response, maxBytes) {
       statusCode: response.statusCode,
     });
   }
+  if (value !== null && typeof value === 'object') responseWires.set(value, wire);
   return value;
 }
+
+const responseWires = new WeakMap();
 
 async function send({
   origin,
@@ -649,10 +667,7 @@ async function send({
 }
 
 function envelope(control, request) {
-  return Buffer.from(JSON.stringify({
-    manifest: control.manifestJson(request),
-    request: control.requestJson(request),
-  }), 'utf8');
+  return Buffer.from(control.admissionEnvelopeJson(request), 'utf8');
 }
 
 function commonHeaders(control, request, bytes) {
@@ -680,6 +695,9 @@ export async function uploadHttpsTransferObject({
       key === undefined || !text(servername) ||
       control === null || typeof control !== 'object' ||
       typeof control.requestProjection !== 'function' ||
+      typeof control.admissionEnvelopeJson !== 'function' ||
+      typeof control.admitStoreUploadReplyJson !== 'function' ||
+      typeof control.storeUploadReplyProjection !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.chunks !== 'function' || request === undefined ||
       !Array.isArray(sourceBodies) || !count(maxResponseBytes) ||
@@ -711,11 +729,17 @@ export async function uploadHttpsTransferObject({
     headers: commonHeaders(control, request, body),
     write(outgoing) { outgoing.end(body); },
   });
-  if (admitted.sealed === true) return admitted;
+  const admittedReply = control.admitStoreUploadReplyJson(
+    responseWires.get(admitted),
+    request,
+    'admission',
+  );
+  const admittedState = control.storeUploadReplyProjection(admittedReply);
+  if (admittedState[2] === '1') return admitted;
   const requestCid = control.identity(request);
-  for (let index = admitted.nextChunk ?? 0; index < chunks.length; index++) {
+  for (let index = Number(admittedState[1]); index < chunks.length; index++) {
     const source = sourceBodies[index];
-    await send({
+    const uploaded = await send({
       ...common,
       path: `/v1/transfer-store/uploads/${encodeURIComponent(requestCid)}` +
         `/chunks/${index}`,
@@ -732,8 +756,13 @@ export async function uploadHttpsTransferObject({
         outgoing.end();
       },
     });
+    control.admitStoreUploadReplyJson(
+      responseWires.get(uploaded),
+      request,
+      'chunk',
+    );
   }
-  return await send({
+  const committed = await send({
     ...common,
     path: `/v1/transfer-store/uploads/${encodeURIComponent(requestCid)}` +
       '/commit',
@@ -741,6 +770,12 @@ export async function uploadHttpsTransferObject({
     headers: {'content-length': '0'},
     write(outgoing) { outgoing.end(); },
   });
+  control.admitStoreUploadReplyJson(
+    responseWires.get(committed),
+    request,
+    'commit',
+  );
+  return committed;
 }
 
 async function downloadChunk({common, path, writer, expected, signal}) {

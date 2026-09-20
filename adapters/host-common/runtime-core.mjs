@@ -722,6 +722,25 @@ function remoteTransferControl(moon) {
     admitReplyJson: (body, request) => checked(
       moon.strategyRemoteTransferReplyAdmitJson(body, request),
     ),
+    storeUploadReplyJson: (request, kind, nextChunk, sealed) => checked(
+      moon.strategyRemoteTransferStoreUploadReplyJson(
+        request,
+        kind === 'admission' ? 0 : kind === 'chunk' ? 1 :
+          kind === 'commit' ? 2 : -1,
+        nextChunk,
+        sealed,
+      ),
+    ),
+    admitStoreUploadReplyJson: (body, request, kind) => checked(
+      moon.strategyRemoteTransferStoreUploadReplyAdmitJson(
+        body,
+        request,
+        kind === 'admission' ? 0 : kind === 'chunk' ? 1 :
+          kind === 'commit' ? 2 : -1,
+      ),
+    ),
+    storeUploadReplyProjection:
+      moon.strategyRemoteTransferStoreUploadReplyProjection,
     prepareDestinationReceipt: (request, materialGeneration) => checked(
       moon.strategyRemoteTransferDestinationReceiptPrepare(
         request,

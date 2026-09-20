@@ -754,6 +754,12 @@ pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTr
 
 pub fn strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
+pub fn strategy_remote_transfer_store_upload_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, Int) -> @remote_transfer.RemoteTransferStoreUploadReply raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_upload_reply_json(@remote_transfer.RemoteTransferRequest, Int, Int, Bool) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_upload_reply_projection(@remote_transfer.RemoteTransferStoreUploadReply) -> Array[String]
+
 pub fn strategy_remote_transfer_store_use_cleanup_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
 
 pub fn strategy_remote_transfer_store_use_complete_prepare(@remote_transfer.RemoteTransferStoreUseRecord, @remote_transfer.RemoteTransferDestinationReceipt) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
