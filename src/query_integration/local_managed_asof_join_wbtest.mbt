@@ -1,7 +1,7 @@
 ///|
 fn local_values_asof_program() -> String {
   (
-    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"clock":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"id":2,"key":1,"clock":7,"value":20},{"id":1,"key":1,"clock":5,"value":10},{"id":3,"key":null,"clock":6,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","value"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"clock":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"id":11,"key":1,"clock":4,"value":40},{"id":12,"key":1,"clock":6,"value":60},{"id":13,"key":1,"clock":8,"value":80},{"id":14,"key":null,"clock":6,"value":99}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","asof_join":{"with":"r","kind":"left","by":[{"left":"key","right":"key"}],"left_id":"id","left_time":"clock","right_time":"clock","direction":"nearest","tolerance":3,"right_tie_break":["id"],"select":{"id":"left.id","value":"right.value"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["value","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["value","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"clock":{"type":"number","nullable":false}},"rows":[{"id":1,"key":1,"clock":100}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"clock":{"type":"number","nullable":false},"priority":{"type":"number","nullable":true},"value":{"type":"number","nullable":false}},"rows":[{"id":11,"key":1,"clock":90,"priority":5,"value":100},{"id":11,"key":1,"clock":90,"priority":5,"value":200},{"id":11,"key":1,"clock":100,"priority":0,"value":300}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","priority","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","asof_join":{"with":"r","kind":"inner","by":[{"left":"key","right":"key"}],"left_id":"id","left_time":"clock","right_time":"clock","direction":"backward","tolerance":10,"right_tie_break":["priority"],"select":{"id":"left.id","value":"right.value"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["value","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["value","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
 }
 
@@ -19,7 +19,7 @@ test "standard Host runs bounded as-of join for two consumers" {
     }),
   )
   assert_eq(@strategy.captured_task_asof_search_count(run, 3), Some(1))
-  assert_eq(@strategy.captured_task_asof_search_at(run, 3, 0), Some((0, 12L)))
+  assert_eq(@strategy.captured_task_asof_search_at(run, 3, 0), Some((0, 3L)))
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(
@@ -40,7 +40,7 @@ test "standard Host runs bounded as-of join for two consumers" {
         ..retained_attempt_wire_limits(),
         max_bytes: 3000,
         max_nodes: 300,
-        max_columns: 4,
+        max_columns: 5,
       },
       row: {
         max_bytes: 3000,
@@ -85,9 +85,7 @@ test "standard Host runs bounded as-of join for two consumers" {
     join_live,
   )
   let joined_rows = local_managed_test_rows(join_ops)
-  assert_eq(joined_rows, [
-    "{\"id\":1,\"value\":40}", "{\"id\":3,\"value\":null}", "{\"id\":2,\"value\":60}",
-  ])
+  assert_eq(joined_rows, ["{\"id\":1,\"value\":300}"])
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
@@ -109,9 +107,7 @@ test "standard Host runs bounded as-of join for two consumers" {
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), joined_rows)
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"value\":40,\"id\":1}", "{\"value\":null,\"id\":3}", "{\"value\":60,\"id\":2}",
-  ])
+  assert_eq(local_managed_test_rows(second_ops), ["{\"value\":300,\"id\":1}"])
   first_live.val = false
   @strategy.close_captured_task_output(run, 4)
   (first_ops.close)()

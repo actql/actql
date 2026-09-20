@@ -255,6 +255,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
     for left_row in ordered_left {
       let mut best : Int? = None
       let mut best_distance = 0L
+      let mut best_tied_with : Int? = None
       for right_row in 0..<right_count {
         if !spend_control(control, 1) {
           return Err(RowLimit)
@@ -286,7 +287,10 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
                   false
                 } else {
                   match compare_tie(right_row, prior) {
-                    Ok(0) => return Err(AsOfTopTie(left_row, prior, right_row))
+                    Ok(0) => {
+                      best_tied_with = Some(right_row)
+                      false
+                    }
                     Ok(value) => value < 0
                     Err(issue) => return Err(issue)
                   }
@@ -295,9 +299,13 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
             if better {
               best = Some(right_row)
               best_distance = distance
+              best_tied_with = None
             }
           }
         }
+      }
+      if best is Some(prior) && best_tied_with is Some(other) {
+        return Err(AsOfTopTie(left_row, prior, other))
       }
       if best is Some(_) || @lower.asof_join_kind(kernel) == @join.Left {
         if rows.length() == ceiling ||

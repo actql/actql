@@ -520,13 +520,21 @@ fn query_checked_program_fixture(
   } else if local_values_interval_chain || local_values_asof_chain {
     let left = query_capacity_proof(
       "actql.bound.values",
-      3L,
+      if local_values_asof_chain {
+        1L
+      } else {
+        3L
+      },
       "{\"op\":\"source\"}",
       step=0,
     )
     let right = query_capacity_proof(
       "actql.bound.values",
-      4L,
+      if local_values_asof_chain {
+        3L
+      } else {
+        4L
+      },
       "{\"op\":\"source\"}",
       step=0,
     )
@@ -537,7 +545,7 @@ fn query_checked_program_fixture(
         "actql.bound.join-output"
       },
       if local_values_asof_chain {
-        3L
+        1L
       } else {
         12L
       },

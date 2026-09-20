@@ -207,3 +207,104 @@ test "as-of join validates all clocks and rejects unresolved top ties" {
     is Err(AsOfTopTie(1, 0, 1)),
   )
 }
+
+///|
+fn asof_permutation_kernel(
+  direction : String,
+) -> (@lower.BoundPrepared, @lower.PreparedAsOfJoin) raise {
+  let schema = "{\"left_id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"clock\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"key\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"priority\":{\"type\":\"number\",\"nullable\":true}," +
+    "\"payload\":{\"type\":\"number\",\"nullable\":false}}"
+  let row = "{\"left_id\":1,\"clock\":1,\"key\":1," +
+    "\"priority\":1,\"payload\":1}"
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[" +
+    row +
+    "]},\"as\":\"l\"},{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[" +
+    row +
+    "]},\"as\":\"r\"},{\"from\":\"l\",\"asof_join\":{" +
+    "\"with\":\"r\",\"kind\":\"inner\",\"by\":[{" +
+    "\"left\":\"key\",\"right\":\"key\"}]," +
+    "\"left_id\":\"left_id\",\"left_time\":\"clock\"," +
+    "\"right_time\":\"clock\",\"direction\":\"" +
+    direction +
+    "\",\"tolerance\":10,\"right_tie_break\":[\"priority\"]," +
+    "\"select\":{\"payload\":\"right.payload\"}}}]",
+  )
+  guard @lower.sequence_step(prepared_sequence(owner), 2)
+    is Some(@lower.AsOfJoinStep(kernel)) else {
+    fail("as-of permutation kernel")
+  }
+  (owner, kernel)
+}
+
+///|
+fn asof_permutation_evaluate(
+  order : Array[Int],
+  terminal_tie? : Bool = false,
+) -> Result[Table, RowIssue] raise {
+  let (owner, kernel) = asof_permutation_kernel("backward")
+  let left = RowTable({
+    owner,
+    id: @lower.asof_join_input(kernel, true),
+    names: ["left_id", "clock", "key", "priority", "payload"],
+    rows: [[Number(1), Number(100), Number(1), Number(0), Number(0)]],
+  })
+  let source = if terminal_tie {
+    [
+      [Number(10), Number(100), Number(1), Number(0), Number(300)],
+      [Number(11), Number(100), Number(1), Number(0), Number(400)],
+      [Number(12), Number(90), Number(1), Number(5), Number(100)],
+    ]
+  } else {
+    [
+      [Number(10), Number(90), Number(1), Number(5), Number(100)],
+      [Number(11), Number(90), Number(1), Number(5), Number(200)],
+      [Number(12), Number(100), Number(1), Number(0), Number(300)],
+    ]
+  }
+  let right = RowTable({
+    owner,
+    id: @lower.asof_join_input(kernel, false),
+    names: ["left_id", "clock", "key", "priority", "payload"],
+    rows: order.map(index => source[index]),
+  })
+  evaluate_asof_join_rows(
+    kernel,
+    left,
+    right,
+    10,
+    3L,
+    { remaining: 100000, max_frames: 100, },
+    value_budget(run_limits().output_values).unwrap(),
+    { limit: 10000, live: 0, peak: 0, },
+  )
+}
+
+///|
+test "as-of join resolves provisional ties after scanning every candidate" {
+  let permutations = [
+    [0, 1, 2],
+    [0, 2, 1],
+    [1, 0, 2],
+    [1, 2, 0],
+    [2, 0, 1],
+    [2, 1, 0],
+  ]
+  for order in permutations {
+    let actual = asof_permutation_evaluate(order).unwrap()
+    assert_true(join_numeric_rows_equal(actual.rows, [[Number(300)]]))
+  }
+  for order in permutations {
+    assert_true(
+      asof_permutation_evaluate(order, terminal_tie=true)
+      is Err(AsOfTopTie(_, _, _)),
+    )
+  }
+}
