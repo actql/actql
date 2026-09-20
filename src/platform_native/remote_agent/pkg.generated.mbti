@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_agent"
+
+import {
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/remote_client",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_runtime",
+}
+
+// Values
+pub fn run_native_outbound_site_occurrence(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @http_client.Client, String, String) -> Result[NativeRemoteAgentOutcome, NativeRemoteAgentIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeRemoteAgentIssue {
+  Client(@remote_client.NativeRemoteClientIssue)
+  Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+  RuntimeObserved(@remote_runtime.NativeRemoteRuntimeIssue, Int)
+  RuntimeObservationUnknown(@remote_runtime.NativeRemoteRuntimeIssue, @remote_client.NativeRemoteClientIssue)
+  CompletionObservationUnknown(@remote_runtime.NativeRemoteRuntimeCompletion, @remote_client.NativeRemoteClientIssue)
+  ObservationMissing
+  ObservationMismatch
+}
+
+pub(all) enum NativeRemoteAgentOutcome {
+  Idle
+  DispatchObserved(String, Int)
+  QueryObserved(String, Int)
+  QueryNotSeen(String)
+}
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,270 @@
+///|
+fn agent_test_cid(character : String) -> String {
+  "sha256:" + character
+}
+
+///|
+fn agent_required_env(name : String) -> String? {
+  @env.get_env_var(name)
+}
+
+///|
+test "outbound agent observes durable acceptance before one execution" {
+  guard agent_required_env("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY")
+    is Some(crypto_path) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_REMOTE_AGENT_ROOT")
+    is Some(root_path) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET")
+    is Some(target) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY")
+    is Some(public_key) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY")
+    is Some(bundle_body) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID")
+    is Some(bundle_cid) else {
+    return
+  }
+  guard agent_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE")
+    is Some(signature) else {
+    return
+  }
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let crypto = @signature.load_library(crypto_path).unwrap()
+  let root = @filesystem.open_root(root_path).unwrap()
+  let component = b"native-runtime"
+  let writer = root
+    .create_writer("agent-stage", component.length().to_int64())
+    .unwrap()
+  writer.append(component).unwrap()
+  let generation = writer.seal("agent-component").unwrap()
+  let bundles = @bundle.open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    [
+      {
+        issuer_authority: "bundle-authority-a",
+        key_id: "key-a",
+        public_key_pem: public_key,
+      },
+    ],
+    target,
+    component.length().to_int64(),
+    4,
+    8,
+    262144L,
+  ).unwrap()
+  bundles
+  .adopt(
+    "actql-remote-runtime-bundle-signature/0.1", "key-a", bundle_cid, bundle_body,
+    signature, "agent-component", generation,
+  )
+  .unwrap()
+  |> ignore
+  bundles.activate(bundle_cid).unwrap() |> ignore
+  let site = @site.create_site(
+    "native-agent-site", 1, bundle_cid, 2, 2, 1024L, 1024L,
+  ).unwrap()
+  let journal = @journal.open_journal(
+    sqlite,
+    root_path + "/agent-journal.sqlite3",
+    262144L,
+    @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
+  ).unwrap()
+  let budget = @remote.prepare_remote_dispatch_budget(128L, 128L).unwrap()
+  let operation_capability = agent_test_cid(
+    "4444444444444444444444444444444444444444444444444444444444444444",
+  )
+  let issuer_capability = agent_test_cid(
+    "5555555555555555555555555555555555555555555555555555555555555555",
+  )
+  let executions = [0]
+  let registration = @runtime.install_native_remote_runtime_registration(
+    site,
+    bundle_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    operation_capability,
+    issuer_capability,
+    (_request, _binding) => {
+      executions[0] += 1
+      let measurement = @remote.prepare_remote_managed_output_measurement(
+        1,
+        1,
+        1,
+        1,
+        [1],
+        [1],
+        [1],
+        [1],
+        [0],
+        [1],
+      ).unwrap()
+      @runtime.prepare_native_remote_output(
+        {
+          material_generation: "native-agent-material",
+          holding_evidence_cid: agent_test_cid(
+            "6666666666666666666666666666666666666666666666666666666666666666",
+          ),
+          managed_profile_cid: agent_test_cid(
+            "7777777777777777777777777777777777777777777777777777777777777777",
+          ),
+          result_schema_cid: agent_test_cid(
+            "8888888888888888888888888888888888888888888888888888888888888888",
+          ),
+          logical_view_cid: agent_test_cid(
+            "9999999999999999999999999999999999999999999999999999999999999999",
+          ),
+          representation_codec_cid: agent_test_cid(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          ),
+          physical_manifest_cid: agent_test_cid(
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          ),
+          row_count: 1,
+          retained_bytes: 1L,
+          measurement,
+        },
+        () => true,
+      ).unwrap()
+    },
+  ).unwrap()
+  let runtime = @runtime.open_native_remote_runtime(
+    journal,
+    bundles,
+    [registration],
+    [budget],
+  ).unwrap()
+  let binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
+  let request = @remote.prepare_dispatch_request(
+    "native-coordinator",
+    agent_test_cid(
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+    "task-agent",
+    1,
+    "dispatch-agent",
+    "native-agent-site",
+    1,
+    bundle_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    @remote.remote_input_binding_cid(binding),
+    agent_test_cid(
+      "2222222222222222222222222222222222222222222222222222222222222222",
+    ),
+    @remote.remote_dispatch_budget_cid(budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  let dispatch = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_dispatch_json(request, binding).unwrap(),
+  ).unwrap()
+  let acceptance_attempts = [0]
+  let status_attempts = [0]
+  let reject_acceptance = fn(request) {
+    acceptance_attempts[0] += 1
+    journal.accept(request).unwrap() |> ignore
+    Err(@client.Closed)
+  }
+  let report_status = fn(request) {
+    status_attempts[0] += 1
+    match journal.observation(request) {
+      Ok(observation) =>
+        Ok(Some(@journal.recovered_site_dispatch_record(observation)))
+      Err(@journal.StateCollision) => Ok(None)
+      Err(issue) => Err(@client.Journal(issue))
+    }
+  }
+  assert_true(
+    run_native_outbound_operation(
+      runtime,
+      Some(dispatch),
+      reject_acceptance,
+      report_status,
+    )
+    is Err(Client(Closed)),
+  )
+  assert_eq(executions[0], 0)
+  assert_eq(status_attempts[0], 0)
+  let accept = fn(request) {
+    acceptance_attempts[0] += 1
+    let (_, record) = journal.accept(request).unwrap()
+    Ok(record)
+  }
+  guard run_native_outbound_operation(
+      runtime,
+      Some(dispatch),
+      accept,
+      report_status,
+    )
+    is Ok(DispatchObserved(identity, revision)) else {
+    fail("dispatch was not observed")
+  }
+  assert_eq(identity, @remote.dispatch_request_identity(request))
+  assert_true(revision > 0)
+  assert_eq(executions[0], 1)
+  assert_eq(status_attempts[0], 1)
+  guard run_native_outbound_operation(
+      runtime,
+      Some(dispatch),
+      accept,
+      report_status,
+    )
+    is Ok(DispatchObserved(_, _)) else {
+    fail("exact resend was not reconciled")
+  }
+  assert_eq(executions[0], 1)
+  assert_eq(acceptance_attempts[0], 3)
+  assert_eq(status_attempts[0], 2)
+  let query = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_query_json(request).unwrap(),
+  ).unwrap()
+  guard run_native_outbound_operation(
+      runtime,
+      Some(query),
+      accept,
+      report_status,
+    )
+    is Ok(QueryObserved(_, _)) else {
+    fail("query was not reconciled")
+  }
+  assert_eq(executions[0], 1)
+  assert_eq(acceptance_attempts[0], 3)
+  assert_eq(status_attempts[0], 3)
+  let lose_status = fn(_request) { Err(@client.Closed) }
+  guard run_native_outbound_operation(
+      runtime,
+      Some(dispatch),
+      accept,
+      lose_status,
+    )
+    is Err(CompletionObservationUnknown(completion, Closed)) else {
+    fail("lost terminal observation was not preserved")
+  }
+  assert_eq(
+    completion.dispatch_request_cid,
+    @remote.dispatch_request_identity(request),
+  )
+  assert_eq(executions[0], 1)
+  assert_true(runtime.release(request).unwrap())
+  assert_true(runtime.close().unwrap())
+  assert_true(journal.close())
+  assert_true(bundles.close().unwrap())
+}

@@ -16,7 +16,9 @@ if (typeof scratchParent !== 'string' || scratchParent.length === 0) {
 await mkdir(scratchParent, {recursive: true});
 const root = await mkdtemp(join(scratchParent, 'native-remote-runtime-'));
 const storeRoot = join(root, 'store');
+const agentRoot = join(root, 'agent');
 await mkdir(storeRoot, {recursive: true});
+await mkdir(agentRoot, {recursive: true});
 
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
 const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
@@ -78,6 +80,24 @@ try {
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_ROOT: storeRoot,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
+        keys.publicKey.export({type: 'spki', format: 'pem'}),
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: envelope.body,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: envelope.runtimeBundleCid,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: envelope.signature,
+    },
+    stdio: 'inherit',
+  });
+  execFileSync(moon, [
+    'test', 'src/platform_native/remote_agent', '--target', 'native',
+  ], {
+    cwd: repositoryRoot,
+    env: {
+      ...process.env,
+      ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
+      ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
+      ACTQL_TEST_NATIVE_REMOTE_AGENT_ROOT: agentRoot,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
         keys.publicKey.export({type: 'spki', format: 'pem'}),

@@ -1,0 +1,22 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_client" @client,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/remote_site_protocol" @remote,
+}
+
+import {
+  "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  targets: { "agent_native_wbtest.mbt": [ "native" ] },
+)
