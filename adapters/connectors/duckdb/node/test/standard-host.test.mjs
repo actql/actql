@@ -83,6 +83,22 @@ const publicationResultExportLimits = Object.freeze({
   maxBatchBytes: 4096,
 });
 
+function sgaEnvironmentArguments(args) {
+  const environment = JSON.parse(args[0]);
+  delete environment.evidence_bundle_cid;
+  Object.assign(environment.host_policy_profile.capacity, {
+    max_graph_construction_edges: 10000,
+    max_graph_construction_input_rows: 10000,
+    max_graph_construction_nodes: 10000,
+  });
+  environment.evidence_bundle_cid = canonicalHash(environment);
+  return [
+    canonical(environment),
+    environment.evidence_bundle_cid,
+    ...args.slice(2),
+  ];
+}
+
 function standardPublicationPlan(
   runtime,
   programDefinitionCid,
@@ -1427,6 +1443,160 @@ async function exerciseStrategyGraph(
       await publicationStore?.close();
       await rm(publicationDirectory, {recursive: true, force: true});
     }
+  }
+  const graphProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{
+      id: 'a',
+      inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [
+        {filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'},
+      ],
+      results: {r: {from: 'captured', fields: ['id']}},
+    }, {
+      id: 'values',
+      inputs: {},
+      steps: [{
+        values: {
+          schema: {
+            id: {type: 'number', nullable: false},
+            src: {type: 'number', nullable: false},
+            dst: {type: 'number', nullable: false},
+            node_name: {type: 'string', nullable: false},
+            weight: {type: 'number', nullable: false},
+          },
+          rows: [
+            {id: 1, src: 1, dst: 2, node_name: 'first', weight: 10},
+            {id: 2, src: 2, dst: 1, node_name: 'second', weight: 20},
+          ],
+        },
+        as: 'out',
+      }],
+      results: {
+        r: {from: 'out', fields: ['id', 'src', 'dst', 'node_name', 'weight']},
+      },
+    }, {
+      id: 'graph',
+      inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+      steps: [{
+        graph: {
+          nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+          edges: {
+            from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+          },
+        },
+        as: 'g',
+      }, {
+        from: 'g',
+        match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+        as: 'out',
+      }],
+      results: {r: {from: 'out', fields: ['id', 'node_name']}},
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'graph', result: 'r'}}},
+      steps: [{select: ['id', 'node_name'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id', 'node_name']}},
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'graph', result: 'r'}}},
+      steps: [{select: ['node_name'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['node_name']}},
+    }, {
+      id: 'tail',
+      inputs: {x: {result: {stage: 'consumer_a', result: 'r'}}},
+      steps: [{select: ['id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id']}},
+    }],
+    results: {published: {from: {stage: 'graph', result: 'r'}}},
+  };
+  const sgaFixture = fixture.strategyFixtureSgaCreate(
+    ...sgaEnvironmentArguments(args),
+    JSON.stringify(graphProgram),
+  );
+  const sgaCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(sgaFixture),
+    suppliedLimits,
+  );
+  const sgaPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/sga-publication-entry-',
+  ));
+  let sgaPublicationOwner;
+  let sgaPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(sgaFixture, sgaCapture.source()),
+      true,
+    );
+    const setup = fixture.strategyFixtureSgaSubset(sgaFixture);
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 1);
+    sgaPublicationStore = await openLocalPublicationStore({
+      directory: sgaPublicationDirectory,
+      storeAuthorityCid: hash('sga-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'sga-publication-attempt',
+    );
+    sgaPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: sgaPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    );
+    assert.equal(sgaPublicationOwner.status, 'published');
+    assert.equal(
+      sgaPublicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.deepEqual(
+      sgaPublicationOwner.execution.completed.map(value => value.realization),
+      Array(5).fill('local-managed'),
+    );
+    const occurrence =
+      sgaPublicationOwner.execution.publicationInventory.occurrences[0];
+    const received = [];
+    await sgaPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(
+      JSON.parse(Buffer.concat(received).toString('utf8')),
+      [
+        {id: 1, node_name: 'first'},
+        {id: 2, node_name: 'second'},
+      ],
+    );
+  } finally {
+    if (sgaPublicationOwner !== undefined) {
+      await sgaPublicationOwner.close();
+      assert.equal(sgaPublicationOwner.cleanupPending(), false);
+      assert.equal(await sgaPublicationOwner.cleanup(), true);
+      assert.equal(sgaPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(
+        sgaPublicationOwner.execution.usage().reservedExecutionBytes,
+        0n,
+      );
+    }
+    sgaCapture.close();
+    await sgaPublicationStore?.close();
+    await rm(sgaPublicationDirectory, {recursive: true, force: true});
   }
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(
     ...args,
@@ -3905,7 +4075,9 @@ async function exerciseStrategyGraph(
     }
   }
   // The public entry executes the checked Program Result contract. Omission
-  // and caller false cannot erase that floor; true is only a strengthening.
+  // and caller false cannot erase that floor. The Local managed implementation
+  // now satisfies the exact identity obligation instead of being excluded by
+  // JavaScript before MoonBit checks its registered issuer.
   for (const callerPublication of [undefined, false, true]) {
     const publicFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(managedStandardProgram));
@@ -3939,10 +4111,16 @@ async function exerciseStrategyGraph(
         fixture.strategyFixtureManagedDispatch(publicFixture),
         publicOptions,
       );
-      assert.equal(publicExecution.status, 'host-tasks-failed');
-      assert.equal(publicExecution.failure?.code,
-        'NoCompatibleManagedStrategy');
-      assert.deepEqual(publicExecution.completed.map(item => item.task), [1]);
+      assert.equal(publicExecution.status, 'host-tasks-completed');
+      assert.equal(publicExecution.failure, undefined);
+      assert.deepEqual(
+        publicExecution.completed.map(item => item.task),
+        [1, 2, 3],
+      );
+      assert.deepEqual(
+        publicExecution.completed.map(item => item.realization),
+        ['duckdb-managed', 'local-managed', 'local-managed'],
+      );
     } finally {
       await publicExecution?.close();
       if (publicExecution) assert.equal(await publicExecution.cleanup(), true);
@@ -4041,8 +4219,8 @@ async function exerciseStrategyGraph(
   }
   for (const identityCase of [
     {name: 'consumer', policy: {consumer: true}, completed: 3, succeeds: true},
-    {name: 'publication', policy: {publication: true}, completed: 1,
-      succeeds: false},
+    {name: 'publication', policy: {publication: true}, completed: 3,
+      succeeds: true},
   ]) {
     const identityFixture = fixture.strategyFixtureCreate(
       ...args,
@@ -4092,9 +4270,8 @@ async function exerciseStrategyGraph(
       );
       if (identityCase.succeeds) {
         assert.deepEqual(identityExecution.completed.map(item => item.realization),
-          ['duckdb-managed', 'reference-numeric-managed',
-            'local-managed'],
-        'equal-cost managed candidates use the stable registration key');
+          ['duckdb-managed', 'local-managed', 'local-managed'],
+        'identity-capable Local wins the registered candidate comparison');
       } else {
         assert(identityExecution.failure != null);
       }

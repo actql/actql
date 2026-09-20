@@ -18,6 +18,7 @@ fn issued_fixture_checked(
   environment_cid : String,
   source_override? : String? = None,
   join? : Bool = false,
+  sga? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -60,13 +61,7 @@ fn issued_fixture_checked(
       @program_check.checking_environment(
         environment,
         { text_time: false, veca: false, },
-        {
-          rela: true,
-          sga: false,
-          tea: false,
-          calendar: false,
-          text_rank: false,
-        },
+        { rela: true, sga, tea: false, calendar: false, text_rank: false, },
       ),
       Some(cursor("{\"minimum\":1}")),
       evidence,

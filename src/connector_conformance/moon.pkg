@@ -8,4 +8,5 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_cost" @cost,
   "actql/actql/connectors/local/driver" @local_driver,
+  "actql/actql/connectors/local",
 }

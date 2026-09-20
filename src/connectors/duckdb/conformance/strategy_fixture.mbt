@@ -53,6 +53,36 @@ pub fn strategy_fixture_join_create(
 }
 
 ///|
+/// Explicit SGA-enabled conformance fixture. The default fixture keeps the
+/// RelA-only checker and artifact surface.
+#export_name("strategyFixtureSgaCreate")
+pub fn strategy_fixture_sga_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+  )
+}
+
+///|
 fn strategy_fixture_create_impl(
   environment_json : String,
   environment_cid : String,
@@ -65,6 +95,7 @@ fn strategy_fixture_create_impl(
   program_json : String,
   join : Bool,
   multiple_resources? : Bool = false,
+  sga? : Bool = false,
 ) -> StrategyFixture {
   try {
     let program = issued_fixture_checked(
@@ -72,6 +103,7 @@ fn strategy_fixture_create_impl(
       environment_cid,
       source_override=Some(program_json),
       join~,
+      sga~,
     )
     let native = issued_native_create_impl(
       environment_json,
