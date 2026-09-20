@@ -1,0 +1,68 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/run_publication"
+
+import {
+  "actql/actql/platform_native/publication_store",
+}
+
+// Values
+pub fn install_native_run_publication_service(@publication_store.Store, Int, Int, Int) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
+
+pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct NativeEffectFreePublicationEvidence {
+  run_definition : @actql/actql/run_publication.PublicationContract
+  invocation : @actql/actql/run_publication.PublicationContract
+  definitions : Array[@actql/actql/run_publication.PublicationContract]
+  artifacts : Array[@actql/actql/run_publication.PublicationContract]
+  derivations : Array[@actql/actql/run_publication.PublicationContract]
+  orderings : Array[@actql/actql/run_publication.PublicationContract]
+  retentions : Array[@actql/actql/run_publication.PublicationContract]
+  bindings : Array[@actql/actql/run_publication.PublicationContract]
+  binding_schema_wires : Array[String]
+  manifest : @actql/actql/run_publication.PublicationContract
+  receipt : @actql/actql/run_publication.PublicationContract
+  captured_run : @actql/actql/run_publication.PublicationContract
+}
+
+pub(all) struct NativeRunPublicationIntent {
+  tenant_id : String
+  authority_scope_cid : String
+  publication_policy_cid : String
+  publication_target_cid : String
+  requested_at : String
+}
+
+pub(all) enum NativeRunPublicationIssue {
+  InvalidConfiguration
+  CommitConflict
+  Store(@publication_store.NativePublicationStoreIssue)
+  Issuance(@actql/actql/run_publication.PublicationCommitIssuanceIssue)
+  Commit(@actql/actql/run_publication.PublicationCommitIssue)
+  Projection(@actql/actql/run_publication.DeliveryIssuanceIssue)
+}
+
+pub(all) struct NativeRunPublicationOccurrence {
+  attempt_id : String
+  fence_cid : String
+  external_idempotency_key : String?
+  started_at : String
+  committed_at : String
+}
+
+pub(all) struct NativeRunPublicationResult {
+  public_index_entry_cid : String
+  publication_request_cid : String
+  publication_attempt_cid : String
+  committed : Bool
+  idempotent : Bool
+}
+
+type NativeRunPublicationService
+
+// Type aliases
+
+// Traits

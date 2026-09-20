@@ -484,6 +484,8 @@ pub(all) struct PublicIndexRead {
   run_definition_cid : String
   invocation_cid : String
   result_manifest_cid : String
+  publication_request_cid : String
+  publication_attempt_cid : String
   durable_result_binding_cids : Array[String]
 }
 

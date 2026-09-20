@@ -92,6 +92,15 @@ Trusted clock observations use SQLite compare-and-swap to preserve a monotonic
 lower bound per admitted clock contract. A process restart, concurrent reader,
 or wall-clock regression cannot extend a Result's retention interval.
 
+The standard native publication service accepts the complete checked
+Effect-free Run evidence plus an immutable publication intent. It issues the
+publication request, attempt, and public-index contracts through the portable
+owner rather than accepting environment-authored contracts. Before creating
+an occurrence it resolves the one scoped committed index. An exact retry,
+concurrent winner, or restart-visible commit is re-admitted and validated
+against the complete chain; a changed policy or target is a conflict. The
+single Store index insertion remains the durable visibility boundary.
+
 The standard native Result-access service follows the portable access
 progression: request authorization, committed Result resolution, initial
 availability, read admission, grant issuance, and delivery. Every byte read

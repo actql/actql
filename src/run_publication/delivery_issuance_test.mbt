@@ -196,6 +196,8 @@ test "committed Result projection selects the exact indexed binding" {
     index_read.result_manifest_cid,
     publication_contract_identity(manifest),
   )
+  assert_eq(index_read.publication_request_cid, delivery_test_cid("a"))
+  assert_eq(index_read.publication_attempt_cid, delivery_test_cid("b"))
   assert_eq(index_read.durable_result_binding_cids, [
     publication_contract_identity(binding),
   ])

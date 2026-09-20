@@ -54,6 +54,8 @@ pub(all) struct PublicIndexRead {
   run_definition_cid : String
   invocation_cid : String
   result_manifest_cid : String
+  publication_request_cid : String
+  publication_attempt_cid : String
   durable_result_binding_cids : Array[String]
 }
 
@@ -903,6 +905,10 @@ pub fn project_public_index_read(
     contract_string(index, "run_definition_cid") is Some(run_definition_cid) &&
     contract_string(index, "invocation_cid") is Some(invocation_cid) &&
     contract_string(index, "result_manifest_cid") is Some(result_manifest_cid) &&
+    contract_string(index, "publication_request_cid")
+    is Some(publication_request_cid) &&
+    contract_string(index, "publication_attempt_cid")
+    is Some(publication_attempt_cid) &&
     contract_string_array(index, "durable_result_binding_cids")
     is Some(durable_result_binding_cids) &&
     !durable_result_binding_cids.is_empty() else {
@@ -914,6 +920,8 @@ pub fn project_public_index_read(
     run_definition_cid,
     invocation_cid,
     result_manifest_cid,
+    publication_request_cid,
+    publication_attempt_cid,
     durable_result_binding_cids,
   })
 }
