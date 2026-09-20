@@ -2,10 +2,15 @@
 
 Date: 2026-09-20
 
-Implementation base: `98865fcf` on
+Implementation base: `7a9bc32f` on
 `feat/engine-remote-site-completion`.
 
-Verified implementation head: `8a9102f4`.
+Verified implementation head: `84abc691`.
+
+The earlier report used the pre-rebase object names `98865fcf` and
+`8a9102f4`. The history rewrite changed commit identities without changing
+the implementation tree. This report records the corresponding commits in
+the current branch history.
 
 This report records the Engine-side shared boundary delivered for
 `2026-09-20-managed-completion-unification-work-order.md`. It is not the final
