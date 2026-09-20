@@ -49,6 +49,28 @@ test "direct Transfer commits only after stop and integrity" {
 }
 
 ///|
+test "direct retry progression is decided by common lifecycle state" {
+  let record = open_record(state_request(DirectStream))
+  assert_eq(direct_transfer_progress(record), DirectTransferStart)
+  ignore(apply(prepare_start(record).unwrap()))
+  assert_eq(direct_transfer_progress(record), DirectTransferCopying)
+  ignore(apply(prepare_source_settled(record, true, false).unwrap()))
+  assert_eq(direct_transfer_progress(record), DirectTransferSourceSettled)
+  ignore(apply(prepare_destination_commit(record).unwrap()))
+  assert_eq(direct_transfer_progress(record), DirectTransferCommitted)
+  let failed = open_record(state_request(DirectStream))
+  ignore(apply(prepare_failure(failed, false, true).unwrap()))
+  assert_eq(
+    direct_transfer_progress(failed),
+    DirectTransferReconciliationRequired,
+  )
+  assert_eq(
+    direct_transfer_progress(open_record(state_request(TransferStore))),
+    DirectTransferReconciliationRequired,
+  )
+}
+
+///|
 test "rejected integrity cannot be replaced within one Transfer attempt" {
   let record = open_record(state_request(DirectStream))
   ignore(apply(prepare_start(record).unwrap()))

@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_transfer_journal" @journal,
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
@@ -9,5 +10,6 @@ import {
 
 import {
   "actql/actql/physical_manifest" @manifest,
+  "actql/actql/platform_native/sqlite",
   "moonbitlang/core/env",
 } for "wbtest"

@@ -250,6 +250,11 @@ sends one bounded chunk per request, and never joins the Result into one bulk
 buffer. HTTPS, mTLS, response bounds, and physical cancellation remain adapter
 operations. A destination commit response becomes usable only after common
 state admission confirms the exact request and committed state.
+The native direct path durably accepts the occurrence and records start before
+network I/O. Source settlement and destination commit then advance through
+SQLite compare-and-swap. Reopening the journal returns an already committed
+occurrence without sending the payload again; an interrupted copying state
+retains its responsibility and retries only the same admitted occurrence.
 
 ## Publication, credentials, and bundles
 

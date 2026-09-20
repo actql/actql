@@ -4,7 +4,9 @@ pub(all) enum NativeRemoteTransferClientIssue {
   SourceMismatch
   Rejected(Int)
   Physical(@http.NativeHttpIssue)
+  Durable(@journal.NativeRemoteTransferJournalIssue)
   Protocol(@transfer.RemoteTransferIssue)
+  ReconciliationRequired
 }
 
 ///|
@@ -115,19 +117,16 @@ fn direct_cancel(
 }
 
 ///|
-pub fn send_direct_transfer(
-  client : @http.Client,
+fn direct_location(
   origin : String,
   request : @transfer.RemoteTransferRequest,
-  chunks : Array[Bytes],
-) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+) -> Result[(String, String), NativeRemoteTransferClientIssue] {
   if !origin.has_prefix("https://") || origin.has_suffix("/") {
     return Err(InvalidRequest)
   }
   let projection = @transfer.request_projection(request)
-  match admit_direct_source(request, chunks) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  if projection[1] != "direct" {
+    return Err(InvalidRequest)
   }
   guard transfer_path_component(projection[4]) is Some(destination_site) else {
     return Err(InvalidRequest)
@@ -142,11 +141,21 @@ pub fn send_direct_transfer(
     "/generations/" +
     projection[5] +
     "/transfers"
+  Ok((base, base + "/" + request_identity))
+}
+
+///|
+fn admit_direct_destination(
+  client : @http.Client,
+  base : String,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let projection = @transfer.request_projection(request)
   let envelope = match @transfer.transfer_admission_envelope_json(request) {
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))
   }
-  let admitted = transfer_exchange(
+  transfer_exchange(
     client,
     @http.Post,
     base,
@@ -159,10 +168,46 @@ pub fn send_direct_transfer(
     envelope,
     request,
   )
-  if admitted is Err(issue) {
-    return Err(issue)
+}
+
+///|
+fn commit_direct_destination(
+  client : @http.Client,
+  transfer_url : String,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  transfer_exchange(
+    client,
+    @http.Post,
+    transfer_url + "/commit",
+    [{ name: "content-length", value: "0", }],
+    b"",
+    request,
+  )
+}
+
+///|
+pub fn send_direct_transfer(
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  match admit_direct_source(request, chunks) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  let transfer_url = base + "/" + request_identity
+  let (base, transfer_url) = match direct_location(origin, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let admitted = match admit_direct_destination(client, base, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if @transfer.record_is_destination_committed(admitted) {
+    return Ok(admitted)
+  }
   for index, chunk in chunks {
     let uploaded = transfer_exchange(
       client,
@@ -180,14 +225,7 @@ pub fn send_direct_transfer(
       return Err(issue)
     }
   }
-  let committed = transfer_exchange(
-    client,
-    @http.Post,
-    transfer_url + "/commit",
-    [{ name: "content-length", value: "0", }],
-    b"",
-    request,
-  )
+  let committed = commit_direct_destination(client, transfer_url, request)
   match committed {
     Err(issue) => {
       direct_cancel(client, transfer_url, request)
@@ -199,5 +237,112 @@ pub fn send_direct_transfer(
       } else {
         Err(Protocol(@transfer.InvalidTransfer))
       }
+  }
+}
+
+///|
+fn commit_durable_transition(
+  journal : @journal.Journal,
+  transition : @transfer.RemoteTransferTransition,
+) -> Result[Unit, NativeRemoteTransferClientIssue] {
+  match journal.commit_transition(transition) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Durable(issue))
+  }
+}
+
+///|
+fn require_durable_record(
+  journal : @journal.Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  match journal.require(request) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Durable(issue))
+  }
+}
+
+///|
+pub fn send_durable_direct_transfer(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let (_, accepted) = match journal.accept(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  let mut record = accepted
+  let mut progress = @transfer.direct_transfer_progress(record)
+  if progress == @transfer.DirectTransferCommitted {
+    return Ok(record)
+  }
+  if progress == @transfer.DirectTransferReconciliationRequired {
+    return Err(ReconciliationRequired)
+  }
+  if progress == @transfer.DirectTransferStart {
+    let transition = match @transfer.prepare_start(record) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match commit_durable_transition(journal, transition) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    record = match require_durable_record(journal, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    progress = @transfer.direct_transfer_progress(record)
+  }
+  let remote = if progress == @transfer.DirectTransferSourceSettled {
+    let (base, transfer_url) = match direct_location(origin, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let admitted = match admit_direct_destination(client, base, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if @transfer.record_is_destination_committed(admitted) {
+      Ok(admitted)
+    } else {
+      commit_direct_destination(client, transfer_url, request)
+    }
+  } else if progress == @transfer.DirectTransferCopying {
+    send_direct_transfer(client, origin, request, chunks)
+  } else {
+    return Err(ReconciliationRequired)
+  }
+  match remote {
+    Err(issue) => return Err(issue)
+    Ok(value) =>
+      if !@transfer.record_is_destination_committed(value) {
+        return Err(Protocol(@transfer.InvalidTransfer))
+      }
+  }
+  if progress == @transfer.DirectTransferCopying {
+    let settled = match @transfer.prepare_source_settled(record, true, false) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match commit_durable_transition(journal, settled) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    record = match require_durable_record(journal, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  }
+  let committed = match @transfer.prepare_destination_commit(record) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match commit_durable_transition(journal, committed) {
+    Ok(_) => require_durable_record(journal, request)
+    Err(issue) => Err(issue)
   }
 }

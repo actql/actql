@@ -29,6 +29,8 @@ pub fn destination_receipt_json(RemoteTransferDestinationReceipt) -> Result[Stri
 
 pub fn destination_receipt_projection(RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn direct_transfer_progress(RemoteTransferRecord) -> RemoteDirectTransferProgress
+
 pub fn durable_remote_transfer_record_journal_identity(DurableRemoteTransferRecord) -> Result[String, RemoteTransferIssue]
 
 pub fn durable_remote_transfer_record_json(DurableRemoteTransferRecord) -> String
@@ -139,6 +141,14 @@ pub fn transition_projection(RemoteTransferTransition) -> (Array[Int], Array[Int
 
 // Types and methods
 type DurableRemoteTransferRecord
+
+pub(all) enum RemoteDirectTransferProgress {
+  DirectTransferStart
+  DirectTransferCopying
+  DirectTransferSourceSettled
+  DirectTransferCommitted
+  DirectTransferReconciliationRequired
+} derive(Eq, @debug.Debug)
 
 pub(all) enum RemoteTransferAttemptState {
   TransferAdmitted

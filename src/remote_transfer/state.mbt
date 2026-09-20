@@ -473,6 +473,46 @@ pub fn record_is_destination_committed(record : RemoteTransferRecord) -> Bool {
 }
 
 ///|
+pub(all) enum RemoteDirectTransferProgress {
+  DirectTransferStart
+  DirectTransferCopying
+  DirectTransferSourceSettled
+  DirectTransferCommitted
+  DirectTransferReconciliationRequired
+} derive(Eq, Debug)
+
+///|
+pub fn direct_transfer_progress(
+  record : RemoteTransferRecord,
+) -> RemoteDirectTransferProgress {
+  if record.request.route != DirectStream {
+    return DirectTransferReconciliationRequired
+  }
+  match record.attempt {
+    TransferAdmitted => DirectTransferStart
+    TransferCopying =>
+      if !record.source_access_stopped &&
+        record.integrity == TransferIntegrityPending &&
+        record.cleanup == TransferCleanupActive {
+        DirectTransferCopying
+      } else if record.source_access_stopped &&
+        record.integrity == TransferIntegrityVerified &&
+        record.cleanup == TransferCleanupActive {
+        DirectTransferSourceSettled
+      } else {
+        DirectTransferReconciliationRequired
+      }
+    TransferDestinationCommitted =>
+      if record_is_destination_committed(record) {
+        DirectTransferCommitted
+      } else {
+        DirectTransferReconciliationRequired
+      }
+    _ => DirectTransferReconciliationRequired
+  }
+}
+
+///|
 fn restored_state_valid(record : RemoteTransferRecord) -> Bool {
   if record.revision < 0 {
     return false

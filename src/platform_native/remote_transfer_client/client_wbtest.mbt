@@ -59,16 +59,39 @@ test "native direct client sends admitted chunks over mTLS" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
     return
   }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
   let library = @http.load_library(path).unwrap()
   let client = library.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let journal_path = sqlite_root + "/direct-transfer.sqlite"
+  let journal = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
   let chunks = [b"alpha", @utf8.encode("日本語")]
   let request = native_direct_request(chunks)
-  let record = send_direct_transfer(client, origin, request, chunks).unwrap()
+  let record = send_durable_direct_transfer(
+    journal, client, origin, request, chunks,
+  ).unwrap()
   assert_true(@transfer.record_is_destination_committed(record))
   assert_eq(
     @transfer.record_request_identity(record),
     @transfer.request_cid(request),
   )
+  assert_true(journal.close())
+  let reopened = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let restored = send_durable_direct_transfer(
+    reopened, client, origin, request, chunks,
+  ).unwrap()
+  assert_true(@transfer.record_is_destination_committed(restored))
+  assert_true(reopened.close())
   assert_true(client.close())
 }
 
