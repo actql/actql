@@ -639,9 +639,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "graphs_equal" {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if variant == "graphs_payload_unequal" { "\"other\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+    (if variant.has_suffix("unequal") { "\"other\"" } else { "\"rows\"" }) +
+    "," +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graphs_equal\":{\"with\":\"right_graph\"}," +
@@ -660,7 +664,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant == "graphs_equal" {
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
     "\"equal\""
   } else {
     "\"id\",\"node_name\""
@@ -675,10 +679,37 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
-  } else if variant == "graphs_equal" {
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
     "\"equal\""
   } else {
     "\"node_name\""
+  }
+  let other_stage = if variant.has_suffix("unequal") {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
+    (if variant == "graphs_payload_unequal" {
+      "[{\"id\":1,\"src\":1,\"dst\":2," +
+      "\"node_name\":\"different\",\"weight\":10},{\"id\":2," +
+      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+      "\"weight\":20}]"
+    } else {
+      "[]"
+    }) +
+    "}," +
+    "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+    "\"fields\":[\"id\",\"src\",\"dst\",\"node_name\"," +
+    "\"weight\"]}}},"
+  } else {
+    ""
+  }
+  let graph_inputs = if variant.has_suffix("unequal") {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
@@ -694,10 +725,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
-  "\"id\":\"graph\"," +
-  "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
-  "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}}," +
+  other_stage +
+  "{\"id\":\"graph\",\"inputs\":{" +
+  graph_inputs +
+  "},\"steps\":[{\"graph\":{\"nodes\":{" +
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
   "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +

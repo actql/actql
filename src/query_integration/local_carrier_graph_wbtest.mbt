@@ -159,9 +159,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "graphs_equal" {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if variant == "graphs_payload_unequal" { "\"other\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+    (if variant.has_suffix("unequal") { "\"other\"" } else { "\"rows\"" }) +
+    "," +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graphs_equal\":{\"with\":\"right_graph\"}," +
@@ -180,7 +184,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant == "graphs_equal" {
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
     "\"equal\""
   } else {
     "\"id\",\"node_name\""
@@ -195,10 +199,37 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
-  } else if variant == "graphs_equal" {
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
     "\"equal\""
   } else {
     "\"node_name\""
+  }
+  let other_stage = if variant.has_suffix("unequal") {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
+    (if variant == "graphs_payload_unequal" {
+      "[{\"id\":1,\"src\":1,\"dst\":2," +
+      "\"node_name\":\"different\",\"weight\":10},{\"id\":2," +
+      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+      "\"weight\":20}]"
+    } else {
+      "[]"
+    }) +
+    "}," +
+    "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+    "\"fields\":[\"id\",\"src\",\"dst\",\"node_name\"," +
+    "\"weight\"]}}},"
+  } else {
+    ""
+  }
+  let graph_inputs = if variant.has_suffix("unequal") {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
@@ -214,10 +245,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
-  "\"id\":\"graph\"," +
-  "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
-  "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}}," +
+  other_stage +
+  "{\"id\":\"graph\",\"inputs\":{" +
+  graph_inputs +
+  "},\"steps\":[{\"graph\":{\"nodes\":{" +
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
   "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
@@ -2165,6 +2197,18 @@ fn run_standard_host_graph_relation_path(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
     managed_publication=publication,
+    ledger_limits=if variant.has_suffix("unequal") {
+      Some({
+        planning_work: 20000,
+        attempts: 20,
+        holdings: 20,
+        transfer_bytes: 600000L,
+        retained_bytes: 64000000L,
+        execution_bytes: 268435456L,
+      })
+    } else {
+      None
+    },
   )
   if publication {
     assert_true(
@@ -2246,15 +2290,40 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_publication_obligations(run, publication),
   )
   let values_rows = local_managed_test_rows(values_ops)
+  let graph_task = if variant.has_suffix("unequal") { 3 } else { 2 }
+  let graph_inputs = [values]
+  let graph_input_rows = [values_rows]
+  let other_cleanup : Ref[(() -> Unit)?] = Ref(None)
+  if variant.has_suffix("unequal") {
+    let other_live = Ref(true)
+    let (other_ops, other) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [],
+      [],
+      2,
+      other_live,
+      obligations?=graph_publication_obligations(run, publication),
+    )
+    graph_inputs.push(other)
+    graph_input_rows.push(local_managed_test_rows(other_ops))
+    other_cleanup.val = Some(fn() {
+      other_live.val = false
+      @strategy.close_captured_task_output(run, 2)
+      (other_ops.close)()
+      (other_ops.cleanup_refresh)() |> ignore
+    })
+  }
   let graph_live = Ref(true)
   let graph_obligations = graph_publication_obligations(run, publication)
   let (graph_ops, graph) = run_local_managed_test_task(
     installed,
     run,
-    2,
-    [values],
-    [values_rows],
-    2,
+    graph_task,
+    graph_inputs,
+    graph_input_rows,
+    graph_task,
     graph_live,
     obligations?=graph_obligations,
   )
@@ -2264,7 +2333,7 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
     1
-  } else if variant == "graphs_equal" {
+  } else if variant == "graphs_equal" || variant.has_suffix("unequal") {
     1
   } else {
     2
@@ -2305,6 +2374,8 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
   } else if variant == "graphs_equal" {
     assert_true(graph_rows[0].contains("\"equal\":true"))
+  } else if variant.has_suffix("unequal") {
+    assert_true(graph_rows[0].contains("\"equal\":false"))
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -2342,10 +2413,10 @@ fn run_standard_host_graph_relation_path(
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    graph_task + 1,
     [graph],
     [graph_rows],
-    3,
+    graph_task + 1,
     first_live,
     obligations?=graph_publication_obligations(run, publication),
   )
@@ -2353,10 +2424,10 @@ fn run_standard_host_graph_relation_path(
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    graph_task + 2,
     [graph],
     [graph_rows],
-    4,
+    graph_task + 2,
     second_live,
     obligations?=graph_publication_obligations(run, publication),
   )
@@ -2364,7 +2435,7 @@ fn run_standard_host_graph_relation_path(
   assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, graph_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -2372,15 +2443,19 @@ fn run_standard_host_graph_relation_path(
   assert_true(@execution.managed_completed_output_available(graph))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, graph_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   graph_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, graph_task)
   (graph_ops.close)()
   assert_false((graph_ops.cleanup_refresh)())
   assert_true((graph_ops.cleanup_refresh)())
   assert_eq(cleanup_attempts.val, 2)
+  match other_cleanup.val {
+    Some(cleanup) => cleanup()
+    None => ()
+  }
   values_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (values_ops.close)()
@@ -2419,6 +2494,8 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("components_weak")
   run_standard_host_graph_relation_path("components_strong")
   run_standard_host_graph_relation_path("graphs_equal", publication=true)
+  run_standard_host_graph_relation_path("graphs_unequal")
+  run_standard_host_graph_relation_path("graphs_payload_unequal")
 }
 
 ///|
