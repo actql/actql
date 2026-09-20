@@ -2618,24 +2618,74 @@ pub fn strategy_host_transfer_cleanup_action(
 }
 
 ///|
-#export_name("strategyHostManagedFailureAction")
-pub fn strategy_host_managed_failure_action(
+#export_name("strategyHostBeginManagedFailureProgress")
+pub fn strategy_host_begin_managed_failure_progress(
   additional_closed : Bool,
-  operations_close_attempted : Bool,
-  operations_closed : Bool,
-  cleanup_stopped : Bool,
   execution_settled : Bool,
   cleanup_refreshed : Bool,
+) -> @strategy.ManagedFailureProgress {
+  @strategy.begin_managed_failure_progress(
+    additional_closed,
+    execution_settled,
+    cleanup_refreshed,
+  )
+}
+
+///|
+#export_name("strategyHostRecordManagedFailureAdditionalClosed")
+pub fn strategy_host_record_managed_failure_additional_closed(
+  progress : @strategy.ManagedFailureProgress,
+) -> Bool {
+  @strategy.record_managed_failure_additional_closed(progress)
+}
+
+///|
+#export_name("strategyHostRecordManagedFailureOperationsCloseAttempted")
+pub fn strategy_host_record_managed_failure_operations_close_attempted(
+  progress : @strategy.ManagedFailureProgress,
+) -> Bool {
+  @strategy.record_managed_failure_operations_close_attempted(progress)
+}
+
+///|
+#export_name("strategyHostRecordManagedFailureOperationsClosed")
+pub fn strategy_host_record_managed_failure_operations_closed(
+  progress : @strategy.ManagedFailureProgress,
+) -> Bool {
+  @strategy.record_managed_failure_operations_closed(progress)
+}
+
+///|
+#export_name("strategyHostRecordManagedFailureCleanupStopped")
+pub fn strategy_host_record_managed_failure_cleanup_stopped(
+  progress : @strategy.ManagedFailureProgress,
+) -> Bool {
+  @strategy.record_managed_failure_cleanup_stopped(progress)
+}
+
+///|
+#export_name("strategyHostRecordManagedFailureExecutionSettled")
+pub fn strategy_host_record_managed_failure_execution_settled(
+  progress : @strategy.ManagedFailureProgress,
+) -> Bool {
+  @strategy.record_managed_failure_execution_settled(progress)
+}
+
+///|
+#export_name("strategyHostRecordManagedFailureCleanupRefreshed")
+pub fn strategy_host_record_managed_failure_cleanup_refreshed(
+  progress : @strategy.ManagedFailureProgress,
+) -> Bool {
+  @strategy.record_managed_failure_cleanup_refreshed(progress)
+}
+
+///|
+#export_name("strategyHostManagedFailureAction")
+pub fn strategy_host_managed_failure_action(
+  progress : @strategy.ManagedFailureProgress,
 ) -> Int {
   @strategy.managed_failure_runtime_action_code(
-    @strategy.prepare_managed_failure_step(
-      additional_closed,
-      operations_close_attempted,
-      operations_closed,
-      cleanup_stopped,
-      execution_settled,
-      cleanup_refreshed,
-    ),
+    @strategy.prepare_managed_failure_progress_step(progress),
   )
 }
 

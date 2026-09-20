@@ -73,6 +73,8 @@ pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer
 
 pub fn strategy_host_begin_cleanup_progress() -> @physical_strategy.HostCleanupProgress
 
+pub fn strategy_host_begin_managed_failure_progress(Bool, Bool, Bool) -> @physical_strategy.ManagedFailureProgress
+
 pub fn strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strategy.HostTaskSuccessProgress
 
 pub fn strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
@@ -91,7 +93,7 @@ pub fn strategy_host_explain(@connectors_workers_async.ConfiguredComputeHost[@ph
 
 pub fn strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
-pub fn strategy_host_managed_failure_action(Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn strategy_host_managed_failure_action(@physical_strategy.ManagedFailureProgress) -> Int
 
 pub fn strategy_host_managed_input_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
@@ -176,6 +178,18 @@ pub fn strategy_host_publication_inventory_task(@run_publication.CheckedPublicat
 pub fn strategy_host_record_cleanup_closes_awaited(@physical_strategy.HostCleanupProgress) -> Bool
 
 pub fn strategy_host_record_cleanup_retry(@physical_strategy.HostCleanupProgress) -> Bool
+
+pub fn strategy_host_record_managed_failure_additional_closed(@physical_strategy.ManagedFailureProgress) -> Bool
+
+pub fn strategy_host_record_managed_failure_cleanup_refreshed(@physical_strategy.ManagedFailureProgress) -> Bool
+
+pub fn strategy_host_record_managed_failure_cleanup_stopped(@physical_strategy.ManagedFailureProgress) -> Bool
+
+pub fn strategy_host_record_managed_failure_execution_settled(@physical_strategy.ManagedFailureProgress) -> Bool
+
+pub fn strategy_host_record_managed_failure_operations_close_attempted(@physical_strategy.ManagedFailureProgress) -> Bool
+
+pub fn strategy_host_record_managed_failure_operations_closed(@physical_strategy.ManagedFailureProgress) -> Bool
 
 pub fn strategy_host_record_task_common_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
 

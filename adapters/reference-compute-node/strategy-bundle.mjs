@@ -3,7 +3,8 @@
 import {managedInputCodecContractCid, managedInputSupportsRows,
   registerManagedMemoryInput,
   withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
-import {settleFailedManagedOperations} from
+import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
+  settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
 const managedSiteCapacity = value => Array.isArray(value)
@@ -14,8 +15,6 @@ const managedSiteCapacity = value => Array.isArray(value)
 
 export function numericStrategyContribution(moon, setup, checked) {
   const registration = moon.strategyModule_reference_compute_Registration(setup);
-  const failureAction = (...facts) =>
-    moon.strategyHostManagedFailureAction(...facts);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
@@ -79,8 +78,12 @@ export function numericStrategyContribution(moon, setup, checked) {
           prepared.configuration,
         ),
       );
+      const failureProgress = beginManagedFailureProgress(
+        moon,
+        true,
+        typeof operations.cleanup_refresh !== 'function',
+      );
       let available = true;
-      let settled = false;
       try {
         const transfers = operations.inputs;
         if (!Array.isArray(transfers) ||
@@ -120,7 +123,7 @@ export function numericStrategyContribution(moon, setup, checked) {
               throw new Error('ExecutionSiteCompletionNotReady');
             }
             checked(operations.settle());
-            settled = true;
+            recordManagedFailureExecutionSettled(failureProgress);
             completed = checked(operations.complete(
               nextMaterial++,
               operations.storage_bytes,
@@ -173,8 +176,7 @@ export function numericStrategyContribution(moon, setup, checked) {
       } catch (error) {
         available = false;
         throw settleFailedManagedOperations(
-          operations, checked, error, settled,
-          [], failureAction,
+          operations, checked, error, failureProgress,
         );
       }
     },

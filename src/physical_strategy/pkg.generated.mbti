@@ -27,6 +27,8 @@ pub fn begin_host_cleanup_progress() -> HostCleanupProgress
 
 pub fn begin_host_task_success_progress(Bool, Bool) -> HostTaskSuccessProgress
 
+pub fn begin_managed_failure_progress(Bool, Bool, Bool) -> ManagedFailureProgress
+
 pub fn begin_managed_transfer_progress(ManagedTransfer) -> ManagedTransferProgress
 
 pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
@@ -215,6 +217,8 @@ pub fn prepare_host_task_success_progress_step(HostTaskSuccessProgress) -> HostT
 
 pub fn prepare_host_task_success_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostTaskSuccessAction
 
+pub fn prepare_managed_failure_progress_step(ManagedFailureProgress) -> ManagedFailureRuntimeAction
+
 pub fn prepare_managed_failure_step(Bool, Bool, Bool, Bool, Bool, Bool) -> ManagedFailureRuntimeAction
 
 pub fn prepare_managed_transfer_cleanup_step(ManagedTransferProgress) -> Result[ManagedTransferRuntimeAction, RunIssue]
@@ -246,6 +250,18 @@ pub fn record_host_task_output_retained(HostTaskSuccessProgress) -> Bool
 pub fn record_host_task_site_completion(HostTaskSuccessProgress, Bool) -> Bool
 
 pub fn record_host_task_site_operation_settled(HostTaskSuccessProgress) -> Bool
+
+pub fn record_managed_failure_additional_closed(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_cleanup_refreshed(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_cleanup_stopped(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_execution_settled(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_operations_close_attempted(ManagedFailureProgress) -> Bool
+
+pub fn record_managed_failure_operations_closed(ManagedFailureProgress) -> Bool
 
 pub fn record_managed_transfer_destination_admission(ManagedTransferProgress, ManagedTransferDestinationFacts, Int64, Int64) -> Bool
 
@@ -482,6 +498,8 @@ pub(all) enum HostTaskSuccessAction {
 } derive(Eq, @debug.Debug)
 
 type HostTaskSuccessProgress
+
+type ManagedFailureProgress
 
 pub(all) enum ManagedFailureRuntimeAction {
   FailureCloseAdditional

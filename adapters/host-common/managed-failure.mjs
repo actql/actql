@@ -50,15 +50,63 @@ const FAILURE_SETTLE_OPERATIONS = 3;
 const FAILURE_REFRESH_CLEANUP = 4;
 const FAILURE_FINISHED = 5;
 
+const managedFailureProgresses = new WeakMap();
+const requiredProgressMethods = [
+  'strategyHostBeginManagedFailureProgress',
+  'strategyHostRecordManagedFailureAdditionalClosed',
+  'strategyHostRecordManagedFailureOperationsCloseAttempted',
+  'strategyHostRecordManagedFailureOperationsClosed',
+  'strategyHostRecordManagedFailureCleanupStopped',
+  'strategyHostRecordManagedFailureExecutionSettled',
+  'strategyHostRecordManagedFailureCleanupRefreshed',
+  'strategyHostManagedFailureAction',
+];
+
+export function beginManagedFailureProgress(
+  moon,
+  additionalClosed,
+  cleanupRefreshed,
+) {
+  if (moon === null || typeof moon !== 'object' ||
+      requiredProgressMethods.some(name => typeof moon[name] !== 'function')) {
+    throw new Error('MissingManagedFailureProgress');
+  }
+  const progress = moon.strategyHostBeginManagedFailureProgress(
+    additionalClosed,
+    false,
+    cleanupRefreshed,
+  );
+  if (progress === undefined || progress === null) {
+    throw new Error('InvalidManagedFailureProgress');
+  }
+  const owner = Object.freeze({});
+  managedFailureProgresses.set(owner, {moon, progress});
+  return owner;
+}
+
+const managedProgress = owner => {
+  const state = managedFailureProgresses.get(owner);
+  if (state === undefined) throw new Error('ForeignManagedFailureProgress');
+  return state;
+};
+const recordProgress = (owner, method) => {
+  const state = managedProgress(owner);
+  if (state.moon[method](state.progress) !== true) {
+    throw new Error('InvalidManagedFailureProgress');
+  }
+};
+
+export function recordManagedFailureExecutionSettled(owner) {
+  recordProgress(owner, 'strategyHostRecordManagedFailureExecutionSettled');
+}
+
 // The MoonBit planner fixes progression. This adapter only performs physical
 // close, stop observation, retry, settlement, and cleanup-refresh calls.
 export function settleFailedManagedOperations(
-  operations, checked, reason, alreadySettled = false,
-  additionalCleanup = [], nextAction,
+  operations, checked, reason, progressOwner, additionalCleanup = [],
 ) {
-  if (typeof nextAction !== 'function') {
-    throw new Error('MissingManagedFailureProgress');
-  }
+  const progressState = managedProgress(progressOwner);
+  const {moon, progress} = progressState;
   const upstreamRequired = member(reason, 'cleanupPending') === true;
   const upstream = upstreamRequired
     ? member(reason, 'cleanupHandle') : undefined;
@@ -68,13 +116,17 @@ export function settleFailedManagedOperations(
     handle: member(value, 'cleanupHandle'),
     closed: typeof member(value, 'close') !== 'function',
   }));
-  let closed = false;
-  let closeAttempted = false;
-  let settled = alreadySettled;
-  let refreshed = typeof member(operations, 'cleanup_refresh') !== 'function';
   const cleanupErrors = [];
   const record = error => { cleanupErrors.push(error); };
   const additionalClosed = () => additional.every(cleanup => cleanup.closed);
+  const observeAdditionalClosed = () => {
+    if (additionalClosed()) {
+      recordProgress(
+        progressOwner,
+        'strategyHostRecordManagedFailureAdditionalClosed',
+      );
+    }
+  };
   const closeAdditional = () => {
     for (const cleanup of additional) {
       if (cleanup.closed) continue;
@@ -85,26 +137,51 @@ export function settleFailedManagedOperations(
   const additionalPending = () => additional.some(cleanup =>
     !cleanup.closed || cleanupState(cleanup.handle, cleanup.handle != null).pending);
   const close = () => {
-    if (closed) return;
-    closeAttempted = true;
-    try { operations.close(); closed = true; }
+    recordProgress(
+      progressOwner,
+      'strategyHostRecordManagedFailureOperationsCloseAttempted',
+    );
+    try {
+      operations.close();
+      recordProgress(
+        progressOwner,
+        'strategyHostRecordManagedFailureOperationsClosed',
+      );
+    }
     catch (error) { record(error); }
   };
   const settle = () => {
-    if (settled) return;
-    try { checked(operations.settle()); settled = true; }
+    try {
+      checked(operations.settle());
+      recordManagedFailureExecutionSettled(progressOwner);
+    }
     catch (error) { record(error); }
   };
   const refresh = () => {
-    if (refreshed) return;
-    try { refreshed = operations.cleanup_refresh() === true; }
+    try {
+      if (operations.cleanup_refresh() === true) {
+        recordProgress(
+          progressOwner,
+          'strategyHostRecordManagedFailureCleanupRefreshed',
+        );
+      }
+    }
     catch (error) { record(error); }
   };
   const stopped = () =>
     !cleanupState(upstream, upstreamRequired).pending && !additionalPending();
-  const action = () => nextAction(
-    additionalClosed(), closeAttempted, closed, stopped(), settled, refreshed,
-  );
+  const action = () => {
+    observeAdditionalClosed();
+    let selected = moon.strategyHostManagedFailureAction(progress);
+    if (selected === FAILURE_AWAIT_STOP && stopped()) {
+      recordProgress(
+        progressOwner,
+        'strategyHostRecordManagedFailureCleanupStopped',
+      );
+      selected = moon.strategyHostManagedFailureAction(progress);
+    }
+    return selected;
+  };
   const drive = () => {
     const attempted = new Set();
     for (let step = 0; step < 12; step++) {
@@ -126,12 +203,12 @@ export function settleFailedManagedOperations(
       if (selected === FAILURE_AWAIT_STOP) return false;
       if (selected === FAILURE_SETTLE_OPERATIONS) {
         settle();
-        if (!settled) return false;
+        if (action() === FAILURE_SETTLE_OPERATIONS) return false;
         continue;
       }
       if (selected === FAILURE_REFRESH_CLEANUP) {
         refresh();
-        if (!refreshed) return false;
+        if (action() === FAILURE_REFRESH_CLEANUP) return false;
         continue;
       }
       if (selected === FAILURE_FINISHED) return true;

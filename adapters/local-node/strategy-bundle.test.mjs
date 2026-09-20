@@ -21,22 +21,6 @@ import * as portableRuntime from
 const siteControl = createExecutionSiteControlFixture();
 const ok = value => ({$tag: 1, _0: value});
 const failed = value => ({$tag: 0, _0: value});
-const managedFailureAction = (
-  additionalClosed,
-  operationsCloseAttempted,
-  operationsClosed,
-  cleanupStopped,
-  executionSettled,
-  cleanupRefreshed,
-) => {
-  if (!additionalClosed) return 0;
-  if (!operationsCloseAttempted) return 1;
-  if (!cleanupStopped) return 2;
-  if (!executionSettled) return 3;
-  if (!operationsClosed) return 1;
-  if (!cleanupRefreshed) return 4;
-  return 5;
-};
 function installed(consume, completionFailure, options = {}) {
   const events = [], material = {}, input = {}, task = {}, setup = {};
   registerRetainedInput(material, value => value === input, {consume},
@@ -65,7 +49,6 @@ function installed(consume, completionFailure, options = {}) {
     ...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
-    strategyHostManagedFailureAction: managedFailureAction,
     strategyModule_local_Dispatch: (owner, work) => {
       assert.equal(owner, setup); assert.equal(work, task);
       events.push('reserved'); return ok(operations);
@@ -109,9 +92,9 @@ test('standard Local legacy completion observes forced Site loss', async () => {
       close() {},
     };
     const entry = localStrategyContribution({
+      ...portableRuntime,
       strategyModule_local_Registration: () => registration,
       strategyHostRegistrationSelectionKey: () => 'local-test',
-      strategyHostManagedFailureAction: managedFailureAction,
       strategyHostNextTask: () => -1,
       strategyHostManagedProducers: () => [],
       strategyModule_local_Dispatch: (owner, work) => {
@@ -260,9 +243,9 @@ test('an inapplicable managed connector does not hide a capable alternative', as
     );
     const registrations = {source: {}, local: {}, alternate: {}};
     const local = localStrategyContribution({
+      ...portableRuntime,
       strategyModule_local_Registration: () => registrations.local,
       strategyHostRegistrationSelectionKey: () => 'local',
-      strategyHostManagedFailureAction: managedFailureAction,
       strategyHostNextTask: () => 2,
       strategyHostManagedProducers: () => [1],
       strategyHostManagedInputCount: () => 1,
@@ -335,9 +318,9 @@ test('reference preparation propagates fatal failures instead of hiding them as 
   );
   const fatal = new Error('ForeignPreparation');
   const entry = numericStrategyContribution({
+    ...portableRuntime,
     strategyModule_reference_compute_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'reference',
-    strategyHostManagedFailureAction: managedFailureAction,
     strategyHostNextTask: () => 2,
     strategyHostManagedProducers: () => [1],
     strategyHostManagedRequiresLogicalIdentity: () => ok(false),
@@ -353,11 +336,11 @@ test('Local preparation delegates checked zero-input applicability to MoonBit', 
   const setup = {}, registration = {}, configuration = {};
   const seen = [];
   const entry = localStrategyContribution({
+    ...portableRuntime,
     strategyModule_local_Registration: owner => {
       assert.equal(owner, setup);
       return registration;
     },
-    strategyHostManagedFailureAction: managedFailureAction,
     strategyHostRegistrationSelectionKey: value => {
       assert.equal(value, registration);
       return 'local';
@@ -502,9 +485,9 @@ test('standard Host runs Local with mixed memory and provider inputs',
         close() {},
       };
       const local = localStrategyContribution({
+        ...portableRuntime,
         strategyModule_local_Registration: () => registrations.local,
         strategyHostRegistrationSelectionKey: () => 'local',
-        strategyHostManagedFailureAction: managedFailureAction,
         strategyHostNextTask: () => complete.has(3) ? -1 : 3,
         strategyHostManagedProducers: () => complete.has(2) ? [1, 2] : [],
         strategyHostManagedInputCount: () => 2,

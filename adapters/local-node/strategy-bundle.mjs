@@ -5,7 +5,8 @@ import {localRetainedStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
-import {settleFailedManagedOperations} from
+import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
+  settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
 const managedSiteCapacity = value => Array.isArray(value)
@@ -17,8 +18,6 @@ const managedSiteCapacity = value => Array.isArray(value)
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
-  const failureAction = (...facts) =>
-    moon.strategyHostManagedFailureAction(...facts);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
@@ -81,8 +80,12 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       const operations = checked(
         moon.strategyModule_local_ManagedStart(prepared.configuration),
       );
+      const failureProgress = beginManagedFailureProgress(
+        moon,
+        true,
+        typeof operations.cleanup_refresh !== 'function',
+      );
       let available = true;
-      let settled = false;
       try {
         const transfers = operations.inputs;
         if (!Array.isArray(transfers) ||
@@ -132,7 +135,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               throw new Error('ExecutionSiteCompletionNotReady');
             }
             checked(operations.settle());
-            settled = true;
+            recordManagedFailureExecutionSettled(failureProgress);
             completed = checked(operations.complete(
               nextMaterial++,
               operations.storage_bytes,
@@ -190,15 +193,18 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       } catch (error) {
         available = false;
         throw settleFailedManagedOperations(
-          operations, checked, error, settled,
-          [], failureAction,
+          operations, checked, error, failureProgress,
         );
       }
     },
     async run(task, signal, completionPermit) {
       signal?.throwIfAborted();
       const operations = checked(moon.strategyModule_local_Dispatch(setup, task));
-      let settled = false;
+      const failureProgress = beginManagedFailureProgress(
+        moon,
+        false,
+        typeof operations.cleanup_refresh !== 'function',
+      );
       let importedRows = 0, importedBytes = 0n;
       let output;
       try {
@@ -215,7 +221,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         checked(operations.execute());
         const exported = output ? await output.write() : {};
         checked(operations.settle());
-        settled = true;
+        recordManagedFailureExecutionSettled(failureProgress);
         completionPermit?.assertAvailable?.();
         checked(operations.complete());
         return {diagnostic: {realization: 'local', importedRows, importedBytes: String(importedBytes), ...exported},
@@ -238,12 +244,11 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           operations,
           checked,
           error,
-          settled,
+          failureProgress,
           output == null ? [] : [{
             close: () => output.close(),
             cleanupHandle: output.cleanupHandle,
           }],
-          failureAction,
         );
       }
     },
