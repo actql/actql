@@ -319,6 +319,8 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_relation_input_step(PreparedGraphRelation, Int) -> Int?
+
 pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
 
 pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema

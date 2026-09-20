@@ -148,7 +148,23 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         )
       (current, @lower.GraphRelationStep(relation)) if current == count - 1 =>
         @lower.operation(node) == "SGA.equal" &&
-        @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation
+        @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation &&
+        @lower.graph_relation_input_step(relation, 0) is Some(left) &&
+        @lower.graph_relation_input_step(relation, 1) is Some(right) &&
+        left >= 0 &&
+        left < current &&
+        right >= 0 &&
+        right < current &&
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          left,
+        )
+        is Some(@lower.GraphConstructionStep(_)) &&
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          right,
+        )
+        is Some(@lower.GraphConstructionStep(_))
       _ => false
     }
   })
@@ -743,11 +759,14 @@ fn advance_execution(
           Some(@lower.GraphRelationStep(relation)) => {
             guard @lower.graph_relation_kind(relation) ==
               @lower.GraphsEqualRelation &&
-              value.graphs.length() == 2 else {
+              @lower.graph_relation_input_step(relation, 0) is Some(left) &&
+              @lower.graph_relation_input_step(relation, 1) is Some(right) &&
+              value.graphs.get(left) is Some(left_graph) &&
+              value.graphs.get(right) is Some(right_graph) else {
               return fail_execution(value)
             }
             let reads : Array[@graph.ProducerRead] = []
-            for index, output in value.graphs {
+            for index, output in [left_graph, right_graph] {
               match
                 @graph.prepare_step_read(
                   @execution.generated_sequence_owner(value.generated),

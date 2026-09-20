@@ -21,6 +21,19 @@ pub fn graph_relation_kind(value : PreparedGraphRelation) -> GraphRelationKind {
 }
 
 ///|
+/// Resolve one ordered Graph operand to its exact producing step. Repeated
+/// operands remain distinct input occurrences even when they share a producer.
+pub fn graph_relation_input_step(
+  value : PreparedGraphRelation,
+  index : Int,
+) -> Int? {
+  match node_input_target(value.node, index) {
+    Some(@pipeline.Step(step)) => Some(step)
+    _ => None
+  }
+}
+
+///|
 pub fn graph_relation_output_schema(
   value : PreparedGraphRelation,
 ) -> @schema.Schema {
