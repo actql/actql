@@ -98,6 +98,28 @@ the canonical helpers. The real two-site DuckDB Host test passes, and the
 Workers adapter passes all 24 tests. These focused results do not replace final
 same-SHA Linux CI.
 
+## Closed review findings after `550a7f3a`
+
+Commit `d3080fa9` closes both explicit Graph construction findings from the
+fixed review.
+
+- The canonical expansion projects the selected node and edge branches,
+  performs deterministic source and target endpoint closure against the
+  explicit node universe, and only then invokes `BRIDGE.rows.to_graph`.
+  The Local bridge applies the same closure law instead of hiding a different
+  interpretation in its kernel.
+- One typed expansion descriptor now drives preparation accounting, canonical
+  occurrence enumeration, and encoding. Preparation admits the additional
+  nodes, references, names, and work before emission while retaining repeated
+  logical input occurrences.
+
+The regressions cover absent and present endpoints, selected properties,
+repeated node and edge roles, exact and one-short limits, re-admission, and
+agreement between canonical expansion and Local execution on JS, Wasm, and
+native. Commit `b7e1df7e` records that evidence in the coverage manifest.
+Concise endpoint-derived construction, formal publication, and environment
+cancellation delivery remain separate open requirements.
+
 ## Family execution gaps
 
 ### SGA
