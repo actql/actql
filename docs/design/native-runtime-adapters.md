@@ -153,6 +153,21 @@ successful compare-and-exchange means for dispatch, publication, cleanup, or
 any other application state. The adapter cannot turn a row update into an
 ActQL completion.
 
+The `actql-native-runtime-bundle` executable is the standard Node-free update
+surface for the native runtime bundle Store. Its `install` operation reads an
+exact source generation and copies it through 64 KiB chunks into the Store's
+bounded installer. `activate`, `drain`, `rollback`, `retain`, `release`,
+`reclaim`, `verify`, `inspect`, `recover`, and capacity inspection call the
+same MoonBit lifecycle owner used by product dispatch. A failed operation does
+not invent a cleanup decision in the command layer: installer cancellation and
+Store close report unresolved durable responsibility as cleanup pending.
+
+The command receives library paths, target scope, authority material, and
+capacity limits explicitly. This makes the selected deployment dependencies
+observable and prevents a hidden Node fallback. Public-key, manifest, and
+signature inputs are bounded before allocation; component bytes are never
+assembled into one command-layer buffer.
+
 The native Remote Site journal stores the portable dispatch-record body under
 an attempt-occurrence key. A changed dispatch ID therefore cannot create a
 second physical execution for the same language-task attempt. Admission and

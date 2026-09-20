@@ -1,0 +1,189 @@
+import assert from 'node:assert/strict';
+import {execFile, execFileSync} from 'node:child_process';
+import {createHash, generateKeyPairSync} from 'node:crypto';
+import {existsSync} from 'node:fs';
+import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {promisify} from 'node:util';
+import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {signRemoteRuntimeBundle} from
+  '../adapters/site-node/remote-bundle-signature.mjs';
+
+const execute = promisify(execFile);
+const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
+const scratchParent = process.env.ACTQL_TEST_SCRATCH_ROOT;
+if (typeof scratchParent !== 'string' || scratchParent.length === 0) {
+  throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
+}
+await mkdir(scratchParent, {recursive: true});
+const root = await mkdtemp(join(scratchParent, 'native-bundle-cli-'));
+const inputRoot = join(root, 'input');
+const storeRoot = join(root, 'store');
+await Promise.all([
+  mkdir(inputRoot, {recursive: true}),
+  mkdir(storeRoot, {recursive: true}),
+]);
+
+const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
+const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
+  (process.platform === 'darwin'
+    ? [
+        '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib',
+        '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib',
+      ].find(existsSync) ?? 'libcrypto.3.dylib'
+    : 'libcrypto.so.3');
+const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
+  (process.platform === 'darwin'
+    ? '/usr/lib/libsqlite3.dylib'
+    : 'libsqlite3.so.0');
+const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
+  ? 'aarch64-apple-darwin'
+  : process.platform === 'linux' && process.arch === 'x64'
+    ? 'x86_64-unknown-linux-gnu'
+    : undefined;
+if (targetTriple === undefined) {
+  throw new Error(
+    `unsupported native bundle CLI test target ${process.platform}/${process.arch}`,
+  );
+}
+
+try {
+  execFileSync(moon, [
+    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  execFileSync(moon, [
+    'build', '--target', 'native', 'src/cmd/native_runtime_bundle',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  const moonModule = await import(pathToFileURL(join(
+    repositoryRoot,
+    '_build/js/release/build/connectors_builtin_node/' +
+      'connectors_builtin_node.js',
+  )).href);
+  const control = runtimeCore(moonModule).remoteBundleControl;
+  const keys = generateKeyPairSync('ed25519');
+  await writeFile(
+    join(inputRoot, 'public.pem'),
+    keys.publicKey.export({type: 'spki', format: 'pem'}),
+    {mode: 0o600},
+  );
+
+  const prepare = async (number, component) => {
+    const manifest = control.prepare({
+      issuerAuthority: 'bundle-authority-a',
+      bundleName: 'native-site-runtime',
+      revision: String(number),
+      targetTriple,
+      componentCid: `sha256:${createHash('sha256')
+        .update(component).digest('hex')}`,
+      componentBytes: BigInt(component.byteLength),
+      connectorRegistration: 'local',
+      connectorRevision: `local/${number}`,
+      strategyRevision: `strategy/${number}`,
+    });
+    const envelope = signRemoteRuntimeBundle(manifest, control, {
+      keyId: 'key-a',
+      privateKey: keys.privateKey,
+    });
+    const names = {
+      component: `component-${number}.bin`,
+      manifest: `manifest-${number}.json`,
+      signature: `signature-${number}.txt`,
+    };
+    await Promise.all([
+      writeFile(join(inputRoot, names.component), component, {mode: 0o600}),
+      writeFile(join(inputRoot, names.manifest), envelope.body, {mode: 0o600}),
+      writeFile(
+        join(inputRoot, names.signature),
+        envelope.signature,
+        {mode: 0o600},
+      ),
+    ]);
+    return Object.freeze({
+      cid: control.identity(manifest),
+      names: Object.freeze(names),
+    });
+  };
+
+  const first = await prepare(1, Buffer.from('native-runtime-one'));
+  const second = await prepare(2, Buffer.from('native-runtime-two'));
+  const executable = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_runtime_bundle/' +
+      'native_runtime_bundle.exe',
+  );
+  const common = [
+    '--store-root', storeRoot,
+    '--sqlite-library', sqliteLibrary,
+    '--crypto-library', cryptoLibrary,
+    '--target-triple', targetTriple,
+    '--issuer-authority', 'bundle-authority-a',
+    '--key-id', 'key-a',
+    '--authority-root', inputRoot,
+    '--public-key-name', 'public.pem',
+    '--capacity-bytes', '1024',
+    '--max-bundles', '4',
+    '--max-owners', '4',
+    '--max-record-bytes', '1048576',
+  ];
+  const run = async (...operation) => {
+    const result = await execute(executable, [...common, ...operation], {
+      cwd: repositoryRoot,
+      env: {PATH: '/usr/bin:/bin', LANG: 'C'},
+      maxBuffer: 2 * 1024 * 1024,
+    });
+    return JSON.parse(result.stdout);
+  };
+  const install = async (number, bundle) => run(
+    'install',
+    '--install-id', `native-cli-install-${number}`,
+    '--bundle-cid', bundle.cid,
+    '--input-root', inputRoot,
+    '--manifest-name', bundle.names.manifest,
+    '--signature-name', bundle.names.signature,
+    '--component-name', bundle.names.component,
+  );
+
+  assert.deepEqual((await install(1, first)).state, ['0', '0', '0']);
+  assert.deepEqual(
+    (await run('activate', '--bundle-cid', first.cid)).state,
+    ['1', '1', '0'],
+  );
+  assert.deepEqual((await install(2, second)).state, ['0', '0', '0']);
+  assert.deepEqual(
+    (await run('activate', '--bundle-cid', second.cid)).state,
+    ['1', '1', '0'],
+  );
+  assert.equal((await run('active')).runtime_bundle_cid, second.cid);
+  assert.deepEqual(
+    (await run('rollback', '--bundle-cid', first.cid)).state,
+    ['3', '1', '0'],
+  );
+  assert.equal((await run('active')).runtime_bundle_cid, first.cid);
+  assert.deepEqual(
+    (await run('drain', '--bundle-cid', second.cid)).state,
+    ['2', '2', '0'],
+  );
+  assert.deepEqual(
+    (await run('reclaim', '--bundle-cid', second.cid)).state,
+    ['3', '3', '0'],
+  );
+  assert.deepEqual(
+    (await run('drain', '--bundle-cid', first.cid)).state,
+    ['4', '2', '0'],
+  );
+  assert.deepEqual(
+    (await run('reclaim', '--bundle-cid', first.cid)).state,
+    ['5', '3', '0'],
+  );
+  assert.deepEqual(await run('capacity'), {
+    reserved_bytes: '0',
+    reserved_objects: '0',
+  });
+  const recovered = await run('recover');
+  assert.equal(recovered.length, 2);
+  assert.ok(recovered.every(value => value.state[1] === '3'));
+  console.log('Native runtime bundle CLI lifecycle passed');
+} finally {
+  await rm(root, {recursive: true, force: true});
+}

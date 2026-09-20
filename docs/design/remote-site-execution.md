@@ -253,6 +253,14 @@ Site-local active revision durable in SQLite. These filesystem and SQLite
 operations are environment-specific; canonical identity and every lifecycle
 transition remain MoonBit decisions.
 
+The native distribution exposes the same lifecycle through the
+`actql-native-runtime-bundle` MoonBit executable. It loads explicitly selected
+SQLite and OpenSSL libraries, reads authority and envelope inputs through
+generation-pinned files, and streams a component in bounded chunks. Each
+invocation reopens the durable catalog, so activation, rollback, drain,
+reclamation, inspection, and recovery exercise the restart path rather than a
+process-local cache. The executable contains no Node subprocess fallback.
+
 The native filesystem adapter can adopt an exact pre-positioned generation or
 create one through a bounded streaming installer. Installation first records a
 capacity reservation and exact signed intent in the canonical SQLite catalog.
@@ -269,8 +277,9 @@ physical generation, and retryable reclaim responsibility. Reopening the Store
 re-admits every signed manifest before any operation and upgrades the earlier
 catalog envelope without changing its admitted bundle records. Shared
 immutable components use one capacity reservation and are deleted only after
-the final bundle and owner release them. The executable native update command
-surface and separated-network update profile remain later integration steps.
+the final bundle and owner release them. The separated-network update profile
+and packaging of the executable with a complete native Site distribution
+remain later integration steps.
 
 Remote dispatch resolves only a registration for the exact active bundle. It
 retains a durable bundle owner before execution, verifies the installed

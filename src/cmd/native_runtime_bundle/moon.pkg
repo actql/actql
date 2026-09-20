@@ -1,0 +1,14 @@
+import {
+  "actql/actql/encode_core" @encode,
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
