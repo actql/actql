@@ -197,6 +197,7 @@ pub(all) enum MatchNodesIssue {
   MatchNodesInputUnavailable
   MissingMatchNodeIdentity(Int)
   MatchNodesWorkspaceLimit
+  MatchNodesPredicate(@execution_relation.EvalIssueKind)
   MatchNodesKeyOrder(@value_admission.KeyOrderIssue)
   MatchNodesOutput(@execution_relation.CaptureIssue)
   MatchNodesCompletion(@execution_relation.TrustedOutputIssue)

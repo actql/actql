@@ -1534,6 +1534,19 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'match-nodes-predicate',
+    step: {
+      from: 'g',
+      match_nodes: {
+        where: "node_name = 'second'",
+        fields: ['id', 'node_name'],
+      },
+      as: 'out',
+    },
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
+  }, {
     name: 'match-edges',
     step: {
       from: 'g',
@@ -1855,6 +1868,18 @@ async function exerciseStrategyGraph(
       as: 'out',
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
+  }, {
+    name: 'match-nodes-predicate',
+    rows: 40,
+    step: {
+      from: 'g',
+      match_nodes: {
+        where: "node_name = 'node-39'",
+        fields: ['id', 'node_name'],
+      },
+      as: 'out',
+    },
+    fields: ['id', 'node_name'],
   }, {
     name: 'match-edges',
     rows: 40,

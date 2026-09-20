@@ -120,6 +120,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "match_nodes_literal" {
     "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_nodes_predicate" {
+    "\"from\":\"g\",\"match_nodes\":{\"where\":" +
+    "\"node_name = 'second'\",\"fields\":[\"id\",\"node_name\"]}," +
+    "\"as\":\"out\""
   } else if variant == "match_edges" {
     "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
     "\"weight\"]},\"as\":\"out\""
@@ -760,9 +764,10 @@ fn finish_components(
 }
 
 ///|
-fn literal_match_nodes_output(
+fn match_nodes_predicate_output(
   source_owner : @lower.BoundPrepared,
   predicate : String,
+  workspace? : Int = 8,
 ) -> @execution.CompletedOutput raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_match_body_owner(
@@ -797,7 +802,7 @@ fn literal_match_nodes_output(
     input,
     2,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    8,
+    workspace,
     1000,
     1000,
     [external],
@@ -811,14 +816,28 @@ fn literal_match_nodes_output(
 ///|
 test "bounded node literal predicates select all or no entities" {
   let source_owner = carrier_graph_source_owner()
-  let selected = literal_match_nodes_output(source_owner, "true")
+  let selected = match_nodes_predicate_output(source_owner, "true")
   assert_eq(@execution.completed_row_count(selected), 2)
   assert_true(@execution.completed_cell(selected, 0, 0) is Some(Number(1.0)))
   assert_true(@execution.completed_cell(selected, 1, 1) is Some(Text("second")))
 
-  let empty = literal_match_nodes_output(source_owner, "false")
+  let empty = match_nodes_predicate_output(source_owner, "false")
   assert_eq(@execution.completed_row_count(empty), 0)
   assert_true(@execution.completed_output_available(empty))
+}
+
+///|
+test "bounded node match evaluates a checked property predicate" {
+  let source_owner = carrier_graph_source_owner()
+  let selected = match_nodes_predicate_output(
+    source_owner,
+    "node_name = 'second'",
+    workspace=9,
+  )
+  assert_eq(@execution.completed_row_count(selected), 1)
+  assert_true(@execution.completed_cell(selected, 0, 0) is Some(Number(2.0)))
+  assert_true(@execution.completed_cell(selected, 0, 1) is Some(Text("second")))
+  assert_true(@execution.completed_output_available(selected))
 }
 
 ///|
@@ -1883,6 +1902,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:c60b5715592edabcbe32bd818f14c8d413b3717806662aa06c9e4eae57420932"
   } else if variant == "match_edges_predicate" {
     "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
+  } else if variant == "match_nodes_predicate" {
+    "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "degree_both" {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else {
@@ -1995,7 +2016,8 @@ fn run_standard_host_graph_relation_path(
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "graph_bounds" {
     4
-  } else if variant == "match_edges_predicate" {
+  } else if variant == "match_edges_predicate" ||
+    variant == "match_nodes_predicate" {
     1
   } else {
     2
@@ -2031,6 +2053,9 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"component_size\":2"))
     assert_true(graph_rows[0].contains("\"node_id\":1"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
+  } else if variant == "match_nodes_predicate" {
+    assert_true(graph_rows[0].contains("\"id\":2"))
+    assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -2126,6 +2151,10 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("projection")
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")
+  run_standard_host_graph_relation_path(
+    "match_nodes_predicate",
+    publication=true,
+  )
   run_standard_host_graph_relation_path("match_edges", publication=true)
   run_standard_host_graph_relation_path(
     "match_edges_predicate",

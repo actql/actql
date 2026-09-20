@@ -1,6 +1,8 @@
 ///|
 priv enum MatchNodesPhase {
   ResolveIdentities
+  PreparePredicate
+  EvaluatePredicate
   PrepareSort
   PrepareMerge
   Merge
@@ -29,6 +31,13 @@ priv struct MatchNodesState {
   mut phase : MatchNodesPhase
   mut identity_index : Int
   select_all_nodes : Bool?
+  predicate : @lower.Expression?
+  mut predicate_field : Int
+  predicate_fields : Int
+  predicate_workspace : Int
+  mut predicate_work_remaining : Int
+  predicate_input : Map[String, @execution.Value]
+  mut predicate_execution : @execution.PredicateExpressionExecution?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
   mut width : Int
@@ -76,6 +85,7 @@ pub(all) enum MatchNodesIssue {
   MatchNodesInputUnavailable
   MissingMatchNodeIdentity(Int)
   MatchNodesWorkspaceLimit
+  MatchNodesPredicate(@execution.EvalIssueKind)
   MatchNodesKeyOrder(@value.KeyOrderIssue)
   MatchNodesOutput(@execution.CaptureIssue)
   MatchNodesCompletion(@execution.TrustedOutputIssue)
@@ -141,6 +151,42 @@ fn graph_node_property_index(
     }
   }
   None
+}
+
+///|
+fn node_predicate_field_count(graph : @carrier.Graph) -> Int {
+  let identity = if @carrier.graph_names(graph) is Some(_) { 1 } else { 0 }
+  identity + @carrier.field_count(@carrier.graph_node_properties(graph))
+}
+
+///|
+fn node_predicate_binding(
+  state : MatchNodesState,
+  node : Int,
+  index : Int,
+) -> (String, @execution.Value)? {
+  let mut property = index
+  match @carrier.graph_names(state.graph) {
+    Some(names) => {
+      let (identity_name, _, _, _) = @carrier.graph_row_fields(names)
+      if property == 0 {
+        return @storage.node_identity(state.source, node).map(value => {
+          (
+            @schema.reference_name(identity_name),
+            @execution.capture(value.value),
+          )
+        })
+      }
+      property -= 1
+    }
+    None => ()
+  }
+  let properties = @carrier.graph_node_properties(state.graph)
+  guard @carrier.field_at(properties, property) is Some(field) &&
+    @storage.node_property(state.source, node, property) is Some(value) else {
+    return None
+  }
+  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
 }
 
 ///|
@@ -248,7 +294,16 @@ fn match_nodes_step(
     }
     match state.phase {
       ResolveIdentities =>
-        if state.select_all_nodes is Some(select_all) {
+        if state.predicate is Some(_) {
+          if state.identity_index < @storage.node_count(state.source) {
+            state.predicate_field = 0
+            state.predicate_input.clear()
+            state.phase = PreparePredicate
+          } else {
+            state.width = 1
+            state.phase = PrepareSort
+          }
+        } else if state.select_all_nodes is Some(select_all) {
           if state.identity_index < @storage.node_count(state.source) {
             if select_all {
               state.selected.push(state.identity_index)
@@ -285,6 +340,75 @@ fn match_nodes_step(
           state.width = 1
           state.phase = PrepareSort
         }
+      PreparePredicate =>
+        if state.predicate_field < state.predicate_fields {
+          used += 1
+          guard node_predicate_binding(
+              state,
+              state.identity_index,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(MatchNodesInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.predicate is Some(predicate) else {
+            return @bounded.Failed(InvalidMatchNodesKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                MatchNodesPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluatePredicate
+            }
+          }
+        }
+      EvaluatePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidMatchNodesKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              MatchNodesPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            if selected {
+              state.selected.push(state.identity_index)
+            }
+            state.predicate_input.clear()
+            state.identity_index += 1
+            state.phase = ResolveIdentities
+          }
+        }
+      }
       PrepareSort =>
         if state.width >= state.selected.length() {
           state.emit_index = 0
@@ -417,6 +541,10 @@ fn match_nodes_step(
 
 ///|
 fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
+  if state.predicate_execution is Some(execution) {
+    @execution.cancel_predicate_expression(execution) |> ignore
+    state.predicate_execution = None
+  }
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -428,6 +556,7 @@ fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
   state.selected = []
   state.scratch = []
   state.values = []
+  state.predicate_input.clear()
   true
 }
 
@@ -455,8 +584,7 @@ pub fn start_match_nodes(
     @lower.graph_match_nodes(prepared) &&
     (
       @lower.graph_match_id_count(prepared) > 0 ||
-      @lower.graph_match_literal_selection(prepared) !=
-      @lower.NoLiteralSelection
+      @lower.graph_match_has_predicate(prepared)
     ) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) &&
@@ -469,18 +597,36 @@ pub fn start_match_nodes(
     @lower.SelectNoEntities => Some(false)
     @lower.SelectAllEntities => Some(true)
   }
-  let count = match select_all_nodes {
-    Some(true) => @storage.node_count(source)
-    Some(false) => 0
-    None => @lower.graph_match_id_count(prepared)
+  let predicate = if @lower.graph_match_has_predicate(prepared) &&
+    literal == @lower.NoLiteralSelection {
+    @lower.graph_match_predicate(prepared)
+  } else {
+    None
+  }
+  let count = if predicate is Some(_) {
+    @storage.node_count(source)
+  } else {
+    match select_all_nodes {
+      Some(true) => @storage.node_count(source)
+      Some(false) => 0
+      None => @lower.graph_match_id_count(prepared)
+    }
   }
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
+  let predicate_fields = if predicate is Some(_) {
+    node_predicate_field_count(graph)
+  } else {
+    0
+  }
   guard max_rows >= 0 &&
     match_nodes_workspace(count, width) is Some(workspace) &&
-    workspace <= max_workspace_slots else {
+    checked_match_nodes_add(workspace, predicate_fields)
+    is Some(fixed_workspace) &&
+    fixed_workspace <= max_workspace_slots else {
     return Err(MatchNodesWorkspaceLimit)
   }
+  let predicate_workspace = max_workspace_slots - fixed_workspace
   let output = match
     @execution.prepare_admitted_output(
       owner,
@@ -528,6 +674,13 @@ pub fn start_match_nodes(
     phase: ResolveIdentities,
     identity_index: 0,
     select_all_nodes,
+    predicate,
+    predicate_field: 0,
+    predicate_fields,
+    predicate_workspace,
+    predicate_work_remaining: limits.max_work,
+    predicate_input: Map([]),
+    predicate_execution: None,
     selected: [],
     scratch: Array::make(count, None),
     width: 1,
