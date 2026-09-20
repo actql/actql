@@ -622,8 +622,51 @@
       "variants": ["equal", "not equal", "representation difference"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_relation_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_relation_test.mbt",
+        "src/local_sga/graphs_equal.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "equal_representation_consumers_and_publication",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "738d19da",
+          "evidence": [
+            "src/local_sga/graphs_equal.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
+      ],
+      "gaps": [
+        "not-equal payload and cardinality fixtures",
+        "operation-specific cancellation delivery and cleanup evidence"
+      ]
     },
     {
       "family": "SGA",
