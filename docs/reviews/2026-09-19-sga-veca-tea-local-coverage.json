@@ -42,6 +42,8 @@
     "managed_event_lifecycle",
     "bounded_step_session_core",
     "carrier_aware_physical_completion",
+    "carrier_producer_views",
+    "mixed_carrier_provider_inputs",
     "failed_builder_cleanup_custody",
     "bounded_result_cleanup_custody",
     "registered_carrier_provider_boundary",
