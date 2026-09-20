@@ -2,6 +2,9 @@
 type NativeRuntimeBundleStore
 
 ///|
+type NativeRuntimeBundleInstaller
+
+///|
 pub fn open_runtime_bundle_store(
   _sqlite_library : @sqlite.Library,
   _signature_library : @signature.Library,
@@ -13,6 +16,57 @@ pub fn open_runtime_bundle_store(
   _max_owners : Int,
   _max_record_bytes : Int64,
 ) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::begin_install(
+  _self : NativeRuntimeBundleStore,
+  _install_id : String,
+  _version : String,
+  _key_id : String,
+  _runtime_bundle_cid : String,
+  _body : String,
+  _signature : String,
+) -> Result[NativeRuntimeBundleInstaller, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleInstaller::append(
+  _self : NativeRuntimeBundleInstaller,
+  _chunk : Bytes,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleInstaller::seal(
+  _self : NativeRuntimeBundleInstaller,
+) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleInstaller::cancel(
+  _self : NativeRuntimeBundleInstaller,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::inspect_install(
+  _self : NativeRuntimeBundleStore,
+  _install_id : String,
+) -> Result[NativeRuntimeBundleInstallSnapshot?, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::recover_install(
+  _self : NativeRuntimeBundleStore,
+  _install_id : String,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
   Err(UnsupportedTarget)
 }
 
@@ -127,8 +181,8 @@ pub fn NativeRuntimeBundleStore::capacity_usage(
 ///|
 pub fn NativeRuntimeBundleStore::close(
   _self : NativeRuntimeBundleStore,
-) -> Bool {
-  false
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
 }
 
 ///|

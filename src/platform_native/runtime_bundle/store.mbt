@@ -10,12 +10,22 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   HoldCollision
   StateCollision
   ComponentMismatch
+  RecoveryRequired
   CleanupPending
   Bundle(@bundle.RemoteBundleIssue)
   Signature(@signature.NativeSignatureIssue)
   Filesystem(@filesystem.NativeFilesystemIssue)
   Database(@sqlite.NativeSqliteIssue)
 }
+
+///|
+pub(all) struct NativeRuntimeBundleInstallSnapshot {
+  install_id : String
+  runtime_bundle_cid : String
+  artifact_name : String
+  staging_name : String
+  reserved_bytes : Int64
+} derive(Eq, Debug)
 
 ///|
 pub(all) struct NativeRuntimeBundleSnapshot {

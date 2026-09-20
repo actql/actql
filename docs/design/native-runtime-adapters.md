@@ -74,6 +74,10 @@ The native filesystem adapter opens an explicit Store root as a directory file
 descriptor. Object operations use validated relative names and remain beneath
 that authority. Writers enforce their admitted byte limit before each write,
 so a rejected append does not first allocate or write the excess payload.
+Store owners that perform crash recovery also hold a named nonblocking OS lock
+for the lifetime of the Store. Lock files remain stable namespace entries; the
+lock is the open descriptor, and releasing it does not use unlink as an
+ownership signal.
 
 Sealing synchronizes the staging file, captures its exact device, inode, and
 size, creates the final name without overwriting an existing object, removes

@@ -253,16 +253,24 @@ Site-local active revision durable in SQLite. These filesystem and SQLite
 operations are environment-specific; canonical identity and every lifecycle
 transition remain MoonBit decisions.
 
-The native filesystem adapter adopts an exact pre-positioned generation only
-after bounded streaming verification of its size, digest, target, issuer, and
-signature. A canonical SQLite catalog atomically binds the active revision,
-portable lifecycle state, owners, physical generation, and retryable reclaim
-responsibility. Reopening the Store re-admits every signed manifest before any
-operation. Shared immutable components use one capacity reservation and are
-deleted only after the final bundle and owner release them. This adoption
-boundary is not yet the standard native package staging and update operation;
-that operation must create or acquire the pre-positioned generation before
-calling the same admission path.
+The native filesystem adapter can adopt an exact pre-positioned generation or
+create one through a bounded streaming installer. Installation first records a
+capacity reservation and exact signed intent in the canonical SQLite catalog.
+It then writes bounded chunks, verifies the streaming digest and exact
+generation, and atomically replaces the staging responsibility with the
+installed entry. A crash before that replacement leaves both names and the
+reservation discoverable for exact-generation recovery; it cannot leave an
+uncharged installed file. The Store holds an exclusive process lock while it
+may own writers or perform recovery, so a second live process cannot reclaim
+an active installation as crash residue.
+
+The same catalog binds the active revision, portable lifecycle state, owners,
+physical generation, and retryable reclaim responsibility. Reopening the Store
+re-admits every signed manifest before any operation and upgrades the earlier
+catalog envelope without changing its admitted bundle records. Shared
+immutable components use one capacity reservation and are deleted only after
+the final bundle and owner release them. The executable native update command
+surface and separated-network update profile remain later integration steps.
 
 Remote dispatch resolves only a registration for the exact active bundle. It
 retains a durable bundle owner before execution, verifies the installed

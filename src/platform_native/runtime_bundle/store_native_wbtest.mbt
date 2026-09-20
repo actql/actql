@@ -170,7 +170,21 @@ test "native bundle operations survive restart and preserve shared code" {
   assert_eq(store.inspect(first.runtime_bundle_cid).unwrap().unwrap().state, [
     "3", "2", "1",
   ])
-  assert_true(store.close())
+  assert_true(
+    open_runtime_bundle_store(
+      sqlite,
+      crypto,
+      root_path,
+      native_bundle_authorities(),
+      "aarch64-apple-darwin",
+      22L,
+      8,
+      8,
+      1048576L,
+    )
+    is Err(Filesystem(@filesystem.Lock(_))),
+  )
+  assert_true(store.close().unwrap())
 
   assert_true(
     open_runtime_bundle_store(
@@ -218,7 +232,7 @@ test "native bundle operations survive restart and preserve shared code" {
   assert_eq(released_usage.reserved_bytes, 0L)
   assert_eq(released_usage.reserved_objects, 0L)
   assert_true(reopened.recover().unwrap().length() == 3)
-  assert_true(reopened.close())
+  assert_true(reopened.close().unwrap())
 }
 
 ///|
@@ -253,5 +267,130 @@ test "native bundle adoption rejects altered authority and generation" {
     is Err(ComponentMismatch),
   )
   assert_eq(store.list().unwrap().length(), original_count)
-  assert_true(store.close())
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native bundle install rejects capacity before creating output" {
+  guard native_bundle_fixture("stream-capacity")
+    is Some((store, _, _, sqlite, crypto)) else {
+    return
+  }
+  assert_true(store.close().unwrap())
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let bounded = open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    native_bundle_authorities(),
+    "aarch64-apple-darwin",
+    10L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  assert_true(
+    bounded.begin_install(
+      "install-over-capacity",
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-a",
+      native_bundle_cid("4"),
+      native_bundle_body("4"),
+      native_bundle_signature("4"),
+    )
+    is Err(CapacityExceeded),
+  )
+  assert_eq(bounded.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_eq(bounded.inspect_install("install-over-capacity").unwrap(), None)
+  assert_true(bounded.close().unwrap())
+}
+
+///|
+test "native bundle recovery removes sealed precommit staging" {
+  guard native_bundle_fixture("stream-recovery") is Some((store, _, _, _, _)) else {
+    return
+  }
+  let manifest = admit_signed_bundle(
+    store.signature_library,
+    store.authorities,
+    "actql-remote-runtime-bundle-signature/0.1",
+    "key-a",
+    native_bundle_cid("4"),
+    native_bundle_body("4"),
+    native_bundle_signature("4"),
+    store.target_triple,
+  ).unwrap()
+  let staging : NativeRuntimeBundleStaging = {
+    install_id: "install-crash-precommit",
+    manifest,
+    signature_version: "actql-remote-runtime-bundle-signature/0.1",
+    signature_key_id: "key-a",
+    signature: native_bundle_signature("4"),
+    artifact_name: "runtime-bundle-crash-precommit",
+    staging_name: "runtime-stage-crash-precommit",
+    component_bytes: 11L,
+  }
+  let current = load_catalog(store).unwrap()
+  let next = with_catalog_staging(current, current.entries, [staging])
+  persist_catalog(store, current, next).unwrap()
+  let writer = store.root.create_writer(staging.staging_name, 11L).unwrap()
+  writer.append(b"runtime-one").unwrap()
+  let generation = writer.seal(staging.artifact_name).unwrap()
+  assert_true(store.root.verify_generation(staging.artifact_name, generation))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 11L)
+  store.recover().unwrap() |> ignore
+  assert_false(store.root.verify_generation(staging.artifact_name, generation))
+  assert_eq(store.inspect_install(staging.install_id).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native bundle streaming install reserves, cancels, and commits once" {
+  guard native_bundle_fixture("stream-install") is Some((store, _, _, _, _)) else {
+    return
+  }
+  let incomplete = store
+    .begin_install(
+      "install-stream-incomplete",
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-a",
+      native_bundle_cid("4"),
+      native_bundle_body("4"),
+      native_bundle_signature("4"),
+    )
+    .unwrap()
+  incomplete.append(b"runtime-").unwrap()
+  assert_true(incomplete.seal() is Err(ComponentMismatch))
+  assert_true(store.close() is Err(CleanupPending))
+  incomplete.cancel().unwrap()
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  let installer = store
+    .begin_install(
+      "install-stream-one",
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-a",
+      native_bundle_cid("4"),
+      native_bundle_body("4"),
+      native_bundle_signature("4"),
+    )
+    .unwrap()
+  let reserved = store.capacity_usage().unwrap()
+  assert_eq(reserved.reserved_bytes, 11L)
+  assert_eq(reserved.reserved_objects, 1L)
+  let pending = store.inspect_install("install-stream-one").unwrap().unwrap()
+  assert_eq(pending.runtime_bundle_cid, native_bundle_cid("4"))
+  assert_eq(pending.reserved_bytes, 11L)
+  installer.append(b"runtime-").unwrap()
+  installer.append(b"one").unwrap()
+  let installed = installer.seal().unwrap()
+  assert_eq(installed.runtime_bundle_cid, native_bundle_cid("4"))
+  assert_eq(store.inspect_install("install-stream-one").unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 11L)
+  store.verify(installed.runtime_bundle_cid).unwrap() |> ignore
+  store.activate(installed.runtime_bundle_cid).unwrap() |> ignore
+  store.drain(installed.runtime_bundle_cid).unwrap() |> ignore
+  store.reclaim(installed.runtime_bundle_cid).unwrap() |> ignore
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
 }

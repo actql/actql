@@ -18,15 +18,30 @@ priv struct NativeRuntimeBundleEntry {
 }
 
 ///|
+priv struct NativeRuntimeBundleStaging {
+  install_id : String
+  manifest : @bundle.RemoteBundleManifest
+  signature_version : String
+  signature_key_id : String
+  signature : String
+  artifact_name : String
+  staging_name : String
+  component_bytes : Int64
+}
+
+///|
 priv struct NativeRuntimeBundleCatalog {
   revision : Int64
+  format_version : Int
   active_bundle_cid : String?
   entries : Array[NativeRuntimeBundleEntry]
+  staging : Array[NativeRuntimeBundleStaging]
 }
 
 ///|
 struct NativeRuntimeBundleStore {
   root : @filesystem.Root
+  lock : @filesystem.Lock
   database : @sqlite.Database
   signature_library : @signature.Library
   authorities : Array[NativeRuntimeBundleAuthority]
@@ -35,6 +50,19 @@ struct NativeRuntimeBundleStore {
   max_bundles : Int
   max_owners : Int
   max_record_bytes : Int
+  active_installers : Map[String, Bool]
+  mut closed : Bool
+}
+
+///|
+struct NativeRuntimeBundleInstaller {
+  store : NativeRuntimeBundleStore
+  install_id : String
+  runtime_bundle_cid : String
+  physical : @filesystem.Writer
+  hash : @sha.Hasher
+  mut sealed_generation : @filesystem.NativeFileGeneration?
+  mut sealed_digest : String
   mut closed : Bool
 }
 
@@ -91,6 +119,24 @@ fn entry_cid(value : NativeRuntimeBundleEntry) -> String {
 }
 
 ///|
+fn staging_cid(value : NativeRuntimeBundleStaging) -> String {
+  @bundle.bundle_manifest_identity(value.manifest)
+}
+
+///|
+fn staging_snapshot(
+  value : NativeRuntimeBundleStaging,
+) -> NativeRuntimeBundleInstallSnapshot {
+  {
+    install_id: value.install_id,
+    runtime_bundle_cid: staging_cid(value),
+    artifact_name: value.artifact_name,
+    staging_name: value.staging_name,
+    reserved_bytes: value.component_bytes,
+  }
+}
+
+///|
 fn same_allocation(
   left : NativeRuntimeBundleEntry,
   right : NativeRuntimeBundleEntry,
@@ -136,6 +182,14 @@ fn catalog_capacity_usage(
       }
     }
   }
+  for staging in catalog.staging {
+    if staging.component_bytes < 0L ||
+      staging.component_bytes > 9223372036854775807L - reserved_bytes {
+      return Err(CapacityExceeded)
+    }
+    reserved_bytes = reserved_bytes + staging.component_bytes
+    allocations.push("staging\u0000" + staging.install_id)
+  }
   Ok({ reserved_bytes, reserved_objects: allocations.length().to_int64(), })
 }
 
@@ -164,6 +218,36 @@ fn entry_index(
     }
   }
   None
+}
+
+///|
+fn staging_index(
+  catalog : NativeRuntimeBundleCatalog,
+  install_id : String,
+) -> Int? {
+  for index = 0; index < catalog.staging.length(); index = index + 1 {
+    if catalog.staging[index].install_id == install_id {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
+fn same_staging_request(
+  left : NativeRuntimeBundleStaging,
+  right : NativeRuntimeBundleStaging,
+) -> Bool {
+  left.install_id == right.install_id &&
+  staging_cid(left) == staging_cid(right) &&
+  left.signature_version == right.signature_version &&
+  left.signature_key_id == right.signature_key_id &&
+  left.signature == right.signature &&
+  left.artifact_name == right.artifact_name &&
+  left.staging_name == right.staging_name &&
+  left.component_bytes == right.component_bytes &&
+  @bundle.bundle_manifest_json(left.manifest) ==
+  @bundle.bundle_manifest_json(right.manifest)
 }
 
 ///|
@@ -237,6 +321,36 @@ fn emit_entry(
 }
 
 ///|
+fn emit_staging(
+  writer : @encode.Writer,
+  staging : NativeRuntimeBundleStaging,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "artifact_name")
+  @encode.string_value(writer, staging.artifact_name)
+  @encode.key(writer, "component_bytes")
+  @encode.string_value(writer, staging.component_bytes.to_string())
+  @encode.key(writer, "install_id")
+  @encode.string_value(writer, staging.install_id)
+  @encode.key(writer, "manifest_json")
+  @encode.string_value(
+    writer,
+    @bundle.bundle_manifest_json(staging.manifest).unwrap(),
+  )
+  @encode.key(writer, "runtime_bundle_cid")
+  @encode.string_value(writer, staging_cid(staging))
+  @encode.key(writer, "signature")
+  @encode.string_value(writer, staging.signature)
+  @encode.key(writer, "signature_key_id")
+  @encode.string_value(writer, staging.signature_key_id)
+  @encode.key(writer, "signature_version")
+  @encode.string_value(writer, staging.signature_version)
+  @encode.key(writer, "staging_name")
+  @encode.string_value(writer, staging.staging_name)
+  @encode.end_object(writer)
+}
+
+///|
 fn catalog_bytes(
   catalog : NativeRuntimeBundleCatalog,
   max_record_bytes : Int,
@@ -254,8 +368,23 @@ fn catalog_bytes(
       emit_entry(writer, entry)
     }
     @encode.end_array(writer)
+    if catalog.format_version == 2 {
+      @encode.key(writer, "staging")
+      @encode.begin_array(writer)
+      for staging in catalog.staging {
+        emit_staging(writer, staging)
+      }
+      @encode.end_array(writer)
+    }
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-native-runtime-bundle-catalog/0.1")
+    @encode.string_value(
+      writer,
+      if catalog.format_version == 1 {
+        "actql-native-runtime-bundle-catalog/0.1"
+      } else {
+        "actql-native-runtime-bundle-catalog/0.2"
+      },
+    )
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
@@ -412,6 +541,62 @@ fn decode_entry(
 }
 
 ///|
+fn decode_staging(
+  store : NativeRuntimeBundleStore,
+  cursor : @decode.Cursor,
+) -> NativeRuntimeBundleStaging raise NativeBundleCatalogStop {
+  let object = decoded(
+    @decode.closed_object(cursor, [
+      "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
+      "signature", "signature_key_id", "signature_version", "staging_name",
+    ]),
+  )
+  let runtime_bundle_cid = text(object, "runtime_bundle_cid")
+  let manifest_json = text(object, "manifest_json")
+  let signature_version = text(object, "signature_version")
+  let signature_key_id = text(object, "signature_key_id")
+  let signature = text(object, "signature")
+  let manifest = match
+    admit_signed_bundle(
+      store.signature_library,
+      store.authorities,
+      signature_version,
+      signature_key_id,
+      runtime_bundle_cid,
+      manifest_json,
+      signature,
+      store.target_triple,
+    ) {
+    Ok(value) => value
+    Err(_) => raise NativeBundleCatalogStop
+  }
+  let component_bytes = signed_int64(text(object, "component_bytes"))
+  let projection = @bundle.bundle_manifest_projection(manifest)
+  let expected_bytes = signed_int64(projection[6])
+  let install_id = text(object, "install_id")
+  let artifact_name = text(object, "artifact_name")
+  let staging_name = text(object, "staging_name")
+  if component_bytes < 0L ||
+    component_bytes != expected_bytes ||
+    !bounded(install_id, 512) ||
+    !bounded(artifact_name, 128) ||
+    !bounded(staging_name, 128) ||
+    artifact_name == staging_name {
+    raise NativeBundleCatalogStop
+  }
+  {
+    install_id,
+    manifest,
+    signature_version,
+    signature_key_id,
+    signature,
+    artifact_name,
+    staging_name,
+    component_bytes,
+  }
+}
+
+///|
 fn admit_catalog(
   store : NativeRuntimeBundleStore,
   revision : Int64,
@@ -436,11 +621,27 @@ fn admit_catalog(
         max_total_string_bytes: store.max_record_bytes,
       }),
     )
-    let object = decoded(
-      @decode.closed_object(cursor, ["active_bundle_cid", "entries", "version"]),
-    )
-    if text(object, "version") != "actql-native-runtime-bundle-catalog/0.1" {
+    let open = decoded(@decode.open_object(cursor))
+    let version = text(open, "version")
+    let format_version = if version == "actql-native-runtime-bundle-catalog/0.1" {
+      1
+    } else if version == "actql-native-runtime-bundle-catalog/0.2" {
+      2
+    } else {
       raise NativeBundleCatalogStop
+    }
+    let object = if format_version == 1 {
+      decoded(
+        @decode.closed_object(cursor, [
+          "active_bundle_cid", "entries", "version",
+        ]),
+      )
+    } else {
+      decoded(
+        @decode.closed_object(cursor, [
+          "active_bundle_cid", "entries", "staging", "version",
+        ]),
+      )
     }
     let active_text = text(object, "active_bundle_cid")
     let entries_cursor = decoded(@decode.required(object, "entries"))
@@ -471,6 +672,49 @@ fn admit_catalog(
       }
       entries.push(entry)
     }
+    let staging_cursor = if format_version == 1 {
+      None
+    } else {
+      Some(decoded(@decode.required(object, "staging")))
+    }
+    let staging_count = match staging_cursor {
+      None => 0
+      Some(value) =>
+        match @decode.array_length(value) {
+          Some(length) => length
+          None => raise NativeBundleCatalogStop
+        }
+    }
+    if entry_count + staging_count > store.max_bundles {
+      raise NativeBundleCatalogStop
+    }
+    let staging : Array[NativeRuntimeBundleStaging] = []
+    for index = 0; index < staging_count; index = index + 1 {
+      guard staging_cursor is Some(staging_values) else {
+        raise NativeBundleCatalogStop
+      }
+      guard @decode.element_at(staging_values, index) is Some(stage_cursor) else {
+        raise NativeBundleCatalogStop
+      }
+      let stage = decode_staging(store, stage_cursor)
+      for entry in entries {
+        if entry_cid(entry) == staging_cid(stage) ||
+          entry.artifact_name == stage.artifact_name {
+          raise NativeBundleCatalogStop
+        }
+      }
+      for prior in staging {
+        if prior.install_id == stage.install_id ||
+          staging_cid(prior) == staging_cid(stage) ||
+          prior.artifact_name == stage.artifact_name ||
+          prior.staging_name == stage.staging_name ||
+          prior.artifact_name == stage.staging_name ||
+          prior.staging_name == stage.artifact_name {
+          raise NativeBundleCatalogStop
+        }
+      }
+      staging.push(stage)
+    }
     let active_bundle_cid = if active_text.is_empty() {
       None
     } else {
@@ -486,7 +730,13 @@ fn admit_catalog(
       }
       Some(active_text)
     }
-    let catalog = { revision, active_bundle_cid, entries, }
+    let catalog = {
+      revision,
+      format_version,
+      active_bundle_cid,
+      entries,
+      staging,
+    }
     let canonical = match catalog_bytes(catalog, store.max_record_bytes) {
       Ok(value) => value
       Err(_) => raise NativeBundleCatalogStop
@@ -528,7 +778,13 @@ fn initial_catalog_bytes(
   max_record_bytes : Int,
 ) -> Result[Bytes, NativeRuntimeBundleStoreIssue] {
   catalog_bytes(
-    { revision: 0L, active_bundle_cid: None, entries: [], },
+    {
+      revision: 0L,
+      format_version: 2,
+      active_bundle_cid: None,
+      entries: [],
+      staging: [],
+    },
     max_record_bytes,
   )
 }
@@ -565,6 +821,9 @@ fn persist_catalog(
   current : NativeRuntimeBundleCatalog,
   next : NativeRuntimeBundleCatalog,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if next.format_version != 2 {
+    return Err(StateCollision)
+  }
   let body = match catalog_bytes(next, store.max_record_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -588,7 +847,46 @@ fn with_catalog_revision(
   active_bundle_cid : String?,
   entries : Array[NativeRuntimeBundleEntry],
 ) -> NativeRuntimeBundleCatalog {
-  { revision: catalog.revision + 1L, active_bundle_cid, entries, }
+  {
+    revision: catalog.revision + 1L,
+    format_version: 2,
+    active_bundle_cid,
+    entries,
+    staging: catalog.staging,
+  }
+}
+
+///|
+fn with_catalog_staging(
+  catalog : NativeRuntimeBundleCatalog,
+  entries : Array[NativeRuntimeBundleEntry],
+  staging : Array[NativeRuntimeBundleStaging],
+) -> NativeRuntimeBundleCatalog {
+  {
+    revision: catalog.revision + 1L,
+    format_version: 2,
+    active_bundle_cid: active_cid(catalog),
+    entries,
+    staging,
+  }
+}
+
+///|
+fn migrate_catalog_if_needed(
+  store : NativeRuntimeBundleStore,
+  catalog : NativeRuntimeBundleCatalog,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if catalog.format_version == 2 {
+    return Ok(())
+  }
+  let next = {
+    revision: catalog.revision + 1L,
+    format_version: 2,
+    active_bundle_cid: active_cid(catalog),
+    entries: catalog.entries,
+    staging: [],
+  }
+  persist_catalog(store, catalog, next)
 }
 
 ///|
@@ -620,16 +918,24 @@ pub fn open_runtime_bundle_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
+  let lock = match root.acquire_lock(".actql-runtime-bundle.lock") {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
   let database = match
     sqlite_library.open_database(
       root_path + "/.actql-runtime-bundle.sqlite3",
       max_record_bytes,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Database(issue))
+    Err(issue) => {
+      ignore(lock.close())
+      return Err(Database(issue))
+    }
   }
   let store = {
     root,
+    lock,
     database,
     signature_library,
     authorities: authorities.copy(),
@@ -638,14 +944,24 @@ pub fn open_runtime_bundle_store(
     max_bundles,
     max_owners,
     max_record_bytes: max_record_bytes.to_int(),
+    active_installers: Map([]),
     closed: false,
   }
   match database.read("runtime_bundle", "catalog") {
     Ok(value) =>
       match admit_store_catalog(store, value.revision, value.body) {
-        Ok(_) => Ok(store)
+        Ok(catalog) =>
+          match migrate_catalog_if_needed(store, catalog) {
+            Ok(_) => Ok(store)
+            Err(issue) => {
+              database.close()
+              ignore(lock.close())
+              Err(issue)
+            }
+          }
         Err(issue) => {
           database.close()
+          ignore(lock.close())
           Err(issue)
         }
       }
@@ -654,6 +970,7 @@ pub fn open_runtime_bundle_store(
         Ok(value) => value
         Err(issue) => {
           database.close()
+          ignore(lock.close())
           return Err(issue)
         }
       }
@@ -663,25 +980,37 @@ pub fn open_runtime_bundle_store(
           match database.read("runtime_bundle", "catalog") {
             Ok(value) =>
               match admit_store_catalog(store, value.revision, value.body) {
-                Ok(_) => Ok(store)
+                Ok(catalog) =>
+                  match migrate_catalog_if_needed(store, catalog) {
+                    Ok(_) => Ok(store)
+                    Err(issue) => {
+                      database.close()
+                      ignore(lock.close())
+                      Err(issue)
+                    }
+                  }
                 Err(issue) => {
                   database.close()
+                  ignore(lock.close())
                   Err(issue)
                 }
               }
             Err(issue) => {
               database.close()
+              ignore(lock.close())
               Err(Database(issue))
             }
           }
         Err(issue) => {
           database.close()
+          ignore(lock.close())
           Err(Database(issue))
         }
       }
     }
     Err(issue) => {
       database.close()
+      ignore(lock.close())
       Err(Database(issue))
     }
   }
@@ -786,6 +1115,339 @@ fn replace_entry(
 }
 
 ///|
+fn remove_staging_at(
+  staging : Array[NativeRuntimeBundleStaging],
+  index : Int,
+) -> Array[NativeRuntimeBundleStaging] {
+  let result : Array[NativeRuntimeBundleStaging] = []
+  for position = 0; position < staging.length(); position = position + 1 {
+    if position != index {
+      result.push(staging[position])
+    }
+  }
+  result
+}
+
+///|
+fn reclaim_staging_name(
+  store : NativeRuntimeBundleStore,
+  name : String,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  let generation = match
+    filesystem_result(store.root.inspect_generation(name)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match generation {
+    None => Ok(())
+    Some(value) => filesystem_result(store.root.reclaim_generation(name, value))
+  }
+}
+
+///|
+fn recover_staging_install(
+  store : NativeRuntimeBundleStore,
+  install_id : String,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
+  if store.active_installers.contains(install_id) {
+    return Err(CleanupPending)
+  }
+  let initial = match load_catalog(store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard staging_index(initial, install_id) is Some(initial_index) else {
+    return Ok(false)
+  }
+  let expected = initial.staging[initial_index]
+  match reclaim_staging_name(store, expected.staging_name) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match reclaim_staging_name(store, expected.artifact_name) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let current = match load_catalog(store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard staging_index(current, install_id) is Some(index) else {
+    return Err(StateCollision)
+  }
+  if !same_staging_request(current.staging[index], expected) {
+    return Err(StateCollision)
+  }
+  let staging = remove_staging_at(current.staging, index)
+  let next = with_catalog_staging(current, current.entries, staging)
+  match persist_catalog(store, current, next) {
+    Ok(_) => Ok(true)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn NativeRuntimeBundleStore::begin_install(
+  self : NativeRuntimeBundleStore,
+  install_id : String,
+  version : String,
+  key_id : String,
+  runtime_bundle_cid : String,
+  body : String,
+  signature : String,
+) -> Result[NativeRuntimeBundleInstaller, NativeRuntimeBundleStoreIssue] {
+  match require_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if !bounded(install_id, 512) || self.active_installers.contains(install_id) {
+    return Err(InvalidConfiguration)
+  }
+  let manifest = match
+    runtime_bundle_result(
+      admit_signed_bundle(
+        self.signature_library,
+        self.authorities,
+        version,
+        key_id,
+        runtime_bundle_cid,
+        body,
+        signature,
+        self.target_triple,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let projection = @bundle.bundle_manifest_projection(manifest)
+  let component_bytes : Int64 = @string.from_str(projection[6]) catch {
+    _ => return Err(ComponentMismatch)
+  }
+  if component_bytes < 0L {
+    return Err(ComponentMismatch)
+  }
+  let install_key = @sha.hex(
+    @utf8.encode(install_id + "\u0000" + runtime_bundle_cid),
+  )
+  let artifact_name = "runtime-bundle-" +
+    @sha.hex(@utf8.encode(runtime_bundle_cid))
+  let candidate : NativeRuntimeBundleStaging = {
+    install_id,
+    manifest,
+    signature_version: version,
+    signature_key_id: key_id,
+    signature,
+    artifact_name,
+    staging_name: "runtime-stage-" + install_key,
+    component_bytes,
+  }
+  let current = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if entry_index(current, runtime_bundle_cid) is Some(_) {
+    return Err(ExistingBundle)
+  }
+  for staging in current.staging {
+    if staging.install_id == install_id {
+      return if same_staging_request(staging, candidate) {
+        Err(RecoveryRequired)
+      } else {
+        Err(StateCollision)
+      }
+    }
+    if staging_cid(staging) == runtime_bundle_cid ||
+      staging.artifact_name == artifact_name {
+      return Err(ExistingBundle)
+    }
+  }
+  if current.entries.length() + current.staging.length() >= self.max_bundles {
+    return Err(BundleLimit)
+  }
+  let usage = match catalog_capacity_usage(current) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if usage.reserved_bytes > self.capacity_bytes ||
+    usage.reserved_objects >= self.max_bundles.to_int64() ||
+    component_bytes > self.capacity_bytes - usage.reserved_bytes {
+    return Err(CapacityExceeded)
+  }
+  let staging = current.staging.copy()
+  staging.push(candidate)
+  let next = with_catalog_staging(current, current.entries, staging)
+  match persist_catalog(self, current, next) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let physical = match
+    filesystem_result(
+      self.root.create_writer(candidate.staging_name, component_bytes),
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return match recover_staging_install(self, install_id) {
+        Ok(_) => Err(issue)
+        Err(_) => Err(CleanupPending)
+      }
+  }
+  self.active_installers[install_id] = true
+  Ok({
+    store: self,
+    install_id,
+    runtime_bundle_cid,
+    physical,
+    hash: @sha.hasher(),
+    sealed_generation: None,
+    sealed_digest: "",
+    closed: false,
+  })
+}
+
+///|
+pub fn NativeRuntimeBundleInstaller::append(
+  self : NativeRuntimeBundleInstaller,
+  chunk : Bytes,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match filesystem_result(self.physical.append(chunk)) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  @sha.update(self.hash, chunk) catch {
+    _ => return Err(StateCollision)
+  }
+  Ok(())
+}
+
+///|
+pub fn NativeRuntimeBundleInstaller::seal(
+  self : NativeRuntimeBundleInstaller,
+) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let initial = match load_catalog(self.store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard staging_index(initial, self.install_id) is Some(initial_index) else {
+    return Err(StateCollision)
+  }
+  let expected = initial.staging[initial_index]
+  if staging_cid(expected) != self.runtime_bundle_cid ||
+    self.physical.written() != expected.component_bytes {
+    return Err(ComponentMismatch)
+  }
+  if self.sealed_generation is None {
+    let generation = match
+      filesystem_result(self.physical.seal(expected.artifact_name)) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let digest = @sha.finish_hex(self.hash) catch {
+      _ => return Err(ComponentMismatch)
+    }
+    self.sealed_generation = Some(generation)
+    self.sealed_digest = "sha256:" + digest
+  }
+  let projection = @bundle.bundle_manifest_projection(expected.manifest)
+  if self.sealed_digest != projection[5] {
+    return Err(ComponentMismatch)
+  }
+  let generation = self.sealed_generation.unwrap()
+  if generation.size != expected.component_bytes ||
+    !self.store.root.verify_generation(expected.artifact_name, generation) {
+    return Err(ComponentMismatch)
+  }
+  let candidate : NativeRuntimeBundleEntry = {
+    manifest: expected.manifest,
+    signature_version: expected.signature_version,
+    signature_key_id: expected.signature_key_id,
+    signature: expected.signature,
+    artifact_name: expected.artifact_name,
+    generation,
+    record: @bundle.open_bundle_record(expected.manifest),
+    holds: [],
+    reclaim_pending: false,
+  }
+  let current = match load_catalog(self.store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard staging_index(current, self.install_id) is Some(index) else {
+    return Err(StateCollision)
+  }
+  if !same_staging_request(current.staging[index], expected) ||
+    entry_index(current, self.runtime_bundle_cid) is Some(_) {
+    return Err(StateCollision)
+  }
+  let entries = current.entries.copy()
+  entries.push(candidate)
+  let staging = remove_staging_at(current.staging, index)
+  let next = with_catalog_staging(current, entries, staging)
+  match persist_catalog(self.store, current, next) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  ignore(self.store.active_installers.remove(self.install_id))
+  self.closed = true
+  Ok(snapshot(candidate))
+}
+
+///|
+pub fn NativeRuntimeBundleInstaller::cancel(
+  self : NativeRuntimeBundleInstaller,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  match filesystem_result(self.physical.cancel()) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  ignore(self.store.active_installers.remove(self.install_id))
+  match recover_staging_install(self.store, self.install_id) {
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
+    Err(issue) => {
+      self.store.active_installers[self.install_id] = true
+      Err(issue)
+    }
+  }
+}
+
+///|
+pub fn NativeRuntimeBundleStore::inspect_install(
+  self : NativeRuntimeBundleStore,
+  install_id : String,
+) -> Result[NativeRuntimeBundleInstallSnapshot?, NativeRuntimeBundleStoreIssue] {
+  let catalog = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match staging_index(catalog, install_id) {
+    Some(index) => Ok(Some(staging_snapshot(catalog.staging[index])))
+    None => Ok(None)
+  }
+}
+
+///|
+pub fn NativeRuntimeBundleStore::recover_install(
+  self : NativeRuntimeBundleStore,
+  install_id : String,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
+  if !bounded(install_id, 512) {
+    return Err(InvalidConfiguration)
+  }
+  recover_staging_install(self, install_id)
+}
+
+///|
 pub fn NativeRuntimeBundleStore::adopt(
   self : NativeRuntimeBundleStore,
   version : String,
@@ -860,7 +1522,13 @@ pub fn NativeRuntimeBundleStore::adopt(
     }
     None => ()
   }
-  if current.entries.length() >= self.max_bundles {
+  for staging in current.staging {
+    if staging_cid(staging) == runtime_bundle_cid ||
+      staging.artifact_name == artifact_name {
+      return Err(RecoveryRequired)
+    }
+  }
+  if current.entries.length() + current.staging.length() >= self.max_bundles {
     return Err(BundleLimit)
   }
   if !allocation_is_reserved(current, candidate) {
@@ -1294,6 +1962,23 @@ pub fn NativeRuntimeBundleStore::reclaim(
 pub fn NativeRuntimeBundleStore::recover(
   self : NativeRuntimeBundleStore,
 ) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue] {
+  if !self.active_installers.is_empty() {
+    return Err(CleanupPending)
+  }
+  let initial = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let installs : Array[String] = []
+  for staging in initial.staging {
+    installs.push(staging.install_id)
+  }
+  for install_id in installs {
+    match recover_staging_install(self, install_id) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let current = match load_catalog(self) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1329,12 +2014,26 @@ pub fn NativeRuntimeBundleStore::capacity_usage(
 }
 
 ///|
-pub fn NativeRuntimeBundleStore::close(self : NativeRuntimeBundleStore) -> Bool {
+pub fn NativeRuntimeBundleStore::close(
+  self : NativeRuntimeBundleStore,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
   if self.closed {
-    false
-  } else {
-    self.database.close()
-    self.closed = true
-    true
+    return Ok(false)
   }
+  if !self.active_installers.is_empty() {
+    return Err(CleanupPending)
+  }
+  let catalog = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !catalog.staging.is_empty() {
+    return Err(CleanupPending)
+  }
+  self.database.close()
+  if !self.lock.close() {
+    return Err(CleanupPending)
+  }
+  self.closed = true
+  Ok(true)
 }
