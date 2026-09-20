@@ -1073,16 +1073,33 @@ pub fn receive_durable_store_transfer(
     Ok(value) => value
     Err(issue) => return Err(Durable(issue))
   }
-  match
-    journal.reserve_destination_holding(
-      request, max_destination_bytes, max_destination_objects,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Durable(issue))
-  }
   let mut record = accepted
   let mut progress = @transfer.store_upload_progress(record)
   if progress == @transfer.StoreUploadReconciliationRequired {
+    return Err(ReconciliationRequired)
+  }
+  let newly_reserved = match
+    journal.reserve_destination_holding(
+      request, max_destination_bytes, max_destination_objects,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  // A concurrent terminal transition cannot turn this call into a new owner.
+  // Release only the reservation acquired by this call; an older reservation
+  // may protect live I/O or an unreclaimed allocation.
+  record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  progress = @transfer.store_upload_progress(record)
+  if progress == @transfer.StoreUploadReconciliationRequired {
+    if newly_reserved {
+      match journal.release_destination_holding(request) {
+        Ok(_) => ()
+        Err(issue) => return Err(Durable(issue))
+      }
+    }
     return Err(ReconciliationRequired)
   }
   if progress == @transfer.StoreUploadStart {

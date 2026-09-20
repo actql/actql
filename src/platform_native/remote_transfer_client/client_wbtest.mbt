@@ -448,3 +448,79 @@ test "native Store cleanup follows durable destination ownership" {
   assert_true(owned.close())
   assert_true(client.close())
 }
+
+///|
+test "terminal Store retransmission keeps destination capacity released" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(store_root) else {
+    return
+  }
+  let http = @http.load_library(path).unwrap()
+  let client = http.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let journal_path = sqlite_root + "/store-terminal-resend.sqlite"
+  let journal = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let root = @filesystem.open_root(store_root).unwrap()
+  let request = native_transfer_request(
+    [b"terminal-resend"],
+    @transfer.TransferStore,
+  )
+  let (_, admitted) = journal.accept(request).unwrap()
+  assert_true(journal.reserve_destination_holding(request, 1024L, 8L).unwrap())
+  commit_durable_transition(
+    journal,
+    @transfer.prepare_failure(admitted, true, true).unwrap(),
+  ).unwrap()
+  let failed = journal.require(request).unwrap()
+  commit_durable_transition(
+    journal,
+    @transfer.prepare_cleanup(failed, true, true, true).unwrap(),
+  ).unwrap()
+  assert_true(journal.release_destination_holding(request).unwrap())
+  for attempt = 0; attempt < 3; attempt = attempt + 1 {
+    assert_true(
+      receive_durable_store_transfer(
+        journal, client, root, "https://unused.invalid", request, "terminal-use",
+        1024L, 8L,
+      )
+      is Err(ReconciliationRequired),
+    )
+    let usage = journal.destination_capacity_usage().unwrap()
+    assert_eq(usage.reserved_bytes, 0L)
+    assert_eq(usage.reserved_objects, 0L)
+  }
+  assert_true(journal.close())
+  let reopened = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  assert_true(
+    receive_durable_store_transfer(
+      reopened, client, root, "https://unused.invalid", request, "terminal-use",
+      1024L, 8L,
+    )
+    is Err(ReconciliationRequired),
+  )
+  assert_eq(reopened.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(reopened.close())
+  assert_true(client.close())
+}
