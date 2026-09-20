@@ -8,7 +8,7 @@ Status: implementation inventory. This is not an acceptance report.
 
 - Integration owner: `feat/engine-remote-site-completion` at `98865fcf`.
 - Shared base and `main`: `0886df5a`.
-- Local family workstream inspected at `62751055`.
+- Local family handoff rechecked at `6befbda7`.
 
 The Engine branch had two task-indexed completion arrays before this work:
 ordinary `CompletedOutput` and `ManagedCompletionReference`. The Local family
@@ -36,11 +36,20 @@ workstream.
 
 ## Current common lifecycle facts
 
-Both prepared-execution families already use the same Run ledger, task
-reservation, task attempt, cancellation entry, settlement gate, disposal gate,
-retention collection, and final release. The remaining hook difference is that
-Legacy owns `finish` and a scoped `publish` callback, while Managed supplies a
-typed completion port outside the hook.
+All prepared-execution families use the same Run ledger, task reservation, task
+attempt, cancellation entry, settlement gate, disposal gate, retention
+collection and final release. Product materializing preparations now receive
+only `ExecutionLifecycleOperations`; they return the exact typed output through
+the common completion boundary. They cannot obtain the compatibility `finish`
+or scoped `publish` authority.
+
+The DAG has one `outputs` array. Its private typed variants select materialized
+or managed access without creating separate completion ledgers. The single
+`commit_task_output` mutation attaches the holding, stores the typed reference,
+marks the task done, clears completed inputs and advances the graph generation.
+Synchronous Local, Local materializing, reference, DuckDB Node/native,
+`compute_author`, managed execution and remote managed evidence converge on
+that mutation.
 
 The common completion boundary already verifies:
 
@@ -55,17 +64,22 @@ No migration step may weaken those checks. A compatibility adapter may only
 feed an already verified materialized result into the common owner. It must not
 become a second success ledger or accept an output unconditionally.
 
-## Shared dependency order
+## Implemented dependency order
 
-1. Replace parallel task-output arrays with one authoritative typed slot.
-2. Add a managed in-memory representation and completion adapter that reuses
-   existing Local output admission evidence.
-3. Move Local materializing and synchronous product callers to that adapter.
-4. Move reference, DuckDB, and `compute_author` callers without changing their
-   physical representations.
-5. Apply the shared slot to Carrier output on the Local workstream.
-6. Remove Legacy hooks, ordinary completion branches, and obsolete exports only
-   after all product callers are migrated.
+1. Parallel Engine task-output arrays were replaced by one authoritative typed
+   slot.
+2. Lifecycle-only materializing preparation was added without another output
+   representation or row conversion.
+3. Local materializing and synchronous product callers were moved to the common
+   commit.
+4. Reference, DuckDB, and `compute_author` callers were moved without changing
+   their physical representations. Resident DuckDB output remains resident.
+5. The Local workstream must add its Carrier variant to this same slot when it
+   consumes the shared commits. It must not retain
+   `carrier_managed_completed` as another array.
+6. Compatibility exports remain until the Local handoff and known external
+   low-level consumers are migrated. No standard Engine product path depends on
+   their finish/publication authority.
 
 ## Performance and accounting baseline
 
@@ -85,13 +99,18 @@ Structural regression checks must distinguish:
 
 ## Compatibility and removal conditions
 
-`PreparedExecution`, `ExecutionOperations.finish`,
-`ExecutionOperations.publish`, `start_captured_execution`,
-`complete_task_execution`, ordinary `captured_task_output`, and
-`TaskPublication` are externally visible low-level APIs. They remain only while
-a known product caller or deliberate compatibility fixture still uses them.
-Their removal condition is zero product callers after Local, reference, DuckDB,
-native/Node composition, `compute_author`, and generated bridges are migrated.
+`ExecutionOperations.finish`, `ExecutionOperations.publish`,
+`start_captured_execution`, `complete_task_execution` and `TaskPublication`
+remain externally visible low-level compatibility APIs. They are a one-way
+adapter into the common commit: they have no output array or success mutation of
+their own. `PreparedExecution` itself is shared by the lifecycle-only and
+compatibility binders and is not obsolete.
+
+The compatibility removal condition is zero known consumers after the Local
+Carrier branch rebases, adds its typed output variant to the shared slot, and
+the deliberate low-level public API surface is reviewed. Ordinary
+`captured_task_output` remains the typed materialized accessor and is not a
+second authority.
 
 The shared output slot is internal and does not require a public protocol
 version. If later changes alter a public machine contract, its pins, generated

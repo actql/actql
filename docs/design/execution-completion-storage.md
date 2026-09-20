@@ -12,6 +12,43 @@ handle is returned. Completion and producer admission contain no expression
 frame, continuation or scheduling API. Changing synchronous expression
 scheduling does not change this boundary.
 
+## Task output authority
+
+`CapturedDAG` owns one task-indexed output slot. A committed slot contains a
+typed materialized or managed reference; the variant selects the correct access
+surface but does not create another success ledger. Only the common output
+commit may attach the graph holding, expose producer readiness, clear completed
+input ownership and advance the graph generation.
+
+Execution lifecycle is independent of the output representation. Cancellation,
+native settlement, disposal, retention release and physical reclamation use one
+common lifecycle interface. These facts remain separate:
+
+1. the operation stopped;
+2. validation and required evidence succeeded;
+3. a retained holding was admitted;
+4. the task output was committed;
+5. a consumer was admitted;
+6. the holding was released and reclamation was confirmed.
+
+A materializing implementation returns its exact typed output to the common
+completion boundary. It receives no task-publication authority. A managed
+implementation returns its scoped completion evidence and material reference to
+the same authority. Resident output is bound to its verified relation before
+the slot is committed, without converting or re-importing the relation.
+
+The exported legacy finish/publication surface is a one-way compatibility
+adapter. It feeds the same commit and cannot write a separate task-output store.
+New product implementations must use the lifecycle-only preparation and typed
+completion entry points. The compatibility surface can be removed after known
+external consumers and the Local Carrier workstream have migrated.
+
+The unified boundary adds no requirement to serialize rows, compute a logical
+CID, hash a physical body or rescan an already verified representation.
+Materialized, file-backed and resident representations retain their existing
+typed access and identity rules. Program publication remains a later, separate
+commit and does not become part of task completion.
+
 ## Producer admission
 
 Binding checks the producer pipeline, bound preparation and target. Receiver
