@@ -2444,10 +2444,66 @@ async function exerciseStrategyGraph(
     step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
     fields: ['node', 'degree'],
   }, {
+    name: 'window-fixed',
+    family: 'tea',
+    operation: 'window-fixed',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'window_start_ms',
+      'window_end_ms',
+    ],
+    secondFields: ['window_start_ms', 'event_id'],
+  }, {
+    name: 'window-sliding',
+    family: 'tea',
+    operation: 'window-sliding',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'window_start_ms',
+      'window_end_ms',
+    ],
+    secondFields: ['window_start_ms', 'event_id'],
+  }, {
+    name: 'watermark',
+    family: 'tea',
+    operation: 'watermark',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'watermark_ms',
+      'late',
+      'watermark_decision',
+    ],
+    secondFields: ['watermark_decision', 'event_id'],
+  }, {
+    name: 'dedupe-events',
+    family: 'tea',
+    operation: 'dedupe',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+  }, {
     name: 'session',
     family: 'tea',
     rows: 40,
     advanceQuantum: 1,
+    constructionProgress: 40,
     fields: [
       'event_id',
       'occurred_at',
@@ -2492,6 +2548,22 @@ async function exerciseStrategyGraph(
       cancellationCase.family === 'time-series';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
+    const teaTransform = cancellationCase.operation === 'window-fixed'
+      ? {window_events: {kind: 'fixed', size: 10}}
+      : cancellationCase.operation === 'window-sliding'
+        ? {window_events: {kind: 'sliding', size: 10, step: 5}}
+        : cancellationCase.operation === 'watermark'
+          ? {watermark_events: {watermark_ms: 10, policy: 'mark'}}
+          : cancellationCase.operation === 'dedupe'
+            ? {
+              dedupe_events: {
+                by: ['payload'],
+                order_by: [{
+                  field: 'occurred_at', dir: 'asc', nulls: 'last',
+                }],
+              },
+            }
+            : {session: {by: ['payload'], gap: 10}};
     const graphCancellationProgram = cancellationCase.family === 'tea'
       ? {
         version: 'actql/0.1',
@@ -2538,9 +2610,7 @@ async function exerciseStrategyGraph(
           steps: [{
             from: 'rows',
             to_events: {id: 'event_id', time: 'occurred_at'},
-          }, {
-            session: {by: ['payload'], gap: 10},
-          }, {
+          }, teaTransform, {
             events: true,
             as: 'out',
           }],
@@ -2557,9 +2627,17 @@ async function exerciseStrategyGraph(
         }, {
           id: 'consumer_b',
           inputs: {x: {result: {stage: 'events', result: 'r'}}},
-          steps: [{select: ['session_id', 'event_id'], as: 'out'}],
+          steps: [{
+            select: cancellationCase.secondFields ??
+              ['session_id', 'event_id'],
+            as: 'out',
+          }],
           results: {
-            r: {from: 'out', fields: ['session_id', 'event_id']},
+            r: {
+              from: 'out',
+              fields: cancellationCase.secondFields ??
+                ['session_id', 'event_id'],
+            },
           },
         }],
         results: {published: {from: {stage: 'events', result: 'r'}}},

@@ -32,7 +32,9 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 ///|
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
-  let window = variant == "window_fixed" || variant == "window_sliding"
+  let window = variant == "window_fixed" ||
+    variant == "window_sliding" ||
+    variant == "window_parameter"
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
@@ -74,6 +76,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if variant == "window_parameter" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":{" +
+    "\"$param\":\"window_size\"}}}"
   } else if session {
     "{\"session\":{\"by\":" +
     (if session_global { "[]" } else { "[\"payload\"]" }) +
@@ -93,7 +98,13 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
+  (if variant == "window_parameter" {
+    ",\"window_size\":{\"type\":\"number\",\"nullable\":false}"
+  } else {
+    ""
+  }) +
+  "}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
   "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
@@ -143,6 +154,7 @@ fn carrier_events_owner(
   variant? : String = "watermark",
 ) -> @lower.BoundPrepared {
   let session = variant.has_prefix("session")
+  let window_parameter = variant == "window_parameter"
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
   let transform = if variant == "dedupe" {
@@ -153,6 +165,9 @@ fn carrier_events_owner(
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if window_parameter {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":{" +
+    "\"$param\":\"size\"}}}"
   } else if session {
     "{\"session\":{\"by\":" +
     (if session_global { "[]" } else { "[\"payload\"]" }) +
@@ -162,10 +177,18 @@ fn carrier_events_owner(
   } else {
     "{\"watermark_events\":{\"watermark_ms\":10," + "\"policy\":\"mark\"}}"
   }
-  let declarations = if session_parameter {
+  let declarations = if session_parameter || window_parameter {
     Some(
       @parameter.read_declarations(
-        Some(input_cursor("{\"gap\":{\"type\":\"number\",\"nullable\":false}}")),
+        Some(
+          input_cursor(
+            if window_parameter {
+              "{\"size\":{\"type\":\"number\",\"nullable\":false}}"
+            } else {
+              "{\"gap\":{\"type\":\"number\",\"nullable\":false}}"
+            },
+          ),
+        ),
         {
           max_parameters: 1,
           max_nodes: 10,
@@ -209,11 +232,19 @@ fn carrier_events_owner(
   let bound = match declarations {
     Some(declarations) =>
       match
-        @parameter.bind(declarations, Some(input_cursor("{\"gap\":2}")), {
-          max_nodes: 10,
-          max_depth: 10,
-          max_text_bytes: 100,
-        }).unwrap() {
+        @parameter.bind(
+          declarations,
+          Some(
+            input_cursor(
+              if window_parameter {
+                "{\"size\":10}"
+              } else {
+                "{\"gap\":2}"
+              },
+            ),
+          ),
+          { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
+        ).unwrap() {
         @parameter.Ready(value) => Some(value)
         @parameter.NeedsBindings(_) => abort("missing session gap binding")
       }
@@ -227,9 +258,36 @@ fn carrier_events_owner(
       max_identifier_bytes: 1000,
     }).unwrap(),
     bound,
-    max_parameters=if session_parameter { 1 } else { 0 },
-    max_name_bytes=if session_parameter { 3 } else { 0 },
+    max_parameters=if session_parameter || window_parameter { 1 } else { 0 },
+    max_name_bytes=if window_parameter {
+      4
+    } else if session_parameter {
+      3
+    } else {
+      0
+    },
   ).unwrap()
+}
+
+///|
+fn carrier_events_publication_cid(variant : String) -> String {
+  if variant == "dedupe" {
+    "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b"
+  } else if variant == "window_fixed" {
+    "sha256:5528c393bdc40f682c1c7271183d2c43814871a253da19ee7fa9891ee59a9007"
+  } else if variant == "window_sliding" {
+    "sha256:c2ba9666c6a15ecbd0374413e5a94768d7dd66767bf17a710fbecd6a165a1cf8"
+  } else if variant == "window_parameter" {
+    "sha256:5528c393bdc40f682c1c7271183d2c43814871a253da19ee7fa9891ee59a9007"
+  } else if variant == "session" {
+    "sha256:cdb4e95a24f02c009ed6e25c03c17311d529d7941e7f594b24e73b5bc1d23ba3"
+  } else if variant == "session_global" {
+    "sha256:3d11a1af6cc603d13e7ef2e61dcfa8ebcf6fab726d5ee1289dc6ed161c0e75fe"
+  } else if variant == "session_parameter" {
+    "sha256:8f9b470417ca8c3ad8e28ac19d246e39503c5853682b321c9085425efc8d105d"
+  } else {
+    "sha256:ab1d5abbd65428f1057ba688c602e34789e9b6cacfa73890c30741cba90cc11e"
+  }
 }
 
 ///|
@@ -588,8 +646,8 @@ test "registered Events provider returns retained Carrier material" {
 test "registered Events provider separates stop from cleanup" {
   for
     variant in [
-      "watermark", "dedupe", "window_fixed", "window_sliding", "session", "session_global",
-      "session_parameter",
+      "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
+      "session", "session_global", "session_parameter",
     ] {
     let source_owner = carrier_events_source_owner()
     let source = carrier_events_source_output(source_owner)
@@ -634,16 +692,18 @@ test "registered Events provider separates stop from cleanup" {
 test "standard Host runs registered bounded Events provider" {
   for
     variant in [
-      "watermark", "dedupe", "window_fixed", "window_sliding", "session", "session_global",
-      "session_parameter",
+      "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
+      "session", "session_global", "session_parameter",
     ] {
-    let publication = variant == "session"
+    let publication = true
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
       local_carrier_events_variant=variant,
       managed_publication=publication,
       parameter_json=if variant == "session_parameter" {
         "{\"minimum\":2}"
+      } else if variant == "window_parameter" {
+        "{\"minimum\":1,\"window_size\":10}"
       } else {
         "{\"minimum\":1}"
       },
@@ -760,7 +820,9 @@ test "standard Host runs registered bounded Events provider" {
     if variant == "dedupe" {
       assert_true(event_rows[0].contains("\"event_id\":2"))
       assert_true(event_rows[1].contains("\"event_id\":4"))
-    } else if variant == "window_fixed" || variant == "window_sliding" {
+    } else if variant == "window_fixed" ||
+      variant == "window_sliding" ||
+      variant == "window_parameter" {
       assert_true(event_rows[0].contains("\"window_start_ms\""))
       assert_true(event_rows[0].contains("\"window_end_ms\""))
     } else if variant.has_prefix("session") {
@@ -802,11 +864,9 @@ test "standard Host runs registered bounded Events provider" {
             contract,
             @execution.logical_relation_canonical_contract_cid(),
           )
-          assert_eq(
-            cid, "sha256:cdb4e95a24f02c009ed6e25c03c17311d529d7941e7f594b24e73b5bc1d23ba3",
-          )
+          assert_eq(cid, carrier_events_publication_cid(variant))
         }
-        _ => fail("session output did not establish publication identity")
+        _ => fail("Events output did not establish publication identity")
       }
       assert_true(
         @execution.managed_completed_deadline_satisfied(
