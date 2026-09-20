@@ -235,7 +235,7 @@ Use `runCapturedStrategy(setup, moduleOptions, signal)` from
 `adapters/host-node/entry.mjs`. `moduleOptions` is indexed by generated module key;
 its provider-specific value is read only by that installed module. For example,
 DuckDB accepts `{duckdb: prepareDuckDBStrategyConfiguration({transportLimits, importLimits})}`;
-import that pure preparation function from `adapters/duckdb-node/configuration.mjs`
+import that pure preparation function from `adapters/connectors/duckdb/node/configuration.mjs`
 without loading the SDK. The standard entry snapshots the outer mapping before
 awaiting, retaining exact immutable Connector-owned handles without copying their
 contents. Accessor properties in that mapping are rejected. In-process Local or

@@ -2,7 +2,7 @@
 import {installSelectedContributions} from '../host-node/installation.mjs';
 
 const loaders = new Map([
-  ['duckdb', () => import('../duckdb-node/strategy-bundle.mjs').then(module => module.duckdbStrategyContribution)],
+  ['duckdb', () => import('../connectors/duckdb/node/strategy-bundle.mjs').then(module => module.duckdbStrategyContribution)],
   ['local', () => import('../local-node/strategy-bundle.mjs').then(module => module.localStrategyContribution)],
   ['reference_compute', () => import('../reference-compute-node/strategy-bundle.mjs').then(module => module.numericStrategyContribution)],
 ]);

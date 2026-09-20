@@ -23,7 +23,7 @@ for (const pkg of ['node_host_conformance','connectors_builtin_node']) {
 execFileSync(process.execPath,['--input-type=module','-e',`
   import {createRequire} from 'node:module';
   import assert from 'node:assert/strict';
-  const require = createRequire(new URL('./adapters/duckdb-node/session.mjs',import.meta.url));
+  const require = createRequire(new URL('./adapters/connectors/duckdb/node/session.mjs',import.meta.url));
   assert.throws(() => require.resolve('@duckdb/node-api'),{code:'MODULE_NOT_FOUND'});
   await import('./scripts/node-host-subset-fixture.mjs');
 `],{cwd:isolated,stdio:'inherit'});

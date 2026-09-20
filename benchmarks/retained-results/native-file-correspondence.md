@@ -9,7 +9,7 @@ the existing validation/hash pass.
 Run:
 
 ```sh
-node --test adapters/duckdb-node/test/native-file-values.test.mjs adapters/duckdb-node/test/session.test.mjs
+node --test adapters/connectors/duckdb/node/test/native-file-values.test.mjs adapters/connectors/duckdb/node/test/session.test.mjs
 ```
 
 All 25 tests passed with the installed pinned DuckDB Node `1.5.5-r.4` and Node

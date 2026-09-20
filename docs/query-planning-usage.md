@@ -7,7 +7,7 @@ records, captures a complete observation and binds its immutable output to a
 checked local consumer. This mock implementation does
 not dispatch a real Connector, publicly publish a Result or construct a runnable
 Program/Plan. Real DuckDB adapter wiring is documented in the
-[Node adapter guide](../adapters/duckdb-node/README.md), separately from the mock
+[Node adapter guide](../adapters/connectors/duckdb/node/README.md), separately from the mock
 setup below. Its native acquisition path uses `complete_duckdb_native_capture`,
 then bounded `materialize_duckdb_native_output` and
 `complete_duckdb_native_output` to obtain a real engine output for ordinary

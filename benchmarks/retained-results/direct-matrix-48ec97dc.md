@@ -7,7 +7,7 @@ managed-profile execution measurement. The complete raw results are in
 ## Reproduction and scope
 
 - Clean source: `48ec97dc230bdaf281c487f1220e50289ef8b226`.
-- Runner: `node adapters/duckdb-node/bench/direct-matrix.mjs`, using the release
+- Runner: `node adapters/connectors/duckdb/node/bench/direct-matrix.mjs`, using the release
   builds exercised by the native-file identity-reuse smoke tests.
 - Source stamp checked before and after each case:
   `4c7b2c0598704514812c2b21631ed23f9851761a98f39a01690b541f343ed3ea`.

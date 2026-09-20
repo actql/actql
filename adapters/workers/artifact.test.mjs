@@ -19,7 +19,7 @@ function graph(dependency, options = {}) {
 
 test('resolved Workers graph rejects Node dependencies even if generated output erases them', () => {
   for (const name of ['node:fs', 'fs', 'fs/promises', 'child_process',
-    'adapters/duckdb-node/host.mjs', 'adapters/host-node/entry.mjs',
+    'adapters/connectors/duckdb/node/host.mjs', 'adapters/host-node/entry.mjs',
     'node_modules/sneaky/index.js', 'addons/driver.node']) {
     assert.throws(() => checkWorkersArtifact(graph(name), 'export {};', ['worker.mjs', name]),
       /Workers(Module|Dependency)Rejected/, name);
@@ -46,10 +46,10 @@ test('unresolved and dynamic dependencies cannot escape source and artifact chec
 test('actual bundler resolution catches a forbidden unused Connector removed from output', async t => {
   const directory = mkdtempSync(join(tmpdir(),'actql-worker-bundle-negative-'));
   t.diagnostic(`isolated injection retained: ${directory}`);
-  mkdirSync(join(directory,'adapters/duckdb-node'),{recursive:true});
+  mkdirSync(join(directory,'adapters/connectors/duckdb/node'),{recursive:true});
   writeFileSync(join(directory,'worker.mjs'),
-    'import {unused} from "./adapters/duckdb-node/unused.mjs"; export const result = 1;');
-  writeFileSync(join(directory,'adapters/duckdb-node/unused.mjs'),'export const unused = "native-addon-marker";');
+    'import {unused} from "./adapters/connectors/duckdb/node/unused.mjs"; export const result = 1;');
+  writeFileSync(join(directory,'adapters/connectors/duckdb/node/unused.mjs'),'export const unused = "native-addon-marker";');
   const result = await build({absWorkingDir:directory,entryPoints:['worker.mjs'],
     bundle:true,platform:'browser',format:'esm',metafile:true,write:false});
   assert.doesNotMatch(result.outputFiles[0].text,/native-addon-marker/);
@@ -62,5 +62,7 @@ test('product Local-only Host builds separately without conformance or test Conn
   const modules = Object.keys(artifact.metafile.inputs);
   assert.ok(modules.includes('adapters/local-node/strategy-bundle.mjs'));
   assert.ok(modules.every(path => !/conformance|reference|fixture|async_bridge/.test(path)));
+  assert.ok(modules.every(path => !/(?:^|\/)connectors\/duckdb(?:\/|$)|duckdb-node|@duckdb/.test(path)));
+  assert.doesNotMatch(artifact.source, /(?:libduckdb|@duckdb\/node-api|native-addon-marker)/);
   t.diagnostic(JSON.stringify({profile:'host',bytes:artifact.bytes,gzipBytes:artifact.gzipBytes,modules:modules.length}));
 });

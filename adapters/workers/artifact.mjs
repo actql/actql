@@ -8,6 +8,7 @@ const builtins = new Set(builtinModules.flatMap(name => [name, name.replace(/^no
 function forbidden(path) {
   return path.startsWith('node:') || builtins.has(path) ||
     /(?:^|\/)(?:host-node|duckdb-node|connectors-builtin)(?:\/|$)/.test(path) ||
+    /(?:^|\/)connectors\/duckdb\/node(?:\/|$)/.test(path) ||
     /(?:^|\/)node_modules(?:\/|$)/.test(path) || /\.(?:node|dll|dylib|so)$/.test(path);
 }
 
@@ -53,6 +54,7 @@ export const conformanceModules = [
   'adapters/local-node/retained-output.mjs',
   'adapters/store-local/managed-memory-representations.mjs',
   'adapters/store-local/representations.mjs',
+  'adapters/store-local/moonbit-row-frames.mjs',
   'adapters/store-local/row-frames.mjs',
   'adapters/reference-compute-node/async-probe.mjs',
   'adapters/host-common/execution-sites.mjs',
@@ -82,6 +84,7 @@ export const hostModules = [
   'adapters/local-node/retained-output.mjs',
   'adapters/store-local/managed-memory-representations.mjs',
   'adapters/store-local/representations.mjs',
+  'adapters/store-local/moonbit-row-frames.mjs',
   'adapters/store-local/row-frames.mjs',
   'adapters/host-common/execution-sites.mjs',
   'adapters/host-common/managed-site-transfer.mjs',

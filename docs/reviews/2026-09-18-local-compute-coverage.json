@@ -101,7 +101,7 @@
           {
             "operation": "filter",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -343,7 +343,7 @@
           {
             "operation": "select",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -530,7 +530,7 @@
           {
             "operation": "rename",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -710,7 +710,7 @@
           {
             "operation": "drop",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -899,7 +899,7 @@
           {
             "operation": "derive",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -1079,7 +1079,7 @@
           {
             "operation": "sort",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -1279,7 +1279,7 @@
           {
             "operation": "take",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -1476,7 +1476,7 @@
           {
             "operation": "top_k",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -1655,7 +1655,7 @@
           {
             "operation": "top_k_by",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -1870,7 +1870,7 @@
           {
             "operation": "row_window",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -2055,7 +2055,7 @@
           {
             "operation": "window_group",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -2258,7 +2258,7 @@
           {
             "operation": "lag",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -2470,7 +2470,7 @@
         {
           "operation": "watermark_rows",
           "layer": "two_consumer_e2e",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixtures": [
             "standard native and broad Node Hosts own verification through real capture and consumer"
           ],
@@ -2639,7 +2639,7 @@
           {
             "operation": "pivot",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -2867,7 +2867,7 @@
           {
             "operation": "unpivot",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -3230,7 +3230,7 @@
           {
             "operation": "json_pick",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -3494,7 +3494,7 @@
           {
             "operation": "unnest",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -3793,7 +3793,7 @@
           {
             "operation": "join",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -4044,7 +4044,7 @@
           {
             "operation": "nest",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -4248,7 +4248,7 @@
           {
             "operation": "group",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -4523,7 +4523,7 @@
           {
             "operation": "distinct",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -4704,7 +4704,7 @@
           {
             "operation": "dedupe_rows",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -4893,7 +4893,7 @@
           {
             "operation": "assert_rows",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -5098,7 +5098,7 @@
           {
             "operation": "append",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -5304,7 +5304,7 @@
           {
             "operation": "values",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -5534,7 +5534,7 @@
           {
             "operation": "except",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -5686,7 +5686,7 @@
           {
             "operation": "intersect",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -5842,7 +5842,7 @@
           {
             "operation": "cross_join",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],
@@ -6043,7 +6043,7 @@
           {
             "operation": "analytic",
             "layer": "two_consumer_e2e",
-            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "fixtures": [
               "standard native and broad Node Hosts own verification through real capture and consumer"
             ],

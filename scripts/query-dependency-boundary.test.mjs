@@ -23,7 +23,7 @@ test('common captured DAG consumes owned obligations without operation templates
 test('standard installation and bridge have no handwritten provider configuration or two-module requirement', () => {
   assert.ok(!existsSync('src/duckdb_host/moon.pkg'));
   assert.ok(!existsSync('src/duckdb_host_node/moon.pkg'));
-  assert.ok(!existsSync('adapters/duckdb-node/strategy-host.mjs'));
+  assert.ok(!existsSync('adapters/connectors/duckdb/node/strategy-host.mjs'));
   const generator = readFileSync('scripts/connector-compute-bundles.mjs', 'utf8');
   const template = readFileSync('scripts/templates/strategy-node.mbt', 'utf8');
   const node = readFileSync('scripts/connector-node-bundles.mjs', 'utf8');
@@ -220,7 +220,7 @@ test('DuckDB transport bridge is connector-owned and composition does not re-exp
   assert.match(bridge, /pub fn resident_import_sql/);
   const composition = readFileSync('src/connectors_builtin_node/pkg.generated.mbti', 'utf8');
   assert.doesNotMatch(composition, /compute_host_sql|native_host_sql|resident_import_sql|NativeNodeRun|ComputeNodeRun/);
-  const entry = readFileSync('adapters/duckdb-node/host.mjs', 'utf8');
+  const entry = readFileSync('adapters/connectors/duckdb/node/host.mjs', 'utf8');
   assert.match(entry, /build\/connectors\/duckdb\/host_node\/host_node\.js/);
   assert.doesNotMatch(entry, /build\/connectors_builtin_node\//);
 });
@@ -244,6 +244,40 @@ test('common DAG and Host have no transitive concrete connector dependency', () 
     }
     const api = readFileSync(`src/${root}/pkg.generated.mbti`, 'utf8');
     assert.doesNotMatch(api, /DuckDB|duckdb|query_planning|connectors\//);
+  }
+});
+
+test('common execution packages cannot depend on connector-owned packages', () => {
+  const commonPackages = [
+    'connector_sdk',
+    'execution_relation',
+    'execution_site',
+    'physical_host',
+    'physical_strategy',
+    'remote_site_completion',
+    'remote_site_protocol',
+    'remote_transfer',
+    'run_publication',
+  ];
+  for (const root of commonPackages) {
+    for (const dependency of dependencies(root)) {
+      assert.doesNotMatch(dependency, /^connectors\//, `${root}: ${dependency}`);
+    }
+  }
+});
+
+test('product packages cannot depend on conformance packages', () => {
+  const visit = directory => readdirSync(directory, {withFileTypes:true})
+    .flatMap(entry => entry.isDirectory()
+      ? visit(`${directory}/${entry.name}`)
+      : entry.name === 'moon.pkg' ? [`${directory}/${entry.name}`] : []);
+  const testOwners = /^(?:src\/(?:connectors\/duckdb\/conformance|node_host_conformance|query_integration|workers_conformance))\/moon\.pkg$/;
+  for (const path of visit('src')) {
+    if (testOwners.test(path)) continue;
+    const source = readFileSync(path, 'utf8');
+    assert.doesNotMatch(source,
+      /"actql\/actql\/(?:connector_conformance|connectors\/[^"/]+\/conformance|node_host_conformance|workers_conformance)"/,
+      path);
   }
 });
 

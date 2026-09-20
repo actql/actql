@@ -55,10 +55,10 @@ observation responsibilities.
 | Standard Host loop | `adapters/host-common/strategy.mjs` | migrate | Move progression, retry, completion eligibility, and release decisions to MoonBit; retain only asynchronous environment calls and projections. |
 | Managed Transfer orchestration | `adapters/host-common/managed-site-transfer.mjs` | migrate | Move admission, state transitions, accounting release, and retry eligibility to MoonBit; adapters retain streaming and resource-stop observation. |
 | Local managed execution | `adapters/local-node/strategy-bundle.mjs` | migrate and adapter | Move common task progression and cleanup decisions; retain input/output bridging required by the environment. |
-| DuckDB managed execution | `adapters/duckdb-node/managed-strategy-compute.mjs` | migrate and adapter | Move common progression and accounting decisions; retain native DuckDB session, file, and stream operations. |
+| DuckDB managed execution | `adapters/connectors/duckdb/node/managed-strategy-compute.mjs` | migrate and adapter | Move common progression and accounting decisions; retain native DuckDB session, file, and stream operations. |
 | Publication coordination | `adapters/host-common/run-publication.mjs` and related modules | migrate and adapter | Keep contract and transition authority in MoonBit; retain bounded stream and Store calls. |
 | Filesystem Stores | `adapters/store-local/*.mjs` | adapter | Keep filesystem, synchronization, conditional commit, descriptors, and physical cleanup. Consume MoonBit decisions rather than defining common success. |
-| Native database session | `adapters/duckdb-node/session.mjs` | adapter | Retain native library calls, cancellation delivery, and stop observation. |
+| Native database session | `adapters/connectors/duckdb/node/session.mjs` | adapter | Retain native library calls, cancellation delivery, and stop observation. |
 | Process and network channels | `adapters/host-node/*.mjs` | adapter | Retain process, stream, and transport state. Do not infer common execution success or cleanup from transport completion. |
 | SQLite dispatch journal | `adapters/site-node/sqlite-dispatch-journal.mjs` | integration adapter | Persist exact transitions transactionally. MoonBit remains the application-state authority. Replace or supplement it for the Node-free native profile. |
 

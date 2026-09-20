@@ -197,7 +197,7 @@ const evidenceForLayer = new Map([
 function expectedSuite(file) {
   const moon = file.match(/^src\/([^/]+)\/.*_(?:wb)?test\.mbt$/u);
   if (moon !== null) return `moon:${moon[1]}`;
-  if (file === "adapters/duckdb-node/test/standard-host.test.mjs") {
+  if (file === "adapters/connectors/duckdb/node/test/standard-host.test.mjs") {
     return "node:standard-host";
   }
   if (/^(?:benchmarks\/|adapters\/[^/]+\/bench\/)/u.test(file)) {

@@ -534,7 +534,7 @@ moon test --target js --deny-warn
 moon test --target wasm --deny-warn
 moon test --target native --deny-warn
 node scripts/check-moonbit-api.mjs
-npm test --prefix adapters/duckdb-node
+npm test --prefix adapters/connectors/duckdb/node
 npm run check:retained-boundary
 npm run check:connector-addition
 npm run check:docs

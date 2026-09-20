@@ -24,7 +24,7 @@ consumer authorization remain mandatory.
 The clean fixed revision ran:
 
 ```sh
-node adapters/duckdb-node/bench/managed-profile-matrix.mjs
+node adapters/connectors/duckdb/node/bench/managed-profile-matrix.mjs
 ```
 
 All 27 registered cases completed. The runner built the three required JS

@@ -265,7 +265,7 @@ Close is idempotent and revokes further use, whereas aborting unfinished work do
 not retroactively erase an already completed capture.
 
 The low-level Host startup takes a trusted transport verifier for runtime wiring.
-The standard `adapters/duckdb-node/host.mjs` native entry installs that verifier
+The standard `adapters/connectors/duckdb/node/host.mjs` native entry installs that verifier
 privately through the settled transport coordinator. Its configuration retains
 already-owned preparation and limits, without verifier or SQL callbacks. It loads
 the fixed `connectors/duckdb/host_node` product module, not a caller-selected runtime or

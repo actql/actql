@@ -15,7 +15,7 @@ import {registerManagedInput} from '../store-local/managed-representations.mjs';
 import {managedPhysicalRepresentation as createManagedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid,
-  managedColumnRowProvider} from '../duckdb-node/managed-column-codec.mjs';
+  managedColumnRowProvider} from '../connectors/duckdb/node/managed-column-codec.mjs';
 import {checked} from './runtime-result.mjs';
 import {runInstalledStrategy} from './strategy.mjs';
 import {createInProcessExecutionSite, prepareExecutionSitePolicy} from

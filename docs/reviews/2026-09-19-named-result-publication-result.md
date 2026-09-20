@@ -314,7 +314,7 @@ plan, which is unrelated to this branch and was not staged or modified.
 | `node scripts/check-core-without-connectors.mjs` | pass |
 | `npm test --prefix adapters/workers` | 24 passed |
 | `npm run check:connector-addition` | pass on JS, Wasm, native, and Node |
-| `npm test --prefix adapters/duckdb-node` | 127 passed |
+| `npm test --prefix adapters/connectors/duckdb/node` | 127 passed |
 | DuckDB Host release builds | pass |
 
 Linux CI must pass on the report-bearing final SHA before this branch is

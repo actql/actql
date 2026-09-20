@@ -41,9 +41,9 @@ The correctness smoke checks run without importing the ActQL evaluator:
 
 ```sh
 node --test benchmarks/retained-results/fixtures.test.mjs
-node --test adapters/duckdb-node/test/benchmark-fixtures.test.mjs
-node --test adapters/duckdb-node/test/benchmark-profile.test.mjs
-node --test adapters/duckdb-node/test/benchmark-execution.test.mjs
+node --test adapters/connectors/duckdb/node/test/benchmark-fixtures.test.mjs
+node --test adapters/connectors/duckdb/node/test/benchmark-profile.test.mjs
+node --test adapters/connectors/duckdb/node/test/benchmark-execution.test.mjs
 ```
 
 The second command requires the pinned DuckDB Node dependency. It compares all
@@ -69,7 +69,7 @@ Run the full preregistered size matrix explicitly (including one million narrow
 rows and 100000-row wide layouts):
 
 ```sh
-ACTQL_RETAINED_CASES=registered node --test adapters/duckdb-node/test/benchmark-execution.test.mjs
+ACTQL_RETAINED_CASES=registered node --test adapters/connectors/duckdb/node/test/benchmark-execution.test.mjs
 ```
 
 Both modes fail on an incomplete case and emit each attempted/verified/failed
@@ -107,7 +107,7 @@ smoke does not prove the larger cases executable.
 To compare ordinary and reused INSERTs through the actual bounded transport:
 
 ```sh
-node adapters/duckdb-node/bench/session-import-probe.mjs
+node adapters/connectors/duckdb/node/bench/session-import-probe.mjs
 ```
 
 This separately reports setup-through-cleanup elapsed time, verifies identical
@@ -190,7 +190,7 @@ independently extract and release-build `experiment.baselineRevision` with the
 pinned toolchain and DuckDB dependency, then run:
 
 ```sh
-ACTQL_RETAINED_BASELINE_ROOT=/path/to/verified-baseline node adapters/duckdb-node/bench/baseline-retained-probe.mjs
+ACTQL_RETAINED_BASELINE_ROOT=/path/to/verified-baseline node adapters/connectors/duckdb/node/bench/baseline-retained-probe.mjs
 ```
 
 The probe executes all registered cases (or one exact `ACTQL_RETAINED_CASE`) and
@@ -225,7 +225,7 @@ comparison leg so their Program, envelopes, estimates, child limits and retentio
 settings do not drift. It preserves the existing fixture ceilings; estimates are
 still supplied selection inputs rather than measured costs.
 
-`adapters/duckdb-node/bench/retained-comparator.mjs` runs that configuration through
+`adapters/connectors/duckdb/node/bench/retained-comparator.mjs` runs that configuration through
 the installed managed Host. Its `executionMs` starts before Host construction and
 ends after completed independent holdings and confirmed child exit. Independent
 expected identity is calculated beforehand, checked afterwards, and final result
@@ -247,7 +247,7 @@ The real test covers all three 100-row narrow workloads and verifies that a wron
 oracle rejects the sample while still removing completed files:
 
 ```sh
-node --test adapters/duckdb-node/test/retained-comparator.test.mjs
+node --test adapters/connectors/duckdb/node/test/retained-comparator.test.mjs
 ```
 
 The retained comparison function also accepts an explicit fifth argument such as
@@ -269,8 +269,8 @@ The benchmark-only raw DuckDB leg can now be exercised against all 27 registered
 cases (or one exact `ACTQL_RETAINED_CASE`):
 
 ```sh
-node adapters/duckdb-node/bench/raw-retained-probe.mjs
-node --test adapters/duckdb-node/test/raw-retained-comparator.test.mjs
+node adapters/connectors/duckdb/node/bench/raw-retained-probe.mjs
+node --test adapters/connectors/duckdb/node/test/raw-retained-comparator.test.mjs
 ```
 
 It uses one thread and the case's memory ceiling, creates the deterministic source
@@ -315,7 +315,7 @@ helper tests is not a performance result. Test it without DuckDB using:
 node --test benchmarks/retained-results/*.test.mjs
 ```
 
-`adapters/duckdb-node/bench/matched-equivalent-pair.mjs` provides the next
+`adapters/connectors/duckdb/node/bench/matched-equivalent-pair.mjs` provides the next
 lower-level runner boundary: one alternating retained/equivalent pair against
 one hashed immutable database and one clean revision, with a fresh child for
 each leg. It records matched parent-cycle, child execution and cleanup timing

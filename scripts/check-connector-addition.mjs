@@ -46,7 +46,7 @@ cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {re
 cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
   filter: path => !path.includes('/node_modules') && !path.includes('/reference-compute-node') && !path.includes('/connectors-builtin'),
 });
-symlinkSync(join(root, 'adapters/duckdb-node/node_modules'), join(isolated, 'adapters/duckdb-node/node_modules'), 'dir');
+symlinkSync(join(root, 'adapters/connectors/duckdb/node/node_modules'), join(isolated, 'adapters/connectors/duckdb/node/node_modules'), 'dir');
 cpSync(join(root, 'spec'), join(isolated, 'spec'), {recursive:true});
 mkdirSync(join(isolated, 'src'));
 for (const name of readdirSync(join(root, 'src'))) {
@@ -123,7 +123,7 @@ for (const target of ['js', 'wasm', 'native']) {
   }
 }
 tests.node = run('standard-node', ['--test', '--test-name-pattern=standard native and broad Node Hosts',
-  'adapters/duckdb-node/test/standard-host.test.mjs'], process.execPath);
+  'adapters/connectors/duckdb/node/test/standard-host.test.mjs'], process.execPath);
 const final = snapshot();
 writeFileSync(join(isolated,'common-after.json'),JSON.stringify(
   Object.fromEntries([...final].filter(([path]) => !allowed(path))),null,2)+'\n');

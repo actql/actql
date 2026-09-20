@@ -123,8 +123,8 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-          cache-dependency-path: adapters/duckdb-node/package-lock.json
-      - run: npm ci --prefix adapters/duckdb-node --ignore-scripts
+          cache-dependency-path: adapters/connectors/duckdb/node/package-lock.json
+      - run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
       - name: Install pinned MoonBit
         run: |
           node scripts/setup-moonbit.mjs
@@ -137,7 +137,7 @@ jobs:
           uname -a
           node --version
           moon version --all
-          npm ls --prefix adapters/duckdb-node
+          npm ls --prefix adapters/connectors/duckdb/node
       - name: Verify independent Connector addition without common changes
         env:
           ACTQL_CONNECTOR_ADDITION_ARTIFACTS: _build/connector-addition-artifacts
@@ -161,9 +161,9 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-          cache-dependency-path: adapters/duckdb-node/package-lock.json
+          cache-dependency-path: adapters/connectors/duckdb/node/package-lock.json
       - name: Install exact DuckDB transport dependencies
-        run: npm ci --prefix adapters/duckdb-node --ignore-scripts
+        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
       - name: Install pinned MoonBit for generated SQL conformance
         run: |
           node scripts/setup-moonbit.mjs
@@ -176,8 +176,8 @@ jobs:
           uname -a
           node --version
           moon version --all
-          npm ls --prefix adapters/duckdb-node @duckdb/node-api
+          npm ls --prefix adapters/connectors/duckdb/node @duckdb/node-api
       - name: Check real DuckDB transport and owned resources
-        run: npm test --prefix adapters/duckdb-node
+        run: npm test --prefix adapters/connectors/duckdb/node
       - name: Build fixture-independent acquisition Host entries
-        run: npm run build:host --prefix adapters/duckdb-node
+        run: npm run build:host --prefix adapters/connectors/duckdb/node

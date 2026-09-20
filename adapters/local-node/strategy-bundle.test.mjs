@@ -15,6 +15,8 @@ import {installManagedRepresentation} from
 import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   executionSiteStatus, prepareExecutionSitePolicy,
   revokeExecutionSite} from '../host-common/execution-sites.mjs';
+import * as portableRuntime from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const siteControl = createExecutionSiteControlFixture();
 const ok = value => ({$tag: 1, _0: value});
@@ -60,6 +62,7 @@ function installed(consume, completionFailure, options = {}) {
     },
   };
   const entry = localStrategyContribution({
+    ...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
     strategyHostManagedFailureAction: managedFailureAction,

@@ -27,7 +27,11 @@ for (const name of readdirSync(join(root, 'src/connectors')).sort()) {
     throw new Error(`Invalid Node bundle manifest: ${path}`);
   }
   const entry = manifest.strategy;
-  if (!/^adapters\/[a-z0-9_-]+\/strategy-bundle\.mjs$/.test(entry.module) ||
+  const connectorOwnedModule =
+    `adapters/connectors/${name}/node/strategy-bundle.mjs`;
+  const legacyModule =
+    /^adapters\/[a-z0-9_-]+\/strategy-bundle\.mjs$/.test(entry.module);
+  if (!(entry.module === connectorOwnedModule || legacyModule) ||
       !/^[A-Za-z_]\w*$/.test(entry.export) || !existsSync(join(root, entry.module))) {
     throw new Error(`Invalid strategy contribution: ${path}`);
   }

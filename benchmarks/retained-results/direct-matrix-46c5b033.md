@@ -7,7 +7,7 @@ new-profile execution measurement. Raw results are in
 ## Reproduction and scope
 
 - Source: `46c5b03349901fdf54422d51264c62dae488b73d`, clean worktree.
-- Runner: `node adapters/duckdb-node/bench/direct-matrix.mjs` after release JS
+- Runner: `node adapters/connectors/duckdb/node/bench/direct-matrix.mjs` after release JS
   builds of `connectors/duckdb/host_node`, `retained_host_bridge`,
   `process_host_bridge`, `connectors_builtin_node`, and `physical_strategy_example`.
 - All 27 registered cases, including all 21 large cases, completed.

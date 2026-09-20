@@ -40,7 +40,7 @@ refunds consumed transfer or treats cancellation as physical cleanup.
 Observed runtime: Node `v22.23.2`, DuckDB Node API `1.5.5-r.4`, macOS
 `darwin/arm64`. This is not a Linux or Cloudflare performance measurement.
 
-`adapters/duckdb-node/bench/import-probe.mjs` isolates insertion into a temporary
+`adapters/connectors/duckdb/node/bench/import-probe.mjs` isolates insertion into a temporary
 DuckDB table: 10000 exact Double integers, one column, three rotated rounds,
 single native thread, 128 MiB configured engine limit, one transaction per run.
 Each run verifies count, minimum, maximum and sum before rollback. Appender
@@ -68,7 +68,7 @@ that those contracts are already implemented for Appender.
 Run the diagnostic (requires the connector's pinned SDK):
 
 ```sh
-node adapters/duckdb-node/bench/import-probe.mjs
+node adapters/connectors/duckdb/node/bench/import-probe.mjs
 ```
 
 `ACTQL_IMPORT_PROBE_ROWS` and `ACTQL_IMPORT_PROBE_ROUNDS` select bounded diagnostic
@@ -622,7 +622,7 @@ The related fixed-input, batching, standard-Host and benchmark-helper run also
 passed 23 tests. These tests confirm attribution and preserved behavior, not a
 wall-clock improvement or completion of the four-comparator performance gate.
 
-The subsequent complete `adapters/duckdb-node/test/*.test.mjs` run passed all
+The subsequent complete `adapters/connectors/duckdb/node/test/*.test.mjs` run passed all
 75 tests in approximately 80 seconds, including the 27-case default smoke
 (not the larger registered matrix). The patched baseline selective/narrow/100
 case also passed again: one diagnostic execution interval was 189.868 ms and

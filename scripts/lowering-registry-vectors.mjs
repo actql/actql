@@ -50,7 +50,7 @@ for (const [path, body] of [
   ['src/execution_relation/registry_vectors.generated_test.mbt', consumerLines.join('\n') + '\n'],
   ['src/query_integration/pinned_engine_contracts_wbtest.mbt',
     consumerLines.join('\n') + '\n'],
-  ['adapters/duckdb-node/contracts/adopted-relation.json',
+  ['adapters/connectors/duckdb/node/contracts/adopted-relation.json',
     JSON.stringify(adopted, null, 2) + '\n'],
 ]) {
   if (process.argv.includes('--write')) writeFileSync(path, body);

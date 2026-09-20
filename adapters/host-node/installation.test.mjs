@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installSelectedContributions, snapshotConfigurations} from './installation.mjs';
-import {prepareDuckDBStrategyConfiguration, preparedStrategyConfiguration} from '../duckdb-node/configuration.mjs';
+import {prepareDuckDBStrategyConfiguration, preparedStrategyConfiguration} from
+  '../connectors/duckdb/node/configuration.mjs';
 
 test('selected loading snapshots keys, loader functions and opaque settings before awaiting', async () => {
   const keys = ['a','b'], a = Object.freeze({}), b = Object.freeze({});

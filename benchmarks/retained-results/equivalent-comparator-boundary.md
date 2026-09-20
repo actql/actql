@@ -2,7 +2,7 @@
 
 Q8 requires independent execution assembly, not an independent reimplementation
 of ActQL semantics. This inventory specifies that boundary. The independent
-execution leg in `adapters/duckdb-node/bench/equivalent-obligations.mjs` always
+execution leg in `adapters/connectors/duckdb/node/bench/equivalent-obligations.mjs` always
 reports `acceptanceEligible: false`: a child leg cannot approve itself. The
 matched-pair parent may issue the registered equivalent-obligation admission
 only after both independently executed legs satisfy every finite requirement
@@ -184,7 +184,7 @@ alternating matched pairs before the registered thresholds can be evaluated.
 
 ### Matched pair boundary
 
-`adapters/duckdb-node/bench/matched-equivalent-pair.mjs` assembles one
+`adapters/connectors/duckdb/node/bench/matched-equivalent-pair.mjs` assembles one
 alternating retained/equivalent pair and owns the only promotion boundary. Both
 legs use the same immutable fixture database, clean revision and registered
 case, but execute in separate fresh child processes.
@@ -228,7 +228,7 @@ that pair `acceptanceEligible: true`. A timing-only diagnostic still cannot
 become an acceptance result.
 
 The executable single-pair wrapper is
-`adapters/duckdb-node/bench/matched-equivalent-pair-case.mjs`. Source creation
+`adapters/connectors/duckdb/node/bench/matched-equivalent-pair-case.mjs`. Source creation
 and release-build preparation stay outside its measured pair, as registered.
 Its arguments are checkout, database, holding directory, workload, layout,
 row count and zero-based pair index.

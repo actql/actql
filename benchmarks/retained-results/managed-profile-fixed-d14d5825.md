@@ -14,7 +14,7 @@ JS packages before execution.
 Command:
 
 ```sh
-node adapters/duckdb-node/bench/managed-profile-matrix.mjs
+node adapters/connectors/duckdb/node/bench/managed-profile-matrix.mjs
 ```
 
 All 27 cases completed. Every case reported zero logical-content CID
@@ -97,7 +97,7 @@ through the existing CID-required registered matrix:
 
 ```sh
 ACTQL_RETAINED_CASES=registered \
-  node --test adapters/duckdb-node/test/benchmark-execution.test.mjs
+  node --test adapters/connectors/duckdb/node/test/benchmark-execution.test.mjs
 ```
 
 The single full-matrix test completed all 27 case IDs and passed in
