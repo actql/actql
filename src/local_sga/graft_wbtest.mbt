@@ -174,6 +174,54 @@ test "graft preserves ordered inputs and collapses equal declarations" {
 }
 
 ///|
+test "graft consumes exact common Graph views" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let owner = graft_owner(left_owner, right_owner)
+  let left = one_node_graph(left_owner, 1.0, "left")
+  let right = one_node_graph(right_owner, 2.0, "right")
+  let views = graft_inputs(owner, left_owner, right_owner, left, right).map(input => {
+    @graph.producer_read_view(input).unwrap()
+  })
+  let execution = start_graft_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    views,
+    storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(execution, 1).unwrap() is GraftContinue(_) else {
+    fail("first view was not consumed")
+  }
+  guard advance_graft(execution, 1).unwrap() is GraftContinue(_) else {
+    fail("second view was not consumed")
+  }
+  guard advance_graft(execution, 1).unwrap()
+    is GraftComplete(output, progress=2L, work=2L) else {
+    fail("view graft did not complete")
+  }
+  let storage = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(storage), 2)
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.node_property(storage, 0, 0).unwrap(),
+      10,
+    ),
+    Some("left"),
+  )
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.node_property(storage, 1, 0).unwrap(),
+      10,
+    ),
+    Some("right"),
+  )
+  assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
 test "graft binds each operand to its exact positioned input" {
   let left_owner = source_owner()
   let right_owner = source_owner()

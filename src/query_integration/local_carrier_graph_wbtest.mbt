@@ -1899,6 +1899,214 @@ test "registered Graph provider executes node identity match for two consumers" 
 }
 
 ///|
+fn carrier_graft_contract() -> @carrier_contract.Carrier {
+  let number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  let node = @carrier_contract.rows(
+    [
+      (
+        @schema.Unqualified("name"),
+        Some(
+          @value_contract.primitive(@value_contract.StringType, nullable=false),
+        ),
+      ),
+    ],
+    field_set=@carrier_contract.Closed,
+    max_fields=1,
+    max_name_bytes=4,
+  ).unwrap()
+  let edge = @carrier_contract.rows(
+    [],
+    field_set=@carrier_contract.Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  @carrier_contract.graph(
+    number,
+    node,
+    edge,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graft_source_owner() -> @lower.BoundPrepared {
+  let checked = @pipeline.check_carriers(
+    input_cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
+    [("g", carrier_graft_contract())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graft_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"graft_graph\":{\"with\":\"right\"}," +
+      "\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":true," +
+      "\"as\":\"out\"}]",
+    ),
+    [
+      (
+        "left",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(left)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "right",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(right)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graft_graph(
+  owner : @lower.BoundPrepared,
+  identity : Double,
+  name : String,
+) -> @graphs.Completed {
+  let output = @graphs.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @graph_storage.DeclaredNodes,
+    carrier_graph_storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  let number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  let text = @value_contract.primitive(
+    @value_contract.StringType,
+    nullable=false,
+  )
+  @graphs.append_node(
+    output,
+    @admitted.checked_number_value(identity, number).unwrap(),
+    [@admitted.checked_text_value(name, text).unwrap()],
+  ).unwrap()
+  @graphs.finish_output(output).unwrap()
+}
+
+///|
+test "registered Graph provider grafts exact Carrier inputs into rows" {
+  let left_owner = carrier_graft_source_owner()
+  let right_owner = carrier_graft_source_owner()
+  let owner = carrier_graft_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let left = carrier_graft_graph(left_owner, 1.0, "left")
+  let right = carrier_graft_graph(right_owner, 2.0, "right")
+  let left_material = @graphs.completed_material(left).unwrap()
+  let right_material = @graphs.completed_material(right).unwrap()
+  let left_view = @carrier_runtime.material_prepare_view(
+    left_material, owner, 0, left_owner,
+  ).unwrap()
+  let right_view = @carrier_runtime.material_prepare_view(
+    right_material, owner, 1, right_owner,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(left_view),
+      @local_connector.managed_provider_carrier_input(right_view),
+    ],
+    10,
+    1000,
+  ).unwrap()
+  let mut completed = None
+  while completed is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(output, ..) => completed = Some(output)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("graft projection returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("graft provider failed")
+      @local_connector.Stopped(..) => fail("graft provider stopped")
+    }
+  }
+  let output = completed.unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("left")))
+  assert_true(@execution.completed_cell(output, 1, 1) is Some(Text("right")))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(left_material))
+  assert_true(@carrier_runtime.material_available(right_material))
+}
+
+///|
 fn graph_publication_obligations(
   run : @strategy.CapturedDAG,
   publication : Bool,

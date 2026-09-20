@@ -6,9 +6,14 @@ priv enum GraftPhase {
 }
 
 ///|
+priv enum GraftSource {
+  StorageSource(@storage.Storage)
+  ViewSource(@lifecycle.ProducerView)
+}
+
+///|
 priv struct GraftState {
-  inputs : Array[@graph.ProducerRead]
-  sources : Array[@storage.Storage]
+  sources : Array[GraftSource]
   mut output : @graph.OutputBuilder?
   node_fields : Int
   edge_fields : Int
@@ -42,15 +47,23 @@ pub(all) enum GraftIssue {
 } derive(Eq, Debug)
 
 ///|
-fn graft_source(state : GraftState) -> @storage.Storage? {
+fn graft_source(state : GraftState) -> GraftSource? {
   state.sources.get(state.input_index)
 }
 
 ///|
 fn graft_inputs_available(state : GraftState) -> Bool {
-  for input in state.inputs {
-    if !@graph.producer_read_available(input) {
-      return false
+  for source in state.sources {
+    match source {
+      StorageSource(source) =>
+        match @storage.carrier(source) {
+          @carrier.GraphValue(_) => ()
+          _ => return false
+        }
+      ViewSource(source) =>
+        if @lifecycle.producer_view_node_count(source) is None {
+          return false
+        }
     }
   }
   true
@@ -86,17 +99,36 @@ fn graft_step(
         guard graft_source(state) is Some(source) else {
           return @bounded.Failed(InvalidGraftKernel, progress, used)
         }
-        if state.record_index < @storage.node_count(source) {
+        let count = match source {
+          StorageSource(value) => @storage.node_count(value)
+          ViewSource(value) =>
+            match @lifecycle.producer_view_node_count(value) {
+              Some(count) => count
+              None =>
+                return @bounded.Failed(GraftInputUnavailable, progress, used)
+            }
+        }
+        if state.record_index < count {
           guard state.output is Some(output) else {
             return @bounded.Failed(InvalidGraftKernel, progress, used)
           }
-          match
-            copy_graph_node(
-              source,
-              output,
-              state.node_fields,
-              state.record_index,
-            ) {
+          let copied = match source {
+            StorageSource(source) =>
+              copy_graph_node(
+                source,
+                output,
+                state.node_fields,
+                state.record_index,
+              )
+            ViewSource(source) =>
+              copy_graph_view_node(
+                source,
+                output,
+                state.node_fields,
+                state.record_index,
+              )
+          }
+          match copied {
             Ok(_) => {
               state.record_index += 1
               used += 1
@@ -116,17 +148,36 @@ fn graft_step(
         guard graft_source(state) is Some(source) else {
           return @bounded.Failed(InvalidGraftKernel, progress, used)
         }
-        if state.record_index < @storage.edge_count(source) {
+        let count = match source {
+          StorageSource(value) => @storage.edge_count(value)
+          ViewSource(value) =>
+            match @lifecycle.producer_view_edge_count(value) {
+              Some(count) => count
+              None =>
+                return @bounded.Failed(GraftInputUnavailable, progress, used)
+            }
+        }
+        if state.record_index < count {
           guard state.output is Some(output) else {
             return @bounded.Failed(InvalidGraftKernel, progress, used)
           }
-          match
-            copy_graph_edge(
-              source,
-              output,
-              state.edge_fields,
-              state.record_index,
-            ) {
+          let copied = match source {
+            StorageSource(source) =>
+              copy_graph_edge(
+                source,
+                output,
+                state.edge_fields,
+                state.record_index,
+              )
+            ViewSource(source) =>
+              copy_graph_view_edge(
+                source,
+                output,
+                state.edge_fields,
+                state.record_index,
+              )
+          }
+          match copied {
             Ok(_) => {
               state.record_index += 1
               used += 1
@@ -191,9 +242,10 @@ pub fn start_graft(
       @graph.producer_read_storage(input) is Some(source) else {
       return Err(GraftInputUnavailable)
     }
-    sources.push(source)
+    sources.push(StorageSource(source))
   }
-  guard @storage.carrier(sources[0]) is @carrier.GraphValue(contract) else {
+  guard sources[0] is StorageSource(first) &&
+    @storage.carrier(first) is @carrier.GraphValue(contract) else {
     return Err(GraftInputUnavailable)
   }
   if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
@@ -212,7 +264,76 @@ pub fn start_graft(
     Err(issue) => return Err(GraftOutput(issue))
   }
   let state : GraftState = {
-    inputs: inputs.copy(),
+    sources,
+    output: Some(output),
+    node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
+    edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
+    input_index: 0,
+    phase: CopyNodes,
+    record_index: 0,
+  }
+  let (session, token) = @bounded.start(
+    control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
+  )
+  Ok({
+    session,
+    token: Some(token),
+    max_noninterruptible_value_nodes: limits.max_value_nodes * 4 + 1,
+  })
+}
+
+///|
+pub fn start_graft_views(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  inputs : Array[@lifecycle.ProducerView],
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[GraftExecution, GraftIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphStructuralStep(_)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "SGA.graft" &&
+    inputs.length() == 2 else {
+    return Err(InvalidGraftKernel)
+  }
+  let sources = []
+  for index, input in inputs {
+    let reference = @lifecycle.producer_view_read_reference(input)
+    if @lifecycle.producer_view_kind(input) != @carrier.GraphKind ||
+      !@lifecycle.producer_read_reference_matches_operation_input(
+        reference, owner, step, index,
+      ) {
+      return Err(GraftInputUnavailable)
+    }
+    sources.push(ViewSource(input))
+  }
+  guard @lower.preparation_carrier_at(
+      @lower.bound_preparation(owner),
+      @pipeline.Step(step),
+    )
+    is Some(@carrier.GraphValue(contract)) else {
+    return Err(InvalidGraftKernel)
+  }
+  if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
+    return Err(InvalidGraftLimits)
+  }
+  let output = match
+    @graph.prepare_output(
+      owner,
+      @pipeline.Step(step),
+      @storage.DeclaredNodes,
+      limits,
+      storage_bytes,
+      available,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(GraftOutput(issue))
+  }
+  let state : GraftState = {
     sources,
     output: Some(output),
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),

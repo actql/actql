@@ -781,7 +781,7 @@ fn cleanup_graph_rows_state(state : GraphRowsState) -> Bool {
 }
 
 ///|
-pub fn start_graph_to_rows(
+fn start_graph_to_rows_common(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
@@ -792,7 +792,7 @@ pub fn start_graph_to_rows(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
-  inputs : Array[@execution.ProducerRead],
+  inputs : Array[@execution.ProducerRead]?,
 ) -> Result[GraphRowsExecution, GraphBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -841,7 +841,7 @@ pub fn start_graph_to_rows(
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
+      inputs?,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -881,6 +881,66 @@ pub fn start_graph_to_rows(
     },
   )
   Ok({ session, token: Some(token), accepted, })
+}
+
+///|
+pub fn start_graph_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[GraphRowsExecution, GraphBridgeIssue] {
+  start_graph_to_rows_common(
+    control,
+    preparation,
+    sequence,
+    step,
+    input,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    Some(inputs),
+  )
+}
+
+///|
+/// Project a Graph produced from common Carrier inputs. The bridge does not
+/// invent Relation provenance for those inputs; the enclosing managed
+/// completion binds the exact common input set after provider execution.
+pub fn start_graph_to_rows_from_carrier_inputs(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[GraphRowsExecution, GraphBridgeIssue] {
+  start_graph_to_rows_common(
+    control,
+    preparation,
+    sequence,
+    step,
+    input,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    None,
+  )
 }
 
 ///|

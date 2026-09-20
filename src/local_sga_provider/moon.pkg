@@ -9,6 +9,7 @@ import {
   "actql/actql/local_bridge" @bridge,
   "actql/actql/local_sga" @sga,
   "actql/actql/lowering_relation" @lower,
+  "actql/actql/managed_carrier_runtime" @lifecycle,
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
 }

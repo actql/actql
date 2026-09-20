@@ -13,6 +13,7 @@ priv enum Phase {
 ///|
 priv enum GraphExecution {
   Normalize(@sga.NormalizeExecution)
+  Graft(@sga.GraftExecution)
 }
 
 ///|
@@ -38,6 +39,7 @@ priv struct Execution {
   generated : @execution.GeneratedSequence
   sequence : @lower.PreparedSequence
   inputs : Array[@execution.ProducerRead]
+  carrier_inputs : Array[@lifecycle.ProducerView]
   control : @bounded.Control
   limits : @storage.Limits
   storage_bytes : Int64
@@ -81,6 +83,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   if count < 2 || count > 4 {
     return false
   }
+  let direct_graft = match
+    @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
+    Some(@lower.GraphStructuralStep(_)) => true
+    _ => false
+  }
   let index = Ref(0)
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
     let current = index.val
@@ -89,8 +96,10 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return false
     }
     match (current, step) {
-      (0, @lower.GraphConstructionStep(_)) =>
+      (0, @lower.GraphConstructionStep(_)) if !direct_graft =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
+      (0, @lower.GraphStructuralStep(_)) if direct_graft =>
+        @lower.operation(node) == "SGA.graft"
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
@@ -305,8 +314,8 @@ fn advance_execution(
         }
       }
       StartKernel => {
-        guard value.graph is Some(output) else { return fail_execution(value) }
-        if value.kernel_step == value.projection_step - 1 {
+        if value.kernel_step == value.projection_step - 1 &&
+          value.graph is Some(output) {
           value.projection_input = match
             @graph.prepare_step_read(
               @execution.generated_sequence_owner(value.generated),
@@ -318,20 +327,37 @@ fn advance_execution(
             Err(_) => None
           }
         }
-        let input = match
-          @graph.prepare_step_read(
-            @execution.generated_sequence_owner(value.generated),
-            value.kernel_step,
-            0,
-            output,
-          ) {
-          Ok(read) => read
-          Err(_) => return fail_execution(value)
-        }
         let started = match
           @lower.sequence_step(value.sequence, value.kernel_step) {
+          Some(@lower.GraphStructuralStep(_)) if value.kernel_step == 0 =>
+            match
+              @sga.start_graft_views(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                value.carrier_inputs,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => Graft(execution)
+              Err(_) => return fail_execution(value)
+            }
           Some(@lower.GraphBasicStep(basic)) if @lower.graph_basic_kind(basic) ==
-            @lower.NormalizeBasic =>
+            @lower.NormalizeBasic => {
+            guard value.graph is Some(output) else {
+              return fail_execution(value)
+            }
+            let input = match
+              @graph.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                value.kernel_step,
+                0,
+                output,
+              ) {
+              Ok(read) => read
+              Err(_) => return fail_execution(value)
+            }
             match
               @sga.start_normalize(
                 value.control,
@@ -345,6 +371,7 @@ fn advance_execution(
               Ok(execution) => Normalize(execution)
               Err(_) => return fail_execution(value)
             }
+          }
           _ => return fail_execution(value)
         }
         value.kernel = Some(started)
@@ -352,18 +379,42 @@ fn advance_execution(
         reset_stage(value)
       }
       Kernel => {
-        guard value.kernel is Some(Normalize(active)) else {
-          return fail_execution(value)
+        guard value.kernel is Some(active) else { return fail_execution(value) }
+        let advanced = match active {
+          Normalize(execution) =>
+            match @sga.advance_normalize(execution, quantum) {
+              Ok(@sga.Continue(progress~, work~)) =>
+                Ok((0, None, progress, work))
+              Ok(@sga.Complete(output, progress~, work~)) =>
+                Ok((1, Some(output), progress, work))
+              Ok(@sga.Failed(_, progress~, work~)) =>
+                Ok((2, None, progress, work))
+              Ok(@sga.Stopped(_, progress~, work~)) =>
+                Ok((3, None, progress, work))
+              Err(_) => Err(())
+            }
+          Graft(execution) =>
+            match @sga.advance_graft(execution, quantum) {
+              Ok(@sga.GraftContinue(progress~, work~)) =>
+                Ok((0, None, progress, work))
+              Ok(@sga.GraftComplete(output, progress~, work~)) =>
+                Ok((1, Some(output), progress, work))
+              Ok(@sga.GraftFailed(_, progress~, work~)) =>
+                Ok((2, None, progress, work))
+              Ok(@sga.GraftStopped(_, progress~, work~)) =>
+                Ok((3, None, progress, work))
+              Err(_) => Err(())
+            }
         }
-        match @sga.advance_normalize(active, quantum) {
+        match advanced {
           Err(_) => return fail_execution(value)
-          Ok(@sga.Continue(progress~, work~)) => {
+          Ok((0, _, progress, work)) => {
             guard continue_poll(value, progress, work) is Some(poll) else {
               return fail_execution(value)
             }
             return Ok(poll)
           }
-          Ok(@sga.Complete(output, progress~, work~)) => {
+          Ok((1, Some(output), progress, work)) => {
             guard continue_poll(value, progress, work) is Some(poll) else {
               return fail_execution(value)
             }
@@ -373,28 +424,43 @@ fn advance_execution(
               return Ok(poll)
             }
           }
-          Ok(@sga.Failed(_, progress~, work~)) => {
+          Ok((2, _, progress, work)) => {
             guard terminal_poll(value, progress, work, false) is Some(poll) else {
               return fail_execution(value)
             }
             return Ok(poll)
           }
-          Ok(@sga.Stopped(_, progress~, work~)) => {
+          Ok((3, _, progress, work)) => {
             guard terminal_poll(value, progress, work, true) is Some(poll) else {
               return fail_execution(value)
             }
             return Ok(poll)
           }
+          _ => return fail_execution(value)
         }
       }
       CleanupKernel => {
-        guard value.kernel is Some(Normalize(active)) &&
+        guard value.kernel is Some(active) &&
           value.pending_graph is Some(completed) else {
           return fail_execution(value)
         }
-        match @sga.cleanup_normalize(active) {
-          Ok(true) => ()
-          Ok(false) | Err(_) => return fail_execution(value)
+        let cleaned = match active {
+          Normalize(execution) =>
+            match @sga.cleanup_normalize(execution) {
+              Ok(true) => 1
+              Ok(false) => 0
+              Err(_) => -1
+            }
+          Graft(execution) =>
+            match @sga.cleanup_graft(execution) {
+              Ok(true) => 1
+              Ok(false) => 0
+              Err(_) => -1
+            }
+        }
+        match cleaned {
+          1 => ()
+          _ => return fail_execution(value)
         }
         value.kernel = None
         if value.projection_input is Some(_) {
@@ -429,8 +495,8 @@ fn advance_execution(
         }
         let started = match
           @lower.sequence_step(value.sequence, value.projection_step) {
-          Some(@lower.CarrierProjectionStep(_)) =>
-            match
+          Some(@lower.CarrierProjectionStep(_)) => {
+            let started = if value.carrier_inputs.is_empty() {
               @bridge.start_graph_to_rows(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -448,10 +514,31 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
-              ) {
+              )
+            } else {
+              @bridge.start_graph_to_rows_from_carrier_inputs(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                input,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+              )
+            }
+            match started {
               Ok(execution) => ProjectionExecution(execution)
               Err(_) => return fail_execution(value)
             }
+          }
           Some(@lower.GraphMatchStep(_)) =>
             match @lower.sequence_step(value.sequence, value.projection_step) {
               Some(@lower.GraphMatchStep(matched)) =>
@@ -764,10 +851,18 @@ fn cleanup_execution(
         }
     }
   }
-  if value.kernel is Some(Normalize(active)) {
-    match @sga.cleanup_normalize(active) {
-      Ok(_) => ()
-      Err(_) => failed = true
+  if value.kernel is Some(active) {
+    match active {
+      Normalize(execution) =>
+        match @sga.cleanup_normalize(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
+      Graft(execution) =>
+        match @sga.cleanup_graft(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -794,6 +889,7 @@ fn cleanup_execution(
   }
   let kernel_pending = match value.kernel {
     Some(Normalize(active)) => @sga.normalize_cleanup_pending(active)
+    Some(Graft(active)) => @sga.graft_cleanup_pending(active)
     None => false
   }
   if failed {
@@ -812,7 +908,7 @@ pub fn provider(
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
 ) -> @local.ManagedProvider {
-  @local.managed_provider(
+  @local.managed_provider_with_inputs(
     accepts,
     sequence => {
       if accepts(sequence) {
@@ -831,10 +927,31 @@ pub fn provider(
       if !accepts(sequence) || storage_bytes < 0L {
         return Err(@connector.InvalidLimits)
       }
+      let relations = []
+      let carriers = []
+      for input in inputs {
+        match input {
+          @local.RelationInput(value) => relations.push(value)
+          @local.CarrierInput(value) => carriers.push(value)
+        }
+      }
+      let direct_graft = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          0,
+        ) {
+        Some(@lower.GraphStructuralStep(_)) => true
+        _ => false
+      }
+      if (direct_graft && (relations.length() != 0 || carriers.length() != 2)) ||
+        (!direct_graft && carriers.length() != 0) {
+        return Err(@connector.Execution(@execution.InputSet))
+      }
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
-        inputs: inputs.copy(),
+        inputs: relations,
+        carrier_inputs: carriers,
         control: @bounded.control(),
         limits,
         storage_bytes,
@@ -844,8 +961,16 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
         ) -
         1,
-        kernel_step: 1,
-        phase: StartConstruction,
+        kernel_step: if direct_graft {
+          0
+        } else {
+          1
+        },
+        phase: if direct_graft {
+          StartKernel
+        } else {
+          StartConstruction
+        },
         construction: None,
         graph: None,
         kernel: None,
