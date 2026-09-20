@@ -1547,6 +1547,15 @@ async function exerciseStrategyGraph(
     fields: ['node', 'degree'],
     secondFields: ['degree'],
     expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
+  }, {
+    name: 'components-weak',
+    step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
+    fields: ['node_id', 'component_id', 'component_size'],
+    secondFields: ['component_id', 'component_size'],
+    expected: [
+      {node_id: 1, component_id: 1, component_size: 2},
+      {node_id: 2, component_id: 1, component_size: 2},
+    ],
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
@@ -1558,7 +1567,10 @@ async function exerciseStrategyGraph(
     graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
     graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
     graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
-    const sgaFixture = fixture.strategyFixtureSgaCreate(
+    const createSgaFixture = publicationCase.name === 'components-weak'
+      ? fixture.strategyFixtureSgaComponentsCreate
+      : fixture.strategyFixtureSgaCreate;
+    const sgaFixture = createSgaFixture(
       ...sgaEnvironmentArguments(args),
       JSON.stringify(graphProgram),
     );

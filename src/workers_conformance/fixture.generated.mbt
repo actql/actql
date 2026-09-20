@@ -165,6 +165,141 @@ fn checked_expression_profile_admission(
 }
 
 ///|
+/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
+fn components_capacity_material(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  step? : Int = 1,
+  rows? : Int64 = 2L,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let input = query_capacity_proof(
+    "actql.bound.values",
+    rows,
+    "{\"op\":\"source\"}",
+    step=0,
+  )
+  let input_cid = @wire.cid(@wire.program_proof_witness(input))
+  let graph = query_capacity_proof(
+    "actql.bound.graph-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[input_cid],
+    step=0,
+    unit="nodes",
+  )
+  let graph_cid = @wire.cid(@wire.program_proof_witness(graph))
+  let nodes = query_capacity_proof(
+    "actql.bound.components-input-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[graph_cid],
+    step~,
+    unit="nodes",
+  )
+  let output = query_capacity_proof(
+    "actql.bound.components-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[graph_cid],
+    step~,
+  )
+  let host = @host.create(
+    @capacity_policy.ceiling(policy, "max_graph_output_rows").unwrap(),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, },
+  ).unwrap()
+  let writer = @encode.writer(10000, 1000, 30)
+  @host.emit(host, writer)
+  let host_wire = @wire.admit(
+    @utf8.encode(@encode.finish(writer)),
+    @host.cid(host),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, },
+  ).unwrap()
+  let proof_wires = [
+    @wire.program_proof_witness(input),
+    @wire.program_proof_witness(graph),
+    @wire.program_proof_witness(nodes),
+    @wire.program_proof_witness(output),
+  ]
+  let artifacts : Array[(Bytes, String)] = []
+  for
+    (unit, suffix, candidates) in [
+      ("nodes", ":nodes", [proof_wires[2]]),
+      ("rows", "", [proof_wires[3], host_wire]),
+    ] {
+    candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    let texts = candidates.map(candidate => {
+      let writer = @encode.writer(10000, 1000, 30)
+      @wire.emit(candidate, writer)
+      @encode.finish(writer)
+    })
+    let mut maximum = @wire.value(candidates[0])
+    for candidate in candidates {
+      maximum = Int64::min(maximum, @wire.value(candidate))
+    }
+    let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
+      texts.join(",") +
+      "],\"effective_max\":" +
+      maximum.to_string() +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"components:checked-step:" +
+      step.to_string() +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    artifacts.push(
+      (
+        @utf8.encode(
+          body.replace(
+            old="\"subject_ref\":",
+            new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+          ),
+        ),
+        cid,
+      ),
+    )
+  }
+  let witnesses = proof_wires.copy()
+  witnesses.push(host_wire)
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    mixed,
+    [input, graph, nodes, output],
+    { max_witnesses: 20, max_references: 100, },
+  ).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 20,
+    max_bytes: 20000,
+    max_nodes: 2000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage,
+    sources,
+    uses: [
+      @context.Components(
+        step~,
+        nodes=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
+  }
+}
+
+///|
 /// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
 fn compute_test_limits() -> @execution.SequenceExecutionLimits {
   { rows: run_limits(), max_work: 100000, max_frames: 100, }
@@ -439,8 +574,50 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let projection = if variant == "match_nodes" {
     "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_nodes_literal" {
+    "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
+    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_edges" {
+    "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
+    "\"weight\"]},\"as\":\"out\""
+  } else if variant == "graph_bounds" {
+    "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
+    "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
+  } else if variant == "degree_in" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"in\"}," + "\"as\":\"out\""
+  } else if variant == "degree_out" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"out\"}," + "\"as\":\"out\""
+  } else if variant == "degree_both" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"both\"}," + "\"as\":\"out\""
+  } else if variant == "components_weak" {
+    "\"from\":\"g\",\"components\":{\"kind\":\"weak\"}," + "\"as\":\"out\""
+  } else if variant == "components_strong" {
+    "\"from\":\"g\",\"components\":{\"kind\":\"strong\"}," + "\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
+  }
+  let result_fields = if variant == "match_edges" {
+    "\"src\",\"dst\",\"weight\""
+  } else if variant == "graph_bounds" {
+    "\"kind\",\"node_id\",\"actual\",\"max\""
+  } else if variant.has_prefix("degree_") {
+    "\"node\",\"degree\""
+  } else if variant.has_prefix("components_") {
+    "\"node_id\",\"component_id\",\"component_size\""
+  } else {
+    "\"id\",\"node_name\""
+  }
+  let first_fields = result_fields
+  let second_fields = if variant == "match_edges" {
+    "\"weight\",\"src\""
+  } else if variant == "graph_bounds" {
+    "\"kind\",\"node_id\""
+  } else if variant.has_prefix("degree_") {
+    "\"degree\""
+  } else if variant.has_prefix("components_") {
+    "\"component_id\",\"component_size\""
+  } else {
+    "\"node_name\""
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
@@ -456,7 +633,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{\"id\":\"graph\"," +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
+  "\"id\":\"graph\"," +
   "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
   "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
@@ -464,15 +642,25 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
   projection +
   "}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"from\":\"out\",\"fields\":[" +
+  result_fields +
+  "]}}},{" +
   "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}],\"results\":{" +
-  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"select\":[" +
+  first_fields +
+  "],\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[" +
+  first_fields +
+  "]}}},{" +
   "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"node_name\"],\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"node_name\"]}}}],\"results\":{" +
+  "\"select\":[" +
+  second_fields +
+  "],\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[" +
+  second_fields +
+  "]}}}],\"results\":{" +
   "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
@@ -2013,6 +2201,7 @@ fn query_capacity_proof(
   derivation : String,
   inputs? : Array[String] = [],
   step? : Int = 0,
+  unit? : String = "rows",
 ) -> @wire.ProgramProofClaim {
   let proof_inputs = inputs.copy()
   proof_inputs.sort()
@@ -2024,7 +2213,9 @@ fn query_capacity_proof(
     law +
     "\",\"semantic_ref\":\"" +
     semantic_ref +
-    "\",\"unit\":\"rows\",\"value\":" +
+    "\",\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(proof_body))
@@ -2050,7 +2241,9 @@ fn query_capacity_proof(
     proof_cid +
     "\",\"semantic_ref\":\"" +
     semantic_ref +
-    "\"},\"unit\":\"rows\",\"value\":" +
+    "\"},\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-witness/0.1\""
   let witness_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + "}"))
@@ -2606,7 +2799,10 @@ fn query_checked_program_fixture(
   } else {
     environment
   }
-  let evidence = if dag_join {
+  let evidence = if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("components_") {
+    [components_capacity_material(environment, "graph")]
+  } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
     let left = query_capacity_proof(

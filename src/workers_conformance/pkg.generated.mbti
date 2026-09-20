@@ -102,6 +102,14 @@ pub fn async_strategy_host_managed_producers(@connectors_workers_async.Configure
 
 pub fn async_strategy_host_managed_requires_logical_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool raise AsyncHostFailure
 
+pub fn async_strategy_host_managed_result_import_append(AsyncStrategyHostManagedResultImport, String, Int, Int, Int, Int) -> Unit raise AsyncHostFailure
+
+pub fn async_strategy_host_managed_result_import_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> AsyncStrategyHostManagedResultImport raise AsyncHostFailure
+
+pub fn async_strategy_host_managed_result_import_cancel(AsyncStrategyHostManagedResultImport) -> Unit
+
+pub fn async_strategy_host_managed_result_import_finish(AsyncStrategyHostManagedResultImport) -> AsyncStrategyHostOutputExport raise AsyncHostFailure
+
 pub fn async_strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn async_strategy_host_next(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise AsyncHostFailure
@@ -1184,6 +1192,14 @@ pub fn strategy_host_managed_producers(@connectors_workers.ConfiguredComputeHost
 
 pub fn strategy_host_managed_requires_logical_identity(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool raise NodeHostFailure
 
+pub fn strategy_host_managed_result_import_append(StrategyHostManagedResultImport, String, Int, Int, Int, Int) -> Unit raise NodeHostFailure
+
+pub fn strategy_host_managed_result_import_begin(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostManagedResultImport raise NodeHostFailure
+
+pub fn strategy_host_managed_result_import_cancel(StrategyHostManagedResultImport) -> Unit
+
+pub fn strategy_host_managed_result_import_finish(StrategyHostManagedResultImport) -> StrategyHostOutputExport raise NodeHostFailure
+
 pub fn strategy_host_modules(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn strategy_host_next(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
@@ -2174,9 +2190,13 @@ pub suberror ProbeFailure {
 // Types and methods
 type AsyncScenario
 
+type AsyncStrategyHostManagedResultImport
+
 type AsyncStrategyHostOutputExport
 
 type Scenario
+
+type StrategyHostManagedResultImport
 
 type StrategyHostOutputExport
 
