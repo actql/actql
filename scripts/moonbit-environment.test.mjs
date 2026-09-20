@@ -50,6 +50,12 @@ test('live tool rejects backend API drift, tracked changes and untracked interfa
   assert.throws(() => checkInterfaces(root), /Untracked public interfaces/);
   run('git', ['add', 'src/pkg.generated.mbti']);
   checkInterfaces(root);
+  mkdirSync(join(root, 'src/native_test'));
+  writeFileSync(
+    join(root, 'src/native_test/moon.pkg'),
+    'supported_targets = "native"\n',
+  );
+  checkInterfaces(root);
   writeFileSync(source, '#cfg(not(target="native"))\npub fn f(x : Int) -> Int { x }\n#cfg(target="native")\npub fn f(x : Int) -> String { x.to_string() }\n');
   for (const target of ['js', 'wasm', 'native']) run('moon', ['check', '--target', target]);
   assert.throws(() => checkInterfaces(root), /Common-core interfaces differ/);
