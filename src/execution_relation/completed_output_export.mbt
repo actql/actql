@@ -2,6 +2,7 @@
 /// Bounded serialization of an existing immutable cell representation. This is
 /// conversion, never execution or a way to admit caller-supplied output values.
 struct CompletedOutputExport {
+  export_identity : Ref[Unit]
   mut source : CompletedOutput?
   rows : CompletedExportRows
   order : RowWireOrder
@@ -16,6 +17,7 @@ struct CompletedOutputExport {
 ///|
 /// One exact export, consumable only with storage bound to its content receipt.
 struct CompletedOutputExportReceipt {
+  export_identity : Ref[Unit]
   mut source : CompletedOutput?
   content : AdmittedOutputStreamReceipt
   mut binding : Bool
@@ -198,12 +200,75 @@ fn prepare_completed_export(
       value
     })
     Ok({
+      export_identity: Ref(()),
       source: Some(source),
       rows,
       order,
       schema: schema_identity,
       writer,
       logical_writer,
+      budget,
+      row: 0,
+      reading: false,
+    })
+  } catch {
+    issue => Err(Wire(Encoding(issue)))
+  }
+}
+
+///|
+/// Re-open the exact finished Result view as a bounded physical byte stream.
+/// The first traversal establishes logical identity; this traversal lets a
+/// durable adapter consume the same immutable view after its exact binding is
+/// known. It neither re-evaluates the task nor re-admits caller data.
+pub fn replay_completed_relation_export(
+  value : CompletedOutputExport,
+  receipt : CompletedRelationExportReceipt,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  guard receipt.rows.source is Some(source) else { return Err(Closed) }
+  if !physical_equal(value.export_identity, receipt.rows.export_identity) ||
+    value.source is Some(_) ||
+    value.row != IndexedRows::row_count(value.rows) {
+    return Err(NotFinished)
+  }
+  if !completed_output_available(source) {
+    return Err(Unavailable)
+  }
+  if !row_wire_valid_limits(wire) || max_batch_bytes < 1 {
+    return Err(Wire(InvalidLimits))
+  }
+  let budget = match value_budget(values) {
+    Ok(value) => value
+    Err(issue) => return Err(Admission(issue))
+  }
+  let order = match
+    prepare_row_wire_order(
+      completed_export_field_names(value.rows),
+      wire.max_columns,
+      wire.max_order_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Wire(issue))
+  }
+  try {
+    let writer = @encode.buffered_hashing_writer(
+      wire.max_bytes,
+      wire.max_nodes,
+      wire.max_depth,
+      max_batch_bytes,
+    )
+    @encode.begin_array(writer)
+    Ok({
+      export_identity: Ref(()),
+      source: Some(source),
+      rows: value.rows,
+      order,
+      schema: None,
+      writer,
+      logical_writer: None,
       budget,
       row: 0,
       reading: false,
@@ -453,7 +518,18 @@ fn finish_completed_export_stream(
       },
       measurement_identity: None,
     }
-    Ok(({ source: Some(source), content, binding: false, }, tail, logical))
+    Ok(
+      (
+        {
+          export_identity: value.export_identity,
+          source: Some(source),
+          content,
+          binding: false,
+        },
+        tail,
+        logical,
+      ),
+    )
   } catch {
     issue => Err(Wire(Encoding(issue)))
   }

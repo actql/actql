@@ -146,6 +146,83 @@ test "publication export separates ordered rows from logical Relation identity" 
 }
 
 ///|
+test "finished publication export replays the exact immutable view in bounded batches" {
+  let source = export_fixture(capture_fixture())
+  let stream = prepare_completed_relation_export(
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  let first = StringBuilder()
+  while next_completed_output_export(stream).unwrap() is Some(part) {
+    first.write_string(part)
+  }
+  let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
+  first.write_string(tail)
+  let replay = replay_completed_relation_export(
+    stream,
+    receipt,
+    stream_value_limits(),
+    row_wire_limits(),
+    64,
+  ).unwrap()
+  let second = StringBuilder()
+  while next_completed_output_export(replay).unwrap() is Some(part) {
+    second.write_string(part)
+  }
+  let (replayed, replay_tail) = finish_completed_output_export(replay).unwrap()
+  second.write_string(replay_tail)
+  assert_eq(first.to_string(), second.to_string())
+  assert_eq(
+    output_stream_identity(completed_relation_export_content(receipt)),
+    output_stream_identity(completed_export_content(replayed)),
+  )
+  cancel_completed_export_receipt(replayed)
+  cancel_completed_relation_export_receipt(receipt)
+}
+
+///|
+test "publication replay rejects a foreign finished receipt" {
+  let source = export_fixture(capture_fixture())
+  let prepare = fn() {
+    prepare_completed_relation_export(
+      source,
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+      publication_schema_limits(),
+      64,
+    ).unwrap()
+  }
+  let first = prepare()
+  let second = prepare()
+  for stream in [first, second] {
+    while next_completed_output_export(stream).unwrap() is Some(_) {
+
+    }
+  }
+  let (first_receipt, _) = finish_completed_relation_export(first).unwrap()
+  let (second_receipt, _) = finish_completed_relation_export(second).unwrap()
+  assert_true(
+    replay_completed_relation_export(
+      first,
+      second_receipt,
+      stream_value_limits(),
+      row_wire_limits(),
+      64,
+    )
+    is Err(NotFinished),
+  )
+  cancel_completed_relation_export_receipt(first_receipt)
+  cancel_completed_relation_export_receipt(second_receipt)
+}
+
+///|
 test "publication export independently bounds the logical Relation preimage" {
   let source = export_fixture(capture_fixture())
   let stream = prepare_completed_relation_export(

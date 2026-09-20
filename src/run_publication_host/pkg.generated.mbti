@@ -30,6 +30,7 @@ pub fn PublicationOutputExport::issue_result_evidence(Self, String, Array[String
 pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::next(Self) -> Result[String?, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::ordering(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::replay(Self) -> Result[PublicationOutputReplay, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::result_fields(Self) -> Result[Array[String], PublicationOutputExportIssue]
 pub fn PublicationOutputExport::result_schema_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::result_schema_wire(Self) -> Result[String, PublicationOutputExportIssue]
@@ -57,6 +58,11 @@ pub(all) struct PublicationOutputExportLimits {
   schema : @execution_relation.RelationSchemaIdentityLimits
   max_batch_bytes : Int
 }
+
+type PublicationOutputReplay
+pub fn PublicationOutputReplay::cancel(Self) -> Unit
+pub fn PublicationOutputReplay::finish(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputReplay::next(Self) -> Result[String?, PublicationOutputExportIssue]
 
 // Type aliases
 

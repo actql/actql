@@ -3,12 +3,22 @@ package "actql/actql/platform_native/run_publication"
 
 import {
   "actql/actql/platform_native/publication_store",
+  "actql/actql/publication_payload",
+  "actql/actql/run_publication_host",
 }
 
 // Values
+pub fn assemble_native_effect_free_publication(NativeEffectFreeRunContext, Array[NativePublishedOutput], Int, Int, Int) -> Result[NativeEffectFreePublicationEvidence, NativeRunPublicationAssemblyIssue]
+
+pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+
 pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
 pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
+
+pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
+
+pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @actql/actql/run_publication.PublicationContract, Array[@actql/actql/run_publication.PublicationContract], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
 
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
@@ -28,6 +38,66 @@ pub(all) struct NativeEffectFreePublicationEvidence {
   manifest : @actql/actql/run_publication.PublicationContract
   receipt : @actql/actql/run_publication.PublicationContract
   captured_run : @actql/actql/run_publication.PublicationContract
+}
+
+pub(all) struct NativeEffectFreeRunContext {
+  admission : @actql/actql/run_publication.RunPublicationAdmission
+  run_definition : @actql/actql/run_publication.PublicationContract
+  invocation : @actql/actql/run_publication.PublicationContract
+  observation : @actql/actql/run_publication.RunEvidenceValue
+  normalization_journal : @actql/actql/run_publication.RunEvidenceValue
+  binding_names : Array[String]
+  binding_digests : Array[String]
+  source_evidence : Array[@actql/actql/run_publication.RunEvidenceValue]
+  model_evidence : Array[@actql/actql/run_publication.RunEvidenceValue]
+  barrier_attempt_receipt_cids : Array[String]
+  source_advances : Array[@actql/actql/run_publication.PendingSourceStateAdvance]
+  authoring : @actql/actql/run_publication.RunEvidenceValue
+}
+
+pub(all) struct NativePublicationOutputContext {
+  run_definition : @actql/actql/run_publication.PublicationContract
+  invocation : @actql/actql/run_publication.PublicationContract
+  retention : @actql/actql/run_publication.PublicationContract
+  publication_attempt : @actql/actql/run_publication.PublicationContract
+  computation_contract_cid : String
+  input_relation_cids : Array[String]
+  scope_cid : String
+  effective_data_policy_cid : String
+  authority_scope_cid : String
+  store_authority_cid : String
+  material_generation_cid : String
+  max_payload_bytes : Int64
+}
+
+pub(all) enum NativePublicationOutputIssue {
+  InvalidOutputConfiguration
+  Output(@run_publication_host.PublicationOutputExportIssue)
+  Payload(@publication_payload.PublicationPayloadIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+  Binding(@actql/actql/run_publication.DurableResultBindingIssue)
+  OutputCleanup(@run_publication_host.PublicationOutputExportIssue, @publication_store.NativePublicationStoreIssue)
+  StoreCleanup(@publication_store.NativePublicationStoreIssue, @publication_store.NativePublicationStoreIssue)
+  BindingCleanup(@actql/actql/run_publication.DurableResultBindingIssue, @publication_store.NativePublicationStoreIssue)
+}
+
+pub(all) struct NativePublishedOutput {
+  definition : @actql/actql/run_publication.PublicationContract
+  artifact : @actql/actql/run_publication.PublicationContract
+  derivation : @actql/actql/run_publication.PublicationContract
+  ordering : @actql/actql/run_publication.PublicationContract
+  retention : @actql/actql/run_publication.PublicationContract
+  binding : @actql/actql/run_publication.PublicationContract
+  binding_schema_wire : String
+  snapshot : @actql/actql/run_publication.CapturedResultSnapshot
+  payload : @publication_store.NativePublicationPayloadInfo
+}
+
+pub(all) enum NativeRunPublicationAssemblyIssue {
+  InvalidAssembly
+  Manifest(@actql/actql/run_publication.ResultManifestIssuanceIssue)
+  Receipt(@actql/actql/run_publication.RunReceiptIssuanceIssue)
+  Capture(@actql/actql/run_publication.CapturedRunIssuanceIssue)
 }
 
 type NativeRunPublicationAuthority
@@ -66,6 +136,9 @@ pub(all) struct NativeRunPublicationOccurrence {
   started_at : String
   committed_at : String
 }
+
+type NativeRunPublicationPreparation
+pub fn NativeRunPublicationPreparation::publication_attempt(Self) -> @actql/actql/run_publication.PublicationContract
 
 pub(all) struct NativeRunPublicationResult {
   public_index_entry_cid : String

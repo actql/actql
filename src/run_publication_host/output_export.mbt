@@ -32,10 +32,23 @@ pub(all) enum PublicationOutputExportIssue {
 /// in this portable owner.
 struct PublicationOutputExport {
   stream : @execution.CompletedOutputExport
+  replay_values : @execution.ValueLimits
+  replay_wire : @execution.RowWireLimits
+  max_batch_bytes : Int
   definition : @publication.PublicationContract?
   mut receipt : @execution.CompletedRelationExportReceipt?
   mut evidence : @publication.ResultOrderingEvidence?
   mut artifact : @publication.PublicationContract?
+}
+
+///|
+/// Bounded second traversal of the already identified immutable Result view.
+/// It exists so a Store can receive bytes only after the exact semantic and
+/// publication bindings are known.
+struct PublicationOutputReplay {
+  stream : @execution.CompletedOutputExport
+  expected : (String, Int, Int, Int)
+  mut finished : Bool
 }
 
 ///|
@@ -54,6 +67,9 @@ pub fn prepare_publication_output_export(
   )
   .map(stream => {
     stream,
+    replay_values: limits.values,
+    replay_wire: limits.payload_wire,
+    max_batch_bytes: limits.max_batch_bytes,
     definition: None,
     receipt: None,
     evidence: None,
@@ -112,12 +128,81 @@ pub fn prepare_captured_result_publication_export(
   )
   .map(stream => {
     stream,
+    replay_values: limits.values,
+    replay_wire: limits.payload_wire,
+    max_batch_bytes: limits.max_batch_bytes,
     definition: Some(definition),
     receipt: None,
     evidence: None,
     artifact: None,
   })
   .map_err(issue => Output(issue))
+}
+
+///|
+/// Re-open the exact identified Result view for bounded durable persistence.
+/// The replay is accepted only if its final physical receipt matches the first
+/// traversal, while logical identity remains owned by that first traversal.
+pub fn PublicationOutputExport::replay(
+  self : PublicationOutputExport,
+) -> Result[PublicationOutputReplay, PublicationOutputExportIssue] {
+  guard self.receipt is Some(receipt) else { return Err(InvalidState) }
+  let expected = @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  )
+  @execution.replay_completed_relation_export(
+    self.stream,
+    receipt,
+    self.replay_values,
+    self.replay_wire,
+    self.max_batch_bytes,
+  )
+  .map(stream => { stream, expected, finished: false, })
+  .map_err(issue => Output(issue))
+}
+
+///|
+pub fn PublicationOutputReplay::next(
+  self : PublicationOutputReplay,
+) -> Result[String?, PublicationOutputExportIssue] {
+  if self.finished {
+    return Err(InvalidState)
+  }
+  @execution.next_completed_output_export(self.stream).map_err(issue => {
+    Output(issue)
+  })
+}
+
+///|
+pub fn PublicationOutputReplay::finish(
+  self : PublicationOutputReplay,
+) -> Result[String, PublicationOutputExportIssue] {
+  if self.finished {
+    return Err(InvalidState)
+  }
+  match @execution.finish_completed_output_export(self.stream) {
+    Ok((receipt, tail)) => {
+      self.finished = true
+      let actual = @execution.output_stream_identity(
+        @execution.completed_export_content(receipt),
+      )
+      @execution.cancel_completed_export_receipt(receipt)
+      if actual == self.expected {
+        Ok(tail)
+      } else {
+        Err(Output(@execution.ForeignMaterial))
+      }
+    }
+    Err(issue) => Err(Output(issue))
+  }
+}
+
+///|
+pub fn PublicationOutputReplay::cancel(self : PublicationOutputReplay) -> Unit {
+  if !self.finished {
+    @execution.cancel_completed_output_export(self.stream)
+    self.finished = true
+  }
 }
 
 ///|

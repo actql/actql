@@ -599,6 +599,8 @@ pub fn relation_schema_usage(RelationSchemaIdentity) -> (Int, Int, Int)
 
 pub fn relation_schema_wire(RelationSchemaIdentity) -> String
 
+pub fn replay_completed_relation_export(CompletedOutputExport, CompletedRelationExportReceipt, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
+
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
 pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
