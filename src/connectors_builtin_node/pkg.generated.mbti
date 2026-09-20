@@ -560,6 +560,12 @@ pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.
 
 pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
+pub fn strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise NodeHostFailure
+
+pub fn strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
 pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_prepare_evidence(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure

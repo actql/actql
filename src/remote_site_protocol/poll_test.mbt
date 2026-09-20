@@ -14,6 +14,28 @@ test "outbound poll preserves the exact canonical dispatch request" {
 }
 
 ///|
+test "outbound query is distinct and not-seen binds the exact request" {
+  let request = coordinator_request("dispatch-query", 33)
+  let query = remote_poll_query_json(request).unwrap()
+  let admitted = admit_remote_poll_operation_json(query).unwrap()
+  assert_true(remote_poll_operation_is_query(admitted))
+  assert_eq(
+    dispatch_request_identity(remote_poll_operation_request(admitted)),
+    dispatch_request_identity(request),
+  )
+  assert_true(admit_remote_poll_dispatch_json(query) is Err(InvalidDispatch))
+  let not_seen = remote_poll_not_seen_json(request).unwrap()
+  assert_eq(admit_remote_poll_not_seen_json(not_seen, request), Ok(()))
+  assert_true(
+    admit_remote_poll_not_seen_json(
+      not_seen,
+      coordinator_request("dispatch-other", 34),
+    )
+    is Err(InvalidDispatch),
+  )
+}
+
+///|
 test "Site reply is admitted as the same transport observation" {
   let request = coordinator_request("dispatch-reply", 32)
   let site = @site.create_site(

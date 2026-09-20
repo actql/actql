@@ -115,7 +115,7 @@ function post(origin, path, material, body = '{}') {
   });
 }
 
-function dispatch() {
+function dispatch(overrides = {}) {
   return control.prepare({
     coordinatorAuthority: 'coordinator-a',
     runDefinitionCid: cid('0'),
@@ -133,6 +133,7 @@ function dispatch() {
     budgetCid: cid('3'),
     evidenceIssuerCapabilityCid: cid('b'),
     grantCid: cid('4'),
+    ...overrides,
   });
 }
 
@@ -212,6 +213,8 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       runtimeRevision: cid('a'),
     });
     t.after(() => siteStore.close());
+    let siteAcceptCount = 0;
+    siteAcceptCount++;
     const record = siteStore.accept(
       control.prepareAdmission(siteJournal, received),
       received,
@@ -230,8 +233,146 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.equal(gateway.pending(), 0);
     assert.equal(coordinatorStore.contains(request, control), true);
 
-    const empty = await post(gateway.origin, `${path}/poll`, siteMaterial);
-    assert.equal(empty.status, 204);
+    const queryCompletion = gateway.query({dispatch: request});
+    const queryPoll = await post(
+      gateway.origin,
+      `${path}/poll`,
+      siteMaterial,
+    );
+    assert.equal(queryPoll.status, 200);
+    const queryEnvelope = JSON.parse(queryPoll.body);
+    assert.equal(queryEnvelope.version, 'actql-remote-poll-query/0.1');
+    const queried = control.admitJson(
+      queryEnvelope.request_json,
+      queryEnvelope.dispatch_request_cid,
+    );
+    assert.equal(control.identity(queried), control.identity(request));
+    const queryObservation = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined),
+    );
+    assert.equal(queryObservation.status, 200);
+    const queryResult = await queryCompletion;
+    assert.equal(queryResult.dispatchRequestCid, control.identity(request));
+    assert.deepEqual(queryResult.state, [0, 0, 0, 0, 0]);
+    assert.equal(siteAcceptCount, 1);
+    assert.equal(gateway.pending(), 0);
+
+    siteStore.advance(control.prepareProvisioning(
+      record,
+      control.registerExecutionCapability(Object.freeze({
+        site,
+        runtimeBundleCid: cid('a'),
+        connectorRegistration: 'local',
+        connectorRevision: 'local/1',
+        strategyRevision: 'strategy/1',
+        operationCapabilityCid: cid('4'),
+      })),
+    ), record, control);
+    siteStore.advance(control.prepareExecution(record), record, control);
+    siteStore.advance(control.prepareSettled(record), record, control);
+    const terminalCompletion = gateway.query({dispatch: request});
+    const terminalPoll = await post(
+      gateway.origin,
+      `${path}/poll`,
+      siteMaterial,
+    );
+    assert.equal(terminalPoll.status, 200);
+    assert.equal(
+      JSON.parse(terminalPoll.body).version,
+      'actql-remote-poll-query/0.1',
+    );
+    const terminalObservation = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined),
+    );
+    assert.equal(terminalObservation.status, 200);
+    assert.deepEqual((await terminalCompletion).state, [3, 0, 0, 0, 0]);
+    assert.equal(siteAcceptCount, 1);
+
+    const unseen = dispatch({
+      dispatchId: 'dispatch-outbound-unseen',
+      taskAttempt: 2,
+    });
+    const unseenCompletion = gateway.query({dispatch: unseen});
+    const unseenResult = unseenCompletion.catch(error => error);
+    const unseenPoll = await post(
+      gateway.origin,
+      `${path}/poll`,
+      siteMaterial,
+    );
+    assert.equal(unseenPoll.status, 200);
+    assert.equal(
+      JSON.parse(unseenPoll.body).version,
+      'actql-remote-poll-query/0.1',
+    );
+    const notSeen = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.pollNotSeenJson(unseen),
+    );
+    assert.equal(notSeen.status, 200);
+    assert.equal((await unseenResult).code, 'RemoteDispatchNotSeen');
+    assert.equal(siteAcceptCount, 1);
+    assert.equal(gateway.pending(), 0);
+
+    const retransmitFirst = gateway.dispatch({dispatch: request});
+    const retransmitSecond = gateway.dispatch({dispatch: request});
+    assert.equal(gateway.pending(), 1);
+    const retransmitPoll = await post(
+      gateway.origin,
+      `${path}/poll`,
+      siteMaterial,
+    );
+    const retransmitEnvelope = JSON.parse(retransmitPoll.body);
+    const retransmitRequest = control.admitJson(
+      retransmitEnvelope.request_json,
+      retransmitEnvelope.dispatch_request_cid,
+    );
+    siteAcceptCount++;
+    const retransmitRecord = siteStore.accept(
+      control.prepareAdmission(siteJournal, retransmitRequest),
+      retransmitRequest,
+      control,
+    );
+    const retransmitObservation = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.replyJson(retransmitRecord),
+    );
+    assert.equal(retransmitObservation.status, 200);
+    await Promise.all([retransmitFirst, retransmitSecond]);
+    assert.equal(siteAcceptCount, 2);
+    assert.equal(gateway.pending(), 0);
+
+    const collision = dispatch({connectorRevision: 'local/2'});
+    const collisionWaiter = gateway.dispatch({dispatch: collision});
+    void collisionWaiter.catch(() => {});
+    const collisionPoll = await post(
+      gateway.origin,
+      `${path}/poll`,
+      siteMaterial,
+    );
+    const collisionEnvelope = JSON.parse(collisionPoll.body);
+    const collisionRequest = control.admitJson(
+      collisionEnvelope.request_json,
+      collisionEnvelope.dispatch_request_cid,
+    );
+    assert.throws(
+      () => siteStore.accept(
+        control.prepareAdmission(siteJournal, collisionRequest),
+        collisionRequest,
+        control,
+      ),
+      {code: 'MoonBitHostFailure'},
+    );
+
     const foreign = await post(gateway.origin, `${path}/poll`, {
       ca: certificates_.ca,
       cert: certificates_.foreignCertificate,
@@ -239,3 +380,107 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     });
     assert.equal(foreign.status, 404);
   });
+
+test('outbound cancellation cannot admit work before dispatch', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'outbound-cancel-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const certificates_ = await certificates(root);
+  const gateway = await startHttpsOutboundSiteGateway({
+    key: certificates_.serverKey,
+    cert: certificates_.serverCertificate,
+    ca: certificates_.ca,
+    siteAuthorities: new Map([[
+      certificates_.siteFingerprint,
+      {siteKey: 'site-a', siteGeneration: 1},
+    ]]),
+    control,
+  });
+  t.after(() => gateway.close());
+  const path = '/v1/sites/site-a/generations/1/outbound';
+  const siteMaterial = {
+    ca: certificates_.ca,
+    cert: certificates_.siteCertificate,
+    key: certificates_.siteKey,
+  };
+  const request = dispatch();
+  const preAborted = new AbortController();
+  const preAbortReason = new Error('pre-aborted');
+  preAborted.abort(preAbortReason);
+  assert.equal(
+    await gateway.dispatch({
+      dispatch: request,
+      signal: preAborted.signal,
+    }).catch(error => error),
+    preAbortReason,
+  );
+  assert.equal(
+    await gateway.query({
+      dispatch: request,
+      signal: preAborted.signal,
+    }).catch(error => error),
+    preAbortReason,
+  );
+  assert.equal(gateway.pending(), 0);
+  assert.equal(
+    (await post(gateway.origin, `${path}/poll`, siteMaterial)).status,
+    204,
+  );
+
+  const first = new AbortController();
+  const second = new AbortController();
+  const firstWaiter = gateway.dispatch({
+    dispatch: request,
+    signal: first.signal,
+  });
+  const secondWaiter = gateway.dispatch({
+    dispatch: request,
+    signal: second.signal,
+  });
+  const survivor = gateway.dispatch({dispatch: request});
+  const firstReason = new Error('first waiter left');
+  const secondReason = new Error('second waiter left');
+  first.abort(firstReason);
+  second.abort(secondReason);
+  assert.equal(await firstWaiter.catch(error => error), firstReason);
+  assert.equal(await secondWaiter.catch(error => error), secondReason);
+  assert.equal(gateway.pending(), 1);
+
+  const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
+  assert.equal(polled.status, 200);
+  const envelope = JSON.parse(polled.body);
+  const received = control.admitJson(
+    envelope.request_json,
+    envelope.dispatch_request_cid,
+  );
+  const site = runtime.siteControl.create({
+    key: 'site-a',
+    generation: 1,
+    runtimeRevision: cid('a'),
+    maxConcurrentOperations: 4,
+    maxConcurrentTransfers: 4,
+    maxRetainedBytes: 1_048_576n,
+    maxExecutionBytes: 1_048_576n,
+  });
+  const siteJournal = control.createJournal(site);
+  const siteStore = openSqliteDispatchJournal(join(root, 'site'), {
+    siteKey: 'site-a',
+    siteGeneration: 1,
+    runtimeRevision: cid('a'),
+  });
+  t.after(() => siteStore.close());
+  const record = siteStore.accept(
+    control.prepareAdmission(siteJournal, received),
+    received,
+    control,
+  );
+  const observed = await post(
+    gateway.origin,
+    `${path}/observations`,
+    siteMaterial,
+    control.replyJson(record),
+  );
+  assert.equal(observed.status, 200);
+  assert.equal((await survivor).dispatchRequestCid, control.identity(request));
+  assert.equal(gateway.pending(), 0);
+});

@@ -16,6 +16,8 @@ pub fn dispatch(@remote_journal.CoordinatorJournal, @http_client.Client, String,
 
 pub fn poll(@http_client.Client, String) -> Result[@remote_site_protocol.DispatchRequest?, NativeRemoteClientIssue]
 
+pub fn poll_operation(@http_client.Client, String) -> Result[@remote_site_protocol.RemotePollOperation?, NativeRemoteClientIssue]
+
 pub fn query(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
 
 // Errors

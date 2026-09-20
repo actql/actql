@@ -33,6 +33,10 @@ pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest)
 
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
 
+pub fn admit_remote_poll_not_seen_json(String, DispatchRequest) -> Result[Unit, DispatchIssue]
+
+pub fn admit_remote_poll_operation_json(String) -> Result[RemotePollOperation, DispatchIssue]
+
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
 
 pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorDispatchIntentRecord), DispatchIssue]
@@ -275,6 +279,14 @@ pub fn remote_poll_dispatch_json(DispatchRequest) -> Result[String, DispatchIssu
 
 pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 
+pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_operation_is_query(RemotePollOperation) -> Bool
+
+pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
+
+pub fn remote_poll_query_json(DispatchRequest) -> Result[String, DispatchIssue]
+
 pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
 
 pub fn remote_runtime_record_startable(DispatchRecord) -> Bool
@@ -406,6 +418,11 @@ type RemoteManagedOutputMeasurement
 type RemoteManagedOutputSubject
 
 type RemotePollDispatch
+
+pub(all) enum RemotePollOperation {
+  Dispatch(DispatchRequest)
+  Query(DispatchRequest)
+}
 
 pub(all) enum RemoteRuntimeAction {
   RuntimeAwaitStop

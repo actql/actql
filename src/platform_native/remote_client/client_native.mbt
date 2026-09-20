@@ -106,12 +106,12 @@ pub fn cancel(
 }
 
 ///|
-/// Poll an outbound control endpoint. An empty 204 response means no work;
-/// a 200 response must carry one exact canonical dispatch envelope.
-pub fn poll(
+/// Poll an outbound control endpoint. Dispatch delivery and status queries
+/// remain distinct operations after canonical admission.
+pub fn poll_operation(
   client : @http.Client,
   url : String,
-) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
+) -> Result[@remote.RemotePollOperation?, NativeRemoteClientIssue] {
   let physical = match client.post_json(url, b"{}") {
     Ok(value) => value
     Err(issue) => return Err(Http(issue))
@@ -128,9 +128,24 @@ pub fn poll(
   let response_text = @utf8.decode(physical.body) catch {
     _ => return Err(InvalidUtf8)
   }
-  match @remote.admit_remote_poll_dispatch_json(response_text) {
-    Ok(value) => Ok(Some(@remote.remote_poll_dispatch_request(value)))
+  match @remote.admit_remote_poll_operation_json(response_text) {
+    Ok(value) => Ok(Some(value))
     Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+/// Compatibility helper for dispatch-only consumers. A query cannot be
+/// mistaken for executable work.
+pub fn poll(
+  client : @http.Client,
+  url : String,
+) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
+  match poll_operation(client, url) {
+    Ok(None) => Ok(None)
+    Ok(Some(@remote.Dispatch(request))) => Ok(Some(request))
+    Ok(Some(@remote.Query(_))) => Err(Protocol(@remote.InvalidDispatch))
+    Err(issue) => Err(issue)
   }
 }
 

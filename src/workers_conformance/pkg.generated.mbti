@@ -309,6 +309,10 @@ pub fn async_strategy_record_result_access_request_authorization(@run_publicatio
 
 pub fn async_strategy_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
 
+pub fn async_strategy_remote_active_bundle_drain_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_active_bundle_retain_prepare(String?, @remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
 pub fn async_strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise AsyncHostFailure
 
 pub fn async_strategy_remote_admission_is_new(@remote_site_protocol.DispatchAdmission) -> Bool
@@ -328,6 +332,14 @@ pub fn async_strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBud
 pub fn async_strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise AsyncHostFailure
 
 pub fn async_strategy_remote_bundle_activate_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_activation_commit(@remote_bundle.RemoteBundleActivation, Bool) -> @remote_bundle.RemoteBundleRecord raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_activation_prepare(@remote_bundle.RemoteBundleRecord?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleActivation raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_activation_transition_at(@remote_bundle.RemoteBundleActivation, Int) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_activation_transition_count(@remote_bundle.RemoteBundleActivation) -> Int
 
 pub fn async_strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
 
@@ -352,6 +364,16 @@ pub fn async_strategy_remote_bundle_record_restore(@remote_bundle.RemoteBundleMa
 pub fn async_strategy_remote_bundle_release_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
 
 pub fn async_strategy_remote_bundle_retain_prepare(@remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_signature_envelope_admit(String, String, String, String, String) -> @remote_bundle.RemoteBundleSignatureEnvelope raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_signature_envelope_manifest(@remote_bundle.RemoteBundleSignatureEnvelope) -> @remote_bundle.RemoteBundleManifest
+
+pub fn async_strategy_remote_bundle_signature_envelope_prepare(@remote_bundle.RemoteBundleManifest, String, String) -> @remote_bundle.RemoteBundleSignatureEnvelope raise AsyncHostFailure
+
+pub fn async_strategy_remote_bundle_signature_envelope_projection(@remote_bundle.RemoteBundleSignatureEnvelope) -> Array[String]
+
+pub fn async_strategy_remote_bundle_signature_preimage(@remote_bundle.RemoteBundleManifest) -> Bytes raise AsyncHostFailure
 
 pub fn async_strategy_remote_bundle_transition_commit(@remote_bundle.RemoteBundleTransition, Bool) -> @remote_bundle.RemoteBundleRecord raise AsyncHostFailure
 
@@ -467,6 +489,8 @@ pub fn async_strategy_remote_force_loss_projection(@remote_site_protocol.ForceLo
 
 pub fn async_strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchRecord raise AsyncHostFailure
 
+pub fn async_strategy_remote_inactive_bundle_reclaim_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise AsyncHostFailure
+
 pub fn async_strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise AsyncHostFailure
 
 pub fn async_strategy_remote_issue_managed_output_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteManagedOutputSubject) -> @remote_site_protocol.RemoteExecutionEvidence raise AsyncHostFailure
@@ -506,6 +530,12 @@ pub fn async_strategy_remote_managed_output_subject_projection(@remote_site_prot
 pub fn async_strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise AsyncHostFailure
 
 pub fn async_strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise AsyncHostFailure
+
+pub fn async_strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
+
+pub fn async_strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
 
 pub fn async_strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise AsyncHostFailure
 
@@ -1101,6 +1131,10 @@ pub fn strategy_record_result_access_request_authorization(@run_publication.Resu
 
 pub fn strategy_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
 
+pub fn strategy_remote_active_bundle_drain_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_active_bundle_retain_prepare(String?, @remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
 pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
 
 pub fn strategy_remote_admission_is_new(@remote_site_protocol.DispatchAdmission) -> Bool
@@ -1120,6 +1154,14 @@ pub fn strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBudget) -
 pub fn strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
 
 pub fn strategy_remote_bundle_activate_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_commit(@remote_bundle.RemoteBundleActivation, Bool) -> @remote_bundle.RemoteBundleRecord raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_prepare(@remote_bundle.RemoteBundleRecord?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleActivation raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_transition_at(@remote_bundle.RemoteBundleActivation, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_transition_count(@remote_bundle.RemoteBundleActivation) -> Int
 
 pub fn strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
@@ -1144,6 +1186,16 @@ pub fn strategy_remote_bundle_record_restore(@remote_bundle.RemoteBundleManifest
 pub fn strategy_remote_bundle_release_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
 pub fn strategy_remote_bundle_retain_prepare(@remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_signature_envelope_admit(String, String, String, String, String) -> @remote_bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_signature_envelope_manifest(@remote_bundle.RemoteBundleSignatureEnvelope) -> @remote_bundle.RemoteBundleManifest
+
+pub fn strategy_remote_bundle_signature_envelope_prepare(@remote_bundle.RemoteBundleManifest, String, String) -> @remote_bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_signature_envelope_projection(@remote_bundle.RemoteBundleSignatureEnvelope) -> Array[String]
+
+pub fn strategy_remote_bundle_signature_preimage(@remote_bundle.RemoteBundleManifest) -> Bytes raise NodeHostFailure
 
 pub fn strategy_remote_bundle_transition_commit(@remote_bundle.RemoteBundleTransition, Bool) -> @remote_bundle.RemoteBundleRecord raise NodeHostFailure
 
@@ -1259,6 +1311,8 @@ pub fn strategy_remote_force_loss_projection(@remote_site_protocol.ForceLossTran
 
 pub fn strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
 
+pub fn strategy_remote_inactive_bundle_reclaim_prepare(String?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
 pub fn strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
 
 pub fn strategy_remote_issue_managed_output_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteManagedOutputSubject) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
@@ -1298,6 +1352,12 @@ pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.R
 pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
 
 pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise NodeHostFailure
+
+pub fn strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 

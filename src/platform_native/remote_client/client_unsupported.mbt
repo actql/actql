@@ -38,6 +38,14 @@ pub fn poll(
 }
 
 ///|
+pub fn poll_operation(
+  _client : @http.Client,
+  _url : String,
+) -> Result[@remote.RemotePollOperation?, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn acknowledge_acceptance(
   _journal : @journal.Journal,
   _client : @http.Client,

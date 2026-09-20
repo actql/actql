@@ -3052,6 +3052,40 @@ pub fn strategy_remote_poll_dispatch_json(
 }
 
 ///|
+#export_name("strategyRemotePollQueryJson")
+pub fn strategy_remote_poll_query_json(
+  request : @remote.DispatchRequest,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_query_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePollNotSeenJson")
+pub fn strategy_remote_poll_not_seen_json(
+  request : @remote.DispatchRequest,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_not_seen_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePollNotSeenAdmit")
+pub fn strategy_remote_poll_not_seen_admit(
+  body : String,
+  request : @remote.DispatchRequest,
+) -> Bool raise NodeHostFailure {
+  match @remote.admit_remote_poll_not_seen_json(body, request) {
+    Ok(_) => true
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteDispatchReplyJson")
 pub fn strategy_remote_dispatch_reply_json(
   record : @remote.DispatchRecord,
