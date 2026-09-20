@@ -85,6 +85,40 @@ pub fn append_kernel_owner(PreparedAppendKernel) -> BoundPrepared
 
 pub fn append_kernel_step(PreparedAppendKernel) -> Int
 
+pub fn asof_join_direction(PreparedAsOfJoin) -> @relation_evidence.AsOfDirection
+
+pub fn asof_join_field_at(PreparedAsOfJoin, Int) -> InnerJoinField?
+
+pub fn asof_join_field_count(PreparedAsOfJoin) -> Int
+
+pub fn asof_join_identity_at(PreparedAsOfJoin, Int) -> @relation_schema.FieldName?
+
+pub fn asof_join_identity_count(PreparedAsOfJoin) -> Int
+
+pub fn asof_join_input(PreparedAsOfJoin, Bool) -> String
+
+pub fn asof_join_input_schema(PreparedAsOfJoin, Bool) -> @relation_schema.Schema?
+
+pub fn asof_join_key_at(PreparedAsOfJoin, Int) -> (@relation_schema.FieldName, @relation_schema.FieldName)?
+
+pub fn asof_join_key_count(PreparedAsOfJoin) -> Int
+
+pub fn asof_join_kind(PreparedAsOfJoin) -> @relation_join_shape.Kind
+
+pub fn asof_join_owner(PreparedAsOfJoin) -> BoundPrepared
+
+pub fn asof_join_step(PreparedAsOfJoin) -> Int
+
+pub fn asof_join_tie_break_at(PreparedAsOfJoin, Int) -> @relation_schema.FieldName?
+
+pub fn asof_join_tie_break_count(PreparedAsOfJoin) -> Int
+
+pub fn asof_join_time(PreparedAsOfJoin, Bool) -> @relation_schema.FieldName
+
+pub fn asof_join_tolerance(PreparedAsOfJoin) -> Int64
+
+pub fn asof_join_uses_timestamp(PreparedAsOfJoin, Bool) -> Bool
+
 pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int, expression_profiles? : ExpressionProfileAdmission) -> Result[BoundPrepared, BindingIssue]
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
@@ -146,6 +180,8 @@ pub fn demand_source_tests(DemandIndex, Int, Int, max_tests~ : Int, max_pointer_
 pub fn demand_usage(DemandIndex) -> DemandUsage
 
 pub fn emit_append_kernel(PreparedAppendKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_asof_join(PreparedAsOfJoin, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_cross_join_kernel(PreparedCrossJoinKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -789,6 +825,14 @@ pub(all) enum AppendIssue {
   InvalidCheckedShape
 } derive(Eq, @debug.Debug)
 
+pub(all) enum AsOfJoinIssue {
+  InvalidAsOfJoinLimits
+  InvalidAsOfJoinShape
+  AsOfJoinPreparationLimit
+  MissingAsOfJoinParameter(String)
+  InvalidAsOfJoinParameter(String)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum BinaryOperator {
   Add
   Subtract
@@ -1185,6 +1229,7 @@ pub enum Payload {
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
   IntervalJoinRows(@relation_join_shape.CheckedIntervalJoin)
+  AsOfJoinRows(@relation_evidence.CheckedAsOf)
   CrossJoinRows(@relation_join_shape.CheckedCrossJoin)
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
@@ -1243,6 +1288,8 @@ pub enum PreparedAnalyticFunction {
 }
 
 type PreparedAppendKernel
+
+type PreparedAsOfJoin
 
 type PreparedCarrierProjection
 
@@ -1346,6 +1393,7 @@ pub enum PreparedStep {
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
   IntervalJoinStep(PreparedIntervalJoin)
+  AsOfJoinStep(PreparedAsOfJoin)
   CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
@@ -1437,6 +1485,7 @@ pub(all) enum SequenceIssue {
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
   IntervalJoinFailure(Int, IntervalJoinIssue)
+  AsOfJoinFailure(Int, AsOfJoinIssue)
   CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)

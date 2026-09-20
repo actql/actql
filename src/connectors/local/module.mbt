@@ -80,6 +80,7 @@ pub fn[T] prepare_local_module_managed_compute(
   slot : Int,
   request : @connector.ManagedFixedComputeRequest[T],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
   (
     @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
@@ -93,6 +94,7 @@ pub fn[T] prepare_local_module_managed_compute(
     request,
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
     interval_search_ceilings~,
+    asof_search_ceilings~,
   )
 }
 
@@ -106,6 +108,7 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
   request : @connector.ManagedFixedComputeRequest[T],
   estimates : Array[@cost.SerialEstimateLine],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
   (
     @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
@@ -122,6 +125,13 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
       @execution.constrain_generated_interval_search(sequence, step, ceiling) {
       Ok(value) => value
       Err(_) => return Err(Candidate(ForeignPreparation))
+    }
+  }
+  for (step, ceiling) in asof_search_ceilings {
+    sequence = match
+      @execution.constrain_generated_asof_search(sequence, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Candidate(Execution(issue)))
     }
   }
   let provider = local_module_managed_provider(installed, sequence)

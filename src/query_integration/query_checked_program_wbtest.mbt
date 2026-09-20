@@ -42,6 +42,7 @@ fn query_checked_program_fixture(
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
   local_values_interval_chain? : Bool = false,
+  local_values_asof_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
@@ -102,6 +103,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_interval_chain {
     local_values_interval_program()
+  } else {
+    text
+  }
+  let text = if local_values_asof_chain {
+    local_values_asof_program()
   } else {
     text
   }
@@ -478,7 +484,7 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
-  } else if local_values_interval_chain {
+  } else if local_values_interval_chain || local_values_asof_chain {
     let left = query_capacity_proof(
       "actql.bound.values",
       3L,
@@ -492,13 +498,31 @@ fn query_checked_program_fixture(
       step=0,
     )
     let joined = query_capacity_proof(
-      "actql.bound.join-output",
-      12L,
-      "{\"op\":\"source\"}",
-      inputs=[
-        @wire.cid(@wire.program_proof_witness(left)),
-        @wire.cid(@wire.program_proof_witness(right)),
-      ],
+      if local_values_asof_chain {
+        "actql.bound.asof-left"
+      } else {
+        "actql.bound.join-output"
+      },
+      if local_values_asof_chain {
+        3L
+      } else {
+        12L
+      },
+      if local_values_asof_chain {
+        "{\"input\":\"" +
+        @wire.cid(@wire.program_proof_witness(left)) +
+        "\",\"op\":\"preserve\"}"
+      } else {
+        "{\"op\":\"source\"}"
+      },
+      inputs=if local_values_asof_chain {
+        [@wire.cid(@wire.program_proof_witness(left))]
+      } else {
+        [
+          @wire.cid(@wire.program_proof_witness(left)),
+          @wire.cid(@wire.program_proof_witness(right)),
+        ]
+      },
       step=0,
     )
     [
@@ -576,7 +600,8 @@ fn query_checked_program_fixture(
           sga: local_carrier_graph_chain,
           tea: local_carrier_events_chain ||
           local_time_series_chain ||
-          local_values_interval_chain,
+          local_values_interval_chain ||
+          local_values_asof_chain,
           calendar: false,
           text_rank: false,
         },

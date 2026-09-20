@@ -14,6 +14,7 @@ struct LocalManagedDispatchConfiguration[T] {
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
+  asof_search_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[@connector.AggregateOutputCeiling]
   analytic_envelopes : Array[@connector.AnalyticEnvelope]
 }
@@ -101,6 +102,10 @@ pub fn[T] prepare_local_managed_dispatch(
     is Some(interval_search_ceilings) else {
     return Err(Configuration(InvalidLimits))
   }
+  guard local_task_asof_search_ceilings(installed.run, task)
+    is Some(asof_search_ceilings) else {
+    return Err(Configuration(InvalidLimits))
+  }
   let request = match
     @connector.prepare_managed_fixed_compute_request_for_owner(
       owner,
@@ -127,6 +132,7 @@ pub fn[T] prepare_local_managed_dispatch(
       request,
       estimates,
       interval_search_ceilings~,
+      asof_search_ceilings~,
     ) {
     Ok(value) => value
     Err(
@@ -232,6 +238,7 @@ pub fn[T] prepare_local_managed_dispatch(
       },
       join_output_ceilings,
       interval_search_ceilings,
+      asof_search_ceilings,
       aggregate_output_ceilings,
       analytic_envelopes,
     }),
@@ -512,6 +519,7 @@ pub fn[T] start_local_managed_dispatch(
             setup.measurement,
             join_output_ceilings=setup.join_output_ceilings,
             interval_search_ceilings=setup.interval_search_ceilings,
+            asof_search_ceilings=setup.asof_search_ceilings,
             aggregate_output_ceilings=setup.aggregate_output_ceilings,
             analytic_envelopes=setup.analytic_envelopes,
             numeric~,

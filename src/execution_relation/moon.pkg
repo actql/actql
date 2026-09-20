@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/relation_join_shape" @join,
+  "actql/actql/relation_join" @asof,
   "actql/actql/relation_set" @set,
   "actql/actql/temporal_window" @window,
   "actql/actql/lowering_relation" @lower,

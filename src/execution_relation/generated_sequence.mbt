@@ -8,6 +8,7 @@ struct GeneratedSequence {
   retained_ids : Array[String]
   join_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
+  asof_search_ceilings : Array[(Int, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
   analytic_envelopes : Array[SelectedAnalyticEnvelope]
   nest_item_ceilings : Array[(Int, Int64)]
@@ -94,6 +95,7 @@ pub fn prepare_generated_sequence(
         retained_ids,
         join_ceilings: [],
         interval_search_ceilings: [],
+        asof_search_ceilings: [],
         aggregate_outputs: [],
         analytic_envelopes: [],
         nest_item_ceilings: [],
@@ -125,6 +127,7 @@ pub fn execute_generated_sequence(
     fragments=Some(generated.contexts),
     join_ceilings=generated.join_ceilings,
     interval_search_ceilings=generated.interval_search_ceilings,
+    asof_search_ceilings=generated.asof_search_ceilings,
     aggregate_outputs=generated.aggregate_outputs,
     analytic_envelopes=generated.analytic_envelopes,
     nest_item_ceilings=generated.nest_item_ceilings,
@@ -189,6 +192,7 @@ pub fn constrain_generated_join_output(
     (
       value is @lower.JoinStep(_) ||
       value is @lower.IntervalJoinStep(_) ||
+      value is @lower.AsOfJoinStep(_) ||
       value is @lower.CrossJoinStep(_)
     ) else {
     return Err(InputSet)
@@ -246,6 +250,38 @@ pub fn generated_interval_search_ceiling(
   step : Int,
 ) -> Int64? {
   selected_step_ceiling(generated.interval_search_ceilings, step)
+}
+
+///|
+pub fn constrain_generated_asof_search(
+  generated : GeneratedSequence,
+  step : Int,
+  ceiling : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if ceiling < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.AsOfJoinStep(_)) else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.asof_search_ceilings.copy()
+  for index, (prior_step, prior) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (step, Int64::min(prior, ceiling))
+      return Ok({ ..generated, asof_search_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, ceiling))
+  Ok({ ..generated, asof_search_ceilings: ceilings, })
+}
+
+///|
+pub fn generated_asof_search_ceiling(
+  generated : GeneratedSequence,
+  step : Int,
+) -> Int64? {
+  selected_step_ceiling(generated.asof_search_ceilings, step)
 }
 
 ///|

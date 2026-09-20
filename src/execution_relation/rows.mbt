@@ -27,6 +27,7 @@ pub(all) enum RowIssue {
   AssertionDuplicate(Int, Int)
   JoinNullKey(Bool, Int, Int)
   JoinDuplicateKey(Bool, Int, Int)
+  AsOfTopTie(Int, Int, Int)
   WindowTime(Int)
   WindowArithmetic(Int)
   AnalyticEnvelope(AnalyticEnvelopeScope)

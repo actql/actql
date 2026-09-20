@@ -179,7 +179,12 @@ pub fn local_managed_sequence_supported(
           @lower.interval_join_step(kernel),
         )
         is Some(_)
-      @lower.AsOfJoinStep(_) => false
+      @lower.AsOfJoinStep(kernel) =>
+        @execution.generated_asof_search_ceiling(
+          sequence,
+          @lower.asof_join_step(kernel),
+        )
+        is Some(_)
       @lower.NestStep(_) => true
       @lower.GraphBasicStep(_) => false
       @lower.GraphStructuralStep(_) => false
@@ -210,6 +215,7 @@ pub fn[T] execute_local_managed_fixed_compute(
   measurement : @execution.FixedInputGuardMeasureLimits,
   join_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
   numeric? : @execution.NumericAggregateExecution? = None,
@@ -251,6 +257,13 @@ pub fn[T] execute_local_managed_fixed_compute(
   for (step, ceiling) in interval_search_ceilings {
     constrained = match
       @execution.constrain_generated_interval_search(constrained, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
+  }
+  for (step, ceiling) in asof_search_ceilings {
+    constrained = match
+      @execution.constrain_generated_asof_search(constrained, step, ceiling) {
       Ok(value) => value
       Err(issue) => return Err(Execution(issue))
     }

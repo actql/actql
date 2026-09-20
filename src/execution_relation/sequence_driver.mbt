@@ -84,6 +84,7 @@ fn evaluate_sequence_components(
   fragments? : Array[FragmentRuntimeContext]? = None,
   join_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   nest_item_ceilings? : Array[(Int, Int64)] = [],
@@ -118,6 +119,7 @@ fn evaluate_sequence_components(
       ordered,
       join_ceilings~,
       interval_search_ceilings~,
+      asof_search_ceilings~,
       aggregate_outputs~,
       analytic_envelopes~,
       nest_item_ceilings~,
@@ -145,6 +147,7 @@ fn evaluate_sequence_components(
     invocation,
     join_ceilings~,
     interval_search_ceilings~,
+    asof_search_ceilings~,
     aggregate_outputs~,
     analytic_envelopes~,
     nest_item_ceilings~,
@@ -442,6 +445,7 @@ fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
   join_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   numeric? : NumericAggregateExecution? = None,
@@ -512,6 +516,24 @@ fn run_sequence_invocation(
         return Err(InvalidRowLimits)
       }
       evaluate_interval_join_rows(
+        kernel,
+        left,
+        right,
+        invocation.limits.max_rows,
+        search_ceiling,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
+      )
+    }),
+    evaluate_asof_join=Some((kernel, left, right) => {
+      let step = @lower.asof_join_step(kernel)
+      guard selected_step_ceiling(asof_search_ceilings, step)
+        is Some(search_ceiling) else {
+        return Err(InvalidRowLimits)
+      }
+      evaluate_asof_join_rows(
         kernel,
         left,
         right,
@@ -596,6 +618,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     T,
     RowIssue,
   ])? = None,
+  evaluate_asof_join? : ((@lower.PreparedAsOfJoin, T, T) -> Result[T, RowIssue])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     RowIssue,
@@ -611,6 +634,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     evaluate_window~,
     evaluate_join~,
     evaluate_interval_join~,
+    evaluate_asof_join~,
     evaluate_cross_join~,
     evaluate_append~,
     evaluate_set~,
@@ -644,6 +668,7 @@ fn[T : RelationRows] run_sequence_with_backend(
     T,
     RowIssue,
   ])? = None,
+  evaluate_asof_join? : ((@lower.PreparedAsOfJoin, T, T) -> Result[T, RowIssue])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     RowIssue,
@@ -715,6 +740,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
       }
     }),
+    evaluate_asof_join=evaluate_asof_join.map(evaluate => {
+      fn(i, kernel, left, right) {
+        evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
+      }
+    }),
     evaluate_cross_join=evaluate_cross_join.map(evaluate => {
       fn(i, kernel, left, right) {
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
@@ -766,6 +796,10 @@ fn[T : RelationRows] run_sequence_steps(
     SequenceRunIssue,
   ])? = None,
   evaluate_interval_join? : ((Int, @lower.PreparedIntervalJoin, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
+  evaluate_asof_join? : ((Int, @lower.PreparedAsOfJoin, T, T) -> Result[
     T,
     SequenceRunIssue,
   ])? = None,
@@ -826,7 +860,16 @@ fn[T : RelationRows] run_sequence_steps(
         }
         evaluate(i, kernel, left.table, right.table)
       }
-      @lower.AsOfJoinStep(_) => return Err(InputSet)
+      @lower.AsOfJoinStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 2 &&
+          evaluate_asof_join is Some(evaluate) &&
+          store.tables[route[0]] is Some(left) &&
+          store.tables[route[1]] is Some(right) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, left.table, right.table)
+      }
       @lower.CrossJoinStep(kernel) => {
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&
