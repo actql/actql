@@ -86,6 +86,7 @@ struct Storage {
   nodes : Array[Node]
   edges : Array[Edge]
   node_keys : Map[String, Int]
+  edge_keys : Map[String, Int]
   input_rows : Int
   value_bytes : Int
   retained_value_bytes : Int
@@ -602,6 +603,7 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
     nodes: builder.nodes,
     edges: builder.edges,
     node_keys: builder.node_keys,
+    edge_keys: builder.edge_keys,
     input_rows: builder.input_rows,
     value_bytes: builder.value_bytes,
     retained_value_bytes: builder.retained_value_bytes,
@@ -709,6 +711,7 @@ pub fn discard(value : Storage) -> Unit {
   value.nodes.clear()
   value.edges.clear()
   value.node_keys.clear()
+  value.edge_keys.clear()
 }
 
 ///|
@@ -740,6 +743,70 @@ pub fn node_index(
     @value.emit_wire_value(identity.value, out)
     @encode.end_array(out)
     Ok(value.node_keys.get(@encode.finish(out)))
+  } catch {
+    _ => Err(ValueLimit)
+  }
+}
+
+///|
+/// Resolve an admitted edge identity through the immutable construction
+/// index. The lookup preserves the typed source, target, and optional label;
+/// it does not compare payload properties or scan the edge array.
+pub fn edge_index(
+  value : Storage,
+  source : @value.CheckedValue,
+  target : @value.CheckedValue,
+  label : @value.CheckedValue?,
+) -> Result[Int?, Issue] {
+  let expected = @carrier.graph_identity(value.graph)
+  let same_source = @contract.type_equal(
+    expected,
+    source.contract,
+    value.limits.max_contract_work,
+  ) catch {
+    _ => false
+  }
+  let same_target = @contract.type_equal(
+    expected,
+    target.contract,
+    value.limits.max_contract_work,
+  ) catch {
+    _ => false
+  }
+  if !same_source || !same_target {
+    return Err(InvalidIdentity)
+  }
+  match (@carrier.graph_label_contract(value.graph), label) {
+    (None, None) => ()
+    (Some(expected), Some(actual)) => {
+      let same = @contract.type_equal(
+        expected,
+        actual.contract,
+        value.limits.max_contract_work,
+      ) catch {
+        _ => false
+      }
+      if !same {
+        return Err(InvalidLabel)
+      }
+    }
+    _ => return Err(InvalidLabel)
+  }
+  try {
+    let out = @encode.writer(
+      value.limits.max_value_bytes,
+      value.limits.max_value_nodes,
+      value.limits.max_value_depth,
+    )
+    @encode.begin_array(out)
+    @value.emit_wire_value(source.value, out)
+    @value.emit_wire_value(target.value, out)
+    match label {
+      Some(actual) => @value.emit_wire_value(actual.value, out)
+      None => @encode.null_value(out)
+    }
+    @encode.end_array(out)
+    Ok(value.edge_keys.get(@encode.finish(out)))
   } catch {
     _ => Err(ValueLimit)
   }

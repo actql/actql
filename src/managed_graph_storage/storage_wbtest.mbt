@@ -138,6 +138,27 @@ test "declared graph collapses equal payloads and closes endpoints" {
   assert_eq(node_index(graph, number(1.0)).unwrap(), Some(0))
   assert_eq(node_index(graph, number(2.0)).unwrap(), Some(1))
   assert_eq(node_index(graph, number(3.0)).unwrap(), None)
+  assert_eq(
+    edge_index(
+      graph,
+      number(1.0),
+      number(2.0),
+      Some(text("knows", nullable=true)),
+    ).unwrap(),
+    Some(0),
+  )
+  assert_eq(
+    edge_index(
+      graph,
+      number(2.0),
+      number(1.0),
+      Some(text("knows", nullable=true)),
+    ).unwrap(),
+    None,
+  )
+  assert_true(
+    edge_index(graph, number(1.0), number(2.0), None) is Err(InvalidLabel),
+  )
 }
 
 ///|

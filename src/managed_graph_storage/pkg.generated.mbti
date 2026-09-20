@@ -38,6 +38,8 @@ pub fn edge_count(Storage) -> Int
 
 pub fn edge_endpoints(Storage, Int) -> (Int, Int)?
 
+pub fn edge_index(Storage, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Result[Int?, Issue]
+
 pub fn edge_label(Storage, Int) -> @value_admission.CheckedValue??
 
 pub fn edge_property(Storage, Int, Int) -> @value_admission.CheckedValue?
