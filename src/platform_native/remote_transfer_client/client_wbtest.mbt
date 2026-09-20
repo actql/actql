@@ -163,6 +163,65 @@ test "native direct failure persists confirmed remote cleanup" {
 }
 
 ///|
+test "native direct retry reconciles a lost commit reply" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL") is Some(origin) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
+  let library = @http.load_library(path).unwrap()
+  let client = library.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let journal = @journal.open_journal(
+    sqlite,
+    sqlite_root + "/direct-transfer-commit-loss.sqlite",
+    1048576L,
+    8,
+    4096,
+    1024L,
+  ).unwrap()
+  let chunks = [b"commit-loss"]
+  let request = native_direct_request(chunks)
+  assert_true(
+    send_durable_direct_transfer(journal, client, origin, request, chunks)
+    is Err(ReconciliationRequired),
+  )
+  let uncertain = journal.require(request).unwrap()
+  assert_eq(
+    @transfer.direct_transfer_progress(uncertain),
+    @transfer.DirectTransferCopying,
+  )
+  assert_false(@transfer.direct_transfer_cleanup_confirmed(uncertain))
+  let committed = send_durable_direct_transfer(
+    journal,
+    client,
+    origin,
+    request,
+    [],
+  ).unwrap()
+  assert_true(@transfer.record_is_destination_committed(committed))
+  assert_true(journal.close())
+  assert_true(client.close())
+}
+
+///|
 test "native Store upload seals once and restores without source upload" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
     return

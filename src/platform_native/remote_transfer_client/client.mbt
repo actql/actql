@@ -822,13 +822,27 @@ pub fn send_durable_direct_transfer(
       commit_direct_destination(client, transfer_url, request)
     }
   } else if progress == @transfer.DirectTransferCopying {
-    match send_direct_transfer_operation(client, origin, request, chunks) {
-      Ok(value) => Ok(value)
-      Err(DirectCopyFailed(issue)) => {
-        ignore(cancel_durable_direct_transfer(journal, client, origin, request))
-        Err(issue)
+    let (base, _) = match direct_location(origin, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let observed = match admit_direct_destination(client, base, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if @transfer.record_is_destination_committed(observed) {
+      Ok(observed)
+    } else {
+      match send_direct_transfer_operation(client, origin, request, chunks) {
+        Ok(value) => Ok(value)
+        Err(DirectCopyFailed(issue)) => {
+          ignore(
+            cancel_durable_direct_transfer(journal, client, origin, request),
+          )
+          Err(issue)
+        }
+        Err(DirectCommitUnknown(_)) => Err(ReconciliationRequired)
       }
-      Err(DirectCommitUnknown(_)) => Err(ReconciliationRequired)
     }
   } else {
     return Err(ReconciliationRequired)

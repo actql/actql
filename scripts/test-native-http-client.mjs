@@ -74,6 +74,9 @@ let server;
 let outboundPolls = 0;
 let nativeTransferCid;
 let nativeTransferChunks = 0;
+let nativeTransferManifest = [];
+let nativeTransferCommitted = false;
+let nativeTransferCommitReplyLost = false;
 let nativeStoreTransferCid;
 let nativeStoreTransferChunks = 0;
 let nativeStoreTransferSealed = false;
@@ -343,12 +346,26 @@ try {
         response.writeHead(400).end();
         return;
       }
-      nativeTransferCid = request.headers['actql-transfer-cid'];
-      nativeTransferChunks = 0;
+      let manifest;
+      try { manifest = JSON.parse(envelope.manifest); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      const claimedCid = request.headers['actql-transfer-cid'];
+      if (nativeTransferCid !== claimedCid) {
+        nativeTransferCid = claimedCid;
+        nativeTransferChunks = 0;
+        nativeTransferManifest = manifest.chunks ?? [];
+        nativeTransferCommitted = false;
+        nativeTransferCommitReplyLost = false;
+      }
       response.writeHead(201, {'content-type': 'application/json'});
       response.end(JSON.stringify({
         requestCid: nativeTransferCid,
-        state: [0, 0, 0, 0, 0, 0, 0, 1, 0],
+        state: nativeTransferCommitted
+          ? [3, 2, 0, 1, 0, 1, 1, 1, 1]
+          : [0, 0, 0, 0, 0, 0, 0, 1, 0],
       }));
       return;
     }
@@ -361,10 +378,14 @@ try {
       }
       if (request.method === 'PUT' && parts[1] === 'chunks') {
         const index = Number(parts[2]);
-        const expected = index === 0 ? 'alpha' : index === 1 ? '日本語' : null;
-        if (expected === null || index !== nativeTransferChunks ||
-            body !== expected || request.headers['content-type'] !==
-            'application/octet-stream') {
+        const expected = nativeTransferManifest[index];
+        const digest = `sha256:${createHash('sha256')
+          .update(bodyBytes).digest('hex')}`;
+        if (body === 'cancel-source' || expected === undefined ||
+            index !== nativeTransferChunks ||
+            BigInt(bodyBytes.byteLength) !== BigInt(expected.byte_length) ||
+            digest !== expected.cid || request.headers['content-type'] !==
+              'application/octet-stream') {
           response.writeHead(400).end();
           return;
         }
@@ -377,7 +398,15 @@ try {
         return;
       }
       if (request.method === 'POST' && parts[1] === 'commit' &&
-          nativeTransferChunks === 2 && body === '') {
+          nativeTransferChunks === nativeTransferManifest.length &&
+          body === '') {
+        nativeTransferCommitted = true;
+        if (nativeTransferManifest.length === 1 &&
+            nativeTransferChunks === 1 && !nativeTransferCommitReplyLost) {
+          nativeTransferCommitReplyLost = true;
+          request.socket.destroy();
+          return;
+        }
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify({
           requestCid: nativeTransferCid,
