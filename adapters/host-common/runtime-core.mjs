@@ -2368,8 +2368,17 @@ export function runtimeCore(moon) {
         receipt, transfer, source, bytes, retained,
       ),
     transferPending: moon.strategyHostTransferPending,
-    transferDestinationAdmitted: value =>
-      moon.strategyHostTransferDestinationAdmitted(
+    transferProgressBegin: transfer =>
+      moon.strategyHostBeginTransferProgress(transfer),
+    transferRecordSourceStop: progress =>
+      moon.strategyHostRecordTransferSourceStop(progress),
+    transferRecordSourceSiteSettlement: progress =>
+      moon.strategyHostRecordTransferSourceSiteSettlement(progress),
+    transferRecordDestinationCreated: progress =>
+      moon.strategyHostRecordTransferDestinationCreated(progress),
+    transferRecordDestinationAdmission: (progress, value) =>
+      moon.strategyHostRecordTransferDestinationAdmission(
+        progress,
         value.distinctMaterial,
         value.distinctGeneration,
         value.rows,
@@ -2381,40 +2390,22 @@ export function runtimeCore(moon) {
         value.transferLimit,
         value.retentionLimit,
       ),
-    transferCommitAction: (
-      transfer,
-      sourceAccessStopped,
-      sourceSiteSettled,
-      destinationVerified,
-      destinationHoldingRetained,
-      destinationSiteSettled,
-      destinationCleanupReleased,
-    ) => checked(moon.strategyHostTransferCommitAction(
-      transfer,
-      sourceAccessStopped,
-      sourceSiteSettled,
-      destinationVerified,
-      destinationHoldingRetained,
-      destinationSiteSettled,
-      destinationCleanupReleased,
-    )),
-    transferCleanupAction: (
-      transfer,
-      sourceAccessStopped,
-      sourceSiteSettled,
-      destinationReclaimed,
-      destinationSiteSettled,
-      destinationCleanupReleased,
-      siteHoldingReleased,
-    ) => checked(moon.strategyHostTransferCleanupAction(
-      transfer,
-      sourceAccessStopped,
-      sourceSiteSettled,
-      destinationReclaimed,
-      destinationSiteSettled,
-      destinationCleanupReleased,
-      siteHoldingReleased,
-    )),
+    transferRecordDestinationHolding: progress =>
+      moon.strategyHostRecordTransferDestinationHolding(progress),
+    transferRecordDestinationReclaimed: progress =>
+      moon.strategyHostRecordTransferDestinationReclaimed(progress),
+    transferRecordDestinationSiteSettlement: progress =>
+      moon.strategyHostRecordTransferDestinationSiteSettlement(progress),
+    transferRecordDestinationCleanupRelease: progress =>
+      moon.strategyHostRecordTransferDestinationCleanupRelease(progress),
+    transferRecordSiteHoldingRelease: progress =>
+      moon.strategyHostRecordTransferSiteHoldingRelease(progress),
+    transferCommitAction: progress => checked(
+      moon.strategyHostTransferCommitAction(progress),
+    ),
+    transferCleanupAction: progress => checked(
+      moon.strategyHostTransferCleanupAction(progress),
+    ),
     transferReceipt: moon.strategyHostTransferReceipt,
     explain: (value, bytes, nodes) => JSON.parse(checked(moon.strategyHostExplain(value, bytes, nodes))),
     usage: value => Object.freeze(Object.fromEntries(

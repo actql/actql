@@ -92,8 +92,39 @@ function coreFor(input, logicalMaterial, events = []) {
       receipt.transfer.released = true;
       events.push(['release', receipt.transfer.attempt]);
     },
-    transferDestinationAdmitted(value) {
-      return value.distinctMaterial && value.distinctGeneration &&
+    transferProgressBegin(transfer) {
+      return {
+        transfer,
+        sourceAccessStopped: false,
+        sourceSiteSettled: false,
+        destinationPresent: false,
+        destinationVerified: false,
+        destinationReclaimed: false,
+        destinationHoldingAcquired: false,
+        destinationHoldingReleased: false,
+        destinationSiteSettled: false,
+        destinationCleanupReleased: false,
+      };
+    },
+    transferRecordSourceStop(progress) {
+      progress.sourceAccessStopped = true;
+      return true;
+    },
+    transferRecordSourceSiteSettlement(progress) {
+      if (!progress.sourceAccessStopped) return false;
+      progress.sourceSiteSettled = true;
+      return true;
+    },
+    transferRecordDestinationCreated(progress) {
+      if (progress.destinationPresent || progress.destinationReclaimed) {
+        return false;
+      }
+      progress.destinationPresent = true;
+      return true;
+    },
+    transferRecordDestinationAdmission(progress, value) {
+      const admitted = progress.destinationPresent &&
+        value.distinctMaterial && value.distinctGeneration &&
         Number.isSafeInteger(value.rows) && value.rows >= 0 &&
         Number.isSafeInteger(value.batches) && value.batches >= 0 &&
         Number.isSafeInteger(value.maxBatchRows) && value.maxBatchRows > 0 &&
@@ -104,49 +135,71 @@ function coreFor(input, logicalMaterial, events = []) {
         typeof value.retainedBytes === 'bigint' &&
         value.retainedBytes >= 0n &&
         value.retainedBytes <= value.retentionLimit;
+      if (admitted) progress.destinationVerified = true;
+      return admitted;
     },
-    transferCommitAction(
-      transfer,
-      sourceAccessStopped,
-      sourceSiteSettled,
-      destinationVerified,
-      destinationHoldingRetained,
-      destinationSiteSettled,
-      destinationCleanupReleased,
-    ) {
+    transferRecordDestinationHolding(progress) {
+      if (!progress.destinationVerified) return false;
+      progress.destinationHoldingAcquired = true;
+      return true;
+    },
+    transferRecordDestinationReclaimed(progress) {
+      progress.destinationReclaimed = true;
+      return true;
+    },
+    transferRecordDestinationSiteSettlement(progress) {
+      if (progress.destinationPresent &&
+          !progress.destinationReclaimed &&
+          !progress.destinationHoldingAcquired) return false;
+      progress.destinationSiteSettled = true;
+      return true;
+    },
+    transferRecordDestinationCleanupRelease(progress) {
+      if (!progress.destinationSiteSettled) return false;
+      progress.destinationCleanupReleased = true;
+      return true;
+    },
+    transferRecordSiteHoldingRelease(progress) {
+      if (!progress.destinationHoldingAcquired ||
+          !progress.destinationReclaimed ||
+          !progress.transfer.released) return false;
+      progress.destinationHoldingReleased = true;
+      return true;
+    },
+    transferCommitAction(progress) {
+      const transfer = progress.transfer;
       if (transfer.released) throw new Error('NotReady');
       if (transfer.completed) return 12;
-      if (!sourceAccessStopped) return 0;
-      if (!sourceSiteSettled) return 2;
-      if (!destinationVerified) throw new Error('NotReady');
+      if (!progress.sourceAccessStopped) return 0;
+      if (!progress.sourceSiteSettled) return 2;
+      if (!progress.destinationVerified) throw new Error('NotReady');
       if (!transfer.settled) return 3;
-      if (!destinationHoldingRetained) return 4;
-      if (!destinationSiteSettled) return 5;
-      if (!destinationCleanupReleased) return 6;
+      if (!progress.destinationHoldingAcquired ||
+          progress.destinationHoldingReleased) return 4;
+      if (!progress.destinationSiteSettled) return 5;
+      if (!progress.destinationCleanupReleased) return 6;
       return 7;
     },
-    transferCleanupAction(
-      transfer,
-      sourceAccessStopped,
-      sourceSiteSettled,
-      destinationReclaimed,
-      destinationSiteSettled,
-      destinationCleanupReleased,
-      siteHoldingReleased,
-    ) {
-      if (!sourceAccessStopped) {
+    transferCleanupAction(progress) {
+      const transfer = progress.transfer;
+      const destinationReclaimed = !progress.destinationPresent ||
+        progress.destinationReclaimed;
+      const siteHoldingReleased = !progress.destinationHoldingAcquired ||
+        progress.destinationHoldingReleased;
+      if (!progress.sourceAccessStopped) {
         if (!transfer.completed && transfer.reservationOpen &&
             !transfer.cleanupPending) {
           return 1;
         }
-        if (destinationReclaimed && !destinationSiteSettled) return 5;
-        if (destinationReclaimed && !destinationCleanupReleased) return 6;
+        if (destinationReclaimed && !progress.destinationSiteSettled) return 5;
+        if (destinationReclaimed &&
+            !progress.destinationCleanupReleased) return 6;
         return 0;
       }
-      if (!sourceSiteSettled) return 2;
+      if (!progress.sourceSiteSettled) return 2;
       if (!destinationReclaimed) return 8;
-      if (!destinationSiteSettled) return 5;
-      if (!destinationCleanupReleased) return 6;
+      if (!progress.destinationSiteSettled) return 5;
+      if (!progress.destinationCleanupReleased) return 6;
       if (transfer.completed) {
         if (!transfer.released) return 10;
         if (!siteHoldingReleased) return 11;

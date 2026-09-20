@@ -163,10 +163,17 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
     assert.doesNotMatch(source, /execution-site-control\.fixture/);
   }
   const sites = readFileSync(productModules[0], 'utf8');
+  const transfer = readFileSync(productModules[1], 'utf8');
   assert.match(sites, /MissingExecutionSiteControl/);
   assert.doesNotMatch(sites, /reservedRetentionBytes\s*[+-]=/);
   assert.doesNotMatch(sites, /reservedExecutionBytes\s*[+-]=/);
   assert.doesNotMatch(sites, /heldBytes\s*[+-]=/);
+  assert.match(transfer, /transferProgressBegin\(transfer\)/);
+  assert.match(transfer, /transferCommitAction\(state\.progress\)/);
+  assert.match(transfer, /transferCleanupAction\(state\.progress\)/);
+  assert.doesNotMatch(transfer, /sourceAccessStopped\s*:/);
+  assert.doesNotMatch(transfer, /destinationReclaimed\s*:/);
+  assert.doesNotMatch(transfer, /siteHoldingReleased\s*:/);
   assert.deepEqual(imports('execution_site'), []);
 });
 

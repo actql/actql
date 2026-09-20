@@ -71,6 +71,8 @@ pub fn strategy_finish_durable_result_row_frames(@run_publication.DurableResultR
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
+pub fn strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
+
 pub fn strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_host_cleanup_pending(Bool, Bool, Bool) -> Bool
@@ -167,6 +169,24 @@ pub fn strategy_host_publication_inventory_program_cid(@run_publication.CheckedP
 
 pub fn strategy_host_publication_inventory_task(@run_publication.CheckedPublicationInventory, Int) -> Int raise NodeHostFailure
 
+pub fn strategy_host_record_transfer_destination_admission(@physical_strategy.ManagedTransferProgress, Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
+
+pub fn strategy_host_record_transfer_destination_cleanup_release(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_destination_created(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_destination_holding(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_destination_reclaimed(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_destination_site_settlement(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_site_holding_release(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_source_site_settlement(@physical_strategy.ManagedTransferProgress) -> Bool
+
+pub fn strategy_host_record_transfer_source_stop(@physical_strategy.ManagedTransferProgress) -> Bool
+
 pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
@@ -209,13 +229,11 @@ pub fn strategy_host_transfer_begin(@connectors_workers_async.ConfiguredComputeH
 
 pub fn strategy_host_transfer_charge(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> Unit raise NodeHostFailure
 
-pub fn strategy_host_transfer_cleanup_action(@physical_strategy.ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Int raise NodeHostFailure
+pub fn strategy_host_transfer_cleanup_action(@physical_strategy.ManagedTransferProgress) -> Int raise NodeHostFailure
 
-pub fn strategy_host_transfer_commit_action(@physical_strategy.ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Int raise NodeHostFailure
+pub fn strategy_host_transfer_commit_action(@physical_strategy.ManagedTransferProgress) -> Int raise NodeHostFailure
 
 pub fn strategy_host_transfer_complete(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise NodeHostFailure
-
-pub fn strategy_host_transfer_destination_admitted(Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
 
 pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool
 

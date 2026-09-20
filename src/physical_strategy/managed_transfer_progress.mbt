@@ -35,6 +35,79 @@ pub(all) struct ManagedTransferDestinationFacts {
 }
 
 ///|
+/// Common ownership state for one in-process managed Transfer. Environment
+/// adapters retain their physical handles, but they report observations to
+/// this owner instead of maintaining a second lifecycle state machine.
+struct ManagedTransferProgress {
+  transfer : ManagedTransfer
+  mut source_access_stopped : Bool
+  mut source_site_settled : Bool
+  mut destination_present : Bool
+  mut destination_verified : Bool
+  mut destination_reclaimed : Bool
+  mut destination_holding_acquired : Bool
+  mut destination_holding_released : Bool
+  mut destination_site_settled : Bool
+  mut destination_cleanup_released : Bool
+}
+
+///|
+pub fn begin_managed_transfer_progress(
+  transfer : ManagedTransfer,
+) -> ManagedTransferProgress {
+  {
+    transfer,
+    source_access_stopped: false,
+    source_site_settled: false,
+    destination_present: false,
+    destination_verified: false,
+    destination_reclaimed: false,
+    destination_holding_acquired: false,
+    destination_holding_released: false,
+    destination_site_settled: false,
+    destination_cleanup_released: false,
+  }
+}
+
+///|
+pub fn record_managed_transfer_source_stop(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if progress.source_access_stopped {
+    true
+  } else {
+    progress.source_access_stopped = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_source_site_settlement(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if !progress.source_access_stopped {
+    false
+  } else {
+    progress.source_site_settled = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_destination_created(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if progress.destination_present ||
+    progress.destination_verified ||
+    progress.destination_reclaimed {
+    false
+  } else {
+    progress.destination_present = true
+    true
+  }
+}
+
+///|
 /// Admit one independently owned Transfer destination against the exact
 /// pre-execution ceilings. A provider cannot turn a shared handle, aliased
 /// generation, malformed batching report, or post-copy overrun into a common
@@ -59,26 +132,106 @@ pub fn managed_transfer_destination_admitted(
 }
 
 ///|
+pub fn record_managed_transfer_destination_admission(
+  progress : ManagedTransferProgress,
+  facts : ManagedTransferDestinationFacts,
+  transfer_limit : Int64,
+  retention_limit : Int64,
+) -> Bool {
+  if !progress.destination_present ||
+    progress.destination_verified ||
+    progress.destination_reclaimed ||
+    !managed_transfer_destination_admitted(
+      facts, transfer_limit, retention_limit,
+    ) {
+    false
+  } else {
+    progress.destination_verified = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_destination_holding(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if !progress.destination_verified || progress.destination_holding_released {
+    false
+  } else {
+    progress.destination_holding_acquired = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_destination_reclaimed(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if progress.destination_reclaimed {
+    true
+  } else {
+    progress.destination_reclaimed = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_destination_site_settlement(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  let destination_finished = !progress.destination_present ||
+    progress.destination_reclaimed ||
+    progress.destination_holding_acquired
+  if !destination_finished {
+    false
+  } else {
+    progress.destination_site_settled = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_destination_cleanup_release(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if !progress.destination_site_settled {
+    false
+  } else {
+    progress.destination_cleanup_released = true
+    true
+  }
+}
+
+///|
+pub fn record_managed_transfer_site_holding_release(
+  progress : ManagedTransferProgress,
+) -> Bool {
+  if !progress.destination_holding_acquired ||
+    !progress.destination_reclaimed ||
+    !progress.transfer.released {
+    false
+  } else {
+    progress.destination_holding_released = true
+    true
+  }
+}
+
+///|
 /// Plan successful destination adoption one physical fact at a time.
 pub fn prepare_managed_transfer_commit_step(
-  transfer : ManagedTransfer,
-  source_access_stopped : Bool,
-  source_site_settled : Bool,
-  destination_verified : Bool,
-  destination_holding_retained : Bool,
-  destination_site_settled : Bool,
-  destination_cleanup_released : Bool,
+  progress : ManagedTransferProgress,
 ) -> Result[ManagedTransferRuntimeAction, RunIssue] {
   managed_transfer_commit_step(
-    transfer.settled,
-    transfer.completed,
-    transfer.released,
-    source_access_stopped,
-    source_site_settled,
-    destination_verified,
-    destination_holding_retained,
-    destination_site_settled,
-    destination_cleanup_released,
+    progress.transfer.settled,
+    progress.transfer.completed,
+    progress.transfer.released,
+    progress.source_access_stopped,
+    progress.source_site_settled,
+    progress.destination_verified,
+    progress.destination_holding_acquired &&
+    !progress.destination_holding_released,
+    progress.destination_site_settled,
+    progress.destination_cleanup_released,
   )
 }
 
@@ -130,25 +283,20 @@ fn managed_transfer_commit_step(
 /// stop remains unknown; physical reservations are released only after the
 /// corresponding observations become confirmed.
 pub fn prepare_managed_transfer_cleanup_step(
-  transfer : ManagedTransfer,
-  source_access_stopped : Bool,
-  source_site_settled : Bool,
-  destination_reclaimed : Bool,
-  destination_site_settled : Bool,
-  destination_cleanup_released : Bool,
-  site_holding_released : Bool,
+  progress : ManagedTransferProgress,
 ) -> Result[ManagedTransferRuntimeAction, RunIssue] {
   managed_transfer_cleanup_step(
-    transfer.completed,
-    transfer.released,
-    @resources.reservation_open(transfer.reservation),
-    captured_managed_transfer_pending(transfer),
-    source_access_stopped,
-    source_site_settled,
-    destination_reclaimed,
-    destination_site_settled,
-    destination_cleanup_released,
-    site_holding_released,
+    progress.transfer.completed,
+    progress.transfer.released,
+    @resources.reservation_open(progress.transfer.reservation),
+    captured_managed_transfer_pending(progress.transfer),
+    progress.source_access_stopped,
+    progress.source_site_settled,
+    !progress.destination_present || progress.destination_reclaimed,
+    progress.destination_site_settled,
+    progress.destination_cleanup_released,
+    !progress.destination_holding_acquired ||
+    progress.destination_holding_released,
   )
 }
 

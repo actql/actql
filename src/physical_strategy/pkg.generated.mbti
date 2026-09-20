@@ -23,6 +23,8 @@ pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, Ru
 
 pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
 
+pub fn begin_managed_transfer_progress(ManagedTransfer) -> ManagedTransferProgress
+
 pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
@@ -205,9 +207,9 @@ pub fn prepare_host_task_success_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, 
 
 pub fn prepare_managed_failure_step(Bool, Bool, Bool, Bool, Bool, Bool) -> ManagedFailureRuntimeAction
 
-pub fn prepare_managed_transfer_cleanup_step(ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[ManagedTransferRuntimeAction, RunIssue]
+pub fn prepare_managed_transfer_cleanup_step(ManagedTransferProgress) -> Result[ManagedTransferRuntimeAction, RunIssue]
 
-pub fn prepare_managed_transfer_commit_step(ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[ManagedTransferRuntimeAction, RunIssue]
+pub fn prepare_managed_transfer_commit_step(ManagedTransferProgress) -> Result[ManagedTransferRuntimeAction, RunIssue]
 
 pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@execution_relation.ProducerStorage, RunIssue], independent_retention? : Int64) -> Result[ResidentExecution, RunIssue]
 
@@ -220,6 +222,24 @@ pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, In
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
+pub fn record_managed_transfer_destination_admission(ManagedTransferProgress, ManagedTransferDestinationFacts, Int64, Int64) -> Bool
+
+pub fn record_managed_transfer_destination_cleanup_release(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_created(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_holding(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_reclaimed(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_destination_site_settlement(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_site_holding_release(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_source_site_settlement(ManagedTransferProgress) -> Bool
+
+pub fn record_managed_transfer_source_stop(ManagedTransferProgress) -> Bool
 
 pub fn refresh_captured_retention(CapturedDAG) -> Unit
 
@@ -456,6 +476,8 @@ pub(all) struct ManagedTransferDestinationFacts {
   transferred_bytes : Int64
   retained_bytes : Int64
 }
+
+type ManagedTransferProgress
 
 type ManagedTransferReceipt
 

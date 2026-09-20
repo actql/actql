@@ -97,34 +97,47 @@ const transferState = ({
     siteCleanup,
     upstreamRequired,
     upstream,
-    sourceAccessStopped: !upstreamRequired || !pending(upstream),
-    sourceSiteSettled: false,
-    destinationVerified: false,
-    destinationHoldingRetained: holding !== undefined,
-    destinationReclaimed: destination == null,
-    destinationSiteSettled: false,
-    destinationCleanupReleased: siteCleanup === undefined,
-    siteHoldingReleased: holding === undefined,
+    progress: core.transferProgressBegin(transfer),
     destinationCloseAttempted: destination == null,
     destinationFailure: undefined,
     destinationCleanup: undefined,
-    finalized: false,
     errors: [],
   };
 };
 
+const recordTransferFact = (accepted, code) => {
+  if (!accepted) throw fail(code);
+};
+
 const observeSourceStop = async (state, retry) => {
-  if (state.sourceAccessStopped) return;
+  if (!state.upstreamRequired) {
+    recordTransferFact(
+      state.core.transferRecordSourceStop(state.progress),
+      'InvalidManagedTransferSourceStop',
+    );
+    return;
+  }
   if (retry && pending(state.upstream) &&
       typeof member(state.upstream, 'retry') === 'function') {
     try { await state.upstream.retry(); }
     catch (error) { state.errors.push(error); }
   }
-  state.sourceAccessStopped = !pending(state.upstream);
+  if (!pending(state.upstream)) {
+    recordTransferFact(
+      state.core.transferRecordSourceStop(state.progress),
+      'InvalidManagedTransferSourceStop',
+    );
+  }
 };
 
 const reclaimDestination = async (state, retry) => {
-  if (state.destinationReclaimed) return true;
+  if (state.destination == null) {
+    recordTransferFact(
+      state.core.transferRecordDestinationReclaimed(state.progress),
+      'InvalidManagedTransferDestinationReclaim',
+    );
+    return true;
+  }
   if (state.destinationCleanup !== undefined) {
     if (retry && pending(state.destinationCleanup) &&
         typeof member(state.destinationCleanup, 'retry') === 'function') {
@@ -132,15 +145,23 @@ const reclaimDestination = async (state, retry) => {
       catch (error) { state.errors.push(error); }
     }
     if (!pending(state.destinationCleanup)) {
-      state.destinationReclaimed = true;
+      recordTransferFact(
+        state.core.transferRecordDestinationReclaimed(state.progress),
+        'InvalidManagedTransferDestinationReclaim',
+      );
+      return true;
     }
-    return state.destinationReclaimed;
+    return false;
   }
   if (state.destinationCloseAttempted) return false;
   state.destinationCloseAttempted = true;
   try {
     await state.destination.close();
-    state.destinationReclaimed = true;
+    recordTransferFact(
+      state.core.transferRecordDestinationReclaimed(state.progress),
+      'InvalidManagedTransferDestinationReclaim',
+    );
+    return true;
   } catch (error) {
     state.errors.push(error);
     state.destinationFailure = error;
@@ -150,26 +171,21 @@ const reclaimDestination = async (state, retry) => {
       state.destinationCleanup = member(error, 'cleanupHandle');
     }
   }
-  return state.destinationReclaimed;
+  return false;
 };
 
 const driveTransferCommit = state => {
   for (let step = 0; step < 16; step++) {
-    const action = state.core.transferCommitAction(
-      state.transfer,
-      state.sourceAccessStopped,
-      state.sourceSiteSettled,
-      state.destinationVerified,
-      state.destinationHoldingRetained,
-      state.destinationSiteSettled,
-      state.destinationCleanupReleased,
-    );
+    const action = state.core.transferCommitAction(state.progress);
     if (action === TRANSFER_AWAIT_SOURCE_STOP) {
       throw fail('ManagedSiteTransferStopUnconfirmed');
     }
     if (action === TRANSFER_SETTLE_SOURCE_SITE) {
       settleExecutionSiteTransferSource(state.siteOperation);
-      state.sourceSiteSettled = true;
+      recordTransferFact(
+        state.core.transferRecordSourceSiteSettlement(state.progress),
+        'InvalidManagedTransferSourceSiteSettlement',
+      );
       continue;
     }
     if (action === TRANSFER_SETTLE_RUN) {
@@ -182,18 +198,26 @@ const driveTransferCommit = state => {
         state.destination,
         state.destination.retainedBytes,
       );
-      state.destinationHoldingRetained = true;
-      state.siteHoldingReleased = false;
+      recordTransferFact(
+        state.core.transferRecordDestinationHolding(state.progress),
+        'InvalidManagedTransferDestinationHolding',
+      );
       continue;
     }
     if (action === TRANSFER_SETTLE_DESTINATION_SITE) {
       settleExecutionSiteTransferDestination(state.siteOperation);
-      state.destinationSiteSettled = true;
+      recordTransferFact(
+        state.core.transferRecordDestinationSiteSettlement(state.progress),
+        'InvalidManagedTransferDestinationSiteSettlement',
+      );
       continue;
     }
     if (action === TRANSFER_RELEASE_DESTINATION_CLEANUP) {
       releaseExecutionSiteCleanup(state.siteCleanup);
-      state.destinationCleanupReleased = true;
+      recordTransferFact(
+        state.core.transferRecordDestinationCleanupRelease(state.progress),
+        'InvalidManagedTransferDestinationCleanupRelease',
+      );
       continue;
     }
     if (action === TRANSFER_COMPLETE_RUN) {
@@ -216,15 +240,7 @@ const driveTransferCleanup = async (
 ) => {
   await observeSourceStop(state, retryPhysical);
   for (let step = 0; step < 20; step++) {
-    const action = state.core.transferCleanupAction(
-      state.transfer,
-      state.sourceAccessStopped,
-      state.sourceSiteSettled,
-      state.destinationReclaimed,
-      state.destinationSiteSettled,
-      state.destinationCleanupReleased,
-      state.siteHoldingReleased,
-    );
+    const action = state.core.transferCleanupAction(state.progress);
     if (action === TRANSFER_MARK_CLEANUP_PENDING) {
       state.core.transferSettle(state.setup, state.transfer, false);
       continue;
@@ -232,7 +248,10 @@ const driveTransferCleanup = async (
     if (action === TRANSFER_AWAIT_SOURCE_STOP) return false;
     if (action === TRANSFER_SETTLE_SOURCE_SITE) {
       settleExecutionSiteTransferSource(state.siteOperation);
-      state.sourceSiteSettled = true;
+      recordTransferFact(
+        state.core.transferRecordSourceSiteSettlement(state.progress),
+        'InvalidManagedTransferSourceSiteSettlement',
+      );
       continue;
     }
     if (action === TRANSFER_RECLAIM_DESTINATION) {
@@ -243,12 +262,18 @@ const driveTransferCleanup = async (
     }
     if (action === TRANSFER_SETTLE_DESTINATION_SITE) {
       settleExecutionSiteTransferDestination(state.siteOperation);
-      state.destinationSiteSettled = true;
+      recordTransferFact(
+        state.core.transferRecordDestinationSiteSettlement(state.progress),
+        'InvalidManagedTransferDestinationSiteSettlement',
+      );
       continue;
     }
     if (action === TRANSFER_RELEASE_DESTINATION_CLEANUP) {
       releaseExecutionSiteCleanup(state.siteCleanup);
-      state.destinationCleanupReleased = true;
+      recordTransferFact(
+        state.core.transferRecordDestinationCleanupRelease(state.progress),
+        'InvalidManagedTransferDestinationCleanupRelease',
+      );
       continue;
     }
     if (action === TRANSFER_ABORT_RUN) {
@@ -264,11 +289,13 @@ const driveTransferCleanup = async (
     }
     if (action === TRANSFER_RELEASE_SITE_HOLDING) {
       releaseExecutionSiteHolding(state.holding);
-      state.siteHoldingReleased = true;
+      recordTransferFact(
+        state.core.transferRecordSiteHoldingRelease(state.progress),
+        'InvalidManagedTransferSiteHoldingRelease',
+      );
       continue;
     }
     if (action === TRANSFER_FINISHED) {
-      state.finalized = true;
       return true;
     }
     throw fail('InvalidManagedTransferCleanupAction');
@@ -285,7 +312,8 @@ const transferFailure = async (reason, state) => {
     state.errors.push(error);
   }
   const status = () => Object.freeze({
-    pending: !state.finalized,
+    pending: state.core.transferCleanupAction(state.progress) !==
+      TRANSFER_FINISHED,
     errors: Object.freeze([...state.errors]),
   });
   const refresh = () => {
@@ -433,30 +461,41 @@ export function createManagedSiteTransferCoordinator(
         estimate,
       });
       state.destination = destination;
-      state.destinationReclaimed = destination == null;
       state.destinationCloseAttempted = destination == null;
-      state.sourceAccessStopped = true;
+      recordTransferFact(
+        state.core.transferRecordSourceStop(state.progress),
+        'InvalidManagedTransferSourceStop',
+      );
+      if (destination != null) {
+        recordTransferFact(
+          state.core.transferRecordDestinationCreated(state.progress),
+          'InvalidManagedTransferDestinationCreation',
+        );
+      }
       if (!validDestinationShape(destination) ||
-          !core.transferDestinationAdmitted(Object.freeze({
-            distinctMaterial: destination.material !== occurrence.siteMaterial &&
-              destination.material !== occurrence.material,
-            distinctGeneration:
-              destination.generation !== occurrence.materialGeneration,
-            rows: destination.rows,
-            batches: destination.batches,
-            maxBatchRows: destination.maxBatchRows,
-            maxBatchBytes: destination.maxBatchBytes,
-            transferredBytes: destination.bytes,
-            retainedBytes: destination.retainedBytes,
-            transferLimit: estimate.transferBytes,
-            retentionLimit: estimate.retainedBytes,
-          }))) {
+          !core.transferRecordDestinationAdmission(
+            state.progress,
+            Object.freeze({
+              distinctMaterial:
+                destination.material !== occurrence.siteMaterial &&
+                destination.material !== occurrence.material,
+              distinctGeneration:
+                destination.generation !== occurrence.materialGeneration,
+              rows: destination.rows,
+              batches: destination.batches,
+              maxBatchRows: destination.maxBatchRows,
+              maxBatchBytes: destination.maxBatchBytes,
+              transferredBytes: destination.bytes,
+              retainedBytes: destination.retainedBytes,
+              transferLimit: estimate.transferBytes,
+              retentionLimit: estimate.retainedBytes,
+            }),
+          )) {
         throw fail('InvalidTransferDestination');
       }
       if (!executionSiteTransferOperationAvailable(siteOperation)) {
         throw fail('ExecutionSiteTransferCommitRejected');
       }
-      state.destinationVerified = true;
       const receipt = driveTransferCommit(state);
       const receiptFields = core.transferReceipt(receipt);
       if (!core.transferReceiptMatches(
@@ -541,8 +580,12 @@ export function createManagedSiteTransferCoordinator(
       state.upstreamRequired = member(reason, 'cleanupPending') === true;
       state.upstream = state.upstreamRequired
         ? member(reason, 'cleanupHandle') : undefined;
-      state.sourceAccessStopped = !state.upstreamRequired ||
-        !pending(state.upstream);
+      if (!state.upstreamRequired || !pending(state.upstream)) {
+        recordTransferFact(
+          state.core.transferRecordSourceStop(state.progress),
+          'InvalidManagedTransferSourceStop',
+        );
+      }
       throw await transferFailure(reason, state);
     }
   }

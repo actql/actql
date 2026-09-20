@@ -2330,8 +2330,41 @@ pub fn strategy_host_transfer_pending(
 }
 
 ///|
-#export_name("strategyHostTransferDestinationAdmitted")
-pub fn strategy_host_transfer_destination_admitted(
+#export_name("strategyHostBeginTransferProgress")
+pub fn strategy_host_begin_transfer_progress(
+  transfer : @strategy.ManagedTransfer,
+) -> @strategy.ManagedTransferProgress {
+  @strategy.begin_managed_transfer_progress(transfer)
+}
+
+///|
+#export_name("strategyHostRecordTransferSourceStop")
+pub fn strategy_host_record_transfer_source_stop(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_source_stop(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferSourceSiteSettlement")
+pub fn strategy_host_record_transfer_source_site_settlement(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_source_site_settlement(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferDestinationCreated")
+pub fn strategy_host_record_transfer_destination_created(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_created(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferDestinationAdmission")
+pub fn strategy_host_record_transfer_destination_admission(
+  progress : @strategy.ManagedTransferProgress,
   distinct_material : Bool,
   distinct_generation : Bool,
   rows : Int,
@@ -2343,7 +2376,8 @@ pub fn strategy_host_transfer_destination_admitted(
   transfer_limit : Int64,
   retention_limit : Int64,
 ) -> Bool {
-  @strategy.managed_transfer_destination_admitted(
+  @strategy.record_managed_transfer_destination_admission(
+    progress,
     {
       distinct_material,
       distinct_generation,
@@ -2360,21 +2394,51 @@ pub fn strategy_host_transfer_destination_admitted(
 }
 
 ///|
+#export_name("strategyHostRecordTransferDestinationHolding")
+pub fn strategy_host_record_transfer_destination_holding(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_holding(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferDestinationReclaimed")
+pub fn strategy_host_record_transfer_destination_reclaimed(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_reclaimed(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferDestinationSiteSettlement")
+pub fn strategy_host_record_transfer_destination_site_settlement(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_site_settlement(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferDestinationCleanupRelease")
+pub fn strategy_host_record_transfer_destination_cleanup_release(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_cleanup_release(progress)
+}
+
+///|
+#export_name("strategyHostRecordTransferSiteHoldingRelease")
+pub fn strategy_host_record_transfer_site_holding_release(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_site_holding_release(progress)
+}
+
+///|
 #export_name("strategyHostTransferCommitAction")
 pub fn strategy_host_transfer_commit_action(
-  transfer : @strategy.ManagedTransfer,
-  source_access_stopped : Bool,
-  source_site_settled : Bool,
-  destination_verified : Bool,
-  destination_holding_retained : Bool,
-  destination_site_settled : Bool,
-  destination_cleanup_released : Bool,
+  progress : @strategy.ManagedTransferProgress,
 ) -> Int raise NodeHostFailure {
-  match
-    @strategy.prepare_managed_transfer_commit_step(
-      transfer, source_access_stopped, source_site_settled, destination_verified,
-      destination_holding_retained, destination_site_settled, destination_cleanup_released,
-    ) {
+  match @strategy.prepare_managed_transfer_commit_step(progress) {
     Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
     Err(issue) => raise Execution(issue)
   }
@@ -2383,19 +2447,9 @@ pub fn strategy_host_transfer_commit_action(
 ///|
 #export_name("strategyHostTransferCleanupAction")
 pub fn strategy_host_transfer_cleanup_action(
-  transfer : @strategy.ManagedTransfer,
-  source_access_stopped : Bool,
-  source_site_settled : Bool,
-  destination_reclaimed : Bool,
-  destination_site_settled : Bool,
-  destination_cleanup_released : Bool,
-  site_holding_released : Bool,
+  progress : @strategy.ManagedTransferProgress,
 ) -> Int raise NodeHostFailure {
-  match
-    @strategy.prepare_managed_transfer_cleanup_step(
-      transfer, source_access_stopped, source_site_settled, destination_reclaimed,
-      destination_site_settled, destination_cleanup_released, site_holding_released,
-    ) {
+  match @strategy.prepare_managed_transfer_cleanup_step(progress) {
     Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
     Err(issue) => raise Execution(issue)
   }
@@ -8173,8 +8227,41 @@ pub fn async_strategy_host_transfer_pending(
 }
 
 ///|
-#export_name("asyncStrategyHostTransferDestinationAdmitted")
-pub fn async_strategy_host_transfer_destination_admitted(
+#export_name("asyncStrategyHostBeginTransferProgress")
+pub fn async_strategy_host_begin_transfer_progress(
+  transfer : @strategy.ManagedTransfer,
+) -> @strategy.ManagedTransferProgress {
+  @strategy.begin_managed_transfer_progress(transfer)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferSourceStop")
+pub fn async_strategy_host_record_transfer_source_stop(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_source_stop(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferSourceSiteSettlement")
+pub fn async_strategy_host_record_transfer_source_site_settlement(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_source_site_settlement(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferDestinationCreated")
+pub fn async_strategy_host_record_transfer_destination_created(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_created(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferDestinationAdmission")
+pub fn async_strategy_host_record_transfer_destination_admission(
+  progress : @strategy.ManagedTransferProgress,
   distinct_material : Bool,
   distinct_generation : Bool,
   rows : Int,
@@ -8186,7 +8273,8 @@ pub fn async_strategy_host_transfer_destination_admitted(
   transfer_limit : Int64,
   retention_limit : Int64,
 ) -> Bool {
-  @strategy.managed_transfer_destination_admitted(
+  @strategy.record_managed_transfer_destination_admission(
+    progress,
     {
       distinct_material,
       distinct_generation,
@@ -8203,21 +8291,51 @@ pub fn async_strategy_host_transfer_destination_admitted(
 }
 
 ///|
+#export_name("asyncStrategyHostRecordTransferDestinationHolding")
+pub fn async_strategy_host_record_transfer_destination_holding(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_holding(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferDestinationReclaimed")
+pub fn async_strategy_host_record_transfer_destination_reclaimed(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_reclaimed(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferDestinationSiteSettlement")
+pub fn async_strategy_host_record_transfer_destination_site_settlement(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_site_settlement(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferDestinationCleanupRelease")
+pub fn async_strategy_host_record_transfer_destination_cleanup_release(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_destination_cleanup_release(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTransferSiteHoldingRelease")
+pub fn async_strategy_host_record_transfer_site_holding_release(
+  progress : @strategy.ManagedTransferProgress,
+) -> Bool {
+  @strategy.record_managed_transfer_site_holding_release(progress)
+}
+
+///|
 #export_name("asyncStrategyHostTransferCommitAction")
 pub fn async_strategy_host_transfer_commit_action(
-  transfer : @strategy.ManagedTransfer,
-  source_access_stopped : Bool,
-  source_site_settled : Bool,
-  destination_verified : Bool,
-  destination_holding_retained : Bool,
-  destination_site_settled : Bool,
-  destination_cleanup_released : Bool,
+  progress : @strategy.ManagedTransferProgress,
 ) -> Int raise AsyncHostFailure {
-  match
-    @strategy.prepare_managed_transfer_commit_step(
-      transfer, source_access_stopped, source_site_settled, destination_verified,
-      destination_holding_retained, destination_site_settled, destination_cleanup_released,
-    ) {
+  match @strategy.prepare_managed_transfer_commit_step(progress) {
     Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
     Err(issue) => raise Execution(issue)
   }
@@ -8226,19 +8344,9 @@ pub fn async_strategy_host_transfer_commit_action(
 ///|
 #export_name("asyncStrategyHostTransferCleanupAction")
 pub fn async_strategy_host_transfer_cleanup_action(
-  transfer : @strategy.ManagedTransfer,
-  source_access_stopped : Bool,
-  source_site_settled : Bool,
-  destination_reclaimed : Bool,
-  destination_site_settled : Bool,
-  destination_cleanup_released : Bool,
-  site_holding_released : Bool,
+  progress : @strategy.ManagedTransferProgress,
 ) -> Int raise AsyncHostFailure {
-  match
-    @strategy.prepare_managed_transfer_cleanup_step(
-      transfer, source_access_stopped, source_site_settled, destination_reclaimed,
-      destination_site_settled, destination_cleanup_released, site_holding_released,
-    ) {
+  match @strategy.prepare_managed_transfer_cleanup_step(progress) {
     Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
     Err(issue) => raise Execution(issue)
   }
