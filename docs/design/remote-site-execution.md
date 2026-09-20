@@ -234,6 +234,14 @@ The source pin follows actual source access. Once source access has stopped,
 destination cleanup cannot prolong that pin if it no longer refers to the
 source. Destination holding and cleanup remain independently accountable.
 
+The common Transfer record is persisted as one canonical body containing the
+re-admitted request, physical manifest, and independent attempt, object,
+integrity, and cleanup states. Its journal key identifies the Transfer
+occurrence rather than its content, so retransmission can return the existing
+record while different content for the same occurrence is rejected. Native
+SQLite performs only transactional insert, compare-and-swap, and recovery;
+MoonBit remains the sole authority for valid state combinations.
+
 ## Publication, credentials, and bundles
 
 A Site may stream a checked Result occurrence directly to the Publication

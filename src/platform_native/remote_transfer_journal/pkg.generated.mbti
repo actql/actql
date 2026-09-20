@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_transfer_journal"
+
+import {
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_transfer",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn open_journal(@sqlite.Library, String, Int64, Int, Int, Int64) -> Result[Journal, NativeRemoteTransferJournalIssue]
+
+pub fn recovered_remote_transfer_key(RecoveredRemoteTransfer) -> String
+
+pub fn recovered_remote_transfer_record(RecoveredRemoteTransfer) -> @remote_transfer.RemoteTransferRecord
+
+// Errors
+
+// Types and methods
+type Journal
+pub fn Journal::accept(Self, @remote_transfer.RemoteTransferRequest) -> Result[(NativeRemoteTransferAdmission, @remote_transfer.RemoteTransferRecord), NativeRemoteTransferJournalIssue]
+pub fn Journal::close(Self) -> Bool
+pub fn Journal::commit_transition(Self, @remote_transfer.RemoteTransferTransition) -> Result[Unit, NativeRemoteTransferJournalIssue]
+pub fn Journal::recover_after(Self, String) -> Result[RecoveredRemoteTransfer?, NativeRemoteTransferJournalIssue]
+pub fn Journal::require(Self, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferJournalIssue]
+
+pub(all) enum NativeRemoteTransferAdmission {
+  NewTransfer
+  ExistingTransfer
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NativeRemoteTransferJournalIssue {
+  UnsupportedTarget
+  Closed
+  Physical(@sqlite.NativeSqliteIssue)
+  Protocol(@remote_transfer.RemoteTransferIssue)
+  StateCollision
+}
+
+type RecoveredRemoteTransfer
+
+// Type aliases
+
+// Traits

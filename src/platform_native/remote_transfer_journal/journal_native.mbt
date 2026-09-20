@@ -1,0 +1,260 @@
+///|
+struct Journal {
+  database : @sqlite.Database
+  max_chunks : Int
+  max_manifest_bytes : Int
+  max_referenced_bytes : Int64
+  mut closed : Bool
+}
+
+///|
+pub fn open_journal(
+  library : @sqlite.Library,
+  path : String,
+  max_record_bytes : Int64,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[Journal, NativeRemoteTransferJournalIssue] {
+  if max_record_bytes < 0L ||
+    max_chunks < 0 ||
+    max_manifest_bytes < 0 ||
+    max_referenced_bytes < 0L {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  match library.open_database(path, max_record_bytes) {
+    Ok(database) =>
+      Ok({
+        database,
+        max_chunks,
+        max_manifest_bytes,
+        max_referenced_bytes,
+        closed: false,
+      })
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+fn Journal::restore_value(
+  self : Journal,
+  value : @sqlite.NativeJournalValue,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferJournalIssue] {
+  let durable = match
+    @transfer.admit_durable_remote_transfer_record(
+      value.body,
+      self.max_chunks,
+      self.max_manifest_bytes,
+      self.max_referenced_bytes,
+    ) {
+    Ok(record) => record
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if value.revision !=
+    @transfer.durable_remote_transfer_record_revision(durable).to_int64() {
+    return Err(StateCollision)
+  }
+  match @transfer.restore_durable_remote_transfer_record(durable) {
+    Ok(record) => Ok(record)
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+fn Journal::existing(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  value : @sqlite.NativeJournalValue,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferJournalIssue] {
+  let record = match self.restore_value(value) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if @transfer.record_request_identity(record) == @transfer.request_cid(request) {
+    Ok(record)
+  } else {
+    Err(StateCollision)
+  }
+}
+
+///|
+pub fn Journal::accept(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[
+  (NativeRemoteTransferAdmission, @transfer.RemoteTransferRecord),
+  NativeRemoteTransferJournalIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.read("remote_transfer", key) {
+    Ok(value) =>
+      match self.existing(request, value) {
+        Ok(record) => Ok((ExistingTransfer, record))
+        Err(issue) => Err(issue)
+      }
+    Err(@sqlite.NotFound) => {
+      let record = @transfer.open_record(request)
+      let body = match @transfer.remote_transfer_record_durable_json(record) {
+        Ok(value) => journal_bytes(value)
+        Err(issue) => return Err(Protocol(issue))
+      }
+      match self.database.begin_immediate() {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      match self.database.read("remote_transfer", key) {
+        Ok(value) => {
+          ignore(self.database.rollback())
+          return match self.existing(request, value) {
+            Ok(existing) => Ok((ExistingTransfer, existing))
+            Err(issue) => Err(issue)
+          }
+        }
+        Err(@sqlite.NotFound) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.insert("remote_transfer", key, body) {
+        Ok(0L) => ()
+        Ok(_) | Err(@sqlite.Collision) => {
+          ignore(self.database.rollback())
+          return Err(StateCollision)
+        }
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.commit() {
+        Ok(_) => Ok((NewTransfer, record))
+        Err(issue) => {
+          ignore(self.database.rollback())
+          Err(Physical(issue))
+        }
+      }
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::require(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.read("remote_transfer", key) {
+    Ok(value) => self.existing(request, value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::commit_transition(
+  self : Journal,
+  transition : @transfer.RemoteTransferTransition,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match
+    @transfer.remote_transfer_transition_journal_identity(transition) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let expected = @transfer.remote_transfer_transition_expected_revision(
+    transition,
+  )
+  let body = match
+    @transfer.remote_transfer_transition_durable_json(transition) {
+    Ok(value) => journal_bytes(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let durable = match
+    self.database.compare_exchange(
+      "remote_transfer",
+      key,
+      expected.to_int64(),
+      body,
+    ) {
+    Ok(revision) => revision == expected.to_int64() + 1L
+    Err(@sqlite.Collision) =>
+      match self.database.read("remote_transfer", key) {
+        Ok(value) =>
+          value.revision == expected.to_int64() + 1L && value.body == body
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  if !durable {
+    ignore(self.database.rollback())
+    return Err(StateCollision)
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match @transfer.commit_transition(transition, true) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+pub fn Journal::recover_after(
+  self : Journal,
+  after_key : String,
+) -> Result[RecoveredRemoteTransfer?, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.database.scan_after("remote_transfer", after_key) {
+    Ok(entry) => {
+      let record = match
+        self.restore_value({ revision: entry.revision, body: entry.body, }) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok(Some({ key: entry.key, record, }))
+    }
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::close(self : Journal) -> Bool {
+  if self.closed {
+    return true
+  }
+  self.database.close()
+  self.closed = true
+  true
+}
