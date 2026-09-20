@@ -82,17 +82,12 @@ fn claim_task_publication(
 }
 
 ///|
-/// The common success boundary for synchronous and asynchronous realizations.
-/// This stays private: the caller must already own a verified execution and its
-/// allocation. Connector-specific publication runs only after exact output-port
-/// and input-binding checks, and cannot expose a DAG success without retention.
-fn publish_task_completion(
+fn validate_materialized_task_output(
   run : CapturedDAG,
   task : Int,
   output : @execution.CompletedOutput,
   holding : @resources.Holding,
   mismatch : RunIssue,
-  publish : (TaskPublication) -> Result[Unit, RunIssue],
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -108,6 +103,44 @@ fn publish_task_completion(
   }
   if !@resources.holding_available(run.ledger, holding) {
     return Err(Physical(InvalidCharge))
+  }
+  Ok(())
+}
+
+///|
+/// Commit a verified materialized output without a Connector publication hook.
+/// This is the product success boundary for synchronous and materializing work.
+fn commit_materialized_task_output(
+  run : CapturedDAG,
+  task : Int,
+  output : @execution.CompletedOutput,
+  holding : @resources.Holding,
+  mismatch : RunIssue,
+) -> Result[Unit, RunIssue] {
+  match
+    validate_materialized_task_output(run, task, output, holding, mismatch) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  commit_task_output(run, task, Materialized(output), Some(holding))
+}
+
+///|
+/// Compatibility success boundary for implementations that still expose a
+/// scoped publication hook. New product paths commit through
+/// `commit_materialized_task_output` and never receive `TaskPublication`.
+fn publish_task_completion(
+  run : CapturedDAG,
+  task : Int,
+  output : @execution.CompletedOutput,
+  holding : @resources.Holding,
+  mismatch : RunIssue,
+  publish : (TaskPublication) -> Result[Unit, RunIssue],
+) -> Result[Unit, RunIssue] {
+  match
+    validate_materialized_task_output(run, task, output, holding, mismatch) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let publication = {
     owner: run.offer_owner,

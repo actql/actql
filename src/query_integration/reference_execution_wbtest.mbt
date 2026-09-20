@@ -125,6 +125,9 @@ test "independent numeric bundle executes through common reservation and retaine
     }
     @strategy.settle_task_execution(run, task, true).unwrap()
     if !cancel {
+      assert_true(
+        @strategy.complete_task_execution(run, task) is Err(ForeignCandidate),
+      )
       let output = @reference_compute.numeric_attempt_completed_output(attempt).unwrap()
       @strategy.complete_materializing_task_execution(run, task, output).unwrap()
       let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()

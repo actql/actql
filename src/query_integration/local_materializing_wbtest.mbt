@@ -209,6 +209,10 @@ test "Local materializing execution uses the common reservation and exact retain
         }
       }
       if mode != 6 {
+        assert_true(
+          @strategy.complete_task_execution(run, ticket)
+          is Err(ForeignCandidate),
+        )
         let output = @local_connector.local_materializing_completed_output(
           consumer,
         ).unwrap()

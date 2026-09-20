@@ -807,7 +807,7 @@ fn complete_materialized_execution(
   run : CapturedDAG,
   execution : TaskExecution,
   finish : () -> Result[@execution.CompletedOutput, RunIssue],
-  publish : (TaskPublication) -> Result[Unit, RunIssue],
+  legacy_publish : ((TaskPublication) -> Result[Unit, RunIssue])?,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -847,19 +847,60 @@ fn complete_materialized_execution(
   execution.retained_bytes = None
   match finish() {
     Ok(output) => {
-      match
-        publish_task_completion(run, task, output, holding, ForeignCandidate, fn(
-          publication,
-        ) {
-          if execution.resident is Some(resource) &&
-            resource.pending is Some(pending) {
-            match publish_resident_output(run, task, pending, publication) {
-              Err(issue) => return Err(issue)
-              Ok(_) => ()
+      let completed = match legacy_publish {
+        Some(publish) =>
+          publish_task_completion(
+            run,
+            task,
+            output,
+            holding,
+            ForeignCandidate,
+            fn(publication) {
+              if execution.resident is Some(resource) &&
+                resource.pending is Some(pending) {
+                match publish_resident_output(run, task, pending, publication) {
+                  Err(issue) => return Err(issue)
+                  Ok(_) => ()
+                }
+              }
+              publish(publication)
+            },
+          )
+        None =>
+          match
+            validate_materialized_task_output(
+              run,
+              task,
+              output,
+              holding,
+              ForeignCandidate,
+            ) {
+            Err(issue) => Err(issue)
+            Ok(_) => {
+              let binding = match execution.resident {
+                Some(resource) =>
+                  match resource.pending {
+                    Some(pending) =>
+                      bind_resident_output(run, task, pending, output)
+                    None => Ok(())
+                  }
+                None => Ok(())
+              }
+              match binding {
+                Err(issue) => Err(issue)
+                Ok(_) =>
+                  commit_materialized_task_output(
+                    run,
+                    task,
+                    output,
+                    holding,
+                    ForeignCandidate,
+                  )
+              }
             }
           }
-          publish(publication)
-        }) {
+      }
+      match completed {
         Err(issue) => {
           execution.failed_holding = Some(holding)
           fail_captured_task(run, task, issue)
@@ -891,9 +932,7 @@ pub fn complete_materializing_task_execution(
   if execution.legacy_completion is Some(_) {
     return Err(ForeignCandidate)
   }
-  complete_materialized_execution(run, execution, fn() { Ok(output) }, fn(_) {
-    Ok(())
-  })
+  complete_materialized_execution(run, execution, fn() { Ok(output) }, None)
 }
 
 ///|
@@ -908,7 +947,7 @@ pub fn complete_deferred_materializing_task_execution(
   if execution.legacy_completion is Some(_) {
     return Err(ForeignCandidate)
   }
-  complete_materialized_execution(run, execution, materialize, fn(_) { Ok(()) })
+  complete_materialized_execution(run, execution, materialize, None)
 }
 
 ///|
@@ -925,7 +964,7 @@ pub fn complete_task_execution(
     run,
     execution,
     completion.finish,
-    completion.publish,
+    Some(completion.publish),
   )
 }
 

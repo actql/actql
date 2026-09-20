@@ -919,9 +919,13 @@ pub fn execute_captured_synchronous_task(
   match @connector.execute_synchronous_compute(compute) {
     Ok(output) => {
       match
-        publish_task_completion(run, task, output, holding, MissingOutput, _ => {
-          Ok(())
-        }) {
+        commit_materialized_task_output(
+          run,
+          task,
+          output,
+          holding,
+          MissingOutput,
+        ) {
         Err(issue) => {
           @resources.release_allocation(run.ledger, holding) |> ignore
           @resources.settle_reservation(run.ledger, reservation) |> ignore
