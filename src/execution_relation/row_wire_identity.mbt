@@ -47,6 +47,14 @@ struct LogicalRelationIdentity {
 }
 
 ///|
+/// Registered law set containing the adopted logical Relation preimage. The
+/// exact pinned law is `computeCid({sort:"relation",value:canonical_rows})`;
+/// it is intentionally distinct from the acquisition ordered-row contract.
+pub fn logical_relation_canonical_contract_cid() -> String {
+  "sha256:c56618640aa84af330359c39433472fcafb476bef1f94323c3934ff49a8d508f"
+}
+
+///|
 priv struct CapturedWireRows {
   rows : CapturedRows
 }

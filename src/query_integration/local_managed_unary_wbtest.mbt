@@ -213,10 +213,21 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
 }
 
 ///|
-fn run_local_managed_unary_case(kind : String) -> Unit raise {
+fn run_local_managed_unary_case(
+  kind : String,
+  publication? : Bool = false,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_unary_chain=Some(kind),
+    managed_publication=publication,
   )
+  if publication {
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
+      ),
+    )
+  }
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(
@@ -247,6 +258,11 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
   ).unwrap()
 
   let values_live = Ref(true)
+  let values_obligations = if publication {
+    Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+  } else {
+    None
+  }
   let (values_ops, values) = run_local_managed_test_task(
     installed,
     run,
@@ -255,11 +271,17 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
     [],
     1,
     values_live,
+    obligations?=values_obligations,
   )
   let value_rows = local_managed_test_rows(values_ops)
   assert_eq(value_rows, local_managed_unary_input_expected(kind))
 
   let unary_live = Ref(true)
+  let unary_obligations = if publication {
+    Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+  } else {
+    None
+  }
   let (unary_ops, unary) = run_local_managed_test_task(
     installed,
     run,
@@ -268,12 +290,44 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
     [value_rows],
     2,
     unary_live,
+    obligations?=unary_obligations,
   )
   let expected = local_managed_unary_expected(kind)
   assert_eq(local_managed_test_rows(unary_ops), expected)
+  if unary_obligations is Some(obligations) {
+    let requirements = @execution.managed_obligations_identities(obligations)
+    let published = requirements.filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(published.length(), 1)
+    assert_eq(
+      @execution.managed_completed_identity_requirement_status(
+        unary,
+        published[0],
+      ),
+      Some(
+        @execution.EstablishedSourceRetained(
+          @execution.logical_relation_canonical_contract_cid(),
+          "sha256:ba372259aded413375251cdfa441942f50af17a015693aea14883407d171dbcd",
+        ),
+      ),
+    )
+    assert_true(
+      @execution.managed_completed_deadline_satisfied(
+        unary,
+        @execution.BeforePublication,
+      ),
+    )
+  }
   let consumer_expected = local_managed_unary_consumer_expected(kind)
 
   let first_live = Ref(true)
+  let first_obligations = if publication {
+    Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+  } else {
+    None
+  }
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
@@ -282,8 +336,14 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
     [expected],
     3,
     first_live,
+    obligations?=first_obligations,
   )
   let second_live = Ref(true)
+  let second_obligations = if publication {
+    Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+  } else {
+    None
+  }
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
@@ -292,6 +352,7 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
     [expected],
     4,
     second_live,
+    obligations?=second_obligations,
   )
   assert_eq(local_managed_test_rows(first_ops), consumer_expected)
   assert_eq(local_managed_test_rows(second_ops), consumer_expected)
@@ -324,6 +385,11 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local establishes the exact Named Result identity before publication" {
+  run_local_managed_unary_case("select", publication=true)
 }
 
 ///|

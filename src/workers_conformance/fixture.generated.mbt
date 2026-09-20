@@ -41,10 +41,14 @@ fn captured_graph_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
+  local_values_interval_chain? : Bool = false,
+  local_values_asof_chain? : Bool = false,
+  local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
+  managed_publication? : Bool = false,
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
@@ -92,10 +96,14 @@ fn captured_graph_fixture(
     local_values_join_chain~,
     local_values_join_kind~,
     local_values_join_imported_full~,
+    local_values_interval_chain~,
+    local_values_asof_chain~,
+    local_values_sequence_chain~,
     local_values_nest_chain~,
     local_values_unary_chain~,
     local_select_qualified_chain~,
     join_steps~,
+    managed_publication~,
     compute_filter~,
   )
   let sequence = query_checked_sequence(program)
@@ -282,8 +290,16 @@ fn join_graph_capacity_material(
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
+  let window = variant == "window_fixed" || variant == "window_sliding"
+  let session = variant == "session"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
+  } else if window {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
+    "\"window_start_ms\",\"window_end_ms\"]"
+  } else if session {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
+    "\"session_start_ms\",\"session_end_ms\",\"session_id\"]"
   } else {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"watermark_ms\",\"late\",\"watermark_decision\"]"
@@ -293,6 +309,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if session {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else {
     "[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
     "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
@@ -302,11 +322,21 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
+  } else if variant == "window_fixed" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
+  } else if variant == "window_sliding" {
+    "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if session {
+    "{\"session\":{\"by\":[\"payload\"],\"gap\":10}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
   let second_fields = if dedupe {
     "[\"payload\",\"event_id\"]"
+  } else if window {
+    "[\"payload\",\"window_start_ms\",\"event_id\"]"
+  } else if session {
+    "[\"payload\",\"session_id\",\"event_id\"]"
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
@@ -1020,6 +1050,14 @@ fn local_values_append_program(variant : String) -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_asof_join_wbtest.mbt
+fn local_values_asof_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"clock":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"id":2,"key":1,"clock":7,"value":20},{"id":1,"key":1,"clock":5,"value":10},{"id":3,"key":null,"clock":6,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","value"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"clock":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"id":11,"key":1,"clock":4,"value":40},{"id":12,"key":1,"clock":6,"value":60},{"id":13,"key":1,"clock":8,"value":80},{"id":14,"key":null,"clock":6,"value":99}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","asof_join":{"with":"r","kind":"left","by":[{"left":"key","right":"key"}],"left_id":"id","left_time":"clock","right_time":"clock","direction":"nearest","tolerance":3,"right_tie_break":["id"],"select":{"id":"left.id","value":"right.value"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["value","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["value","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_values_group_program(variant : String) -> String {
   let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
@@ -1189,6 +1227,14 @@ fn local_values_group_program(variant : String) -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_interval_join_wbtest.mbt
+fn local_values_interval_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"number","nullable":true},"time":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"time":2,"value":10},{"key":2,"time":7,"value":11},{"key":null,"time":1,"value":12}]},"as":"out"}],"results":{"r":{"from":"out","fields":["key","time","value"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"number","nullable":true},"start":{"type":"number","nullable":false},"end":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"start":0,"end":3,"value":20},{"key":1,"start":2,"end":4,"value":21},{"key":2,"start":8,"end":9,"value":22},{"key":null,"start":0,"end":3,"value":23}]},"as":"out"}],"results":{"r":{"from":"out","fields":["key","start","end","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","interval_join":{"with":"r","kind":"inner","mode":"point_in_interval","on":[{"left":"key","right":"key"}],"left":{"time":"time"},"right":{"start":"start","end":"end"},"select":{"left_value":"left.value","right_value":"right.value"},"max_output_rows":12},"as":"out"}],"results":{"r":{"from":"out","fields":["left_value","right_value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["right_value","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 /// Fixture owner: query_integration/local_managed_lag_wbtest.mbt
 fn local_values_lag_program(variant : String) -> String {
   let offset = match variant {
@@ -1240,6 +1286,14 @@ fn local_values_lag_program(variant : String) -> String {
 fn local_values_nest_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"parents","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true}},"rows":[{"id":1,"key":1},{"id":2,"key":1},{"id":3,"key":null},{"id":4,"key":2}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key"]}}},{"id":"children","inputs":{},"steps":[{"values":{"schema":{"child_id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"value":{"type":"number","nullable":true}},"rows":[{"child_id":2,"key":1,"value":null},{"child_id":1,"key":1,"value":10},{"child_id":3,"key":null,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["child_id","key","value"]}}},{"id":"nested","inputs":{"parents":{"result":{"stage":"parents","result":"r"}},"children":{"result":{"stage":"children","result":"r"}}},"steps":[{"from":"parents","nest":{"with":"children","on":[{"left":"key","right":"key"}],"into":"items","fields":[{"amount":"value"}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["id","key","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["items","id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["items","id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_sequence_wbtest.mbt
+fn local_values_sequence_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"events","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"clock":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"id":3,"key":1,"clock":3,"value":2},{"id":1,"key":1,"clock":1,"value":1},{"id":4,"key":2,"clock":4,"value":2},{"id":2,"key":1,"clock":2,"value":2},{"id":5,"key":2,"clock":3,"value":1}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","value"]}}},{"id":"matched","inputs":{"x":{"result":{"stage":"events","result":"r"}}},"steps":[{"from":"x","sequence":{"by":["key"],"id":"id","time":"clock","pattern":[{"as":"start","where":"value = 1"},{"as":"end","where":"value = 2"}],"within":10,"overlap":"allow","contiguity":"subsequence"},"as":"out"}],"results":{"r":{"from":"out","fields":["end_id","end_time_ms","key","match_end_ms","match_start_ms","start_id","start_time_ms"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"matched","result":"r"}}},"steps":[{"select":["key","start_id","end_id"],"as":"out"}],"results":{"r":{"from":"out","fields":["key","start_id","end_id"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"matched","result":"r"}}},"steps":[{"select":["end_id","start_id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["end_id","start_id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
 }
 
@@ -2152,10 +2206,14 @@ fn query_checked_program_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
+  local_values_interval_chain? : Bool = false,
+  local_values_asof_chain? : Bool = false,
+  local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
+  managed_publication? : Bool = false,
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
@@ -2207,6 +2265,21 @@ fn query_checked_program_fixture(
   }
   let text = if local_time_series_chain {
     local_time_series_program()
+  } else {
+    text
+  }
+  let text = if local_values_interval_chain {
+    local_values_interval_program()
+  } else {
+    text
+  }
+  let text = if local_values_asof_chain {
+    local_values_asof_program()
+  } else {
+    text
+  }
+  let text = if local_values_sequence_chain {
+    local_values_sequence_program()
   } else {
     text
   }
@@ -2465,6 +2538,14 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = if managed_publication {
+    text.replace(
+      old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
+      new="\"results\":{\"published\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}}}}",
+    )
+  } else {
+    text
+  }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let text = text.replace(old="id > 2", new=compute_filter)
   let input_limits : @syntax.Limits = {
@@ -2583,6 +2664,64 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
+  } else if local_values_sequence_chain {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      5L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    [sequence_capacity_material(environment, input)]
+  } else if local_values_interval_chain || local_values_asof_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      3L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      4L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let joined = query_capacity_proof(
+      if local_values_asof_chain {
+        "actql.bound.asof-left"
+      } else {
+        "actql.bound.join-output"
+      },
+      if local_values_asof_chain {
+        3L
+      } else {
+        12L
+      },
+      if local_values_asof_chain {
+        "{\"input\":\"" +
+        @wire.cid(@wire.program_proof_witness(left)) +
+        "\",\"op\":\"preserve\"}"
+      } else {
+        "{\"op\":\"source\"}"
+      },
+      inputs=if local_values_asof_chain {
+        [@wire.cid(@wire.program_proof_witness(left))]
+      } else {
+        [
+          @wire.cid(@wire.program_proof_witness(left)),
+          @wire.cid(@wire.program_proof_witness(right)),
+        ]
+      },
+      step=0,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "joined",
+        steps=[0],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
   } else if local_values_join_chain {
     let same_stage_full = local_values_join_kind == "full" &&
       !local_values_join_imported_full
@@ -2647,7 +2786,11 @@ fn query_checked_program_fixture(
         {
           rela: true,
           sga: local_carrier_graph_chain,
-          tea: local_carrier_events_chain || local_time_series_chain,
+          tea: local_carrier_events_chain ||
+          local_time_series_chain ||
+          local_values_interval_chain ||
+          local_values_asof_chain ||
+          local_values_sequence_chain,
           calendar: false,
           text_rank: false,
         },
@@ -2954,6 +3097,108 @@ fn run_limits() -> @execution.SequenceRunLimits {
       max_depth: 100,
       max_work: 100000,
     },
+  }
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_sequence_wbtest.mbt
+fn sequence_capacity_material(
+  environment : @environment.WireEnvironment,
+  input_proof : @wire.ProgramProofClaim,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let witnesses = []
+  let artifacts = []
+  let mut output_host_cid = ""
+  for
+    (field, unit, suffix) in [
+      ("max_temporal_matches_per_key", "matches_per_key", "matches-per-key"),
+      ("max_temporal_output_rows", "rows", "output"),
+    ] {
+    let host = @host.create(@capacity_policy.ceiling(policy, field).unwrap(), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    let writer = @encode.writer(10000, 1000, 30)
+    @host.emit(host, writer)
+    let host_text = @encode.finish(writer)
+    let host_wire = @wire.admit(@utf8.encode(host_text), @host.cid(host), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    witnesses.push(host_wire)
+    if suffix == "output" {
+      output_host_cid = @wire.cid(host_wire)
+    }
+    let candidates = [host_text]
+    let effective = @wire.value(host_wire)
+    let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
+      candidates.join(",") +
+      "],\"effective_max\":" +
+      effective.to_string() +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:0:" +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    artifacts.push(
+      (
+        @utf8.encode(
+          body.replace(
+            old="\"subject_ref\":",
+            new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+          ),
+        ),
+        cid,
+      ),
+    )
+  }
+  let output_proof = query_capacity_proof(
+    "actql.bound.sequence-output",
+    @wire.value(witnesses[1]),
+    "{\"op\":\"source\"}",
+    inputs=[output_host_cid],
+    step=0,
+  )
+  witnesses.push(@wire.program_proof_witness(input_proof))
+  witnesses.push(@wire.program_proof_witness(output_proof))
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    mixed,
+    [input_proof, output_proof],
+    { max_witnesses: 10, max_references: 20, },
+  ).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 10,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage: "matched",
+    sources,
+    uses: [
+      Sequence(
+        step=0,
+        matches=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
   }
 }
 

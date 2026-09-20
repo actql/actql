@@ -116,6 +116,7 @@ fn captured_graph_fixture(
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
+  managed_publication? : Bool = false,
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
@@ -170,6 +171,7 @@ fn captured_graph_fixture(
     local_values_unary_chain~,
     local_select_qualified_chain~,
     join_steps~,
+    managed_publication~,
     compute_filter~,
   )
   let sequence = query_checked_sequence(program)

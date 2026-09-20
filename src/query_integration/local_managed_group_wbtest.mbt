@@ -7,6 +7,7 @@ fn run_local_managed_test_task(
   rows : Array[Array[String]],
   payload : Int,
   available : Ref[Bool],
+  obligations? : @execution.ManagedObligations,
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -19,7 +20,9 @@ fn run_local_managed_test_task(
     @local_driver.prepare_local_managed_dispatch(
       installed,
       inputs,
-      @execution.process_managed_obligations(owner),
+      obligations.unwrap_or_else(() => {
+        @execution.process_managed_obligations(owner)
+      }),
       0L,
     ) {
     Ok(Some(value)) => value
@@ -198,9 +201,17 @@ fn run_local_managed_test_task(
       fail("Local managed dispatch configuration failed")
   }
   (operations.settle)().unwrap()
-  let completed = (operations.complete)(payload, operations.storage_bytes, fn() {
-    available.val
-  }).unwrap()
+  let completed = match
+    (operations.complete)(payload, operations.storage_bytes, fn() {
+      available.val
+    }) {
+    Ok(value) => value
+    Err(Configuration(LogicalIdentityUnsupported)) =>
+      fail("Local managed identity establishment failed")
+    Err(ManagedCompletion(_)) =>
+      fail("Local managed completion port rejected identity issuers")
+    Err(_) => fail("Local managed completion failed")
+  }
   assert_true(
     @strategy.captured_managed_task_output_matches(
       run,

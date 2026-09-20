@@ -271,6 +271,62 @@ pub fn[T] local_managed_dispatch_site_capacity(
 }
 
 ///|
+/// Establish the exact checked Result view without changing its projection or
+/// order. The physical ordered-row stream is consumed only by the bounded
+/// canonical writer and is not exposed as publication success.
+fn local_managed_result_identity(
+  output : @execution.CompletedOutput,
+  occurrence : @execution.ManagedResultOccurrence,
+  imports : @local.LocalImportLimits,
+  execution : @execution.SequenceExecutionLimits,
+) -> String? {
+  let stream = match
+    @execution.prepare_completed_result_relation_export(
+      output,
+      occurrence,
+      {
+        max_fields: imports.wire.max_columns,
+        max_mapping_work: imports.wire.max_order_work,
+        max_order_work: execution.max_work,
+        max_workspace_entries: imports.max_rows,
+      },
+      imports.max_rows,
+      imports.values,
+      imports.wire,
+      imports.wire,
+      {
+        max_fields: imports.wire.max_columns,
+        max_bytes: imports.wire.max_bytes,
+        max_nodes: imports.wire.max_nodes,
+        max_depth: imports.wire.max_depth,
+      },
+      imports.max_batch_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  while true {
+    match @execution.next_completed_output_export(stream) {
+      Ok(Some(_)) => continue
+      Ok(None) => break
+      Err(_) => {
+        @execution.cancel_completed_output_export(stream)
+        return None
+      }
+    }
+  }
+  let receipt = match @execution.finish_completed_relation_export(stream) {
+    Ok((receipt, _)) => receipt
+    Err(_) => return None
+  }
+  let cid = @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  Some(cid)
+}
+
+///|
 pub fn[T] start_local_managed_dispatch(
   setup : LocalManagedDispatchConfiguration[T],
 ) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue] {
@@ -653,10 +709,81 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(issue) => return Err(ManagedRetention(issue))
       }
+      let identity_issuers = []
+      let obligations = @connector.managed_fixed_compute_request_obligations(
+        request,
+      )
+      let completion_preparation = @execution.generated_completion_preparation(
+        setup.sequence,
+      )
+      for requirement in @execution.managed_obligations_identities(obligations) {
+        if requirement.need is @execution.EstablishedBy(_) {
+          let canonical_contract_cid = match requirement.domain {
+            @execution.OrderedRows =>
+              @execution.ordered_rows_canonical_contract_cid()
+            @execution.LogicalRelation =>
+              @execution.logical_relation_canonical_contract_cid()
+            _ => return Err(Configuration(LogicalIdentityUnsupported))
+          }
+          let capability = match
+            @execution.register_managed_identity_issuance_capability(
+              requirement.domain,
+              requirement.subject,
+              requirement.occurrence,
+              canonical_contract_cid,
+            ) {
+            Ok(value) => value
+            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+          }
+          let permit = match
+            @execution.authorize_managed_identity_execution_attempt(
+              capability, execution_attempt, completion_preparation, requirement,
+            ) {
+            Ok(value) => value
+            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+          }
+          let occurrence = requirement.occurrence
+          let issuer = match
+            @execution.try_bind_managed_identity_issuer(permit, material, fn(
+              source,
+            ) {
+              if !physical_equal(source, material) || !available() {
+                return None
+              }
+              match (requirement.domain, requirement.subject, occurrence) {
+                (@execution.OrderedRows, @execution.TaskOutput, None) =>
+                  match
+                    @execution.identify_completed_rows(
+                      output,
+                      setup.imports.wire,
+                    ) {
+                    Ok(identity) => Some(@execution.row_wire_cid(identity))
+                    Err(_) => None
+                  }
+                (
+                  @execution.LogicalRelation,
+                  @execution.NamedResult,
+                  Some(result),
+                ) =>
+                  local_managed_result_identity(
+                    output,
+                    result,
+                    setup.imports,
+                    setup.execution,
+                  )
+                _ => None
+              }
+            }) {
+            Ok(value) => value
+            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+          }
+          identity_issuers.push(issuer)
+        }
+      }
       let completion = match
         @execution.prepare_managed_completion_port(
           @execution.selected_managed_execution_profile(),
-          @execution.generated_completion_preparation(setup.sequence),
+          completion_preparation,
           target,
           setup.imports.wire.max_nodes,
           setup.imports.wire.max_bytes,
@@ -668,9 +795,8 @@ pub fn[T] start_local_managed_dispatch(
             }
           },
           managed_inputs~,
-          obligations=@connector.managed_fixed_compute_request_obligations(
-            request,
-          ),
+          obligations~,
+          identity_issuers~,
           attempt=execution_attempt,
         ) {
         Ok(value) => value
@@ -680,6 +806,27 @@ pub fn[T] start_local_managed_dispatch(
         @execution.complete_managed_output(completion, material) {
         Ok(value) => value
         Err(_) => return Err(Configuration(InvalidLimits))
+      }
+      for requirement in @execution.managed_obligations_identities(obligations) {
+        if requirement.need is @execution.EstablishedBy(_) {
+          match
+            @execution.establish_managed_completed_identity_requirement(
+              completed, requirement,
+            ) {
+            Ok(_) => ()
+            Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+          }
+        }
+      }
+      for
+        deadline in [
+          @execution.BeforeCidOperation,
+          @execution.BeforePublication,
+          @execution.BeforeDiscard,
+        ] {
+        if !@execution.managed_completed_deadline_satisfied(completed, deadline) {
+          return Err(Configuration(LogicalIdentityUnsupported))
+        }
       }
       let allocation = match
         @strategy.retain_task_execution_allocation(

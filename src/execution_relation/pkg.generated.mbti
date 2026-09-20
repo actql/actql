@@ -373,6 +373,8 @@ pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
 
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn logical_relation_canonical_contract_cid() -> String
+
 pub fn logical_relation_cid(LogicalRelationIdentity) -> String
 
 pub fn logical_relation_usage(LogicalRelationIdentity) -> (Int, Int, Int)

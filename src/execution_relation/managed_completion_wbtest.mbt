@@ -246,13 +246,13 @@ test "managed completion establishes plural Named Result occurrences independent
   let first = result_export_occurrence(owner, "first", body)
   let second = result_export_occurrence(owner, "second", body)
   let first_requirement : ManagedIdentityRequirement = {
-    domain: OrderedRows,
+    domain: LogicalRelation,
     subject: NamedResult,
     occurrence: Some(first),
     need: EstablishedBy(BeforePublication),
   }
   let second_requirement : ManagedIdentityRequirement = {
-    domain: OrderedRows,
+    domain: LogicalRelation,
     subject: NamedResult,
     occurrence: Some(second),
     need: EstablishedBy(BeforePublication),
@@ -266,15 +266,15 @@ test "managed completion establishes plural Named Result occurrences independent
   ).unwrap()
   let material = managed_test_material(owner, Step(1), Ref(true))
   let attempt = issue_managed_execution_attempt()
-  let contract = ordered_rows_canonical_contract_cid()
+  let contract = logical_relation_canonical_contract_cid()
   let first_capability = register_managed_identity_issuance_capability(
-    OrderedRows,
+    LogicalRelation,
     NamedResult,
     Some(first),
     contract,
   ).unwrap()
   let second_capability = register_managed_identity_issuance_capability(
-    OrderedRows,
+    LogicalRelation,
     NamedResult,
     Some(second),
     contract,
@@ -330,7 +330,8 @@ test "managed completion establishes plural Named Result occurrences independent
     Some(EstablishedSourceRetained(contract, "sha256:" + "2".repeat(64))),
   )
   assert_true(
-    managed_completed_identity_status(output, OrderedRows, NamedResult) is None,
+    managed_completed_identity_status(output, LogicalRelation, NamedResult)
+    is None,
   )
 }
 

@@ -90,6 +90,7 @@ pub fn register_managed_identity_issuance_capability(
 ) -> Result[ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceIssue] {
   let registered_contract = match domain {
     OrderedRows => Some(ordered_rows_canonical_contract_cid())
+    LogicalRelation => Some(logical_relation_canonical_contract_cid())
     _ => None
   }
   if !valid_managed_cid(canonical_contract_cid) ||

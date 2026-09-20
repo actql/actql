@@ -48,6 +48,7 @@ fn query_checked_program_fixture(
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
+  managed_publication? : Bool = false,
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
@@ -369,6 +370,14 @@ fn query_checked_program_fixture(
   }
   let text = if numeric_dag {
     text.replace(old="id < 9", new="id > 2")
+  } else {
+    text
+  }
+  let text = if managed_publication {
+    text.replace(
+      old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
+      new="\"results\":{\"published\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}}}}",
+    )
   } else {
     text
   }

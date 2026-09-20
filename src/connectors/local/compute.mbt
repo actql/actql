@@ -48,7 +48,7 @@ pub fn[T] local_managed_fixed_compute_candidate(
   if !local_managed_sequence_supported(sequence) && !provider_supported {
     return Err(UnsupportedInputShape)
   }
-  if @execution.managed_obligations_require_logical_identity(
+  if !local_managed_identity_obligations_supported(
       @connector.managed_fixed_compute_request_obligations(request),
     ) {
     return Err(LogicalIdentityUnsupported)
@@ -85,6 +85,25 @@ pub fn[T] local_managed_fixed_compute_candidate(
     max_entries,
     numeric_reductions~,
   )
+}
+
+///|
+/// Local registers only the two identity implementations it can bind to the
+/// exact retained Relation output. Other domains remain unsupported rather
+/// than being relabelled or silently omitted.
+fn local_managed_identity_obligations_supported(
+  obligations : @execution.ManagedObligations,
+) -> Bool {
+  for requirement in @execution.managed_obligations_identities(obligations) {
+    if requirement.need is @execution.EstablishedBy(_) {
+      match (requirement.domain, requirement.subject, requirement.occurrence) {
+        (@execution.OrderedRows, @execution.TaskOutput, None) => ()
+        (@execution.LogicalRelation, @execution.NamedResult, Some(_)) => ()
+        _ => return false
+      }
+    }
+  }
+  true
 }
 
 ///|
