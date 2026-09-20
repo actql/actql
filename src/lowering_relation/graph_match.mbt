@@ -54,6 +54,36 @@ pub fn graph_match_has_predicate(value : PreparedGraphMatch) -> Bool {
 }
 
 ///|
+/// The predicate-only selections that require no row-expression evaluator.
+/// A missing predicate is distinct from a checked literal that selects none.
+pub(all) enum GraphMatchLiteralSelection {
+  NoLiteralSelection
+  SelectNoEntities
+  SelectAllEntities
+} derive(Eq, Debug)
+
+///|
+/// Classify a checked literal predicate without rediscovering source syntax.
+pub fn graph_match_literal_selection(
+  value : PreparedGraphMatch,
+) -> GraphMatchLiteralSelection {
+  match value.predicate {
+    None => NoLiteralSelection
+    Some(expression) =>
+      match expression_body(expression) {
+        Literal(checked) =>
+          match checked.value {
+            @value.Boolean(true) => SelectAllEntities
+            @value.Boolean(false) | @value.Null => SelectNoEntities
+            _ => NoLiteralSelection
+          }
+        TypedNull => SelectNoEntities
+        _ => NoLiteralSelection
+      }
+  }
+}
+
+///|
 pub(all) enum GraphMatchIssue {
   InvalidGraphMatchLimits
   InvalidGraphMatchWiring

@@ -82,8 +82,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       (1, @lower.GraphMatchStep(matched)) =>
         @lower.operation(node) == "SGA.match_nodes" &&
         @lower.graph_match_nodes(matched) &&
-        !@lower.graph_match_has_predicate(matched) &&
-        @lower.graph_match_id_count(matched) > 0
+        (
+          @lower.graph_match_id_count(matched) > 0 ||
+          @lower.graph_match_literal_selection(matched) !=
+          @lower.NoLiteralSelection
+        )
       _ => false
     }
   })

@@ -299,6 +299,8 @@ pub fn graph_match_id_at(PreparedGraphMatch, Int) -> @value_admission.CheckedVal
 
 pub fn graph_match_id_count(PreparedGraphMatch) -> Int
 
+pub fn graph_match_literal_selection(PreparedGraphMatch) -> GraphMatchLiteralSelection
+
 pub fn graph_match_nodes(PreparedGraphMatch) -> Bool
 
 pub fn graph_match_output_schema(PreparedGraphMatch) -> @relation_schema.Schema
@@ -1077,6 +1079,12 @@ pub(all) enum GraphMatchIssue {
   GraphMatchPreparationLimit
   GraphMatchExpression(ExpressionIssue)
 }
+
+pub(all) enum GraphMatchLiteralSelection {
+  NoLiteralSelection
+  SelectNoEntities
+  SelectAllEntities
+} derive(Eq, @debug.Debug)
 
 pub(all) enum GraphMeanIssue {
   InvalidGraphMeanLimits

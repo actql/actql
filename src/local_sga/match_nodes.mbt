@@ -28,6 +28,7 @@ priv struct MatchNodesState {
   port : @execution.TrustedOutputPort[Unit]
   mut phase : MatchNodesPhase
   mut identity_index : Int
+  select_all_nodes : Bool?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
   mut width : Int
@@ -247,7 +248,19 @@ fn match_nodes_step(
     }
     match state.phase {
       ResolveIdentities =>
-        if state.identity_index < @lower.graph_match_id_count(state.prepared) {
+        if state.select_all_nodes is Some(select_all) {
+          if state.identity_index < @storage.node_count(state.source) {
+            if select_all {
+              state.selected.push(state.identity_index)
+            }
+            state.identity_index += 1
+            used += 1
+          } else {
+            state.width = 1
+            state.phase = PrepareSort
+          }
+        } else if state.identity_index <
+          @lower.graph_match_id_count(state.prepared) {
           let authored = state.identity_index
           used += 1
           guard @lower.graph_match_id_at(state.prepared, authored)
@@ -440,14 +453,27 @@ pub fn start_match_nodes(
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
     @lower.graph_match_nodes(prepared) &&
-    !@lower.graph_match_has_predicate(prepared) &&
-    @lower.graph_match_id_count(prepared) > 0 &&
+    (
+      @lower.graph_match_id_count(prepared) > 0 ||
+      @lower.graph_match_literal_selection(prepared) !=
+      @lower.NoLiteralSelection
+    ) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) &&
     @storage.carrier(source) is @carrier.GraphValue(graph) else {
     return Err(InvalidMatchNodesKernel)
   }
-  let count = @lower.graph_match_id_count(prepared)
+  let literal = @lower.graph_match_literal_selection(prepared)
+  let select_all_nodes = match literal {
+    @lower.NoLiteralSelection => None
+    @lower.SelectNoEntities => Some(false)
+    @lower.SelectAllEntities => Some(true)
+  }
+  let count = match select_all_nodes {
+    Some(true) => @storage.node_count(source)
+    Some(false) => 0
+    None => @lower.graph_match_id_count(prepared)
+  }
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   guard max_rows >= 0 &&
@@ -501,6 +527,7 @@ pub fn start_match_nodes(
     port,
     phase: ResolveIdentities,
     identity_index: 0,
+    select_all_nodes,
     selected: [],
     scratch: Array::make(count, None),
     width: 1,

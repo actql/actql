@@ -89,6 +89,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let projection = if variant == "match_nodes" {
     "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_nodes_literal" {
+    "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
+    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
@@ -217,15 +220,26 @@ fn carrier_graph_match_owner(
   source : @lower.BoundPrepared,
   ids : String,
 ) -> @lower.BoundPrepared {
+  carrier_graph_match_body_owner(
+    source,
+    "{\"ids\":" + ids + ",\"fields\":[\"id\",\"node_name\"]}",
+  )
+}
+
+///|
+fn carrier_graph_match_body_owner(
+  source : @lower.BoundPrepared,
+  body : String,
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
       "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
       "\"source\":\"src\",\"target\":\"dst\"," +
       "\"fields\":[\"weight\"]}},\"as\":\"graph\"}," +
-      "{\"from\":\"graph\",\"match_nodes\":{\"ids\":" +
-      ids +
-      ",\"fields\":[\"id\",\"node_name\"]}}]",
+      "{\"from\":\"graph\",\"match_nodes\":" +
+      body +
+      "}]",
     ),
     [
       (
@@ -336,6 +350,68 @@ fn finish_match_nodes(
     }
   }
   abort("unreachable")
+}
+
+///|
+fn literal_match_nodes_output(
+  source_owner : @lower.BoundPrepared,
+  predicate : String,
+) -> @execution.CompletedOutput raise {
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_body_owner(
+    source_owner,
+    "{\"where\":\"" + predicate + "\",\"fields\":[\"id\",\"node_name\"]}",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_match_nodes(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    8,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_match_nodes(execution).unwrap()
+  assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  output
+}
+
+///|
+test "bounded node literal predicates select all or no entities" {
+  let source_owner = carrier_graph_source_owner()
+  let selected = literal_match_nodes_output(source_owner, "true")
+  assert_eq(@execution.completed_row_count(selected), 2)
+  assert_true(@execution.completed_cell(selected, 0, 0) is Some(Number(1.0)))
+  assert_true(@execution.completed_cell(selected, 1, 1) is Some(Text("second")))
+
+  let empty = literal_match_nodes_output(source_owner, "false")
+  assert_eq(@execution.completed_row_count(empty), 0)
+  assert_true(@execution.completed_output_available(empty))
 }
 
 ///|
@@ -1027,4 +1103,5 @@ fn run_standard_host_graph_relation_path(
 test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("projection")
   run_standard_host_graph_relation_path("match_nodes", publication=true)
+  run_standard_host_graph_relation_path("match_nodes_literal")
 }
