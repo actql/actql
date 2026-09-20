@@ -319,6 +319,14 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_reach_direction(PreparedGraphReach) -> @graph_typing.Direction
+
+pub fn graph_reach_max_depth(PreparedGraphReach) -> Int?
+
+pub fn graph_reach_output_schema(PreparedGraphReach) -> @relation_schema.Schema
+
+pub fn graph_reach_start(PreparedGraphReach) -> @value_admission.CheckedValue
+
 pub fn graph_relation_input_step(PreparedGraphRelation, Int) -> Int?
 
 pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind

@@ -5,6 +5,35 @@ struct PreparedGraphReach {
 }
 
 ///|
+pub fn graph_reach_output_schema(value : PreparedGraphReach) -> @schema.Schema {
+  value.node.output_schema.unwrap()
+}
+
+///|
+pub fn graph_reach_start(value : PreparedGraphReach) -> @value.CheckedValue {
+  @graph.reach_start(value.checked)
+}
+
+///|
+pub fn graph_reach_direction(value : PreparedGraphReach) -> @graph.Direction {
+  @graph.reach_direction(value.checked)
+}
+
+///|
+pub fn graph_reach_max_depth(value : PreparedGraphReach) -> Int? {
+  let depth = @graph.reach_max_depth(value.checked)
+  if depth <= 0.0 || depth.is_nan() || depth.is_inf() {
+    None
+  } else if depth > 2147483647.0 {
+    Some(2147483647)
+  } else if depth.to_int().to_double() == depth {
+    Some(depth.to_int())
+  } else {
+    None
+  }
+}
+
+///|
 pub(all) enum GraphReachIssue {
   InvalidGraphReachLimits
   InvalidGraphReachWiring
