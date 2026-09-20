@@ -331,6 +331,8 @@ pub fn physical_batch_owner(PhysicalBatch) -> PhysicalResult
 
 pub fn physical_batch_rows(PhysicalBatch) -> Int
 
+pub fn physical_parameter_binding(PhysicalParameter) -> Result[PhysicalParameterBinding, ValueIssue]
+
 pub fn physical_result_schema(PhysicalResult) -> @relation_schema.Schema
 
 pub fn physical_result_source_columns(PhysicalResult) -> Array[Int]
@@ -678,6 +680,16 @@ pub(all) enum PhysicalFieldsIssue {
 } derive(Eq, @debug.Debug)
 
 type PhysicalParameter
+
+pub(all) enum PhysicalParameterBinding {
+  BindNull
+  BindBoolean(Bool)
+  BindDouble(Double)
+  BindText(String)
+  BindDecimal(String, Int, Int)
+  BindDate(Int)
+  BindTimestamp(Int64)
+} derive(Eq, @debug.Debug)
 
 type PhysicalResult
 

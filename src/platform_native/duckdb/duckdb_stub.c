@@ -26,6 +26,27 @@ typedef duckdb_state (*actql_duckdb_prepare_fn)(
 typedef void (*actql_duckdb_destroy_prepare_fn)(duckdb_prepared_statement *);
 typedef const char *(*actql_duckdb_prepare_error_fn)(duckdb_prepared_statement);
 typedef idx_t (*actql_duckdb_nparams_fn)(duckdb_prepared_statement);
+typedef duckdb_state (*actql_duckdb_bind_null_fn)(
+  duckdb_prepared_statement, idx_t
+);
+typedef duckdb_state (*actql_duckdb_bind_boolean_fn)(
+  duckdb_prepared_statement, idx_t, bool
+);
+typedef duckdb_state (*actql_duckdb_bind_double_fn)(
+  duckdb_prepared_statement, idx_t, double
+);
+typedef duckdb_state (*actql_duckdb_bind_varchar_length_fn)(
+  duckdb_prepared_statement, idx_t, const char *, idx_t
+);
+typedef duckdb_state (*actql_duckdb_bind_date_fn)(
+  duckdb_prepared_statement, idx_t, duckdb_date
+);
+typedef duckdb_state (*actql_duckdb_bind_timestamp_tz_fn)(
+  duckdb_prepared_statement, idx_t, duckdb_timestamp
+);
+typedef duckdb_state (*actql_duckdb_bind_decimal_fn)(
+  duckdb_prepared_statement, idx_t, duckdb_decimal
+);
 typedef duckdb_state (*actql_duckdb_execute_prepared_streaming_fn)(
   duckdb_prepared_statement, duckdb_result *
 );
@@ -72,6 +93,13 @@ typedef struct {
   actql_duckdb_destroy_prepare_fn destroy_prepare;
   actql_duckdb_prepare_error_fn prepare_error;
   actql_duckdb_nparams_fn nparams;
+  actql_duckdb_bind_null_fn bind_null;
+  actql_duckdb_bind_boolean_fn bind_boolean;
+  actql_duckdb_bind_double_fn bind_double;
+  actql_duckdb_bind_varchar_length_fn bind_varchar_length;
+  actql_duckdb_bind_date_fn bind_date;
+  actql_duckdb_bind_timestamp_tz_fn bind_timestamp_tz;
+  actql_duckdb_bind_decimal_fn bind_decimal;
   actql_duckdb_execute_prepared_streaming_fn execute_prepared_streaming;
   actql_duckdb_destroy_result_fn destroy_result;
   actql_duckdb_result_error_fn result_error;
@@ -128,6 +156,9 @@ typedef struct {
   uint8_t *decimal_widths;
   uint8_t *decimal_scales;
   idx_t column_count;
+  idx_t parameter_count;
+  idx_t bound_parameters;
+  int32_t max_columns;
   int64_t max_rows;
   int64_t rows;
   int32_t max_chunk_rows;
@@ -137,6 +168,7 @@ typedef struct {
   char *error;
   int32_t status;
   bool result_created;
+  bool executed;
   bool opened;
 } actql_native_duckdb_stream;
 
@@ -444,6 +476,17 @@ void *actql_native_duckdb_load_library(
       !ACTQL_LOAD(library, destroy_prepare, "duckdb_destroy_prepare") ||
       !ACTQL_LOAD(library, prepare_error, "duckdb_prepare_error") ||
       !ACTQL_LOAD(library, nparams, "duckdb_nparams") ||
+      !ACTQL_LOAD(library, bind_null, "duckdb_bind_null") ||
+      !ACTQL_LOAD(library, bind_boolean, "duckdb_bind_boolean") ||
+      !ACTQL_LOAD(library, bind_double, "duckdb_bind_double") ||
+      !ACTQL_LOAD(
+        library, bind_varchar_length, "duckdb_bind_varchar_length"
+      ) ||
+      !ACTQL_LOAD(library, bind_date, "duckdb_bind_date") ||
+      !ACTQL_LOAD(
+        library, bind_timestamp_tz, "duckdb_bind_timestamp_tz"
+      ) ||
+      !ACTQL_LOAD(library, bind_decimal, "duckdb_bind_decimal") ||
       !ACTQL_LOAD(
         library,
         execute_prepared_streaming,
@@ -805,7 +848,7 @@ static void actql_stream_fail(
   actql_replace_error(&query->error, message);
 }
 
-void *actql_native_duckdb_stream_query(
+static actql_native_duckdb_stream *actql_native_duckdb_prepare_stream(
   actql_native_duckdb_database *database,
   moonbit_bytes_t sql,
   int32_t length,
@@ -846,62 +889,8 @@ void *actql_native_duckdb_stream_query(
     );
     return query;
   }
-  if (database->library->nparams(query->statement) != 0) {
-    actql_stream_fail(query, 4, "DuckDB stream query requires parameters");
-    return query;
-  }
-  state = database->library->execute_prepared_streaming(
-    query->statement, &query->result
-  );
-  query->result_created = true;
-  if (state != DuckDBSuccess) {
-    actql_stream_fail(
-      query, 4, database->library->result_error(&query->result)
-    );
-    return query;
-  }
-  query->column_count = database->library->column_count(&query->result);
-  if (query->column_count > (idx_t)max_columns) {
-    actql_stream_fail(query, 2, "DuckDB column limit exceeded");
-    return query;
-  }
-  size_t count = (size_t)query->column_count;
-  query->types = calloc(count == 0 ? 1 : count, sizeof(duckdb_type));
-  query->storage_types = calloc(count == 0 ? 1 : count, sizeof(duckdb_type));
-  query->decimal_widths = calloc(count == 0 ? 1 : count, sizeof(uint8_t));
-  query->decimal_scales = calloc(count == 0 ? 1 : count, sizeof(uint8_t));
-  if (query->types == NULL || query->storage_types == NULL ||
-      query->decimal_widths == NULL || query->decimal_scales == NULL) {
-    actql_stream_fail(query, 2, "DuckDB metadata allocation failed");
-    return query;
-  }
-  for (idx_t column = 0; column < query->column_count; column++) {
-    duckdb_type type = database->library->column_type(&query->result, column);
-    if (actql_type_name(type) == NULL) {
-      actql_stream_fail(query, 4, "Unsupported DuckDB physical type");
-      return query;
-    }
-    query->types[column] = type;
-    query->storage_types[column] = type;
-    if (type == DUCKDB_TYPE_DECIMAL) {
-      duckdb_logical_type logical = database->library->column_logical_type(
-        &query->result, column
-      );
-      if (logical == NULL) {
-        actql_stream_fail(query, 4, "DuckDB decimal metadata unavailable");
-        return query;
-      }
-      query->decimal_widths[column] = database->library->decimal_width(logical);
-      query->decimal_scales[column] = database->library->decimal_scale(logical);
-      query->storage_types[column] =
-        database->library->decimal_internal_type(logical);
-      database->library->destroy_logical_type(&logical);
-    }
-  }
-  if (!actql_stream_fields(query, (size_t)max_chunk_bytes)) {
-    actql_stream_fail(query, 2, "DuckDB metadata byte limit exceeded");
-    return query;
-  }
+  query->parameter_count = database->library->nparams(query->statement);
+  query->max_columns = max_columns;
   query->max_rows = max_rows;
   query->max_chunk_rows = max_chunk_rows;
   query->max_chunk_bytes = max_chunk_bytes;
@@ -911,10 +900,309 @@ void *actql_native_duckdb_stream_query(
   return query;
 }
 
+static bool actql_native_duckdb_execute_stream(
+  actql_native_duckdb_stream *query
+) {
+  if (!query->opened || !query->database->accepting) {
+    actql_stream_fail(query, 3, "DuckDB stream is closed");
+    return false;
+  }
+  if (query->executed) {
+    actql_stream_fail(query, 4, "DuckDB stream is not ready to execute");
+    return false;
+  }
+  if (query->bound_parameters != query->parameter_count) {
+    actql_stream_fail(query, 4, "DuckDB stream parameters are incomplete");
+    return false;
+  }
+  actql_native_duckdb_library *library = query->database->library;
+  duckdb_state state = library->execute_prepared_streaming(
+    query->statement, &query->result
+  );
+  query->result_created = true;
+  if (state != DuckDBSuccess) {
+    actql_stream_fail(
+      query, 4, library->result_error(&query->result)
+    );
+    return false;
+  }
+  query->column_count = library->column_count(&query->result);
+  if (query->column_count > (idx_t)query->max_columns) {
+    actql_stream_fail(query, 2, "DuckDB column limit exceeded");
+    return false;
+  }
+  size_t count = (size_t)query->column_count;
+  query->types = calloc(count == 0 ? 1 : count, sizeof(duckdb_type));
+  query->storage_types = calloc(count == 0 ? 1 : count, sizeof(duckdb_type));
+  query->decimal_widths = calloc(count == 0 ? 1 : count, sizeof(uint8_t));
+  query->decimal_scales = calloc(count == 0 ? 1 : count, sizeof(uint8_t));
+  if (query->types == NULL || query->storage_types == NULL ||
+      query->decimal_widths == NULL || query->decimal_scales == NULL) {
+    actql_stream_fail(query, 2, "DuckDB metadata allocation failed");
+    return false;
+  }
+  for (idx_t column = 0; column < query->column_count; column++) {
+    duckdb_type type = library->column_type(&query->result, column);
+    if (actql_type_name(type) == NULL) {
+      actql_stream_fail(query, 4, "Unsupported DuckDB physical type");
+      return false;
+    }
+    query->types[column] = type;
+    query->storage_types[column] = type;
+    if (type == DUCKDB_TYPE_DECIMAL) {
+      duckdb_logical_type logical = library->column_logical_type(
+        &query->result, column
+      );
+      if (logical == NULL) {
+        actql_stream_fail(query, 4, "DuckDB decimal metadata unavailable");
+        return false;
+      }
+      query->decimal_widths[column] = library->decimal_width(logical);
+      query->decimal_scales[column] = library->decimal_scale(logical);
+      query->storage_types[column] =
+        library->decimal_internal_type(logical);
+      library->destroy_logical_type(&logical);
+    }
+  }
+  if (!actql_stream_fields(query, (size_t)query->max_chunk_bytes)) {
+    actql_stream_fail(query, 2, "DuckDB metadata byte limit exceeded");
+    return false;
+  }
+  query->executed = true;
+  query->status = 0;
+  return true;
+}
+
+void *actql_native_duckdb_prepare_stream_query(
+  actql_native_duckdb_database *database,
+  moonbit_bytes_t sql,
+  int32_t length,
+  int32_t max_columns,
+  int64_t max_rows,
+  int32_t max_chunk_rows,
+  int32_t max_chunk_bytes
+) {
+  return actql_native_duckdb_prepare_stream(
+    database,
+    sql,
+    length,
+    max_columns,
+    max_rows,
+    max_chunk_rows,
+    max_chunk_bytes
+  );
+}
+
+static bool actql_native_duckdb_stream_bindable(
+  actql_native_duckdb_stream *query,
+  int32_t index
+) {
+  if (!query->opened || query->executed ||
+      !query->database->accepting) {
+    actql_stream_fail(query, 3, "DuckDB stream is closed");
+    return false;
+  }
+  if (index < 0 || (idx_t)index != query->bound_parameters ||
+      (idx_t)index >= query->parameter_count) {
+    actql_stream_fail(query, 4, "DuckDB parameter binding is out of order");
+    return false;
+  }
+  return true;
+}
+
+static bool actql_native_duckdb_stream_bound(
+  actql_native_duckdb_stream *query,
+  duckdb_state state
+) {
+  if (state != DuckDBSuccess) {
+    actql_stream_fail(
+      query, 4, query->database->library->prepare_error(query->statement)
+    );
+    return false;
+  }
+  query->bound_parameters++;
+  return true;
+}
+
+int64_t actql_native_duckdb_stream_query_parameter_count(
+  actql_native_duckdb_stream *query
+) {
+  return query->opened ? (int64_t)query->parameter_count : -1;
+}
+
+int32_t actql_native_duckdb_stream_query_bind_null(
+  actql_native_duckdb_stream *query,
+  int32_t index
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_null(query->statement, (idx_t)index + 1)
+  );
+}
+
+int32_t actql_native_duckdb_stream_query_bind_boolean(
+  actql_native_duckdb_stream *query,
+  int32_t index,
+  int32_t value
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_boolean(
+      query->statement, (idx_t)index + 1, value != 0
+    )
+  );
+}
+
+int32_t actql_native_duckdb_stream_query_bind_double(
+  actql_native_duckdb_stream *query,
+  int32_t index,
+  double value
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_double(
+      query->statement, (idx_t)index + 1, value
+    )
+  );
+}
+
+int32_t actql_native_duckdb_stream_query_bind_text(
+  actql_native_duckdb_stream *query,
+  int32_t index,
+  moonbit_bytes_t value,
+  int32_t length
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  if (length < 0) {
+    actql_stream_fail(query, 4, "DuckDB text parameter length is invalid");
+    return false;
+  }
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_varchar_length(
+      query->statement,
+      (idx_t)index + 1,
+      (const char *)value,
+      (idx_t)length
+    )
+  );
+}
+
+int32_t actql_native_duckdb_stream_query_bind_date(
+  actql_native_duckdb_stream *query,
+  int32_t index,
+  int32_t days
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  duckdb_date value = {.days = days};
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_date(
+      query->statement, (idx_t)index + 1, value
+    )
+  );
+}
+
+int32_t actql_native_duckdb_stream_query_bind_timestamp(
+  actql_native_duckdb_stream *query,
+  int32_t index,
+  int64_t micros
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  duckdb_timestamp value = {.micros = micros};
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_timestamp_tz(
+      query->statement, (idx_t)index + 1, value
+    )
+  );
+}
+
+static bool actql_native_duckdb_decimal(
+  moonbit_bytes_t coefficient,
+  int32_t length,
+  int32_t width,
+  int32_t scale,
+  duckdb_decimal *output
+) {
+  if (length < 1 || length > 39 || width < 1 || width > 38 ||
+      scale < 0 || scale > width) {
+    return false;
+  }
+  int32_t offset = coefficient[0] == '-' ? 1 : 0;
+  bool negative = offset == 1;
+  if (offset == length) return false;
+  int32_t significant = 0;
+  bool nonzero = false;
+  unsigned __int128 magnitude = 0;
+  const unsigned __int128 maximum =
+    (((unsigned __int128)1 << 127) - 1);
+  for (int32_t index = offset; index < length; index++) {
+    uint8_t byte = coefficient[index];
+    if (byte < '0' || byte > '9') return false;
+    if (byte != '0' || nonzero) {
+      nonzero = true;
+      significant++;
+    }
+    uint8_t digit = byte - '0';
+    if (magnitude > (maximum - digit) / 10) return false;
+    magnitude = magnitude * 10 + digit;
+  }
+  if (!nonzero) significant = 1;
+  if (significant > width) return false;
+  unsigned __int128 encoded = negative && magnitude != 0
+    ? (~magnitude) + 1
+    : magnitude;
+  output->width = (uint8_t)width;
+  output->scale = (uint8_t)scale;
+  output->value.lower = (uint64_t)encoded;
+  output->value.upper = (int64_t)(encoded >> 64);
+  return true;
+}
+
+int32_t actql_native_duckdb_stream_query_bind_decimal(
+  actql_native_duckdb_stream *query,
+  int32_t index,
+  moonbit_bytes_t coefficient,
+  int32_t length,
+  int32_t width,
+  int32_t scale
+) {
+  if (!actql_native_duckdb_stream_bindable(query, index)) return false;
+  duckdb_decimal value;
+  if (!actql_native_duckdb_decimal(
+        coefficient, length, width, scale, &value
+      )) {
+    actql_stream_fail(query, 4, "DuckDB decimal parameter is invalid");
+    return false;
+  }
+  return actql_native_duckdb_stream_bound(
+    query,
+    query->database->library->bind_decimal(
+      query->statement, (idx_t)index + 1, value
+    )
+  );
+}
+
+int32_t actql_native_duckdb_stream_query_execute(
+  actql_native_duckdb_stream *query
+) {
+  return actql_native_duckdb_execute_stream(query);
+}
+
 int32_t actql_native_duckdb_stream_query_ready(
   actql_native_duckdb_stream *query
 ) {
   return query->opened;
+}
+
+int32_t actql_native_duckdb_stream_query_executed(
+  actql_native_duckdb_stream *query
+) {
+  return query->opened && query->executed;
 }
 
 moonbit_bytes_t actql_native_duckdb_stream_query_error(

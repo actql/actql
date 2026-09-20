@@ -60,7 +60,7 @@ extern "C" fn query_ok_ffi(database : Database) -> Bool = "actql_native_duckdb_q
 
 ///|
 #borrow(database, sql)
-extern "C" fn stream_query_ffi(
+extern "C" fn prepare_stream_query_ffi(
   database : Database,
   sql : Bytes,
   length : Int,
@@ -68,11 +68,71 @@ extern "C" fn stream_query_ffi(
   max_rows : Int64,
   max_chunk_rows : Int,
   max_chunk_bytes : Int,
-) -> Query = "actql_native_duckdb_stream_query"
+) -> Query = "actql_native_duckdb_prepare_stream_query"
+
+///|
+#borrow(query)
+extern "C" fn stream_query_parameter_count_ffi(query : Query) -> Int64 = "actql_native_duckdb_stream_query_parameter_count"
+
+///|
+#borrow(query)
+extern "C" fn bind_null_ffi(query : Query, index : Int) -> Bool = "actql_native_duckdb_stream_query_bind_null"
+
+///|
+#borrow(query)
+extern "C" fn bind_boolean_ffi(query : Query, index : Int, value : Int) -> Bool = "actql_native_duckdb_stream_query_bind_boolean"
+
+///|
+#borrow(query)
+extern "C" fn bind_double_ffi(
+  query : Query,
+  index : Int,
+  value : Double,
+) -> Bool = "actql_native_duckdb_stream_query_bind_double"
+
+///|
+#borrow(query, value)
+extern "C" fn bind_text_ffi(
+  query : Query,
+  index : Int,
+  value : Bytes,
+  length : Int,
+) -> Bool = "actql_native_duckdb_stream_query_bind_text"
+
+///|
+#borrow(query)
+extern "C" fn bind_date_ffi(query : Query, index : Int, days : Int) -> Bool = "actql_native_duckdb_stream_query_bind_date"
+
+///|
+#borrow(query)
+extern "C" fn bind_timestamp_ffi(
+  query : Query,
+  index : Int,
+  micros : Int64,
+) -> Bool = "actql_native_duckdb_stream_query_bind_timestamp"
+
+///|
+#borrow(query, coefficient)
+extern "C" fn bind_decimal_ffi(
+  query : Query,
+  index : Int,
+  coefficient : Bytes,
+  length : Int,
+  width : Int,
+  scale : Int,
+) -> Bool = "actql_native_duckdb_stream_query_bind_decimal"
+
+///|
+#borrow(query)
+extern "C" fn execute_stream_query_ffi(query : Query) -> Bool = "actql_native_duckdb_stream_query_execute"
 
 ///|
 #borrow(query)
 extern "C" fn stream_query_ready_ffi(query : Query) -> Bool = "actql_native_duckdb_stream_query_ready"
+
+///|
+#borrow(query)
+extern "C" fn stream_query_executed_ffi(query : Query) -> Bool = "actql_native_duckdb_stream_query_executed"
 
 ///|
 #borrow(query)
@@ -152,10 +212,10 @@ pub fn Database::query_i64(
 }
 
 ///|
-/// Begin a zero-parameter streaming query. SQL admission remains the owning
-/// Connector's responsibility; this physical adapter only enforces hard
-/// transport bounds before exposing metadata or a batch.
-pub fn Database::stream_query(
+/// Prepare a bounded streaming query. SQL and parameter admission remain the
+/// owning Connector's responsibility. The physical adapter requires exact,
+/// ordered binding before execution and exposes no result before then.
+pub fn Database::prepare_stream_query(
   self : Database,
   sql : String,
   max_columns : Int,
@@ -171,7 +231,7 @@ pub fn Database::stream_query(
     return Err(InvalidLimits)
   }
   let encoded = @utf8.encode(sql)
-  let query = stream_query_ffi(
+  let query = prepare_stream_query_ffi(
     self,
     encoded,
     encoded.length(),
@@ -194,8 +254,89 @@ pub fn Database::stream_query(
 }
 
 ///|
+/// Begin a zero-parameter streaming query.
+pub fn Database::stream_query(
+  self : Database,
+  sql : String,
+  max_columns : Int,
+  max_rows : Int64,
+  max_chunk_rows : Int,
+  max_chunk_bytes : Int,
+) -> Result[Query, NativeDuckDBIssue] {
+  let query = match
+    self.prepare_stream_query(
+      sql, max_columns, max_rows, max_chunk_rows, max_chunk_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if query.parameter_count() != 0 {
+    query.close() |> ignore
+    return Err(Query("DuckDB stream query requires parameters"))
+  }
+  match query.execute() {
+    Ok(_) => Ok(query)
+    Err(issue) => {
+      query.close() |> ignore
+      Err(issue)
+    }
+  }
+}
+
+///|
+pub fn Query::parameter_count(self : Query) -> Int {
+  stream_query_parameter_count_ffi(self).to_int()
+}
+
+///|
+pub fn Query::bind_parameter(
+  self : Query,
+  index : Int,
+  parameter : NativeDuckDBParameter,
+) -> Result[Unit, NativeDuckDBIssue] {
+  let bound = match parameter {
+    NullValue => bind_null_ffi(self, index)
+    BooleanValue(value) =>
+      bind_boolean_ffi(self, index, if value { 1 } else { 0 })
+    DoubleValue(value) => bind_double_ffi(self, index, value)
+    TextValue(value) => {
+      let encoded = @utf8.encode(value)
+      bind_text_ffi(self, index, encoded, encoded.length())
+    }
+    DecimalValue(coefficient, width, scale) => {
+      let encoded = @utf8.encode(coefficient)
+      bind_decimal_ffi(self, index, encoded, encoded.length(), width, scale)
+    }
+    DateValue(days) => bind_date_ffi(self, index, days)
+    TimestampValue(micros) => bind_timestamp_ffi(self, index, micros)
+  }
+  if bound {
+    Ok(())
+  } else {
+    match stream_query_status_ffi(self) {
+      2 => Err(CapacityExceeded)
+      3 => Err(Closed)
+      _ => Err(Query(decode_message(stream_query_error_ffi(self))))
+    }
+  }
+}
+
+///|
+pub fn Query::execute(self : Query) -> Result[Unit, NativeDuckDBIssue] {
+  if execute_stream_query_ffi(self) {
+    Ok(())
+  } else {
+    match stream_query_status_ffi(self) {
+      2 => Err(CapacityExceeded)
+      3 => Err(Closed)
+      _ => Err(Query(decode_message(stream_query_error_ffi(self))))
+    }
+  }
+}
+
+///|
 pub fn Query::fields_json(self : Query) -> Result[String, NativeDuckDBIssue] {
-  if !stream_query_ready_ffi(self) {
+  if !stream_query_executed_ffi(self) {
     return match stream_query_status_ffi(self) {
       2 => Err(CapacityExceeded)
       3 => Err(Closed)
@@ -209,6 +350,13 @@ pub fn Query::fields_json(self : Query) -> Result[String, NativeDuckDBIssue] {
 pub fn Query::next(
   self : Query,
 ) -> Result[NativeDuckDBChunk?, NativeDuckDBIssue] {
+  if !stream_query_executed_ffi(self) {
+    return match stream_query_status_ffi(self) {
+      2 => Err(CapacityExceeded)
+      3 => Err(Closed)
+      _ => Err(Query(decode_message(stream_query_error_ffi(self))))
+    }
+  }
   let bytes = stream_query_next_ffi(self)
   match stream_query_status_ffi(self) {
     0 =>

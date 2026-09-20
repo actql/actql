@@ -17,6 +17,20 @@ priv enum ParameterValue {
 }
 
 ///|
+/// Connector-owned physical projection of one already admitted parameter.
+/// Environment adapters consume this value but do not reinterpret logical
+/// ActQL values or repeat their admission rules.
+pub(all) enum PhysicalParameterBinding {
+  BindNull
+  BindBoolean(Bool)
+  BindDouble(Double)
+  BindText(String)
+  BindDecimal(String, Int, Int)
+  BindDate(Int)
+  BindTimestamp(Int64)
+} derive(Eq, Debug)
+
+///|
 fn parameter_type(
   contract : @contract.Contract,
 ) -> Result[(String, (Int, Int)?), ValueIssue] {
@@ -148,6 +162,33 @@ fn double_bits_text(number : Double) -> String {
 }
 
 ///|
+pub fn physical_parameter_binding(
+  parameter : PhysicalParameter,
+) -> Result[PhysicalParameterBinding, ValueIssue] {
+  match parameter.value {
+    Null => Ok(BindNull)
+    ScalarNumber(value) => Ok(BindDouble(value))
+    ScalarBoolean(value) => Ok(BindBoolean(value))
+    ScalarText(value) => Ok(BindText(value))
+    Admitted(value) =>
+      match value {
+        @admitted.Null => Ok(BindNull)
+        @admitted.Boolean(value) => Ok(BindBoolean(value))
+        @admitted.Text(value) => Ok(BindText(value))
+        @admitted.Number(value) => Ok(BindDouble(value))
+        @admitted.Decimal(value) => {
+          let (precision, scale) = parameter.decimal.unwrap()
+          Ok(BindDecimal(value.coefficient, precision, scale))
+        }
+        @admitted.Date(value) => Ok(BindDate(admitted_date_days(value)))
+        @admitted.Timestamp(value) =>
+          Ok(BindTimestamp(admitted_timestamp_micros(value)))
+        _ => Err(UnsupportedType)
+      }
+  }
+}
+
+///|
 /// Emit one prepared parameter in the private Node adapter format. The caller's
 /// bounded writer counts transport construction; it is not a logical-work credit.
 pub fn emit_physical_parameter(
@@ -167,29 +208,18 @@ pub fn emit_physical_parameter(
   }
   @encode.end_object(output)
   @encode.key(output, "value")
-  match parameter.value {
-    Null => @encode.null_value(output)
-    ScalarNumber(value) => @encode.string_value(output, double_bits_text(value))
-    ScalarBoolean(value) => @encode.bool_value(output, value)
-    ScalarText(value) => @encode.string_value(output, value)
-    Admitted(value) =>
-      match value {
-        @admitted.Null => @encode.null_value(output)
-        @admitted.Boolean(value) => @encode.bool_value(output, value)
-        @admitted.Text(value) => @encode.string_value(output, value)
-        @admitted.Number(value) =>
-          @encode.string_value(output, double_bits_text(value))
-        @admitted.Decimal(value) =>
-          @encode.string_value(output, value.coefficient)
-        @admitted.Date(value) =>
-          @encode.string_value(output, admitted_date_days(value).to_string())
-        @admitted.Timestamp(value) =>
-          @encode.string_value(
-            output,
-            admitted_timestamp_micros(value).to_string(),
-          )
-        _ => raise @encode.InvalidStructure
-      }
+  let binding = match physical_parameter_binding(parameter) {
+    Ok(value) => value
+    Err(_) => raise @encode.InvalidStructure
+  }
+  match binding {
+    BindNull => @encode.null_value(output)
+    BindBoolean(value) => @encode.bool_value(output, value)
+    BindDouble(value) => @encode.string_value(output, double_bits_text(value))
+    BindText(value) => @encode.string_value(output, value)
+    BindDecimal(value, _, _) => @encode.string_value(output, value)
+    BindDate(value) => @encode.string_value(output, value.to_string())
+    BindTimestamp(value) => @encode.string_value(output, value.to_string())
   }
   @encode.end_object(output)
 }

@@ -76,3 +76,34 @@ test "epoch conversion roundtrips admitted Gregorian boundary dates" {
     )
   }
 }
+
+///|
+test "physical parameter binding reuses admitted scalar interpretation" {
+  let number = @admitted.admit(
+    @contract.primitive(@contract.NumberType, nullable=false),
+    payload("1.5"),
+    { max_nodes: 1, max_depth: 0, max_text_bytes: 32, },
+  ).unwrap()
+  assert_eq(
+    physical_parameter_binding(prepare_physical_parameter(number).unwrap()),
+    Ok(BindDouble(1.5)),
+  )
+  let date = @admitted.admit(
+    @contract.primitive(@contract.DateType, nullable=false),
+    payload("\"2000-02-29\""),
+    { max_nodes: 1, max_depth: 0, max_text_bytes: 32, },
+  ).unwrap()
+  assert_eq(
+    physical_parameter_binding(prepare_physical_parameter(date).unwrap()),
+    Ok(BindDate(11016)),
+  )
+  let timestamp = @admitted.admit(
+    @contract.primitive(@contract.TimestampType, nullable=false),
+    payload("\"1969-12-31T23:59:59.999Z\""),
+    { max_nodes: 1, max_depth: 0, max_text_bytes: 32, },
+  ).unwrap()
+  assert_eq(
+    physical_parameter_binding(prepare_physical_parameter(timestamp).unwrap()),
+    Ok(BindTimestamp(-1000L)),
+  )
+}

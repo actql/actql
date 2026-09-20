@@ -1,0 +1,14 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
+  "actql/actql/platform_native/duckdb" @native_duckdb,
+}
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
+  "moonbitlang/core/env",
+} for "wbtest"

@@ -55,8 +55,10 @@ the Host-facing buffer. Integers and decimals retain exact coefficients,
 floating-point values retain their exact bits, and date or timestamp values
 retain their physical ticks. These private physical frames still require the
 Connector's MoonBit type matching, value admission, guards, and completion;
-the C adapter cannot issue logical evidence. Parameter binding and the
-standard native Host connection remain separate migration steps.
+the C adapter cannot issue logical evidence. Prepared parameters use the same
+Connector-owned physical projection as the Node Host and bind through the
+typed DuckDB C API without SQL interpolation. The standard native Host
+connection remains a separate migration step.
 
 Dynamic loading keeps the portable MoonBit packages and unrelated native tests
 independent of a locally installed DuckDB library. A packaged native Host must

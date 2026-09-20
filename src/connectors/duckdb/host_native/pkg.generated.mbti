@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/duckdb/host_native"
+
+import {
+  "actql/actql/connectors/duckdb/adapter",
+  "actql/actql/platform_native/duckdb",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bind_native_parameter(@duckdb.Query, Int, @adapter.PhysicalParameter) -> Result[Unit, NativeParameterBindingIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeParameterBindingIssue {
+  Parameter(@adapter.ValueIssue)
+  Runtime(@duckdb.NativeDuckDBIssue)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

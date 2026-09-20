@@ -55,6 +55,44 @@ pub fn Database::stream_query(
 }
 
 ///|
+pub fn Database::prepare_stream_query(
+  _self : Database,
+  sql : String,
+  max_columns : Int,
+  max_rows : Int64,
+  max_chunk_rows : Int,
+  max_chunk_bytes : Int,
+) -> Result[Query, NativeDuckDBIssue] {
+  ignore(sql)
+  ignore(max_columns)
+  ignore(max_rows)
+  ignore(max_chunk_rows)
+  ignore(max_chunk_bytes)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Query::parameter_count(_self : Query) -> Int {
+  0
+}
+
+///|
+pub fn Query::bind_parameter(
+  _self : Query,
+  index : Int,
+  parameter : NativeDuckDBParameter,
+) -> Result[Unit, NativeDuckDBIssue] {
+  ignore(index)
+  ignore(parameter)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Query::execute(_self : Query) -> Result[Unit, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Query::fields_json(_self : Query) -> Result[String, NativeDuckDBIssue] {
   Err(UnsupportedTarget)
 }

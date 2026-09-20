@@ -13,6 +13,7 @@ pub fn load_library(String) -> Result[Library, NativeDuckDBIssue]
 // Types and methods
 type Database
 pub fn Database::close(Self) -> Unit
+pub fn Database::prepare_stream_query(Self, String, Int, Int64, Int, Int) -> Result[Query, NativeDuckDBIssue]
 pub fn Database::query_i64(Self, String) -> Result[Int64, NativeDuckDBIssue]
 pub fn Database::stream_query(Self, String, Int, Int64, Int, Int) -> Result[Query, NativeDuckDBIssue]
 
@@ -33,12 +34,25 @@ pub(all) enum NativeDuckDBIssue {
   Query(String)
   CapacityExceeded
   Closed
-}
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NativeDuckDBParameter {
+  NullValue
+  BooleanValue(Bool)
+  DoubleValue(Double)
+  TextValue(String)
+  DecimalValue(String, Int, Int)
+  DateValue(Int)
+  TimestampValue(Int64)
+} derive(Eq, @debug.Debug)
 
 type Query
+pub fn Query::bind_parameter(Self, Int, NativeDuckDBParameter) -> Result[Unit, NativeDuckDBIssue]
 pub fn Query::close(Self) -> Bool
+pub fn Query::execute(Self) -> Result[Unit, NativeDuckDBIssue]
 pub fn Query::fields_json(Self) -> Result[String, NativeDuckDBIssue]
 pub fn Query::next(Self) -> Result[NativeDuckDBChunk?, NativeDuckDBIssue]
+pub fn Query::parameter_count(Self) -> Int
 
 // Type aliases
 
