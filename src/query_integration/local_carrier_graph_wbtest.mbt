@@ -733,6 +733,21 @@ fn carrier_graph_reach_owner(
   direction : String,
   depth : Int,
 ) -> @lower.BoundPrepared {
+  carrier_graph_reach_owner_with_depth(
+    source,
+    start,
+    direction,
+    depth.to_string(),
+  )
+}
+
+///|
+fn carrier_graph_reach_owner_with_depth(
+  source : @lower.BoundPrepared,
+  start : Int,
+  direction : String,
+  depth : String,
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
@@ -744,7 +759,7 @@ fn carrier_graph_reach_owner(
       ",\"direction\":\"" +
       direction +
       "\",\"max_depth\":" +
-      depth.to_string() +
+      depth +
       "}}]",
     ),
     [
@@ -1751,15 +1766,54 @@ test "weak and strong components preserve canonical identities and bounds" {
 
 ///|
 test "reach preserves direction depth bounds and cancellation" {
-  let source_owner = carrier_graph_components_source_owner()
-  let source = carrier_events_source_output(source_owner)
   for
-    (direction, expected_nodes) in [
-      ("out", [1.0, 2.0, 3.0]),
-      ("in", [1.0, 2.0]),
-      ("both", [1.0, 2.0, 3.0]),
+    (direction, depth, rows, expected_nodes) in [
+      (
+        "out",
+        "2",
+        "[{\"id\":1,\"src\":1,\"dst\":2," +
+        "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +
+        "\"src\":2,\"dst\":1,\"node_name\":\"two\",\"weight\":20}," +
+        "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\"," +
+        "\"weight\":30},{\"id\":4,\"src\":4,\"dst\":4," +
+        "\"node_name\":\"four\",\"weight\":40}]",
+        [1.0, 2.0, 3.0],
+      ),
+      (
+        "in",
+        "2",
+        "[{\"id\":1,\"src\":1,\"dst\":2," +
+        "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +
+        "\"src\":2,\"dst\":1,\"node_name\":\"two\",\"weight\":20}," +
+        "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\"," +
+        "\"weight\":30},{\"id\":4,\"src\":4,\"dst\":4," +
+        "\"node_name\":\"four\",\"weight\":40}]",
+        [1.0, 2.0],
+      ),
+      (
+        "both",
+        "2",
+        "[{\"id\":1,\"src\":1,\"dst\":2," +
+        "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +
+        "\"src\":2,\"dst\":1,\"node_name\":\"two\",\"weight\":20}," +
+        "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\"," +
+        "\"weight\":30},{\"id\":4,\"src\":4,\"dst\":4," +
+        "\"node_name\":\"four\",\"weight\":40}]",
+        [1.0, 2.0, 3.0],
+      ),
+      (
+        "out",
+        "9007199254740991",
+        "[{\"id\":1,\"src\":1,\"dst\":1," +
+        "\"node_name\":\"self\",\"weight\":10}]",
+        [1.0],
+      ),
     ] {
-    let owner = carrier_graph_reach_owner(source_owner, 1, direction, 2)
+    let source_owner = carrier_graph_source_owner_with_rows(rows)
+    let source = carrier_events_source_output(source_owner)
+    let owner = carrier_graph_reach_owner_with_depth(
+      source_owner, 1, direction, depth,
+    )
     let sequence = prepared_sequence(owner)
     let external = @execution.prepare_producer_read(
       owner,
@@ -1844,6 +1898,8 @@ test "reach preserves direction depth bounds and cancellation" {
     assert_true(@execution.completed_output_available(output))
   }
 
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_reach_owner(source_owner, 1, "out", 2)
   let sequence = prepared_sequence(owner)
   let external = @execution.prepare_producer_read(

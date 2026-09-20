@@ -1775,6 +1775,45 @@ async function exerciseStrategyGraph(
     secondFields: ['degree'],
     expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
   }, {
+    name: 'reach-out',
+    step: {
+      from: 'g',
+      reach: {start: 1, direction: 'out', max_depth: 2},
+      as: 'out',
+    },
+    fields: ['start_id', 'node_id', 'depth'],
+    secondFields: ['node_id', 'depth'],
+    expected: [
+      {start_id: 1, node_id: 1, depth: 0},
+      {start_id: 1, node_id: 2, depth: 1},
+    ],
+  }, {
+    name: 'reach-in',
+    step: {
+      from: 'g',
+      reach: {start: 1, direction: 'in', max_depth: 2},
+      as: 'out',
+    },
+    fields: ['start_id', 'node_id', 'depth'],
+    secondFields: ['node_id', 'depth'],
+    expected: [
+      {start_id: 1, node_id: 1, depth: 0},
+      {start_id: 1, node_id: 2, depth: 1},
+    ],
+  }, {
+    name: 'reach-both',
+    step: {
+      from: 'g',
+      reach: {start: 1, direction: 'both', max_depth: 2},
+      as: 'out',
+    },
+    fields: ['start_id', 'node_id', 'depth'],
+    secondFields: ['node_id', 'depth'],
+    expected: [
+      {start_id: 1, node_id: 1, depth: 0},
+      {start_id: 1, node_id: 2, depth: 1},
+    ],
+  }, {
     name: 'components-weak',
     step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
     fields: ['node_id', 'component_id', 'component_size'],
@@ -1809,7 +1848,9 @@ async function exerciseStrategyGraph(
     graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
     const createSgaFixture = publicationCase.name.startsWith('components-')
       ? fixture.strategyFixtureSgaComponentsCreate
-      : fixture.strategyFixtureSgaCreate;
+      : publicationCase.name.startsWith('reach-')
+        ? fixture.strategyFixtureSgaReachCreate
+        : fixture.strategyFixtureSgaCreate;
     const sgaFixture = createSgaFixture(
       ...sgaEnvironmentArguments(args),
       JSON.stringify(graphProgram),
@@ -2571,6 +2612,17 @@ async function exerciseStrategyGraph(
     step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
     fields: ['node', 'degree'],
   }, {
+    name: 'reach-out',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    step: {
+      from: 'g',
+      reach: {start: 1, direction: 'out', max_depth: 40},
+      as: 'out',
+    },
+    fields: ['start_id', 'node_id', 'depth'],
+  }, {
     name: 'components-strong',
     rows: 40,
     step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
@@ -2989,6 +3041,8 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureSgaCreate
       : cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
+        : cancellationCase.name === 'reach-out'
+          ? fixture.strategyFixtureSgaReachSizedCreate
         : fixture.strategyFixtureSgaSizedCreate;
     const cancellationFixture = createCancellationFixture(
       ...(teaFamily || vecaFamily

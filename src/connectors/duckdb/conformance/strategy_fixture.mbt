@@ -232,6 +232,66 @@ pub fn strategy_fixture_sga_components_sized_create(
 }
 
 ///|
+#export_name("strategyFixtureSgaReachCreate")
+pub fn strategy_fixture_sga_reach_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+    reach=true,
+  )
+}
+
+///|
+#export_name("strategyFixtureSgaReachSizedCreate")
+pub fn strategy_fixture_sga_reach_sized_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  rows : Int64,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+    reach=true,
+    sga_rows=Some(rows),
+  )
+}
+
+///|
 fn strategy_fixture_create_impl(
   environment_json : String,
   environment_cid : String,
@@ -250,6 +310,7 @@ fn strategy_fixture_create_impl(
   ordered_json? : String? = None,
   components? : Bool = false,
   components_rows? : Int64 = 2L,
+  reach? : Bool = false,
   sga_rows? : Int64? = None,
 ) -> StrategyFixture {
   try {
@@ -263,6 +324,7 @@ fn strategy_fixture_create_impl(
       veca~,
       components~,
       components_rows~,
+      reach~,
       sga_rows~,
     )
     let native = issued_native_create_impl(

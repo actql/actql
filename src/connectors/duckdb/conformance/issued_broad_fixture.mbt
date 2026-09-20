@@ -23,6 +23,7 @@ fn issued_fixture_checked(
   veca? : Bool = false,
   components? : Bool = false,
   components_rows? : Int64 = 2L,
+  reach? : Bool = false,
   sga_rows? : Int64? = None,
 ) -> @program_check.CheckedProgram raise {
   let source =
@@ -54,6 +55,8 @@ fn issued_fixture_checked(
   ).unwrap()
   let evidence = if components {
     [components_fixture_capacity(environment, "graph", rows=components_rows)]
+  } else if reach {
+    [reach_fixture_capacity(environment, "graph")]
   } else if sga_rows is Some(rows) {
     [graph_fixture_capacity(environment, "graph", rows)]
   } else if join {
