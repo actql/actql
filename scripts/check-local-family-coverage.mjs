@@ -182,8 +182,32 @@ for (const expression of ["vector_score", "vector_concat"]) {
 const complete = entries.filter((entry) => entry.status === "complete");
 const evidence = manifest.evidence ?? [];
 for (const entry of complete) {
-  const linked = evidence.some((item) => item.operation === entry.operation);
-  if (!linked) fail(`complete entry lacks suite evidence: ${entry.operation}`);
+  const linked = evidence.find((item) => item.operation === entry.operation);
+  if (!linked) {
+    fail(`complete entry lacks suite evidence: ${entry.operation}`);
+    continue;
+  }
+  if (typeof linked.sha !== "string" || linked.sha.length === 0) {
+    fail(`suite evidence lacks a fixed SHA: ${entry.operation}`);
+  }
+  if (!Array.isArray(linked.suites) || linked.suites.length === 0) {
+    fail(`suite evidence lacks executed suites: ${entry.operation}`);
+    continue;
+  }
+  for (const suite of linked.suites) {
+    if (suite.result !== "passed") {
+      fail(`suite evidence is not passing: ${entry.operation}`);
+    }
+    if (
+      typeof suite.path !== "string" ||
+      !fs.existsSync(path.join(root, suite.path))
+    ) {
+      fail(`suite evidence path is missing: ${entry.operation}`);
+    }
+    if (!Array.isArray(suite.targets) || suite.targets.length === 0) {
+      fail(`suite evidence lacks targets: ${entry.operation}`);
+    }
+  }
 }
 
 if (errors.length > 0) {

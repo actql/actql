@@ -15,15 +15,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected, but only 1/39 entries currently records complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 2/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, `degree`, and `components` outputs; 4/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 1/39, and publication 4/39. These are
-layer counts, not operation completion: all 39 entries remain `partial` until
-their classified variants and required layers close on one verified SHA.
+consumer lifetime 15/39, cancellation 2/39, and publication 4/39. These are
+layer counts, not operation completion: one entry is `complete` and 38 remain
+`partial` until their classified variants and required layers close on one
+verified SHA.
 
 ## Closed normative contract mismatches
 
@@ -221,10 +222,12 @@ identity. Exact authored output guards and structural workspace are admitted
 before allocation. Both variants reach two independent downstream Relation
 computations and final reclaim through the registered standard Host on JS,
 Wasm, and native. The Effect-free Named Result path publishes and retrieves
-the weak-components result through the formal Store while preserving its
-canonical row order. Environment cancellation delivery remains open, so
-`components` remains partial. The remaining SGA operations
-still lack portable Local kernels.
+both component variants through the formal Store while preserving canonical
+row order. A real timer delivers cancellation during strong-component work;
+the bounded kernel reports stop, no component result is completed, and retry
+cleanup releases all holdings and reservations. Direct portable tests cover
+the same cancellation boundary for weak and strong execution. `components`
+is complete. The remaining SGA operations still lack portable Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
 

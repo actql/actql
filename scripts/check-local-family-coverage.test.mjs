@@ -39,7 +39,7 @@ async function withManifest(t, change) {
 test("local family coverage accepts the tracked normative gaps", () => {
   const result = run(manifestPath);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /39 normative entries, 0 complete, 39 open/u);
+  assert.match(result.stdout, /39 normative entries, 1 complete, 38 open/u);
 });
 
 test("local family coverage rejects an omitted normative operation", async t => {
@@ -63,6 +63,16 @@ test("local family coverage rejects a completion without suite evidence", async 
     result.stderr,
     /complete entry lacks suite evidence: normalize_graph/u,
   );
+});
+
+test("local family coverage rejects unexecuted suite evidence", async t => {
+  const result = await withManifest(t, manifest => {
+    manifest.evidence.find(
+      entry => entry.operation === "components",
+    ).suites[0].result = "not-run";
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /suite evidence is not passing: components/u);
 });
 
 test("local family coverage rejects an unclassified variant surface", async t => {

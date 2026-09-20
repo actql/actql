@@ -46,6 +46,7 @@
     "bounded_result_cleanup_custody",
     "registered_carrier_provider_boundary",
     "environment_yield_adapter",
+    "bounded_provider_stop_after_disposal",
     "stable_graph_construction_projection",
     "bounded_session_identity_generation",
     "monotonic_identity_issuance"
@@ -218,7 +219,7 @@
       "output": "relation",
       "canonical": ["SGA.components"],
       "variants": ["weak", "strong", "cycles", "disconnected nodes"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -230,6 +231,7 @@
         "consumer_lifetime",
         "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
@@ -248,6 +250,18 @@
           "sha": "447d674b",
           "evidence": [
             "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/duckdb_conformance/components_capacity_fixture.mbt",
+            "src/duckdb_conformance/strategy_fixture.mbt"
+          ]
+        },
+        {
+          "scope": "component_publication_and_environment_cancellation",
+          "layers": ["cancellation", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "bc7c89fa",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/connectors/local/driver/managed_dispatch.mbt",
             "src/duckdb_conformance/components_capacity_fixture.mbt",
             "src/duckdb_conformance/strategy_fixture.mbt"
           ]
@@ -1178,7 +1192,26 @@
       ]
     }
   ],
-  "evidence": [],
+  "evidence": [
+    {
+      "operation": "components",
+      "sha": "bc7c89fa",
+      "suites": [
+        {
+          "name": "portable managed components",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    }
+  ],
   "verified_sha": null,
   "linux_ci": null
 }
