@@ -8,8 +8,15 @@ struct Store {
   max_objects : Int64
   max_record_bytes : Int
   active_writers : Map[String, Bool]
+  pending_writers : Map[String, PendingPayloadCleanup]
   active_readers : Map[String, Int]
   mut closed : Bool
+}
+
+///|
+priv struct PendingPayloadCleanup {
+  physical : @filesystem.Writer
+  mut stopped : Bool
 }
 
 ///|
@@ -156,6 +163,7 @@ pub fn open_store(
     max_objects,
     max_record_bytes: max_record_bytes.to_int(),
     active_writers: Map([]),
+    pending_writers: Map([]),
     active_readers: Map([]),
     closed: false,
   })
@@ -237,10 +245,28 @@ fn payload_generation(
 }
 
 ///|
-fn discovered_generation(
+fn payload_ownership(
+  ownership : @filesystem.NativeFileOwnership,
+) -> @payload.PublicationPayloadOwnership {
+  { device: ownership.device, inode: ownership.inode, }
+}
+
+///|
+fn allocation_matches(
+  generation : @filesystem.NativeFileGeneration,
+  ownership : @payload.PublicationPayloadOwnership,
+) -> Bool {
+  generation.device == ownership.device && generation.inode == ownership.inode
+}
+
+///|
+fn discovered_generations(
   store : Store,
   request : @payload.PublicationPayloadRequest,
-) -> Result[@payload.PublicationPayloadGeneration?, NativePublicationStoreIssue] {
+) -> Result[
+  (@filesystem.NativeFileGeneration?, @filesystem.NativeFileGeneration?),
+  NativePublicationStoreIssue,
+] {
   let staging = match
     store.root.inspect_generation(
       @payload.publication_payload_staging_name(request),
@@ -255,21 +281,46 @@ fn discovered_generation(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  match (staging, committed) {
-    (Some(left), Some(right)) if left != right => Err(StateCollision)
-    (Some(value), _) | (_, Some(value)) => Ok(Some(payload_generation(value)))
-    (None, None) => Ok(None)
-  }
+  Ok((staging, committed))
 }
 
 ///|
-fn reclaim_record(
+fn reclaimable_generation(
+  record : @payload.PublicationPayloadRecord,
+  actual : @filesystem.NativeFileGeneration,
+  committed_name : Bool,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  guard @payload.publication_payload_record_ownership(record) is Some(owner) else {
+    return if committed_name { Ok(false) } else { Err(RecoveryRequired) }
+  }
+  if !allocation_matches(actual, owner) {
+    return if committed_name &&
+      @payload.publication_payload_record_generation(record) is None {
+      Ok(false)
+    } else {
+      Err(Filesystem(@filesystem.GenerationMismatch))
+    }
+  }
+  if @payload.publication_payload_record_generation(record) is Some(expected) &&
+    filesystem_generation(expected) != actual {
+    return Err(Filesystem(@filesystem.GenerationMismatch))
+  }
+  Ok(true)
+}
+
+///|
+fn reclaim_record_internal(
   store : Store,
   record : @payload.PublicationPayloadRecord,
+  known_unallocated : Bool,
+  pending_owner : Bool,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let request = @payload.publication_payload_record_request(record)
   let key = record_key(request)
   if store.active_writers.contains(key) {
+    return Err(CleanupPending)
+  }
+  if !pending_owner && store.pending_writers.contains(key) {
     return Err(CleanupPending)
   }
   if store.active_readers.get(key).unwrap_or(0) != 0 {
@@ -291,18 +342,32 @@ fn reclaim_record(
     }
     return Ok(())
   }
-  let found = match discovered_generation(store, request) {
+  let found = match discovered_generations(store, request) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let mut reclaim_staging = false
+  let mut reclaim_committed = false
+  if !known_unallocated {
+    if found.0 is Some(value) {
+      reclaim_staging = match reclaimable_generation(record, value, false) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+    }
+    if found.1 is Some(value) {
+      reclaim_committed = match reclaimable_generation(record, value, true) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+    }
+  } else if @payload.publication_payload_record_ownership(record) is Some(_) ||
+    @payload.publication_payload_record_generation(record) is Some(_) {
+    return Err(StateCollision)
+  }
   if state != @payload.Reclaiming {
     let transition = match
-      protocol(
-        @payload.prepare_publication_payload_reclaiming(
-          record,
-          discovered_generation=found,
-        ),
-      ) {
+      protocol(@payload.prepare_publication_payload_reclaiming(record)) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -310,35 +375,44 @@ fn reclaim_record(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
-  } else {
-    match (@payload.publication_payload_record_generation(record), found) {
-      (Some(expected), Some(actual)) if expected != actual =>
-        return Err(StateCollision)
-      (None, Some(_)) => return Err(StateCollision)
-      _ => ()
+  } else if !known_unallocated {
+    if found.0 is Some(value) {
+      reclaim_staging = match reclaimable_generation(record, value, false) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+    }
+    if found.1 is Some(value) {
+      reclaim_committed = match reclaimable_generation(record, value, true) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
     }
   }
-  if @payload.publication_payload_record_generation(record) is Some(generation) {
-    let exact = filesystem_generation(generation)
-    match
-      filesystem(
-        store.root.reclaim_generation(
-          @payload.publication_payload_staging_name(request),
-          exact,
-        ),
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
+  if !known_unallocated {
+    if reclaim_staging && found.0 is Some(generation) {
+      match
+        filesystem(
+          store.root.reclaim_generation(
+            @payload.publication_payload_staging_name(request),
+            generation,
+          ),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
     }
-    match
-      filesystem(
-        store.root.reclaim_generation(
-          @payload.publication_payload_object_name(request),
-          exact,
-        ),
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
+    if reclaim_committed && found.1 is Some(generation) {
+      match
+        filesystem(
+          store.root.reclaim_generation(
+            @payload.publication_payload_object_name(request),
+            generation,
+          ),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
     }
   }
   match
@@ -366,11 +440,74 @@ fn reclaim_record(
 }
 
 ///|
+fn reclaim_record(
+  store : Store,
+  record : @payload.PublicationPayloadRecord,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  reclaim_record_internal(store, record, false, false)
+}
+
+///|
+fn reclaim_unallocated_record(
+  store : Store,
+  record : @payload.PublicationPayloadRecord,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  reclaim_record_internal(store, record, true, false)
+}
+
+///|
 fn cleanup_after_begin_failure(
   store : Store,
   record : @payload.PublicationPayloadRecord,
 ) -> Bool {
-  reclaim_record(store, record) is Ok(_)
+  reclaim_unallocated_record(store, record) is Ok(_)
+}
+
+///|
+fn retain_pending_writer(
+  store : Store,
+  record : @payload.PublicationPayloadRecord,
+  physical : @filesystem.Writer,
+  stopped : Bool,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let key = record_key(@payload.publication_payload_record_request(record))
+  if store.pending_writers.contains(key) {
+    return Err(StateCollision)
+  }
+  ignore(store.active_writers.remove(key))
+  store.pending_writers[key] = { physical, stopped, }
+  Ok(())
+}
+
+///|
+fn retry_pending_writer(
+  store : Store,
+  key : String,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  guard store.pending_writers.get(key) is Some(pending) else {
+    return Ok(false)
+  }
+  if !pending.stopped {
+    match filesystem(pending.physical.cancel()) {
+      Ok(_) => pending.stopped = true
+      Err(issue) => return Err(issue)
+    }
+  }
+  ignore(store.pending_writers.remove(key))
+  let current = match load_record(store, key) {
+    Ok(value) => value
+    Err(issue) => {
+      store.pending_writers[key] = pending
+      return Err(issue)
+    }
+  }
+  match reclaim_record_internal(store, current, false, true) {
+    Ok(_) => Ok(true)
+    Err(issue) => {
+      store.pending_writers[key] = pending
+      Err(issue)
+    }
+  }
 }
 
 ///|
@@ -476,10 +613,43 @@ pub fn Store::begin_payload(
       return Err(Filesystem(issue))
     }
   }
+  let owned = match
+    protocol(
+      @payload.prepare_publication_payload_owned(
+        writing,
+        payload_ownership(physical.ownership()),
+      ),
+    ) {
+    Ok(transition) =>
+      match persist_transition(self, transition) {
+        Ok(value) => value
+        Err(issue) => {
+          let stopped = physical.cancel() is Ok(_)
+          let current = load_record(self, key).unwrap_or(writing)
+          if stopped && reclaim_record(self, current) is Ok(_) {
+            return Err(issue)
+          }
+          match retain_pending_writer(self, current, physical, stopped) {
+            Ok(_) => return Err(CleanupPending)
+            Err(_) => return Err(CleanupPending)
+          }
+        }
+      }
+    Err(issue) => {
+      let stopped = physical.cancel() is Ok(_)
+      if stopped && cleanup_after_begin_failure(self, writing) {
+        return Err(issue)
+      }
+      match retain_pending_writer(self, writing, physical, stopped) {
+        Ok(_) => return Err(CleanupPending)
+        Err(_) => return Err(CleanupPending)
+      }
+    }
+  }
   self.active_writers[key] = true
   Ok({
     store: self,
-    record: writing,
+    record: owned,
     physical,
     hash: @sha.hasher(),
     sealed_generation: None,
@@ -594,7 +764,14 @@ pub fn PayloadWriter::cancel(
   }
   match filesystem(self.physical.cancel()) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      match
+        retain_pending_writer(self.store, self.record, self.physical, false) {
+        Ok(_) => self.closed = true
+        Err(_) => ()
+      }
+      return Err(issue)
+    }
   }
   let key = record_key(@payload.publication_payload_record_request(self.record))
   ignore(self.store.active_writers.remove(key))
@@ -604,7 +781,11 @@ pub fn PayloadWriter::cancel(
       Ok(())
     }
     Err(issue) => {
-      self.store.active_writers[key] = true
+      match
+        retain_pending_writer(self.store, self.record, self.physical, true) {
+        Ok(_) => self.closed = true
+        Err(_) => self.store.active_writers[key] = true
+      }
       Err(issue)
     }
   }
@@ -2384,6 +2565,13 @@ pub fn Store::recover(
   }
   if !self.active_writers.is_empty() || !self.active_readers.is_empty() {
     return Err(CleanupPending)
+  }
+  let pending = self.pending_writers.keys().to_array()
+  for key in pending {
+    match retry_pending_writer(self, key) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   let mut cursor = ""
   let mut retained = 0

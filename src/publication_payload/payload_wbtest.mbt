@@ -46,6 +46,12 @@ test "publication payload lifecycle is monotonic and durable" {
   )
   |> ignore
   let generation = { device: 1UL, inode: 2UL, size: 12L, }
+  let ownership = { device: generation.device, inode: generation.inode, }
+  commit_publication_payload_transition(
+    prepare_publication_payload_owned(record, ownership).unwrap(),
+    true,
+  )
+  |> ignore
   commit_publication_payload_transition(
     prepare_publication_payload_sealed(record, generation, payload_cid("a")).unwrap(),
     true,
@@ -53,6 +59,18 @@ test "publication payload lifecycle is monotonic and durable" {
   |> ignore
   assert_eq(publication_payload_record_state(record), Sealed)
   let sealed_body = publication_payload_record_durable_json(record).unwrap()
+  assert_true(sealed_body.contains("actql-publication-payload-record/0.2"))
+  assert_true(
+    admit_durable_publication_payload_record(
+      @utf8.encode(
+        sealed_body.replace(
+          old="actql-publication-payload-record/0.2",
+          new="actql-publication-payload-record/0.1",
+        ),
+      ),
+    )
+    is Err(InvalidRecord),
+  )
   let reopened = restore_durable_publication_payload_record(
     admit_durable_publication_payload_record(@utf8.encode(sealed_body)).unwrap(),
   ).unwrap()
@@ -100,6 +118,11 @@ test "publication payload rejects invalid limits and forged records" {
     true,
   )
   |> ignore
+  commit_publication_payload_transition(
+    prepare_publication_payload_owned(record, { device: 1UL, inode: 2UL, }).unwrap(),
+    true,
+  )
+  |> ignore
   assert_true(
     prepare_publication_payload_sealed(
       record,
@@ -118,7 +141,7 @@ test "publication payload rejects invalid limits and forged records" {
 }
 
 ///|
-test "publication payload cleanup can bind a discovered exact generation" {
+test "publication payload cleanup requires recorded allocation ownership" {
   let record = prepare_publication_payload_record(payload_request())
   commit_publication_payload_transition(
     prepare_publication_payload_reserved(record).unwrap(),
@@ -126,6 +149,26 @@ test "publication payload cleanup can bind a discovered exact generation" {
   )
   |> ignore
   let generation = { device: 9UL, inode: 8UL, size: 0L, }
+  assert_true(
+    prepare_publication_payload_reclaiming(
+      record,
+      discovered_generation=Some(generation),
+    )
+    is Err(StateCollision),
+  )
+  commit_publication_payload_transition(
+    prepare_publication_payload_writing(record).unwrap(),
+    true,
+  )
+  |> ignore
+  commit_publication_payload_transition(
+    prepare_publication_payload_owned(record, {
+      device: generation.device,
+      inode: generation.inode,
+    }).unwrap(),
+    true,
+  )
+  |> ignore
   commit_publication_payload_transition(
     prepare_publication_payload_reclaiming(
       record,
@@ -134,7 +177,11 @@ test "publication payload cleanup can bind a discovered exact generation" {
     true,
   )
   |> ignore
-  assert_eq(publication_payload_record_generation(record), Some(generation))
+  assert_eq(publication_payload_record_generation(record), None)
+  assert_eq(
+    publication_payload_record_ownership(record),
+    Some({ device: generation.device, inode: generation.inode, }),
+  )
   assert_true(
     prepare_publication_payload_reclaiming(
       record,

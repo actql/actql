@@ -1,4 +1,11 @@
 ///|
+#borrow(root)
+extern "C" fn test_fail_root_sync(
+  root : @filesystem.Root,
+  failures : Int,
+) -> Unit = "actql_native_filesystem_test_fail_root_sync"
+
+///|
 fn native_payload_cid(label : String) -> String {
   "sha256:" + @sha.hex(@utf8.encode(label))
 }
@@ -193,6 +200,80 @@ test "native publication Store root has one live recovery owner" {
   let successor = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
   assert_eq(successor.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(successor.close().unwrap())
+}
+
+///|
+test "native publication create conflict preserves the foreign staging allocation" {
+  guard native_payload_fixture("foreign-staging", 64L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let request = native_payload_request(
+    authority,
+    "foreign-staging-" + @env.now().to_string(),
+    32L,
+  )
+  let name = @payload.publication_payload_staging_name(request)
+  let foreign = store.root.create_writer(name, 32L).unwrap()
+  foreign.append(b"foreign").unwrap()
+  let before = store.root.inspect_generation(name).unwrap().unwrap()
+  assert_true(
+    store.begin_payload(request) is Err(Filesystem(@filesystem.Conflict)),
+  )
+  assert_eq(store.root.inspect_generation(name).unwrap(), Some(before))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  foreign.cancel().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native publication seal conflict reclaims only its owned staging allocation" {
+  guard native_payload_fixture("foreign-object", 64L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let request = native_payload_request(
+    authority,
+    "foreign-object-" + @env.now().to_string(),
+    32L,
+  )
+  let object_name = @payload.publication_payload_object_name(request)
+  let foreign = store.root.create_writer(object_name, 32L).unwrap()
+  foreign.append(b"foreign").unwrap()
+  let before = store.root.inspect_generation(object_name).unwrap().unwrap()
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"owned").unwrap()
+  assert_true(writer.seal() is Err(Filesystem(@filesystem.Conflict)))
+  writer.cancel().unwrap()
+  assert_eq(store.root.inspect_generation(object_name).unwrap(), Some(before))
+  foreign.cancel().unwrap()
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native publication retains failed writer cleanup for Store retry" {
+  guard native_payload_fixture("writer-cleanup", 64L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let request = native_payload_request(
+    authority,
+    "writer-cleanup-" + @env.now().to_string(),
+    32L,
+  )
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"partial").unwrap()
+  test_fail_root_sync(store.root, 2)
+  assert_true(writer.cancel() is Err(Filesystem(@filesystem.Cleanup(_))))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  assert_true(store.recover() is Err(Filesystem(@filesystem.Cleanup(_))))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  test_fail_root_sync(store.root, 0)
+  let recovered = store.recover().unwrap()
+  assert_eq(recovered.reclaimed, 0)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
 }
 
 ///|
