@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -20,6 +21,13 @@ typedef struct {
   uint64_t result_inode;
   int64_t result_size;
 } actql_native_filesystem_root;
+
+typedef struct {
+  actql_native_filesystem_root *root;
+  int fd;
+  char *error;
+  bool ready;
+} actql_native_filesystem_lock;
 
 typedef struct {
   actql_native_filesystem_root *root;
@@ -212,6 +220,21 @@ static void actql_native_filesystem_root_finalize(void *value) {
   root->error = NULL;
 }
 
+static void actql_native_filesystem_lock_finalize(void *value) {
+  actql_native_filesystem_lock *lock = value;
+  if (lock->fd >= 0) {
+    flock(lock->fd, LOCK_UN);
+    close(lock->fd);
+    lock->fd = -1;
+  }
+  free(lock->error);
+  lock->error = NULL;
+  if (lock->root != NULL) {
+    moonbit_decref(lock->root);
+    lock->root = NULL;
+  }
+}
+
 static void actql_native_filesystem_writer_finalize(void *value) {
   actql_native_filesystem_writer *writer = value;
   if (writer->fd >= 0) {
@@ -307,6 +330,88 @@ moonbit_bytes_t actql_native_filesystem_root_error(
   actql_native_filesystem_root *root
 ) {
   return actql_copy_bytes(root == NULL ? "invalid Store root" : root->error);
+}
+
+void *actql_native_filesystem_acquire_lock(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  actql_native_filesystem_lock *lock = moonbit_make_external_object(
+    actql_native_filesystem_lock_finalize,
+    sizeof(actql_native_filesystem_lock)
+  );
+  memset(lock, 0, sizeof(*lock));
+  lock->fd = -1;
+  lock->root = root;
+  if (root != NULL) moonbit_incref(root);
+  char *name_text = actql_copy_text(name, length);
+  if (root == NULL || root->fd < 0) {
+    actql_replace_error(&lock->error, "Store root is unavailable");
+  } else if (name_text == NULL) {
+    actql_replace_error(&lock->error, "lock name allocation failed");
+  } else if (!actql_valid_name(name_text, (size_t)length)) {
+    actql_replace_error(&lock->error, "invalid lock name");
+  } else {
+    lock->fd = openat(
+      root->fd,
+      name_text,
+      O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW,
+      0600
+    );
+    if (lock->fd < 0) {
+      actql_replace_errno_error(&lock->error, "open Store lock", errno);
+    } else {
+      struct stat status;
+      int inspect_result = fstat(lock->fd, &status);
+      if (inspect_result != 0 || !S_ISREG(status.st_mode)) {
+        int inspect_error = inspect_result == 0 ? 0 : errno;
+        close(lock->fd);
+        lock->fd = -1;
+        if (inspect_error == 0) {
+          actql_replace_error(&lock->error, "Store lock is not regular");
+        } else {
+          actql_replace_errno_error(
+            &lock->error,
+            "inspect Store lock",
+            inspect_error
+          );
+        }
+      } else if (flock(lock->fd, LOCK_EX | LOCK_NB) != 0) {
+        int lock_error = errno;
+        close(lock->fd);
+        lock->fd = -1;
+        actql_replace_errno_error(&lock->error, "acquire Store lock", lock_error);
+      } else {
+        lock->ready = true;
+      }
+    }
+  }
+  free(name_text);
+  return lock;
+}
+
+int32_t actql_native_filesystem_lock_ready(
+  actql_native_filesystem_lock *lock
+) {
+  return lock != NULL && lock->ready && lock->fd >= 0;
+}
+
+moonbit_bytes_t actql_native_filesystem_lock_error(
+  actql_native_filesystem_lock *lock
+) {
+  return actql_copy_bytes(lock == NULL ? "invalid Store lock" : lock->error);
+}
+
+int32_t actql_native_filesystem_lock_close(
+  actql_native_filesystem_lock *lock
+) {
+  if (lock == NULL || lock->fd < 0) return 0;
+  int descriptor = lock->fd;
+  lock->fd = -1;
+  lock->ready = false;
+  flock(descriptor, LOCK_UN);
+  return close(descriptor) == 0;
 }
 
 void *actql_native_filesystem_create_writer(

@@ -2,6 +2,9 @@
 type Root
 
 ///|
+type Lock
+
+///|
 type Writer
 
 ///|
@@ -10,6 +13,19 @@ type Reader
 ///|
 pub fn open_root(_path : String) -> Result[Root, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::acquire_lock(
+  _self : Root,
+  _name : String,
+) -> Result[Lock, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Lock::close(_self : Lock) -> Bool {
+  false
 }
 
 ///|

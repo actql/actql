@@ -6,6 +6,22 @@ test "native filesystem rejects a missing root" {
 }
 
 ///|
+test "native filesystem grants one process owner per Store lock" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let first_root = open_root(path).unwrap()
+  let second_root = open_root(path).unwrap()
+  let owner = first_root.acquire_lock("runtime-bundle-test.lock").unwrap()
+  assert_true(
+    second_root.acquire_lock("runtime-bundle-test.lock") is Err(Lock(_)),
+  )
+  assert_true(owner.close())
+  let successor = second_root.acquire_lock("runtime-bundle-test.lock").unwrap()
+  assert_true(successor.close())
+}
+
+///|
 test "native filesystem bounds and durably links one generation" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
     return

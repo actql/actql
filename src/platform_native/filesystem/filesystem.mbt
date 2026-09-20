@@ -4,6 +4,7 @@ pub(all) enum NativeFilesystemIssue {
   InvalidName
   InvalidLimit
   RootOpen(String)
+  Lock(String)
   WriterCreate(String)
   CapacityExceeded
   WriterClosed

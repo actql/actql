@@ -3,6 +3,10 @@
 type Root
 
 ///|
+/// Exclusive process ownership for one stable name below a Store root.
+type Lock
+
+///|
 fn valid_object_name(name : String) -> Bool {
   if name.length() == 0 || name.length() > 128 || name == "." || name == ".." {
     return false
@@ -39,6 +43,22 @@ extern "C" fn root_ready_ffi(root : Root) -> Bool = "actql_native_filesystem_roo
 ///|
 #borrow(root)
 extern "C" fn root_error_ffi(root : Root) -> Bytes = "actql_native_filesystem_root_error"
+
+///|
+#borrow(root, name)
+extern "C" fn acquire_lock_ffi(root : Root, name : Bytes, length : Int) -> Lock = "actql_native_filesystem_acquire_lock"
+
+///|
+#borrow(lock)
+extern "C" fn lock_ready_ffi(lock : Lock) -> Bool = "actql_native_filesystem_lock_ready"
+
+///|
+#borrow(lock)
+extern "C" fn lock_error_ffi(lock : Lock) -> Bytes = "actql_native_filesystem_lock_error"
+
+///|
+#borrow(lock)
+extern "C" fn lock_close_ffi(lock : Lock) -> Bool = "actql_native_filesystem_lock_close"
 
 ///|
 #borrow(root, name)
@@ -197,6 +217,28 @@ pub fn open_root(path : String) -> Result[Root, NativeFilesystemIssue] {
   } else {
     Err(RootOpen(decode_message(root_error_ffi(root))))
   }
+}
+
+///|
+pub fn Root::acquire_lock(
+  self : Root,
+  name : String,
+) -> Result[Lock, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  let lock = acquire_lock_ffi(self, encoded, encoded.length())
+  if lock_ready_ffi(lock) {
+    Ok(lock)
+  } else {
+    Err(Lock(decode_message(lock_error_ffi(lock))))
+  }
+}
+
+///|
+pub fn Lock::close(self : Lock) -> Bool {
+  lock_close_ffi(self)
 }
 
 ///|
