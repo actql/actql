@@ -53,10 +53,19 @@ test "native HTTPS client verifies mTLS and bounds response bytes" {
   let response = client.post_json(url + "/probe", b"{\"probe\":true}").unwrap()
   assert_eq(response.status, 200)
   assert_eq(response.body, b"{\"accepted\":true}")
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_SECRET") is Some(secret) else {
+    return
+  }
+  let authorized = client.get_bearer_file(url + "/credential", secret).unwrap()
+  assert_eq(authorized.status, 200)
+  assert_eq(authorized.body, b"{\"authorized\":true}")
   assert_true(client.close())
   assert_true(!client.close())
   guard client.post_json(url + "/probe", b"{}") is Err(Closed) else {
     fail("closed HTTPS client accepted another request")
+  }
+  guard client.get_bearer_file(url + "/credential", secret) is Err(Closed) else {
+    fail("closed HTTPS client accepted a credential request")
   }
   let bounded = library.create_client(ca, cert, key, 4L, 2000, 5000).unwrap()
   guard bounded.post_json(url + "/probe", b"{}") is Err(CapacityExceeded) else {

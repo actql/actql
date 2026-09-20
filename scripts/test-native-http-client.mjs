@@ -88,6 +88,16 @@ try {
       request.socket.destroy();
       return;
     }
+    if (request.url === '/credential') {
+      if (request.method !== 'GET' ||
+          request.headers.authorization !== 'Bearer native-secret') {
+        response.writeHead(403).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"authorized":true}');
+      return;
+    }
     if (request.method !== 'POST' ||
         ![
           '/probe',
@@ -201,6 +211,7 @@ try {
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+    ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
     ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
     ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
     ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
@@ -210,6 +221,11 @@ try {
         : 'libsqlite3.so.0'),
     ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
   };
+  await writeFile(
+    testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
+    'native-secret\n',
+    {mode: 0o600},
+  );
   for (const packagePath of [
     'src/platform_native/http_client',
     'src/platform_native/remote_client',

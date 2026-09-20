@@ -3,12 +3,19 @@
 #include "moonbit.h"
 
 #include <dlfcn.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW 0
+#endif
 
 typedef void CURL;
 typedef int CURLcode;
@@ -424,6 +431,174 @@ int32_t actql_native_http_client_post_json(
   ACTQL_SET(ACTQL_CURLOPT_POST, 1L);
   ACTQL_SET(ACTQL_CURLOPT_POSTFIELDS, body);
   ACTQL_SET(ACTQL_CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)body_length);
+  ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
+  ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
+  ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
+  ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYPEER, 1L);
+  ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYHOST, 2L);
+  ACTQL_SET(ACTQL_CURLOPT_FOLLOWLOCATION, 0L);
+  ACTQL_SET(ACTQL_CURLOPT_PROTOCOLS, 2L);
+  ACTQL_SET(ACTQL_CURLOPT_NOSIGNAL, 1L);
+  ACTQL_SET(ACTQL_CURLOPT_CONNECTTIMEOUT_MS, client->connect_timeout_ms);
+  ACTQL_SET(ACTQL_CURLOPT_TIMEOUT_MS, client->operation_timeout_ms);
+  ACTQL_SET(ACTQL_CURLOPT_WRITEFUNCTION, actql_receive_response);
+  ACTQL_SET(ACTQL_CURLOPT_WRITEDATA, client);
+  ACTQL_SET(ACTQL_CURLOPT_NOPROGRESS, 0L);
+  ACTQL_SET(ACTQL_CURLOPT_XFERINFOFUNCTION, actql_transfer_progress);
+  ACTQL_SET(ACTQL_CURLOPT_XFERINFODATA, client);
+#undef ACTQL_SET
+  CURLcode code = configured
+    ? client->library->easy_perform(curl)
+    : ACTQL_CURLE_WRITE_ERROR;
+  if (configured && code == ACTQL_CURLE_OK) {
+    code = client->library->easy_getinfo(
+      curl,
+      ACTQL_CURLINFO_RESPONSE_CODE,
+      &client->status
+    );
+  }
+  if (code != ACTQL_CURLE_OK && client->error == NULL &&
+      !client->capacity_exceeded &&
+      !atomic_load_explicit(&client->cancelled, memory_order_relaxed)) {
+    const char *message = error_buffer[0] == '\0'
+      ? client->library->easy_strerror(code)
+      : error_buffer;
+    actql_replace_error(&client->error, message);
+  }
+  client->library->slist_free_all(headers);
+  client->library->easy_cleanup(curl);
+  free(url_text);
+  if (client->capacity_exceeded) return 1;
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed) ||
+      code == ACTQL_CURLE_ABORTED_BY_CALLBACK) return 2;
+  return code == ACTQL_CURLE_OK ? 0 : -1;
+}
+
+int32_t actql_native_http_client_get_bearer_file(
+  actql_native_http_client *client,
+  moonbit_bytes_t url,
+  int32_t url_length,
+  moonbit_bytes_t secret_path,
+  int32_t secret_path_length
+) {
+  if (client == NULL || client->closed) return 3;
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
+  actql_clear_response(client);
+  char *url_text = actql_copy_text(url, url_length);
+  char *secret_path_text = actql_copy_text(secret_path, secret_path_length);
+  if (url_text == NULL || secret_path_text == NULL) {
+    free(url_text);
+    free(secret_path_text);
+    actql_replace_error(&client->error, "invalid HTTPS credential request");
+    return -1;
+  }
+  struct stat expected_secret;
+  bool secret_generation_valid =
+    lstat(secret_path_text, &expected_secret) == 0 &&
+    S_ISREG(expected_secret.st_mode);
+  int descriptor = secret_generation_valid
+    ? open(secret_path_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
+    : -1;
+  free(secret_path_text);
+  if (descriptor < 0) {
+    free(url_text);
+    actql_replace_error(&client->error, "open bearer credential failed");
+    return -1;
+  }
+  enum { ACTQL_MAX_BEARER_BYTES = 8192 };
+  unsigned char secret[ACTQL_MAX_BEARER_BYTES + 1];
+  size_t secret_length = 0;
+  struct stat opened_secret;
+  bool secret_valid = fstat(descriptor, &opened_secret) == 0 &&
+    S_ISREG(opened_secret.st_mode) &&
+    opened_secret.st_dev == expected_secret.st_dev &&
+    opened_secret.st_ino == expected_secret.st_ino;
+  while (secret_length <= ACTQL_MAX_BEARER_BYTES) {
+    ssize_t count = read(
+      descriptor,
+      secret + secret_length,
+      sizeof(secret) - secret_length
+    );
+    if (count < 0) {
+      secret_valid = false;
+      break;
+    }
+    if (count == 0) break;
+    secret_length += (size_t)count;
+    if (secret_length > ACTQL_MAX_BEARER_BYTES) {
+      secret_valid = false;
+      break;
+    }
+  }
+  if (close(descriptor) != 0) secret_valid = false;
+  while (secret_length > 0 &&
+         (secret[secret_length - 1] == '\n' ||
+          secret[secret_length - 1] == '\r')) {
+    secret_length -= 1;
+  }
+  if (secret_length == 0 ||
+      memchr(secret, 0, secret_length) != NULL ||
+      memchr(secret, '\n', secret_length) != NULL ||
+      memchr(secret, '\r', secret_length) != NULL) {
+    secret_valid = false;
+  }
+  const char prefix[] = "Authorization: Bearer ";
+  size_t authorization_length = sizeof(prefix) - 1 + secret_length;
+  char *authorization = secret_valid
+    ? malloc(authorization_length + 1)
+    : NULL;
+  if (authorization == NULL) secret_valid = false;
+  if (secret_valid) {
+    memcpy(authorization, prefix, sizeof(prefix) - 1);
+    memcpy(authorization + sizeof(prefix) - 1, secret, secret_length);
+    authorization[authorization_length] = '\0';
+  }
+  memset(secret, 0, sizeof(secret));
+  if (!secret_valid) {
+    free(authorization);
+    free(url_text);
+    actql_replace_error(&client->error, "read bearer credential failed");
+    return -1;
+  }
+  CURL *curl = client->library->easy_init();
+  if (curl == NULL) {
+    memset(authorization, 0, authorization_length);
+    free(authorization);
+    free(url_text);
+    actql_replace_error(&client->error, "initialize HTTP request failed");
+    return -1;
+  }
+  char error_buffer[ACTQL_CURL_ERROR_SIZE];
+  memset(error_buffer, 0, sizeof(error_buffer));
+  curl_slist *headers = client->library->slist_append(
+    NULL,
+    "Accept: application/json"
+  );
+  bool configured = headers != NULL;
+  if (configured) {
+    curl_slist *next_headers = client->library->slist_append(
+      headers,
+      authorization
+    );
+    if (next_headers == NULL) {
+      configured = false;
+      actql_replace_error(&client->error, "HTTP header allocation failed");
+    } else {
+      headers = next_headers;
+    }
+  }
+  memset(authorization, 0, authorization_length);
+  free(authorization);
+#define ACTQL_SET(option, value) \
+  do { \
+    if (configured && !actql_option( \
+          client, curl, client->library->easy_setopt(curl, (option), (value)), \
+          "configure HTTP request failed" \
+        )) configured = false; \
+  } while (0)
+  ACTQL_SET(ACTQL_CURLOPT_URL, url_text);
+  ACTQL_SET(ACTQL_CURLOPT_ERRORBUFFER, error_buffer);
   ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
   ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
   ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);

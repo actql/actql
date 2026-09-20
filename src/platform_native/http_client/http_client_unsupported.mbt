@@ -46,6 +46,17 @@ pub fn Client::post_json(
 }
 
 ///|
+pub fn Client::get_bearer_file(
+  _self : Client,
+  url : String,
+  secret_path : String,
+) -> Result[NativeHttpResponse, NativeHttpIssue] {
+  ignore(url)
+  ignore(secret_path)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::cancel(_self : Client) -> Bool {
   false
 }

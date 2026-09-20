@@ -10,6 +10,7 @@ pub fn load_library(String) -> Result[Library, NativeHttpIssue]
 type Client
 pub fn Client::cancel(Self) -> Bool
 pub fn Client::close(Self) -> Bool
+pub fn Client::get_bearer_file(Self, String, String) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 
 type Library

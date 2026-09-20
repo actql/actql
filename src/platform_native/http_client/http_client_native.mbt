@@ -54,6 +54,16 @@ extern "C" fn client_post_json_ffi(
 ) -> Int = "actql_native_http_client_post_json"
 
 ///|
+#borrow(client, url, secret_path)
+extern "C" fn client_get_bearer_file_ffi(
+  client : Client,
+  url : Bytes,
+  url_length : Int,
+  secret_path : Bytes,
+  secret_path_length : Int,
+) -> Int = "actql_native_http_client_get_bearer_file"
+
+///|
 #borrow(client)
 extern "C" fn client_status_ffi(client : Client) -> Int = "actql_native_http_client_status"
 
@@ -157,6 +167,39 @@ pub fn Client::post_json(
       encoded_url.length(),
       body,
       body.length(),
+    ) {
+    0 => Ok({ status: client_status_ffi(self), body: client_body_ffi(self), })
+    1 => Err(CapacityExceeded)
+    2 => Err(Cancelled)
+    3 => Err(Closed)
+    _ => Err(Transport(decode_message(client_error_ffi(self))))
+  }
+}
+
+///|
+/// Performs one bounded HTTPS GET while resolving the bearer credential from
+/// an exact local file inside the physical adapter. The secret never crosses
+/// the MoonBit boundary and redirects remain disabled.
+pub fn Client::get_bearer_file(
+  self : Client,
+  url : String,
+  secret_path : String,
+) -> Result[NativeHttpResponse, NativeHttpIssue] {
+  if !url.has_prefix("https://") ||
+    url.length() > 8192 ||
+    url.contains("\u{0}") ||
+    !valid_path(secret_path) {
+    return Err(InvalidRequest)
+  }
+  let encoded_url = @utf8.encode(url)
+  let encoded_secret_path = @utf8.encode(secret_path)
+  match
+    client_get_bearer_file_ffi(
+      self,
+      encoded_url,
+      encoded_url.length(),
+      encoded_secret_path,
+      encoded_secret_path.length(),
     ) {
     0 => Ok({ status: client_status_ffi(self), body: client_body_ffi(self), })
     1 => Err(CapacityExceeded)
