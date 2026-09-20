@@ -459,6 +459,11 @@ pub fn record_revision(record : RemoteTransferRecord) -> Int {
 }
 
 ///|
+pub fn record_request_identity(record : RemoteTransferRecord) -> String {
+  record.request.request_cid
+}
+
+///|
 fn restored_state_valid(record : RemoteTransferRecord) -> Bool {
   if record.revision < 0 {
     return false

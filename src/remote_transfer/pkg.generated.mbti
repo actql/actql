@@ -9,6 +9,8 @@ import {
 // Values
 pub fn admit_destination_receipt_json(String, RemoteTransferRequest, String) -> Result[RemoteTransferDestinationReceipt, RemoteTransferIssue]
 
+pub fn admit_durable_remote_transfer_record(Bytes, Int, Int, Int64) -> Result[DurableRemoteTransferRecord, RemoteTransferIssue]
+
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
 pub fn admit_request_json(String, String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
@@ -22,6 +24,14 @@ pub fn destination_receipt_cid(RemoteTransferDestinationReceipt) -> String
 pub fn destination_receipt_json(RemoteTransferDestinationReceipt) -> Result[String, RemoteTransferIssue]
 
 pub fn destination_receipt_projection(RemoteTransferDestinationReceipt) -> Array[String]
+
+pub fn durable_remote_transfer_record_journal_identity(DurableRemoteTransferRecord) -> Result[String, RemoteTransferIssue]
+
+pub fn durable_remote_transfer_record_json(DurableRemoteTransferRecord) -> String
+
+pub fn durable_remote_transfer_record_request_identity(DurableRemoteTransferRecord) -> String
+
+pub fn durable_remote_transfer_record_revision(DurableRemoteTransferRecord) -> Int
 
 pub fn open_record(RemoteTransferRequest) -> RemoteTransferRecord
 
@@ -59,7 +69,19 @@ pub fn prepare_unknown(RemoteTransferRecord) -> Result[RemoteTransferTransition,
 
 pub fn record_projection(RemoteTransferRecord) -> Array[Int]
 
+pub fn record_request_identity(RemoteTransferRecord) -> String
+
 pub fn record_revision(RemoteTransferRecord) -> Int
+
+pub fn remote_transfer_record_durable_json(RemoteTransferRecord) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_transition_durable_json(RemoteTransferTransition) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_transition_expected_revision(RemoteTransferTransition) -> Int
+
+pub fn remote_transfer_transition_journal_identity(RemoteTransferTransition) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_transition_request_identity(RemoteTransferTransition) -> String
 
 pub fn request_active_at(RemoteTransferRequest, Int64) -> Bool
 
@@ -71,6 +93,8 @@ pub fn request_chunk_row_counts(RemoteTransferRequest) -> Array[Int]
 
 pub fn request_cid(RemoteTransferRequest) -> String
 
+pub fn request_journal_identity(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
+
 pub fn request_journal_key(RemoteTransferRequest) -> Array[String]
 
 pub fn request_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
@@ -80,6 +104,8 @@ pub fn request_manifest_json(RemoteTransferRequest) -> Result[String, RemoteTran
 pub fn request_projection(RemoteTransferRequest) -> Array[String]
 
 pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
+
+pub fn restore_durable_remote_transfer_record(DurableRemoteTransferRecord) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
 pub fn restore_record(RemoteTransferRequest, Array[Int]) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
@@ -102,6 +128,8 @@ pub fn transition_projection(RemoteTransferTransition) -> (Array[Int], Array[Int
 // Errors
 
 // Types and methods
+type DurableRemoteTransferRecord
+
 pub(all) enum RemoteTransferAttemptState {
   TransferAdmitted
   TransferCopying

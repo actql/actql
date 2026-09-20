@@ -52,6 +52,37 @@ test "direct and Store routes have distinct stable identities" {
   assert_true(request_json(direct).unwrap().contains("\"route\":\"direct\""))
   assert_true(request_json(store).unwrap().contains("\"route\":\"store\""))
   assert_eq(request_projection(direct)[8], "16")
+  assert_eq(request_journal_identity(direct), request_journal_identity(store))
+}
+
+///|
+test "Transfer occurrence identity excludes content but binds destination" {
+  let direct = transfer_request(DirectStream)
+  let changed_route = transfer_request(TransferStore)
+  assert_eq(
+    request_journal_identity(direct),
+    request_journal_identity(changed_route),
+  )
+  let changed_destination = prepare_request(
+    "coordinator-a",
+    "transfer-1",
+    DirectStream,
+    "source-a",
+    4,
+    "destination-c",
+    9,
+    "material-source-1",
+    transfer_manifest(),
+    16L,
+    2000000000000L,
+    transfer_cid("4"),
+    transfer_cid("5"),
+    transfer_cid("6"),
+  ).unwrap()
+  assert_not_eq(
+    request_journal_identity(direct),
+    request_journal_identity(changed_destination),
+  )
 }
 
 ///|

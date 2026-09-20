@@ -497,6 +497,44 @@ pub fn request_journal_key(request : RemoteTransferRequest) -> Array[String] {
 }
 
 ///|
+/// Stable occurrence identity for durable journal lookup. Request content is
+/// intentionally excluded so one occurrence cannot acquire a second body.
+pub fn request_journal_identity(
+  request : RemoteTransferRequest,
+) -> Result[String, RemoteTransferIssue] {
+  if !valid_request_fields(request) {
+    return Err(InvalidTransfer)
+  }
+  let writer = @encode.writer(16384, 8, 2) catch {
+    _ => return Err(InvalidTransfer)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "coordinator_authority")
+    @encode.string_value(writer, request.coordinator_authority)
+    @encode.key(writer, "destination_site_generation")
+    @encode.number_value(
+      writer,
+      request.destination_site_generation.to_double(),
+    )
+    @encode.key(writer, "destination_site_key")
+    @encode.string_value(writer, request.destination_site_key)
+    @encode.key(writer, "transfer_attempt")
+    @encode.string_value(writer, request.transfer_attempt)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-transfer-occurrence/0.1")
+    @encode.end_object(writer)
+    let body = @encode.finish(writer)
+    match @sha.text_hex(body) {
+      Ok(value) => Ok("sha256:" + value)
+      Err(_) => Err(InvalidTransfer)
+    }
+  } catch {
+    _ => Err(InvalidTransfer)
+  }
+}
+
+///|
 pub fn request_chunk_cids(request : RemoteTransferRequest) -> Array[String] {
   request.physical.chunks.map(chunk => chunk.cid)
 }
