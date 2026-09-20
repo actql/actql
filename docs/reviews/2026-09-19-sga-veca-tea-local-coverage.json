@@ -54,7 +54,10 @@
     "stable_graph_construction_projection",
     "bounded_session_identity_generation",
     "monotonic_identity_issuance",
-    "bounded_result_finalization"
+    "bounded_result_finalization",
+    "bounded_finalization_terminal_reports",
+    "bounded_result_resume_lifetime",
+    "workers_fixture_freshness"
   ],
   "operations": [
     {

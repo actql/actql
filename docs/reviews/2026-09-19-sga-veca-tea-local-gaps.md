@@ -196,6 +196,34 @@ retained boundary passes 232 tests, the Workers adapter passes 24 tests, and
 tracked public interfaces agree across targets. These focused results do not
 replace final same-SHA Linux CI.
 
+## Closed review findings after `241fad7b`
+
+Commit `a786e1b0` regenerates the Workers conformance package from its current
+query-integration sources. The freshness check and all 24 Workers tests pass,
+including the workerd execution cases.
+
+Commit `7022c6f5` makes every managed finalization phase respect the caller's
+work quantum. Retention, identity export, issuer construction, completion,
+identity establishment, and deadline checks now retain explicit progress.
+Cancellation revokes a completed generation that has not been published. The
+Node adapter validates continuation and terminal reports before acting on the
+completion flag.
+
+The finalization fixtures cover zero-row output, 31-row output, and quanta 1,
+2, 31, 32, and 33. Invalid terminal reports cover over-limit and negative
+work, negative progress, Number work at a BigInt boundary, and missing
+progress. Query integration passes 396 tests on each of JS, Wasm, and native;
+the Node adapter suite passes 14 tests.
+
+Commit `249decd8` rechecks the completed source at every resumable Named Result
+view boundary. Loss during projection mapping, row-map construction, merge
+sorting, or after stream preparation closes only the private preparation and
+returns unavailable before more bounded work is charged. The execution
+relation suite passes 709 tests on each portable target.
+
+These fixes close the three findings in the fixed review. They do not change
+the family layer counts above or replace final same-SHA Linux CI.
+
 ## Family execution gaps
 
 ### SGA
