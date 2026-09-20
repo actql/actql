@@ -5168,7 +5168,7 @@ pub fn strategy_remote_transfer_reply_admit_json(
 }
 
 ///|
-fn remote_transfer_store_upload_reply_kind(
+fn strategy_remote_transfer_store_upload_reply_kind(
   kind : Int,
 ) -> @transfer.RemoteTransferStoreUploadReplyKind raise NodeHostFailure {
   match kind {
@@ -5190,7 +5190,7 @@ pub fn strategy_remote_transfer_store_upload_reply_json(
   match
     @transfer.remote_transfer_store_upload_reply_json(
       request,
-      remote_transfer_store_upload_reply_kind(kind),
+      strategy_remote_transfer_store_upload_reply_kind(kind),
       next_chunk,
       is_sealed,
     ) {
@@ -5210,7 +5210,7 @@ pub fn strategy_remote_transfer_store_upload_reply_admit_json(
     @transfer.admit_remote_transfer_store_upload_reply_json(
       body,
       request,
-      remote_transfer_store_upload_reply_kind(kind),
+      strategy_remote_transfer_store_upload_reply_kind(kind),
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
@@ -5226,7 +5226,7 @@ pub fn strategy_remote_transfer_store_upload_reply_projection(
 }
 
 ///|
-fn remote_transfer_store_use_reply_kind(
+fn strategy_remote_transfer_store_use_reply_kind(
   kind : Int,
 ) -> @transfer.RemoteTransferStoreUseReplyKind raise NodeHostFailure {
   match kind {
@@ -5248,7 +5248,7 @@ pub fn strategy_remote_transfer_store_use_reply_json(
     @transfer.remote_transfer_store_use_reply_json(
       request,
       use_id,
-      remote_transfer_store_use_reply_kind(kind),
+      strategy_remote_transfer_store_use_reply_kind(kind),
       is_complete,
     ) {
     Ok(value) => value
@@ -5269,7 +5269,7 @@ pub fn strategy_remote_transfer_store_use_reply_admit_json(
       body,
       request,
       use_id,
-      remote_transfer_store_use_reply_kind(kind),
+      strategy_remote_transfer_store_use_reply_kind(kind),
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
