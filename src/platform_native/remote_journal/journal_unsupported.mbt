@@ -52,6 +52,14 @@ pub fn Journal::require(
 }
 
 ///|
+pub fn Journal::observation(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::recover_after(
   _self : Journal,
   after_key : String,
@@ -75,6 +83,21 @@ pub fn Journal::commit_transition(
   transition : @remote.DispatchTransition,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   ignore(transition)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::commit_evidence_transition(
+  _self : Journal,
+  transition : @remote.DispatchTransition,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  ignore(transition)
+  ignore(evidence)
+  ignore(subject)
+  ignore(measurement)
   Err(UnsupportedTarget)
 }
 

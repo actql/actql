@@ -182,11 +182,17 @@ pub fn acknowledge_status(
   url : String,
   request : @remote.DispatchRequest,
 ) -> Result[@remote.DispatchRecord?, NativeRemoteClientIssue] {
-  let found = journal.require(request)
+  let found = journal.observation(request)
   let (record, body) = match found {
-    Ok(record) => {
+    Ok(observation) => {
+      let record = @journal.recovered_site_dispatch_record(observation)
       let body = match
-        @remote.remote_dispatch_status_json(record, None, None, None) {
+        @remote.remote_dispatch_status_json(
+          record,
+          @journal.recovered_site_dispatch_evidence(observation),
+          @journal.recovered_site_dispatch_subject(observation),
+          @journal.recovered_site_dispatch_measurement(observation),
+        ) {
         Ok(value) => value
         Err(issue) => return Err(Protocol(issue))
       }

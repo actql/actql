@@ -27,6 +27,10 @@ pub fn admit_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], A
 
 pub fn admit_remote_managed_output_measurement_json(String, String) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
 
+pub fn admit_remote_managed_output_observation(DispatchRecord, String, String, String, String, String, String) -> Result[(RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement), DispatchIssue]
+
+pub fn admit_remote_managed_output_observation_json(DispatchRecord, String) -> Result[(RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement), DispatchIssue]
+
 pub fn admit_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64, String) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
 pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest) -> Result[RemoteManagedOutputSubject, DispatchIssue]
@@ -89,6 +93,8 @@ pub fn dispatch_record_durable_json(DispatchRecord) -> Result[String, DispatchIs
 
 pub fn dispatch_record_matches_request(DispatchRecord, DispatchRequest) -> Bool
 
+pub fn dispatch_record_requires_managed_observation(DispatchRecord) -> Bool
+
 pub fn dispatch_record_revision(DispatchRecord) -> Int
 
 pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool)
@@ -114,6 +120,8 @@ pub fn dispatch_transition_attempt_identity(DispatchTransition) -> Result[String
 pub fn dispatch_transition_durable_json(DispatchTransition) -> Result[String, DispatchIssue]
 
 pub fn dispatch_transition_expected_revision(DispatchTransition) -> Int
+
+pub fn dispatch_transition_installs_managed_observation(DispatchTransition) -> Bool
 
 pub fn dispatch_transition_journal_key(DispatchTransition) -> Array[String]
 
@@ -258,6 +266,10 @@ pub fn remote_managed_output_measurement_cid(RemoteManagedOutputMeasurement) -> 
 pub fn remote_managed_output_measurement_json(RemoteManagedOutputMeasurement) -> Result[String, DispatchIssue]
 
 pub fn remote_managed_output_measurement_projection(RemoteManagedOutputMeasurement) -> Array[Array[Int]]
+
+pub fn remote_managed_output_observation_json(DispatchTransition, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[String, DispatchIssue]
+
+pub fn remote_managed_output_observation_matches_transition(DispatchTransition, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
 
 pub fn remote_managed_output_subject_cid(RemoteManagedOutputSubject) -> String
 

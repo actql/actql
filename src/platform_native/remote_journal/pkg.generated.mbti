@@ -22,6 +22,14 @@ pub fn recovered_coordinator_dispatch_record(RecoveredCoordinatorDispatch) -> @r
 
 pub fn recovered_coordinator_dispatch_subject(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteManagedOutputSubject?
 
+pub fn recovered_site_dispatch_evidence(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteExecutionEvidence?
+
+pub fn recovered_site_dispatch_measurement(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteManagedOutputMeasurement?
+
+pub fn recovered_site_dispatch_record(RecoveredSiteDispatch) -> @remote_site_protocol.DispatchRecord
+
+pub fn recovered_site_dispatch_subject(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteManagedOutputSubject?
+
 // Errors
 
 // Types and methods
@@ -35,7 +43,9 @@ pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) 
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
 pub fn Journal::close(Self) -> Bool
+pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::observation(Self, @remote_site_protocol.DispatchRequest) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue]
 pub fn Journal::recover_after(Self, String) -> Result[(String, @remote_site_protocol.DispatchRecord)?, NativeRemoteJournalIssue]
 pub fn Journal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
 pub fn Journal::restart(Self, @execution_site.ExecutionSite) -> Result[Int, NativeRemoteJournalIssue]
@@ -49,6 +59,8 @@ pub(all) enum NativeRemoteJournalIssue {
 }
 
 type RecoveredCoordinatorDispatch
+
+type RecoveredSiteDispatch
 
 // Type aliases
 

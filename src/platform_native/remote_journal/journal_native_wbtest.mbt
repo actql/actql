@@ -203,6 +203,171 @@ test "native remote journal durably accepts reconciles and fences transitions" {
 }
 
 ///|
+test "native Site journal atomically restores typed output evidence" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-observation-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    1048576L,
+    test_control(site),
+  ).unwrap()
+  let request = test_request("dispatch-observation")
+  let (_, record) = journal.accept(request).unwrap()
+  journal
+  .commit_transition(
+    @remote.prepare_begin_provisioning(record, test_capability(site)).unwrap(),
+  )
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_begin_remote_execution(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_confirm_native_settled(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(
+    @remote.prepare_retain_remote_output(
+      record,
+      "native-material",
+      test_cid(
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      ),
+    ).unwrap(),
+  )
+  .unwrap()
+  let (evidence, subject, measurement) = test_managed_output(request)
+  let transition = @remote.prepare_durable_execution_evidence(record, evidence).unwrap()
+  guard journal.commit_transition(transition)
+    is Err(Protocol(@remote.InvalidTransition)) else {
+    fail("CID-only evidence transition was accepted")
+  }
+  journal
+  .commit_evidence_transition(transition, evidence, subject, measurement)
+  .unwrap()
+  assert_true(journal.close())
+
+  let reopened = open_journal(
+    library,
+    database_path,
+    1048576L,
+    test_control(test_site()),
+  ).unwrap()
+  let restored = reopened.observation(request).unwrap()
+  guard recovered_site_dispatch_evidence(restored) is Some(restored_evidence) else {
+    fail("durable execution evidence was not restored")
+  }
+  guard recovered_site_dispatch_subject(restored) is Some(restored_subject) else {
+    fail("durable output subject was not restored")
+  }
+  guard recovered_site_dispatch_measurement(restored)
+    is Some(restored_measurement) else {
+    fail("durable output measurement was not restored")
+  }
+  assert_eq(
+    @remote.remote_execution_evidence_cid(restored_evidence),
+    @remote.remote_execution_evidence_cid(evidence),
+  )
+  assert_eq(
+    @remote.remote_managed_output_subject_cid(restored_subject),
+    @remote.remote_managed_output_subject_cid(subject),
+  )
+  assert_eq(
+    @remote.remote_managed_output_measurement_cid(restored_measurement),
+    @remote.remote_managed_output_measurement_cid(measurement),
+  )
+  let status_body = @remote.remote_dispatch_status_json(
+    recovered_site_dispatch_record(restored),
+    Some(restored_evidence),
+    Some(restored_subject),
+    Some(restored_measurement),
+  ).unwrap()
+  let status = @remote.admit_remote_dispatch_response_json(
+    status_body,
+    request,
+    @remote.StatusReply,
+  ).unwrap()
+  assert_true(@remote.remote_dispatch_response_evidence(status) is Some(_))
+  assert_true(reopened.close())
+}
+
+///|
+test "native Site recovery rejects evidence without its typed observation" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-incomplete-observation-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    1048576L,
+    test_control(site),
+  ).unwrap()
+  let request = test_request("dispatch-incomplete-observation")
+  let (_, record) = journal.accept(request).unwrap()
+  journal
+  .commit_transition(
+    @remote.prepare_begin_provisioning(record, test_capability(site)).unwrap(),
+  )
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_begin_remote_execution(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_confirm_native_settled(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(
+    @remote.prepare_retain_remote_output(
+      record,
+      "native-material",
+      test_cid(
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      ),
+    ).unwrap(),
+  )
+  .unwrap()
+  let (evidence, _, _) = test_managed_output(request)
+  let transition = @remote.prepare_durable_execution_evidence(record, evidence).unwrap()
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  let physical = library.open_database(database_path, 1048576L).unwrap()
+  ignore(
+    physical
+    .compare_exchange(
+      "site_dispatch",
+      key,
+      @remote.dispatch_transition_expected_revision(transition).to_int64(),
+      @utf8.encode(
+        @remote.dispatch_transition_durable_json(transition).unwrap(),
+      ),
+    )
+    .unwrap(),
+  )
+  physical.close()
+  assert_true(journal.observation(request) is Err(_))
+  assert_true(journal.recover_after("") is Err(_))
+  assert_true(journal.close())
+}
+
+///|
 test "native Site restart durably fences the old generation" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     return

@@ -112,9 +112,18 @@ fn Journal::existing(
     @remote.dispatch_request_identity(request) {
     return Err(StateCollision)
   }
-  match @remote.restore_durable_dispatch_record(self.control, durable) {
-    Ok(_) => ()
+  let restored = match
+    @remote.restore_durable_dispatch_record(self.control, durable) {
+    Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.restore_observation(restored, key) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let admission = match
     @remote.prepare_dispatch_acceptance(self.control, request) {
@@ -124,6 +133,43 @@ fn Journal::existing(
   match @remote.commit_dispatch_acceptance(admission, true) {
     Ok(value) => Ok(value)
     Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+fn Journal::restore_observation(
+  self : Journal,
+  record : @remote.DispatchRecord,
+  key : String,
+) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue] {
+  match self.database.read("site_managed_observation", key) {
+    Ok(value) => {
+      if value.revision != 0L ||
+        !@remote.dispatch_record_requires_managed_observation(record) {
+        return Err(StateCollision)
+      }
+      let body = @utf8.decode(value.body) catch {
+        _ => return Err(Protocol(@remote.InvalidJournal))
+      }
+      let restored = match
+        @remote.admit_remote_managed_output_observation_json(record, body) {
+        Ok(item) => item
+        Err(issue) => return Err(Protocol(issue))
+      }
+      Ok({
+        record,
+        evidence: Some(restored.0),
+        subject: Some(restored.1),
+        measurement: Some(restored.2),
+      })
+    }
+    Err(@sqlite.NotFound) =>
+      if @remote.dispatch_record_requires_managed_observation(record) {
+        Err(StateCollision)
+      } else {
+        Ok({ record, evidence: None, subject: None, measurement: None, })
+      }
+    Err(issue) => Err(Physical(issue))
   }
 }
 
@@ -212,6 +258,25 @@ pub fn Journal::require(
 }
 
 ///|
+/// Restore one exact Site record and its typed evidence. Evidence bytes are
+/// re-admitted by the portable protocol before they leave the physical
+/// journal boundary.
+pub fn Journal::observation(
+  self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue] {
+  let record = match self.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  self.restore_observation(record, key)
+}
+
+///|
 /// Restores the next durable dispatch after the supplied journal cursor.
 /// Returning one record at a time keeps restart recovery bounded.
 pub fn Journal::recover_after(
@@ -241,7 +306,11 @@ pub fn Journal::recover_after(
     return Err(StateCollision)
   }
   match @remote.restore_durable_dispatch_record(self.control, durable) {
-    Ok(record) => Ok(Some((entry.key, record)))
+    Ok(record) =>
+      match self.restore_observation(record, entry.key) {
+        Ok(_) => Ok(Some((entry.key, record)))
+        Err(issue) => Err(issue)
+      }
     Err(issue) => Err(Protocol(issue))
   }
 }
@@ -272,7 +341,11 @@ fn Journal::recover_all(
       return Err(StateCollision)
     }
     match @remote.restore_durable_dispatch_record(self.control, durable) {
-      Ok(_) => ()
+      Ok(record) =>
+        match self.restore_observation(record, entry.key) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
       Err(issue) => return Err(Protocol(issue))
     }
     cursor = entry.key
@@ -402,6 +475,9 @@ pub fn Journal::commit_transition(
   if self.closed {
     return Err(Closed)
   }
+  if @remote.dispatch_transition_installs_managed_observation(transition) {
+    return Err(Protocol(@remote.InvalidTransition))
+  }
   let key = match @remote.dispatch_transition_attempt_identity(transition) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -430,6 +506,104 @@ pub fn Journal::commit_transition(
   }
   if !durable {
     return Err(StateCollision)
+  }
+  match @remote.commit_dispatch_transition(transition, true) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+/// Atomically store typed managed-output evidence with the Site transition
+/// that makes it durable. A CID-only evidence transition is never accepted.
+pub fn Journal::commit_evidence_transition(
+  self : Journal,
+  transition : @remote.DispatchTransition,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if !@remote.dispatch_transition_installs_managed_observation(transition) {
+    return Err(Protocol(@remote.InvalidTransition))
+  }
+  let key = match @remote.dispatch_transition_attempt_identity(transition) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let expected = @remote.dispatch_transition_expected_revision(transition)
+  let dispatch_body = match
+    @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let observation_body = match
+    @remote.remote_managed_output_observation_json(
+      transition, evidence, subject, measurement,
+    ) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let mut failure : NativeRemoteJournalIssue? = None
+  let mut already_committed = false
+  match self.database.read("site_dispatch", key) {
+    Ok(value) if value.revision == expected.to_int64() => ()
+    Ok(value) if value.revision == expected.to_int64() + 1L &&
+      value.body == dispatch_body => already_committed = true
+    Ok(_) => failure = Some(StateCollision)
+    Err(issue) => failure = Some(Physical(issue))
+  }
+  if failure is None {
+    match self.database.read("site_managed_observation", key) {
+      Ok(value) if already_committed &&
+        value.revision == 0L &&
+        value.body == observation_body => ()
+      Ok(_) => failure = Some(StateCollision)
+      Err(@sqlite.NotFound) if !already_committed =>
+        match
+          self.database.insert(
+            "site_managed_observation", key, observation_body,
+          ) {
+          Ok(0L) => ()
+          Ok(_) | Err(@sqlite.Collision) => failure = Some(StateCollision)
+          Err(issue) => failure = Some(Physical(issue))
+        }
+      Err(@sqlite.NotFound) => failure = Some(StateCollision)
+      Err(issue) => failure = Some(Physical(issue))
+    }
+  }
+  if failure is None && !already_committed {
+    match
+      self.database.compare_exchange(
+        "site_dispatch",
+        key,
+        expected.to_int64(),
+        dispatch_body,
+      ) {
+      Ok(revision) if revision == expected.to_int64() + 1L => ()
+      Ok(_) | Err(@sqlite.Collision) => failure = Some(StateCollision)
+      Err(issue) => failure = Some(Physical(issue))
+    }
+  }
+  match failure {
+    Some(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+    None => ()
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
   }
   match @remote.commit_dispatch_transition(transition, true) {
     Ok(_) => Ok(())
