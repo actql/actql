@@ -1,0 +1,81 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/result_access"
+
+import {
+  "actql/actql/platform_native/publication_store",
+  "actql/actql/run_publication",
+}
+
+// Values
+pub fn install_native_result_access_authority((NativeResultAccessRequest) -> Bool, (NativeResultReadFacts) -> NativeResultReadAdmission?, (NativeResultDeliveryAuthorization) -> Bool) -> NativeResultAccessAuthority
+
+pub fn install_native_result_access_service(@publication_store.Store, NativeResultAccessAuthority, () -> String, Int, Int, Int, Int, Int) -> Result[NativeResultAccessService, NativeResultAccessIssue]
+
+pub fn open_native_result_access(NativeResultAccessService, NativeResultAccessRequest) -> Result[NativeResultAccessSession, NativeResultAccessIssue]
+
+// Errors
+
+// Types and methods
+type NativeResultAccessAuthority
+
+pub(all) enum NativeResultAccessIssue {
+  InvalidRequest
+  InvalidProgress
+  AccessDenied
+  ResultUnavailable
+  Store(@publication_store.NativePublicationStoreIssue)
+  Publication(@run_publication.DeliveryIssuanceIssue)
+}
+
+pub(all) struct NativeResultAccessRequest {
+  tenant_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  principal_id : String
+  purpose : String
+  result_name : String
+  format : String
+  attempt_id : String
+}
+
+type NativeResultAccessService
+
+type NativeResultAccessSession
+pub fn NativeResultAccessSession::attempt_cid(Self) -> String
+pub fn NativeResultAccessSession::close(Self) -> Result[Unit, NativeResultAccessIssue]
+pub fn NativeResultAccessSession::confirm_chunk(Self) -> Result[Int64, NativeResultAccessIssue]
+pub fn NativeResultAccessSession::confirm_sink_finished(Self) -> Result[@publication_store.NativeResultDeliverySuccess, NativeResultAccessIssue]
+pub fn NativeResultAccessSession::next(Self, Int) -> Result[@publication_store.NativePublicationDeliveryChunk, NativeResultAccessIssue]
+pub fn NativeResultAccessSession::terminate(Self, Int?, Bool, String, Int?, String?) -> Result[@publication_store.NativeResultDeliveryFailure, NativeResultAccessIssue]
+
+pub(all) struct NativeResultDeliveryAuthorization {
+  request : NativeResultAccessRequest
+  public_index_entry_cid : String
+  result_manifest_cid : String
+  result_read_grant_cid : String
+  stage : String
+  observed_at : String
+}
+
+pub(all) struct NativeResultReadAdmission {
+  authorization_context_cid : String
+  data_ceiling_cid : String
+  egress_admission_cid : String
+  expires_at : String
+  max_bytes : Int
+  max_uses : Int
+}
+
+pub(all) struct NativeResultReadFacts {
+  request : NativeResultAccessRequest
+  public_index_entry_cid : String
+  result_manifest_cid : String
+  result_artifact_cid : String
+  result_definition_cid : String
+  material_generation_cid : String
+  observed_at : String
+}
+
+// Type aliases
+
+// Traits

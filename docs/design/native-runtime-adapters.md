@@ -92,6 +92,14 @@ Trusted clock observations use SQLite compare-and-swap to preserve a monotonic
 lower bound per admitted clock contract. A process restart, concurrent reader,
 or wall-clock regression cannot extend a Result's retention interval.
 
+The standard native Result-access service follows the portable access
+progression: request authorization, committed Result resolution, initial
+availability, read admission, grant issuance, and delivery. Every byte read
+and the terminal receipt boundary recheck current authority, the durable clock
+lower bound, retention, and grant expiry. The service returns an explicit
+session so failed sinks can record a confirmed prefix or retain cleanup
+responsibility instead of losing an active reader behind a convenience API.
+
 ## SQLite integration
 
 The native SQLite adapter is the first integration slice for a Node-free local
