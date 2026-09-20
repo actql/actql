@@ -77,6 +77,9 @@ let nativeTransferChunks = 0;
 let nativeStoreTransferCid;
 let nativeStoreTransferChunks = 0;
 let nativeStoreTransferSealed = false;
+const nativeStoreTransferBodies = [];
+let nativeStoreUseId;
+let nativeStoreUseComplete = false;
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -121,8 +124,7 @@ try {
       request.url?.startsWith(`${nativeTransferBase}/`);
     const nativeStoreTransferBase = '/v1/transfer-store/uploads';
     const nativeStoreTransferRequest =
-      request.url === nativeStoreTransferBase ||
-      request.url?.startsWith(`${nativeStoreTransferBase}/`);
+      request.url?.startsWith('/v1/transfer-store/');
     if (request.url === '/disconnect') {
       request.socket.destroy();
       return;
@@ -177,7 +179,8 @@ try {
       }
       chunks.push(chunk);
     }
-    const body = Buffer.concat(chunks).toString('utf8');
+    const bodyBytes = Buffer.concat(chunks);
+    const body = bodyBytes.toString('utf8');
     if (request.url === nativeStoreTransferBase && request.method === 'POST') {
       let envelope;
       try { envelope = JSON.parse(body); }
@@ -211,8 +214,7 @@ try {
           }));
       return;
     }
-    if (nativeStoreTransferRequest &&
-        request.url !== nativeStoreTransferBase) {
+    if (request.url?.startsWith(`${nativeStoreTransferBase}/`)) {
       const suffix = request.url.slice(nativeStoreTransferBase.length + 1);
       const parts = suffix.split('/');
       if (decodeURIComponent(parts[0] ?? '') !== nativeStoreTransferCid) {
@@ -230,6 +232,7 @@ try {
           response.writeHead(400).end();
           return;
         }
+        nativeStoreTransferBodies[index] = bodyBytes;
         nativeStoreTransferChunks += 1;
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify({
@@ -245,6 +248,75 @@ try {
         response.end(JSON.stringify({
           requestCid: nativeStoreTransferCid,
           sealed: true,
+        }));
+        return;
+      }
+      response.writeHead(409).end();
+      return;
+    }
+    if (request.url === '/v1/transfer-store/downloads' &&
+        request.method === 'POST') {
+      const useId = request.headers['actql-transfer-use-id'];
+      if (!nativeStoreTransferSealed || typeof useId !== 'string' ||
+          typeof request.headers['actql-transfer-cid'] !== 'string' ||
+          request.headers['actql-transfer-cid'] !== nativeStoreTransferCid) {
+        response.writeHead(404).end();
+        return;
+      }
+      if (nativeStoreUseId !== undefined && nativeStoreUseId !== useId) {
+        response.writeHead(409).end();
+        return;
+      }
+      nativeStoreUseId = useId;
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({
+        requestCid: nativeStoreTransferCid,
+        useId,
+        complete: nativeStoreUseComplete,
+      }));
+      return;
+    }
+    if (request.url?.startsWith('/v1/transfer-store/downloads/')) {
+      const parts = request.url.split('/').filter(Boolean);
+      const requestCid = decodeURIComponent(parts[3] ?? '');
+      const useId = decodeURIComponent(parts[4] ?? '');
+      if (requestCid !== nativeStoreTransferCid ||
+          useId !== nativeStoreUseId) {
+        response.writeHead(404).end();
+        return;
+      }
+      if (request.method === 'GET' && parts[5] === 'chunks') {
+        const chunk = nativeStoreTransferBodies[Number(parts[6])];
+        if (!Buffer.isBuffer(chunk) || nativeStoreUseComplete) {
+          response.writeHead(409).end();
+          return;
+        }
+        response.writeHead(200, {
+          'content-type': 'application/octet-stream',
+          'content-length': String(chunk.byteLength),
+        });
+        response.end(chunk);
+        return;
+      }
+      if (request.method === 'POST' && parts[5] === 'complete' &&
+          typeof request.headers['actql-destination-receipt-cid'] ===
+            'string') {
+        let receipt;
+        try { receipt = JSON.parse(body); }
+        catch {
+          response.writeHead(400).end();
+          return;
+        }
+        if (receipt.request_cid !== nativeStoreTransferCid) {
+          response.writeHead(400).end();
+          return;
+        }
+        nativeStoreUseComplete = true;
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeStoreTransferCid,
+          useId,
+          complete: true,
         }));
         return;
       }

@@ -135,6 +135,9 @@ test "native Store upload seals once and restores without source upload" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
     return
   }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(store_root) else {
+    return
+  }
   let library = @http.load_library(path).unwrap()
   let client = library.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
@@ -161,5 +164,38 @@ test "native Store upload seals once and restores without source upload" {
     @transfer.StoreUploadSealed,
   )
   assert_true(reopened.close())
+  let destination_path = sqlite_root + "/store-destination.sqlite"
+  let destination = @journal.open_journal(
+    sqlite, destination_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let destination_root = @filesystem.open_root(store_root).unwrap()
+  let completed = match
+    receive_durable_store_transfer(
+      destination, client, destination_root, origin, request, "native-store-use",
+      1048576L, 8L,
+    ) {
+    Ok(value) => value
+    Err(InvalidRequest) => fail("native Store download: invalid request")
+    Err(SourceMismatch) => fail("native Store download: source mismatch")
+    Err(Rejected(status)) =>
+      fail("native Store download: rejected " + status.to_string())
+    Err(Physical(_)) => fail("native Store download: HTTP failure")
+    Err(Durable(_)) => fail("native Store download: journal failure")
+    Err(Destination(_)) => fail("native Store download: destination failure")
+    Err(Protocol(_)) => fail("native Store download: protocol failure")
+    Err(ReconciliationRequired) =>
+      fail("native Store download: reconciliation required")
+  }
+  assert_true(@transfer.record_is_destination_committed(completed))
+  assert_true(destination.close())
+  let destination_reopened = @journal.open_journal(
+    sqlite, destination_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let completed_again = receive_durable_store_transfer(
+    destination_reopened, client, destination_root, origin, request, "native-store-use",
+    1048576L, 8L,
+  ).unwrap()
+  assert_true(@transfer.record_is_destination_committed(completed_again))
+  assert_true(destination_reopened.close())
   assert_true(client.close())
 }

@@ -66,6 +66,45 @@ pub fn Journal::require_store_use(
 }
 
 ///|
+pub fn Journal::reserve_destination_holding(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(max_bytes)
+  ignore(max_objects)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::commit_destination_receipt(
+  _self : Journal,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[
+  @transfer.RemoteTransferDestinationReceipt,
+  NativeRemoteTransferJournalIssue,
+] {
+  ignore(receipt)
+  ignore(request)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::inspect_destination_receipt(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[
+  @transfer.RemoteTransferDestinationReceipt?,
+  NativeRemoteTransferJournalIssue,
+] {
+  ignore(request)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::commit_transition(
   _self : Journal,
   transition : @transfer.RemoteTransferTransition,

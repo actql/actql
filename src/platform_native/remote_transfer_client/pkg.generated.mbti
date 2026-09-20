@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/remote_transfer_client"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/remote_transfer",
@@ -11,6 +12,8 @@ import {
 pub fn admit_direct_source(@remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[Unit, NativeRemoteTransferClientIssue]
 
 pub fn admit_store_source(@remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[Unit, NativeRemoteTransferClientIssue]
+
+pub fn receive_durable_store_transfer(@remote_transfer_journal.Journal, @http_client.Client, @filesystem.Root, String, @remote_transfer.RemoteTransferRequest, String, Int64, Int64) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
 pub fn send_direct_transfer(@http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
@@ -27,6 +30,7 @@ pub(all) enum NativeRemoteTransferClientIssue {
   Rejected(Int)
   Physical(@http_client.NativeHttpIssue)
   Durable(@remote_transfer_journal.NativeRemoteTransferJournalIssue)
+  Destination(@filesystem.NativeFilesystemIssue)
   Protocol(@remote_transfer.RemoteTransferIssue)
   ReconciliationRequired
 }

@@ -8,6 +8,55 @@ struct Journal {
 }
 
 ///|
+fn receipt_storage_body(
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Result[Bytes, NativeRemoteTransferJournalIssue] {
+  let body = match @transfer.destination_receipt_json(receipt) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  journal_bytes(@transfer.destination_receipt_cid(receipt) + "\n" + body) |> Ok
+}
+
+///|
+fn admit_stored_receipt(
+  bytes : Bytes,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[
+  @transfer.RemoteTransferDestinationReceipt,
+  NativeRemoteTransferJournalIssue,
+] {
+  let mut separator = -1
+  for index, byte in bytes {
+    if byte == (10 : Byte) && separator < 0 {
+      separator = index
+    }
+  }
+  if separator <= 0 || separator + 1 >= bytes.length() {
+    return Err(StateCollision)
+  }
+  let cid_bytes : Array[Byte] = []
+  let body_bytes : Array[Byte] = []
+  for index, byte in bytes {
+    if index < separator {
+      cid_bytes.push(byte)
+    } else if index > separator {
+      body_bytes.push(byte)
+    }
+  }
+  let cid = @utf8.decode(Bytes::from_array(cid_bytes)) catch {
+    _ => return Err(StateCollision)
+  }
+  let body = @utf8.decode(Bytes::from_array(body_bytes)) catch {
+    _ => return Err(StateCollision)
+  }
+  match @transfer.admit_destination_receipt_json(body, request, cid) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
 pub fn open_journal(
   library : @sqlite.Library,
   path : String,
@@ -279,6 +328,128 @@ pub fn Journal::require_store_use(
       @transfer.store_use_cid(store_use),
     ) {
     Ok(value) => self.restore_store_use_value(value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::reserve_destination_holding(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let mut bytes = 0L
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  for length in lengths {
+    if length < 0L || bytes > 9223372036854775807L - length {
+      return Err(Protocol(@transfer.InvalidTransfer))
+    }
+    bytes = bytes + length
+  }
+  match
+    self.database.reserve_capacity(
+      "remote_transfer_destination",
+      @transfer.request_cid(request),
+      bytes,
+      lengths.length().to_int64(),
+      max_bytes,
+      max_objects,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::commit_destination_receipt(
+  self : Journal,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[
+  @transfer.RemoteTransferDestinationReceipt,
+  NativeRemoteTransferJournalIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let body = match receipt_storage_body(receipt) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match self.database.read("remote_transfer_destination_receipt", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      if value.revision != 0L || value.body != body {
+        return Err(StateCollision)
+      }
+      admit_stored_receipt(value.body, request)
+    }
+    Err(@sqlite.NotFound) => {
+      match
+        self.database.insert("remote_transfer_destination_receipt", key, body) {
+        Ok(0L) => ()
+        Ok(_) | Err(@sqlite.Collision) => {
+          ignore(self.database.rollback())
+          return Err(StateCollision)
+        }
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.commit() {
+        Ok(_) => admit_stored_receipt(body, request)
+        Err(issue) => {
+          ignore(self.database.rollback())
+          Err(Physical(issue))
+        }
+      }
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+pub fn Journal::inspect_destination_receipt(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[
+  @transfer.RemoteTransferDestinationReceipt?,
+  NativeRemoteTransferJournalIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.read("remote_transfer_destination_receipt", key) {
+    Ok(value) =>
+      if value.revision == 0L {
+        match admit_stored_receipt(value.body, request) {
+          Ok(receipt) => Ok(Some(receipt))
+          Err(issue) => Err(issue)
+        }
+      } else {
+        Err(StateCollision)
+      }
+    Err(@sqlite.NotFound) => Ok(None)
     Err(issue) => Err(Physical(issue))
   }
 }
