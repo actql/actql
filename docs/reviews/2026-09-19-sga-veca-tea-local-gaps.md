@@ -73,15 +73,19 @@ the admitted output allocation, and revokes graph references with the common
 output lifetime. This does not by itself complete standard Host Carrier
 selection or environment yielding.
 
-Commits `8a05ec82` and `f32279b2` add the next shared dispatch boundary.
+Commits `8a05ec82`, `f32279b2`, and `efa68e75` add the next shared dispatch
+boundary.
 Graph, Events, and Vectors producer reads expose read-only structural views
 bound to the exact use-site reference without exporting family storage
 handles. Local providers can opt into one ordered input array containing
 Relation reads and Carrier views; existing providers remain Relation-only and
 reject Carrier substitution before start. The common runtime imports no
-family kernel package, so this does not weaken artifact isolation.
+family kernel package, so this does not weaken artifact isolation. A
+family-neutral material retains exact typed storage custody, issues an
+independent view for each checked consumer edge, and delegates final
+reclamation to the owning family runtime without exposing its storage handle.
 
-The view/runtime suites pass 17 tests and the existing providers plus query
+The view/runtime suites pass 18 tests and the existing providers plus query
 integration pass 394 tests on each of JS, Wasm, and native. Standard Host
 assembly still supplies only Relation completions, so standalone Carrier
 outputs and cross-task Carrier consumers remain open.

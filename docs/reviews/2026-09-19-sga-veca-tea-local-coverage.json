@@ -43,6 +43,7 @@
     "bounded_step_session_core",
     "carrier_aware_physical_completion",
     "carrier_producer_views",
+    "carrier_material_custody",
     "mixed_carrier_provider_inputs",
     "failed_builder_cleanup_custody",
     "bounded_result_cleanup_custody",
