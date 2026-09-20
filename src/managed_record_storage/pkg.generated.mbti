@@ -41,6 +41,8 @@ pub fn measured_input_value_bytes(Storage) -> Int
 
 pub fn prepare(@carrier_contract.Carrier, Limits) -> Result[Builder, Issue]
 
+pub fn prepare_with_additional_identities(@carrier_contract.Carrier, Array[@relation_schema.FieldName], Limits) -> Result[Builder, Issue]
+
 pub fn record_count(Storage) -> Int
 
 pub fn record_field_at(Storage, Int, Int) -> (@relation_schema.FieldName, @value_admission.CheckedValue)?

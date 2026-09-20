@@ -91,6 +91,75 @@ test "sliding window resolves all parameter milliseconds through its owner" {
 }
 
 ///|
+test "event window lowering preserves its Carrier and TEA operation" {
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [
+        (
+          @schema.Unqualified("event_id"),
+          Some(@contract.primitive(@contract.NumberType, nullable=false)),
+        ),
+        (
+          @schema.Unqualified("occurred_at"),
+          Some(@contract.primitive(@contract.NumberType, nullable=false)),
+        ),
+      ],
+      field_set=@carrier.Closed,
+      max_fields=2,
+      max_name_bytes=20,
+    ).unwrap(),
+  )
+  let events = @carrier.events(
+    match relation {
+      @carrier.Relation(rows) => rows
+      _ => abort("relation")
+    },
+    id=@schema.Unqualified("event_id"),
+    time=@schema.Unqualified("occurred_at"),
+  ).unwrap()
+  let checked = @pipeline.check_carriers(
+    cursor(
+      "[{\"window_events\":{\"kind\":\"sliding\",\"size\":10,\"step\":3,\"offset\":-2}}]",
+    ),
+    [("events", events)],
+    None,
+    Some(cursor("\"events\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.WindowStep(window)) else {
+    fail("window step")
+  }
+  assert_true(@lowering_relation.window_preserves_events(window))
+  assert_eq(
+    @lowering_relation.operation(
+      @lowering_relation.node_at(@lowering_relation.bound_preparation(owner), 0).unwrap(),
+    ),
+    "TEA.window.sliding_assign",
+  )
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_window_node(window, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"id\":\"window_0\",\"in\":[\"input_0\"],\"op\":\"TEA.window.sliding_assign\",\"params\":{\"offset_ms\":-2,\"size_ms\":10,\"step_ms\":3,\"time\":\"occurred_at\"}}",
+  )
+}
+
+///|
 test "window lowering enforces cumulative view budgets atomically" {
   let owner = expression_pipeline(
     ",{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10,\"step\":3,\"offset\":-2}}",

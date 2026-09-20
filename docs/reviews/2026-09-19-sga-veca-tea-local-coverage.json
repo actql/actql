@@ -281,8 +281,23 @@
       "output": "events",
       "canonical": ["TEA.window.fixed_label", "TEA.window.sliding_assign"],
       "variants": ["fixed", "sliding", "literal/parameter size and step", "offset", "multiple membership"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/window_test.mbt",
+        "src/local_tea/window_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ]
     },
     {
       "family": "TEA",

@@ -171,9 +171,15 @@ pub fn operation(value : PreparedNode) -> String {
     Values(_) => "REL.values"
     TimeSeriesValue(_) => "TEA.time_series"
     RowWindow(value) =>
-      match @window.kind(@window.options(value)) {
-        @window.Fixed => "REL.window.fixed"
-        @window.Sliding => "REL.window.sliding"
+      match
+        (
+          @carrier.kind(@window.output(value)),
+          @window.kind(@window.options(value)),
+        ) {
+        (@carrier.EventsKind, @window.Fixed) => "TEA.window.fixed_label"
+        (@carrier.EventsKind, @window.Sliding) => "TEA.window.sliding_assign"
+        (_, @window.Fixed) => "REL.window.fixed"
+        (_, @window.Sliding) => "REL.window.sliding"
       }
     Derive(_) => "REL.derive"
     Where(_) => "REL.where"

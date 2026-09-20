@@ -222,15 +222,25 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 
-Five operations still lack portable Local execution. Checked typed lowering
+Four operations still lack portable Local execution. Checked typed lowering
 emits `TEA.watermark.label`, `TEA.dedupe`, and
 `TEA.window.session_assign`, while time series has both checked lowering and
 portable execution. Dedupe retains repeated partition positions,
 stable order terms, null placement, and the mandatory tie failure. Session
 retains its exact roles, grouping positions, clock encoding, and resolved
-literal or bound gap. The remaining window, interval join, as-of join, and
-sequence forms remain unimplemented in shared lowering. Runtime work must
-preserve finite event-time observation semantics
+literal or bound gap. Interval join, as-of join, and sequence remain
+unimplemented in shared lowering. Event windows now preserve the Events
+Carrier in typed lowering and emit the registered fixed-label or
+sliding-assignment operation. Their bounded kernel validates the complete
+membership bound before output allocation, retains input occurrence order,
+and emits memberships in ascending start order. Sliding storage distinguishes
+physical membership records by event identity plus window start without
+changing the Carrier's semantic event identity. Fixed and sliding variants run
+through the standard Host, reach two Relation consumers, and reclaim the final
+ledger on JS, Wasm, and native. Parameterized boundary conformance, page-split
+equivalence, formal publication, and environment cancellation delivery remain
+open, so event windows are not complete. Runtime work must preserve finite
+event-time observation semantics
 across transport page splits and bind checkpoint advancement to the existing
 successful commit boundary. No long-lived streaming state is required by TEA
 0.1. Common immutable record storage preserves typed event roles, open payload
@@ -262,8 +272,8 @@ registered provider runs it through the standard Host, keeps two real
 downstream consumers live together, releases them independently, and reclaims
 the final ledger. The same affected suites pass on JS, Wasm, and native.
 Environment cancellation delivery and Named Result publication remain open,
-so time series is not complete. The other five TEA operations still lack
-portable Local kernels.
+so time series is not complete. Session, interval join, as-of join, and
+sequence still lack portable Local kernels.
 
 ### Bridges
 

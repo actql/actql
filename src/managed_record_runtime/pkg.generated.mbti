@@ -55,6 +55,8 @@ pub fn output_workspace_slots(OutputBuilder) -> Int
 
 pub fn prepare_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[OutputBuilder, Issue]
 
+pub fn prepare_output_with_identities(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Array[@relation_schema.FieldName], @managed_record_storage.Limits, Int64, () -> Bool) -> Result[OutputBuilder, Issue]
+
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed) -> Result[ProducerRead, Issue]
 
 pub fn prepare_step_read(@lowering_relation.BoundPrepared, Int, Int, Completed) -> Result[ProducerRead, Issue]

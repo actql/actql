@@ -32,8 +32,12 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 ///|
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
+  let window = variant == "window_fixed" || variant == "window_sliding"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
+  } else if window {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
+    "\"window_start_ms\",\"window_end_ms\"]"
   } else {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"watermark_ms\",\"late\",\"watermark_decision\"]"
@@ -52,11 +56,17 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
+  } else if variant == "window_fixed" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
+  } else if variant == "window_sliding" {
+    "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
   let second_fields = if dedupe {
     "[\"payload\",\"event_id\"]"
+  } else if window {
+    "[\"payload\",\"window_start_ms\",\"event_id\"]"
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
@@ -114,6 +124,10 @@ fn carrier_events_owner(
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
+  } else if variant == "window_fixed" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
+  } else if variant == "window_sliding" {
+    "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":10," + "\"policy\":\"mark\"}}"
   }
@@ -415,7 +429,7 @@ test "registered Events provider advances and reclaims one typed pipeline" {
 
 ///|
 test "registered Events provider separates stop from cleanup" {
-  for variant in ["watermark", "dedupe"] {
+  for variant in ["watermark", "dedupe", "window_fixed", "window_sliding"] {
     let source_owner = carrier_events_source_owner()
     let source = carrier_events_source_output(source_owner)
     let owner = carrier_events_owner(source_owner, variant~)
@@ -457,7 +471,7 @@ test "registered Events provider separates stop from cleanup" {
 
 ///|
 test "standard Host runs registered bounded Events provider" {
-  for variant in ["watermark", "dedupe"] {
+  for variant in ["watermark", "dedupe", "window_fixed", "window_sliding"] {
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
       local_carrier_events_variant=variant,
@@ -545,11 +559,20 @@ test "standard Host runs registered bounded Events provider" {
       events_live,
     )
     let event_rows = local_managed_test_rows(events_ops)
-    let expected_rows = if variant == "dedupe" { 2 } else { 3 }
+    let expected_rows = if variant == "dedupe" {
+      2
+    } else if variant == "window_sliding" {
+      6
+    } else {
+      3
+    }
     assert_eq(event_rows.length(), expected_rows)
     if variant == "dedupe" {
       assert_true(event_rows[0].contains("\"event_id\":2"))
       assert_true(event_rows[1].contains("\"event_id\":4"))
+    } else if variant == "window_fixed" || variant == "window_sliding" {
+      assert_true(event_rows[0].contains("\"window_start_ms\""))
+      assert_true(event_rows[0].contains("\"window_end_ms\""))
     } else {
       assert_true(event_rows[0].contains("\"watermark_decision\":\"keep\""))
       assert_true(event_rows[1].contains("\"late\":true"))

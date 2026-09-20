@@ -109,15 +109,41 @@ pub fn prepare(
   carrier : @carrier.Carrier,
   limits : Limits,
 ) -> Result[Builder, Issue] {
+  prepare_with_additional_identities(carrier, [], limits)
+}
+
+///|
+/// Prepare storage whose physical record key includes operation-owned fields
+/// in addition to the Carrier identity. This does not change the Carrier's
+/// semantic event identity.
+pub fn prepare_with_additional_identities(
+  carrier : @carrier.Carrier,
+  additional : Array[@schema.FieldName],
+  limits : Limits,
+) -> Result[Builder, Issue] {
   if !valid_limits(limits) {
     return Err(InvalidLimits)
   }
   guard carrier_records(carrier) is Some(records) &&
-    identity_names(carrier) is Some(identities) else {
+    identity_names(carrier) is Some(base_identities) else {
     return Err(WrongCarrier)
   }
-  if identities.is_empty() {
+  if base_identities.is_empty() {
     return Err(InvalidIdentity)
+  }
+  let identities = base_identities.copy()
+  for field in additional {
+    let name = @schema.reference_name(field)
+    if identities.contains(name) {
+      return Err(InvalidIdentity)
+    }
+    guard @carrier.lookup(records, field) is @carrier.Present(field_entry) &&
+      field_entry.contract is Some(contract) &&
+      !contract.nullable &&
+      @contract.key_comparable(contract, contract) else {
+      return Err(InvalidIdentity)
+    }
+    identities.push(name)
   }
   Ok({
     carrier,

@@ -727,7 +727,11 @@ pub fn window_kind(PreparedWindow) -> @temporal_window.Kind
 
 pub fn window_offset(PreparedWindow) -> Int64
 
+pub fn window_output_carrier(PreparedWindow) -> @carrier_contract.Carrier
+
 pub fn window_owner(PreparedWindow) -> BoundPrepared
+
+pub fn window_preserves_events(PreparedWindow) -> Bool
 
 pub fn window_requires_epoch_milliseconds(PreparedWindow) -> Bool
 

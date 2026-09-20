@@ -13,11 +13,15 @@ import {
 // Values
 pub fn advance_dedupe(DedupeExecution, Int) -> Result[DedupePoll, DedupeIssue]
 
+pub fn advance_event_window(EventWindowExecution, Int) -> Result[EventWindowPoll, EventWindowIssue]
+
 pub fn advance_time_series(TimeSeriesExecution, Int) -> Result[TimeSeriesPoll, TimeSeriesExecutionIssue]
 
 pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, WatermarkIssue]
 
 pub fn cleanup_dedupe(DedupeExecution) -> Result[Bool, DedupeIssue]
+
+pub fn cleanup_event_window(EventWindowExecution) -> Result[Bool, EventWindowIssue]
 
 pub fn cleanup_time_series(TimeSeriesExecution) -> Result[Bool, TimeSeriesExecutionIssue]
 
@@ -31,7 +35,11 @@ pub fn dedupe_max_noninterruptible_value_nodes(DedupeExecution) -> Int
 
 pub fn dedupe_stopped(DedupeExecution) -> Bool
 
+pub fn event_window_cleanup_pending(EventWindowExecution) -> Bool
+
 pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[DedupeExecution, DedupeIssue]
+
+pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[EventWindowExecution, EventWindowIssue]
 
 pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
 
@@ -67,6 +75,27 @@ pub enum DedupePoll {
   DedupeComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
   DedupeFailed(DedupeIssue, progress~ : Int64, work~ : Int64)
   DedupeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type EventWindowExecution
+
+pub(all) enum EventWindowIssue {
+  InvalidEventWindowKernel
+  InvalidEventWindowLimits
+  EventWindowInputUnavailable
+  InvalidEventWindowRecord(Int)
+  InvalidEventWindowTime(Int)
+  EventWindowArithmetic(Int)
+  EventWindowWorkspaceLimit
+  EventWindowOutput(@managed_record_runtime.Issue)
+  EventWindowExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum EventWindowPoll {
+  EventWindowContinue(progress~ : Int64, work~ : Int64)
+  EventWindowComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  EventWindowFailed(EventWindowIssue, progress~ : Int64, work~ : Int64)
+  EventWindowStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type TimeSeriesExecution

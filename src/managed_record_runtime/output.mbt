@@ -70,6 +70,25 @@ pub fn prepare_output(
   storage_bytes : Int64,
   available : () -> Bool,
 ) -> Result[OutputBuilder, Issue] {
+  prepare_output_with_identities(
+    owner,
+    target,
+    [],
+    limits,
+    storage_bytes,
+    available,
+  )
+}
+
+///|
+pub fn prepare_output_with_identities(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  additional_identities : Array[@schema.FieldName],
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[OutputBuilder, Issue] {
   if storage_bytes < 0L {
     return Err(InvalidStorageBytes)
   }
@@ -82,7 +101,11 @@ pub fn prepare_output(
     return Err(Lifecycle(@lifecycle.WrongCarrier))
   }
   let records = match
-    @storage.prepare(@lifecycle.binding_carrier(binding), limits) {
+    @storage.prepare_with_additional_identities(
+      @lifecycle.binding_carrier(binding),
+      additional_identities,
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Storage(issue))
   }

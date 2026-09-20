@@ -13,6 +13,7 @@ struct PreparedWindow {
   authored_step : Int64?
   offset : Int64
   epoch_milliseconds : Bool
+  event_stream : Bool
 }
 
 ///|
@@ -83,6 +84,11 @@ fn prepare_window(
     return Err(InvalidWindowWiring)
   }
   let options = @window.options(checked)
+  let event_stream = match @carrier.kind(@window.output(checked)) {
+    @carrier.EventsKind => true
+    @carrier.RelationKind => false
+    _ => return Err(InvalidWindowWiring)
+  }
   let (start, end) = @window.boundary_fields(@window.window_roles(checked))
   let names = [@window.time_field(checked), start, end]
   let scalar_count = 2 + (if @window.step(options) is Some(_) { 1 } else { 0 })
@@ -154,6 +160,7 @@ fn prepare_window(
         authored_step,
         offset,
         epoch_milliseconds: @window.requires_epoch_milliseconds(checked),
+        event_stream,
       },
       name_bytes,
       names.length(),
@@ -223,6 +230,16 @@ pub fn window_requires_epoch_milliseconds(value : PreparedWindow) -> Bool {
 }
 
 ///|
+pub fn window_preserves_events(value : PreparedWindow) -> Bool {
+  value.event_stream
+}
+
+///|
+pub fn window_output_carrier(value : PreparedWindow) -> @carrier.Carrier {
+  value.owner.prepared.nodes[value.step_index].output_carrier
+}
+
+///|
 pub fn emit_window_node(
   value : PreparedWindow,
   out : @encode.Writer,
@@ -239,8 +256,18 @@ pub fn emit_window_node(
   @encode.string_value(
     out,
     match value.kind {
-      @window.Fixed => "REL.window.fixed"
-      @window.Sliding => "REL.window.sliding"
+      @window.Fixed =>
+        if value.event_stream {
+          "TEA.window.fixed_label"
+        } else {
+          "REL.window.fixed"
+        }
+      @window.Sliding =>
+        if value.event_stream {
+          "TEA.window.sliding_assign"
+        } else {
+          "REL.window.sliding"
+        }
     },
   )
   @encode.key(out, "params")
