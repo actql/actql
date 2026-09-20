@@ -310,10 +310,7 @@ pub fn install_native_remote_task_executor(
 /// durable acceptance, capacity acquisition, or physical execution.
 pub fn install_native_remote_runtime_registry_registration(
   site : @site.ExecutionSite,
-  runtime_bundle_cid : String,
-  connector_registration : String,
-  connector_revision : String,
-  strategy_revision : String,
+  active_runtime : @bundle.NativeActiveRuntimeBinding,
   operation_capability_cid : String,
   issuer_capability_cid : String,
   executors : Array[NativeRemoteTaskExecutor],
@@ -328,6 +325,12 @@ pub fn install_native_remote_runtime_registry_registration(
     }
     installed[executor.key] = executor
   }
+  let runtime_bundle_cid = @bundle.native_active_runtime_bundle_cid(
+    active_runtime,
+  )
+  let (connector_registration, connector_revision, strategy_revision) = @bundle.native_active_runtime_connector_scope(
+    active_runtime,
+  )
   let registration = match
     install_native_remote_runtime_scope(
       site,

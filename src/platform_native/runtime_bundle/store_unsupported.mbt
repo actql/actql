@@ -173,6 +173,15 @@ pub fn NativeRuntimeBundleStore::active(
 }
 
 ///|
+pub fn NativeRuntimeBundleStore::bind_active_component(
+  _self : NativeRuntimeBundleStore,
+  _observed_component_cid : String,
+  _observed_target_triple : String,
+) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn NativeRuntimeBundleStore::list(
   _self : NativeRuntimeBundleStore,
 ) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue] {

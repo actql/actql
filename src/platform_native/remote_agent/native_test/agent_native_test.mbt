@@ -76,6 +76,9 @@ test "outbound agent observes durable acceptance before one execution" {
   .unwrap()
   |> ignore
   bundles.activate(bundle_cid).unwrap() |> ignore
+  let active_runtime = bundles
+    .bind_active_component("sha256:" + @sha.hex(component), target)
+    .unwrap()
   let site = @site.create_site(
     "native-agent-site", 1, bundle_cid, 2, 2, 1024L, 1024L,
   ).unwrap()
@@ -160,10 +163,7 @@ test "outbound agent observes durable acceptance before one execution" {
   ).unwrap()
   let registration = @runtime.install_native_remote_runtime_registry_registration(
     site,
-    bundle_cid,
-    "local",
-    "local/1",
-    "strategy/1",
+    active_runtime,
     operation_capability,
     issuer_capability,
     [executor],

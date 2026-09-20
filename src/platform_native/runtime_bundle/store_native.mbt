@@ -2017,6 +2017,48 @@ pub fn NativeRuntimeBundleStore::active(
 }
 
 ///|
+/// Bind the physically observed component to the exact active bundle. The
+/// caller obtains no runtime authority for installed, inactive, mismatched, or
+/// physically changed bytes.
+pub fn NativeRuntimeBundleStore::bind_active_component(
+  self : NativeRuntimeBundleStore,
+  observed_component_cid : String,
+  observed_target_triple : String,
+) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleStoreIssue] {
+  let catalog = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard active_cid(catalog) is Some(runtime_bundle_cid) else {
+    return Err(MissingBundle)
+  }
+  guard entry_index(catalog, runtime_bundle_cid) is Some(index) else {
+    return Err(StateCollision)
+  }
+  let entry = catalog.entries[index]
+  match verify_component(self, entry) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let projection = @bundle.bundle_manifest_projection(entry.manifest)
+  if observed_component_cid != projection[5] ||
+    observed_target_triple != projection[4] ||
+    observed_target_triple != self.target_triple {
+    return Err(ComponentMismatch)
+  }
+  Ok(
+    native_active_runtime_binding(
+      runtime_bundle_cid,
+      projection[5],
+      projection[4],
+      projection[7],
+      projection[8],
+      projection[9],
+    ),
+  )
+}
+
+///|
 pub fn NativeRuntimeBundleStore::list(
   self : NativeRuntimeBundleStore,
 ) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue] {

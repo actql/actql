@@ -72,6 +72,9 @@ test "native remote runtime owns success failure and cleanup progression" {
   .unwrap()
   |> ignore
   bundles.activate(bundle_cid).unwrap() |> ignore
+  let active_runtime = bundles
+    .bind_active_component("sha256:" + @sha.hex(component), target)
+    .unwrap()
   let site = @site.create_site(
     "native-runtime-site", 1, bundle_cid, 2, 2, 1024L, 1024L,
   ).unwrap()
@@ -204,10 +207,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   ).unwrap()
   let registration = @runtime.install_native_remote_runtime_registry_registration(
     site,
-    bundle_cid,
-    "local",
-    "local/1",
-    "strategy/1",
+    active_runtime,
     operation_capability,
     issuer_capability,
     [executor],

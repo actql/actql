@@ -262,7 +262,47 @@ test "native bundle operations survive restart and preserve shared code" {
   )
   root.reclaim_generation(excess_name, excess_generation).unwrap()
   assert_eq(first.state, ["0", "0", "0"])
+  assert_true(
+    store.bind_active_component(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "aarch64-apple-darwin",
+    )
+    is Err(MissingBundle),
+  )
   store.activate(first.runtime_bundle_cid).unwrap() |> ignore
+  assert_true(
+    store.bind_active_component(
+      "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "aarch64-apple-darwin",
+    )
+    is Err(ComponentMismatch),
+  )
+  assert_true(
+    store.bind_active_component(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "x86_64-unknown-linux-gnu",
+    )
+    is Err(ComponentMismatch),
+  )
+  let binding = store
+    .bind_active_component(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "aarch64-apple-darwin",
+    )
+    .unwrap()
+  assert_eq(native_active_runtime_bundle_cid(binding), first.runtime_bundle_cid)
+  assert_eq(
+    native_active_runtime_component_cid(binding),
+    "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+  )
+  assert_eq(
+    native_active_runtime_target_triple(binding),
+    "aarch64-apple-darwin",
+  )
+  assert_eq(
+    native_active_runtime_connector_scope(binding),
+    ("local", "local/1", "strategy/1"),
+  )
   store.retain(first.runtime_bundle_cid, "attempt-a", "dispatch").unwrap()
   |> ignore
   store.activate(second.runtime_bundle_cid).unwrap() |> ignore
@@ -326,6 +366,13 @@ test "native bundle operations survive restart and preserve shared code" {
   assert_false(root.verify_generation(copied_name, copied_generation))
   assert_true(root.verify_generation(artifact_name, generation))
   reopened.drain(second.runtime_bundle_cid).unwrap() |> ignore
+  assert_true(
+    reopened.bind_active_component(
+      native_active_runtime_component_cid(binding),
+      native_active_runtime_target_triple(binding),
+    )
+    is Err(MissingBundle),
+  )
   reopened.reclaim(second.runtime_bundle_cid).unwrap() |> ignore
   let released_usage = reopened.capacity_usage().unwrap()
   assert_eq(released_usage.reserved_bytes, 0L)

@@ -9,5 +9,6 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/sha256" @sha,
   "moonbitlang/core/env",
 } for "test"
