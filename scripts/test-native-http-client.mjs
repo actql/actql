@@ -385,6 +385,14 @@ try {
         }));
         return;
       }
+      if (request.method === 'POST' && parts[1] === 'cancel' && body === '') {
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeTransferCid,
+          state: [2, 4, 0, 0, 1, 1, 1, 1, 0],
+        }));
+        return;
+      }
       response.writeHead(409).end();
       return;
     }

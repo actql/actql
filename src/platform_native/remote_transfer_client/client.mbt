@@ -121,16 +121,14 @@ fn direct_cancel(
   client : @http.Client,
   url : String,
   request : @transfer.RemoteTransferRequest,
-) -> Unit {
-  ignore(
-    transfer_exchange(
-      client,
-      @http.Post,
-      url + "/cancel",
-      [{ name: "content-length", value: "0", }],
-      b"",
-      request,
-    ),
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  transfer_exchange(
+    client,
+    @http.Post,
+    url + "/cancel",
+    [{ name: "content-length", value: "0", }],
+    b"",
+    request,
   )
 }
 
@@ -676,23 +674,29 @@ fn commit_direct_destination(
 }
 
 ///|
-pub fn send_direct_transfer(
+priv enum DirectSendFailure {
+  DirectCopyFailed(NativeRemoteTransferClientIssue)
+  DirectCommitUnknown(NativeRemoteTransferClientIssue)
+}
+
+///|
+fn send_direct_transfer_operation(
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
   chunks : Array[Bytes],
-) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+) -> Result[@transfer.RemoteTransferRecord, DirectSendFailure] {
   match admit_direct_source(request, chunks) {
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(DirectCopyFailed(issue))
     Ok(_) => ()
   }
   let (base, transfer_url) = match direct_location(origin, request) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(DirectCopyFailed(issue))
   }
   let admitted = match admit_direct_destination(client, base, request) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(DirectCopyFailed(issue))
   }
   if @transfer.record_is_destination_committed(admitted) {
     return Ok(admitted)
@@ -710,22 +714,39 @@ pub fn send_direct_transfer(
       request,
     )
     if uploaded is Err(issue) {
-      direct_cancel(client, transfer_url, request)
-      return Err(issue)
+      return Err(DirectCopyFailed(issue))
     }
   }
   let committed = commit_direct_destination(client, transfer_url, request)
   match committed {
-    Err(issue) => {
-      direct_cancel(client, transfer_url, request)
-      Err(issue)
-    }
+    Err(issue) => Err(DirectCommitUnknown(issue))
     Ok(record) =>
       if @transfer.record_is_destination_committed(record) {
         Ok(record)
       } else {
-        Err(Protocol(@transfer.InvalidTransfer))
+        Err(DirectCommitUnknown(Protocol(@transfer.InvalidTransfer)))
       }
+  }
+}
+
+///|
+pub fn send_direct_transfer(
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  match send_direct_transfer_operation(client, origin, request, chunks) {
+    Ok(record) => Ok(record)
+    Err(DirectCommitUnknown(issue)) => Err(issue)
+    Err(DirectCopyFailed(issue)) => {
+      match direct_location(origin, request) {
+        Ok((_, transfer_url)) =>
+          ignore(direct_cancel(client, transfer_url, request))
+        Err(_) => ()
+      }
+      Err(issue)
+    }
   }
 }
 
@@ -801,7 +822,14 @@ pub fn send_durable_direct_transfer(
       commit_direct_destination(client, transfer_url, request)
     }
   } else if progress == @transfer.DirectTransferCopying {
-    send_direct_transfer(client, origin, request, chunks)
+    match send_direct_transfer_operation(client, origin, request, chunks) {
+      Ok(value) => Ok(value)
+      Err(DirectCopyFailed(issue)) => {
+        ignore(cancel_durable_direct_transfer(journal, client, origin, request))
+        Err(issue)
+      }
+      Err(DirectCommitUnknown(_)) => Err(ReconciliationRequired)
+    }
   } else {
     return Err(ReconciliationRequired)
   }
@@ -831,6 +859,61 @@ pub fn send_durable_direct_transfer(
     Err(issue) => return Err(Protocol(issue))
   }
   match commit_durable_transition(journal, committed) {
+    Ok(_) => require_durable_record(journal, request)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Cancel a durable direct Transfer only after the destination confirms that
+/// source access stopped and its temporary generation was reclaimed.
+pub fn cancel_durable_direct_transfer(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" {
+    return Err(InvalidRequest)
+  }
+  let mut record = match require_durable_record(journal, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if @transfer.record_is_destination_committed(record) {
+    return Err(InvalidRequest)
+  }
+  if @transfer.direct_transfer_cleanup_confirmed(record) {
+    return Ok(record)
+  }
+  let (_, transfer_url) = match direct_location(origin, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let remote = match direct_cancel(client, transfer_url, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !@transfer.direct_transfer_cleanup_confirmed(remote) {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  let failure = match @transfer.prepare_failure(record, true, true) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match commit_durable_transition(journal, failure) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  record = match require_durable_record(journal, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let cleanup = match @transfer.prepare_cleanup(record, true, true, true) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match commit_durable_transition(journal, cleanup) {
     Ok(_) => require_durable_record(journal, request)
     Err(issue) => Err(issue)
   }

@@ -473,6 +473,20 @@ pub fn record_is_destination_committed(record : RemoteTransferRecord) -> Bool {
 }
 
 ///|
+/// A direct Transfer failure is closed only after the remote destination
+/// confirms that source access stopped and its temporary generation was
+/// reclaimed. A transport error alone does not establish any of these facts.
+pub fn direct_transfer_cleanup_confirmed(record : RemoteTransferRecord) -> Bool {
+  record.request.route == DirectStream &&
+  (record.attempt == TransferFailed || record.attempt == TransferCancelled) &&
+  record.cleanup == TransferCleanupReleased &&
+  record.source_access_stopped &&
+  record.destination_temporary_reclaimed &&
+  record.object_use_released &&
+  !record.destination_material_available
+}
+
+///|
 pub(all) enum RemoteDirectTransferProgress {
   DirectTransferStart
   DirectTransferCopying

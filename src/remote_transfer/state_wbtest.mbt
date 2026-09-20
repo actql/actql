@@ -71,6 +71,20 @@ test "direct retry progression is decided by common lifecycle state" {
 }
 
 ///|
+test "direct cleanup requires confirmed stop and destination reclaim" {
+  let record = open_record(state_request(DirectStream))
+  ignore(apply(prepare_start(record).unwrap()))
+  ignore(apply(prepare_failure(record, true, false).unwrap()))
+  assert_false(direct_transfer_cleanup_confirmed(record))
+  ignore(apply(prepare_cleanup(record, true, true, true).unwrap()))
+  assert_true(direct_transfer_cleanup_confirmed(record))
+  let store = open_record(state_request(TransferStore))
+  ignore(apply(prepare_failure(store, true, true).unwrap()))
+  ignore(apply(prepare_cleanup(store, true, true, true).unwrap()))
+  assert_false(direct_transfer_cleanup_confirmed(store))
+}
+
+///|
 test "Store upload progression separates seal from destination commit" {
   let record = open_record(state_request(TransferStore))
   assert_eq(store_upload_progress(record), StoreUploadStart)
