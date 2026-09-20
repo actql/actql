@@ -8,6 +8,7 @@ import {
   "actql/actql/connectors/duckdb/compute",
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
+  "actql/actql/connectors/duckdb/standard_host",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
@@ -21,6 +22,8 @@ pub fn close_native_acquisition_runtime(NativeAcquisitionRuntime) -> Unit
 
 pub fn close_native_compute_runtime(NativeComputeRuntime) -> Unit
 
+pub fn close_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, @physical_resources.LedgerIssue]
@@ -28,6 +31,8 @@ pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Re
 pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
 
 pub fn execute_native_compute_runtime(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeFailure]
+
+pub fn execute_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[Unit, NativeStandardStrategyRunIssue]
 
 pub fn execute_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeFailure]
 
@@ -37,9 +42,15 @@ pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@ac
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
+pub fn native_standard_strategy_run_complete(NativeStandardStrategyRun) -> Bool
+
+pub fn native_standard_strategy_run_task_count(NativeStandardStrategyRun) -> Int
+
 pub fn native_strategy_compute_run_task_count(NativeStrategyComputeRun) -> Int
 
 pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeIssue]
+
+pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
 
 pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
 
@@ -106,6 +117,17 @@ pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@native.NativeDuckDBIssue)
 } derive(Eq, @debug.Debug)
+
+type NativeStandardStrategyRun
+
+pub(all) enum NativeStandardStrategyRunIssue {
+  Closed
+  InvalidSelection
+  DuckDBUnavailable
+  Dispatch(@standard_host.DispatchIssue)
+  Database(@native.NativeDuckDBIssue)
+  DuckDB(NativeStrategyComputeRunIssue)
+}
 
 pub(all) struct NativeStrategyComputeFailure {
   primary : NativeStrategyComputeIssue
