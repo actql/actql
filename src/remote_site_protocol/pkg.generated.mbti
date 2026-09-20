@@ -81,6 +81,8 @@ pub fn coordinator_dispatch_transition_projection(CoordinatorDispatchTransition)
 
 pub fn create_coordinator_dispatch_journal(String) -> Result[CoordinatorDispatchJournal, DispatchIssue]
 
+pub fn create_remote_runtime_custody() -> RemoteRuntimeCustody
+
 pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
 
 pub fn dispatch_admission_durable_json(DispatchAdmission) -> Result[String, DispatchIssue]
@@ -199,6 +201,10 @@ pub fn prepare_force_loss(SiteDispatchJournal, DispatchRecord, Bool) -> Result[F
 
 pub fn prepare_mark_execution_unknown(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
+pub fn prepare_owned_remote_runtime_cleanup(DispatchRecord, RemoteRuntimeCustody) -> Result[RemoteRuntimeStep, DispatchIssue]
+
+pub fn prepare_owned_remote_runtime_failure(DispatchRecord, RemoteRuntimeCustody) -> Result[RemoteRuntimeStep, DispatchIssue]
+
 pub fn prepare_reconcile_cancelled_execution(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_reconcile_cleanup_after_loss(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
@@ -300,6 +306,38 @@ pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
 pub fn remote_poll_query_json(DispatchRequest) -> Result[String, DispatchIssue]
 
 pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
+
+pub fn remote_runtime_custody_acquire_bundle(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_acquire_holding(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_acquire_operation(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_acquire_output(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_bundle_released(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_confirm_stop(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_holding_released(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_operation_settled(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_output_released(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_record_failure(RemoteRuntimeCustody, Bool, Bool, Bool) -> Bool
+
+pub fn remote_runtime_custody_release_bundle(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_release_holding(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_release_output(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_resources_reclaimed(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_settle_operation(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_custody_stop_pending(RemoteRuntimeCustody) -> Bool
 
 pub fn remote_runtime_record_startable(DispatchRecord) -> Bool
 
@@ -459,6 +497,8 @@ pub(all) enum RemoteRuntimeAdmission {
   RuntimeAdmissionCapacityUnsupported
   RuntimeAdmissionAlreadyStarted
 } derive(Eq, @debug.Debug)
+
+type RemoteRuntimeCustody
 
 type RemoteRuntimeStep
 

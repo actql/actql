@@ -875,6 +875,108 @@ test "runtime cleanup waits for stop then advances one durable fact at a time" {
 }
 
 ///|
+test "runtime custody owns stop and independent resource release facts" {
+  let custody = create_remote_runtime_custody()
+  assert_true(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_acquire_operation(custody))
+  assert_false(remote_runtime_custody_acquire_operation(custody))
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_record_failure(custody, true, true, false))
+  assert_true(remote_runtime_custody_stop_pending(custody))
+  assert_true(remote_runtime_custody_confirm_stop(custody))
+  assert_false(remote_runtime_custody_stop_pending(custody))
+  assert_true(remote_runtime_custody_settle_operation(custody))
+  assert_true(remote_runtime_custody_operation_settled(custody))
+  assert_true(remote_runtime_custody_release_output(custody))
+  assert_true(remote_runtime_custody_output_released(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_release_holding(custody))
+  assert_true(remote_runtime_custody_holding_released(custody))
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+  assert_true(remote_runtime_custody_release_bundle(custody))
+  assert_true(remote_runtime_custody_bundle_released(custody))
+  assert_true(remote_runtime_custody_resources_reclaimed(custody))
+  assert_false(remote_runtime_custody_release_bundle(custody))
+}
+
+///|
+test "owned runtime cleanup cannot release while any custody remains" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, record) = accept(
+    state,
+    request("dispatch-runtime-owner", 25, 1, bundle),
+  )
+  provision(record)
+  execute(record)
+  let custody = create_remote_runtime_custody()
+  assert_true(remote_runtime_custody_acquire_operation(custody))
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  assert_true(
+    remote_runtime_custody_record_failure(custody, false, true, false),
+  )
+  let uncertain = prepare_owned_remote_runtime_failure(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(uncertain), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(uncertain).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    0,
+  )
+  assert_true(remote_runtime_custody_confirm_stop(custody))
+  let settled = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(settled), 2)
+  assert_true(remote_runtime_custody_settle_operation(custody))
+  commit_dispatch_transition(
+    remote_runtime_step_transition(settled).unwrap(),
+    true,
+  ).unwrap()
+  let releasing = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  commit_dispatch_transition(
+    remote_runtime_step_transition(releasing).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    3,
+  )
+  assert_true(remote_runtime_custody_release_output(custody))
+  assert_true(remote_runtime_custody_release_holding(custody))
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    3,
+  )
+  assert_true(remote_runtime_custody_release_bundle(custody))
+  let released = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(released), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(released).unwrap(),
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_owned_remote_runtime_cleanup(record, custody).unwrap(),
+    ),
+    4,
+  )
+}
+
+///|
 test "runtime cancellation and evidence rejection use common progress" {
   let state = journal()
   let bundle = cid(

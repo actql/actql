@@ -624,7 +624,45 @@ pub fn strategy_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Boo
 
 pub fn strategy_remote_runtime_cleanup_plan(@remote_site_protocol.DispatchRecord, Bool, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
+pub fn strategy_remote_runtime_custody_acquire_bundle(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_acquire_holding(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_acquire_operation(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_acquire_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_bundle_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_confirm_stop(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_create() -> @remote_site_protocol.RemoteRuntimeCustody
+
+pub fn strategy_remote_runtime_custody_holding_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_operation_settled(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_output_released(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_record_failure(@remote_site_protocol.RemoteRuntimeCustody, Bool, Bool, Bool) -> Bool
+
+pub fn strategy_remote_runtime_custody_release_bundle(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_release_holding(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_release_output(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_resources_reclaimed(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_settle_operation(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
+pub fn strategy_remote_runtime_custody_stop_pending(@remote_site_protocol.RemoteRuntimeCustody) -> Bool
+
 pub fn strategy_remote_runtime_failure_plan(@remote_site_protocol.DispatchRecord, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_owned_cleanup_plan(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
 pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 

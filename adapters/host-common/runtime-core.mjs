@@ -455,12 +455,48 @@ function remoteSiteControl(moon) {
     ),
     runtimeAdmission: moon.strategyRemoteRuntimeAdmission,
     runtimeStartable: moon.strategyRemoteRuntimeStartable,
+    createRuntimeCustody: moon.strategyRemoteRuntimeCustodyCreate,
+    runtimeCustodyAcquireOperation:
+      moon.strategyRemoteRuntimeCustodyAcquireOperation,
+    runtimeCustodySettleOperation:
+      moon.strategyRemoteRuntimeCustodySettleOperation,
+    runtimeCustodyOperationSettled:
+      moon.strategyRemoteRuntimeCustodyOperationSettled,
+    runtimeCustodyAcquireOutput:
+      moon.strategyRemoteRuntimeCustodyAcquireOutput,
+    runtimeCustodyReleaseOutput:
+      moon.strategyRemoteRuntimeCustodyReleaseOutput,
+    runtimeCustodyOutputReleased:
+      moon.strategyRemoteRuntimeCustodyOutputReleased,
+    runtimeCustodyAcquireHolding:
+      moon.strategyRemoteRuntimeCustodyAcquireHolding,
+    runtimeCustodyReleaseHolding:
+      moon.strategyRemoteRuntimeCustodyReleaseHolding,
+    runtimeCustodyHoldingReleased:
+      moon.strategyRemoteRuntimeCustodyHoldingReleased,
+    runtimeCustodyAcquireBundle:
+      moon.strategyRemoteRuntimeCustodyAcquireBundle,
+    runtimeCustodyReleaseBundle:
+      moon.strategyRemoteRuntimeCustodyReleaseBundle,
+    runtimeCustodyBundleReleased:
+      moon.strategyRemoteRuntimeCustodyBundleReleased,
+    runtimeCustodyRecordFailure:
+      moon.strategyRemoteRuntimeCustodyRecordFailure,
+    runtimeCustodyConfirmStop:
+      moon.strategyRemoteRuntimeCustodyConfirmStop,
+    runtimeCustodyStopPending:
+      moon.strategyRemoteRuntimeCustodyStopPending,
+    runtimeCustodyResourcesReclaimed:
+      moon.strategyRemoteRuntimeCustodyResourcesReclaimed,
     prepareRuntimeFailure: (value, cancelled, stopConfirmed) => checked(
       moon.strategyRemoteRuntimeFailurePlan(
         value,
         cancelled,
         stopConfirmed,
       ),
+    ),
+    prepareOwnedRuntimeFailure: (value, custody) => checked(
+      moon.strategyRemoteRuntimeOwnedFailurePlan(value, custody),
     ),
     prepareRuntimeCleanup: (
       value,
@@ -474,6 +510,9 @@ function remoteSiteControl(moon) {
         stopConfirmed,
         resourcesReclaimed,
       ),
+    ),
+    prepareOwnedRuntimeCleanup: (value, custody) => checked(
+      moon.strategyRemoteRuntimeOwnedCleanupPlan(value, custody),
     ),
     prepareRuntimeReclaimUnknown: value => checked(
       moon.strategyRemoteRuntimeReclaimUnknownPlan(value),

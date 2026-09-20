@@ -27,6 +27,212 @@ pub(all) enum RemoteRuntimeAdmission {
 } derive(Eq, Debug)
 
 ///|
+/// Portable ownership state for one physical remote execution occurrence.
+/// Adapter handles remain environment-owned, but the common runtime owns the
+/// facts that decide settlement, stop confirmation, and resource release.
+struct RemoteRuntimeCustody {
+  mut operation_acquired : Bool
+  mut operation_settled : Bool
+  mut output_acquired : Bool
+  mut output_released : Bool
+  mut holding_acquired : Bool
+  mut holding_released : Bool
+  mut bundle_acquired : Bool
+  mut bundle_released : Bool
+  mut stop_required : Bool
+  mut stop_confirmed : Bool
+  mut cancelled : Bool
+}
+
+///|
+pub fn create_remote_runtime_custody() -> RemoteRuntimeCustody {
+  {
+    operation_acquired: false,
+    operation_settled: false,
+    output_acquired: false,
+    output_released: false,
+    holding_acquired: false,
+    holding_released: false,
+    bundle_acquired: false,
+    bundle_released: false,
+    stop_required: false,
+    stop_confirmed: true,
+    cancelled: false,
+  }
+}
+
+///|
+pub fn remote_runtime_custody_acquire_operation(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if custody.operation_acquired {
+    false
+  } else {
+    custody.operation_acquired = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_settle_operation(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if !custody.operation_acquired || custody.operation_settled {
+    false
+  } else {
+    custody.operation_settled = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_operation_settled(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.operation_settled
+}
+
+///|
+pub fn remote_runtime_custody_acquire_output(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if custody.output_acquired {
+    false
+  } else {
+    custody.output_acquired = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_release_output(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if !custody.output_acquired || custody.output_released {
+    false
+  } else {
+    custody.output_released = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_output_released(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.output_released
+}
+
+///|
+pub fn remote_runtime_custody_acquire_holding(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if custody.holding_acquired {
+    false
+  } else {
+    custody.holding_acquired = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_release_holding(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if !custody.holding_acquired || custody.holding_released {
+    false
+  } else {
+    custody.holding_released = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_holding_released(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.holding_released
+}
+
+///|
+pub fn remote_runtime_custody_acquire_bundle(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if custody.bundle_acquired {
+    false
+  } else {
+    custody.bundle_acquired = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_release_bundle(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if !custody.bundle_acquired || custody.bundle_released {
+    false
+  } else {
+    custody.bundle_released = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_bundle_released(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.bundle_released
+}
+
+///|
+/// Replace the current physical failure observation. This does not confirm
+/// stop merely because the adapter-facing operation returned.
+pub fn remote_runtime_custody_record_failure(
+  custody : RemoteRuntimeCustody,
+  cancelled : Bool,
+  stop_required : Bool,
+  stop_confirmed : Bool,
+) -> Bool {
+  if stop_required && stop_confirmed {
+    false
+  } else {
+    custody.cancelled = cancelled
+    custody.stop_required = stop_required
+    custody.stop_confirmed = !stop_required || stop_confirmed
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_confirm_stop(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  if !custody.stop_required || custody.stop_confirmed {
+    false
+  } else {
+    custody.stop_confirmed = true
+    true
+  }
+}
+
+///|
+pub fn remote_runtime_custody_stop_pending(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  custody.stop_required && !custody.stop_confirmed
+}
+
+///|
+pub fn remote_runtime_custody_resources_reclaimed(
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  (!custody.output_acquired || custody.output_released) &&
+  (!custody.holding_acquired || custody.holding_released) &&
+  (!custody.bundle_acquired || custody.bundle_released)
+}
+
+///|
 /// Classify runtime admission in a stable order. An already active exact
 /// dispatch is reusable even if the Site stops accepting new work; it is not a
 /// new execution. Site and capacity facts still gate every new occurrence.
@@ -158,6 +364,20 @@ pub fn prepare_remote_runtime_failure(
 }
 
 ///|
+/// Ownership-aware failure planning is the product entry for runtimes. The
+/// Boolean form remains a small transition primitive for independent vectors.
+pub fn prepare_owned_remote_runtime_failure(
+  record : DispatchRecord,
+  custody : RemoteRuntimeCustody,
+) -> Result[RemoteRuntimeStep, DispatchIssue] {
+  prepare_remote_runtime_failure(
+    record,
+    custody.cancelled,
+    !remote_runtime_custody_stop_pending(custody),
+  )
+}
+
+///|
 /// Decide one cleanup step from current durable state and current physical
 /// observations. The function intentionally emits at most one transition so
 /// every state change is durable before the next decision.
@@ -216,6 +436,21 @@ pub fn prepare_remote_runtime_cleanup(
           }
       }
   }
+}
+
+///|
+/// Plan cleanup from the common ownership record rather than adapter-local
+/// flags. Physical cleanup is still performed by the environment adapter.
+pub fn prepare_owned_remote_runtime_cleanup(
+  record : DispatchRecord,
+  custody : RemoteRuntimeCustody,
+) -> Result[RemoteRuntimeStep, DispatchIssue] {
+  prepare_remote_runtime_cleanup(
+    record,
+    custody.cancelled,
+    !remote_runtime_custody_stop_pending(custody),
+    remote_runtime_custody_resources_reclaimed(custody),
+  )
 }
 
 ///|

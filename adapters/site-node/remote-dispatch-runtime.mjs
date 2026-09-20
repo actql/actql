@@ -152,8 +152,25 @@ export function createRemoteDispatchRuntime({
       typeof control.status !== 'function' ||
       typeof control.runtimeAdmission !== 'function' ||
       typeof control.runtimeStartable !== 'function' ||
-      typeof control.prepareRuntimeFailure !== 'function' ||
-      typeof control.prepareRuntimeCleanup !== 'function' ||
+      typeof control.createRuntimeCustody !== 'function' ||
+      typeof control.runtimeCustodyAcquireOperation !== 'function' ||
+      typeof control.runtimeCustodySettleOperation !== 'function' ||
+      typeof control.runtimeCustodyOperationSettled !== 'function' ||
+      typeof control.runtimeCustodyAcquireOutput !== 'function' ||
+      typeof control.runtimeCustodyReleaseOutput !== 'function' ||
+      typeof control.runtimeCustodyOutputReleased !== 'function' ||
+      typeof control.runtimeCustodyAcquireHolding !== 'function' ||
+      typeof control.runtimeCustodyReleaseHolding !== 'function' ||
+      typeof control.runtimeCustodyHoldingReleased !== 'function' ||
+      typeof control.runtimeCustodyAcquireBundle !== 'function' ||
+      typeof control.runtimeCustodyReleaseBundle !== 'function' ||
+      typeof control.runtimeCustodyBundleReleased !== 'function' ||
+      typeof control.runtimeCustodyRecordFailure !== 'function' ||
+      typeof control.runtimeCustodyConfirmStop !== 'function' ||
+      typeof control.runtimeCustodyStopPending !== 'function' ||
+      typeof control.runtimeCustodyResourcesReclaimed !== 'function' ||
+      typeof control.prepareOwnedRuntimeFailure !== 'function' ||
+      typeof control.prepareOwnedRuntimeCleanup !== 'function' ||
       typeof control.prepareRuntimeReclaimUnknown !== 'function' ||
       typeof control.runtimeStepAction !== 'function' ||
       typeof control.runtimeStepTransition !== 'function' ||
@@ -298,36 +315,44 @@ export function createRemoteDispatchRuntime({
     control,
   );
   const settleOperation = entry => {
-    if (entry.operation === undefined || entry.operationSettled) return;
+    if (entry.operation === undefined ||
+        control.runtimeCustodyOperationSettled(entry.custody)) return;
     if (!siteControl.settleOperation(entry.operation)) {
       fail('RemoteSiteOperationSettlementRejected');
     }
-    entry.operationSettled = true;
-  };
-  const resourcesReclaimed = entry =>
-    (entry.output === undefined || entry.outputClosed) &&
-    (entry.siteHolding === undefined || entry.holdingReleased) &&
-    (entry.bundleHoldId === undefined || entry.bundleReleased);
-  const reclaimResources = async entry => {
-    if (entry.output !== undefined && !entry.outputClosed) {
-      await entry.output.close();
-      entry.outputClosed = true;
+    if (!control.runtimeCustodySettleOperation(entry.custody)) {
+      fail('RemoteRuntimeCustodyTransitionRejected');
     }
-    if (entry.siteHolding !== undefined && !entry.holdingReleased) {
+  };
+  const reclaimResources = async entry => {
+    if (entry.output !== undefined &&
+        !control.runtimeCustodyOutputReleased(entry.custody)) {
+      await entry.output.close();
+      if (!control.runtimeCustodyReleaseOutput(entry.custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
+    }
+    if (entry.siteHolding !== undefined &&
+        !control.runtimeCustodyHoldingReleased(entry.custody)) {
       if (!siteControl.releaseHolding(entry.siteHolding)) {
         fail('RemoteSiteHoldingReleaseRejected');
       }
-      entry.holdingReleased = true;
+      if (!control.runtimeCustodyReleaseHolding(entry.custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
     }
-    if (entry.bundleHoldId !== undefined && !entry.bundleReleased) {
+    if (entry.bundleHoldId !== undefined &&
+        !control.runtimeCustodyBundleReleased(entry.custody)) {
       if (!bundleStore.release(entry.bundleHoldId, bundleControl)) {
         fail('RemoteBundleHoldReleaseRejected');
       }
-      entry.bundleReleased = true;
+      if (!control.runtimeCustodyReleaseBundle(entry.custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
     }
   };
   const observeStop = async (entry, retry) => {
-    if (!entry.stopAuthorityRequired || entry.stopConfirmed) return true;
+    if (!control.runtimeCustodyStopPending(entry.custody)) return true;
     let state = cleanupState(entry);
     entry.diagnostics.push(...state.errors);
     if (retry && state.pending &&
@@ -340,8 +365,11 @@ export function createRemoteDispatchRuntime({
       state = cleanupState(entry);
       entry.diagnostics.push(...state.errors);
     }
-    if (!state.pending) entry.stopConfirmed = true;
-    return entry.stopConfirmed;
+    if (!state.pending &&
+        !control.runtimeCustodyConfirmStop(entry.custody)) {
+      fail('RemoteRuntimeCustodyTransitionRejected');
+    }
+    return !control.runtimeCustodyStopPending(entry.custody);
   };
   const applyFailurePlan = (entry, step) => {
     const action = control.runtimeStepAction(step);
@@ -357,13 +385,11 @@ export function createRemoteDispatchRuntime({
     fail('InvalidRemoteRuntimeFailurePlan');
   };
   const driveCleanup = async (entry, retryStop = false) => {
-    const stopConfirmed = await observeStop(entry, retryStop);
+    await observeStop(entry, retryStop);
     while (true) {
-      const step = control.prepareRuntimeCleanup(
+      const step = control.prepareOwnedRuntimeCleanup(
         entry.record,
-        entry.cancelled,
-        stopConfirmed,
-        resourcesReclaimed(entry),
+        entry.custody,
       );
       const action = control.runtimeStepAction(step);
       if (action === RUNTIME_AWAIT_STOP) return false;
@@ -413,44 +439,44 @@ export function createRemoteDispatchRuntime({
     record,
     output,
     operationState,
+    currentCustody,
     error,
     signal,
     bundleHoldId,
   ) => {
     const cleanupPending = member(error, 'cleanupPending') === true;
     const retainedOwner = owners.get(identity);
+    const custody = retainedOwner?.custody ?? currentCustody;
+    if (!control.runtimeCustodyRecordFailure(
+      custody,
+      signal?.aborted === true,
+      cleanupPending,
+      false,
+    )) {
+      fail('RemoteRuntimeCustodyTransitionRejected');
+    }
     const entry = retainedOwner ?? {
       record,
       handle: member(error, 'cleanupHandle'),
-      stopAuthorityRequired: cleanupPending,
-      stopConfirmed: !cleanupPending,
-      cancelled: signal?.aborted === true,
+      custody,
       primary: error,
       diagnostics: [],
       operation: operationState.operation,
-      operationSettled: operationState.settled,
       output,
-      outputClosed: output === undefined,
       siteHolding: operationState.siteHolding,
-      holdingReleased: operationState.siteHolding === undefined,
       bundleHoldId,
-      bundleReleased: bundleHoldId === undefined,
     };
     if (retainedOwner !== undefined) {
       entry.handle = member(error, 'cleanupHandle');
-      entry.stopAuthorityRequired = cleanupPending;
-      entry.stopConfirmed = !cleanupPending;
-      entry.cancelled = signal?.aborted === true;
       entry.primary = error;
       owners.delete(identity);
     }
     pendingCleanup.set(identity, entry);
     try {
-      applyFailurePlan(entry, control.prepareRuntimeFailure(
-        record,
-        entry.cancelled,
-        entry.stopConfirmed,
-      ));
+      applyFailurePlan(
+        entry,
+        control.prepareOwnedRuntimeFailure(record, custody),
+      );
     } catch (persistenceError) {
       entry.diagnostics.push(persistenceError);
       throw new AggregateError(
@@ -459,7 +485,8 @@ export function createRemoteDispatchRuntime({
           member(persistenceError, 'message') ?? 'unknown error'}`,
       );
     } finally {
-      operationState.settled = entry.operationSettled;
+      operationState.settled =
+        control.runtimeCustodyOperationSettled(custody);
     }
     if (cleanupPending) {
       throw error;
@@ -485,6 +512,7 @@ export function createRemoteDispatchRuntime({
   ) => {
     const identity = control.identity(dispatch);
     let output;
+    const custody = control.createRuntimeCustody();
     const operationState = {
       operation: undefined,
       settled: false,
@@ -500,6 +528,9 @@ export function createRemoteDispatchRuntime({
         bundleControl,
       );
       operationState.bundleRetained = true;
+      if (!control.runtimeCustodyAcquireBundle(custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
       const bundle = await bundleStore.verify(
         registration.runtimeBundleCid,
         bundleControl,
@@ -522,6 +553,9 @@ export function createRemoteDispatchRuntime({
           operationState.operation === null) {
         fail('RemoteSiteCapacityRejected');
       }
+      if (!control.runtimeCustodyAcquireOperation(custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
       signal?.throwIfAborted();
       store.advance(control.prepareExecution(record), record, control);
       output = await registration.execute(Object.freeze({
@@ -529,8 +563,11 @@ export function createRemoteDispatchRuntime({
         dispatch,
         signal,
       }));
-      signal?.throwIfAborted();
       checkedOutput(output);
+      if (!control.runtimeCustodyAcquireOutput(custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
+      signal?.throwIfAborted();
       if (!siteControl.operationAvailable(operationState.operation)) {
         fail('RemoteSiteOperationUnavailable');
       }
@@ -542,27 +579,27 @@ export function createRemoteDispatchRuntime({
           operationState.siteHolding === null) {
         fail('RemoteSiteHoldingRejected');
       }
+      if (!control.runtimeCustodyAcquireHolding(custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
       if (!siteControl.settleOperation(operationState.operation)) {
         fail('RemoteSiteOperationSettlementRejected');
       }
       operationState.settled = true;
+      if (!control.runtimeCustodySettleOperation(custody)) {
+        fail('RemoteRuntimeCustodyTransitionRejected');
+      }
       store.advance(control.prepareSettled(record), record, control);
       owners.set(identity, {
         record,
         handle: undefined,
-        stopAuthorityRequired: false,
-        stopConfirmed: true,
-        cancelled: false,
+        custody,
         primary: undefined,
         diagnostics: [],
         operation: operationState.operation,
-        operationSettled: true,
         output,
-        outputClosed: false,
         siteHolding: operationState.siteHolding,
-        holdingReleased: false,
         bundleHoldId,
-        bundleReleased: false,
       });
       store.advance(control.prepareRetained(
         record,
@@ -610,6 +647,7 @@ export function createRemoteDispatchRuntime({
         record,
         output,
         operationState,
+        custody,
         error,
         signal,
         operationState.bundleRetained ? bundleHoldId : undefined,
