@@ -65,6 +65,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "three_targets"
       ],
@@ -97,6 +98,23 @@
         "src/lowering_relation/graph_match_test.mbt",
         "src/local_sga/match_nodes.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "managed_relation_named_result_publication_and_retrieval",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9aff9c59",
+          "evidence": [
+            "adapters/host-common/strategy.test.mjs",
+            "adapters/host-common/strategy.mjs",
+            "src/execution_relation/managed_publication_bridge.mbt"
+          ]
+        }
       ]
     },
     {
