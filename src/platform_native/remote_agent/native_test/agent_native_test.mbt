@@ -93,14 +93,11 @@ test "outbound agent observes durable acceptance before one execution" {
     "5555555555555555555555555555555555555555555555555555555555555555",
   )
   let executions = [0]
-  let registration = @runtime.install_native_remote_runtime_registration(
-    site,
-    bundle_cid,
-    "local",
-    "local/1",
-    "strategy/1",
-    operation_capability,
-    issuer_capability,
+  let executor = @runtime.install_native_remote_task_executor(
+    agent_test_cid(
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+    "task-agent",
     (_request, _binding) => {
       executions[0] += 1
       let measurement = @remote.prepare_remote_managed_output_measurement(
@@ -143,6 +140,16 @@ test "outbound agent observes durable acceptance before one execution" {
         () => true,
       ).unwrap()
     },
+  ).unwrap()
+  let registration = @runtime.install_native_remote_runtime_registry_registration(
+    site,
+    bundle_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    operation_capability,
+    issuer_capability,
+    [executor],
   ).unwrap()
   let runtime = @runtime.open_native_remote_runtime(
     journal,

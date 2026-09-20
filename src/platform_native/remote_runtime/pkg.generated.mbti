@@ -9,7 +9,9 @@ import {
 }
 
 // Values
-pub fn install_native_remote_runtime_registration(@execution_site.ExecutionSite, String, String, String, String, String, String, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue]
+pub fn install_native_remote_runtime_registry_registration(@execution_site.ExecutionSite, String, String, String, String, String, String, Array[NativeRemoteTaskExecutor]) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue]
+
+pub fn install_native_remote_task_executor(String, String, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteTaskExecutor, NativeRemoteRuntimeIssue]
 
 pub fn open_native_remote_runtime(@remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[NativeRemoteRuntimeRegistration], Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[NativeRemoteRuntime, NativeRemoteRuntimeIssue]
 
@@ -82,6 +84,8 @@ pub(all) enum NativeRemoteRuntimeIssue {
 }
 
 type NativeRemoteRuntimeRegistration
+
+type NativeRemoteTaskExecutor
 
 // Type aliases
 

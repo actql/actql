@@ -94,14 +94,11 @@ test "native remote runtime owns success failure and cleanup progression" {
   let executions = [0]
   let released = [0]
   let stopped = [0]
-  let registration = @runtime.install_native_remote_runtime_registration(
-    site,
-    bundle_cid,
-    "local",
-    "local/1",
-    "strategy/1",
-    operation_capability,
-    issuer_capability,
+  let executor = @runtime.install_native_remote_task_executor(
+    runtime_test_cid(
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+    "task-a",
     (_request, binding) => {
       if @remote.remote_input_binding_body(binding) == "{}" {
         executions[0] += 1
@@ -166,6 +163,16 @@ test "native remote runtime owns success failure and cleanup progression" {
       ).unwrap()
     },
   ).unwrap()
+  let registration = @runtime.install_native_remote_runtime_registry_registration(
+    site,
+    bundle_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    operation_capability,
+    issuer_capability,
+    [executor],
+  ).unwrap()
   let runtime = @runtime.open_native_remote_runtime(
     journal,
     bundles,
@@ -204,6 +211,34 @@ test "native remote runtime owns success failure and cleanup progression" {
     ).unwrap()
   }
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
+  let unsupported = @remote.prepare_dispatch_request(
+    "native-coordinator",
+    runtime_test_cid(
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+    "task-unsupported",
+    9,
+    "dispatch-unsupported",
+    "native-runtime-site",
+    1,
+    bundle_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    @remote.remote_input_binding_cid(input_binding),
+    runtime_test_cid(
+      "2222222222222222222222222222222222222222222222222222222222222222",
+    ),
+    @remote.remote_dispatch_budget_cid(budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_true(
+    runtime.start(unsupported, input_binding)
+    is Err(@runtime.RuntimeUnsupported),
+  )
+  assert_eq(executions[0], 0)
+  assert_true(journal.require(unsupported) is Err(@journal.StateCollision))
   let first = request("dispatch-a")
   let accepted = [0]
   let accepted_execution = [-1]

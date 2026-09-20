@@ -119,6 +119,8 @@ pub fn dispatch_request_journal_key(DispatchRequest) -> Array[String]
 
 pub fn dispatch_request_json(DispatchRequest) -> Result[String, DispatchIssue]
 
+pub fn dispatch_request_task_scope(DispatchRequest) -> (String, String)
+
 pub fn dispatch_transition_attempt_identity(DispatchTransition) -> Result[String, DispatchIssue]
 
 pub fn dispatch_transition_durable_json(DispatchTransition) -> Result[String, DispatchIssue]

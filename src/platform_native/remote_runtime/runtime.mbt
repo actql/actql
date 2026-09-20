@@ -49,6 +49,16 @@ struct NativeRemoteRuntimeRegistration {
   capability : @remote.RemoteExecutionCapability
   issuer : @remote.RemoteEvidenceIssuer
   key : String
+  supports : (@remote.DispatchRequest) -> Bool
+  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution
+}
+
+///|
+/// One preinstalled executable checked task. Runtime bundle activation and
+/// Connector capability remain separate admission requirements; this binding
+/// prevents a Connector-wide callback from accepting an arbitrary task name.
+struct NativeRemoteTaskExecutor {
+  key : String
   execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution
 }
 
@@ -168,7 +178,7 @@ fn scope_key(scope : Array[String]) -> String {
 }
 
 ///|
-pub fn install_native_remote_runtime_registration(
+fn install_native_remote_runtime_scope(
   site : @site.ExecutionSite,
   runtime_bundle_cid : String,
   connector_registration : String,
@@ -210,7 +220,89 @@ pub fn install_native_remote_runtime_registration(
     capability,
     issuer,
     key: scope_key(scope),
+    supports: _request => true,
     execute,
+  })
+}
+
+///|
+/// Bind one executable implementation to the exact checked Run definition and
+/// task key supplied by its installed runtime bundle. This performs no I/O and
+/// grants no Site or evidence authority.
+pub fn install_native_remote_task_executor(
+  run_definition_cid : String,
+  task_key : String,
+  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution,
+) -> Result[NativeRemoteTaskExecutor, NativeRemoteRuntimeIssue] {
+  if task_key.is_empty() ||
+    !run_definition_cid.has_prefix("sha256:") ||
+    run_definition_cid.length() != 71 {
+    return Err(InvalidConfiguration)
+  }
+  Ok({ key: run_definition_cid + "\u0000" + task_key, execute, })
+}
+
+///|
+/// Install a Connector registration whose physical executor selection is
+/// bounded by an exact task registry. Unsupported tasks are rejected before
+/// durable acceptance, capacity acquisition, or physical execution.
+pub fn install_native_remote_runtime_registry_registration(
+  site : @site.ExecutionSite,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  operation_capability_cid : String,
+  issuer_capability_cid : String,
+  executors : Array[NativeRemoteTaskExecutor],
+) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue] {
+  if executors.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  let installed : Map[String, NativeRemoteTaskExecutor] = Map([])
+  for executor in executors {
+    if installed.contains(executor.key) {
+      return Err(RegistrationCollision)
+    }
+    installed[executor.key] = executor
+  }
+  let registration = match
+    install_native_remote_runtime_scope(
+      site,
+      runtime_bundle_cid,
+      connector_registration,
+      connector_revision,
+      strategy_revision,
+      operation_capability_cid,
+      issuer_capability_cid,
+      (request, binding) => {
+        let (run_definition_cid, task_key) = @remote.dispatch_request_task_scope(
+          request,
+        )
+        guard installed.get(run_definition_cid + "\u0000" + task_key)
+          is Some(executor) else {
+          return NativeRemoteExecutionFailed({
+            code: "unregistered-task",
+            cancelled: false,
+            stop_required: false,
+            stop_confirmed: true,
+            retry_stop: () => true,
+          })
+        }
+        (executor.execute)(request, binding)
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    ..registration,
+    supports: request => {
+      let (run_definition_cid, task_key) = @remote.dispatch_request_task_scope(
+        request,
+      )
+      installed.contains(run_definition_cid + "\u0000" + task_key)
+    },
   })
 }
 
@@ -997,6 +1089,9 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   let registration = match self.registration_for(request) {
     Some(value) => value
     None => return Err(RuntimeUnsupported)
+  }
+  if !(registration.supports)(request) {
+    return Err(RuntimeUnsupported)
   }
   let budget = match self.budget_for(request) {
     Some(value) => value

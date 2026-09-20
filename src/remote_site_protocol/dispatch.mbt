@@ -1304,6 +1304,16 @@ pub fn dispatch_request_connector_registration(
 }
 
 ///|
+/// Exact checked task selected by this dispatch. The pair identifies the
+/// preinstalled executable task definition, not a future execution result or
+/// a transport occurrence.
+pub fn dispatch_request_task_scope(
+  request : DispatchRequest,
+) -> (String, String) {
+  (request.run_definition_cid, request.task_key)
+}
+
+///|
 pub fn dispatch_record_matches_request(
   record : DispatchRecord,
   request : DispatchRequest,
