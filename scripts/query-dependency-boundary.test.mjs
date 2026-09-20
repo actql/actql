@@ -47,7 +47,7 @@ test('basic reference author uses checked context and common completion operatio
   assert.ok(!imports('connectors/reference_compute/driver').includes('physical_resources'));
   const driver = readFileSync('src/connectors/reference_compute/driver/dispatch.mbt', 'utf8');
   assert.match(driver, /ComputeAuthorContext/);
-  assert.match(driver, /execute_compute_author_work/);
+  assert.match(driver, /execute_materializing_compute_author_work/);
   assert.doesNotMatch(driver, /CapturedDAG|TaskExecution|captured_dag_ledger|graph_task_owner|start_captured_execution|settle_task_execution|complete_task_execution/);
   const integration = readFileSync('src/query_integration/installed_numeric_host_wbtest.mbt', 'utf8');
   assert.doesNotMatch(integration, /execute_numeric_attempt|settle_task_execution|complete_task_execution/);
@@ -393,8 +393,8 @@ test('DAG execution storage does not maintain a backend attempt lookup table', (
 test('synchronous and asynchronous completion share private retained-output installation', () => {
   for (const file of ['captured_dag.mbt', 'task_execution.mbt']) {
     const source = readFileSync(`src/physical_strategy/${file}`, 'utf8');
-    assert.match(source, /publish_task_completion\(/);
-    assert.doesNotMatch(source, /run\.completed\[task\] = Some\(output\)/);
+    assert.match(source, /commit_materialized_task_output\(/);
+    assert.doesNotMatch(source, /run\.(?:completed|managed_completed)\[/);
   }
   const completion = readFileSync('src/physical_strategy/task_completion.mbt', 'utf8');
   assert.doesNotMatch(completion, /@(?:duckdb|duckdb_compute|local_connector)\b/);
@@ -424,7 +424,7 @@ test('common synchronous dispatch has no Local connector or generated-sequence e
 test('asynchronous common start takes an owned preparation rather than transport callbacks', () => {
   const source = readFileSync('src/physical_strategy/task_execution.mbt', 'utf8');
   assert.doesNotMatch(source, /@(?:duckdb|duckdb_compute|local_connector)\b/);
-  assert.match(source, /@connector\.start_prepared_execution\(prepared\)/);
+  assert.match(source, /@connector\.start_prepared_execution_lifecycle\(prepared\)/);
   const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   const signature = api.split('\n').find(line => line.startsWith('pub fn[T] start_captured_execution('));
   assert.ok(signature);
