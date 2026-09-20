@@ -358,6 +358,14 @@ pub fn strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.Rem
 
 pub fn strategy_remote_bundle_activate_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
+pub fn strategy_remote_bundle_activation_commit(@remote_bundle.RemoteBundleActivation, Bool) -> @remote_bundle.RemoteBundleRecord raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_prepare(@remote_bundle.RemoteBundleRecord?, @remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleActivation raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_transition_at(@remote_bundle.RemoteBundleActivation, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_activation_transition_count(@remote_bundle.RemoteBundleActivation) -> Int
+
 pub fn strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
 pub fn strategy_remote_bundle_manifest_admit_json(String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure

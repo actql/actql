@@ -902,6 +902,17 @@ function remoteBundleControl(moon) {
     signatureEnvelopeManifest:
       moon.strategyRemoteBundleSignatureEnvelopeManifest,
     open: moon.strategyRemoteBundleOpen,
+    prepareActivation: (current, target) => checked(
+      moon.strategyRemoteBundleActivationPrepare(current, target),
+    ),
+    activationTransitionCount:
+      moon.strategyRemoteBundleActivationTransitionCount,
+    activationTransitionAt: (activation, index) => checked(
+      moon.strategyRemoteBundleActivationTransitionAt(activation, index),
+    ),
+    commitActivation: (activation, durable) => checked(
+      moon.strategyRemoteBundleActivationCommit(activation, durable),
+    ),
     prepareActivate: record => checked(
       moon.strategyRemoteBundleActivatePrepare(record),
     ),

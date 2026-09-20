@@ -4599,6 +4599,50 @@ pub fn strategy_remote_bundle_open(
 }
 
 ///|
+#export_name("strategyRemoteBundleActivationPrepare")
+pub fn strategy_remote_bundle_activation_prepare(
+  current : @bundle.RemoteBundleRecord?,
+  target : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleActivation raise NodeHostFailure {
+  match @bundle.prepare_bundle_activation(current, target) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleActivationTransitionCount")
+pub fn strategy_remote_bundle_activation_transition_count(
+  activation : @bundle.RemoteBundleActivation,
+) -> Int {
+  @bundle.bundle_activation_transition_count(activation)
+}
+
+///|
+#export_name("strategyRemoteBundleActivationTransitionAt")
+pub fn strategy_remote_bundle_activation_transition_at(
+  activation : @bundle.RemoteBundleActivation,
+  index : Int,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.bundle_activation_transition_at(activation, index) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleActivationCommit")
+pub fn strategy_remote_bundle_activation_commit(
+  activation : @bundle.RemoteBundleActivation,
+  durable : Bool,
+) -> @bundle.RemoteBundleRecord raise NodeHostFailure {
+  match @bundle.commit_bundle_activation(activation, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteBundleActivatePrepare")
 pub fn strategy_remote_bundle_activate_prepare(
   record : @bundle.RemoteBundleRecord,

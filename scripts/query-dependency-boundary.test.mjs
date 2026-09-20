@@ -192,6 +192,23 @@ test('runtime bundle signature meaning has one portable MoonBit owner', () => {
   assert.match(native, /library\.verify_ed25519\(/);
 });
 
+test('runtime bundle activation has one portable transaction decision', () => {
+  const owner = readFileSync('src/remote_bundle/bundle.mbt', 'utf8');
+  assert.match(owner, /pub fn prepare_bundle_activation\(/);
+  assert.match(owner, /pub fn commit_bundle_activation\(/);
+  const adapter = readFileSync(
+    'adapters/site-node/runtime-bundle-store.mjs',
+    'utf8',
+  );
+  const activation = adapter.match(
+    /activate\(runtimeBundleCid, control\) \{[\s\S]*?\n    \},/,
+  )?.[0];
+  assert.ok(activation);
+  assert.match(activation, /control\.prepareActivation\(/);
+  assert.match(activation, /control\.commitActivation\(/);
+  assert.doesNotMatch(activation, /control\.prepareActivate\(/);
+});
+
 test('DuckDB SQL and physical values belong to the connector package group', () => {
   assert.ok(!existsSync('src/duckdb_adapter/moon.pkg'));
   for (const file of ['count_group_query.mbt', 'inner_join_query.mbt',

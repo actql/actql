@@ -4,18 +4,23 @@ fn bundle_cid(fill : String) -> String {
 }
 
 ///|
-fn bundle_manifest() -> RemoteBundleManifest {
+fn bundle_manifest_with_revision(revision : String) -> RemoteBundleManifest {
   prepare_bundle_manifest(
     "bundle-authority-a",
     "local-runtime",
-    "local-runtime/1",
+    "local-runtime/" + revision,
     "aarch64-apple-darwin",
     bundle_cid("a"),
     12L,
     "local",
-    "local/1",
+    "local/" + revision,
     "strategy/1",
   ).unwrap()
+}
+
+///|
+fn bundle_manifest() -> RemoteBundleManifest {
+  bundle_manifest_with_revision("1")
 }
 
 ///|
@@ -53,6 +58,36 @@ test "runtime bundle record restores exact drain ownership" {
   assert_true(
     restore_bundle_record(manifest, 7, 3, 1) is Err(InvalidBundleState),
   )
+}
+
+///|
+test "activation owns the complete drain and activate transaction" {
+  let current = open_bundle_record(bundle_manifest_with_revision("1"))
+  commit_bundle_transition(prepare_bundle_activate(current).unwrap(), true).unwrap()
+  |> ignore
+  let target = open_bundle_record(bundle_manifest_with_revision("2"))
+  let activation = prepare_bundle_activation(Some(current), target).unwrap()
+  assert_eq(bundle_activation_transition_count(activation), 2)
+  assert_eq(
+    bundle_transition_key(
+      bundle_activation_transition_at(activation, 0).unwrap(),
+    ),
+    bundle_manifest_identity(bundle_manifest_with_revision("1")),
+  )
+  assert_eq(
+    bundle_transition_key(
+      bundle_activation_transition_at(activation, 1).unwrap(),
+    ),
+    bundle_manifest_identity(bundle_manifest_with_revision("2")),
+  )
+  assert_true(commit_bundle_activation(activation, false) is Err(_))
+  assert_eq(bundle_record_projection(current), ["1", "1", "0"])
+  assert_eq(bundle_record_projection(target), ["0", "0", "0"])
+  commit_bundle_activation(activation, true).unwrap() |> ignore
+  assert_eq(bundle_record_projection(current), ["2", "2", "0"])
+  assert_eq(bundle_record_projection(target), ["1", "1", "0"])
+  commit_bundle_activation(activation, true).unwrap() |> ignore
+  assert_true(bundle_activation_transition_at(activation, 2) is Err(_))
 }
 
 ///|

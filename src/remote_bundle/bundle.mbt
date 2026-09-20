@@ -60,6 +60,15 @@ struct RemoteBundleTransition {
 }
 
 ///|
+/// One atomic active-bundle switch. The durable adapter persists every
+/// projected transition and the active binding in one transaction before the
+/// portable owner commits either in-memory record.
+struct RemoteBundleActivation {
+  current : RemoteBundleTransition?
+  target : RemoteBundleTransition
+}
+
+///|
 fn valid_cid(value : String) -> Bool {
   if value.length() != 71 || !value.has_prefix("sha256:") {
     return false
@@ -506,6 +515,109 @@ pub fn prepare_bundle_reclaim(
     return Err(InvalidBundleState)
   }
   transition(record, BundleReclaimed, 0)
+}
+
+///|
+/// Prepare the complete state change for selecting a different active bundle.
+/// A physical Store may choose its own transaction mechanism, but it cannot
+/// omit draining the prior active record or activate an ineligible target.
+pub fn prepare_bundle_activation(
+  current : RemoteBundleRecord?,
+  target : RemoteBundleRecord,
+) -> Result[RemoteBundleActivation, RemoteBundleIssue] {
+  let target_cid = target.manifest.runtime_bundle_cid
+  let prior = match current {
+    Some(value) => {
+      if value.manifest.runtime_bundle_cid == target_cid {
+        return Err(InvalidBundleState)
+      }
+      match prepare_bundle_drain(value) {
+        Ok(transition) => Some(transition)
+        Err(issue) => return Err(issue)
+      }
+    }
+    None => None
+  }
+  match prepare_bundle_activate(target) {
+    Ok(activation) => Ok({ current: prior, target: activation, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn bundle_activation_transition_count(
+  value : RemoteBundleActivation,
+) -> Int {
+  if value.current is Some(_) {
+    2
+  } else {
+    1
+  }
+}
+
+///|
+pub fn bundle_activation_transition_at(
+  value : RemoteBundleActivation,
+  index : Int,
+) -> Result[RemoteBundleTransition, RemoteBundleIssue] {
+  match (value.current, index) {
+    (Some(current), 0) => Ok(current)
+    (Some(_), 1) => Ok(value.target)
+    (None, 0) => Ok(value.target)
+    _ => Err(InvalidBundleState)
+  }
+}
+
+///|
+fn transition_state(value : RemoteBundleTransition) -> Int {
+  let record = value.record
+  if record.record_revision == value.before_revision &&
+    record.phase == value.before_phase &&
+    record.owners == value.before_owners {
+    0
+  } else if record.record_revision == value.after_revision &&
+    record.phase == value.after_phase &&
+    record.owners == value.after_owners {
+    1
+  } else {
+    -1
+  }
+}
+
+///|
+/// Commit an activation only after its entire durable transaction succeeds.
+/// Mixed before/after state is rejected so a retry cannot silently accept a
+/// partially applied active-bundle switch.
+pub fn commit_bundle_activation(
+  value : RemoteBundleActivation,
+  durable : Bool,
+) -> Result[RemoteBundleRecord, RemoteBundleIssue] {
+  if !durable {
+    return Err(BundleTransitionNotDurable)
+  }
+  let target_state = transition_state(value.target)
+  if target_state < 0 {
+    return Err(InvalidBundleState)
+  }
+  let current_state = match value.current {
+    Some(current) => transition_state(current)
+    None => target_state
+  }
+  if current_state < 0 || current_state != target_state {
+    return Err(InvalidBundleState)
+  }
+  if target_state == 1 {
+    return Ok(value.target.record)
+  }
+  match value.current {
+    Some(current) =>
+      match commit_bundle_transition(current, true) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    None => ()
+  }
+  commit_bundle_transition(value.target, true)
 }
 
 ///|

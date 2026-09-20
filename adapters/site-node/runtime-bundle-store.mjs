@@ -257,9 +257,11 @@ export async function openRuntimeBundleStore(root, {
   const requireControl = control => {
     for (const name of [
       'identity', 'json', 'admitJson', 'projection', 'open', 'restore',
-      'prepareActivate', 'prepareDrain', 'prepareRetain', 'prepareRelease',
-      'prepareReclaim', 'transitionProjection', 'transitionKey',
-      'commitTransition', 'recordProjection',
+      'prepareActivation', 'activationTransitionCount',
+      'activationTransitionAt', 'commitActivation', 'prepareDrain',
+      'prepareRetain', 'prepareRelease', 'prepareReclaim',
+      'transitionProjection', 'transitionKey', 'commitTransition',
+      'recordProjection',
     ]) {
       if (typeof control?.[name] !== 'function') {
         fail('MissingRemoteBundleControl');
@@ -397,22 +399,22 @@ export async function openRuntimeBundleStore(root, {
         const currentCid = activeRow.get('active_bundle_cid').value;
         if (currentCid === runtimeBundleCid) return restore(targetRow, control);
         const target = restore(targetRow, control);
-        const targetTransition = control.prepareActivate(target.record);
         let current;
-        let currentTransition;
         if (currentCid !== '') {
           const currentRow = select.get(currentCid);
           if (currentRow === undefined) fail('RemoteBundleActiveMissing');
           current = restore(currentRow, control);
-          currentTransition = control.prepareDrain(current.record);
-          persist(currentTransition, control);
         }
-        persist(targetTransition, control);
+        const activation = control.prepareActivation(
+          current?.record,
+          target.record,
+        );
+        const transitionCount = control.activationTransitionCount(activation);
+        for (let index = 0; index < transitionCount; index++) {
+          persist(control.activationTransitionAt(activation, index), control);
+        }
         setActive.run(runtimeBundleCid, 'active_bundle_cid');
-        if (currentTransition !== undefined) {
-          control.commitTransition(currentTransition, true);
-        }
-        control.commitTransition(targetTransition, true);
+        control.commitActivation(activation, true);
         return restore(select.get(runtimeBundleCid), control);
       });
     },

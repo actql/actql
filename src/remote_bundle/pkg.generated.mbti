@@ -10,6 +10,10 @@ pub fn admit_bundle_manifest_json(String, String) -> Result[RemoteBundleManifest
 
 pub fn admit_bundle_signature_envelope(String, String, String, String, String) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue]
 
+pub fn bundle_activation_transition_at(RemoteBundleActivation, Int) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn bundle_activation_transition_count(RemoteBundleActivation) -> Int
+
 pub fn bundle_manifest_identity(RemoteBundleManifest) -> String
 
 pub fn bundle_manifest_json(RemoteBundleManifest) -> Result[String, RemoteBundleIssue]
@@ -28,11 +32,15 @@ pub fn bundle_transition_key(RemoteBundleTransition) -> String
 
 pub fn bundle_transition_projection(RemoteBundleTransition) -> (Array[String], Array[String])
 
+pub fn commit_bundle_activation(RemoteBundleActivation, Bool) -> Result[RemoteBundleRecord, RemoteBundleIssue]
+
 pub fn commit_bundle_transition(RemoteBundleTransition, Bool) -> Result[RemoteBundleRecord, RemoteBundleIssue]
 
 pub fn open_bundle_record(RemoteBundleManifest) -> RemoteBundleRecord
 
 pub fn prepare_bundle_activate(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_activation(RemoteBundleRecord?, RemoteBundleRecord) -> Result[RemoteBundleActivation, RemoteBundleIssue]
 
 pub fn prepare_bundle_drain(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
@@ -51,6 +59,8 @@ pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[Remo
 // Errors
 
 // Types and methods
+type RemoteBundleActivation
+
 pub(all) enum RemoteBundleIssue {
   InvalidBundle
   BundleIdentityMismatch
