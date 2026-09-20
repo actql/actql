@@ -14,7 +14,8 @@ import { createLocalRetainedStore } from '../store-local/files.mjs';
 import {createProcessStoreLease} from '../store-local/process-client.mjs';
 import {retainedProcessStore} from './retained-configuration.mjs';
 import { importRetainedRows } from '../store-local/import.mjs';
-import { createRetainedRowFrames } from '../store-local/row-frames.mjs';
+import {createMoonBitRetainedRowFrames} from
+  '../store-local/moonbit-row-frames.mjs';
 import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
   retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
   withRetainedInputFile, retainedInputFilePath} from '../store-local/representations.mjs';
@@ -219,7 +220,8 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         const stream = checked(moon.residentImportStreamBegin(table, count,
           {max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes, max_work: wire.max_order_work},
           wire, maxFrameBytes));
-        const frames = createRetainedRowFrames({maxBytes: wire.max_bytes, maxRows: count,
+        const frames = createMoonBitRetainedRowFrames(moon,
+          {maxBytes: wire.max_bytes, maxRows: count,
           maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, async row => {
           const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
           await append(parameters);
@@ -612,7 +614,8 @@ async function runHostCompute(
       const depth = Math.min(64, Math.max(1, wire.max_depth));
       const decode = Object.freeze({ max_bytes: maxFrameBytes,
         max_nodes: Math.min(wire.max_nodes, maxFrameBytes), max_depth: depth, max_text_bytes: maxFrameBytes });
-      const frames = createRetainedRowFrames({ maxBytes: wire.max_bytes,
+      const frames = createMoonBitRetainedRowFrames(moon,
+        { maxBytes: wire.max_bytes,
         maxRows: rows(checked(moon.computeHostCount(run, port, false))),
         maxRowBytes: maxFrameBytes, maxDepth: depth, maxFrameBytes,
       }, async row => {

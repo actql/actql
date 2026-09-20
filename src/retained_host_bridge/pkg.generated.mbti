@@ -3,6 +3,7 @@ package "actql/actql/retained_host_bridge"
 
 import {
   "actql/actql/execution_relation",
+  "actql/actql/run_publication",
 }
 
 // Values
@@ -21,6 +22,14 @@ pub fn retained_content_begin(@execution_relation.CompletionPreparation, @execut
 pub fn retained_content_cancel(@execution_relation.RetainedContentRead) -> Bool
 
 pub fn retained_content_finish(@execution_relation.RetainedContentRead) -> @execution_relation.AdmittedOutputStreamReceipt raise RetainedContentFailure
+
+pub fn retained_frames_cancel(@run_publication.DurableResultRowFrames) -> Unit
+
+pub fn retained_frames_feed(@run_publication.DurableResultRowFrames, Bytes) -> Array[String] raise RetainedFrameFailure
+
+pub fn retained_frames_finish(@run_publication.DurableResultRowFrames) -> Array[Int] raise RetainedFrameFailure
+
+pub fn retained_frames_prepare(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise RetainedFrameFailure
 
 pub fn retained_import_append(@execution_relation.CompletedOutputImport, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise RetainedImportFailure
 
@@ -42,6 +51,8 @@ pub fn retained_readmission_readable(InstalledRetainedReadmission, @execution_re
 type RetainedCompletionFailure
 
 type RetainedContentFailure
+
+type RetainedFrameFailure
 
 type RetainedImportFailure
 

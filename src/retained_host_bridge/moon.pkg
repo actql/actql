@@ -6,4 +6,5 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/execution_relation" @execution,
+  "actql/actql/run_publication" @publication,
 }

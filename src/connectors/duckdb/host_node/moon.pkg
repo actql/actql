@@ -16,4 +16,5 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_manifest" @manifest,
+  "actql/actql/run_publication" @publication,
 }

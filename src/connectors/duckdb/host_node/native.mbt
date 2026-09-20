@@ -27,6 +27,7 @@ pub(all) suberror NodeHostFailure {
   ManagedRetention(@execution.ManagedOutputRetentionIssue)
   ManagedView(@execution.ManagedViewOutputIssue)
   ManagedComputed(@duckdb.ManagedComputedPhysicalIssue)
+  Frame(@publication.DurableResultRowFrameIssue)
 }
 
 ///|

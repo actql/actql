@@ -13,6 +13,7 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/run_publication",
 }
 
 // Values
@@ -408,6 +409,14 @@ pub fn resident_transfer_complete(@physical_strategy.CapturedDAG, @physical_stra
 
 pub fn resident_transfer_settle(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Bool) -> Unit raise NodeHostFailure
 
+pub fn retained_frames_cancel(@run_publication.DurableResultRowFrames) -> Unit
+
+pub fn retained_frames_feed(@run_publication.DurableResultRowFrames, Bytes) -> Array[String] raise NodeHostFailure
+
+pub fn retained_frames_finish(@run_publication.DurableResultRowFrames) -> Array[Int] raise NodeHostFailure
+
+pub fn retained_frames_prepare(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
+
 // Errors
 pub(all) suberror NodeHostFailure {
   Host(@host.NativeHostIssue)
@@ -427,6 +436,7 @@ pub(all) suberror NodeHostFailure {
   ManagedRetention(@execution_relation.ManagedOutputRetentionIssue)
   ManagedView(@execution_relation.ManagedViewOutputIssue)
   ManagedComputed(@adapter.ManagedComputedPhysicalIssue)
+  Frame(@run_publication.DurableResultRowFrameIssue)
 }
 
 // Types and methods

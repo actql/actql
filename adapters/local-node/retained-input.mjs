@@ -2,9 +2,9 @@
 // admission, transfer charging, typed decoding and logical identity verification.
 // No filesystem, DuckDB runtime or expression semantics belong in this wrapper.
 import {retainedInputContract, consumeRetainedInput} from '../store-local/representations.mjs';
-import {createRetainedRowFrames} from '../store-local/row-frames.mjs';
+import {createMoonBitRetainedRowFrames} from '../store-local/moonbit-row-frames.mjs';
 
-export async function readLocalRetainedInput(operation, checked, signal) {
+export async function readLocalRetainedInput(moon, operation, checked, signal) {
   // Snapshot the exact attempt/port operations before any asynchronous boundary.
   const {material, input, begin, charge, append, finish} = operation;
   const limits = Object.freeze({...operation.frames});
@@ -17,7 +17,16 @@ export async function readLocalRetainedInput(operation, checked, signal) {
       contract.maxFrameBytes > limits.maxFrameBytes) {
     throw new RangeError('LocalImportFrameLimit');
   }
-  const frames = createRetainedRowFrames(limits, row => {
+  const frames = createMoonBitRetainedRowFrames(Object.freeze({
+    retainedFramesPrepare:
+      moon.strategyPrepareDurableResultRowFrames,
+    retainedFramesFeed:
+      moon.strategyFeedDurableResultRowFrames,
+    retainedFramesFinish:
+      moon.strategyFinishDurableResultRowFrames,
+    retainedFramesCancel:
+      moon.strategyCancelDurableResultRowFrames,
+  }), limits, row => {
     signal?.throwIfAborted();
     checked(append(row));
   });

@@ -1,4 +1,4 @@
-import { createRetainedRowFrames } from './row-frames.mjs';
+import {createMoonBitRetainedRowFrames} from './moonbit-row-frames.mjs';
 import { checked } from '../host-common/runtime-result.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/retained_host_bridge/retained_host_bridge.js', import.meta.url);
@@ -31,7 +31,7 @@ export async function importRetainedRows(source, consume, options, signal) {
   signal?.throwIfAborted();
   let conversion;
   try {
-    const frames = createRetainedRowFrames(snapshot.frames, row => {
+    const frames = createMoonBitRetainedRowFrames(moon, snapshot.frames, row => {
       checked(moon.retainedImportAppend(conversion, row, snapshot.row));
     });
     conversion = checked(moon.retainedImportBegin(source, snapshot.maxRows,

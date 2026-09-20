@@ -6,7 +6,7 @@ import {checked} from '../../host-common/runtime-result.mjs';
 import {snapshotCompletionTask} from '../../host-node/completion-record.mjs';
 import {prepareProcessReadmission} from '../../host-node/process-readmission.mjs';
 import {consumeDelegatedFile} from '../../store-local/delegated-reader.mjs';
-import {createRetainedRowFrames} from '../../store-local/row-frames.mjs';
+import {createMoonBitRetainedRowFrames} from '../../store-local/moonbit-row-frames.mjs';
 import {registerRetainedInput, consumeRetainedInput} from '../../store-local/representations.mjs';
 import {prepareExampleText} from './physical-strategy.mjs';
 import {retainedReaderPolicy} from './reader-policy.mjs';
@@ -56,7 +56,7 @@ async function readContent(input, signal, context, progress) {
     reading = plan.contentRead(input.task, handoff.descriptor);
     admission = prepareProcessReadmission(plan.completionPreparation(input.task), taskIdentity,
       handoff, context, signal, recordLimits);
-    frames = createRetainedRowFrames(policy.frameLimits, row => {
+    frames = createMoonBitRetainedRowFrames(content, policy.frameLimits, row => {
       checked(content.retainedContentAppend(reading, row, policy.decodeLimits));
     });
     progress.stage = 'read';
