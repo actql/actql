@@ -43,6 +43,7 @@ fn query_checked_program_fixture(
   local_values_join_imported_full? : Bool = false,
   local_values_interval_chain? : Bool = false,
   local_values_asof_chain? : Bool = false,
+  local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
@@ -108,6 +109,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_asof_chain {
     local_values_asof_program()
+  } else {
+    text
+  }
+  let text = if local_values_sequence_chain {
+    local_values_sequence_program()
   } else {
     text
   }
@@ -484,6 +490,14 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
+  } else if local_values_sequence_chain {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      5L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    [sequence_capacity_material(environment, input)]
   } else if local_values_interval_chain || local_values_asof_chain {
     let left = query_capacity_proof(
       "actql.bound.values",
@@ -601,7 +615,8 @@ fn query_checked_program_fixture(
           tea: local_carrier_events_chain ||
           local_time_series_chain ||
           local_values_interval_chain ||
-          local_values_asof_chain,
+          local_values_asof_chain ||
+          local_values_sequence_chain,
           calendar: false,
           text_rank: false,
         },
