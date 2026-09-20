@@ -767,7 +767,7 @@
       "output": "relation",
       "canonical": ["TEA.time_series"],
       "variants": ["literal/parameter endpoints", "empty", "nonempty", "overflow"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -777,13 +777,34 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/time_series_test.mbt",
         "src/value_admission/execution_values_wbtest.mbt",
-        "src/query_integration/local_time_series_wbtest.mbt"
+        "src/query_integration/local_time_series_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "published_time_series_with_environment_cancellation",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "78064895",
+          "evidence": [
+            "src/query_integration/local_time_series_wbtest.mbt",
+            "src/duckdb_conformance/standard_subset.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -1399,6 +1420,42 @@
     }
   ],
   "evidence": [
+    {
+      "operation": "normalize_graph",
+      "sha": "1905ea74",
+      "suites": [
+        {
+          "name": "portable shared Graph generation",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "time_series",
+      "sha": "78064895",
+      "suites": [
+        {
+          "name": "portable publication and retained consumers",
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host timer cancellation and cleanup",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
     {
       "operation": "node_rows",
       "sha": "00113491",
