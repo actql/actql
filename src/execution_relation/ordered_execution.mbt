@@ -69,6 +69,7 @@ fn prepare_ordered_budgets(
       | @lower.JoinStep(_)
       | @lower.IntervalJoinStep(_)
       | @lower.AsOfJoinStep(_)
+      | @lower.SequenceMatchStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_)

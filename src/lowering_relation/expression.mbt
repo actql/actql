@@ -502,6 +502,23 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
+      SequenceRows(checked) => {
+        guard @relation.sequence_pattern_at(checked, binding_index)
+          is Some(pattern) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        let syntax = @typing.expression(pattern.predicate)
+        let references : Array[(String, @relation.ReferenceTarget)] = []
+        for reference in @syntax.field_references(syntax) {
+          references.push(
+            (
+              reference.name,
+              @relation.InputField(@schema.Unqualified(reference.name)),
+            ),
+          )
+        }
+        (pattern.predicate, references)
+      }
       Values(_)
       | TimeSeriesValue(_)
       | RowWindow(_)

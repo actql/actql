@@ -109,6 +109,7 @@ fn attach_fragment_budgets(
       }
       @lower.IntervalJoinStep(_) => ()
       @lower.AsOfJoinStep(_) => ()
+      @lower.SequenceMatchStep(_) => ()
       @lower.CrossJoinStep(_) => ()
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)

@@ -55,6 +55,7 @@ pub enum Payload {
   InnerJoin(@join.CheckedJoin)
   IntervalJoinRows(@join.CheckedIntervalJoin)
   AsOfJoinRows(@asof.CheckedAsOf)
+  SequenceRows(@relation.CheckedSequence)
   CrossJoinRows(@join.CheckedCrossJoin)
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
@@ -210,6 +211,7 @@ pub fn operation(value : PreparedNode) -> String {
     InnerJoin(_) => "REL.join"
     IntervalJoinRows(_) => "TEA.join.interval"
     AsOfJoinRows(_) => "TEA.join.asof"
+    SequenceRows(_) => "TEA.sequence.match"
     CrossJoinRows(_) => "REL.cross_join"
     AppendRows(_) => "REL.unionAll"
     // Nest lowers to a registered multi-node expansion whose final node is a
@@ -309,7 +311,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Nest(checked~, ..) => Some(NestRows(checked))
     IntervalJoin(checked~, ..) => Some(IntervalJoinRows(checked))
     AsOfJoin(checked~, ..) => Some(AsOfJoinRows(checked))
-    Sequence(_) | Calendar(_) => None
+    Sequence(value) => Some(SequenceRows(value))
+    Calendar(_) => None
     Projection(value) => Some(CarrierProjection(value))
     Graph(value) =>
       match @graph.operation(value) {
@@ -440,6 +443,7 @@ pub fn prepare(
       InnerJoin(_) => ("join", 2)
       IntervalJoinRows(_) => ("interval_join", 2)
       AsOfJoinRows(_) => ("asof_join", 2)
+      SequenceRows(_) => ("sequence", 1)
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
@@ -644,6 +648,7 @@ pub fn prepare(
       }
       IntervalJoinRows(_) => None
       AsOfJoinRows(_) => None
+      SequenceRows(_) => None
       Distinct(op) => {
         let width = @schema.field_count(@relation.output_schema(op))
         if width > limits.max_work - work {

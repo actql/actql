@@ -659,6 +659,40 @@ pub fn sequence_canonical_node_count(PreparedSequence, Int) -> Int?
 
 pub fn sequence_count(PreparedSequence) -> Int
 
+pub fn sequence_match_contiguity(PreparedSequenceMatch) -> @relation_typing.SequenceContiguity
+
+pub fn sequence_match_identity(PreparedSequenceMatch) -> @relation_schema.FieldName
+
+pub fn sequence_match_input(PreparedSequenceMatch) -> String
+
+pub fn sequence_match_key_at(PreparedSequenceMatch, Int) -> @relation_schema.FieldName?
+
+pub fn sequence_match_key_count(PreparedSequenceMatch) -> Int
+
+pub fn sequence_match_output_limit(PreparedSequenceMatch) -> Int64?
+
+pub fn sequence_match_output_schema(PreparedSequenceMatch) -> @relation_schema.Schema
+
+pub fn sequence_match_overlap(PreparedSequenceMatch) -> @relation_typing.SequenceOverlap
+
+pub fn sequence_match_owner(PreparedSequenceMatch) -> BoundPrepared
+
+pub fn sequence_match_pattern_count(PreparedSequenceMatch) -> Int
+
+pub fn sequence_match_pattern_label(PreparedSequenceMatch, Int) -> String?
+
+pub fn sequence_match_per_key_limit(PreparedSequenceMatch) -> Int64?
+
+pub fn sequence_match_predicate(PreparedSequenceMatch, Int) -> Expression?
+
+pub fn sequence_match_step(PreparedSequenceMatch) -> Int
+
+pub fn sequence_match_time(PreparedSequenceMatch) -> @relation_schema.FieldName
+
+pub fn sequence_match_uses_timestamp(PreparedSequenceMatch) -> Bool
+
+pub fn sequence_match_within(PreparedSequenceMatch) -> Int64
+
 pub fn sequence_owner(PreparedSequence) -> BoundPrepared
 
 pub fn sequence_requirements_fragment_at(SequenceRequirements, Int) -> FragmentEnforcement?
@@ -1230,6 +1264,7 @@ pub enum Payload {
   InnerJoin(@relation_join_shape.CheckedJoin)
   IntervalJoinRows(@relation_join_shape.CheckedIntervalJoin)
   AsOfJoinRows(@relation_evidence.CheckedAsOf)
+  SequenceRows(@relation_typing.CheckedSequence)
   CrossJoinRows(@relation_join_shape.CheckedCrossJoin)
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
@@ -1384,6 +1419,8 @@ pub struct PreparedRowsFrame {
 
 type PreparedSequence
 
+type PreparedSequenceMatch
+
 type PreparedSetKernel
 
 pub enum PreparedStep {
@@ -1394,6 +1431,7 @@ pub enum PreparedStep {
   JoinStep(PreparedJoinKernel)
   IntervalJoinStep(PreparedIntervalJoin)
   AsOfJoinStep(PreparedAsOfJoin)
+  SequenceMatchStep(PreparedSequenceMatch)
   CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
@@ -1486,6 +1524,7 @@ pub(all) enum SequenceIssue {
   JoinFailure(Int, InnerJoinIssue)
   IntervalJoinFailure(Int, IntervalJoinIssue)
   AsOfJoinFailure(Int, AsOfJoinIssue)
+  SequenceMatchFailure(Int, SequenceMatchIssue)
   CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
@@ -1511,6 +1550,15 @@ pub(all) struct SequenceLimits {
   max_bindings : Int
   max_name_bytes : Int
   expressions : ExpressionLimits
+}
+
+pub(all) enum SequenceMatchIssue {
+  InvalidSequenceMatchLimits
+  InvalidSequenceMatchWiring
+  SequenceMatchPreparationLimit
+  SequenceMatchExpression(ExpressionIssue)
+  MissingSequenceMatchParameter(String)
+  InvalidSequenceMatchParameter(String)
 }
 
 type SequenceRequirements

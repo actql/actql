@@ -174,6 +174,7 @@ pub fn prepare_kernel_roots(
     | JoinStep(_)
     | IntervalJoinStep(_)
     | AsOfJoinStep(_)
+    | SequenceMatchStep(_)
     | CrossJoinStep(_)
     | AppendStep(_)
     | SetStep(_)
@@ -265,6 +266,27 @@ fn prepare_root_range(
       | VectorStep(_)
       | EventStep(_)
       | CarrierProjectionStep(_) => continue
+      SequenceMatchStep(sequence_match) => {
+        for index in 0..<sequence_match.predicates.length() {
+          let pointer = "/pattern/" + index.to_string() + "/where"
+          if sorted.length() == limits.max_roots ||
+            pointer.length() > bytes ||
+            pointer.length() >= work {
+            return Err(RootLimit)
+          }
+          bytes -= pointer.length()
+          work -= 1 + pointer.length()
+          let expression = sequence_match.predicates[index]
+          sorted.push({
+            step_index,
+            step_id: sequence.owner.prepared.nodes[step_index].id,
+            parameter_pointer: pointer,
+            expression,
+            typed_expression: expression.typed_owner,
+          })
+        }
+        continue
+      }
       RowStep(kernel) =>
         match kernel.body {
           Select(_)
