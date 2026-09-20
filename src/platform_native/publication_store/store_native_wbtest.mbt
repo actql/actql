@@ -203,6 +203,33 @@ test "native publication Store root has one live recovery owner" {
 }
 
 ///|
+test "native publication Store enforces cross-process root ownership" {
+  guard @env.get_env_var("ACTQL_TEST_PUBLICATION_LOCK_MODE") is Some(mode) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    return
+  }
+  let authority = native_payload_cid("cross-process-lock-authority")
+  let library = @sqlite.load_library(library_path).unwrap()
+  if mode == "held" {
+    assert_true(
+      open_store(library, root, authority, 8L, 8L, 65536L)
+      is Err(Filesystem(@filesystem.Lock(_))),
+    )
+  } else if mode == "released" {
+    let successor = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
+    assert_true(successor.close().unwrap())
+  } else {
+    fail("invalid cross-process lock test mode")
+  }
+}
+
+///|
 test "native publication create conflict preserves the foreign staging allocation" {
   guard native_payload_fixture("foreign-staging", 64L)
     is Some((store, authority, _)) else {
