@@ -27,6 +27,23 @@ test "native DuckDB executes through the selected C API library" {
 }
 
 ///|
+test "native DuckDB exposes an exact transaction boundary" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
+    return
+  }
+  let database = load_library(path).unwrap().open_database().unwrap()
+  database.begin_transaction().unwrap()
+  assert_true(database.begin_transaction() is Err(Query(_)))
+  assert_eq(database.query_i64("SELECT 42::BIGINT"), Ok(42L))
+  database.commit_transaction().unwrap()
+  assert_true(database.commit_transaction() is Err(Query(_)))
+  database.begin_transaction().unwrap()
+  database.rollback_transaction().unwrap()
+  assert_true(database.rollback_transaction() is Err(Query(_)))
+  database.close()
+}
+
+///|
 test "native DuckDB streams bounded physical column batches" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
@@ -174,10 +191,12 @@ test "native DuckDB rejects physical results before crossing hard bounds" {
     .stream_query("SELECT * FROM (VALUES (1), (2)) t(i)", 1, 1L, 2, 256)
     .unwrap()
   assert_true(row_limit.next() is Err(CapacityExceeded))
+  assert_true(row_limit.next() is Err(CapacityExceeded))
   assert_true(row_limit.close())
   let byte_limit = database
     .stream_query("SELECT repeat('x', 1024)::VARCHAR AS value", 1, 1L, 1, 64)
     .unwrap()
+  assert_true(byte_limit.next() is Err(CapacityExceeded))
   assert_true(byte_limit.next() is Err(CapacityExceeded))
   assert_true(byte_limit.close())
   let closing = database

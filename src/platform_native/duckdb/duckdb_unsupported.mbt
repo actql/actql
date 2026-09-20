@@ -38,6 +38,27 @@ pub fn Database::query_i64(
 }
 
 ///|
+pub fn Database::begin_transaction(
+  _self : Database,
+) -> Result[Unit, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::commit_transaction(
+  _self : Database,
+) -> Result[Unit, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::rollback_transaction(
+  _self : Database,
+) -> Result[Unit, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::stream_query(
   _self : Database,
   sql : String,

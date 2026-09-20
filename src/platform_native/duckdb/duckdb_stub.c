@@ -135,6 +135,7 @@ typedef struct {
   bool accepting;
   uint32_t active_queries;
   bool query_ok;
+  bool transaction_open;
 } actql_native_duckdb_database;
 
 typedef struct {
@@ -366,6 +367,16 @@ static void actql_native_duckdb_database_close(
   database->accepting = false;
   if (database->active_queries != 0) return;
   if (!database->opened) return;
+  if (database->transaction_open) {
+    duckdb_result result;
+    memset(&result, 0, sizeof(result));
+    if (database->library->query(
+          database->connection, "ROLLBACK", &result
+        ) == DuckDBSuccess) {
+      database->transaction_open = false;
+    }
+    database->library->destroy_result(&result);
+  }
   database->library->disconnect(&database->connection);
   database->library->close(&database->database);
   database->opened = false;
@@ -656,6 +667,47 @@ int64_t actql_native_duckdb_query_i64(
   database->library->destroy_result(&result);
   database->query_ok = true;
   return value;
+}
+
+int32_t actql_native_duckdb_transaction(
+  actql_native_duckdb_database *database,
+  int32_t action
+) {
+  database->query_ok = false;
+  actql_replace_error(&database->error, NULL);
+  if (!database->opened || !database->accepting ||
+      database->active_queries != 0) {
+    actql_replace_error(&database->error, "DuckDB database is busy or closed");
+    return false;
+  }
+  const char *sql = NULL;
+  if (action == 0 && !database->transaction_open) {
+    sql = "BEGIN TRANSACTION";
+  } else if (action == 1 && database->transaction_open) {
+    sql = "COMMIT";
+  } else if (action == 2 && database->transaction_open) {
+    sql = "ROLLBACK";
+  } else {
+    actql_replace_error(&database->error, "Invalid DuckDB transaction state");
+    return false;
+  }
+  duckdb_result result;
+  memset(&result, 0, sizeof(result));
+  duckdb_state state = database->library->query(
+    database->connection, sql, &result
+  );
+  if (state != DuckDBSuccess) {
+    actql_replace_error(
+      &database->error,
+      database->library->result_error(&result)
+    );
+    database->library->destroy_result(&result);
+    return false;
+  }
+  database->library->destroy_result(&result);
+  database->transaction_open = action == 0;
+  database->query_ok = true;
+  return true;
 }
 
 static bool actql_text_quoted_i64(
@@ -1227,6 +1279,9 @@ moonbit_bytes_t actql_native_duckdb_stream_query_next(
   }
   if (!query->database->accepting) {
     actql_stream_fail(query, 3, "DuckDB database is closed");
+    return actql_copy_bytes("");
+  }
+  if (query->status != 0) {
     return actql_copy_bytes("");
   }
   actql_native_duckdb_library *library = query->database->library;

@@ -12,9 +12,12 @@ pub fn load_library(String) -> Result[Library, NativeDuckDBIssue]
 
 // Types and methods
 type Database
+pub fn Database::begin_transaction(Self) -> Result[Unit, NativeDuckDBIssue]
 pub fn Database::close(Self) -> Unit
+pub fn Database::commit_transaction(Self) -> Result[Unit, NativeDuckDBIssue]
 pub fn Database::prepare_stream_query(Self, String, Int, Int64, Int, Int) -> Result[Query, NativeDuckDBIssue]
 pub fn Database::query_i64(Self, String) -> Result[Int64, NativeDuckDBIssue]
+pub fn Database::rollback_transaction(Self) -> Result[Unit, NativeDuckDBIssue]
 pub fn Database::stream_query(Self, String, Int, Int64, Int, Int) -> Result[Query, NativeDuckDBIssue]
 
 type Library

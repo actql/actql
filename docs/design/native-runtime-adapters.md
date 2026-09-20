@@ -57,8 +57,11 @@ retain their physical ticks. These private physical frames still require the
 Connector's MoonBit type matching, value admission, guards, and completion;
 the C adapter cannot issue logical evidence. Prepared parameters use the same
 Connector-owned physical projection as the Node Host and bind through the
-typed DuckDB C API without SQL interpolation. The standard native Host
-connection remains a separate migration step.
+typed DuckDB C API without SQL interpolation. The native acquisition runner
+executes catalog validation, complete input validation, and the selected query
+inside one DuckDB transaction, then ends source access before asking the
+portable Host to commit its two-receipt observation. Fixed Compute and retained
+output storage remain separate standard-path migration steps.
 
 Dynamic loading keeps the portable MoonBit packages and unrelated native tests
 independent of a locally installed DuckDB library. A packaged native Host must

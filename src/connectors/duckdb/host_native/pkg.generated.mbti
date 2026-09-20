@@ -2,7 +2,9 @@
 package "actql/actql/connectors/duckdb/host_native"
 
 import {
+  "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/platform_native/duckdb",
   "moonbitlang/core/debug",
 }
@@ -10,9 +12,36 @@ import {
 // Values
 pub fn bind_native_parameter(@duckdb.Query, Int, @adapter.PhysicalParameter) -> Result[Unit, NativeParameterBindingIssue]
 
+pub fn close_native_acquisition_runtime(NativeAcquisitionRuntime) -> Unit
+
+pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
+
+pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
+
+pub fn start_native_acquisition_runtime(@host.NativeHostConfiguration, String, @duckdb.Database) -> Result[NativeAcquisitionRuntime, @host.NativeHostIssue]
+
 // Errors
 
 // Types and methods
+pub(all) enum NativeAcquisitionExecutionIssue {
+  RuntimeState
+  InvalidLimits
+  ParameterCount
+  MetadataShape
+  Runtime(@duckdb.NativeDuckDBIssue)
+  Parameter(NativeParameterBindingIssue)
+  Fields(@adapter.PhysicalFieldsIssue)
+  Columns(@adapter.TransportColumnIssue)
+  Host(@host.NativeHostIssue)
+}
+
+pub(all) struct NativeAcquisitionFailure {
+  primary : NativeAcquisitionExecutionIssue
+  rollback : @duckdb.NativeDuckDBIssue?
+}
+
+type NativeAcquisitionRuntime
+
 pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@duckdb.NativeDuckDBIssue)

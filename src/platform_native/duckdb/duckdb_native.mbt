@@ -59,6 +59,10 @@ extern "C" fn query_i64_ffi(
 extern "C" fn query_ok_ffi(database : Database) -> Bool = "actql_native_duckdb_query_ok"
 
 ///|
+#borrow(database)
+extern "C" fn transaction_ffi(database : Database, action : Int) -> Bool = "actql_native_duckdb_transaction"
+
+///|
 #borrow(database, sql)
 extern "C" fn prepare_stream_query_ffi(
   database : Database,
@@ -209,6 +213,39 @@ pub fn Database::query_i64(
   } else {
     Err(Query(decode_message(database_error_ffi(self))))
   }
+}
+
+///|
+fn Database::transaction(
+  self : Database,
+  action : Int,
+) -> Result[Unit, NativeDuckDBIssue] {
+  if transaction_ffi(self, action) {
+    Ok(())
+  } else {
+    Err(Query(decode_message(database_error_ffi(self))))
+  }
+}
+
+///|
+pub fn Database::begin_transaction(
+  self : Database,
+) -> Result[Unit, NativeDuckDBIssue] {
+  self.transaction(0)
+}
+
+///|
+pub fn Database::commit_transaction(
+  self : Database,
+) -> Result[Unit, NativeDuckDBIssue] {
+  self.transaction(1)
+}
+
+///|
+pub fn Database::rollback_transaction(
+  self : Database,
+) -> Result[Unit, NativeDuckDBIssue] {
+  self.transaction(2)
 }
 
 ///|
