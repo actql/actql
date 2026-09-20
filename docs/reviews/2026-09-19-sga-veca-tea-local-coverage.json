@@ -82,8 +82,21 @@
       "variants": ["identity list", "literal predicate", "typed property predicate", "missing property", "projection order"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_match_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_match_test.mbt",
+        "src/local_sga/match_nodes.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ]
     },
     {
       "family": "SGA",

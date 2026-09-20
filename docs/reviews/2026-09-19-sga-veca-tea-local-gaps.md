@@ -148,11 +148,17 @@ bounded work units. Graft consumes two exact positioned inputs, preserves a
 repeated material occurrence, collapses an equal declaration, and rejects a
 conflicting payload atomically. Their portable tests cover pre-allocation
 limits, kernel cancellation observation, and managed Graph generations on JS,
-Wasm, and native. Standard Host selection, actual downstream computations,
-environment cancellation delivery, independent consumer release, and
-publication remain open. The other SGA operations still lack portable Local
-kernels. Graph projection already defines evidence laws; execution must
-consume rather than recreate them.
+Wasm, and native. Node identity-list matching now resolves every checked
+identity through the admitted immutable Graph index before output, sorts by
+semantic identity with bounded merge passes, collapses repeated authored
+identities, and preserves the checked projection schema. A missing identity
+fails before any Relation is published. The registered provider connects graph
+construction to matching, common managed completion, and two independent
+downstream Relation computations on JS, Wasm, and native. Predicate matching,
+environment cancellation delivery, formal publication, and the full standard
+Host path remain open, so `match_nodes` remains partial. The other SGA
+operations still lack portable Local kernels. Graph projection already defines
+evidence laws; execution must consume rather than recreate them.
 
 ### VecA
 
