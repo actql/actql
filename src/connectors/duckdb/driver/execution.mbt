@@ -132,52 +132,89 @@ pub fn start_captured_duckdb_task(
         Err(issue) => return Err(issue)
       }
   }
-  let bound = @connector.bind_prepared_execution(
-    choice,
-    prepared,
-    {
-      transfer_bytes,
-      retained_bytes: retention + storage_bytes + auxiliary_retention_bytes,
-      scratch_bytes: scratch,
-      execution_bytes: native_execution_bytes + scratch,
-    },
+  let capacity : @connector.ExecutionCapacity = {
+    transfer_bytes,
+    retained_bytes: retention + storage_bytes + auxiliary_retention_bytes,
+    scratch_bytes: scratch,
+    execution_bytes: native_execution_bytes + scratch,
+  }
+  let ceilings = match
+    @connector.fixed_compute_choice_payload(choice, prepared).bind(compute => {
+      @duckdb.fixed_compute_join_output_ceiling(compute)
+    }) {
+    Some(value) => [(0, value.to_int64())]
+    None => []
+  }
+  let start_attempt = fn() {
     match
-      @connector.fixed_compute_choice_payload(choice, prepared).bind(compute => {
-        @duckdb.fixed_compute_join_output_ceiling(compute)
-      }) {
-      Some(value) => [(0, value.to_int64())]
-      None => []
-    },
-    fn(_payload) {
-      match
-        @compute.start_duckdb_compute_attempt(
-          choice,
-          prepared,
-          generated,
-          limits,
-          verify,
-          retained_required~,
-          stream_transport?=if retained_required {
-            Some(transport)
-          } else {
-            None
-          },
-        ) {
-        Err(issue) => Err(compute_failure(issue))
-        Ok(attempt) => {
-          retention_attempt.val = Some(attempt)
+      @compute.start_duckdb_compute_attempt(
+        choice,
+        prepared,
+        generated,
+        limits,
+        verify,
+        retained_required~,
+        stream_transport?=if retained_required { Some(transport) } else { None },
+      ) {
+      Err(issue) => Err(compute_failure(issue))
+      Ok(attempt) => {
+        retention_attempt.val = Some(attempt)
+        let lifecycle : @connector.ExecutionLifecycleOperations[
+          @strategy.RunIssue,
+        ] = {
+          cancel: fn() { @compute.abort_duckdb_compute_attempt(attempt) },
+          dispose: fn() { @compute.close_duckdb_compute_attempt(attempt) },
+          settled: fn() {  },
+          retention_released: retained_storage
+          .map(value => value.1)
+          .unwrap_or(fn() { true }),
+          released: fn() { output_plan.val = None },
+          ready: fn() { Ok(()) },
+        }
+        Ok((attempt, lifecycle))
+      }
+    }
+  }
+  let retained_bytes : () -> Result[Int64, @strategy.RunIssue] = fn() {
+    if !retained_required {
+      return Ok(retention)
+    }
+    guard retention_attempt.val is Some(attempt) &&
+      @compute.retained_duckdb_compute_bytes(attempt) is Some(bytes) &&
+      bytes >= 0L &&
+      bytes <= storage_bytes else {
+      return Err(Physical(InvalidCharge))
+    }
+    Ok(retention + bytes)
+  }
+  let bound = if common_completion {
+    @connector.bind_prepared_materializing_execution(
+      choice,
+      prepared,
+      capacity,
+      ceilings,
+      fn(_) { start_attempt() },
+      retained_bytes~,
+    )
+  } else {
+    @connector.bind_prepared_execution(
+      choice,
+      prepared,
+      capacity,
+      ceilings,
+      fn(_) {
+        start_attempt().map(value => {
+          let (attempt, lifecycle) = value
           let operations : @connector.ExecutionOperations[
             @strategy.RunIssue,
             @strategy.TaskPublication,
           ] = {
-            cancel: fn() { @compute.abort_duckdb_compute_attempt(attempt) },
-            dispose: fn() { @compute.close_duckdb_compute_attempt(attempt) },
-            settled: fn() {  },
-            retention_released: retained_storage
-            .map(value => value.1)
-            .unwrap_or(fn() { true }),
-            released: fn() { output_plan.val = None },
-            ready: fn() { Ok(()) },
+            cancel: lifecycle.cancel,
+            dispose: lifecycle.dispose,
+            settled: lifecycle.settled,
+            retention_released: lifecycle.retention_released,
+            released: lifecycle.released,
+            ready: lifecycle.ready,
             finish: fn() {
               match @compute.complete_duckdb_compute_attempt(attempt) {
                 Err(issue) => Err(compute_failure(issue))
@@ -186,23 +223,12 @@ pub fn start_captured_duckdb_task(
             },
             publish: fn(_) { Ok(()) },
           }
-          Ok((attempt, operations))
-        }
-      }
-    },
-    retained_bytes=fn() {
-      if !retained_required {
-        return Ok(retention)
-      }
-      guard retention_attempt.val is Some(attempt) &&
-        @compute.retained_duckdb_compute_bytes(attempt) is Some(bytes) &&
-        bytes >= 0L &&
-        bytes <= storage_bytes else {
-        return Err(Physical(InvalidCharge))
-      }
-      Ok(retention + bytes)
-    },
-  )
+          (attempt, operations)
+        })
+      },
+      retained_bytes~,
+    )
+  }
   let bound = match bound {
     Ok(value) => value
     Err(issue) => return Err(Compute(issue))

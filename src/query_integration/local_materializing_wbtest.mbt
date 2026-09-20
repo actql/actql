@@ -129,7 +129,9 @@ test "Local materializing execution uses the common reservation and exact retain
       is None,
     )
     let before = @resources.ledger_usage(ledger)
-    let started = @strategy.start_captured_execution(run, 3, execution)
+    let started = @strategy.start_captured_materializing_execution(
+      run, 3, execution,
+    )
     if mode == 4 {
       assert_true(started is Err(Physical(RetentionLimit)))
       assert_eq(@resources.ledger_usage(ledger), before)
@@ -179,7 +181,10 @@ test "Local materializing execution uses the common reservation and exact retain
       @local_connector.execute_local_materializing_attempt(consumer).unwrap()
       @strategy.settle_task_execution(run, ticket, true).unwrap()
       if mode >= 5 {
-        assert_true(@strategy.complete_task_execution(run, ticket) is Err(_))
+        assert_true(
+          @local_connector.local_materializing_completed_output(consumer)
+          is None,
+        )
         assert_false(@strategy.captured_task_completed(run, 3))
         @local_connector.begin_local_output_export(consumer).unwrap()
         assert_eq(
@@ -204,7 +209,10 @@ test "Local materializing execution uses the common reservation and exact retain
         }
       }
       if mode != 6 {
-        @strategy.complete_task_execution(run, ticket).unwrap()
+        let output = @local_connector.local_materializing_completed_output(
+          consumer,
+        ).unwrap()
+        @strategy.complete_materializing_task_execution(run, ticket, output).unwrap()
         let result = @strategy.captured_task_output(run, 3, Step(1)).unwrap()
         assert_true(@execution.completed_output_matches_inputs(result, [input]))
         if mode == 0 {
@@ -217,7 +225,10 @@ test "Local materializing execution uses the common reservation and exact retain
         @strategy.close_task_execution(run, producer_execution)
         assert_true(@execution.completed_output_available(result))
       } else {
-        assert_true(@strategy.complete_task_execution(run, ticket) is Err(_))
+        assert_true(
+          @local_connector.local_materializing_completed_output(consumer)
+          is None,
+        )
         assert_false(@strategy.captured_task_completed(run, 3))
       }
     } else {

@@ -83,48 +83,44 @@ pub fn[E, P] prepare_numeric_execution(
     Ok(capacity) => capacity
     Err(issue) => return Err(issue)
   }
-  @connector.bind_prepared_execution(choice, prepared, capacity, [], fn(
-    compute,
-  ) {
-    let attempt = {
-      compute,
-      generated,
-      limits,
-      started: false,
-      closed: false,
-      settled: false,
-      completed: None,
-    }
-    let close = fn() {
-      attempt.closed = true
-      if attempt.completed is Some(result) {
-        close_numeric_output(result)
+  @connector.bind_prepared_materializing_execution(
+    choice,
+    prepared,
+    capacity,
+    [],
+    fn(compute) {
+      let attempt = {
+        compute,
+        generated,
+        limits,
+        started: false,
+        closed: false,
+        settled: false,
+        completed: None,
       }
-    }
-    let operations : @connector.ExecutionOperations[E, P] = {
-      cancel: close,
-      dispose: close,
-      settled: fn() { attempt.settled = true },
-      retention_released: fn() { true },
-      released: fn() {  },
-      ready: fn() {
-        if !attempt.closed && attempt.completed is Some(_) {
-          Ok(())
-        } else {
-          Err(issue(Unsupported))
+      let close = fn() {
+        attempt.closed = true
+        if attempt.completed is Some(result) {
+          close_numeric_output(result)
         }
-      },
-      finish: fn() {
-        match attempt.completed {
-          Some(result) if !attempt.closed =>
-            Ok(numeric_completed_output(result))
-          _ => Err(issue(Unsupported))
-        }
-      },
-      publish: fn(_) { Ok(()) },
-    }
-    Ok((attempt, operations))
-  }).map_err(issue => Candidate(issue))
+      }
+      let operations : @connector.ExecutionLifecycleOperations[E] = {
+        cancel: close,
+        dispose: close,
+        settled: fn() { attempt.settled = true },
+        retention_released: fn() { true },
+        released: fn() {  },
+        ready: fn() {
+          if !attempt.closed && attempt.completed is Some(_) {
+            Ok(())
+          } else {
+            Err(issue(Unsupported))
+          }
+        },
+      }
+      Ok((attempt, operations))
+    },
+  ).map_err(issue => Candidate(issue))
 }
 
 ///|

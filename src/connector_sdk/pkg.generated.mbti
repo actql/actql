@@ -45,6 +45,8 @@ pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U
 
 pub fn[I, T, E, P] bind_prepared_managed_execution(ManagedFixedComputeChoice[I], PreparedManagedCompute[I, P], ExecutionCapacity, Array[(Int, Int64)], (P) -> Result[(T, ManagedExecutionOperations[E]), E], retained_bytes? : () -> Result[Int64, E], aggregate_output_ceilings? : Array[AggregateOutputCeiling], analytic_envelopes? : Array[AnalyticEnvelope]) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue]
 
+pub fn[T, E, P, U] bind_prepared_materializing_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionLifecycleOperations[E]), E], retained_bytes? : () -> Result[Int64, E], aggregate_output_ceilings? : Array[AggregateOutputCeiling], analytic_envelopes? : Array[AnalyticEnvelope]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
+
 pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure], aggregate_output_ceilings? : Array[AggregateOutputCeiling], analytic_envelopes? : Array[AnalyticEnvelope]) -> Result[SynchronousCompute, FixedComputeIssue]
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
@@ -192,6 +194,8 @@ pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T
 pub fn resource_binding_registration(ResourceBinding) -> CapabilityRegistration
 
 pub fn[T, E, P] start_prepared_execution(PreparedExecution[T, E, P]) -> Result[(T, ExecutionOperations[E, P]), ExecutionPreparationIssue[E]]
+
+pub fn[T, E, P] start_prepared_execution_lifecycle(PreparedExecution[T, E, P]) -> Result[(T, ExecutionLifecycleOperations[E], (() -> Result[@execution_relation.CompletedOutput, E])?, ((P) -> Result[Unit, E])?), ExecutionPreparationIssue[E]]
 
 pub fn[I, T, E] start_prepared_managed_execution(PreparedManagedExecution[I, T, E]) -> Result[(T, ManagedExecutionOperations[E]), ExecutionPreparationIssue[E]]
 

@@ -412,7 +412,7 @@ fn[T] start_task_execution(
       }
     }
   }
-  match @connector.start_prepared_execution(prepared) {
+  match @connector.start_prepared_execution_lifecycle(prepared) {
     Err(issue) => {
       if resident is Some(resource) {
         abandon_resident_execution(resource)
@@ -425,7 +425,20 @@ fn[T] start_task_execution(
       fail_captured_task(run, task, failure)
       Err(failure)
     }
-    Ok((payload, hooks)) => {
+    Ok((payload, hooks, finish, publish)) => {
+      let legacy_completion = match (finish, publish) {
+        (Some(finish), Some(publish)) => Some({ finish, publish, })
+        (None, None) => None
+        _ => {
+          if resident is Some(resource) {
+            abandon_resident_execution(resource)
+          }
+          @resources.settle_reservation(run.ledger, reservation) |> ignore
+          let failure = RunIssue::ForeignCandidate
+          fail_captured_task(run, task, failure)
+          return Err(failure)
+        }
+      }
       if resident is Some(resource) {
         resource.inputs.claimed = true
       }
@@ -444,11 +457,8 @@ fn[T] start_task_execution(
           }
         }),
         scratch,
-        hooks: Some(@connector.execution_lifecycle(hooks)),
-        legacy_completion: Some({
-          finish: hooks.finish,
-          publish: hooks.publish,
-        }),
+        hooks: Some(hooks),
+        legacy_completion,
         execution_settled: false,
         disposed: false,
         failed_holding: None,

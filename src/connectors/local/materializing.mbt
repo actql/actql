@@ -151,7 +151,7 @@ pub fn[E, P] prepare_local_materializing_execution(
   if join_output_ceiling is Some(ceiling) {
     ceilings.push(ceiling)
   }
-  @connector.bind_prepared_execution(
+  @connector.bind_prepared_materializing_execution(
     choice,
     prepared,
     {
@@ -216,15 +216,6 @@ pub fn[E, P] prepare_local_materializing_execution(
                 Err(issue(State))
               }
             },
-            finish: fn() {
-              match attempt.output {
-                Some(output) if !attempt.closed &&
-                  (attempt.output_limits is None || attempt.exported) =>
-                  Ok(output)
-                _ => Err(issue(State))
-              }
-            },
-            publish: fn(_) { Ok(()) },
           },
         ),
       )

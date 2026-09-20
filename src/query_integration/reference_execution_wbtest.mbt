@@ -88,11 +88,14 @@ test "independent numeric bundle executes through common reservation and retaine
       ledger, 300000L, 32000000L, 134217728L,
     ).unwrap()
     assert_true(
-      @strategy.start_captured_execution(run, 1, prepared) is Err(Physical(_)),
+      @strategy.start_captured_materializing_execution(run, 1, prepared)
+      is Err(Physical(_)),
     )
     assert_true(@connector.prepared_execution_available(prepared))
     @resources.settle_reservation(ledger, saturation).unwrap()
-    let (attempt, task) = @strategy.start_captured_execution(run, 1, prepared).unwrap()
+    let (attempt, task) = @strategy.start_captured_materializing_execution(
+      run, 1, prepared,
+    ).unwrap()
     assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
     if mode == 2 {
       // Settlement cannot free scratch and then permit fresh kernel work.
@@ -114,13 +117,16 @@ test "independent numeric bundle executes through common reservation and retaine
     } else {
       @reference_compute.execute_numeric_attempt(attempt).unwrap()
       assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+      let output = @reference_compute.numeric_attempt_completed_output(attempt).unwrap()
       assert_true(
-        @strategy.complete_task_execution(run, task) is Err(Physical(_)),
+        @strategy.complete_materializing_task_execution(run, task, output)
+        is Err(Physical(_)),
       )
     }
     @strategy.settle_task_execution(run, task, true).unwrap()
     if !cancel {
-      @strategy.complete_task_execution(run, task).unwrap()
+      let output = @reference_compute.numeric_attempt_completed_output(attempt).unwrap()
+      @strategy.complete_materializing_task_execution(run, task, output).unwrap()
       let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
       assert_eq(@execution.completed_row_count(output), 1)
       assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3.0)))
