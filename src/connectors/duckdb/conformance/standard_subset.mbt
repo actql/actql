@@ -131,32 +131,45 @@ pub fn strategy_fixture_tea_subset(
     max_work: 100000,
     max_frames: 100,
   }
-  let provider = @local_tea_provider.provider(
-    {
-      max_input_records: 100,
-      max_records: 100,
-      max_fields_per_record: 10,
-      max_value_bytes: 10000,
-      max_total_value_bytes: 100000,
-      max_retained_value_bytes: 100000,
-      max_value_nodes: 10000,
-      max_value_depth: 100,
-      max_contract_work: 10000,
-      max_work: 100000,
-      max_workspace_slots: 10000,
-    },
-    100000L,
-    @execution.generated_sequence_capacity(generated[1], execution, {
+  let storage : @record_storage.Limits = {
+    max_input_records: 100,
+    max_records: 100,
+    max_fields_per_record: 10,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 100000,
+    max_retained_value_bytes: 100000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+  let providers = []
+  for sequence in generated {
+    let capacity = @execution.generated_sequence_capacity(sequence, execution, {
       max_work: 10000,
       max_bytes: 10000,
       max_nodes: 10000,
       max_depth: 100,
-    }).unwrap(),
-  )
-  if !@local_connector.managed_provider_accepts(provider, generated[1]) {
-    abort("TEA fixture provider rejected its Events sequence")
+    }).unwrap()
+    let events = @local_tea_provider.provider(storage, 100000L, capacity)
+    if @local_connector.managed_provider_accepts(events, sequence) {
+      providers.push(events)
+    }
+    let time_series = @local_tea_provider.time_series_provider(
+      storage, capacity,
+    )
+    if @local_connector.managed_provider_accepts(time_series, sequence) {
+      providers.push(time_series)
+    }
   }
-  @conformance.configure_subset(f.run.unwrap(), generated, 0, managed_providers=[
-    provider,
-  ])
+  if providers.is_empty() {
+    abort("TEA fixture providers rejected every generated sequence")
+  }
+  @conformance.configure_subset(
+    f.run.unwrap(),
+    generated,
+    0,
+    managed_providers=providers,
+  )
 }

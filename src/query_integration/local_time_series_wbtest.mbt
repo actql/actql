@@ -148,7 +148,15 @@ test "time-series cancellation stops before cleanup" {
 
 ///|
 test "standard Host runs time series with two retained consumers" {
-  let (run, issuer) = captured_graph_fixture(local_time_series_chain=true)
+  let (run, issuer) = captured_graph_fixture(
+    local_time_series_chain=true,
+    managed_publication=true,
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
@@ -203,6 +211,7 @@ test "standard Host runs time series with two retained consumers" {
   ).unwrap()
 
   let series_live = Ref(true)
+  let series_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (series_ops, series) = run_local_managed_test_task(
     installed,
     run,
@@ -211,12 +220,39 @@ test "standard Host runs time series with two retained consumers" {
     [],
     1,
     series_live,
+    obligations=series_obligations,
   )
   let rows = local_managed_test_rows(series_ops)
   assert_eq(rows, [
     "{\"time\":\"1969-12-31T23:59:59.999Z\"}", "{\"time\":\"1970-01-01T00:00:00.001Z\"}",
     "{\"time\":\"1970-01-01T00:00:00.003Z\"}",
   ])
+  let requirements = @execution.managed_obligations_identities(
+    series_obligations,
+  )
+  let published = requirements.filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
+  assert_eq(published.length(), 1)
+  assert_eq(
+    @execution.managed_completed_identity_requirement_status(
+      series,
+      published[0],
+    ),
+    Some(
+      @execution.EstablishedSourceRetained(
+        @execution.logical_relation_canonical_contract_cid(),
+        "sha256:b5f7795bc6be00983b9a047815c5d6530a4ffad599d496a6304e692eb94f0392",
+      ),
+    ),
+  )
+  assert_true(
+    @execution.managed_completed_deadline_satisfied(
+      series,
+      @execution.BeforePublication,
+    ),
+  )
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -227,6 +263,7 @@ test "standard Host runs time series with two retained consumers" {
     [rows],
     2,
     first_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
@@ -237,6 +274,7 @@ test "standard Host runs time series with two retained consumers" {
     [rows],
     3,
     second_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   assert_eq(local_managed_test_rows(first_ops), rows)
   assert_eq(local_managed_test_rows(second_ops), rows)

@@ -1998,8 +1998,16 @@ async function exerciseStrategyGraph(
       'session_end_ms',
       'session_id',
     ],
+  }, {
+    name: 'time-series',
+    family: 'time-series',
+    rows: 100,
+    advanceQuantum: 1,
+    fields: ['time'],
   }];
   for (const cancellationCase of graphCancellationCases) {
+    const teaFamily = cancellationCase.family === 'tea' ||
+      cancellationCase.family === 'time-series';
     const graphCancellationProgram = cancellationCase.family === 'tea'
       ? {
         version: 'actql/0.1',
@@ -2072,8 +2080,46 @@ async function exerciseStrategyGraph(
         }],
         results: {published: {from: {stage: 'events', result: 'r'}}},
       }
-      : structuredClone(graphProgramBase);
-    if (cancellationCase.family !== 'tea') {
+      : cancellationCase.family === 'time-series'
+        ? {
+          version: 'actql/0.1',
+          id: 'p',
+          params: {minimum: {type: 'number', nullable: false}},
+          stages: [{
+            id: 'a',
+            inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+            steps: [
+              {filter: 'id > $minimum', as: 'filtered'},
+              {select: ['id'], as: 'captured'},
+            ],
+            results: {r: {from: 'captured', fields: ['id']}},
+          }, {
+            id: 'series',
+            inputs: {},
+            steps: [{
+              time_series: {
+                start: '1970-01-01T00:00:00.000Z',
+                end: '1970-01-01T00:00:00.100Z',
+                step: 1,
+              },
+              as: 'out',
+            }],
+            results: {r: {from: 'out', fields: ['time']}},
+          }, {
+            id: 'consumer_a',
+            inputs: {x: {result: {stage: 'series', result: 'r'}}},
+            steps: [{select: ['time'], as: 'out'}],
+            results: {r: {from: 'out', fields: ['time']}},
+          }, {
+            id: 'consumer_b',
+            inputs: {x: {result: {stage: 'series', result: 'r'}}},
+            steps: [{select: ['time'], as: 'out'}],
+            results: {r: {from: 'out', fields: ['time']}},
+          }],
+          results: {published: {from: {stage: 'series', result: 'r'}}},
+        }
+        : structuredClone(graphProgramBase);
+    if (!teaFamily) {
       graphCancellationProgram.stages[1].steps[0].values.rows =
         Array.from({length: cancellationCase.rows}, (_, index) => ({
           id: index + 1,
@@ -2089,7 +2135,7 @@ async function exerciseStrategyGraph(
       );
     }
     const graphFields = cancellationCase.fields;
-    if (cancellationCase.family !== 'tea') {
+    if (!teaFamily) {
       graphCancellationProgram.stages[2].results.r.fields = graphFields;
       graphCancellationProgram.stages[3].steps[0].select = graphFields;
       graphCancellationProgram.stages[3].results.r.fields = graphFields;
@@ -2109,17 +2155,17 @@ async function exerciseStrategyGraph(
         second: {from: {stage: 'graph', result: 'r'}},
       };
     }
-    const createCancellationFixture = cancellationCase.family === 'tea'
+    const createCancellationFixture = teaFamily
       ? fixture.strategyFixtureTeaCreate
       : cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : fixture.strategyFixtureSgaSizedCreate;
     const cancellationFixture = createCancellationFixture(
-      ...(cancellationCase.family === 'tea'
+      ...(teaFamily
         ? args
         : sgaEnvironmentArguments(args)),
       JSON.stringify(graphCancellationProgram),
-      ...(cancellationCase.family === 'tea'
+      ...(teaFamily
         ? []
         : [BigInt(cancellationCase.rows)]),
     );
@@ -2131,7 +2177,7 @@ async function exerciseStrategyGraph(
     const graphCancellation = new AbortController();
     let cancellationExecution;
     let constructionProgress = 0n;
-    let constructionComplete = false;
+    let constructionComplete = cancellationCase.family === 'time-series';
     let sawOperationWork = false;
     let cancellationScheduled = false;
     let cancellationDeliveredAt;
@@ -2151,7 +2197,7 @@ async function exerciseStrategyGraph(
         ),
         true,
       );
-      const setup = cancellationCase.family === 'tea'
+      const setup = teaFamily
         ? fixture.strategyFixtureTeaSubset(cancellationFixture)
         : fixture.strategyFixtureSgaSubset(cancellationFixture);
       assert.equal(
@@ -2262,11 +2308,16 @@ async function exerciseStrategyGraph(
         [contribution],
         graphCancellation.signal,
       );
-      assert.equal(managedStarts, 2);
+      assert.equal(
+        managedStarts,
+        cancellationCase.family === 'time-series' ? 1 : 2,
+      );
       assert.equal(
         constructionProgress,
-        BigInt(cancellationCase.constructionProgress ??
-          cancellationCase.rows * 2),
+        BigInt(cancellationCase.family === 'time-series'
+          ? 0
+          : cancellationCase.constructionProgress ??
+            cancellationCase.rows * 2),
         JSON.stringify(advanceObservations, (_, value) =>
           typeof value === 'bigint' ? value.toString() : value),
       );
@@ -2301,7 +2352,7 @@ async function exerciseStrategyGraph(
       assert.equal(cancellationExecution.failure?.name, 'AbortError');
       assert.deepEqual(
         cancellationExecution.completed.map(value => value.task),
-        [1],
+        cancellationCase.family === 'time-series' ? [] : [1],
       );
     } finally {
       cancellationCapture.close();
