@@ -15,6 +15,9 @@ pub(all) enum NativePublicationStoreIssue {
   SinkProgress(@publication.DeliverySinkProgressIssue)
   DeliveryIssuance(@publication.DeliveryIssuanceIssue)
   DeliveryGrantUsage(@publication.DeliveryGrantUsageIssue)
+  PublicationCommit(@publication.PublicationCommitIssue)
+  PublicationCommitIssuance(@publication.PublicationCommitIssuanceIssue)
+  PublicationCommitConflict
   DeliveryLimit
   DeliveryIncomplete
   CleanupPending
@@ -82,4 +85,11 @@ pub(all) struct NativeResultDeliveryStatus {
   confirmed_bytes : Int64
   delivered_sha256 : String?
   result_delivery_receipt_cid : String?
+}
+
+///|
+pub(all) struct NativePublicationCommit {
+  public_index_entry_cid : String
+  committed : Bool
+  idempotent : Bool
 }

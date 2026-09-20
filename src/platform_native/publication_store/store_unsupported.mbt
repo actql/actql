@@ -195,6 +195,44 @@ pub fn ConfirmedPayloadDelivery::close(
 }
 
 ///|
+pub fn Store::commit_publication(
+  _self : Store,
+  _run_definition : @publication.PublicationContract,
+  _invocation : @publication.PublicationContract,
+  _definitions : Array[@publication.PublicationContract],
+  _artifacts : Array[@publication.PublicationContract],
+  _derivations : Array[@publication.PublicationContract],
+  _orderings : Array[@publication.PublicationContract],
+  _retentions : Array[@publication.PublicationContract],
+  _bindings : Array[@publication.PublicationContract],
+  _binding_schema_wires : Array[String],
+  _manifest : @publication.PublicationContract,
+  _receipt : @publication.PublicationContract,
+  _captured_run : @publication.PublicationContract,
+  _request : @publication.PublicationContract,
+  _attempt : @publication.PublicationContract,
+  _index : @publication.PublicationContract,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::inspect_committed_publication(
+  _self : Store,
+  _tenant_id : String,
+  _authority_scope_cid : String,
+  _run_definition_cid : String,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::begin_result_delivery(
   _self : Store,
   _index : @publication.PublicationContract,

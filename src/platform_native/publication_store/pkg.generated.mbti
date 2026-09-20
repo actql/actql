@@ -22,6 +22,12 @@ pub fn ConfirmedPayloadDelivery::fail(Self) -> Result[Int64, NativePublicationSt
 pub fn ConfirmedPayloadDelivery::fail_chunk(Self, Int) -> Result[Int64, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::next(Self, Int) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue]
 
+pub(all) struct NativePublicationCommit {
+  public_index_entry_cid : String
+  committed : Bool
+  idempotent : Bool
+}
+
 pub(all) struct NativePublicationDeliveryChunk {
   bytes : Bytes
   eof : Bool
@@ -68,6 +74,9 @@ pub(all) enum NativePublicationStoreIssue {
   SinkProgress(@run_publication.DeliverySinkProgressIssue)
   DeliveryIssuance(@run_publication.DeliveryIssuanceIssue)
   DeliveryGrantUsage(@run_publication.DeliveryGrantUsageIssue)
+  PublicationCommit(@run_publication.PublicationCommitIssue)
+  PublicationCommitIssuance(@run_publication.PublicationCommitIssuanceIssue)
+  PublicationCommitConflict
   DeliveryLimit
   DeliveryIncomplete
   CleanupPending
@@ -128,6 +137,8 @@ pub fn Store::begin_payload(Self, @publication_payload.PublicationPayloadRequest
 pub fn Store::begin_result_delivery(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int64) -> Result[ResultDelivery, NativePublicationStoreIssue]
 pub fn Store::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue]
 pub fn Store::close(Self) -> Result[Bool, NativePublicationStoreIssue]
+pub fn Store::commit_publication(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[NativePublicationCommit, NativePublicationStoreIssue]
+pub fn Store::inspect_committed_publication(Self, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract?, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]

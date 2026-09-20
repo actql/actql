@@ -156,6 +156,35 @@ test "publication issuance rejects empty inventories and foreign Runs" {
 }
 
 ///|
+test "public index storage key fixes one commit per scoped Run" {
+  let (index, _, _) = delivery_test_root()
+  let key = publication_index_storage_key(index, 32768, 256, 16).unwrap()
+  assert_eq(key.length(), 64)
+  assert_eq(
+    publication_index_scope_storage_key(
+      "tenant",
+      delivery_test_cid("4"),
+      delivery_test_cid("3"),
+      32768,
+      256,
+      16,
+    ).unwrap(),
+    key,
+  )
+  assert_true(
+    publication_index_scope_storage_key(
+      "tenant",
+      delivery_test_cid("4"),
+      delivery_test_cid("0"),
+      32768,
+      256,
+      16,
+    ).unwrap() !=
+    key,
+  )
+}
+
+///|
 test "publication preflight fixes the complete immutable inventory" {
   let program = ordering_test_cid("2")
   let template = receipt_test_template(program)

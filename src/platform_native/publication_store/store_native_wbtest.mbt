@@ -25,30 +25,6 @@ fn native_payload_request(
 }
 
 ///|
-fn native_bound_payload_request(
-  authority : String,
-  token : String,
-  schema_cid : String,
-  ordering_cid : String,
-  codec_cid : String,
-  max_bytes : Int64,
-  row_count : Int64,
-) -> @payload.PublicationPayloadRequest {
-  @payload.prepare_publication_payload_request(
-    authority,
-    native_payload_cid(token + "-attempt"),
-    native_payload_cid(token + "-material"),
-    native_payload_cid(token + "-definition"),
-    native_payload_cid(token + "-relation"),
-    schema_cid,
-    ordering_cid,
-    codec_cid,
-    max_bytes,
-    row_count,
-  ).unwrap()
-}
-
-///|
 fn native_contract(
   name : String,
   body : String,
@@ -398,31 +374,196 @@ test "empty native delivery needs explicit sink finish confirmation" {
 }
 
 ///|
-test "native formal delivery durably binds attempt receipt and success" {
-  guard native_payload_fixture("formal-delivery", 256L)
-    is Some((store, authority, library)) else {
-    return
-  }
-  let token = "formal-delivery-" + @env.now().to_string()
-  let schema_wire = "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}"
-  let schema_cid = "sha256:8eb90081d3d6698fc88cf5ba2d9c906b9f28f67e03693d8919b4e5c11e4ed80f"
-  let ordering_cid = native_payload_cid(token + "-ordering")
-  let codec_cid = native_payload_cid(token + "-codec")
-  let request = native_bound_payload_request(
-    authority, token, schema_cid, ordering_cid, codec_cid, 64L, 1L,
+priv struct NativePublicationCommitFixture {
+  run_definition : @publication.PublicationContract
+  invocation : @publication.PublicationContract
+  definitions : Array[@publication.PublicationContract]
+  artifacts : Array[@publication.PublicationContract]
+  derivations : Array[@publication.PublicationContract]
+  orderings : Array[@publication.PublicationContract]
+  retentions : Array[@publication.PublicationContract]
+  bindings : Array[@publication.PublicationContract]
+  manifest : @publication.PublicationContract
+  receipt : @publication.PublicationContract
+  captured_run : @publication.PublicationContract
+  request : @publication.PublicationContract
+  attempt : @publication.PublicationContract
+  index : @publication.PublicationContract
+  authority_scope_cid : String
+  material_generation_cid : String
+  schema_wire : String
+}
+
+///|
+fn native_commit_plan(
+  program_cid : String,
+  token : String,
+) -> @publication.PublicationContract {
+  native_contract(
+    "compiled_plan",
+    "{\"version\":\"actql-compiled-plan/0.1\"," +
+    "\"compiler_version\":\"compiler-0.1\"," +
+    "\"aoa_ir_version\":\"aoa-ir-0.1\"," +
+    "\"executable_plan_cid\":\"" +
+    native_payload_cid(token + "-executable") +
+    "\",\"program_definition_cid\":\"" +
+    program_cid +
+    "\",\"program_semantics_cid\":\"" +
+    native_payload_cid(token + "-semantics") +
+    "\",\"aoa_contract_cid\":\"" +
+    native_payload_cid(token + "-aoa-contract") +
+    "\",\"aoa_logical_cid\":\"" +
+    native_payload_cid(token + "-aoa-logical") +
+    "\"}",
   )
-  let writer = store.begin_payload(request).unwrap()
-  writer.append(b"[{\"n\":1}]").unwrap()
-  let info = writer.seal().unwrap()
-  let run_definition_cid = native_payload_cid(token + "-run")
-  let invocation_cid = native_payload_cid(token + "-invocation")
+}
+
+///|
+fn native_commit_evidence(
+  name : String,
+  body : String,
+) -> @publication.RunEvidenceValue {
+  @publication.seal_run_evidence_value(name, body, 65536, 4096, 32).unwrap()
+}
+
+///|
+fn native_commit_fixture(
+  store : Store,
+  store_authority_cid : String,
+  token : String,
+) -> NativePublicationCommitFixture {
+  let program_cid = native_payload_cid(token + "-program")
+  let template = native_commit_evidence(
+    "bound_invocation_template",
+    "{\"version\":\"actql-bound-invocation-template/0.1\"," +
+    "\"program_definition_cid\":\"" +
+    program_cid +
+    "\",\"parameter_values_cid\":\"" +
+    native_payload_cid(token + "-parameters") +
+    "\",\"invocation_bindings_cid\":\"" +
+    native_payload_cid(token + "-bindings") +
+    "\",\"check_environment_cid\":\"" +
+    native_payload_cid(token + "-environment") +
+    "\",\"grammar_manifest_cid\":\"" +
+    native_payload_cid(token + "-grammar") +
+    "\",\"required_profile_contracts\":[]," +
+    "\"barrier_contract_manifest_cid\":\"" +
+    native_payload_cid(token + "-barriers") +
+    "\",\"source_evidence\":\"unbound\"}",
+  )
+  let plan = native_commit_plan(program_cid, token)
+  let execution_context_cid = native_payload_cid(token + "-execution")
+  let host_policy_cid = native_payload_cid(token + "-host-policy")
+  let prepared = native_commit_evidence(
+    "prepared_invocation",
+    "{\"version\":\"actql-prepared-invocation/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    @publication.run_evidence_value_identity(template) +
+    "\",\"compiled_plan_cid\":\"" +
+    @publication.publication_contract_identity(plan) +
+    "\",\"execution_context_cid\":\"" +
+    execution_context_cid +
+    "\",\"host_policy_cid\":\"" +
+    host_policy_cid +
+    "\",\"policy_decision\":\"allow\"," +
+    "\"expires_at\":\"2026-09-21T04:00:00.000Z\"}",
+  )
+  let authorization = native_commit_evidence(
+    "run_authorization",
+    "{\"version\":\"actql-run-authorization/0.1\"," +
+    "\"prepared_invocation_cid\":\"" +
+    @publication.run_evidence_value_identity(prepared) +
+    "\",\"execution_context_cid\":\"" +
+    execution_context_cid +
+    "\",\"host_policy_cid\":\"" +
+    host_policy_cid +
+    "\",\"decision\":\"allowed\"}",
+  )
+  let admission = @publication.admit_run_publication(
+    template, prepared, authorization, plan,
+  ).unwrap()
+  let run_definition = @publication.issue_run_definition(
+    admission,
+    "scope",
+    token + "-run",
+    native_payload_cid(token + "-inputs"),
+    "2026-09-20T00:00:00.000Z",
+    "2026-09-21T04:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let observation = native_commit_evidence(
+    "observation_set",
+    "{\"version\":\"actql-observation-set/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    @publication.run_evidence_value_identity(template) +
+    "\",\"source_evidence_cids\":[]," +
+    "\"captured_input_artifact_cids\":[]," +
+    "\"consistency\":\"no_external_sources\"," +
+    "\"capture_started_at\":null,\"capture_completed_at\":null," +
+    "\"replayability\":{\"materialized\":false," +
+    "\"availability_evidence_cids\":[]},\"data_policy_cid\":\"" +
+    native_payload_cid(token + "-observation-policy") +
+    "\"}",
+  )
+  let invocation = @publication.issue_run_invocation(
+    template, observation, 65536, 4096, 32,
+  ).unwrap()
+  let definition = @publication.result_definition_contract(
+    @publication.prepare_result_definition(program_cid, "answer").unwrap(),
+  )
+  let row_wire = "[{\"value\":7}]"
+  let schema_wire = "{\"value\":{\"nullable\":false,\"type\":\"integer\"}}"
+  let rows_source = @source.parse_json(row_wire, {
+    max_input_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 32,
+  }).unwrap()
+  let rows = @json.from_source(rows_source, 4096, 32, 65536) catch {
+    _ => abort("invalid native publication rows fixture")
+  }
+  let relation_writer = @encode.hashing_writer(65536, 4096, 32) catch {
+    _ => abort("invalid native publication Relation writer")
+  }
+  let logical_cid = try {
+    @encode.begin_object(relation_writer)
+    @encode.key(relation_writer, "sort")
+    @encode.string_value(relation_writer, "relation")
+    @encode.key(relation_writer, "value")
+    @json.emit_value(rows, relation_writer)
+    @encode.end_object(relation_writer)
+    let (digest, _, _) = @encode.finish_hash_usage(relation_writer)
+    "sha256:" + digest
+  } catch {
+    _ => abort("invalid native publication Relation identity")
+  }
+  let schema_cid = native_payload_cid(schema_wire)
+  let data_policy_cid = native_payload_cid(token + "-data-policy")
+  let authority_scope_cid = native_payload_cid(token + "-authority-scope")
+  let evidence = @publication.issue_result_occurrence_evidence(
+    definition,
+    logical_cid,
+    schema_cid,
+    native_payload_cid(token + "-compute"),
+    [],
+    native_payload_cid(token + "-result-scope"),
+    data_policy_cid,
+    "actql-native-host",
+    authority_scope_cid,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let ordering = @publication.result_ordering_evidence_contract(evidence)
+  let derivation = @publication.result_ordering_derivation_contract(evidence)
   let retention = native_contract(
     "result_retention_policy",
     "{\"version\":\"actql-result-retention-policy/0.1\"," +
     "\"retention_contract_cid\":\"" +
     native_payload_cid(token + "-retention") +
     "\",\"effective_data_policy_cid\":\"" +
-    native_payload_cid(token + "-data-policy") +
+    data_policy_cid +
     "\",\"available_until\":\"2026-09-21T00:00:00.000Z\"," +
     "\"delete_by\":\"2026-09-22T00:00:00.000Z\"," +
     "\"extension_ceiling_at\":\"2026-09-22T00:00:00.000Z\"," +
@@ -433,89 +574,380 @@ test "native formal delivery durably binds attempt receipt and success" {
     native_payload_cid(token + "-clock") +
     "\"}",
   )
-  let artifact = native_contract(
-    "result_artifact",
-    "{\"version\":\"actql-result-artifact/0.1\"," +
-    "\"result_definition_cid\":\"" +
-    info.result_definition_cid +
-    "\",\"invocation_cid\":\"" +
-    invocation_cid +
-    "\",\"logical_result_cid\":\"" +
-    info.logical_relation_cid +
-    "\",\"result_schema_cid\":\"" +
-    info.result_schema_cid +
-    "\",\"ordering_evidence_cid\":\"" +
-    info.ordering_evidence_cid +
-    "\",\"actual_row_count\":1,\"actual_completeness\":\"complete\"," +
-    "\"effective_data_policy_cid\":\"" +
-    native_payload_cid(token + "-data-policy") +
-    "\",\"effective_retention_policy_cid\":\"" +
-    @publication.publication_contract_identity(retention) +
-    "\",\"provenance_evidence_cids\":[]}",
+  let artifact = @publication.issue_complete_result_artifact(
+    definition, invocation, evidence, retention, 1, 65536, 4096, 32,
+  ).unwrap()
+  let manifest = @publication.issue_result_manifest(
+    run_definition,
+    invocation,
+    [definition],
+    [artifact],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let journal = native_commit_evidence(
+    "normalization_journal",
+    "{\"version\":\"actql-normalization-journal/0.1\"," +
+    "\"rule_catalog_cid\":\"" +
+    native_payload_cid(token + "-rules") +
+    "\",\"entries\":[]}",
   )
-  let manifest = native_contract(
-    "result_manifest",
-    "{\"version\":\"actql-result-manifest/0.1\"," +
-    "\"run_definition_cid\":\"" +
-    run_definition_cid +
-    "\",\"invocation_cid\":\"" +
-    invocation_cid +
-    "\",\"results\":{\"answer\":" +
-    @publication.publication_contract_json(artifact) +
-    "}}",
+  let receipt = @publication.issue_effect_free_run_receipt(
+    admission,
+    run_definition,
+    invocation,
+    observation,
+    [definition],
+    [artifact],
+    manifest,
+    journal,
+    [],
+    [],
+    [],
+    [],
+    [],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let snapshot = match
+    @publication.admit_captured_result_snapshot(
+      definition,
+      artifact,
+      row_wire,
+      ["value"],
+      65536,
+      4096,
+      32,
+    ) {
+    Ok(value) => value
+    Err(@publication.CaptureIssuanceReferenceMismatch(field)) =>
+      abort("native publication snapshot reference: " + field)
+    Err(@publication.CaptureIssuanceInvalidRows(field)) =>
+      abort("native publication snapshot rows: " + field)
+    Err(@publication.CaptureIssuanceInvalidFields(field)) =>
+      abort("native publication snapshot fields: " + field)
+    Err(_) => abort("invalid native publication snapshot")
+  }
+  let authoring = native_commit_evidence(
+    "authoring_context",
+    "{\"version\":\"actql-authoring-context/0.1\"," +
+    "\"program_definition_cid\":\"" +
+    program_cid +
+    "\",\"annotations\":[]}",
   )
-  let binding = native_contract(
-    "durable_result_binding",
-    "{\"version\":\"actql-durable-result-binding/0.1\"," +
-    "\"run_definition_cid\":\"" +
-    run_definition_cid +
-    "\",\"result_definition_cid\":\"" +
-    info.result_definition_cid +
-    "\",\"invocation_cid\":\"" +
-    invocation_cid +
-    "\",\"logical_result_cid\":\"" +
-    info.logical_relation_cid +
-    "\",\"result_schema_cid\":\"" +
-    info.result_schema_cid +
-    "\",\"ordering_evidence_cid\":\"" +
-    info.ordering_evidence_cid +
-    "\",\"codec_contract_cid\":\"" +
-    info.durable_codec_cid +
-    "\",\"result_fields\":[\"n\"],\"material_generation_cid\":\"" +
-    info.material_generation_cid +
-    "\",\"store_authority_cid\":\"" +
-    authority +
-    "\",\"effective_retention_policy_cid\":\"" +
-    @publication.publication_contract_identity(retention) +
-    "\",\"row_count\":1,\"byte_count\":" +
-    info.generation.size.to_string() +
-    ",\"physical_sha256\":\"" +
-    info.physical_digest[7:].to_owned() +
-    "\"}",
+  let captured_run = @publication.issue_effect_free_captured_run(
+    run_definition,
+    invocation,
+    [definition],
+    [artifact],
+    manifest,
+    receipt,
+    [snapshot],
+    [],
+    authoring,
+    [],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let codec_cid = native_payload_cid(token + "-codec")
+  let payload_request = @payload.prepare_publication_payload_request(
+    store_authority_cid,
+    native_payload_cid(token + "-payload-attempt"),
+    native_payload_cid(token + "-material"),
+    @publication.publication_contract_identity(definition),
+    logical_cid,
+    schema_cid,
+    @publication.publication_contract_identity(ordering),
+    codec_cid,
+    64L,
+    1L,
+  ).unwrap()
+  let writer = store.begin_payload(payload_request).unwrap()
+  writer.append(@utf8.encode(row_wire)).unwrap()
+  let payload = writer.seal().unwrap()
+  let binding = @publication.issue_durable_result_binding(
+    run_definition,
+    definition,
+    invocation,
+    artifact,
+    ordering,
+    retention,
+    codec_cid,
+    ["value"],
+    schema_wire,
+    payload.material_generation_cid,
+    store_authority_cid,
+    1,
+    payload.generation.size.to_int(),
+    payload.physical_digest[7:].to_owned(),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let request = @publication.issue_publication_request(
+    run_definition,
+    [definition],
+    "tenant",
+    authority_scope_cid,
+    native_payload_cid(token + "-publication-policy"),
+    native_payload_cid(token + "-publication-target"),
+    "2026-09-20T00:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let attempt = @publication.issue_publication_attempt(
+    request,
+    run_definition,
+    token + "-publication-attempt",
+    native_payload_cid(token + "-fence"),
+    None,
+    "2026-09-20T00:00:01.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let index = @publication.issue_public_index_entry(
+    run_definition,
+    invocation,
+    manifest,
+    receipt,
+    captured_run,
+    [binding],
+    request,
+    attempt,
+    "2026-09-20T00:00:02.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  {
+    run_definition,
+    invocation,
+    definitions: [definition],
+    artifacts: [artifact],
+    derivations: [derivation],
+    orderings: [ordering],
+    retentions: [retention],
+    bindings: [binding],
+    manifest,
+    receipt,
+    captured_run,
+    request,
+    attempt,
+    index,
+    authority_scope_cid,
+    material_generation_cid: payload.material_generation_cid,
+    schema_wire,
+  }
+}
+
+///|
+fn commit_native_fixture(
+  store : Store,
+  fixture : NativePublicationCommitFixture,
+) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
+  store.commit_publication(
+    fixture.run_definition,
+    fixture.invocation,
+    fixture.definitions,
+    fixture.artifacts,
+    fixture.derivations,
+    fixture.orderings,
+    fixture.retentions,
+    fixture.bindings,
+    [fixture.schema_wire],
+    fixture.manifest,
+    fixture.receipt,
+    fixture.captured_run,
+    fixture.request,
+    fixture.attempt,
+    fixture.index,
+    65536,
+    4096,
+    32,
   )
-  let index = native_contract(
-    "public_index_entry",
-    "{\"version\":\"actql-public-index-entry/0.1\"," +
-    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
-    native_payload_cid(token + "-scope") +
-    "\",\"run_definition_cid\":\"" +
-    run_definition_cid +
-    "\",\"invocation_cid\":\"" +
-    invocation_cid +
-    "\",\"result_manifest_cid\":\"" +
-    @publication.publication_contract_identity(manifest) +
-    "\",\"run_receipt_cid\":\"" +
-    native_payload_cid(token + "-receipt") +
-    "\",\"captured_run_cid\":\"" +
-    native_payload_cid(token + "-captured") +
-    "\",\"durable_result_binding_cids\":[\"" +
-    @publication.publication_contract_identity(binding) +
-    "\"],\"publication_request_cid\":\"" +
-    native_payload_cid(token + "-publication-request") +
-    "\",\"publication_attempt_cid\":\"" +
-    native_payload_cid(token + "-publication-attempt") +
-    "\",\"committed_at\":\"2026-09-20T00:00:00.000Z\"}",
+}
+
+///|
+test "native publication commit is unique durable and restart-visible" {
+  guard native_payload_fixture("publication-commit", 512L)
+    is Some((store, authority, library)) else {
+    return
+  }
+  let token = "publication-commit-" + @env.now().to_string()
+  let fixture = native_commit_fixture(store, authority, token)
+  assert_true(
+    store
+    .inspect_committed_publication(
+      "tenant",
+      fixture.authority_scope_cid,
+      @publication.publication_contract_identity(fixture.run_definition),
+      65536,
+      4096,
+      32,
+    )
+    .unwrap()
+    is None,
   )
+  assert_true(
+    store.commit_publication(
+      fixture.run_definition,
+      fixture.invocation,
+      fixture.definitions,
+      fixture.artifacts,
+      fixture.derivations,
+      fixture.orderings,
+      fixture.retentions,
+      [],
+      [],
+      fixture.manifest,
+      fixture.receipt,
+      fixture.captured_run,
+      fixture.request,
+      fixture.attempt,
+      fixture.index,
+      65536,
+      4096,
+      32,
+    )
+    is Err(PublicationCommit(_)),
+  )
+  assert_true(
+    store
+    .inspect_committed_publication(
+      "tenant",
+      fixture.authority_scope_cid,
+      @publication.publication_contract_identity(fixture.run_definition),
+      65536,
+      4096,
+      32,
+    )
+    .unwrap()
+    is None,
+  )
+  assert_true(
+    store.commit_publication(
+      fixture.run_definition,
+      fixture.invocation,
+      fixture.definitions,
+      fixture.artifacts,
+      fixture.derivations,
+      fixture.orderings,
+      fixture.retentions,
+      fixture.bindings,
+      ["{\"other\":{\"nullable\":false,\"type\":\"integer\"}}"],
+      fixture.manifest,
+      fixture.receipt,
+      fixture.captured_run,
+      fixture.request,
+      fixture.attempt,
+      fixture.index,
+      65536,
+      4096,
+      32,
+    )
+    is Err(DeliveryIssuance(_)),
+  )
+  let committed = commit_native_fixture(store, fixture).unwrap()
+  assert_true(committed.committed)
+  assert_false(committed.idempotent)
+  let retry = commit_native_fixture(store, fixture).unwrap()
+  assert_false(retry.committed)
+  assert_true(retry.idempotent)
+  let competing_attempt = @publication.issue_publication_attempt(
+    fixture.request,
+    fixture.run_definition,
+    token + "-competing-attempt",
+    native_payload_cid(token + "-competing-fence"),
+    None,
+    "2026-09-20T00:00:03.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let competing_index = @publication.issue_public_index_entry(
+    fixture.run_definition,
+    fixture.invocation,
+    fixture.manifest,
+    fixture.receipt,
+    fixture.captured_run,
+    fixture.bindings,
+    fixture.request,
+    competing_attempt,
+    "2026-09-20T00:00:04.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    store.commit_publication(
+      fixture.run_definition,
+      fixture.invocation,
+      fixture.definitions,
+      fixture.artifacts,
+      fixture.derivations,
+      fixture.orderings,
+      fixture.retentions,
+      fixture.bindings,
+      [fixture.schema_wire],
+      fixture.manifest,
+      fixture.receipt,
+      fixture.captured_run,
+      fixture.request,
+      competing_attempt,
+      competing_index,
+      65536,
+      4096,
+      32,
+    )
+    is Err(PublicationCommitConflict),
+  )
+  assert_true(store.close().unwrap())
+  let reopened = open_store(
+    library,
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
+    authority,
+    512L,
+    8L,
+    65536L,
+  ).unwrap()
+  let visible = reopened
+    .inspect_committed_publication(
+      "tenant",
+      fixture.authority_scope_cid,
+      @publication.publication_contract_identity(fixture.run_definition),
+      65536,
+      4096,
+      32,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(visible),
+    committed.public_index_entry_cid,
+  )
+  assert_true(reopened.close().unwrap())
+}
+
+///|
+test "native formal delivery durably binds attempt receipt and success" {
+  guard native_payload_fixture("formal-delivery", 256L)
+    is Some((store, authority, library)) else {
+    return
+  }
+  let token = "formal-delivery-" + @env.now().to_string()
+  let fixture = native_commit_fixture(store, authority, token)
+  ignore(commit_native_fixture(store, fixture).unwrap())
+  let schema_wire = fixture.schema_wire
+  let retention = fixture.retentions[0]
+  let manifest = fixture.manifest
+  let binding = fixture.bindings[0]
+  let index = fixture.index
+  let info = store.inspect_payload(fixture.material_generation_cid).unwrap()
   let grant = @publication.issue_result_read_grant(
     index,
     manifest,
@@ -547,7 +979,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       success_attempt_id,
       "2026-09-20T01:00:00.000Z",
       schema_wire,
-      ["n"],
+      ["value"],
       3,
       64,
       65536,
@@ -572,9 +1004,9 @@ test "native formal delivery durably binds attempt receipt and success" {
   let success = delivery
     .confirm_sink_finished("2026-09-20T01:00:02.000Z")
     .unwrap()
-  assert_eq(@utf8.decode_lossy(Bytes::from_array(delivered)), "{\"n\":1}\n")
-  assert_eq(success.confirmed_bytes, 8L)
-  assert_eq(success.delivered_sha256, @sha.text_hex("{\"n\":1}\n").unwrap())
+  assert_eq(@utf8.decode_lossy(Bytes::from_array(delivered)), "{\"value\":7}\n")
+  assert_eq(success.confirmed_bytes, 12L)
+  assert_eq(success.delivered_sha256, @sha.text_hex("{\"value\":7}\n").unwrap())
   assert_true(success.delivery_attempt_cid == delivery.attempt_cid())
   assert_true(
     store.begin_result_delivery(
@@ -589,7 +1021,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       success_attempt_id,
       "2026-09-20T01:00:00.000Z",
       schema_wire,
-      ["n"],
+      ["value"],
       3,
       64,
       65536,
@@ -613,7 +1045,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       cancelled_attempt_id,
       "2026-09-20T01:00:03.000Z",
       schema_wire,
-      ["n"],
+      ["value"],
       3,
       64,
       65536,
@@ -671,7 +1103,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       token + "-exhausted-attempt",
       "2026-09-20T01:00:06.000Z",
       schema_wire,
-      ["n"],
+      ["value"],
       3,
       64,
       65536,

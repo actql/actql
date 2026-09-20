@@ -409,6 +409,68 @@ pub fn issue_public_index_entry(
 }
 
 ///|
+/// Derive the Store key for the one committed Manifest allowed for an exact
+/// tenant, authority scope, and Run Definition. The key deliberately excludes
+/// Invocation and attempt identities: changing either cannot create a second
+/// committed publication for the same Run.
+pub fn publication_index_scope_storage_key(
+  tenant_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, PublicationCommitIssuanceIssue] {
+  if tenant_id.is_empty() ||
+    !valid_contract_cid(authority_scope_cid) ||
+    !valid_contract_cid(run_definition_cid) {
+    return Err(CommitIssuanceReferenceMismatch("index.authority"))
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(CommitIssuanceEncoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "authority_scope_cid")
+    @encode.string_value(writer, authority_scope_cid)
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, run_definition_cid)
+    @encode.key(writer, "tenant_id")
+    @encode.string_value(writer, tenant_id)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-public-index-key/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(CommitIssuanceEncoding)
+  }
+  let body = @encode.finish(writer) catch {
+    _ => return Err(CommitIssuanceEncoding)
+  }
+  Ok(@sha.hex(@sha.digest(@utf8.encode(body))))
+}
+
+///|
+pub fn publication_index_storage_key(
+  index : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, PublicationCommitIssuanceIssue] {
+  if index.name != "public_index_entry" {
+    return Err(CommitIssuanceWrongContract)
+  }
+  guard contract_string(index, "tenant_id") is Some(tenant_id) &&
+    contract_string(index, "authority_scope_cid") is Some(authority_scope_cid) &&
+    contract_string(index, "run_definition_cid") is Some(run_definition_cid) else {
+    return Err(CommitIssuanceReferenceMismatch("index.authority"))
+  }
+  publication_index_scope_storage_key(
+    tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// Issue one append-only publication state record. Sequence and predecessor
 /// are derived from the admitted prior record rather than caller counters.
 pub fn issue_publication_record(

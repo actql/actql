@@ -166,6 +166,16 @@ attempt retry consumes no additional use, and a different attempt is rejected
 before opening the payload when the durable `max_uses` limit is exhausted. A
 claimed use is not refunded merely because the process stops before delivery.
 
+Formal publication validates the complete Run-bound chain, including every
+Result derivation, ordering proof, retention policy, and durable binding,
+before persisting its semantic contracts. The public index is then installed
+as one absent-only SQLite row keyed by tenant, authority scope, and exact Run
+Definition. That row is the visibility boundary. An exact retry returns the
+same commit, while a different Invocation, attempt, Manifest, or intent for
+the same scoped Run is a conflict. Restart lookup re-admits the exact stored
+index, and formal delivery refuses an index that has not crossed this durable
+commit boundary.
+
 Delivery contracts and the latest append-only record head are stored in the
 same SQLite authority and can be re-admitted after process restart. A terminal
 success remains an auditable historical fact after its payload is reclaimed;

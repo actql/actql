@@ -805,6 +805,244 @@ fn read_publication_contract(
 }
 
 ///|
+fn publication_commit(
+  result : Result[Unit, @publication.PublicationCommitIssue],
+) -> Result[Unit, NativePublicationStoreIssue] {
+  match result {
+    Ok(_) => Ok(())
+    Err(issue) => Err(PublicationCommit(issue))
+  }
+}
+
+///|
+fn publication_commit_key(
+  result : Result[String, @publication.PublicationCommitIssuanceIssue],
+) -> Result[String, NativePublicationStoreIssue] {
+  match result {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(PublicationCommitIssuance(issue))
+  }
+}
+
+///|
+/// Make one fully validated Run-bound publication visible. Semantic contracts
+/// are durable before the single scoped index row is installed. An exact
+/// retry returns the existing commit; a different publication for the same
+/// scoped Run is a conflict.
+pub fn Store::commit_publication(
+  self : Store,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  binding_schema_wires : Array[String],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if bindings.length() != binding_schema_wires.length() {
+    return Err(InvalidConfiguration)
+  }
+  match
+    publication_commit(
+      @publication.validate_effect_free_publication_commit_with_result_evidence(
+        run_definition, invocation, definitions, artifacts, derivations, orderings,
+        retentions, bindings, manifest, receipt, captured_run, request, attempt,
+        index, max_wire_bytes, max_nodes, max_depth,
+      ),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  for index, binding in bindings {
+    let projected = match
+      delivery_issuance(
+        @publication.project_durable_result_binding_read(binding),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let info = match self.inspect_payload(projected.material_generation_cid) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if !info.physical_digest.has_prefix("sha256:") {
+      return Err(DigestMismatch)
+    }
+    let facts : @publication.DeliveryPayloadFacts = {
+      store_authority_cid: self.authority_cid,
+      material_generation_cid: info.material_generation_cid,
+      logical_result_cid: info.logical_relation_cid,
+      result_schema_cid: info.result_schema_cid,
+      ordering_evidence_cid: info.ordering_evidence_cid,
+      codec_contract_cid: info.durable_codec_cid,
+      result_fields: projected.result_fields,
+      result_schema_wire: binding_schema_wires[index],
+      row_count: info.row_count,
+      byte_count: info.generation.size,
+      physical_sha256: info.physical_digest[7:].to_owned(),
+    }
+    match
+      delivery_issuance(
+        @publication.validate_durable_result_binding_facts(
+          binding, facts, max_wire_bytes, max_nodes, max_depth,
+        ),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  let key = match
+    publication_commit_key(
+      @publication.publication_index_storage_key(
+        index, max_wire_bytes, max_nodes, max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let contracts : Array[@publication.PublicationContract] = [
+    run_definition, invocation, manifest, receipt, captured_run, request, attempt,
+  ]
+  for
+    values in [
+      definitions, artifacts, derivations, orderings, retentions, bindings,
+    ] {
+    for contract in values {
+      contracts.push(contract)
+    }
+  }
+  contracts.push(index)
+  for contract in contracts {
+    match put_publication_contract(self, contract) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  let identity = @publication.publication_contract_identity(index)
+  let body = @utf8.encode(identity)
+  match self.database.insert("public_index", key, body) {
+    Ok(_) =>
+      Ok({
+        public_index_entry_cid: identity,
+        committed: true,
+        idempotent: false,
+      })
+    Err(@sqlite.Collision) => {
+      let existing = match self.database.read("public_index", key) {
+        Ok(value) => value
+        Err(issue) => return Err(Database(issue))
+      }
+      if existing.body != body {
+        return Err(PublicationCommitConflict)
+      }
+      Ok({
+        public_index_entry_cid: identity,
+        committed: false,
+        idempotent: true,
+      })
+    }
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// Resolve one durably committed index after the caller has separately
+/// authorized the scoped lookup. SQLite FULL durability makes a returned row
+/// the confirmed commit boundary rather than a process-local observation.
+pub fn Store::inspect_committed_publication(
+  self : Store,
+  tenant_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match
+    publication_commit_key(
+      @publication.publication_index_scope_storage_key(
+        tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+        max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let stored = match self.database.read("public_index", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
+    Err(issue) => return Err(Database(issue))
+  }
+  let identity = @utf8.decode(stored.body) catch {
+    _ => return Err(StateCollision)
+  }
+  let index = match
+    read_publication_contract(self, "public_index_entry", identity) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let actual_key = match
+    publication_commit_key(
+      @publication.publication_index_storage_key(
+        index, max_wire_bytes, max_nodes, max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if actual_key != key {
+    return Err(StateCollision)
+  }
+  Ok(Some(index))
+}
+
+///|
+fn require_committed_publication(
+  store : Store,
+  index : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let key = match
+    publication_commit_key(
+      @publication.publication_index_storage_key(
+        index, max_wire_bytes, max_nodes, max_depth,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let installed = match store.database.read("public_index", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(DeliveryAttemptUnresolved)
+    Err(issue) => return Err(Database(issue))
+  }
+  let expected = @utf8.encode(@publication.publication_contract_identity(index))
+  if installed.body != expected {
+    return Err(PublicationCommitConflict)
+  }
+  Ok(())
+}
+
+///|
 fn delivery_attempt_key(attempt_id : String) -> String {
   @sha.hex(@sha.digest(@utf8.encode(attempt_id)))
 }
@@ -1370,6 +1608,13 @@ pub fn Store::begin_result_delivery(
 ) -> Result[ResultDelivery, NativePublicationStoreIssue] {
   if self.closed || max_delivery_bytes < 0L || max_delivery_bytes > 2147483647L {
     return Err(InvalidConfiguration)
+  }
+  match
+    require_committed_publication(
+      self, index, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if !@publication.result_read_grant_valid_at(grant, requested_at) ||
     !@publication.result_read_grant_allows_bytes(

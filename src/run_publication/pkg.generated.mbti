@@ -148,6 +148,8 @@ pub fn prepare_superseded_publication_finalization(PublicationContract?) -> Publ
 
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
+pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]
+
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
 
 pub fn publication_cancellation_action_code(PublicationCancellationAction) -> Int
@@ -165,6 +167,10 @@ pub fn publication_contract_json(PublicationContract) -> String
 pub fn publication_contract_name(PublicationContract) -> String
 
 pub fn publication_finalization_action_code(PublicationFinalizationAction) -> Int
+
+pub fn publication_index_scope_storage_key(String, String, String, Int, Int, Int) -> Result[String, PublicationCommitIssuanceIssue]
+
+pub fn publication_index_storage_key(PublicationContract, Int, Int, Int) -> Result[String, PublicationCommitIssuanceIssue]
 
 pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], PublicationContract, PublicationContract, String) -> Bool
 
@@ -251,6 +257,8 @@ pub fn validate_delivery_payload_binding(PublicationContract, PublicationContrac
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
 
 pub fn validate_delivery_success_evidence(PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, DeliveryIssuanceIssue]
+
+pub fn validate_durable_result_binding_facts(PublicationContract, DeliveryPayloadFacts, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
 
 pub fn validate_effect_free_publication_commit(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, PublicationCommitIssue]
 
@@ -407,6 +415,11 @@ pub(all) enum DurableResultBindingIssue {
   DurableBindingEncoding
   DurableBindingContract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) struct DurableResultBindingRead {
+  material_generation_cid : String
+  result_fields : Array[String]
+}
 
 pub(all) enum DurableResultRowFrameIssue {
   DurableRowFrameInvalidLimits
