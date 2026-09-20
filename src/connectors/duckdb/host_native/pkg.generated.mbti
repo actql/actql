@@ -21,6 +21,8 @@ pub fn close_native_acquisition_runtime(NativeAcquisitionRuntime) -> Unit
 
 pub fn close_native_compute_runtime(NativeComputeRuntime) -> Unit
 
+pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
@@ -29,11 +31,17 @@ pub fn execute_native_compute_runtime(NativeComputeRuntime) -> Result[@execution
 
 pub fn execute_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeFailure]
 
+pub fn execute_native_strategy_compute_task(NativeStrategyComputeRun, @driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeRunIssue]
+
 pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
+pub fn native_strategy_compute_run_task_count(NativeStrategyComputeRun) -> Int
+
 pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeIssue]
+
+pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
 
 pub fn start_native_acquisition_runtime(@host.NativeHostConfiguration, String, @native.Database) -> Result[NativeAcquisitionRuntime, @host.NativeHostIssue]
 
@@ -110,6 +118,14 @@ pub(all) enum NativeStrategyComputeIssue {
   Strategy(@physical_strategy.RunIssue)
   Settlement(@physical_resources.LedgerIssue)
   MissingOutput
+}
+
+type NativeStrategyComputeRun
+
+pub(all) enum NativeStrategyComputeRunIssue {
+  Closed
+  Start(NativeStrategyComputeIssue)
+  Execution(NativeStrategyComputeFailure)
 }
 
 type NativeStrategyComputeRuntime

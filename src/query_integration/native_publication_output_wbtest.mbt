@@ -175,7 +175,7 @@ fn execute_native_publication_local_run() -> @strategy.CapturedDAG raise {
 ///|
 fn execute_native_publication_duckdb_run(
   library_path : String,
-) -> (@strategy.CapturedDAG, Array[@native_host.NativeStrategyComputeRuntime]) raise {
+) -> (@strategy.CapturedDAG, @native_host.NativeStrategyComputeRun) raise {
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let registration = @connector.capability_registration_at(registry, 1).unwrap()
@@ -240,7 +240,7 @@ fn execute_native_publication_duckdb_run(
     10000,
   ).unwrap()
   let library = @native_duckdb.load_library(library_path).unwrap()
-  let runtimes = []
+  let runtime_owner = @native_host.open_native_strategy_compute_run()
   let mut complete = false
   while !complete {
     let expected_task = @strategy.next_captured_task(run).unwrap_or(-1)
@@ -288,21 +288,24 @@ fn execute_native_publication_duckdb_run(
     }
     let setup = @duckdb_driver.take_duckdb_dispatch(implementation, host, task).unwrap()
     let database = library.open_database().unwrap()
-    let runtime = @native_host.start_native_strategy_compute_runtime(
-      setup,
-      database,
-      native_compute_import_limits(),
-      100000L,
-      1000000L,
-    ).unwrap()
     ignore(
-      @native_host.execute_native_strategy_compute_runtime(runtime).unwrap(),
+      @native_host.execute_native_strategy_compute_task(
+        runtime_owner,
+        setup,
+        database,
+        native_compute_import_limits(),
+        100000L,
+        1000000L,
+      ).unwrap(),
     )
-    runtimes.push(runtime)
   }
+  assert_eq(
+    @native_host.native_strategy_compute_run_task_count(runtime_owner),
+    3,
+  )
   @host_driver.stop_dispatch_driver(driver)
   @mock.close_mock_query_issuer(issuer)
-  (run, runtimes)
+  (run, runtime_owner)
 }
 
 ///|
@@ -511,7 +514,7 @@ fn verify_native_publication_run(
   token : String,
   sqlite_library_path : String,
   root : String,
-  duckdb_runtimes? : Array[@native_host.NativeStrategyComputeRuntime]? = None,
+  duckdb_runtime_owner? : @native_host.NativeStrategyComputeRun? = None,
 ) -> Unit raise {
   let graph = @strategy.captured_dag_graph(run)
   let exports = [
@@ -735,13 +738,11 @@ fn verify_native_publication_run(
     assert_eq(consume_native_publication_result(session), expected)
   }
   assert_true(reopened.close().unwrap())
-  match duckdb_runtimes {
-    Some(runtimes) =>
-      for runtime in runtimes {
-        assert_true(
-          @native_host.close_native_strategy_compute_runtime(runtime).unwrap(),
-        )
-      }
+  match duckdb_runtime_owner {
+    Some(owner) =>
+      assert_true(
+        @native_host.close_native_strategy_compute_run(owner).unwrap(),
+      )
     None => ()
   }
   for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
@@ -785,7 +786,7 @@ test "standard DuckDB output reaches the durable native publication commit" {
     return
   }
   let token = "duckdb-publication-" + @env.now().to_string()
-  let (run, runtimes) = execute_native_publication_duckdb_run(
+  let (run, runtime_owner) = execute_native_publication_duckdb_run(
     duckdb_library_path,
   )
   verify_native_publication_run(
@@ -793,6 +794,6 @@ test "standard DuckDB output reaches the durable native publication commit" {
     token,
     sqlite_library_path,
     root,
-    duckdb_runtimes=Some(runtimes),
+    duckdb_runtime_owner=Some(runtime_owner),
   )
 }
