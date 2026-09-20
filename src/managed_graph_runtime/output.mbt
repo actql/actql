@@ -273,6 +273,27 @@ pub fn prepare_producer_read(
 }
 
 ///|
+/// Bind a completed Graph generation to one exact downstream step edge in
+/// the same checked sequence.
+pub fn prepare_step_read(
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  output : Completed,
+) -> Result[ProducerRead, Issue] {
+  match
+    @lifecycle.prepare_step_producer_read(
+      receiver,
+      consumer_step,
+      input_index,
+      output.core,
+    ) {
+    Ok(value) => Ok({ core: value, })
+    Err(issue) => Err(Producer(issue))
+  }
+}
+
+///|
 pub fn producer_read_available(value : ProducerRead) -> Bool {
   @lifecycle.producer_read_available(value.core)
 }

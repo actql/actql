@@ -406,6 +406,19 @@ zero. The complete Local VecA, provider, and query-integration selection passes
 weighted-sum runtime authentication, their tie rules, negative RRF execution
 fixtures, publication, environment cancellation delivery, or final Linux CI.
 
+The Graph Bridge now lowers explicit node and edge sources into one typed
+`BRIDGE.rows.to_graph` occurrence without collapsing repeated input positions.
+Its bounded runtime constructs immutable Graph storage, projects both node and
+edge rows, and revalidates values against the exact Relation output contracts.
+The registered provider runs construction and projection through the standard
+Host. Its fixtures cover quantum-one progress, pre-allocation workspace
+rejection, cancellation observation and cleanup, two overlapping downstream
+computations, independent release, Graph reclamation before Relation use, and
+a zeroed final ledger. All five Graph fixtures pass on JS, Wasm, and native.
+Concise endpoint-derived construction, collision failures, formal publication,
+and environment cancellation delivery remain open, so all three Graph Bridge
+entries remain partial.
+
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
 passing inventory count alone cannot complete a layer.

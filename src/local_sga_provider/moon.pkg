@@ -1,0 +1,13 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/bounded_execution" @bounded,
+  "actql/actql/carrier_projection" @projection,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/connectors/local",
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/local_bridge" @bridge,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/managed_graph_runtime" @graph,
+  "actql/actql/managed_graph_storage" @storage,
+}

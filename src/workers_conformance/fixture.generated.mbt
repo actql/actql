@@ -24,6 +24,7 @@ fn captured_graph_fixture(
   local_values_watermark_variant? : String = "fixed_mark",
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
+  local_carrier_graph_chain? : Bool = false,
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -74,6 +75,7 @@ fn captured_graph_fixture(
     local_values_watermark_variant~,
     local_carrier_events_chain~,
     local_carrier_events_variant~,
+    local_carrier_graph_chain~,
     local_time_series_chain~,
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
@@ -351,6 +353,88 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   "}}}]," +
   "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
   "\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn local_carrier_graph_environment(
+  original : @environment.WireEnvironment,
+) -> @environment.WireEnvironment raise {
+  let writer = @encode.writer(1000000, 100000, 100)
+  @environment.emit(original, writer)
+  let body = @encode.finish(writer)
+    .replace(
+      old="\"evidence_bundle_cid\":\"" + @environment.cid(original) + "\",",
+      new="",
+    )
+    .replace(
+      old="\"max_graph_input_edges\":",
+      new="\"max_graph_construction_edges\":10000," +
+        "\"max_graph_construction_input_rows\":10000," +
+        "\"max_graph_construction_nodes\":10000," +
+        "\"max_graph_input_edges\":",
+    )
+  let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+  @environment.read(
+    @utf8.encode(
+      body.replace(
+        old="\"host_policy_profile\":",
+        new="\"evidence_bundle_cid\":\"" + cid + "\",\"host_policy_profile\":",
+      ),
+    ),
+    cid,
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_members: 1000,
+    },
+  ).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn local_carrier_graph_program() -> String {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"src\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+  let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+    "\"weight\":20}]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{\"id\":\"graph\"," +
+  "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
+  "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
+  "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
+  "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
+  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"node_name\"],\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"node_name\"]}}}],\"results\":{" +
+  "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -2051,6 +2135,7 @@ fn query_checked_program_fixture(
   local_values_watermark_variant? : String = "fixed_mark",
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
+  local_carrier_graph_chain? : Bool = false,
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -2112,6 +2197,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_carrier_events_chain {
     local_carrier_events_program(variant=local_carrier_events_variant)
+  } else {
+    text
+  }
+  let text = if local_carrier_graph_chain {
+    local_carrier_graph_program()
   } else {
     text
   }
@@ -2414,6 +2504,11 @@ fn query_checked_program_fixture(
       ),
     ),
   )
+  let environment = if local_carrier_graph_chain {
+    local_carrier_graph_environment(environment)
+  } else {
+    environment
+  }
   let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
@@ -2551,7 +2646,7 @@ fn query_checked_program_fixture(
         },
         {
           rela: true,
-          sga: false,
+          sga: local_carrier_graph_chain,
           tea: local_carrier_events_chain || local_time_series_chain,
           calendar: false,
           text_rank: false,

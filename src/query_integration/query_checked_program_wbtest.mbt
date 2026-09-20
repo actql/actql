@@ -24,6 +24,7 @@ fn query_checked_program_fixture(
   local_values_watermark_variant? : String = "fixed_mark",
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
+  local_carrier_graph_chain? : Bool = false,
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -85,6 +86,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_carrier_events_chain {
     local_carrier_events_program(variant=local_carrier_events_variant)
+  } else {
+    text
+  }
+  let text = if local_carrier_graph_chain {
+    local_carrier_graph_program()
   } else {
     text
   }
@@ -387,6 +393,11 @@ fn query_checked_program_fixture(
       ),
     ),
   )
+  let environment = if local_carrier_graph_chain {
+    local_carrier_graph_environment(environment)
+  } else {
+    environment
+  }
   let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
@@ -524,7 +535,7 @@ fn query_checked_program_fixture(
         },
         {
           rela: true,
-          sga: false,
+          sga: local_carrier_graph_chain,
           tea: local_carrier_events_chain || local_time_series_chain,
           calendar: false,
           text_rank: false,

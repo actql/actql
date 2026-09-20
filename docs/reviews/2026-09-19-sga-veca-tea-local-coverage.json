@@ -602,8 +602,25 @@
       "output": "graph",
       "canonical": ["BRIDGE.rows.to_graph"],
       "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_construction.mbt",
+        "src/local_bridge/graph.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ]
     },
     {
       "family": "Bridge",
@@ -612,8 +629,24 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_node_rows"],
       "variants": ["identity restoration", "property columns", "collision failure"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/local_bridge/graph.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ]
     },
     {
       "family": "Bridge",
@@ -622,8 +655,24 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_edge_rows"],
       "variants": ["identity restoration", "endpoint roles", "collision failure"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/local_bridge/graph.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ]
     },
     {
       "family": "Bridge",

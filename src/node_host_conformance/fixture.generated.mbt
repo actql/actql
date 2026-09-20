@@ -23,6 +23,12 @@ fn captured_graph_fixture(
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
   local_carrier_events_chain? : Bool = false,
+  local_carrier_events_variant? : String = "watermark",
+  local_carrier_graph_chain? : Bool = false,
+  local_time_series_chain? : Bool = false,
+  local_carrier_vectors_chain? : Bool = false,
+  local_carrier_vectors_variant? : String = "normalize",
+  local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
@@ -68,6 +74,12 @@ fn captured_graph_fixture(
     local_values_watermark_chain~,
     local_values_watermark_variant~,
     local_carrier_events_chain~,
+    local_carrier_events_variant~,
+    local_carrier_graph_chain~,
+    local_time_series_chain~,
+    local_carrier_vectors_chain~,
+    local_carrier_vectors_variant~,
+    local_vector_expression_chain~,
     local_values_analytic_chain~,
     local_values_analytic_variant~,
     local_values_append_chain~,
@@ -131,6 +143,15 @@ fn captured_graph_fixture(
     }),
   ).unwrap()
   (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn checked_expression_profile_admission(
+  checked : @program_check.CheckedProgram,
+) -> @lower.ExpressionProfileAdmission {
+  let profiles = @program_check.selected_expression_profiles(checked)
+  { text_time: profiles.text_time, veca: profiles.veca, }
 }
 
 ///|
@@ -259,9 +280,36 @@ fn join_graph_capacity_material(
 
 ///|
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
-fn local_carrier_events_program() -> String {
-  let fields = "[\"event_id\",\"occurred_at\",\"payload\"," +
+fn local_carrier_events_program(variant? : String = "watermark") -> String {
+  let dedupe = variant == "dedupe"
+  let fields = if dedupe {
+    "[\"event_id\",\"occurred_at\",\"payload\"]"
+  } else {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"watermark_ms\",\"late\",\"watermark_decision\"]"
+  }
+  let rows = if dedupe {
+    "[{\"event_id\":1,\"occurred_at\":20,\"payload\":\"a\"}," +
+    "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
+    "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else {
+    "[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
+    "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
+    "{\"event_id\":3,\"occurred_at\":2,\"payload\":\"edge\"}]"
+  }
+  let transform = if dedupe {
+    "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
+    "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
+    "\"nulls\":\"last\"}]}}"
+  } else {
+    "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
+  }
+  let second_fields = if dedupe {
+    "[\"payload\",\"event_id\"]"
+  } else {
+    "[\"watermark_decision\",\"late\",\"event_id\"]"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -273,16 +321,17 @@ fn local_carrier_events_program() -> String {
   "\"schema\":{\"event_id\":{\"type\":\"number\",\"nullable\":false}," +
   "\"occurred_at\":{\"type\":\"number\",\"nullable\":false}," +
   "\"payload\":{\"type\":\"string\",\"nullable\":false}}," +
-  "\"rows\":[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
-  "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
-  "{\"event_id\":3,\"occurred_at\":2,\"payload\":\"edge\"}]}," +
+  "\"rows\":" +
+  rows +
+  "}," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":[\"event_id\",\"occurred_at\",\"payload\"]}}},{" +
   "\"id\":\"events\",\"inputs\":{\"rows\":{\"result\":{" +
   "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[{" +
   "\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
-  "\"time\":\"occurred_at\"}},{\"watermark_events\":{" +
-  "\"watermark_ms\":2,\"policy\":\"mark\"}},{" +
+  "\"time\":\"occurred_at\"}}," +
+  transform +
+  ",{" +
   "\"events\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":" +
   fields +
@@ -295,11 +344,215 @@ fn local_carrier_events_program() -> String {
   fields +
   "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"events\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"watermark_decision\",\"late\",\"event_id\"]," +
+  "\"select\":" +
+  second_fields +
+  "," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
-  "\"fields\":[\"watermark_decision\",\"late\",\"event_id\"]}}}]," +
+  "\"fields\":" +
+  second_fields +
+  "}}}]," +
   "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
   "\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn local_carrier_graph_environment(
+  original : @environment.WireEnvironment,
+) -> @environment.WireEnvironment raise {
+  let writer = @encode.writer(1000000, 100000, 100)
+  @environment.emit(original, writer)
+  let body = @encode.finish(writer)
+    .replace(
+      old="\"evidence_bundle_cid\":\"" + @environment.cid(original) + "\",",
+      new="",
+    )
+    .replace(
+      old="\"max_graph_input_edges\":",
+      new="\"max_graph_construction_edges\":10000," +
+        "\"max_graph_construction_input_rows\":10000," +
+        "\"max_graph_construction_nodes\":10000," +
+        "\"max_graph_input_edges\":",
+    )
+  let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+  @environment.read(
+    @utf8.encode(
+      body.replace(
+        old="\"host_policy_profile\":",
+        new="\"evidence_bundle_cid\":\"" + cid + "\",\"host_policy_profile\":",
+      ),
+    ),
+    cid,
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_members: 1000,
+    },
+  ).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn local_carrier_graph_program() -> String {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"src\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+  let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+    "\"weight\":20}]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{\"id\":\"graph\"," +
+  "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
+  "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
+  "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
+  "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
+  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"node_name\"],\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"node_name\"]}}}],\"results\":{" +
+  "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
+  if variant == "ranking_max" ||
+    variant == "ranking_weighted" ||
+    variant == "ranking_rrf" ||
+    variant == "ranking_rrf_repeated" {
+    return local_vector_ranking_program(variant)
+  }
+  if variant == "nearest" ||
+    variant == "nearest_cosine" ||
+    variant == "nearest_l2" ||
+    variant == "nearest_inferred" ||
+    variant == "nearest_k1" ||
+    variant == "nearest_klarge" ||
+    variant == "nearest_empty" ||
+    variant == "nearest_empty_queries" {
+    return local_vector_nearest_program(variant)
+  }
+  let relation_pool = variant == "relation_pool" ||
+    variant == "relation_pool_composite"
+  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
+  let result_fields = if pooled {
+    "[\"group\",\"embedding\",\"member_count\"]"
+  } else {
+    "[\"id\",\"embedding\"]"
+  }
+  let second_fields = if pooled {
+    "[\"member_count\",\"embedding\",\"group\"]"
+  } else {
+    "[\"embedding\",\"id\"]"
+  }
+  let kernel = if variant == "score" {
+    "{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}"
+  } else if variant == "pool" {
+    "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}"
+  } else if variant == "pool_normalize" {
+    "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}," +
+    "{\"normalize_vectors\":true}"
+  } else {
+    "{\"normalize_vectors\":true}"
+  }
+  let source_tail = if relation_pool {
+    let keys = if variant == "relation_pool_composite" {
+      "[\"id\",\"code\"]"
+    } else {
+      "[\"id\"]"
+    }
+    ", {\"from\":\"out\",\"assert_rows\":{\"unique_by\":" +
+    keys +
+    "}," +
+    "\"as\":\"keyed\"}"
+  } else {
+    ""
+  }
+  let source_result = if relation_pool { "keyed" } else { "out" }
+  let vector_prefix = if relation_pool {
+    ""
+  } else {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}},"
+  }
+  let relation_vector = if relation_pool {
+    "{\"pool_vectors\":{\"vector\":\"embedding\"," +
+    "\"by\":[\"group\"],\"method\":\"sum\"}}"
+  } else {
+    kernel
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+  "\"code\":{\"type\":\"string\",\"nullable\":false}," +
+  "\"group\":{\"type\":\"number\",\"nullable\":false}," +
+  "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+  "\"nullable\":false}},\"rows\":[{\"id\":1,\"code\":\"😀\"," +
+  "\"group\":1,\"embedding\":[3,4]},{\"id\":2,\"code\":\"é\"," +
+  "\"group\":1," +
+  "\"embedding\":[0,5]}]}," +
+  "\"as\":\"out\"}" +
+  source_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\"," +
+  "\"fields\":" +
+  source_fields +
+  "}}},{\"id\":\"vectors\",\"inputs\":{" +
+  "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}}," +
+  "\"steps\":[" +
+  vector_prefix +
+  relation_vector +
+  ",{\"vectors\":true,\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  result_fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  result_fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":" +
+  result_fields +
+  "}}},{" +
+  "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  second_fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  second_fields +
+  "}}}],\"results\":{\"source\":{\"from\":{" +
+  "\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -522,6 +775,31 @@ fn local_select_qualified_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":2,"l":"l2"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"selected","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}]},"as":"joined"},{"from":"joined","select":[{"right_value":"right.r"},{"left_value":"left.l"},{"id":"left.id"}],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value","id"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["id","left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["right_value","id","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","id","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
+}
+
+///|
+/// Fixture owner: query_integration/local_time_series_wbtest.mbt
+fn local_time_series_program() -> String {
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"series\",\"inputs\":{},\"steps\":[{" +
+  "\"time_series\":{\"start\":\"1969-12-31T23:59:59.999Z\"," +
+  "\"end\":\"1970-01-01T00:00:00.004Z\",\"step\":2}," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"time\"]}}},{\"id\":\"consumer_a\",\"inputs\":{" +
+  "\"x\":{\"result\":{\"stage\":\"series\",\"result\":\"r\"}}}," +
+  "\"steps\":[{\"select\":[\"time\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"time\"]}}},{" +
+  "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"series\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"time\"],\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"time\"]}}}],\"results\":{" +
+  "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -1334,6 +1612,263 @@ fn local_values_window_program(variant : String) -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_vector_expression_program() -> String {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"left\":{\"type\":\"vector\",\"dimensions\":2," +
+    "\"nullable\":false},\"right\":{\"type\":\"vector\"," +
+    "\"dimensions\":2,\"nullable\":false}}"
+  let fields = "[\"id\",\"score\",\"joined\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"vectors\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{" +
+  "\"id\":2,\"left\":[2,1],\"right\":[4,3]}]},\"as\":\"seed\"},{" +
+  "\"from\":\"seed\",\"derive\":{\"score\":{" +
+  "\"vector_score\":{\"left\":{\"field\":\"left\"}," +
+  "\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}}," +
+  "\"as\":\"scored\"},{\"from\":\"scored\",\"derive\":{" +
+  "\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{" +
+  "\"field\":\"left\"}]}},\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"joined\",\"score\",\"id\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"joined\",\"score\",\"id\"]}}}],\"results\":{\"source\":{" +
+  "\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_vector_nearest_program(variant : String) -> String {
+  let inferred = variant == "nearest_inferred"
+  let identity_type = if inferred { "string" } else { "number" }
+  let vector_schema = "{\"id\":{\"type\":\"" +
+    identity_type +
+    "\",\"nullable\":false}," +
+    "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+    "\"nullable\":false}}"
+  let ranking_fields = "[\"query_id\",\"candidate_id\",\"score\",\"rank\"]"
+  let candidate_rows = if variant == "nearest_empty" {
+    "[]"
+  } else if inferred {
+    "[{\"id\":\"b\",\"embedding\":[1,0]},{\"id\":\"a\"," +
+    "\"embedding\":[1,0]},{\"id\":\"c\",\"embedding\":[0,1]}]"
+  } else {
+    "[{\"id\":2,\"embedding\":[1,0]},{\"id\":1," +
+    "\"embedding\":[1,0]},{\"id\":3,\"embedding\":[0,1]}]"
+  }
+  let query_rows = if variant == "nearest_empty_queries" {
+    "[]"
+  } else if inferred {
+    "[{\"id\":\"t\",\"embedding\":[1,0]},{\"id\":\"q\"," +
+    "\"embedding\":[0,1]}]"
+  } else {
+    "[{\"id\":20,\"embedding\":[1,0]},{\"id\":10," + "\"embedding\":[0,1]}]"
+  }
+  let roles = if inferred {
+    ""
+  } else {
+    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\"," +
+    "\"query_id\":\"id\",\"query_vector\":\"embedding\","
+  }
+  let identity_tail = if inferred {
+    ",{\"from\":\"out\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+    "\"as\":\"keyed\"}"
+  } else {
+    ""
+  }
+  let source_result = if inferred { "keyed" } else { "out" }
+  let metric = if variant == "nearest_cosine" {
+    "cosine"
+  } else if variant == "nearest_l2" {
+    "l2"
+  } else {
+    "dot"
+  }
+  let k = if variant == "nearest_k1" {
+    "1"
+  } else if variant == "nearest_klarge" {
+    "5"
+  } else {
+    "2"
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"candidates\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  vector_schema +
+  ",\"rows\":" +
+  candidate_rows +
+  "},\"as\":\"out\"}" +
+  identity_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\",\"fields\":[\"id\",\"embedding\"]}}},{" +
+  "\"id\":\"queries\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  vector_schema +
+  ",\"rows\":" +
+  query_rows +
+  "},\"as\":\"out\"}" +
+  identity_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\",\"fields\":[\"id\"," +
+  "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
+  "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
+  "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
+  "\"nearest\":{\"queries\":\"queries\"," +
+  roles +
+  "\"metric\":\"" +
+  metric +
+  "\",\"k\":" +
+  k +
+  "}," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  ranking_fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"nearest\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  ranking_fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  ranking_fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"nearest\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_vector_ranking_program(variant : String) -> String {
+  let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
+  let repeated = variant == "ranking_rrf_repeated"
+  let schema = if rrf {
+    "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"rank\":{\"type\":\"number\",\"nullable\":false}}"
+  } else {
+    "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"score\":{\"type\":\"number\",\"nullable\":false}}"
+  }
+  let left_rows = if rrf {
+    "[{\"q\":1,\"id\":1,\"rank\":1},{\"q\":1,\"id\":2," +
+    "\"rank\":2},{\"q\":2,\"id\":1,\"rank\":1}]"
+  } else {
+    "[{\"q\":1,\"id\":1,\"score\":0.75},{\"q\":1," +
+    "\"id\":2,\"score\":0.5},{\"q\":2,\"id\":1," +
+    "\"score\":0.25}]"
+  }
+  let right_rows = if rrf {
+    "[{\"q\":1,\"id\":3,\"rank\":1},{\"q\":1,\"id\":1," +
+    "\"rank\":2},{\"q\":2,\"id\":1,\"rank\":1}]"
+  } else {
+    "[{\"q\":1,\"id\":1,\"score\":0.5},{\"q\":1," +
+    "\"id\":3,\"score\":0.25},{\"q\":2,\"id\":1," +
+    "\"score\":0.75}]"
+  }
+  let options = if rrf {
+    "\"rank\":\"rank\",\"score_policy\":{\"rrf\":{" +
+    "\"rank_constant\":1,\"weights\":" +
+    (if repeated { "[1,1,2]" } else { "[1,1]" }) +
+    ",\"rank_window\":2}}"
+  } else {
+    let policy = if variant == "ranking_weighted" {
+      "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"
+    } else {
+      "\"max\""
+    }
+    "\"score\":\"score\",\"score_policy\":" +
+    policy +
+    ",\"score_contract\":{\"domain\":\"unit.v1\"," +
+    "\"range\":[0,1],\"normalization\":\"unit.v1\"}"
+  }
+  let fields = "[\"q\",\"id\",\"score\",\"rank\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{" +
+  "\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"left\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  left_rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  (if rrf { "[\"q\",\"id\",\"rank\"]" } else { "[\"q\",\"id\",\"score\"]" }) +
+  "}}},{\"id\":\"right\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  right_rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  (if rrf { "[\"q\",\"id\",\"rank\"]" } else { "[\"q\",\"id\",\"score\"]" }) +
+  "}}},{\"id\":\"fusion\",\"inputs\":{\"left\":{\"result\":{" +
+  "\"stage\":\"left\",\"result\":\"r\"}},\"right\":{\"result\":{" +
+  "\"stage\":\"right\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"from\":\"left\",\"merge_rankings\":{\"with\":" +
+  (if repeated {
+    "[\"right\",\"right\"]"
+  } else if rrf {
+    "[\"right\"]"
+  } else {
+    "\"right\""
+  }) +
+  ",\"by\":[\"q\"],\"candidate\":\"id\"," +
+  options +
+  ",\"k\":2},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"rank\",\"score\",\"id\",\"q\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"rank\",\"score\",\"id\",\"q\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
 /// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
 fn material_demands() -> @lower.DemandLimits {
   {
@@ -1381,6 +1916,7 @@ fn physical_graph_owners(
       Some(values),
       max_parameters=100,
       max_name_bytes=10000,
+      expression_profiles=checked_expression_profile_admission(program),
     ).unwrap()
   })
 }
@@ -1598,6 +2134,12 @@ fn query_checked_program_fixture(
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
   local_carrier_events_chain? : Bool = false,
+  local_carrier_events_variant? : String = "watermark",
+  local_carrier_graph_chain? : Bool = false,
+  local_time_series_chain? : Bool = false,
+  local_carrier_vectors_chain? : Bool = false,
+  local_carrier_vectors_variant? : String = "normalize",
+  local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
@@ -1654,7 +2196,27 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_carrier_events_chain {
-    local_carrier_events_program()
+    local_carrier_events_program(variant=local_carrier_events_variant)
+  } else {
+    text
+  }
+  let text = if local_carrier_graph_chain {
+    local_carrier_graph_program()
+  } else {
+    text
+  }
+  let text = if local_time_series_chain {
+    local_time_series_program()
+  } else {
+    text
+  }
+  let text = if local_carrier_vectors_chain {
+    local_carrier_vectors_program(variant=local_carrier_vectors_variant)
+  } else {
+    text
+  }
+  let text = if local_vector_expression_chain {
+    local_vector_expression_program()
   } else {
     text
   }
@@ -1942,6 +2504,11 @@ fn query_checked_program_fixture(
       ),
     ),
   )
+  let environment = if local_carrier_graph_chain {
+    local_carrier_graph_environment(environment)
+  } else {
+    environment
+  }
   let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
@@ -2073,11 +2640,14 @@ fn query_checked_program_fixture(
       program,
       @program_check.checking_environment(
         environment,
-        { text_time: false, veca: false, },
+        {
+          text_time: false,
+          veca: local_carrier_vectors_chain || local_vector_expression_chain,
+        },
         {
           rela: true,
-          sga: false,
-          tea: local_carrier_events_chain,
+          sga: local_carrier_graph_chain,
+          tea: local_carrier_events_chain || local_time_series_chain,
           calendar: false,
           text_rank: false,
         },
@@ -2156,6 +2726,7 @@ fn query_checked_sequence(
     Some(values),
     max_parameters=100,
     max_name_bytes=10000,
+    expression_profiles=checked_expression_profile_admission(checked),
   ).unwrap()
   @query.prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
 }

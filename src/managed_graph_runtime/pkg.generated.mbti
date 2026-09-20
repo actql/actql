@@ -53,6 +53,8 @@ pub fn prepare_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target,
 
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed) -> Result[ProducerRead, Issue]
 
+pub fn prepare_step_read(@lowering_relation.BoundPrepared, Int, Int, Completed) -> Result[ProducerRead, Issue]
+
 pub fn producer_read_available(ProducerRead) -> Bool
 
 pub fn producer_read_carrier_reference(ProducerRead) -> @managed_carrier_runtime.ProducerReadReference

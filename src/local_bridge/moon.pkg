@@ -8,6 +8,8 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @storage,
+  "actql/actql/managed_graph_runtime" @graph,
+  "actql/actql/managed_graph_storage" @graph_storage,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
