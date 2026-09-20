@@ -43,6 +43,8 @@ pub fn event_window_cleanup_pending(EventWindowExecution) -> Bool
 
 pub fn session_cleanup_pending(SessionExecution) -> Bool
 
+pub fn session_max_noninterruptible_value_bytes(SessionExecution) -> Int
+
 pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[DedupeExecution, DedupeIssue]
 
 pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[EventWindowExecution, EventWindowIssue]
@@ -115,6 +117,7 @@ pub(all) enum SessionIssue {
   InvalidSessionRecord(Int)
   InvalidSessionValue(Int, Int)
   SessionArithmetic(Int)
+  SessionIdentityLimit
   SessionWorkspaceLimit
   SessionOutput(@managed_record_runtime.Issue)
   SessionExecutionIssue(@bounded_execution.Issue)

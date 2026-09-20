@@ -12,10 +12,19 @@ priv enum SessionPhase {
   GroupBegin
   GroupCompareKey
   GroupBoundary
+  IdentityBegin
+  IdentityTerm
+  IdentityCommit
   EmitBegin
   EmitFields
   EmitCommit
   Finish
+}
+
+///|
+priv enum SessionIdentityScalarIssue {
+  InvalidIdentityScalar
+  IdentityScalarLimit
 }
 
 ///|
@@ -61,6 +70,10 @@ priv struct SessionState {
   mut session_start : Int64
   mut session_end : Int64
   mut session_id : String
+  mut identity_first : Int
+  mut identity_term : Int
+  mut identity_bytes : Int
+  mut identity_parts : Array[String]
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
@@ -70,6 +83,7 @@ priv struct SessionState {
 struct SessionExecution {
   session : @bounded.Session[SessionState, @records.Completed, SessionIssue]
   mut token : @bounded.Token?
+  max_noninterruptible_value_bytes : Int
 }
 
 ///|
@@ -88,6 +102,7 @@ pub(all) enum SessionIssue {
   InvalidSessionRecord(Int)
   InvalidSessionValue(Int, Int)
   SessionArithmetic(Int)
+  SessionIdentityLimit
   SessionWorkspaceLimit
   SessionOutput(@records.Issue)
   SessionExecutionIssue(@bounded.Issue)
@@ -115,7 +130,8 @@ fn session_checked_multiply(left : Int, right : Int) -> Int? {
 fn session_scratch(records : Int, terms : Int) -> Int? {
   guard session_checked_multiply(records, terms) is Some(cells) &&
     session_checked_multiply(records, 3) is Some(indices) &&
-    session_checked_add(cells, indices) is Some(total) else {
+    session_checked_add(cells, indices) is Some(fixed) &&
+    session_checked_add(fixed, terms + 1) is Some(total) else {
     return None
   }
   Some(total)
@@ -360,38 +376,138 @@ fn session_sort_step(state : SessionState) -> Result[Unit, SessionIssue] {
 }
 
 ///|
-fn session_scalar_identity(value : @value.CheckedValue) -> String? {
+fn session_scalar_identity(
+  value : @value.CheckedValue,
+  max_part_bytes : Int,
+) -> Result[String, SessionIdentityScalarIssue] {
+  if max_part_bytes < 0 {
+    return Err(IdentityScalarLimit)
+  }
   match value.value {
-    @value.Null => Some("n:")
-    @value.Reference(reference) =>
-      if @value.reference_available(reference) {
-        let text = @value.reference_identity_cid(reference)
-        Some("r:" + text.length().to_string() + ":" + text)
+    @value.Null =>
+      if max_part_bytes >= 2 {
+        Ok("n:")
       } else {
-        None
+        Err(IdentityScalarLimit)
       }
-    _ =>
-      @value.canonical_scalar_text(value, 2147483647).map(text => {
-        "v:" + text.length().to_string() + ":" + text
-      })
+    @value.Reference(reference) => {
+      if !@value.reference_available(reference) {
+        return Err(InvalidIdentityScalar)
+      }
+      let text = @value.reference_identity_cid(reference)
+      let length = text.length().to_string()
+      let bytes = 3 + length.length() + @utf8.encode(text).length()
+      if bytes <= max_part_bytes {
+        Ok("r:" + length + ":" + text)
+      } else {
+        Err(IdentityScalarLimit)
+      }
+    }
+    _ => {
+      guard @value.canonical_scalar_text(value, max_part_bytes) is Some(text) else {
+        return match value.value {
+          @value.Boolean(_)
+          | @value.Number(_)
+          | @value.Text(_)
+          | @value.Date(_)
+          | @value.Timestamp(_)
+          | @value.Decimal(_) => Err(IdentityScalarLimit)
+          _ => Err(InvalidIdentityScalar)
+        }
+      }
+      let length = text.length().to_string()
+      let bytes = 3 + length.length() + @utf8.encode(text).length()
+      if bytes <= max_part_bytes {
+        Ok("v:" + length + ":" + text)
+      } else {
+        Err(IdentityScalarLimit)
+      }
+    }
   }
 }
 
 ///|
-fn session_identity(state : SessionState, first : Int) -> String? {
-  let mut result = "session:" + state.session_start.to_string()
-  for term in 0..<state.keys {
-    guard session_cell(state, first, term) is Some(value) &&
-      session_scalar_identity(value) is Some(part) else {
-      return None
+fn session_identity_add_part(
+  state : SessionState,
+  part : String,
+) -> Result[Unit, SessionIssue] {
+  let addition = ":" + part
+  let bytes = @utf8.encode(addition).length()
+  guard session_checked_add(state.identity_bytes, bytes) is Some(total) &&
+    total <= state.limits.max_value_bytes else {
+    return Err(SessionIdentityLimit)
+  }
+  state.identity_parts.push(addition)
+  state.identity_bytes = total
+  Ok(())
+}
+
+///|
+fn session_identity_step(state : SessionState) -> Result[Unit, SessionIssue] {
+  match state.phase {
+    IdentityBegin => {
+      let prefix = "session:" + state.session_start.to_string()
+      let bytes = @utf8.encode(prefix).length()
+      if bytes > state.limits.max_value_bytes {
+        return Err(SessionIdentityLimit)
+      }
+      state.identity_term = 0
+      state.identity_bytes = bytes
+      state.identity_parts = [prefix]
+      state.phase = IdentityTerm
+      Ok(())
     }
-    result += ":" + part
+    IdentityTerm => {
+      if state.identity_term > state.keys {
+        state.phase = IdentityCommit
+        return Ok(())
+      }
+      let cell = if state.identity_term < state.keys {
+        session_cell(state, state.identity_first, state.identity_term)
+      } else {
+        session_cell(state, state.identity_first, state.keys + 1)
+      }
+      let remaining = state.limits.max_value_bytes - state.identity_bytes
+      guard cell is Some(value) else {
+        return Err(
+          InvalidSessionValue(state.identity_first, state.identity_term),
+        )
+      }
+      let part = match session_scalar_identity(value, remaining - 1) {
+        Ok(part) => part
+        Err(IdentityScalarLimit) => return Err(SessionIdentityLimit)
+        Err(InvalidIdentityScalar) =>
+          return Err(
+            InvalidSessionValue(
+              state.identity_first,
+              if state.identity_term < state.keys {
+                state.identity_term
+              } else {
+                state.keys + 1
+              },
+            ),
+          )
+      }
+      match session_identity_add_part(state, part) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      state.identity_term += 1
+      Ok(())
+    }
+    IdentityCommit => {
+      let identity = state.identity_parts.join("")
+      if @utf8.encode(identity).length() != state.identity_bytes {
+        return Err(SessionIdentityLimit)
+      }
+      state.session_id = identity
+      state.identity_parts = []
+      state.emit = state.group_start
+      state.phase = EmitBegin
+      Ok(())
+    }
+    _ => Err(InvalidSessionKernel)
   }
-  guard session_cell(state, first, state.keys + 1) is Some(identity) &&
-    session_scalar_identity(identity) is Some(part) else {
-    return None
-  }
-  Some(result + ":" + part)
 }
 
 ///|
@@ -404,12 +520,8 @@ fn session_finish_group(state : SessionState) -> Result[Unit, SessionIssue] {
     return Err(SessionArithmetic(last))
   }
   state.session_end = last_time + state.gap
-  guard session_identity(state, first) is Some(identity) else {
-    return Err(InvalidSessionValue(first, state.keys + 1))
-  }
-  state.session_id = identity
-  state.emit = state.group_start
-  state.phase = EmitBegin
+  state.identity_first = first
+  state.phase = IdentityBegin
   Ok(())
 }
 
@@ -589,6 +701,8 @@ fn session_step(
       SortBeginPass | SortBeginRun | SortChoose | SortCompare | SortWrite =>
         session_sort_step(state)
       GroupBegin | GroupCompareKey | GroupBoundary => session_group_step(state)
+      IdentityBegin | IdentityTerm | IdentityCommit =>
+        session_identity_step(state)
       EmitBegin | EmitFields | EmitCommit =>
         match session_emit_step(state) {
           Ok(emitted) => {
@@ -628,6 +742,8 @@ fn cleanup_session_state(state : SessionState) -> Bool {
   state.times = []
   state.source_order = []
   state.target_order = []
+  state.session_id = ""
+  state.identity_parts = []
   state.emit_fields = []
   true
 }
@@ -740,6 +856,10 @@ pub fn start_session(
     session_start: 0L,
     session_end: 0L,
     session_id: "",
+    identity_first: 0,
+    identity_term: 0,
+    identity_bytes: 0,
+    identity_parts: [],
     emit: 0,
     emit_field: 0,
     emit_fields: [],
@@ -747,7 +867,18 @@ pub fn start_session(
   let (session, token) = @bounded.start(
     control, state, session_step, cleanup_session_state, @records.discard_completed,
   )
-  Ok({ session, token: Some(token), })
+  Ok({
+    session,
+    token: Some(token),
+    max_noninterruptible_value_bytes: limits.max_value_bytes,
+  })
+}
+
+///|
+pub fn session_max_noninterruptible_value_bytes(
+  value : SessionExecution,
+) -> Int {
+  value.max_noninterruptible_value_bytes
 }
 
 ///|

@@ -14,6 +14,7 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/temporal_window" @window,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
