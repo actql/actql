@@ -147,6 +147,7 @@ export async function startHttpsDirectTransferReceiver({
       typeof control.recordProjection !== 'function' ||
       typeof control.recordIsDestinationCommitted !== 'function' ||
       typeof control.directCleanupConfirmed !== 'function' ||
+      typeof control.directCancelDecision !== 'function' ||
       typeof control.replyJson !== 'function' ||
       journal === null || typeof journal !== 'object' ||
       typeof journal.accept !== 'function' ||
@@ -188,6 +189,7 @@ export async function startHttpsDirectTransferReceiver({
     entry,
     {cancelled = false, sourceStopped = false} = {},
   ) => {
+    if (control.recordIsDestinationCommitted(entry.record)) return false;
     const state = control.recordProjection(entry.record);
     if (state[1] !== 2 && state[4] !== 1) {
       entry.record = journal.advance(
@@ -398,7 +400,12 @@ export async function startHttpsDirectTransferReceiver({
           peer,
           false,
         );
-        await persistFailure(entry, {cancelled: true, sourceStopped: true});
+        const decision = control.directCancelDecision(entry.record);
+        if (decision === 0) {
+          await persistFailure(entry, {cancelled: true, sourceStopped: true});
+        } else if (decision === 3) {
+          fail('RemoteTransferReconciliationRequired');
+        }
         replyCanonical(response, 200, stateReply(entry));
         return;
       }

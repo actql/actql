@@ -85,6 +85,28 @@ test "direct cleanup requires confirmed stop and destination reclaim" {
 }
 
 ///|
+test "direct cancellation never reclaims a committed destination" {
+  let record = open_record(state_request(DirectStream))
+  assert_eq(direct_cancel_decision(record), DirectCancelPreCommit)
+  ignore(apply(prepare_start(record).unwrap()))
+  assert_eq(direct_cancel_decision(record), DirectCancelPreCommit)
+  ignore(apply(prepare_source_settled(record, true, false).unwrap()))
+  ignore(apply(prepare_destination_commit(record).unwrap()))
+  assert_eq(direct_cancel_decision(record), DirectCancelAlreadyCommitted)
+  ignore(apply(prepare_cleanup(record, false, false, false).unwrap()))
+  assert_eq(direct_cancel_decision(record), DirectCancelAlreadyCommitted)
+  let cancelled = open_record(state_request(DirectStream))
+  ignore(apply(prepare_failure(cancelled, true, true).unwrap()))
+  assert_eq(direct_cancel_decision(cancelled), DirectCancelPreCommit)
+  ignore(apply(prepare_cleanup(cancelled, true, true, true).unwrap()))
+  assert_eq(direct_cancel_decision(cancelled), DirectCancelTerminal)
+  assert_eq(
+    direct_cancel_decision(open_record(state_request(TransferStore))),
+    DirectCancelReconciliationRequired,
+  )
+}
+
+///|
 test "Store upload progression separates seal from destination commit" {
   let record = open_record(state_request(TransferStore))
   assert_eq(store_upload_progress(record), StoreUploadStart)

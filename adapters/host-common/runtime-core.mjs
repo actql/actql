@@ -969,6 +969,8 @@ function remoteTransferControl(moon) {
       moon.strategyRemoteTransferRecordIsDestinationCommitted,
     directCleanupConfirmed:
       moon.strategyRemoteTransferDirectCleanupConfirmed,
+    directCancelDecision:
+      moon.strategyRemoteTransferDirectCancelDecision,
     revision: moon.strategyRemoteTransferRecordRevision,
     restore: (request, state) => {
       if (!Array.isArray(state) || state.length !== 9 ||

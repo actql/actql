@@ -776,6 +776,8 @@ pub fn strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.Rem
 
 pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn strategy_remote_transfer_direct_cancel_decision(@remote_transfer.RemoteTransferRecord) -> Int
+
 pub fn strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
 
 pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure

@@ -37,6 +37,8 @@ pub fn destination_receipt_json(RemoteTransferDestinationReceipt) -> Result[Stri
 
 pub fn destination_receipt_projection(RemoteTransferDestinationReceipt) -> Array[String]
 
+pub fn direct_cancel_decision(RemoteTransferRecord) -> RemoteDirectCancelDecision
+
 pub fn direct_transfer_cleanup_confirmed(RemoteTransferRecord) -> Bool
 
 pub fn direct_transfer_progress(RemoteTransferRecord) -> RemoteDirectTransferProgress
@@ -183,6 +185,13 @@ pub fn transition_projection(RemoteTransferTransition) -> (Array[Int], Array[Int
 type DurableRemoteTransferRecord
 
 type DurableRemoteTransferStoreUseRecord
+
+pub(all) enum RemoteDirectCancelDecision {
+  DirectCancelPreCommit
+  DirectCancelAlreadyCommitted
+  DirectCancelTerminal
+  DirectCancelReconciliationRequired
+} derive(Eq, @debug.Debug)
 
 pub(all) enum RemoteDirectTransferProgress {
   DirectTransferStart

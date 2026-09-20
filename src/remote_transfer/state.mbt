@@ -487,6 +487,42 @@ pub fn direct_transfer_cleanup_confirmed(record : RemoteTransferRecord) -> Bool 
 }
 
 ///|
+/// Cancellation is an attempt operation, not destination material release.
+/// A committed destination is reconciled as committed and remains available.
+pub(all) enum RemoteDirectCancelDecision {
+  DirectCancelPreCommit
+  DirectCancelAlreadyCommitted
+  DirectCancelTerminal
+  DirectCancelReconciliationRequired
+} derive(Eq, Debug)
+
+///|
+pub fn direct_cancel_decision(
+  record : RemoteTransferRecord,
+) -> RemoteDirectCancelDecision {
+  if record.request.route != DirectStream {
+    return DirectCancelReconciliationRequired
+  }
+  if record_is_destination_committed(record) {
+    return DirectCancelAlreadyCommitted
+  }
+  if direct_transfer_cleanup_confirmed(record) {
+    return DirectCancelTerminal
+  }
+  if record.cleanup == TransferCleanupActive &&
+    !record.destination_material_available &&
+    (
+      record.attempt == TransferAdmitted ||
+      record.attempt == TransferCopying ||
+      record.attempt == TransferFailed ||
+      record.attempt == TransferCancelled
+    ) {
+    return DirectCancelPreCommit
+  }
+  DirectCancelReconciliationRequired
+}
+
+///|
 pub(all) enum RemoteDirectTransferProgress {
   DirectTransferStart
   DirectTransferCopying

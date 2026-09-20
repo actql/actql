@@ -4,6 +4,7 @@ import {readFile, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash, X509Certificate} from 'node:crypto';
+import {request as httpsRequest} from 'node:https';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -101,7 +102,38 @@ async function contents(retained) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-async function startReceiver(material, destinationStore, journal) {
+async function receiverRequest(setup, {path, method = 'POST', headers, body}) {
+  return await new Promise((resolve, reject) => {
+    const target = new URL(path, setup.receiver.origin);
+    const request = httpsRequest(target, {
+      method,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      servername: 'localhost',
+      headers,
+    }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => resolve(Object.freeze({
+        status: response.statusCode,
+        body: Buffer.concat(chunks).toString('utf8'),
+      })));
+    });
+    request.once('error', reject);
+    request.end(body);
+  });
+}
+
+async function postCancel(setup, requestCid) {
+  return await receiverRequest(setup, {
+    path: `/v1/sites/destination-b/generations/2/transfers/` +
+      `${encodeURIComponent(requestCid)}/cancel`,
+    headers: {'content-length': '0'},
+  });
+}
+
+async function startReceiver(material, destinationStore, journal, authorize) {
   return await startHttpsDirectTransferReceiver({
     key: material.destinationKey,
     cert: material.destinationCertificate,
@@ -114,9 +146,9 @@ async function startReceiver(material, destinationStore, journal) {
     control,
     journal,
     store: destinationStore,
-    authorize: ({request, peer}) =>
+    authorize: authorize ?? (({request, peer}) =>
       peer.sourceSite === 'source-a' &&
-      control.requestProjection(request)[11] === cid('5'),
+      control.requestProjection(request)[11] === cid('5')),
     maxControlBytes: 32_768,
     maxManifestBytes: 8192,
     maxChunks: 8,
@@ -125,7 +157,7 @@ async function startReceiver(material, destinationStore, journal) {
   });
 }
 
-async function fixture(t) {
+async function fixture(t, {authorize} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-direct-transfer-'));
   const material = await certificates(root);
   const sourceStore = await createLocalRetainedStore({
@@ -149,7 +181,12 @@ async function fixture(t) {
     maxManifestBytes: 8192,
     maxReferencedBytes: 1024n,
   });
-  const receiver = await startReceiver(material, destinationStore, journal);
+  const receiver = await startReceiver(
+    material,
+    destinationStore,
+    journal,
+    authorize,
+  );
   t.after(async () => {
     try { await receiver.close(); }
     catch (error) {
@@ -312,6 +349,98 @@ test('live direct receiver reconciles a commit without source access',
     assert.equal(await setup.receiver.release(control.identity(request)), true);
     source.close();
     await setup.sourceStore.cleanup();
+    assert.equal(await setup.receiver.close(), true);
+  });
+
+test('cancel after direct commit preserves destination material', async t => {
+  const setup = await fixture(t);
+  const source = await body(setup.sourceStore, 'alpha');
+  const request = transferRequest(
+    ['alpha'],
+    BigInt(Date.now() + 60_000),
+  );
+  await sendHttpsDirectTransfer({
+    origin: setup.receiver.origin,
+    ca: setup.material.ca,
+    cert: setup.material.sourceCertificate,
+    key: setup.material.sourceKey,
+    control,
+    request,
+    sourceBodies: [source],
+  });
+  const requestCid = control.identity(request);
+  const cancelled = await postCancel(setup, requestCid);
+  assert.equal(cancelled.status, 200);
+  assert.deepEqual(
+    control.recordProjection(control.admitReplyJson(cancelled.body, request)),
+    [3, 2, 0, 1, 0, 1, 1, 1, 1],
+  );
+  const claimed = setup.receiver.claim(requestCid);
+  assert.equal(await contents(claimed.bodies[0]), 'alpha');
+  assert.equal(setup.destinationStore.status().reservedBytes, 5);
+  assert.equal(await setup.receiver.release(requestCid), true);
+  assert.equal(setup.destinationStore.status().reservedBytes, 0);
+  source.close();
+  await setup.sourceStore.cleanup();
+  assert.equal(await setup.receiver.close(), true);
+});
+
+test('cancel authorization rechecks a concurrently committed destination',
+  async t => {
+    let enterCancel;
+    let resumeCancel;
+    const cancelEntered = new Promise(resolve => { enterCancel = resolve; });
+    const cancelResume = new Promise(resolve => { resumeCancel = resolve; });
+    const setup = await fixture(t, {
+      async authorize({request, peer, phase}) {
+        if (phase === 'cancel') {
+          enterCancel();
+          await cancelResume;
+        }
+        return peer.sourceSite === 'source-a' &&
+          control.requestProjection(request)[11] === cid('5');
+      },
+    });
+    const request = transferRequest(
+      ['four'],
+      BigInt(Date.now() + 60_000),
+    );
+    const requestCid = control.identity(request);
+    const base = `/v1/sites/destination-b/generations/2/transfers/` +
+      encodeURIComponent(requestCid);
+    const envelope = Buffer.from(control.admissionEnvelopeJson(request));
+    const projection = control.requestProjection(request);
+    assert.equal((await receiverRequest(setup, {
+      path: '/v1/sites/destination-b/generations/2/transfers',
+      headers: {
+        'content-type': 'application/json',
+        'content-length': String(envelope.byteLength),
+        'actql-transfer-cid': requestCid,
+        'actql-manifest-cid': projection[7],
+      },
+      body: envelope,
+    })).status, 201);
+    assert.equal((await receiverRequest(setup, {
+      path: `${base}/chunks/0`,
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'content-length': '4',
+      },
+      body: Buffer.from('four'),
+    })).status, 200);
+    const cancelling = postCancel(setup, requestCid);
+    await cancelEntered;
+    assert.equal((await receiverRequest(setup, {
+      path: `${base}/commit`,
+      headers: {'content-length': '0'},
+    })).status, 200);
+    resumeCancel();
+    assert.equal((await cancelling).status, 200);
+    const claimed = setup.receiver.claim(requestCid);
+    assert.equal(await contents(claimed.bodies[0]), 'four');
+    assert.equal(setup.destinationStore.status().reservedBytes, 4);
+    assert.equal(await setup.receiver.release(requestCid), true);
     assert.equal(await setup.receiver.close(), true);
   });
 

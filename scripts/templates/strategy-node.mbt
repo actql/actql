@@ -6431,6 +6431,19 @@ pub fn strategy_remote_transfer_direct_cleanup_confirmed(
 }
 
 ///|
+#export_name("strategyRemoteTransferDirectCancelDecision")
+pub fn strategy_remote_transfer_direct_cancel_decision(
+  record : @transfer.RemoteTransferRecord,
+) -> Int {
+  match @transfer.direct_cancel_decision(record) {
+    @transfer.DirectCancelPreCommit => 0
+    @transfer.DirectCancelAlreadyCommitted => 1
+    @transfer.DirectCancelTerminal => 2
+    @transfer.DirectCancelReconciliationRequired => 3
+  }
+}
+
+///|
 #export_name("strategyRemoteTransferRecordRevision")
 pub fn strategy_remote_transfer_record_revision(
   record : @transfer.RemoteTransferRecord,
