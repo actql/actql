@@ -174,3 +174,107 @@ pub fn remote_transfer_store_upload_reply_projection(
     },
   ]
 }
+
+///|
+pub(all) enum RemoteTransferStoreUseReplyKind {
+  StoreUseAdmissionReply
+  StoreUseCompletionReply
+} derive(Eq, Debug)
+
+///|
+struct RemoteTransferStoreUseReply {
+  request_cid : String
+  use_id : String
+  is_complete : Bool
+}
+
+///|
+pub fn remote_transfer_store_use_reply_json(
+  request : RemoteTransferRequest,
+  use_id : String,
+  kind : RemoteTransferStoreUseReplyKind,
+  is_complete : Bool,
+) -> Result[String, RemoteTransferIssue] {
+  if request.route != TransferStore ||
+    !valid_request_fields(request) ||
+    use_id.is_empty() ||
+    use_id.length() > 256 ||
+    (kind == StoreUseCompletionReply && !is_complete) {
+    return Err(InvalidTransfer)
+  }
+  let writer = @encode.writer(4096, 8, 2) catch {
+    _ => return Err(InvalidTransfer)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "requestCid")
+    @encode.string_value(writer, request.request_cid)
+    @encode.key(writer, "useId")
+    @encode.string_value(writer, use_id)
+    @encode.key(writer, "complete")
+    @encode.bool_value(writer, is_complete)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(InvalidTransfer)
+  }
+}
+
+///|
+pub fn admit_remote_transfer_store_use_reply_json(
+  body : String,
+  request : RemoteTransferRequest,
+  use_id : String,
+  kind : RemoteTransferStoreUseReplyKind,
+) -> Result[RemoteTransferStoreUseReply, RemoteTransferIssue] {
+  try {
+    let node = match
+      @source.parse_json_bytes(@utf8.encode(body), {
+        max_input_bytes: 4096,
+        max_nodes: 8,
+        max_depth: 2,
+      }) {
+      Ok(value) => value
+      Err(_) => raise RemoteTransferStoreWireStop
+    }
+    let cursor = store_wire_decoded(
+      @decode.admit(node, {
+        max_nodes: 8,
+        max_depth: 2,
+        max_string_bytes: 1024,
+        max_total_string_bytes: 4096,
+      }),
+    )
+    let object = store_wire_decoded(
+      @decode.closed_object(cursor, ["complete", "requestCid", "useId"]),
+    )
+    let request_cid = store_wire_decoded(
+      @decode.text(store_wire_decoded(@decode.required(object, "requestCid"))),
+    )
+    let admitted_use_id = store_wire_decoded(
+      @decode.text(store_wire_decoded(@decode.required(object, "useId"))),
+    )
+    let is_complete = store_wire_decoded(
+      @decode.boolean(store_wire_decoded(@decode.required(object, "complete"))),
+    )
+    if request_cid != request.request_cid || admitted_use_id != use_id {
+      return Err(TransferIdentityMismatch)
+    }
+    let reply = { request_cid, use_id: admitted_use_id, is_complete, }
+    if remote_transfer_store_use_reply_json(request, use_id, kind, is_complete) ==
+      Ok(body) {
+      Ok(reply)
+    } else {
+      Err(InvalidTransfer)
+    }
+  } catch {
+    RemoteTransferStoreWireStop => Err(InvalidTransfer)
+  }
+}
+
+///|
+pub fn remote_transfer_store_use_reply_projection(
+  reply : RemoteTransferStoreUseReply,
+) -> Array[String] {
+  [reply.request_cid, reply.use_id, if reply.is_complete { "1" } else { "0" }]
+}

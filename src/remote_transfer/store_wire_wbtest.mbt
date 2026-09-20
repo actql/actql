@@ -86,3 +86,51 @@ test "Store upload replies reject route identity and shape changes" {
     is Err(InvalidTransfer),
   )
 }
+
+///|
+test "Store use replies bind the exact occurrence and completion" {
+  let request = transfer_request(TransferStore)
+  let admitted = remote_transfer_store_use_reply_json(
+    request,
+    "use-a",
+    StoreUseAdmissionReply,
+    false,
+  ).unwrap()
+  assert_eq(
+    remote_transfer_store_use_reply_projection(
+      admit_remote_transfer_store_use_reply_json(
+        admitted,
+        request,
+        "use-a",
+        StoreUseAdmissionReply,
+      ).unwrap(),
+    ),
+    [request_cid(request), "use-a", "0"],
+  )
+  let completed = remote_transfer_store_use_reply_json(
+    request,
+    "use-a",
+    StoreUseCompletionReply,
+    true,
+  ).unwrap()
+  assert_eq(
+    remote_transfer_store_use_reply_projection(
+      admit_remote_transfer_store_use_reply_json(
+        completed,
+        request,
+        "use-a",
+        StoreUseCompletionReply,
+      ).unwrap(),
+    ),
+    [request_cid(request), "use-a", "1"],
+  )
+  assert_true(
+    admit_remote_transfer_store_use_reply_json(
+      admitted,
+      request,
+      "use-b",
+      StoreUseAdmissionReply,
+    )
+    is Err(TransferIdentityMismatch),
+  )
+}

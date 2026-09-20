@@ -125,6 +125,7 @@ export async function startHttpsTransferObjectStore({
       typeof control.admitJson !== 'function' ||
       typeof control.admitAdmissionEnvelopeJson !== 'function' ||
       typeof control.storeUploadReplyJson !== 'function' ||
+      typeof control.storeUseReplyJson !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' ||
@@ -316,11 +317,12 @@ export async function startHttpsTransferObjectStore({
           );
           downloads.set(key, entry);
         }
-        reply(response, 200, {
-          requestCid: accepted.claimedRequestCid,
+        replyCanonical(response, 200, control.storeUseReplyJson(
+          accepted.admitted,
           useId,
-          complete: entry.complete,
-        });
+          'admission',
+          entry.complete,
+        ));
         return;
       }
 
@@ -527,7 +529,12 @@ export async function startHttpsTransferObjectStore({
             entry.receipt = receipt;
             entry.complete = true;
           }
-          reply(response, 200, {requestCid, useId, complete: true});
+          replyCanonical(response, 200, control.storeUseReplyJson(
+            entry.request,
+            useId,
+            'completion',
+            true,
+          ));
           return;
         }
         if (request.method === 'POST' && parts.length === 6 &&
@@ -844,6 +851,7 @@ export async function receiveHttpsTransferObject({
       typeof control.prepareDestinationReceipt !== 'function' ||
       typeof control.destinationReceiptJson !== 'function' ||
       typeof control.destinationReceiptIdentity !== 'function' ||
+      typeof control.admitStoreUseReplyJson !== 'function' ||
       destinationStore === null || typeof destinationStore !== 'object' ||
       typeof destinationStore.createPreparedObjectWriter !== 'function' ||
       typeof destinationStore.commitPhysicalHolding !== 'function' ||
@@ -865,7 +873,7 @@ export async function receiveHttpsTransferObject({
   const common = {origin, ca, cert, key, servername, signal,
     maxResponseBytes};
   const admission = envelope(control, request);
-  await send({
+  const admittedUse = await send({
     ...common,
     path: '/v1/transfer-store/downloads',
     method: 'POST',
@@ -875,6 +883,12 @@ export async function receiveHttpsTransferObject({
     },
     write(outgoing) { outgoing.end(admission); },
   });
+  control.admitStoreUseReplyJson(
+    responseWires.get(admittedUse),
+    request,
+    useId,
+    'admission',
+  );
   if (control.recordProjection(record)[5] === 0) {
     record = journal.advance(
       control.prepareSourceSettled(record, true, true),
@@ -947,7 +961,7 @@ export async function receiveHttpsTransferObject({
     control.destinationReceiptJson(receipt),
     'utf8',
   );
-  await send({
+  const completedUse = await send({
     ...common,
     path: `/v1/transfer-store/downloads/${encodeURIComponent(
       requestCid,
@@ -961,6 +975,12 @@ export async function receiveHttpsTransferObject({
     },
     write(outgoing) { outgoing.end(receiptJson); },
   });
+  control.admitStoreUseReplyJson(
+    responseWires.get(completedUse),
+    request,
+    useId,
+    'completion',
+  );
   if (control.recordProjection(record)[1] !== 2) {
     record = journal.advance(
       control.prepareDestinationCommit(record),

@@ -780,6 +780,12 @@ pub fn strategy_remote_transfer_store_use_record_projection(@remote_transfer.Rem
 
 pub fn strategy_remote_transfer_store_use_record_restore(@remote_transfer.RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure
 
+pub fn strategy_remote_transfer_store_use_reply_admit_json(String, @remote_transfer.RemoteTransferRequest, String, Int) -> @remote_transfer.RemoteTransferStoreUseReply raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_reply_json(@remote_transfer.RemoteTransferRequest, String, Int, Bool) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_reply_projection(@remote_transfer.RemoteTransferStoreUseReply) -> Array[String]
+
 pub fn strategy_remote_transfer_store_use_start_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
 
 pub fn strategy_remote_transfer_store_use_transition_commit(@remote_transfer.RemoteTransferStoreUseTransition, Bool) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure

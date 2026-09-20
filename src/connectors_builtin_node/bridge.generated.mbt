@@ -5226,6 +5226,65 @@ pub fn strategy_remote_transfer_store_upload_reply_projection(
 }
 
 ///|
+fn remote_transfer_store_use_reply_kind(
+  kind : Int,
+) -> @transfer.RemoteTransferStoreUseReplyKind raise NodeHostFailure {
+  match kind {
+    0 => @transfer.StoreUseAdmissionReply
+    1 => @transfer.StoreUseCompletionReply
+    _ => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseReplyJson")
+pub fn strategy_remote_transfer_store_use_reply_json(
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  kind : Int,
+  is_complete : Bool,
+) -> String raise NodeHostFailure {
+  match
+    @transfer.remote_transfer_store_use_reply_json(
+      request,
+      use_id,
+      remote_transfer_store_use_reply_kind(kind),
+      is_complete,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseReplyAdmitJson")
+pub fn strategy_remote_transfer_store_use_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  kind : Int,
+) -> @transfer.RemoteTransferStoreUseReply raise NodeHostFailure {
+  match
+    @transfer.admit_remote_transfer_store_use_reply_json(
+      body,
+      request,
+      use_id,
+      remote_transfer_store_use_reply_kind(kind),
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseReplyProjection")
+pub fn strategy_remote_transfer_store_use_reply_projection(
+  reply : @transfer.RemoteTransferStoreUseReply,
+) -> Array[String] {
+  @transfer.remote_transfer_store_use_reply_projection(reply)
+}
+
+///|
 #export_name("strategyRemoteTransferDestinationReceiptPrepare")
 pub fn strategy_remote_transfer_destination_receipt_prepare(
   request : @transfer.RemoteTransferRequest,
