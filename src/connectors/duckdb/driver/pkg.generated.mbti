@@ -63,6 +63,8 @@ pub fn[T] configure_managed_strategy_compute_host(@physical_strategy.CapturedDAG
 
 pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration, output_file_bytes? : Int64) -> StrategyComputeHostConfiguration
 
+pub fn configured_compute_limits(ComputeHostConfiguration) -> @compute.DuckDBComputeLimits
+
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @adapter.TransportColumnLimits
 
 pub fn[T] configured_managed_strategy_duration(ManagedStrategyComputeHostConfiguration[T]) -> Int64?

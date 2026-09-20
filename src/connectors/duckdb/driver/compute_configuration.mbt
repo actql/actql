@@ -42,6 +42,16 @@ pub fn configured_compute_transport(
 }
 
 ///|
+/// Portable limits selected with this exact Compute configuration. Physical
+/// Hosts may use them to bound native result streaming, but may not weaken
+/// them or reinterpret them as environment-specific admission.
+pub fn configured_compute_limits(
+  setup : ComputeHostConfiguration,
+) -> @compute.DuckDBComputeLimits {
+  setup.limits
+}
+
+///|
 struct StrategyComputeHostConfiguration {
   graph : @strategy.CapturedDAG
   task : Int

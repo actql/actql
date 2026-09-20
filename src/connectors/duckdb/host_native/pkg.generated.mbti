@@ -5,7 +5,10 @@ import {
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/adapters/native",
+  "actql/actql/connectors/duckdb/compute",
+  "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
+  "actql/actql/execution_relation",
   "moonbitlang/core/debug",
 }
 
@@ -14,11 +17,19 @@ pub fn bind_native_parameter(@native.Query, Int, @adapter.PhysicalParameter) -> 
 
 pub fn close_native_acquisition_runtime(NativeAcquisitionRuntime) -> Unit
 
+pub fn close_native_compute_runtime(NativeComputeRuntime) -> Unit
+
 pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
+
+pub fn execute_native_compute_runtime(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeFailure]
 
 pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
 
+pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
+
 pub fn start_native_acquisition_runtime(@host.NativeHostConfiguration, String, @native.Database) -> Result[NativeAcquisitionRuntime, @host.NativeHostIssue]
+
+pub fn start_native_compute_runtime(@driver.ComputeHostConfiguration, @native.Database, NativeComputeImportLimits) -> Result[NativeComputeRuntime, NativeComputeExecutionIssue]
 
 // Errors
 
@@ -41,6 +52,37 @@ pub(all) struct NativeAcquisitionFailure {
 }
 
 type NativeAcquisitionRuntime
+
+pub(all) enum NativeComputeExecutionIssue {
+  RuntimeState
+  InvalidLimits
+  ImportCount
+  ImportRows
+  ImportColumns
+  ImportCells
+  ParameterCount
+  Runtime(@native.NativeDuckDBIssue)
+  Parameter(NativeParameterBindingIssue)
+  Query(@adapter.NativeQueryIssue)
+  Fields(@adapter.PhysicalFieldsIssue)
+  Columns(@adapter.TransportColumnIssue)
+  Compute(@compute.DuckDBComputeIssue)
+}
+
+pub(all) struct NativeComputeFailure {
+  primary : NativeComputeExecutionIssue
+  rollback : @native.NativeDuckDBIssue?
+}
+
+pub(all) struct NativeComputeImportLimits {
+  max_rows : Int
+  max_cells : Int
+  max_parameters : Int
+  max_sql_bytes : Int
+  max_batch_rows : Int
+}
+
+type NativeComputeRuntime
 
 pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)

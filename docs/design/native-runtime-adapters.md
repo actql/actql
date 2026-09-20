@@ -60,8 +60,17 @@ Connector-owned physical projection as the Node Host and bind through the
 typed DuckDB C API without SQL interpolation. The native acquisition runner
 executes catalog validation, complete input validation, and the selected query
 inside one DuckDB transaction, then ends source access before asking the
-portable Host to commit its two-receipt observation. Fixed Compute and retained
-output storage remain separate standard-path migration steps.
+portable Host to commit its two-receipt observation.
+
+The native fixed-Compute runner consumes the exact candidate selected by the
+portable DuckDB driver. It bounds every input shape and compiles bounded batch
+inserts before starting the transaction, binds only Connector-admitted typed
+parameters, and streams physical result chunks into the existing portable
+Compute receiver. A committed DuckDB transaction is recorded as physical
+settlement, but only the exact portable attempt verifier can create common
+completion. A precommit failure rolls back and preserves the rollback outcome
+separately from the primary failure. Retained output storage and the standard
+strategy-dispatch connection remain later migration steps.
 
 Dynamic loading keeps the portable MoonBit packages and unrelated native tests
 independent of a locally installed DuckDB library. A packaged native Host must
