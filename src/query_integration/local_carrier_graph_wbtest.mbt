@@ -124,7 +124,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"match_nodes\":{\"where\":" +
     "\"node_name = 'second'\",\"fields\":[\"id\",\"node_name\"]}," +
     "\"as\":\"out\""
-  } else if variant == "match_edges" {
+  } else if variant == "match_edges" || variant == "edge_projection" {
     "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
     "\"weight\"]},\"as\":\"out\""
   } else if variant == "match_edges_predicate" {
@@ -146,10 +146,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "edge_projection" {
+    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if variant.has_prefix("match_edges") {
+  let result_fields = if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -161,7 +164,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if variant.has_prefix("match_edges") {
+  let second_fields = if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -1901,7 +1905,7 @@ fn graph_publication_obligations(
 fn graph_relation_publication_cid(variant : String) -> String {
   if variant == "graph_bounds" {
     "sha256:17d576d1679a19ebaa39babfe25c6922f65888c29781f7ea73b3f2af674b13c7"
-  } else if variant == "match_edges" {
+  } else if variant == "match_edges" || variant == "edge_projection" {
     "sha256:c60b5715592edabcbe32bd818f14c8d413b3717806662aa06c9e4eae57420932"
   } else if variant == "match_edges_predicate" {
     "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
@@ -2026,7 +2030,7 @@ fn run_standard_host_graph_relation_path(
     2
   }
   assert_eq(graph_rows.length(), expected_rows)
-  if variant == "match_edges" {
+  if variant == "match_edges" || variant == "edge_projection" {
     assert_true(graph_rows[0].contains("\"src\":1"))
     assert_true(graph_rows[1].contains("\"weight\":20"))
   } else if variant == "match_edges_predicate" {
@@ -2151,7 +2155,8 @@ fn run_standard_host_graph_relation_path(
 
 ///|
 test "standard Host runs bounded Graph relation paths with two consumers" {
-  run_standard_host_graph_relation_path("projection")
+  run_standard_host_graph_relation_path("projection", publication=true)
+  run_standard_host_graph_relation_path("edge_projection", publication=true)
   run_standard_host_graph_relation_path("normalize")
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")

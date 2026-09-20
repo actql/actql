@@ -1521,6 +1521,24 @@ async function exerciseStrategyGraph(
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
   const graphPublicationCases = [{
+    name: 'node-rows',
+    step: {from: 'g', node_rows: true, as: 'out'},
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  }, {
+    name: 'edge-rows',
+    step: {from: 'g', edge_rows: true, as: 'out'},
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [
+      {src: 1, dst: 2, weight: 10},
+      {src: 2, dst: 1, weight: 20},
+    ],
+  }, {
     name: 'normalize',
     steps: [{
       from: 'g', normalize_graph: true, as: 'normalized',
@@ -1877,6 +1895,22 @@ async function exerciseStrategyGraph(
     await rm(vectorPublicationDirectory, {recursive: true, force: true});
   }
   const graphCancellationCases = [{
+    name: 'node-rows',
+    rows: 100,
+    advanceQuantum: 16,
+    cancelAtBridgeStart: true,
+    constructionProgress: 100,
+    step: {from: 'g', node_rows: true, as: 'out'},
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'edge-rows',
+    rows: 100,
+    advanceQuantum: 16,
+    cancelAtBridgeStart: true,
+    constructionProgress: 100,
+    step: {from: 'g', edge_rows: true, as: 'out'},
+    fields: ['src', 'dst', 'weight'],
+  }, {
     name: 'normalize',
     rows: 40,
     steps: [{
@@ -2086,13 +2120,24 @@ async function exerciseStrategyGraph(
                   };
                 }
                 return quantum => {
-                  const result = operation.advance(quantum);
+                  const selectedQuantum = cancellationCase.advanceQuantum ??
+                    quantum;
+                  const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
                   advanceObservations.push({start, observation});
                   if (observation?.complete === false &&
                       !constructionComplete) {
                     constructionProgress += observation.progress;
-                    constructionComplete = constructionProgress === 80n;
+                    constructionComplete = constructionProgress ===
+                      BigInt(cancellationCase.constructionProgress ??
+                        cancellationCase.rows * 2);
+                    if (constructionComplete &&
+                        cancellationCase.cancelAtBridgeStart &&
+                        !cancellationScheduled) {
+                      sawOperationWork = true;
+                      cancellationScheduled = true;
+                      setTimeout(() => graphCancellation.abort(), 0);
+                    }
                   } else if (!cancellationCase.cancelDuringFinalization &&
                       constructionComplete &&
                       observation?.complete === false &&
@@ -2124,7 +2169,8 @@ async function exerciseStrategyGraph(
       assert.equal(managedStarts, 2);
       assert.equal(
         constructionProgress,
-        BigInt(cancellationCase.rows * 2),
+        BigInt(cancellationCase.constructionProgress ??
+          cancellationCase.rows * 2),
         JSON.stringify(advanceObservations, (_, value) =>
           typeof value === 'bigint' ? value.toString() : value),
       );
