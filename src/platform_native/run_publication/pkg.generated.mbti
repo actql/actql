@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/run_publication"
 
 import {
+  "actql/actql/physical_strategy",
   "actql/actql/platform_native/publication_store",
   "actql/actql/publication_payload",
   "actql/actql/run_publication_host",
@@ -18,6 +19,8 @@ pub fn install_native_run_publication_service(@publication_store.Store, NativeRu
 
 pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
+pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy.CapturedDAG, NativeEffectFreeRunContext, Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
+
 pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @actql/actql/run_publication.PublicationContract, Array[@actql/actql/run_publication.PublicationContract], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
 
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
@@ -25,6 +28,40 @@ pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectF
 // Errors
 
 // Types and methods
+pub(all) struct NativeCapturedResultPublicationContext {
+  retention : @actql/actql/run_publication.PublicationContract
+  computation_contract_cid : String
+  input_relation_cids : Array[String]
+  scope_cid : String
+  effective_data_policy_cid : String
+  store_authority_cid : String
+  material_generation_cid : String
+  max_payload_bytes : Int64
+}
+
+pub(all) struct NativeCapturedRunCleanupFailure {
+  result : Int
+  issue : @publication_store.NativePublicationStoreIssue
+}
+
+pub(all) enum NativeCapturedRunPublicationCancellationIssue {
+  PublicationCommitted
+  Cleanup(Array[NativeCapturedRunCleanupFailure])
+}
+
+pub(all) enum NativeCapturedRunPublicationPreparationIssue {
+  Prepare(NativeCapturedRunPublicationPrimaryIssue)
+  PrepareCleanup(NativeCapturedRunPublicationPrimaryIssue, Array[NativeCapturedRunCleanupFailure])
+}
+
+pub(all) enum NativeCapturedRunPublicationPrimaryIssue {
+  InvalidCapturedRun
+  Export(@run_publication_host.PublicationOutputExportIssue)
+  Publication(NativeRunPublicationIssue)
+  Output(Int, NativePublicationOutputIssue)
+  Assembly(NativeRunPublicationAssemblyIssue)
+}
+
 pub(all) struct NativeEffectFreePublicationEvidence {
   run_definition : @actql/actql/run_publication.PublicationContract
   invocation : @actql/actql/run_publication.PublicationContract
@@ -54,6 +91,10 @@ pub(all) struct NativeEffectFreeRunContext {
   source_advances : Array[@actql/actql/run_publication.PendingSourceStateAdvance]
   authoring : @actql/actql/run_publication.RunEvidenceValue
 }
+
+type NativePreparedCapturedRunPublication
+pub fn NativePreparedCapturedRunPublication::cancel(Self) -> Result[Bool, NativeCapturedRunPublicationCancellationIssue]
+pub fn NativePreparedCapturedRunPublication::commit(Self) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
 pub(all) struct NativePublicationOutputContext {
   run_definition : @actql/actql/run_publication.PublicationContract

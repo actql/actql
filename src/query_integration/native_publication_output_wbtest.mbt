@@ -58,77 +58,10 @@ fn native_publication_export_limits() -> @publication_host.PublicationOutputExpo
 }
 
 ///|
-fn native_publication_store_failure(
-  issue : @native_publication_store.NativePublicationStoreIssue,
-) -> String {
-  match issue {
-    @native_publication_store.UnsupportedTarget => "unsupported target"
-    @native_publication_store.Closed => "closed"
-    @native_publication_store.InvalidConfiguration => "invalid configuration"
-    @native_publication_store.Protocol(_) => "payload protocol"
-    @native_publication_store.Filesystem(_) => "filesystem"
-    @native_publication_store.Database(_) => "database"
-    @native_publication_store.StateCollision => "state collision"
-    @native_publication_store.RecoveryRequired => "recovery required"
-    @native_publication_store.ExistingPayload => "existing payload"
-    @native_publication_store.DigestMismatch => "digest mismatch"
-    @native_publication_store.Delivery(_) => "delivery"
-    @native_publication_store.RowFrame(_) => "row frame"
-    @native_publication_store.SinkProgress(_) => "sink progress"
-    @native_publication_store.DeliveryIssuance(_) => "delivery issuance"
-    @native_publication_store.DeliveryGrantUsage(_) => "grant usage"
-    @native_publication_store.PublicationCommit(issue) =>
-      "publication commit " + native_publication_commit_failure(issue)
-    @native_publication_store.PublicationCommitIssuance(_) =>
-      "publication commit issuance"
-    @native_publication_store.PublicationCommitConflict => "commit conflict"
-    @native_publication_store.ClockRegression => "clock regression"
-    @native_publication_store.DeliveryLimit => "delivery limit"
-    @native_publication_store.DeliveryIncomplete => "delivery incomplete"
-    @native_publication_store.CleanupPending => "cleanup pending"
-    @native_publication_store.ReaderBusy => "reader busy"
-    @native_publication_store.ExistingDeliveryAttempt =>
-      "existing delivery attempt"
-    @native_publication_store.DeliveryAttemptUnresolved =>
-      "delivery attempt unresolved"
-  }
-}
-
-///|
-fn native_publication_commit_failure(
-  issue : @publication.PublicationCommitIssue,
-) -> String {
-  match issue {
-    @publication.CommitEvidence(_) => "evidence chain"
-    @publication.CommitResultEvidence(value) =>
-      "result evidence " + native_result_evidence_failure(value)
-    @publication.CommitWrongContract(name) => "wrong contract " + name
-    @publication.CommitReferenceMismatch(field) => "reference mismatch " + field
-    @publication.CommitInventoryMismatch => "inventory mismatch"
-    @publication.CommitEncoding => "encoding"
-  }
-}
-
-///|
-fn native_result_evidence_failure(
-  issue : @publication.ResultEvidenceSetIssue,
-) -> String {
-  match issue {
-    @publication.ResultEvidenceCount => "count"
-    @publication.ResultEvidenceMissingDefinition => "missing definition"
-    @publication.ResultEvidenceMissingDerivation => "missing derivation"
-    @publication.ResultEvidenceMissingOrdering => "missing ordering"
-    @publication.ResultEvidenceMissingRetention => "missing retention"
-    @publication.ResultEvidenceDuplicate => "duplicate"
-    @publication.ResultEvidenceArtifact(_) => "artifact"
-    @publication.ResultEvidenceOrdering(_) => "ordering"
-  }
-}
-
-///|
-fn execute_native_publication_local_run() -> (
+fn prepare_native_publication_local_run() -> (
   @strategy.CapturedDAG,
   @native_host.NativeStandardStrategyRun,
+  @mock.MockQueryIssuer,
 ) raise {
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
@@ -147,20 +80,17 @@ fn execute_native_publication_local_run() -> (
     100000L,
     1000000L,
   ).unwrap()
-  @native_host.execute_native_standard_strategy_run(runtime_owner).unwrap()
-  assert_true(@native_host.native_standard_strategy_run_complete(runtime_owner))
-  assert_eq(
-    @native_host.native_standard_strategy_run_task_count(runtime_owner),
-    0,
-  )
-  @mock.close_mock_query_issuer(issuer)
-  (run, runtime_owner)
+  (run, runtime_owner, issuer)
 }
 
 ///|
-fn execute_native_publication_duckdb_run(
+fn prepare_native_publication_duckdb_run(
   library_path : String,
-) -> (@strategy.CapturedDAG, @native_host.NativeStandardStrategyRun) raise {
+) -> (
+  @strategy.CapturedDAG,
+  @native_host.NativeStandardStrategyRun,
+  @mock.MockQueryIssuer,
+) raise {
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let registration = @connector.capability_registration_at(registry, 1).unwrap()
@@ -208,14 +138,7 @@ fn execute_native_publication_duckdb_run(
     1000000L,
     library=Some(library),
   ).unwrap()
-  @native_host.execute_native_standard_strategy_run(runtime_owner).unwrap()
-  assert_true(@native_host.native_standard_strategy_run_complete(runtime_owner))
-  assert_eq(
-    @native_host.native_standard_strategy_run_task_count(runtime_owner),
-    3,
-  )
-  @mock.close_mock_query_issuer(issuer)
-  (run, runtime_owner)
+  (run, runtime_owner, issuer)
 }
 
 ///|
@@ -425,14 +348,10 @@ fn verify_native_publication_run(
   sqlite_library_path : String,
   root : String,
   strategy_runtime_owner : @native_host.NativeStandardStrategyRun,
+  query_issuer : @mock.MockQueryIssuer,
+  expected_runtime_tasks : Int,
 ) -> Unit raise {
   let graph = @strategy.captured_dag_graph(run)
-  let exports = @publication_host.prepare_all_captured_result_publication_exports(
-    run,
-    native_publication_export_limits(),
-  ).unwrap()
-  assert_eq(exports.length(), @strategy.graph_result_count(graph))
-  let definitions = exports.map(output => output.definition().unwrap())
   let (run_context, retentions, intent, occurrence) = native_publication_run_context(
     @strategy.graph_program_definition_cid(graph),
     token,
@@ -451,125 +370,46 @@ fn verify_native_publication_run(
   let service = @native_run_publication.install_native_run_publication_service(
     store, publication_authority, 65536, 4096, 32,
   ).unwrap()
-  let preparation = @native_run_publication.prepare_effect_free_run_publication_native(
-    service,
-    run_context.run_definition,
-    definitions,
-    intent,
-    occurrence,
-  ).unwrap()
-  let attempt = preparation.publication_attempt()
-  let published : Array[@native_run_publication.NativePublishedOutput] = []
-  for index, output in exports {
-    published.push(
-      @native_run_publication.persist_publication_output_native(
-        store,
-        output,
-        {
-          run_definition: run_context.run_definition,
-          invocation: run_context.invocation,
-          retention: retentions[index],
-          publication_attempt: attempt,
-          computation_contract_cid: native_publication_cid(
-            token + "-compute-" + index.to_string(),
-          ),
-          input_relation_cids: [],
-          scope_cid: native_publication_cid(
-            token + "-scope-" + index.to_string(),
-          ),
-          effective_data_policy_cid: native_publication_cid(
-            token + "-data-policy",
-          ),
-          authority_scope_cid: intent.authority_scope_cid,
-          store_authority_cid: authority,
-          material_generation_cid: native_publication_cid(
-            token + "-material-" + index.to_string(),
-          ),
-          max_payload_bytes: 10000L,
-        },
-        65536,
-        4096,
-        32,
-      ).unwrap(),
-    )
-  }
-  assert_eq(published.length(), 2)
-  for output in published {
-    assert_eq(
-      output.payload.publication_attempt_cid,
-      @publication.publication_contract_identity(attempt),
-    )
-  }
-  let capacity_before_rejection = store.capacity_usage().unwrap()
-  let oversized = @publication_host.prepare_captured_result_publication_export(
-    run,
-    1,
-    native_publication_export_limits(),
-  ).unwrap()
-  assert_true(
-    @native_run_publication.persist_publication_output_native(
-      store,
-      oversized,
-      {
-        run_definition: run_context.run_definition,
-        invocation: run_context.invocation,
-        retention: retentions[1],
-        publication_attempt: attempt,
-        computation_contract_cid: native_publication_cid(
-          token + "-oversized-compute",
-        ),
-        input_relation_cids: [],
-        scope_cid: native_publication_cid(token + "-oversized-scope"),
-        effective_data_policy_cid: native_publication_cid(
-          token + "-data-policy",
-        ),
-        authority_scope_cid: intent.authority_scope_cid,
-        store_authority_cid: authority,
-        material_generation_cid: native_publication_cid(
-          token + "-oversized-material",
-        ),
-        max_payload_bytes: 1L,
-      },
-      65536,
-      4096,
-      32,
-    )
-    is Err(@native_run_publication.InvalidOutputConfiguration),
-  )
-  let capacity_after_rejection = store.capacity_usage().unwrap()
-  assert_eq(
-    capacity_after_rejection.reserved_bytes,
-    capacity_before_rejection.reserved_bytes,
-  )
-  assert_eq(
-    capacity_after_rejection.reserved_objects,
-    capacity_before_rejection.reserved_objects,
-  )
-  let evidence = @native_run_publication.assemble_native_effect_free_publication(
-    run_context, published, 65536, 4096, 32,
-  ).unwrap()
+  let result_contexts : Array[
+    @native_run_publication.NativeCapturedResultPublicationContext,
+  ] = Array::makei(@strategy.graph_result_count(graph), index => {
+    retention: retentions[index],
+    computation_contract_cid: native_publication_cid(
+      token + "-compute-" + index.to_string(),
+    ),
+    input_relation_cids: [],
+    scope_cid: native_publication_cid(token + "-scope-" + index.to_string()),
+    effective_data_policy_cid: native_publication_cid(token + "-data-policy"),
+    store_authority_cid: authority,
+    material_generation_cid: native_publication_cid(
+      token + "-material-" + index.to_string(),
+    ),
+    max_payload_bytes: 10000L,
+  })
   let committed = match
-    @native_run_publication.commit_prepared_effect_free_run_publication_native(
-      service, evidence, intent, occurrence, preparation,
+    @native_host.execute_and_publish_native_standard_strategy_run(
+      strategy_runtime_owner,
+      service,
+      run_context,
+      result_contexts,
+      intent,
+      occurrence,
+      native_publication_export_limits(),
     ) {
     Ok(value) => value
-    Err(@native_run_publication.InvalidConfiguration) =>
-      abort("publication invalid configuration")
-    Err(@native_run_publication.AccessDenied) =>
-      abort("publication access denied")
-    Err(@native_run_publication.CommitConflict) =>
-      abort("publication commit conflict")
-    Err(@native_run_publication.Store(issue)) =>
-      abort(
-        "publication Store failure: " + native_publication_store_failure(issue),
-      )
-    Err(@native_run_publication.Issuance(_)) =>
-      abort("publication issuance failure")
-    Err(@native_run_publication.Commit(_)) => abort("publication chain failure")
-    Err(@native_run_publication.Projection(_)) =>
-      abort("publication projection failure")
+    Err(@native_host.Strategy(_)) => abort("standard strategy failure")
+    Err(@native_host.Preparation(_)) => abort("publication preparation failure")
+    Err(@native_host.Publication(_, _)) => abort("publication commit failure")
   }
   assert_true(committed.committed)
+  assert_true(
+    @native_host.native_standard_strategy_run_complete(strategy_runtime_owner),
+  )
+  assert_eq(
+    @native_host.native_standard_strategy_run_task_count(strategy_runtime_owner),
+    expected_runtime_tasks,
+  )
+  @mock.close_mock_query_issuer(query_issuer)
   assert_true(store.close().unwrap())
   let reopened = @native_publication_store.open_store(
     library, root, authority, 1048576L, 16L, 65536L,
@@ -663,9 +503,9 @@ test "standard Local output reaches the durable native publication commit" {
     return
   }
   let token = "local-publication-" + @env.now().to_string()
-  let (run, runtime_owner) = execute_native_publication_local_run()
+  let (run, runtime_owner, query_issuer) = prepare_native_publication_local_run()
   verify_native_publication_run(
-    run, token, sqlite_library_path, root, runtime_owner,
+    run, token, sqlite_library_path, root, runtime_owner, query_issuer, 0,
   )
 }
 
@@ -683,10 +523,10 @@ test "standard DuckDB output reaches the durable native publication commit" {
     return
   }
   let token = "duckdb-publication-" + @env.now().to_string()
-  let (run, runtime_owner) = execute_native_publication_duckdb_run(
+  let (run, runtime_owner, query_issuer) = prepare_native_publication_duckdb_run(
     duckdb_library_path,
   )
   verify_native_publication_run(
-    run, token, sqlite_library_path, root, runtime_owner,
+    run, token, sqlite_library_path, root, runtime_owner, query_issuer, 3,
   )
 }

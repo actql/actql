@@ -12,6 +12,8 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_resources" @resources,
   "actql/actql/physical_strategy" @strategy,
+  "actql/actql/platform_native/run_publication" @native_publication,
+  "actql/actql/run_publication_host" @publication_host,
 }
 
 import {

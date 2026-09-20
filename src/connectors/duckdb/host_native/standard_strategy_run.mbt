@@ -27,6 +27,19 @@ pub(all) enum NativeStandardStrategyRunIssue {
 }
 
 ///|
+/// Failures from the standard native application boundary. A publication
+/// commit failure returns the exact prepared owner so the caller can retry or
+/// cancel without re-executing the Program.
+pub(all) enum NativeStandardRunPublicationIssue {
+  Strategy(NativeStandardStrategyRunIssue)
+  Preparation(@native_publication.NativeCapturedRunPublicationPreparationIssue)
+  Publication(
+    @native_publication.NativePreparedCapturedRunPublication,
+    @native_publication.NativeRunPublicationIssue
+  )
+}
+
+///|
 pub fn open_native_standard_strategy_run(
   dispatch : @duckdb_standard_host.StrategyHostDispatch,
   import_limits : NativeComputeImportLimits,
@@ -153,6 +166,42 @@ pub fn execute_native_standard_strategy_run(
     }
   } nobreak {
     Err(InvalidSelection)
+  }
+}
+
+///|
+/// Execute the configured checked Program, persist every declared Named
+/// Result, and commit the formal Run publication. Connector selection remains
+/// in the portable Host, while all publication progression remains in the
+/// portable publication owner. The retained strategy owner stays live until
+/// the caller explicitly closes it after downstream use.
+pub fn execute_and_publish_native_standard_strategy_run(
+  run : NativeStandardStrategyRun,
+  service : @native_publication.NativeRunPublicationService,
+  context : @native_publication.NativeEffectFreeRunContext,
+  results : Array[@native_publication.NativeCapturedResultPublicationContext],
+  intent : @native_publication.NativeRunPublicationIntent,
+  occurrence : @native_publication.NativeRunPublicationOccurrence,
+  export_limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[
+  @native_publication.NativeRunPublicationResult,
+  NativeStandardRunPublicationIssue,
+] {
+  match execute_native_standard_strategy_run(run) {
+    Ok(_) => ()
+    Err(issue) => return Err(Strategy(issue))
+  }
+  let captured = @duckdb_standard_host.dispatch_run(run.dispatch)
+  let prepared = match
+    @native_publication.prepare_captured_effect_free_run_publication_native(
+      service, captured, context, results, intent, occurrence, export_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preparation(issue))
+  }
+  match prepared.commit() {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Publication(prepared, issue))
   }
 }
 

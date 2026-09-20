@@ -12,6 +12,8 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/platform_native/run_publication",
+  "actql/actql/run_publication_host",
   "moonbitlang/core/debug",
 }
 
@@ -27,6 +29,8 @@ pub fn close_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[B
 pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn execute_and_publish_native_standard_strategy_run(NativeStandardStrategyRun, @run_publication.NativeRunPublicationService, @run_publication.NativeEffectFreeRunContext, Array[@run_publication.NativeCapturedResultPublicationContext], @run_publication.NativeRunPublicationIntent, @run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication.NativeRunPublicationResult, NativeStandardRunPublicationIssue]
 
 pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
 
@@ -117,6 +121,12 @@ pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@native.NativeDuckDBIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum NativeStandardRunPublicationIssue {
+  Strategy(NativeStandardStrategyRunIssue)
+  Preparation(@run_publication.NativeCapturedRunPublicationPreparationIssue)
+  Publication(@run_publication.NativePreparedCapturedRunPublication, @run_publication.NativeRunPublicationIssue)
+}
 
 type NativeStandardStrategyRun
 
