@@ -108,6 +108,10 @@ test "managed completion requires execution verification and exact output rather
         let another = complete_managed_output(another_port, ()).unwrap()
         assert_false(managed_completed_same_occurrence(output, another))
         assert_false(managed_completed_reference_matches(reference, another))
+        assert_true(revoke_unpublished_managed_completed_output(another))
+        assert_false(revoke_unpublished_managed_completed_output(another))
+        assert_false(managed_completed_output_available(another))
+        assert_true(managed_completed_output_available(output))
         assert_eq(
           managed_completed_profile_cid(output),
           managed_execution_profile_cid(profile),

@@ -520,6 +520,66 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
   ]);
 });
 
+test('bounded Local validates terminal execution and finalization reports',
+  async () => {
+    const reports = [
+      {complete: true, progress: 0n, work: 257n},
+      {complete: true, progress: -1n, work: 0n},
+      {complete: true, progress: 0n, work: -1n},
+      {complete: true, progress: 0n, work: 1},
+      {complete: true, work: 0n},
+    ];
+    const runMalformed = async (report, finalization) => {
+      const setup = {}, registration = {}, configuration = {};
+      let cancelled = false;
+      const operations = {
+        inputs: [],
+        advance: () => finalization
+          ? ok({complete: true, progress: 0n, work: 0n})
+          : ok(report),
+        prepare_finalization: () => ok(),
+        advance_finalization: () => ok(report),
+        request_cancel() { cancelled = true; return true; },
+        execution_stopped: () => cancelled,
+        settle: () => ok(),
+        complete: () => assert.fail('invalid report reached completion'),
+        close() {},
+        cleanup_refresh: () => true,
+        carrier_material: () => undefined,
+        material: () => undefined,
+        storage_bytes: 0n,
+      };
+      const entry = localStrategyContribution({
+        strategyModule_local_Registration: () => registration,
+        strategyHostRegistrationSelectionKey: () => 'local-invalid-report',
+        strategyHostNextTask: () => 1,
+        strategyHostManagedProducers: () => [],
+        strategyHostManagedInputCount: () => 0,
+        strategyHostManagedRequiresLogicalIdentity: () => ok(false),
+        strategyHostReleasableManagedProducers: () => [],
+        strategyModule_local_ManagedDispatch: () => ok(configuration),
+        strategyModule_local_ManagedDuration: () => 1n,
+        strategyModule_local_ManagedCapacity: () => [0n, 0n],
+        strategyModule_local_ManagedStart: () => ok(operations),
+      }, setup, checked);
+      const prepared = await entry.prepareNext(new Map());
+      return entry.runPrepared(prepared).then(
+        () => assert.fail('invalid terminal report was accepted'),
+        error => error,
+      );
+    };
+    for (const report of reports) {
+      assert.equal(
+        (await runMalformed(report, false)).message,
+        'InvalidLocalManagedAdvance',
+      );
+      assert.equal(
+        (await runMalformed(report, true)).message,
+        'InvalidLocalManagedFinalizationAdvance',
+      );
+    }
+  });
+
 test('standard Host runs Local with mixed memory and provider inputs',
   async () => {
     for (const memoryFirst of [true, false]) {

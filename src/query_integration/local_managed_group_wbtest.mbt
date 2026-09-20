@@ -8,6 +8,7 @@ fn run_local_managed_test_task(
   payload : Int,
   available : Ref[Bool],
   obligations? : @execution.ManagedObligations,
+  finalization_quantum? : Int = 16,
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -203,8 +204,16 @@ fn run_local_managed_test_task(
   (operations.prepare_finalization)(payload, operations.storage_bytes, fn() {
     available.val
   }).unwrap()
+  let mut finalization_progress = -1L
   while true {
-    let observation = (operations.advance_finalization)(16).unwrap()
+    let observation = (operations.advance_finalization)(finalization_quantum).unwrap()
+    assert_true(observation.progress >= finalization_progress)
+    assert_true(observation.work >= 0L)
+    assert_true(observation.work <= finalization_quantum.to_int64())
+    if !observation.complete {
+      assert_true(observation.work > 0L)
+    }
+    finalization_progress = observation.progress
     if observation.complete {
       break
     }

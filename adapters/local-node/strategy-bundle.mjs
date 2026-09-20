@@ -14,6 +14,18 @@ const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
 const managedWorkQuantum = 256;
 const managedFinalizationQuantum = 32;
 
+const validateManagedAdvance = (observation, quantum, errorName) => {
+  if (observation == null || typeof observation !== 'object' ||
+      typeof observation.complete !== 'boolean' ||
+      typeof observation.progress !== 'bigint' ||
+      typeof observation.work !== 'bigint' || observation.progress < 0n ||
+      observation.work < 0n || observation.work > BigInt(quantum) ||
+      (!observation.complete && observation.work === 0n)) {
+    throw new Error(errorName);
+  }
+  return observation;
+};
+
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
@@ -41,15 +53,12 @@ const runManagedExecution = async (operations, checked, signal) => {
       stopBoundedExecution(operations, checked);
       signal.throwIfAborted();
     }
-    const observation = checked(operations.advance(managedWorkQuantum));
-    if (observation?.complete === true) return;
-    if (observation == null || observation.complete !== false ||
-        typeof observation.progress !== 'bigint' ||
-        typeof observation.work !== 'bigint' || observation.progress < 0n ||
-        observation.work <= 0n ||
-        observation.work > BigInt(managedWorkQuantum)) {
-      throw new Error('InvalidLocalManagedAdvance');
-    }
+    const observation = validateManagedAdvance(
+      checked(operations.advance(managedWorkQuantum)),
+      managedWorkQuantum,
+      'InvalidLocalManagedAdvance',
+    );
+    if (observation.complete) return;
     await yieldToHost();
   }
 };
@@ -68,17 +77,12 @@ const runManagedFinalization = async (
       stopBoundedExecution(operations, checked);
       signal.throwIfAborted();
     }
-    const observation = checked(
-      operations.advance_finalization(managedFinalizationQuantum),
+    const observation = validateManagedAdvance(
+      checked(operations.advance_finalization(managedFinalizationQuantum)),
+      managedFinalizationQuantum,
+      'InvalidLocalManagedFinalizationAdvance',
     );
-    if (observation?.complete === true) break;
-    if (observation == null || observation.complete !== false ||
-        typeof observation.progress !== 'bigint' ||
-        typeof observation.work !== 'bigint' || observation.progress < 0n ||
-        observation.work <= 0n ||
-        observation.work > BigInt(managedFinalizationQuantum)) {
-      throw new Error('InvalidLocalManagedFinalizationAdvance');
-    }
+    if (observation.complete) break;
     await yieldToHost();
   }
   signal?.throwIfAborted();

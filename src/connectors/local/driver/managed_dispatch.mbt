@@ -429,6 +429,9 @@ pub fn[T] start_local_managed_dispatch(
   let finalization_cancelled = Ref(false)
   let finalization_row = Ref(0)
   let finalization_identity = Ref(0)
+  let finalization_issuer = Ref(0)
+  let finalization_established = Ref(0)
+  let finalization_deadline = Ref(0)
   let finalization_work_remaining = Ref(setup.execution.max_work)
   let finalization_payload : Ref[T?] = Ref(None)
   let finalization_available : Ref[(() -> Bool)?] = Ref(None)
@@ -453,11 +456,28 @@ pub fn[T] start_local_managed_dispatch(
     identity_requirements.length(),
     None,
   )
+  let finalization_issuers : Array[@execution.ManagedIdentityIssuer[T]] = []
   let finalization_completed : Ref[@execution.ManagedCompletedOutput[T]?] = Ref(
     None,
   )
+  let finalization_completion_preparation = @execution.generated_completion_preparation(
+    setup.sequence,
+  )
+  let finalization_progress = fn() -> Int64 {
+    (finalization_row.val +
+    (if finalization_material.val is Some(_) { 1 } else { 0 }) +
+    finalization_identity.val +
+    finalization_issuer.val +
+    (if finalization_completed.val is Some(_) { 1 } else { 0 }) +
+    finalization_established.val +
+    finalization_deadline.val).to_int64()
+  }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
+    if finalization_completed.val is Some(completed) && !finalization_ready.val {
+      @execution.revoke_unpublished_managed_completed_output(completed)
+      |> ignore
+    }
     if finalization_values.val is Some(values) {
       @execution.cancel_managed_output_values(values) |> ignore
     }
@@ -909,7 +929,7 @@ pub fn[T] start_local_managed_dispatch(
       if work == quantum {
         return Ok({
           complete: false,
-          progress: finalization_row.val.to_int64(),
+          progress: finalization_progress(),
           work: work.to_int64(),
         })
       }
@@ -939,6 +959,13 @@ pub fn[T] start_local_managed_dispatch(
         finalization_material.val = Some(material)
         finalization_work_remaining.val -= 1
         work += 1
+      }
+      if work == quantum {
+        return Ok({
+          complete: false,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
       }
       while work < quantum &&
             finalization_identity.val < identity_requirements.length() {
@@ -1011,7 +1038,7 @@ pub fn[T] start_local_managed_dispatch(
               if !ready {
                 return Ok({
                   complete: false,
-                  progress: (finalization_row.val + finalization_identity.val).to_int64(),
+                  progress: finalization_progress(),
                   work: work.to_int64(),
                 })
               }
@@ -1084,21 +1111,20 @@ pub fn[T] start_local_managed_dispatch(
       if finalization_identity.val < identity_requirements.length() {
         return Ok({
           complete: false,
-          progress: (finalization_row.val + finalization_identity.val).to_int64(),
+          progress: finalization_progress(),
           work: work.to_int64(),
         })
       }
       guard finalization_material.val is Some(material) else {
         return Err(Configuration(InvalidLimits))
       }
-      if finalization_work_remaining.val < 1 {
-        return Err(Configuration(InvalidLimits))
-      }
-      let identity_issuers = []
-      let completion_preparation = @execution.generated_completion_preparation(
-        setup.sequence,
-      )
-      for index, requirement in identity_requirements {
+      while work < quantum &&
+            finalization_issuer.val < identity_requirements.length() {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        let index = finalization_issuer.val
+        let requirement = identity_requirements[index]
         let canonical_contract_cid = match requirement.domain {
           @execution.OrderedRows =>
             @execution.ordered_rows_canonical_contract_cid()
@@ -1118,7 +1144,7 @@ pub fn[T] start_local_managed_dispatch(
         }
         let permit = match
           @execution.authorize_managed_identity_execution_attempt(
-            capability, execution_attempt, completion_preparation, requirement,
+            capability, execution_attempt, finalization_completion_preparation, requirement,
           ) {
           Ok(value) => value
           Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
@@ -1137,36 +1163,70 @@ pub fn[T] start_local_managed_dispatch(
           Ok(value) => value
           Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
         }
-        identity_issuers.push(issuer)
+        finalization_issuers.push(issuer)
+        finalization_issuer.val += 1
+        finalization_work_remaining.val -= 1
+        work += 1
       }
-      let completion = match
-        @execution.prepare_managed_completion_port(
-          @execution.selected_managed_execution_profile(),
-          completion_preparation,
-          target,
-          setup.imports.wire.max_nodes,
-          setup.imports.wire.max_bytes,
-          fn(candidate : @execution.ManagedRetainedOutput[T]) {
-            if physical_equal(candidate, material) {
-              Some(material)
-            } else {
-              None
-            }
-          },
-          common_inputs=setup.completion_inputs,
-          obligations~,
-          identity_issuers~,
-          attempt=execution_attempt,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(ManagedCompletion(issue))
+      if finalization_issuer.val < identity_requirements.length() ||
+        work == quantum {
+        return Ok({
+          complete: false,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
       }
-      let completed = match
-        @execution.complete_managed_output(completion, material) {
-        Ok(value) => value
-        Err(_) => return Err(Configuration(InvalidLimits))
+      if finalization_completed.val is None {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        let completion = match
+          @execution.prepare_managed_completion_port(
+            @execution.selected_managed_execution_profile(),
+            finalization_completion_preparation,
+            target,
+            setup.imports.wire.max_nodes,
+            setup.imports.wire.max_bytes,
+            fn(candidate : @execution.ManagedRetainedOutput[T]) {
+              if physical_equal(candidate, material) {
+                Some(material)
+              } else {
+                None
+              }
+            },
+            common_inputs=setup.completion_inputs,
+            obligations~,
+            identity_issuers=finalization_issuers,
+            attempt=execution_attempt,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(ManagedCompletion(issue))
+        }
+        let completed = match
+          @execution.complete_managed_output(completion, material) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InvalidLimits))
+        }
+        finalization_completed.val = Some(completed)
+        finalization_work_remaining.val -= 1
+        work += 1
       }
-      for requirement in identity_requirements {
+      if work == quantum {
+        return Ok({
+          complete: false,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
+      }
+      guard finalization_completed.val is Some(completed) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      while work < quantum &&
+            finalization_established.val < identity_requirements.length() {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        let requirement = identity_requirements[finalization_established.val]
         match
           @execution.establish_managed_completed_identity_requirement(
             completed, requirement,
@@ -1174,24 +1234,46 @@ pub fn[T] start_local_managed_dispatch(
           Ok(_) => ()
           Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
         }
+        finalization_established.val += 1
+        finalization_work_remaining.val -= 1
+        work += 1
       }
-      for
-        deadline in [
-          @execution.BeforeCidOperation,
-          @execution.BeforePublication,
-          @execution.BeforeDiscard,
-        ] {
+      if finalization_established.val < identity_requirements.length() ||
+        work == quantum {
+        return Ok({
+          complete: false,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
+      }
+      let deadlines = [
+        @execution.BeforeCidOperation,
+        @execution.BeforePublication,
+        @execution.BeforeDiscard,
+      ]
+      while work < quantum && finalization_deadline.val < deadlines.length() {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        let deadline = deadlines[finalization_deadline.val]
         if !@execution.managed_completed_deadline_satisfied(completed, deadline) {
           return Err(Configuration(LogicalIdentityUnsupported))
         }
+        finalization_deadline.val += 1
+        finalization_work_remaining.val -= 1
+        work += 1
       }
-      finalization_completed.val = Some(completed)
+      if finalization_deadline.val < deadlines.length() {
+        return Ok({
+          complete: false,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
+      }
       finalization_ready.val = true
-      finalization_work_remaining.val -= 1
-      work += 1
       Ok({
         complete: true,
-        progress: (rows + identity_requirements.length()).to_int64(),
+        progress: finalization_progress(),
         work: work.to_int64(),
       })
     },

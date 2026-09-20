@@ -144,20 +144,27 @@ fn query_checked_program_fixture(
   let text = if local_values_managed_variant != "" {
     let rows = if local_values_managed_variant == "empty" {
       "[]"
+    } else if local_values_managed_variant == "thirty_one" {
+      "[" +
+      Array::makei(31, index => "{\"id\":" + index.to_string() + "}").join(",") +
+      "]"
     } else {
       "[{\"items\":{\"literal\":[{\"name\":\"a\",\"score\":1},{\"name\":\"b\",\"score\":2}]},\"meta\":{\"literal\":{\"active\":true}}}]"
     }
-    let schema = if local_values_managed_variant == "empty" {
+    let schema = if local_values_managed_variant == "empty" ||
+      local_values_managed_variant == "thirty_one" {
       "{\"id\":{\"type\":\"number\",\"nullable\":false}}"
     } else {
       "{\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"name\":{\"type\":\"string\",\"nullable\":false},\"score\":{\"type\":\"number\",\"nullable\":false}}}},\"meta\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"active\":{\"type\":\"boolean\",\"nullable\":false}}}}"
     }
-    let fields = if local_values_managed_variant == "empty" {
+    let fields = if local_values_managed_variant == "empty" ||
+      local_values_managed_variant == "thirty_one" {
       "[\"id\"]"
     } else {
       "[\"items\",\"meta\"]"
     }
-    let reversed = if local_values_managed_variant == "empty" {
+    let reversed = if local_values_managed_variant == "empty" ||
+      local_values_managed_variant == "thirty_one" {
       fields
     } else {
       "[\"meta\",\"items\"]"

@@ -752,6 +752,15 @@ pub fn[T] managed_completed_output_available(
 }
 
 ///|
+/// Revoke a completed generation that has not been published to consumers.
+/// The retained payload remains owned by its existing cleanup path.
+pub fn[T] revoke_unpublished_managed_completed_output(
+  output : ManagedCompletedOutput[T],
+) -> Bool {
+  @managed_carrier.revoke_completed(output.lifecycle)
+}
+
+///|
 /// Common schedulers retain only this occurrence reference. The concrete
 /// representation remains owned by the installed Host and must be supplied at
 /// each typed consumer boundary.

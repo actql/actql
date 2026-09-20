@@ -755,6 +755,8 @@ pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> 
 
 pub fn reuse_retained_scan_values(RetainedProducerScan) -> Bool
 
+pub fn[T] revoke_unpublished_managed_completed_output(ManagedCompletedOutput[T]) -> Bool
+
 pub fn row_wire_cid(RowWireIdentity) -> String
 
 pub fn row_wire_matches_captured(RowWireIdentity, CapturedRows) -> Bool

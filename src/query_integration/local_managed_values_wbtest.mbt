@@ -46,8 +46,19 @@ test "Local managed execution admits checked zero-input values without a dummy p
   (operations.prepare_finalization)(7, operations.storage_bytes, fn() {
     available.val
   }).unwrap()
-  while !(operations.advance_finalization)(16).unwrap().complete {
-
+  let mut last_progress = -1L
+  while true {
+    let observation = (operations.advance_finalization)(1).unwrap()
+    assert_true(observation.progress >= last_progress)
+    assert_true(observation.work >= 0L)
+    assert_true(observation.work <= 1L)
+    if !observation.complete {
+      assert_true(observation.work > 0L)
+    }
+    last_progress = observation.progress
+    if observation.complete {
+      break
+    }
   }
   (operations.settle)().unwrap()
   let completed = (operations.complete)(7, operations.storage_bytes, fn() {
@@ -132,6 +143,7 @@ test "Local managed zero-input values feed two downstream Computes" {
     [rows],
     2,
     first_live,
+    finalization_quantum=33,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
@@ -220,6 +232,7 @@ test "checked VecA expressions reach two standard Host consumers" {
     [],
     1,
     producer_live,
+    finalization_quantum=1,
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, [
@@ -238,6 +251,7 @@ test "checked VecA expressions reach two standard Host consumers" {
     [rows],
     2,
     first_live,
+    finalization_quantum=2,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
@@ -248,6 +262,7 @@ test "checked VecA expressions reach two standard Host consumers" {
     [rows],
     3,
     second_live,
+    finalization_quantum=31,
   )
   assert_eq(local_managed_test_rows(first_ops), [
     "{\"id\":1,\"score\":11,\"joined\":[3,4,1,2]}", "{\"id\":2,\"score\":11,\"joined\":[4,3,2,1]}",
@@ -319,6 +334,7 @@ test "Local managed empty values retain schema for two consumers" {
     [],
     1,
     producer_live,
+    finalization_quantum=1,
   )
   assert_eq(local_managed_test_rows(producer_ops), [])
   let first_live = Ref(true)
@@ -362,6 +378,65 @@ test "Local managed empty values retain schema for two consumers" {
   (producer_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local finalization preserves 31 rows across adjacent quanta" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_managed_variant="thirty_one",
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+
+  let producer_live = Ref(true)
+  let (producer_ops, producer) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    producer_live,
+    finalization_quantum=32,
+  )
+  let rows = local_managed_test_rows(producer_ops)
+  assert_eq(rows.length(), 31)
+  assert_true(@execution.managed_completed_output_available(producer))
+
+  producer_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (producer_ops.close)()
+  (producer_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  for task in [0, 2, 3] {
+    @strategy.close_captured_task_output(run, task)
+  }
   @strategy.refresh_captured_retention(run)
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
   assert_eq(usage.reserved_execution_bytes, 0L)
