@@ -574,6 +574,24 @@
             "src/lowering_relation/vector.mbt",
             "src/lowering_relation/vector_test.mbt"
           ]
+        },
+        {
+          "scope": "bounded_rrf_and_repeated_occurrence_standard_host",
+          "layers": [
+            "kernel",
+            "standard_host",
+            "two_consumers",
+            "three_targets",
+            "resource_admission",
+            "reclamation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "47660253",
+          "evidence": [
+            "src/local_veca/ranking.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
         }
       ]
     },

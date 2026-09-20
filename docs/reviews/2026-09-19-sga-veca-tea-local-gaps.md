@@ -188,9 +188,17 @@ query sides. The other three Carrier combinations, duplicate identity failures,
 environment cancellation delivery, and publication remain open. Ranking merge
 now has typed canonical lowering for maximum, weighted-sum, and finite-list RRF
 policies. It retains score contracts, omitted versus explicit empty tie-breaks,
-and ordered repeated RRF inputs as one operation occurrence. A portable Local
-kernel, managed standard Host execution, two consumers, publication, and
-cancellation delivery remain open.
+and ordered repeated RRF inputs as one operation occurrence. RRF now executes
+through a bounded stable-merge kernel and the registered standard Host
+provider. It validates complete inputs and contiguous ranks before applying
+the rank window, folds contributions in occurrence order, and emits fresh
+contiguous ranks. The standard Host fixture covers two distinct inputs and one
+material repeated at two authored positions. Both reach two downstream
+Relation computations, independent release, and final ledger reclamation on
+JS, Wasm, and native. Maximum and weighted-sum still need runtime score-
+declaration authentication, tie-conflict fixtures, and standard Host evidence.
+Negative RRF boundaries, publication, and environment cancellation delivery
+also remain open, so ranking merge is partial.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -382,6 +390,21 @@ budgets cover nodes, references, work, and identifier bytes. The lowering,
 ranking evidence, and vector typing suites pass 256 tests on each portable
 target. This does not establish the Local kernel, managed execution,
 publication, cancellation delivery, or final Linux CI.
+
+At `ad1e25fe`, weighted-sum and RRF arithmetic use explicit binary64 product,
+addition, and division boundaries from the shared VecA numeric profile. Fixed-
+bit and invalid-operand fixtures pass 34 tests on each portable target.
+
+At `47660253`, the portable ranking kernel validates complete RRF inputs,
+detects per-input duplicates and noncontiguous ranks, applies rank-window only
+after validation, and uses bounded stable merge passes for validation, fusion,
+and output order. The standard Host executes ordinary and repeated-material
+RRF occurrences, preserves each authored contribution, feeds two downstream
+Relation computations, releases them independently, and returns the ledger to
+zero. The complete Local VecA, provider, and query-integration selection passes
+386 tests on each of JS, Wasm, and native. This does not establish maximum or
+weighted-sum runtime authentication, their tie rules, negative RRF execution
+fixtures, publication, environment cancellation delivery, or final Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
