@@ -185,7 +185,7 @@ pub fn local_managed_sequence_supported(
           @lower.asof_join_step(kernel),
         )
         is Some(_)
-      @lower.SequenceMatchStep(_) => false
+      @lower.SequenceMatchStep(_) => true
       @lower.NestStep(_) => true
       @lower.GraphBasicStep(_) => false
       @lower.GraphStructuralStep(_) => false

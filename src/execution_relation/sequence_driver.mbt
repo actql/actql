@@ -545,6 +545,16 @@ fn run_sequence_invocation(
         selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
       )
     }),
+    evaluate_sequence_match=Some((kernel, input) => {
+      evaluate_sequence_match_rows(
+        kernel,
+        input,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+      )
+    }),
     evaluate_cross_join=Some((kernel, left, right) => {
       evaluate_cross_join_rows(
         kernel,
@@ -619,6 +629,10 @@ fn[T : RelationRows] run_completed_sequence_backend(
     RowIssue,
   ])? = None,
   evaluate_asof_join? : ((@lower.PreparedAsOfJoin, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_sequence_match? : ((@lower.PreparedSequenceMatch, T) -> Result[
+    T,
+    RowIssue,
+  ])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     RowIssue,
@@ -635,6 +649,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     evaluate_join~,
     evaluate_interval_join~,
     evaluate_asof_join~,
+    evaluate_sequence_match~,
     evaluate_cross_join~,
     evaluate_append~,
     evaluate_set~,
@@ -669,6 +684,10 @@ fn[T : RelationRows] run_sequence_with_backend(
     RowIssue,
   ])? = None,
   evaluate_asof_join? : ((@lower.PreparedAsOfJoin, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_sequence_match? : ((@lower.PreparedSequenceMatch, T) -> Result[
+    T,
+    RowIssue,
+  ])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     RowIssue,
@@ -745,6 +764,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
       }
     }),
+    evaluate_sequence_match=evaluate_sequence_match.map(evaluate => {
+      fn(i, kernel, input) {
+        evaluate(kernel, input).map_err(issue => Rows(i, issue))
+      }
+    }),
     evaluate_cross_join=evaluate_cross_join.map(evaluate => {
       fn(i, kernel, left, right) {
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
@@ -800,6 +824,10 @@ fn[T : RelationRows] run_sequence_steps(
     SequenceRunIssue,
   ])? = None,
   evaluate_asof_join? : ((Int, @lower.PreparedAsOfJoin, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
+  evaluate_sequence_match? : ((Int, @lower.PreparedSequenceMatch, T) -> Result[
     T,
     SequenceRunIssue,
   ])? = None,
@@ -870,7 +898,15 @@ fn[T : RelationRows] run_sequence_steps(
         }
         evaluate(i, kernel, left.table, right.table)
       }
-      @lower.SequenceMatchStep(_) => return Err(InputSet)
+      @lower.SequenceMatchStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 1 &&
+          evaluate_sequence_match is Some(evaluate) &&
+          store.tables[route[0]] is Some(input) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, input.table)
+      }
       @lower.CrossJoinStep(kernel) => {
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&

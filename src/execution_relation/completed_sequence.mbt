@@ -178,6 +178,16 @@ fn evaluate_physical_sequence(
         selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
       ).map(table => RowTable(table))
     }),
+    evaluate_sequence_match=Some((kernel, input) => {
+      evaluate_sequence_match_rows(
+        kernel,
+        input,
+        limits.max_rows,
+        control,
+        invocation.output_budget,
+        { limit: limits.operation_entries, live: 0, peak: 0, },
+      ).map(table => RowTable(table))
+    }),
     evaluate_cross_join=Some((kernel, left, right) => {
       evaluate_cross_join_rows(
         kernel,
