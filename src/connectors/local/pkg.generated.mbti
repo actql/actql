@@ -40,6 +40,8 @@ pub fn[T] local_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistr
 
 pub fn local_managed_sequence_supported(@execution_relation.GeneratedSequence) -> Bool
 
+pub fn local_materializing_completed_output(LocalMaterializingAttempt) -> @execution_relation.CompletedOutput?
+
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?

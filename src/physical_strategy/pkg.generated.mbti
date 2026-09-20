@@ -117,6 +117,8 @@ pub fn complete_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -
 
 pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[Unit, RunIssue]
 
+pub fn complete_materializing_task_execution(CapturedDAG, TaskExecution, @execution_relation.CompletedOutput) -> Result[Unit, RunIssue]
+
 pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
 pub fn complete_task_execution(CapturedDAG, TaskExecution) -> Result[Unit, RunIssue]
@@ -282,6 +284,8 @@ pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstima
 pub fn[T] start_captured_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
+
+pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication]) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 

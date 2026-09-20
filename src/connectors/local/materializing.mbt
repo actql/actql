@@ -352,6 +352,22 @@ pub fn execute_local_materializing_attempt(
 }
 
 ///|
+/// Exact admitted in-memory output for the common completion boundary. This
+/// returns the evaluator-owned generation without copying, serializing or
+/// recomputing its value evidence.
+pub fn local_materializing_completed_output(
+  attempt : LocalMaterializingAttempt,
+) -> @execution.CompletedOutput? {
+  if attempt.closed ||
+    !attempt.settled ||
+    (attempt.output_limits is Some(_) && !attempt.exported) {
+    None
+  } else {
+    attempt.output
+  }
+}
+
+///|
 pub fn close_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Unit {

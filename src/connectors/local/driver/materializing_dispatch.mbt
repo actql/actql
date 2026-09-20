@@ -83,7 +83,7 @@ pub fn[C, E] start_local_dispatch(
     }
     Materializing(prepared, limits, output_limits) => {
       let (attempt, ticket) = match
-        @strategy.start_captured_execution(run, index, prepared) {
+        @strategy.start_captured_materializing_execution(run, index, prepared) {
         Ok(value) => value
         Err(issue) => return Err(Execution(issue))
       }
@@ -147,9 +147,14 @@ pub fn[C, E] start_local_dispatch(
           })
         },
         complete: () => {
-          @strategy.complete_task_execution(run, ticket).map_err(issue => {
-            Execution(issue)
-          })
+          guard @local.local_materializing_completed_output(attempt)
+            is Some(output) else {
+            return Err(Preparation(Materializing(State)))
+          }
+          @strategy.complete_materializing_task_execution(run, ticket, output).map_err(issue => {
+              Execution(issue)
+            },
+          )
         },
         close: fn() { @strategy.close_task_execution(run, ticket) },
       })

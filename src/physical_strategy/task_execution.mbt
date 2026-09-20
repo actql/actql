@@ -10,7 +10,7 @@ struct TaskExecution {
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
   mut hooks : @connector.ExecutionLifecycleOperations[RunIssue]?
-  legacy_completion : LegacyTaskCompletion?
+  mut legacy_completion : LegacyTaskCompletion?
   mut execution_settled : Bool
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
@@ -164,6 +164,25 @@ pub fn[T] start_captured_execution(
   resident? : ResidentExecution,
 ) -> Result[(T, TaskExecution), RunIssue] {
   start_task_execution(run, task, prepared, resident)
+}
+
+///|
+/// Transitional materializing entry. It reuses the compatible preparation
+/// envelope but removes its old finisher/publication authority immediately.
+/// The owning driver must supply the already admitted output to the common
+/// completion boundary.
+pub fn[T] start_captured_materializing_execution(
+  run : CapturedDAG,
+  task : Int,
+  prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
+) -> Result[(T, TaskExecution), RunIssue] {
+  match start_task_execution(run, task, prepared, None) {
+    Err(issue) => Err(issue)
+    Ok((payload, execution)) => {
+      execution.legacy_completion = None
+      Ok((payload, execution))
+    }
+  }
 }
 
 ///|
@@ -773,9 +792,11 @@ pub fn settle_task_execution(
 ///|
 /// Verification, result holding and successful DAG completion are one boundary.
 /// No success is exposed if the implementation cannot supply its owned output.
-pub fn complete_task_execution(
+fn complete_materialized_execution(
   run : CapturedDAG,
   execution : TaskExecution,
+  finish : () -> Result[@execution.CompletedOutput, RunIssue],
+  publish : (TaskPublication) -> Result[Unit, RunIssue],
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -787,9 +808,6 @@ pub fn complete_task_execution(
   }
   if execution.disposed || !execution.execution_settled {
     return Err(Physical(InvalidCharge))
-  }
-  guard execution.legacy_completion is Some(completion) else {
-    return Err(ForeignCandidate)
   }
   if execution.resident is Some(resource) {
     guard resource.pending is Some(pending) &&
@@ -816,7 +834,7 @@ pub fn complete_task_execution(
     Err(issue) => return Err(Physical(issue))
   }
   execution.retained_bytes = None
-  match (completion.finish)() {
+  match finish() {
     Ok(output) => {
       match
         publish_task_completion(run, task, output, holding, ForeignCandidate, fn(
@@ -829,7 +847,7 @@ pub fn complete_task_execution(
               Ok(_) => ()
             }
           }
-          (completion.publish)(publication)
+          publish(publication)
         }) {
         Err(issue) => {
           execution.failed_holding = Some(holding)
@@ -848,6 +866,41 @@ pub fn complete_task_execution(
       Err(issue)
     }
   }
+}
+
+///|
+/// Complete a materializing execution from its exact admitted output. This is
+/// the migration target for in-memory implementations: the implementation no
+/// longer owns a separate finish or publication success path.
+pub fn complete_materializing_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  output : @execution.CompletedOutput,
+) -> Result[Unit, RunIssue] {
+  if execution.legacy_completion is Some(_) || execution.resident is Some(_) {
+    return Err(ForeignCandidate)
+  }
+  complete_materialized_execution(run, execution, fn() { Ok(output) }, fn(_) {
+    Ok(())
+  })
+}
+
+///|
+/// Compatibility completion for product callers not yet migrated to a typed
+/// materializing or managed output boundary.
+pub fn complete_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Result[Unit, RunIssue] {
+  guard execution.legacy_completion is Some(completion) else {
+    return Err(ForeignCandidate)
+  }
+  complete_materialized_execution(
+    run,
+    execution,
+    completion.finish,
+    completion.publish,
+  )
 }
 
 ///|
