@@ -24,7 +24,7 @@ pub fn[C, E] begin_numeric_contribution(
   }
   let run = @host.dispatch_driver_run(installed.driver)
   match
-    @strategy.start_captured_execution(
+    @strategy.start_captured_materializing_execution(
       run,
       @host.prepared_task_index(task),
       prepared,
@@ -61,5 +61,8 @@ pub fn settle_async_numeric(
 pub fn complete_async_numeric(
   work : AsyncNumericExecution,
 ) -> Result[Unit, @strategy.RunIssue] {
-  @strategy.complete_task_execution(work.run, work.task)
+  guard @numeric.numeric_attempt_completed_output(work.payload) is Some(output) else {
+    return Err(@strategy.RunIssue::NotReady)
+  }
+  @strategy.complete_materializing_task_execution(work.run, work.task, output)
 }

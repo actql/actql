@@ -30,6 +30,8 @@ pub fn measured_numeric_rows(MeasuredNumericOutput) -> @execution_relation.Admit
 
 pub fn measured_numeric_usage(MeasuredNumericOutput) -> (Int, Int, Int)
 
+pub fn numeric_attempt_completed_output(NumericAttempt) -> @execution_relation.CompletedOutput?
+
 pub fn numeric_bundle(String) -> @connector_sdk.CapabilityBundle[Unit, NumericImplementation]
 
 pub fn numeric_completed_output(CompletedNumericOutput) -> @execution_relation.CompletedOutput

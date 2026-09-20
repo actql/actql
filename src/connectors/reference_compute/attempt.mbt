@@ -172,6 +172,19 @@ pub fn execute_numeric_attempt(
 }
 
 ///|
+/// Exact admitted in-memory result for the common completion boundary. The
+/// returned handle shares the evaluator-owned immutable storage.
+pub fn numeric_attempt_completed_output(
+  attempt : NumericAttempt,
+) -> @execution.CompletedOutput? {
+  match attempt.completed {
+    Some(result) if !attempt.closed && attempt.settled =>
+      Some(numeric_completed_output(result))
+    _ => None
+  }
+}
+
+///|
 /// Execute the independent numeric specialization for one selected managed
 /// candidate. The exact bridged ProducerRead remains ordinary checked input;
 /// this function neither accepts a caller-supplied output nor establishes a
