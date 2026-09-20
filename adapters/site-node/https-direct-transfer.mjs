@@ -17,6 +17,16 @@ function reply(response, status, body) {
   response.end(bytes);
 }
 
+function replyCanonical(response, status, body) {
+  const bytes = Buffer.from(body, 'utf8');
+  response.writeHead(status, {
+    'content-type': 'application/json',
+    'content-length': String(bytes.byteLength),
+    'cache-control': 'no-store',
+  });
+  response.end(bytes);
+}
+
 async function readControlBody(request, maxBytes) {
   const announced = request.headers['content-length'];
   if (announced !== undefined &&
@@ -34,18 +44,6 @@ async function readControlBody(request, maxBytes) {
   return new TextDecoder('utf-8', {fatal: true}).decode(
     Buffer.concat(chunks, length),
   );
-}
-
-function parseAdmissionEnvelope(body) {
-  let value;
-  try { value = JSON.parse(body); }
-  catch (error) { fail('InvalidRemoteTransferEnvelope', error); }
-  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).sort().join(',') !== 'manifest,request' ||
-      !text(value.manifest) || !text(value.request)) {
-    fail('InvalidRemoteTransferEnvelope');
-  }
-  return value;
 }
 
 function currentTime(clock) {
@@ -136,6 +134,7 @@ export async function startHttpsDirectTransferReceiver({
       !text(destinationSiteKey) || !integer(destinationSiteGeneration) ||
       control === null || typeof control !== 'object' ||
       typeof control.admitJson !== 'function' ||
+      typeof control.admitAdmissionEnvelopeJson !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' ||
@@ -146,6 +145,7 @@ export async function startHttpsDirectTransferReceiver({
       typeof control.prepareFailure !== 'function' ||
       typeof control.prepareCleanup !== 'function' ||
       typeof control.recordProjection !== 'function' ||
+      typeof control.replyJson !== 'function' ||
       journal === null || typeof journal !== 'object' ||
       typeof journal.accept !== 'function' ||
       typeof journal.advance !== 'function' ||
@@ -166,10 +166,7 @@ export async function startHttpsDirectTransferReceiver({
   let fullyClosed = false;
   let closeInFlight;
 
-  const stateReply = entry => Object.freeze({
-    requestCid: control.identity(entry.request),
-    state: control.recordProjection(entry.record),
-  });
+  const stateReply = entry => control.replyJson(entry.record);
   const peerFor = request => {
     const certificate = request.socket.getPeerCertificate();
     const sourceSite = sourceAuthorities.get(certificate.fingerprint256);
@@ -240,12 +237,8 @@ export async function startHttpsDirectTransferReceiver({
         if (!text(claimedRequestCid) || !text(claimedManifestCid)) {
           fail('InvalidRemoteTransferEnvelope');
         }
-        const envelope = parseAdmissionEnvelope(
+        const admitted = control.admitAdmissionEnvelopeJson(
           await readControlBody(request, maxControlBytes),
-        );
-        const admitted = control.admitJson(
-          envelope.request,
-          envelope.manifest,
           claimedRequestCid,
           claimedManifestCid,
           {maxChunks, maxManifestBytes, maxReferencedBytes},
@@ -260,7 +253,7 @@ export async function startHttpsDirectTransferReceiver({
         await authorizeUse(transient, authorize, control, clock, 'admit', peer);
         const existing = entries.get(claimedRequestCid);
         if (existing !== undefined) {
-          reply(response, 200, stateReply(existing));
+          replyCanonical(response, 200, stateReply(existing));
           return;
         }
         const accepted = journal.accept(admitted, control);
@@ -295,7 +288,7 @@ export async function startHttpsDirectTransferReceiver({
           catch (cleanupError) { entry.cleanupError = cleanupError; }
           throw error;
         }
-        reply(response, 201, stateReply(entry));
+        replyCanonical(response, 201, stateReply(entry));
         return;
       }
 
@@ -316,7 +309,7 @@ export async function startHttpsDirectTransferReceiver({
         }
         await authorizeUse(entry, authorize, control, clock, 'write', peer);
         if (entry.bodies[index] !== undefined) {
-          reply(response, 200, stateReply(entry));
+          replyCanonical(response, 200, stateReply(entry));
           return;
         }
         if (entry.operationInFlight) fail('RemoteTransferBusy');
@@ -361,7 +354,7 @@ export async function startHttpsDirectTransferReceiver({
         } finally {
           entry.operationInFlight = false;
         }
-        reply(response, 200, stateReply(entry));
+        replyCanonical(response, 200, stateReply(entry));
         return;
       }
       if (request.method === 'POST' && parts.length === 2 &&
@@ -384,7 +377,7 @@ export async function startHttpsDirectTransferReceiver({
             control,
           );
         }
-        reply(response, 200, stateReply(entry));
+        replyCanonical(response, 200, stateReply(entry));
         return;
       }
       if (request.method === 'POST' && parts.length === 2 &&
@@ -400,7 +393,7 @@ export async function startHttpsDirectTransferReceiver({
           false,
         );
         await persistFailure(entry, {cancelled: true, sourceStopped: true});
-        reply(response, 200, stateReply(entry));
+        replyCanonical(response, 200, stateReply(entry));
         return;
       }
       fail('RemoteTransferUnavailable');
@@ -487,7 +480,7 @@ export async function startHttpsDirectTransferReceiver({
   });
 }
 
-async function responseJson(response, maxBytes) {
+async function responseBody(response, maxBytes) {
   const chunks = [];
   let length = 0;
   for await (const chunk of response) {
@@ -495,19 +488,16 @@ async function responseJson(response, maxBytes) {
     if (length > maxBytes) fail('RemoteTransferResponseTooLarge');
     chunks.push(chunk);
   }
-  let value;
-  try {
-    value = JSON.parse(Buffer.concat(chunks, length).toString('utf8'));
-  } catch (error) {
-    fail('InvalidRemoteTransferResponse', error);
-  }
+  const body = Buffer.concat(chunks, length).toString('utf8');
   if (response.statusCode !== 200 && response.statusCode !== 201) {
+    let value;
+    try { value = JSON.parse(body); } catch {}
     fail('RemoteTransferRejected', undefined, {
       remoteError: value?.error,
       statusCode: response.statusCode,
     });
   }
-  return value;
+  return body;
 }
 
 async function sendRequest({
@@ -535,7 +525,7 @@ async function sendRequest({
       signal,
       headers,
     }, response => {
-      responseJson(response, maxResponseBytes).then(
+      responseBody(response, maxResponseBytes).then(
         value => writing.then(() => resolve(value), reject),
         error => writing.then(() => reject(error), () => reject(error)),
       );
@@ -570,6 +560,8 @@ export async function sendHttpsDirectTransfer({
       control === null || typeof control !== 'object' ||
       typeof control.requestJson !== 'function' ||
       typeof control.manifestJson !== 'function' ||
+      typeof control.admissionEnvelopeJson !== 'function' ||
+      typeof control.admitReplyJson !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' || request === undefined ||
@@ -594,12 +586,7 @@ export async function sendHttpsDirectTransfer({
   const requestCid = control.identity(request);
   const base = `/v1/sites/${encodeURIComponent(projection[4])}/` +
     `generations/${projection[5]}/transfers`;
-  const requestJson = control.requestJson(request);
-  const manifestJson = control.manifestJson(request);
-  const envelope = Buffer.from(JSON.stringify({
-    manifest: manifestJson,
-    request: requestJson,
-  }), 'utf8');
+  const envelope = Buffer.from(control.admissionEnvelopeJson(request), 'utf8');
   const common = {
     origin,
     ca,
@@ -609,7 +596,7 @@ export async function sendHttpsDirectTransfer({
     signal,
     maxResponseBytes,
   };
-  await sendRequest({
+  const admittedBody = await sendRequest({
     ...common,
     path: base,
     method: 'POST',
@@ -621,11 +608,12 @@ export async function sendHttpsDirectTransfer({
     },
     write(outgoing) { outgoing.end(envelope); },
   });
+  control.admitReplyJson(admittedBody, request);
   let sourceStopped = true;
   try {
     for (let index = 0; index < chunks.length; index++) {
       sourceStopped = false;
-      await sendRequest({
+      const chunkReply = await sendRequest({
         ...common,
         path: `${base}/${encodeURIComponent(requestCid)}/chunks/${index}`,
         method: 'PUT',
@@ -645,13 +633,19 @@ export async function sendHttpsDirectTransfer({
           }
         },
       });
+      control.admitReplyJson(chunkReply, request);
     }
-    return await sendRequest({
+    const committedBody = await sendRequest({
       ...common,
       path: `${base}/${encodeURIComponent(requestCid)}/commit`,
       method: 'POST',
       headers: {'content-length': '0'},
       write(outgoing) { outgoing.end(); },
+    });
+    const committed = control.admitReplyJson(committedBody, request);
+    return Object.freeze({
+      requestCid,
+      state: Object.freeze([...control.recordProjection(committed)]),
     });
   } catch (error) {
     if (sourceStopped) {

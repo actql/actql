@@ -11,9 +11,13 @@ pub fn admit_destination_receipt_json(String, RemoteTransferRequest, String) -> 
 
 pub fn admit_durable_remote_transfer_record(Bytes, Int, Int, Int64) -> Result[DurableRemoteTransferRecord, RemoteTransferIssue]
 
+pub fn admit_remote_transfer_reply_json(String, RemoteTransferRequest) -> Result[RemoteTransferRecord, RemoteTransferIssue]
+
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
 pub fn admit_request_json(String, String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
+
+pub fn admit_transfer_admission_envelope_json(String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
 pub fn commit_store_use_transition(RemoteTransferStoreUseTransition, Bool) -> Result[RemoteTransferStoreUseRecord, RemoteTransferIssue]
 
@@ -75,6 +79,8 @@ pub fn record_revision(RemoteTransferRecord) -> Int
 
 pub fn remote_transfer_record_durable_json(RemoteTransferRecord) -> Result[String, RemoteTransferIssue]
 
+pub fn remote_transfer_reply_json(RemoteTransferRecord) -> Result[String, RemoteTransferIssue]
+
 pub fn remote_transfer_transition_durable_json(RemoteTransferTransition) -> Result[String, RemoteTransferIssue]
 
 pub fn remote_transfer_transition_expected_revision(RemoteTransferTransition) -> Int
@@ -120,6 +126,8 @@ pub fn store_use_record_projection(RemoteTransferStoreUseRecord) -> Array[String
 pub fn store_use_transition_journal_key(RemoteTransferStoreUseTransition) -> Array[String]
 
 pub fn store_use_transition_projection(RemoteTransferStoreUseTransition) -> (Array[String], Array[String])
+
+pub fn transfer_admission_envelope_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
 
 pub fn transition_journal_key(RemoteTransferTransition) -> Array[String]
 

@@ -698,6 +698,10 @@ pub fn strategy_remote_runtime_success_action(@remote_site_protocol.DispatchReco
 
 pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 
+pub fn strategy_remote_transfer_admission_envelope_admit_json(String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
+
+pub fn strategy_remote_transfer_admission_envelope_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
+
 pub fn strategy_remote_transfer_admit_json(String, String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
 
 pub fn strategy_remote_transfer_chunk_byte_lengths(@remote_transfer.RemoteTransferRequest) -> Array[Int64]
@@ -741,6 +745,10 @@ pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransfe
 pub fn strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
 
 pub fn strategy_remote_transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
+
+pub fn strategy_remote_transfer_reply_admit_json(String, @remote_transfer.RemoteTransferRequest) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_reply_json(@remote_transfer.RemoteTransferRecord) -> String raise NodeHostFailure
 
 pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 

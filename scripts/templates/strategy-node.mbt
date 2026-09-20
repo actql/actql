@@ -5548,6 +5548,64 @@ pub fn strategy_remote_transfer_admit_json(
 }
 
 ///|
+#export_name("strategyRemoteTransferAdmissionEnvelopeJson")
+pub fn strategy_remote_transfer_admission_envelope_json(
+  request : @transfer.RemoteTransferRequest,
+) -> String raise NodeHostFailure {
+  match @transfer.transfer_admission_envelope_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferAdmissionEnvelopeAdmitJson")
+pub fn strategy_remote_transfer_admission_envelope_admit_json(
+  body : String,
+  claimed_request_cid : String,
+  claimed_manifest_cid : String,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> @transfer.RemoteTransferRequest raise NodeHostFailure {
+  match
+    @transfer.admit_transfer_admission_envelope_json(
+      body,
+      claimed_request_cid,
+      claimed_manifest_cid,
+      max_chunks,
+      max_manifest_bytes,
+      max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferReplyJson")
+pub fn strategy_remote_transfer_reply_json(
+  record : @transfer.RemoteTransferRecord,
+) -> String raise NodeHostFailure {
+  match @transfer.remote_transfer_reply_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferReplyAdmitJson")
+pub fn strategy_remote_transfer_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+) -> @transfer.RemoteTransferRecord raise NodeHostFailure {
+  match @transfer.admit_remote_transfer_reply_json(body, request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteTransferDestinationReceiptPrepare")
 pub fn strategy_remote_transfer_destination_receipt_prepare(
   request : @transfer.RemoteTransferRequest,

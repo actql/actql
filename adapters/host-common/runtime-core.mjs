@@ -692,6 +692,36 @@ function remoteTransferControl(moon) {
         int64(limits.maxReferencedBytes, 'referenced-byte limit'),
       ));
     },
+    admissionEnvelopeJson: value => checked(
+      moon.strategyRemoteTransferAdmissionEnvelopeJson(value),
+    ),
+    admitAdmissionEnvelopeJson: (
+      body,
+      claimedRequestCid,
+      claimedManifestCid,
+      limits,
+    ) => {
+      if (limits === null || typeof limits !== 'object' ||
+          !Number.isSafeInteger(limits.maxChunks) || limits.maxChunks < 0 ||
+          !Number.isSafeInteger(limits.maxManifestBytes) ||
+          limits.maxManifestBytes < 0) {
+        throw new TypeError('Invalid Remote Transfer wire limits');
+      }
+      return checked(moon.strategyRemoteTransferAdmissionEnvelopeAdmitJson(
+        body,
+        claimedRequestCid,
+        claimedManifestCid,
+        limits.maxChunks,
+        limits.maxManifestBytes,
+        int64(limits.maxReferencedBytes, 'referenced-byte limit'),
+      ));
+    },
+    replyJson: value => checked(
+      moon.strategyRemoteTransferReplyJson(value),
+    ),
+    admitReplyJson: (body, request) => checked(
+      moon.strategyRemoteTransferReplyAdmitJson(body, request),
+    ),
     prepareDestinationReceipt: (request, materialGeneration) => checked(
       moon.strategyRemoteTransferDestinationReceiptPrepare(
         request,
