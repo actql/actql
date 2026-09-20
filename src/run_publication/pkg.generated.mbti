@@ -18,6 +18,8 @@ pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvid
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
+pub fn begin_result_access_progress() -> ResultAccessProgress
+
 pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
@@ -173,6 +175,20 @@ pub fn publication_record_allows_commit(PublicationContract) -> Bool
 pub fn publication_setup_action_code(PublicationSetupAction) -> Int
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
+
+pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn record_result_access_initial_availability(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn record_result_access_read_admission(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn record_result_access_request_authorization(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn result_access_progress_action(ResultAccessProgress) -> ResultAccessProgressAction
+
+pub fn result_access_progress_action_code(ResultAccessProgress) -> Int
 
 pub fn result_definition_cid(ResultDefinition) -> String
 
@@ -547,6 +563,22 @@ pub(all) enum PublicationUnknownRetryAction {
   PublicationRetryUpstreamCleanup
   PublicationUnknownRetryFinished
   PublicationUnknownRetryInvalid
+} derive(Eq, @debug.Debug)
+
+type ResultAccessProgress
+
+pub(all) enum ResultAccessProgressAction {
+  ResultAccessAuthorizeRequest
+  ResultAccessResolveCommittedResult
+  ResultAccessCheckInitialAvailability
+  ResultAccessAdmitRead
+  ResultAccessIssueGrant
+  ResultAccessStartDelivery
+  ResultAccessReject
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultAccessProgressIssue {
+  ResultAccessInvalidState
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResultArtifactEvidenceIssue {

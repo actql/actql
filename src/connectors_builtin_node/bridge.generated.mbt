@@ -878,6 +878,67 @@ pub fn strategy_existing_delivery_attempt_action(
 }
 
 ///|
+#export_name("strategyBeginResultAccessProgress")
+pub fn strategy_begin_result_access_progress() -> @publication.ResultAccessProgress {
+  @publication.begin_result_access_progress()
+}
+
+///|
+#export_name("strategyResultAccessProgressAction")
+pub fn strategy_result_access_progress_action(
+  progress : @publication.ResultAccessProgress,
+) -> Int {
+  @publication.result_access_progress_action_code(progress)
+}
+
+///|
+#export_name("strategyRecordResultAccessRequestAuthorization")
+pub fn strategy_record_result_access_request_authorization(
+  progress : @publication.ResultAccessProgress,
+  authorized : Bool,
+) -> Bool {
+  @publication.record_result_access_request_authorization(progress, authorized)
+  is Ok(_)
+}
+
+///|
+#export_name("strategyRecordResultAccessResolution")
+pub fn strategy_record_result_access_resolution(
+  progress : @publication.ResultAccessProgress,
+  resolved : Bool,
+) -> Bool {
+  @publication.record_result_access_resolution(progress, resolved) is Ok(_)
+}
+
+///|
+#export_name("strategyRecordResultAccessInitialAvailability")
+pub fn strategy_record_result_access_initial_availability(
+  progress : @publication.ResultAccessProgress,
+  available : Bool,
+) -> Bool {
+  @publication.record_result_access_initial_availability(progress, available)
+  is Ok(_)
+}
+
+///|
+#export_name("strategyRecordResultAccessReadAdmission")
+pub fn strategy_record_result_access_read_admission(
+  progress : @publication.ResultAccessProgress,
+  admitted : Bool,
+) -> Bool {
+  @publication.record_result_access_read_admission(progress, admitted) is Ok(_)
+}
+
+///|
+#export_name("strategyRecordResultAccessGrant")
+pub fn strategy_record_result_access_grant(
+  progress : @publication.ResultAccessProgress,
+  issued : Bool,
+) -> Bool {
+  @publication.record_result_access_grant(progress, issued) is Ok(_)
+}
+
+///|
 #export_name("strategyDeliveryFailureTerminalAction")
 pub fn strategy_delivery_failure_terminal_action(
   cancellation_observed : Bool,

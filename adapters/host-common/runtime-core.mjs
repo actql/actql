@@ -1269,6 +1269,37 @@ function publicationControl(moon) {
         record === undefined ? undefined : token(record),
       );
     },
+    beginResultAccessProgress() {
+      return moon.strategyBeginResultAccessProgress();
+    },
+    resultAccessProgressAction(progress) {
+      return moon.strategyResultAccessProgressAction(progress);
+    },
+    recordResultAccessRequestAuthorization(progress, authorized) {
+      if (!moon.strategyRecordResultAccessRequestAuthorization(
+        progress, authorized,
+      )) throw new TypeError('Invalid Result access progression');
+    },
+    recordResultAccessResolution(progress, resolved) {
+      if (!moon.strategyRecordResultAccessResolution(progress, resolved)) {
+        throw new TypeError('Invalid Result access progression');
+      }
+    },
+    recordResultAccessInitialAvailability(progress, available) {
+      if (!moon.strategyRecordResultAccessInitialAvailability(
+        progress, available,
+      )) throw new TypeError('Invalid Result access progression');
+    },
+    recordResultAccessReadAdmission(progress, admitted) {
+      if (!moon.strategyRecordResultAccessReadAdmission(progress, admitted)) {
+        throw new TypeError('Invalid Result access progression');
+      }
+    },
+    recordResultAccessGrant(progress, issued) {
+      if (!moon.strategyRecordResultAccessGrant(progress, issued)) {
+        throw new TypeError('Invalid Result access progression');
+      }
+    },
     deliveryFailureTerminalAction(cancellationObserved) {
       return moon.strategyDeliveryFailureTerminalAction(
         cancellationObserved,

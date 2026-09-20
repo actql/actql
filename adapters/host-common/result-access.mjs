@@ -66,6 +66,17 @@ function validateServiceConfiguration(configuration) {
       typeof configuration.control.resultRetentionClockContractCid !==
         'function' ||
       typeof configuration.control.resultReadGrantValidAt !== 'function' ||
+      typeof configuration.control.beginResultAccessProgress !== 'function' ||
+      typeof configuration.control.resultAccessProgressAction !== 'function' ||
+      typeof configuration.control
+        .recordResultAccessRequestAuthorization !== 'function' ||
+      typeof configuration.control.recordResultAccessResolution !==
+        'function' ||
+      typeof configuration.control.recordResultAccessInitialAvailability !==
+        'function' ||
+      typeof configuration.control.recordResultAccessReadAdmission !==
+        'function' ||
+      typeof configuration.control.recordResultAccessGrant !== 'function' ||
       !authorities.has(configuration.authority) ||
       typeof configuration.now !== 'function' ||
       typeof configuration.createDigest !== 'function' ||
@@ -154,6 +165,13 @@ export async function deliverAuthorizedResult(
     fail('InvalidResultAccessRequest');
   }
   signal?.throwIfAborted();
+  const progress = installed.control.beginResultAccessProgress();
+  const requireAction = expected => {
+    if (installed.control.resultAccessProgressAction(progress) !== expected) {
+      fail('InvalidResultAccessProgress');
+    }
+  };
+  requireAction(0);
   const indexKey = Object.freeze({...request.indexKey});
   let requestAuthorized = false;
   try {
@@ -167,40 +185,56 @@ export async function deliverAuthorizedResult(
         attemptId: request.attemptId,
       }));
   } catch {
+    installed.control.recordResultAccessRequestAuthorization(progress, false);
     fail('ResultAccessDenied');
   }
   signal?.throwIfAborted();
+  installed.control.recordResultAccessRequestAuthorization(
+    progress, requestAuthorized === true,
+  );
   if (requestAuthorized !== true) fail('ResultAccessDenied');
-  const entry = await installed.store.confirmCommittedIndex(indexKey);
-  if (entry === undefined) fail('ResultAccessDenied');
-  const index = await installed.store.readPublicationContract(
-    entry.public_index_entry_cid, 'public_index_entry',
-  );
-  const manifest = await installed.store.readPublicationContract(
-    entry.result_manifest_cid, 'result_manifest',
-  );
-  const admittedAt = observedAt(installed.now);
-  const retentionPolicyCid =
-    installed.control.resultReadRetentionPolicyCid(
-      manifest, request.resultName,
-    );
-  const retention = await installed.store.readPublicationContract(
-    retentionPolicyCid, 'result_retention_policy',
-  );
-  const resultDefinitionCid = installed.control.resultReadDefinitionCid(
-    manifest, request.resultName,
-  );
+  requireAction(1);
+  let entry;
+  let index;
+  let manifest;
+  let retention;
   let retained;
   try {
+    entry = await installed.store.confirmCommittedIndex(indexKey);
+    if (entry === undefined) {
+      installed.control.recordResultAccessResolution(progress, false);
+      fail('ResultAccessDenied');
+    }
+    index = await installed.store.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry',
+    );
+    manifest = await installed.store.readPublicationContract(
+      entry.result_manifest_cid, 'result_manifest',
+    );
+    const retentionPolicyCid =
+      installed.control.resultReadRetentionPolicyCid(
+        manifest, request.resultName,
+      );
+    retention = await installed.store.readPublicationContract(
+      retentionPolicyCid, 'result_retention_policy',
+    );
+    const resultDefinitionCid = installed.control.resultReadDefinitionCid(
+      manifest, request.resultName,
+    );
     retained = await installed.store.readCommittedResultRetentionExtension(
       indexKey, resultDefinitionCid,
     );
   } catch (error) {
+    if (installed.control.resultAccessProgressAction(progress) === 1) {
+      installed.control.recordResultAccessResolution(progress, false);
+    }
     if (error?.code === 'PublicationObjectMissing') {
       fail('ResultUnavailable', error);
     }
     throw error;
   }
+  installed.control.recordResultAccessResolution(progress, true);
+  const admittedAt = observedAt(installed.now);
   const availability = observed => retained === undefined
     ? installed.control.resultReadAvailability(
       manifest, request.resultName, retention, observed,
@@ -215,7 +249,12 @@ export async function deliverAuthorizedResult(
   const clockContractCid =
     installed.control.resultRetentionClockContractCid(retention);
   await installed.store.observeTrustedClock(clockContractCid, admittedAt);
-  if (availability(admittedAt) !== 'available') {
+  const initiallyAvailable = availability(admittedAt) === 'available';
+  requireAction(2);
+  installed.control.recordResultAccessInitialAvailability(
+    progress, initiallyAvailable,
+  );
+  if (!initiallyAvailable) {
     fail('ResultUnavailable');
   }
   const requestFacts = Object.freeze({
@@ -231,25 +270,42 @@ export async function deliverAuthorizedResult(
     baseRetention: retention,
     observedAt: admittedAt,
   });
-  const admission = await installed.authority.admitResultRead(requestFacts);
-  validateAdmission(admission);
-  const grant = installed.control.issueResultReadGrant(
-    index,
-    manifest,
-    {
-      resultNames: [request.resultName],
-      formats: [request.format],
-      principalId: request.principalId,
-      purpose: request.purpose,
-      dataCeilingCid: admission.dataCeilingCid,
-      maxBytes: admission.maxBytes,
-      maxUses: admission.maxUses,
-      expiresAt: admission.expiresAt,
-      authorizationContextCid: admission.authorizationContextCid,
-      egressAdmissionCid: admission.egressAdmissionCid,
-    },
-    installed.limits,
-  );
+  requireAction(3);
+  let admission;
+  try {
+    admission = await installed.authority.admitResultRead(requestFacts);
+    validateAdmission(admission);
+  } catch (error) {
+    installed.control.recordResultAccessReadAdmission(progress, false);
+    throw error;
+  }
+  installed.control.recordResultAccessReadAdmission(progress, true);
+  requireAction(4);
+  let grant;
+  try {
+    grant = installed.control.issueResultReadGrant(
+      index,
+      manifest,
+      {
+        resultNames: [request.resultName],
+        formats: [request.format],
+        principalId: request.principalId,
+        purpose: request.purpose,
+        dataCeilingCid: admission.dataCeilingCid,
+        maxBytes: admission.maxBytes,
+        maxUses: admission.maxUses,
+        expiresAt: admission.expiresAt,
+        authorizationContextCid: admission.authorizationContextCid,
+        egressAdmissionCid: admission.egressAdmissionCid,
+      },
+      installed.limits,
+    );
+  } catch (error) {
+    installed.control.recordResultAccessGrant(progress, false);
+    throw error;
+  }
+  installed.control.recordResultAccessGrant(progress, true);
+  requireAction(5);
   const authorize = async facts => {
     await installed.store.observeTrustedClock(
       clockContractCid, facts.observedAt,

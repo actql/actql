@@ -31,6 +31,8 @@ pub fn async_strategy_admit_captured_result_snapshot(@run_publication.Publicatio
 
 pub fn async_strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise AsyncHostFailure
 
+pub fn async_strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
+
 pub fn async_strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise AsyncHostFailure
 
 pub fn async_strategy_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
@@ -296,6 +298,16 @@ pub fn async_strategy_publication_seal(String, String, Int, Int, Int) -> @run_pu
 pub fn async_strategy_publication_setup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
 pub fn async_strategy_publication_unknown_retry_action(Bool, Bool, Bool, Bool) -> Int
+
+pub fn async_strategy_record_result_access_grant(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn async_strategy_record_result_access_initial_availability(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn async_strategy_record_result_access_read_admission(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn async_strategy_record_result_access_request_authorization(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn async_strategy_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
 
 pub fn async_strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise AsyncHostFailure
 
@@ -657,6 +669,8 @@ pub fn async_strategy_remote_transition_key(@remote_site_protocol.DispatchTransi
 
 pub fn async_strategy_remote_transition_projection(@remote_site_protocol.DispatchTransition) -> Array[String]
 
+pub fn async_strategy_result_access_progress_action(@run_publication.ResultAccessProgress) -> Int
+
 pub fn async_strategy_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String raise AsyncHostFailure
 
 pub fn async_strategy_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> String raise AsyncHostFailure
@@ -808,6 +822,8 @@ pub fn settle_async_probe(@actql/actql/connectors/reference_compute/driver.Async
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
+
+pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
@@ -1074,6 +1090,16 @@ pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publicat
 pub fn strategy_publication_setup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_publication_unknown_retry_action(Bool, Bool, Bool, Bool) -> Int
+
+pub fn strategy_record_result_access_grant(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn strategy_record_result_access_initial_availability(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn strategy_record_result_access_read_admission(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn strategy_record_result_access_request_authorization(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn strategy_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
 
 pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
 
@@ -1434,6 +1460,8 @@ pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransitio
 pub fn strategy_remote_transition_key(@remote_site_protocol.DispatchTransition) -> Array[String]
 
 pub fn strategy_remote_transition_projection(@remote_site_protocol.DispatchTransition) -> Array[String]
+
+pub fn strategy_result_access_progress_action(@run_publication.ResultAccessProgress) -> Int
 
 pub fn strategy_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
