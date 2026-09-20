@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 9/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 10/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 9/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 10/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 9/39, and publication 9/39. These are
+consumer lifetime 15/39, cancellation 10/39, and publication 10/39. These are
 layer counts, not operation completion: eight entries are `complete` and 31 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -86,9 +86,11 @@ independent view for each checked consumer edge, and delegates final
 reclamation to the owning family runtime without exposing its storage handle.
 
 The view/runtime suites pass 18 tests and the existing providers plus query
-integration pass 394 tests on each of JS, Wasm, and native. Standard Host
-assembly still supplies only Relation completions, so standalone Carrier
-outputs and cross-task Carrier consumers remain open.
+integration pass 394 tests on each of JS, Wasm, and native. Later common and
+Node dispatch plumbing accepts retained Carrier completions and mixed ordered
+inputs. No product standard-Host fixture yet carries one Carrier completion
+across a physical task boundary into its checked consumer, so that end-to-end
+path remains open.
 
 Commits `adfcfede` and `ce088605` connect the first provider through the common
 configuration and standard Host. Provider cleanup must confirm reclamation
@@ -465,7 +467,10 @@ registered provider runs it through the standard Host, keeps two real
 downstream consumers live together, releases them independently, and reclaims
 the final ledger. The same affected suites pass on JS, Wasm, and native.
 Environment cancellation delivery and Named Result publication remain open,
-so time series is not complete. Session still lacks a portable Local kernel.
+so time series is not complete. Session has a portable bounded kernel and a
+registered Relation-to-Events-to-Relation standard-Host path; its remaining
+global-partition and parameterized-gap variants, publication, and environment
+cancellation evidence are tracked above.
 
 ### Bridges
 
@@ -523,6 +528,18 @@ result into two downstream Compute consumers, releases them independently, and
 returns the ledger to zero. The complete program-check and query-integration
 suites pass 677 tests on each target; the portable API and family coverage
 gates pass. This is not cancellation-delivery or publication evidence.
+
+At `8ffcbb75`, the common managed request, physical task, Local managed
+provider, and Node dispatch paths retain an ordered mixture of Relation and
+Carrier bindings. A standalone TEA provider can return a retained Events
+Carrier, and the Node adapter accepts and stores a Carrier completion without
+erasing it to Relation rows. The affected suites pass 1,128 tests on each of
+JS, Wasm, and native; query integration passes 395 tests, the Node Local
+adapter passes 13, the retained boundary passes 233, and the publication
+runtime passes 16. The product standard Host still lacks a fixture that
+dispatches this retained output across a physical task boundary into an exact
+checked Carrier consumer, so no operation gains a completed layer from this
+plumbing alone.
 
 At `f59e17eb`, the same expression pipeline reaches the Effect-free Named
 Result path. The standard Host publishes and retrieves the ordered rows with
