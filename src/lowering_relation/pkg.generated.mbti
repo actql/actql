@@ -333,6 +333,36 @@ pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
 
 pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema
 
+pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
+
+pub fn graph_traverse_emits_paths(PreparedGraphTraverse) -> Bool
+
+pub fn graph_traverse_hop_count(PreparedGraphTraverse) -> Int
+
+pub fn graph_traverse_hop_direction(PreparedGraphTraverse, Int) -> @graph_typing.Direction?
+
+pub fn graph_traverse_hop_edge_predicate(PreparedGraphTraverse, Int) -> Expression?
+
+pub fn graph_traverse_hop_node_predicate(PreparedGraphTraverse, Int) -> Expression?
+
+pub fn graph_traverse_hop_type_at(PreparedGraphTraverse, Int, Int) -> String?
+
+pub fn graph_traverse_hop_type_count(PreparedGraphTraverse, Int) -> Int?
+
+pub fn graph_traverse_output_guard(PreparedGraphTraverse) -> Int64?
+
+pub fn graph_traverse_output_schema(PreparedGraphTraverse) -> @relation_schema.Schema
+
+pub fn graph_traverse_patterned(PreparedGraphTraverse) -> Bool
+
+pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
+
+pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
+
+pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
+
+pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?

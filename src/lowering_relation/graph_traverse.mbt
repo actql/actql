@@ -15,6 +15,134 @@ struct PreparedGraphTraverse {
 }
 
 ///|
+/// The checked Relation schema produced by this traversal occurrence.
+pub fn graph_traverse_output_schema(
+  value : PreparedGraphTraverse,
+) -> @schema.Schema {
+  value.node.output_schema.unwrap()
+}
+
+///|
+/// Whether the authored traversal uses an exact per-hop pattern.
+pub fn graph_traverse_patterned(value : PreparedGraphTraverse) -> Bool {
+  @graph.traverse_patterned(value.checked)
+}
+
+///|
+/// The checked homogeneous hop bounds. Patterned traversal returns None.
+pub fn graph_traverse_bounds(value : PreparedGraphTraverse) -> (Int64, Int64)? {
+  if graph_traverse_patterned(value) {
+    return None
+  }
+  let (minimum, maximum) = @graph.traverse_bounds(value.checked)
+  guard @scalar.read_safe_integer(minimum) is Some(minimum) &&
+    @scalar.read_safe_integer(maximum) is Some(maximum) else {
+    return None
+  }
+  Some((minimum, maximum))
+}
+
+///|
+/// Whether this occurrence emits complete paths rather than reached nodes.
+pub fn graph_traverse_emits_paths(value : PreparedGraphTraverse) -> Bool {
+  @graph.traverse_emission(value.checked) == @graph.TraversedPaths
+}
+
+///|
+/// The resolved optional output row guard.
+pub fn graph_traverse_output_guard(value : PreparedGraphTraverse) -> Int64? {
+  value.output_guard
+}
+
+///|
+/// Number of checked literal identities in the start selector.
+pub fn graph_traverse_start_id_count(value : PreparedGraphTraverse) -> Int {
+  @graph.selector_id_count(@graph.traverse_start(value.checked))
+}
+
+///|
+/// One checked literal start identity in authored order.
+pub fn graph_traverse_start_id_at(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> @value.CheckedValue? {
+  @graph.selector_id_at(@graph.traverse_start(value.checked), index)
+}
+
+///|
+/// The lowered start predicate, if the selector uses a predicate.
+pub fn graph_traverse_start_predicate(
+  value : PreparedGraphTraverse,
+) -> Expression? {
+  value.start_predicate
+}
+
+///|
+/// The selected field for a Relation-backed start selector.
+pub fn graph_traverse_start_relation_field(
+  value : PreparedGraphTraverse,
+) -> @schema.FieldName? {
+  match @graph.selector_form(@graph.traverse_start(value.checked)) {
+    @graph.RelationIds(field~, ..) => Some(field)
+    _ => None
+  }
+}
+
+///|
+/// Number of exact hop specifications available to the kernel.
+pub fn graph_traverse_hop_count(value : PreparedGraphTraverse) -> Int {
+  value.hops.length()
+}
+
+///|
+/// Direction of one checked hop specification.
+pub fn graph_traverse_hop_direction(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> @graph.Direction? {
+  value.hops.get(index).map(hop => @graph.hop_direction(hop.checked))
+}
+
+///|
+/// Number of edge labels on one hop, preserving absence versus an empty list.
+pub fn graph_traverse_hop_type_count(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> Int? {
+  value.hops.get(index).bind(hop => @graph.hop_type_count(hop.checked))
+}
+
+///|
+/// One checked edge label in authored order.
+pub fn graph_traverse_hop_type_at(
+  value : PreparedGraphTraverse,
+  hop_index : Int,
+  type_index : Int,
+) -> String? {
+  value.hops
+  .get(hop_index)
+  .bind(hop => @graph.hop_type_at(hop.checked, type_index))
+}
+
+///|
+/// The lowered edge predicate for one patterned hop.
+pub fn graph_traverse_hop_edge_predicate(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> Expression? {
+  value.hops.get(index).bind(hop => hop.edge_predicate)
+}
+
+///|
+/// The lowered destination-node predicate for one patterned hop.
+pub fn graph_traverse_hop_node_predicate(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> Expression? {
+  value.hops.get(index).bind(hop => hop.node_predicate)
+}
+
+///|
 pub(all) enum GraphTraverseIssue {
   InvalidGraphTraverseLimits
   InvalidGraphTraverseWiring
