@@ -657,6 +657,7 @@
       "canonical": ["TEA.window.fixed_label", "TEA.window.sliding_assign"],
       "variants": ["fixed", "sliding", "literal/parameter size and step", "offset", "multiple membership"],
       "status": "partial",
+      "blocker": "Transport page-split equivalence still lacks a standard Host fixture for one bounded observation.",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -665,13 +666,33 @@
         "kernel",
         "managed",
         "standard_host",
+        "consumer_lifetime",
+        "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/window_test.mbt",
         "src/local_tea/window_wbtest.mbt",
-        "src/query_integration/local_carrier_events_wbtest.mbt"
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "literal_parameter_publication_and_kernel_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "fa716474",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -681,7 +702,7 @@
       "output": "events",
       "canonical": ["TEA.watermark.label"],
       "variants": ["drop", "mark", "late boundary", "stable retained order"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -690,14 +711,34 @@
         "kernel",
         "managed",
         "standard_host",
+        "consumer_lifetime",
+        "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/event_test.mbt",
         "src/local_tea/watermark_wbtest.mbt",
         "src/query_integration/local_carrier_events_wbtest.mbt",
-        "adapters/local-node/strategy-bundle.test.mjs"
+        "adapters/local-node/strategy-bundle.test.mjs",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "retained_consumers_publication_and_kernel_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "fa716474",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -877,7 +918,7 @@
       "output": "events",
       "canonical": ["TEA.dedupe"],
       "variants": ["global/grouped", "resolved tie", "unresolved tie failure"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -886,13 +927,33 @@
         "kernel",
         "managed",
         "standard_host",
+        "consumer_lifetime",
+        "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/event_test.mbt",
         "src/local_tea/dedupe_wbtest.mbt",
-        "src/query_integration/local_carrier_events_wbtest.mbt"
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "retained_consumers_publication_and_kernel_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "fa716474",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -1576,6 +1637,60 @@
         },
         {
           "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "window_events",
+      "sha": "fa716474",
+      "suites": [
+        {
+          "name": "portable retained consumers and publication identity",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host kernel cancellation and cleanup",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "watermark_events",
+      "sha": "fa716474",
+      "suites": [
+        {
+          "name": "portable retained consumers and publication identity",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host kernel cancellation and cleanup",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "dedupe_events",
+      "sha": "fa716474",
+      "suites": [
+        {
+          "name": "portable retained consumers and publication identity",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host kernel cancellation and cleanup",
           "path": "adapters/duckdb-node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"

@@ -12,17 +12,17 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 26/39 reach the standard Host, and 19/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 26/39 reach the standard Host, and 22/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 15/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 18/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, and normalized, grafted, scored, or pooled Vectors projections; 18/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, bounded Events transforms, and normalized, grafted, scored, or pooled Vectors projections; 21/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 26/39,
-consumer lifetime 19/39, cancellation 15/39, and publication 18/39. These are
-layer counts, not operation completion: 14 entries are `complete` and 25 remain
+consumer lifetime 22/39, cancellation 18/39, and publication 21/39. These are
+layer counts, not operation completion: 16 entries are `complete` and 23 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -483,10 +483,12 @@ sliding-assignment operation. Their bounded kernel validates the complete
 membership bound before output allocation, retains input occurrence order,
 and emits memberships in ascending start order. Sliding storage distinguishes
 physical membership records by event identity plus window start without
-changing the Carrier's semantic event identity. Fixed and sliding variants run
-through the standard Host, reach two Relation consumers, and reclaim the final
-ledger on JS, Wasm, and native. Parameterized boundary conformance, page-split
-equivalence, formal publication, and environment cancellation delivery remain
+changing the Carrier's semantic event identity. Fixed, sliding, and
+parameterized fixed variants run through the standard Host, reach two Relation
+consumers, establish stable publication identities, and reclaim the final
+ledger on JS, Wasm, and native. The Node Host delivers timer cancellation
+during both window kernels, confirms stop, completes cleanup, and returns the
+ledger to zero. Page-split equivalence for one bounded observation remains
 open, so event windows are not complete. Runtime work must preserve finite
 event-time observation semantics
 across transport page splits and bind checkpoint advancement to the existing
@@ -500,9 +502,9 @@ Events generation. Its portable tests cover kernel cancellation observation and
 two exact downstream reads on JS, Wasm, and native. One registered standard
 Host sequence now converts Relation rows to Events, runs watermarking, converts
 back to Relation, feeds two downstream computations, releases them
-independently, and reclaims the final ledger. Standalone Events output lifetime,
-the complete cancellation artifact path, and publication remain open, so
-watermarking is not complete. Dedupe now executes as a bounded stable merge
+independently, and reclaims the final ledger. The retained consumers, formal
+publication identity, and complete environment cancellation artifact path now
+pass. This closes watermarking. Dedupe now executes as a bounded stable merge
 over the authored partition and order terms. It preserves repeated partition
 references, emits representatives in canonical partition-key order, and fails
 an unresolved top tie before publication. Scratch dimensions are admitted
@@ -510,9 +512,12 @@ before allocation. Its portable tests cover grouped and global selection,
 empty input, exact and insufficient workspace, cancellation, and tie failure
 on JS, Wasm, and native. The registered Events provider now selects either
 watermark or dedupe from the checked occurrence. Dedupe reaches two downstream
-Relation computations through the standard Host and releases the final ledger.
-Standalone Events output lifetime, environment cancellation delivery, and
-publication remain open, so dedupe is not complete. Time series now lowers
+Relation computations through the standard Host, establishes its formal
+publication identity, and releases the final ledger. The Node Host delivers
+cancellation during dedupe work and observes stop and cleanup before returning
+the ledger to zero. This closes dedupe. At `fa716474`, the affected TEA,
+provider, and query-integration suites pass 414 tests on JS, Wasm, and native,
+and the real Node standard Host passes. Time series now lowers
 literal and exact bound endpoints to a zero-input canonical
 occurrence, validates its complete finite cardinality before execution, and
 emits canonical UTC timestamp rows through a bounded-step Relation kernel. A
