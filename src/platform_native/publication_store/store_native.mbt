@@ -1,6 +1,7 @@
 ///|
 struct Store {
   root : @filesystem.Root
+  lock : @filesystem.Lock
   database : @sqlite.Database
   authority_cid : String
   capacity_bytes : Int64
@@ -134,13 +135,21 @@ pub fn open_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
+  let lock = match root.acquire_lock(".actql-publication.lock") {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
   let journal_path = root_path + "/.actql-publication.sqlite3"
   let database = match library.open_database(journal_path, max_record_bytes) {
     Ok(value) => value
-    Err(issue) => return Err(Database(issue))
+    Err(issue) => {
+      ignore(lock.close())
+      return Err(Database(issue))
+    }
   }
   Ok({
     root,
+    lock,
     database,
     authority_cid,
     capacity_bytes,
@@ -2460,6 +2469,9 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
     Err(issue) => return Err(issue)
   }
   self.database.close()
+  if !self.lock.close() {
+    return Err(CleanupPending)
+  }
   self.closed = true
   Ok(true)
 }

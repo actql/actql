@@ -169,7 +169,7 @@ test "native publication capacity rejects before payload allocation" {
 }
 
 ///|
-test "native publication capacity is shared by every handle for one root" {
+test "native publication Store root has one live recovery owner" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(library_path) else {
     return
@@ -181,18 +181,18 @@ test "native publication capacity is shared by every handle for one root" {
   let authority = native_payload_cid(token + "-authority")
   let library = @sqlite.load_library(library_path).unwrap()
   let first = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
-  let second = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
   let writer = first
     .begin_payload(native_payload_request(authority, token + "-a", 8L))
     .unwrap()
   assert_true(
-    second.begin_payload(native_payload_request(authority, token + "-b", 1L))
-    is Err(Database(@sqlite.CapacityExceeded)),
+    open_store(library, root, authority, 8L, 8L, 65536L)
+    is Err(Filesystem(@filesystem.Lock(_))),
   )
   writer.cancel().unwrap()
-  assert_eq(second.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(first.close().unwrap())
-  assert_true(second.close().unwrap())
+  let successor = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
+  assert_eq(successor.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(successor.close().unwrap())
 }
 
 ///|
