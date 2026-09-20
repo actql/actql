@@ -9,6 +9,7 @@ fn local_values_asof_program() -> String {
 test "standard Host runs bounded as-of join for two consumers" {
   let (run, issuer) = captured_graph_fixture(
     local_values_asof_chain=true,
+    managed_publication=true,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 20,
@@ -17,6 +18,11 @@ test "standard Host runs bounded as-of join for two consumers" {
       retained_bytes: 134217728L,
       execution_bytes: 536870912L,
     }),
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
   )
   assert_eq(@strategy.captured_task_asof_search_count(run, 3), Some(1))
   assert_eq(@strategy.captured_task_asof_search_at(run, 3, 0), Some((0, 3L)))
@@ -61,6 +67,7 @@ test "standard Host runs bounded as-of join for two consumers" {
     [],
     1,
     left_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let left_rows = local_managed_test_rows(left_ops)
   let right_live = Ref(true)
@@ -72,9 +79,11 @@ test "standard Host runs bounded as-of join for two consumers" {
     [],
     2,
     right_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let right_rows = local_managed_test_rows(right_ops)
   let join_live = Ref(true)
+  let join_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (join_ops, joined) = run_local_managed_test_task(
     installed,
     run,
@@ -83,9 +92,28 @@ test "standard Host runs bounded as-of join for two consumers" {
     [left_rows, right_rows],
     3,
     join_live,
+    obligations=join_obligations,
   )
   let joined_rows = local_managed_test_rows(join_ops)
   assert_eq(joined_rows, ["{\"id\":1,\"value\":300}"])
+  let requirements = @execution.managed_obligations_identities(join_obligations)
+  let published = requirements.filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
+  assert_eq(published.length(), 1)
+  assert_eq(
+    @execution.managed_completed_identity_requirement_status(
+      joined,
+      published[0],
+    ),
+    Some(
+      @execution.EstablishedSourceRetained(
+        @execution.logical_relation_canonical_contract_cid(),
+        "sha256:db07d32e15ad106975d22c1b251a3f6d5e2a0e3c86ec495d405f892de12df8db",
+      ),
+    ),
+  )
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
@@ -95,6 +123,7 @@ test "standard Host runs bounded as-of join for two consumers" {
     [joined_rows],
     4,
     first_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
@@ -105,6 +134,7 @@ test "standard Host runs bounded as-of join for two consumers" {
     [joined_rows],
     5,
     second_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   assert_eq(local_managed_test_rows(first_ops), joined_rows)
   assert_eq(local_managed_test_rows(second_ops), ["{\"value\":300,\"id\":1}"])
