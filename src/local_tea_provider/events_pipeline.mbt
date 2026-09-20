@@ -25,6 +25,7 @@ priv struct Execution {
   mut watermark : @tea.WatermarkExecution?
   mut dedupe : @tea.DedupeExecution?
   mut window : @tea.EventWindowExecution?
+  mut session : @tea.SessionExecution?
   mut watermarked : @records.Completed?
   mut projection : @bridge.EventsToRowsExecution?
   mut stage_progress : Int64
@@ -62,7 +63,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "BRIDGE.rows.to_events"
       (1, @lower.EventStep(_)) =>
         @lower.operation(node) == "TEA.watermark.label" ||
-        @lower.operation(node) == "TEA.dedupe"
+        @lower.operation(node) == "TEA.dedupe" ||
+        @lower.operation(node) == "TEA.window.session_assign"
       (1, @lower.WindowStep(window)) =>
         @lower.window_preserves_events(window) &&
         (
@@ -271,6 +273,20 @@ fn advance_execution(
               Ok(execution) => value.dedupe = Some(execution)
               Err(_) => return fail_execution(value)
             }
+          "TEA.window.session_assign" =>
+            match
+              @tea.start_session(
+                value.control,
+                value.sequence,
+                1,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => value.session = Some(execution)
+              Err(_) => return fail_execution(value)
+            }
           "TEA.window.fixed_label" | "TEA.window.sliding_assign" =>
             match
               @tea.start_event_window(
@@ -387,6 +403,40 @@ fn advance_execution(
               return Ok(poll)
             }
             Ok(@tea.EventWindowStopped(_, progress~, work~)) => {
+              guard terminal_poll(value, progress, work, true) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
+            }
+          }
+        } else if value.session is Some(active) {
+          match @tea.advance_session(active, quantum) {
+            Err(_) => return fail_execution(value)
+            Ok(@tea.SessionContinue(progress~, work~)) => {
+              guard continue_poll(value, progress, work) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
+            }
+            Ok(@tea.SessionComplete(output, progress~, work~)) => {
+              guard continue_poll(value, progress, work) is Some(poll) else {
+                return fail_execution(value)
+              }
+              value.watermarked = Some(output)
+              discard(value.row_events) |> ignore
+              value.row_events = None
+              value.phase = StartProjection
+              if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+                return Ok(poll)
+              }
+            }
+            Ok(@tea.SessionFailed(_, progress~, work~)) => {
+              guard terminal_poll(value, progress, work, false) is Some(poll) else {
+                return fail_execution(value)
+              }
+              return Ok(poll)
+            }
+            Ok(@tea.SessionStopped(_, progress~, work~)) => {
               guard terminal_poll(value, progress, work, true) is Some(poll) else {
                 return fail_execution(value)
               }
@@ -517,6 +567,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.session is Some(active) {
+    match @tea.cleanup_session(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   if value.projection is Some(active) {
     match @bridge.cleanup_events_to_rows(active) {
       Ok(_) => ()
@@ -543,6 +599,10 @@ fn cleanup_execution(
     Some(active) => @tea.event_window_cleanup_pending(active)
     None => false
   }
+  let session_pending = match value.session {
+    Some(active) => @tea.session_cleanup_pending(active)
+    None => false
+  }
   let projection_pending = match value.projection {
     Some(active) => @bridge.events_to_rows_cleanup_pending(active)
     None => false
@@ -554,6 +614,7 @@ fn cleanup_execution(
     watermark_pending ||
     dedupe_pending ||
     window_pending ||
+    session_pending ||
     projection_pending {
     return Ok(false)
   }
@@ -595,6 +656,7 @@ pub fn provider(
         watermark: None,
         dedupe: None,
         window: None,
+        session: None,
         watermarked: None,
         projection: None,
         stage_progress: 0L,

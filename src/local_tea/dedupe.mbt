@@ -115,7 +115,7 @@ fn dedupe_scratch(records : Int, terms : Int) -> Int? {
 }
 
 ///|
-fn dedupe_decimal_compare(
+fn event_decimal_compare(
   left : @value.DecimalValue,
   right : @value.DecimalValue,
 ) -> Int {
@@ -153,7 +153,7 @@ fn dedupe_decimal_compare(
 }
 
 ///|
-fn dedupe_compare_non_null(
+fn event_compare_non_null(
   left : @value.CheckedValue,
   right : @value.CheckedValue,
 ) -> Int? {
@@ -166,7 +166,7 @@ fn dedupe_compare_non_null(
     | (@value.Date(a), @value.Date(b))
     | (@value.Timestamp(a), @value.Timestamp(b)) =>
       Some(@canonical.compare_utf16(a, b))
-    (@value.Decimal(a), @value.Decimal(b)) => Some(dedupe_decimal_compare(a, b))
+    (@value.Decimal(a), @value.Decimal(b)) => Some(event_decimal_compare(a, b))
     (@value.Reference(a), @value.Reference(b)) =>
       if @value.reference_available(a) &&
         @value.reference_available(b) &&
@@ -185,7 +185,7 @@ fn dedupe_compare_non_null(
 }
 
 ///|
-fn dedupe_value_supported(value : @value.CheckedValue) -> Bool {
+fn event_value_supported(value : @value.CheckedValue) -> Bool {
   match value.value {
     @value.Null
     | @value.Number(_)
@@ -247,7 +247,7 @@ fn dedupe_compare_term(
     (@value.Null, _) => Some(if nulls_first { -1 } else { 1 })
     (_, @value.Null) => Some(if nulls_first { 1 } else { -1 })
     _ =>
-      dedupe_compare_non_null(left, right).map(comparison => {
+      event_compare_non_null(left, right).map(comparison => {
         if descending {
           -comparison
         } else {
@@ -310,7 +310,7 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
     }
     LoadVerify => {
       guard dedupe_cell(state, state.record, state.term) is Some(value) &&
-        dedupe_value_supported(value) else {
+        event_value_supported(value) else {
         return Err(InvalidDedupeValue(state.record, state.term))
       }
       state.term += 1

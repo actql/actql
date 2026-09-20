@@ -15,6 +15,8 @@ pub fn advance_dedupe(DedupeExecution, Int) -> Result[DedupePoll, DedupeIssue]
 
 pub fn advance_event_window(EventWindowExecution, Int) -> Result[EventWindowPoll, EventWindowIssue]
 
+pub fn advance_session(SessionExecution, Int) -> Result[SessionPoll, SessionIssue]
+
 pub fn advance_time_series(TimeSeriesExecution, Int) -> Result[TimeSeriesPoll, TimeSeriesExecutionIssue]
 
 pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, WatermarkIssue]
@@ -22,6 +24,8 @@ pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, Water
 pub fn cleanup_dedupe(DedupeExecution) -> Result[Bool, DedupeIssue]
 
 pub fn cleanup_event_window(EventWindowExecution) -> Result[Bool, EventWindowIssue]
+
+pub fn cleanup_session(SessionExecution) -> Result[Bool, SessionIssue]
 
 pub fn cleanup_time_series(TimeSeriesExecution) -> Result[Bool, TimeSeriesExecutionIssue]
 
@@ -37,9 +41,13 @@ pub fn dedupe_stopped(DedupeExecution) -> Bool
 
 pub fn event_window_cleanup_pending(EventWindowExecution) -> Bool
 
+pub fn session_cleanup_pending(SessionExecution) -> Bool
+
 pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[DedupeExecution, DedupeIssue]
 
 pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[EventWindowExecution, EventWindowIssue]
+
+pub fn start_session(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
 
 pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
 
@@ -96,6 +104,27 @@ pub enum EventWindowPoll {
   EventWindowComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
   EventWindowFailed(EventWindowIssue, progress~ : Int64, work~ : Int64)
   EventWindowStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type SessionExecution
+
+pub(all) enum SessionIssue {
+  InvalidSessionKernel
+  InvalidSessionLimits
+  SessionInputUnavailable
+  InvalidSessionRecord(Int)
+  InvalidSessionValue(Int, Int)
+  SessionArithmetic(Int)
+  SessionWorkspaceLimit
+  SessionOutput(@managed_record_runtime.Issue)
+  SessionExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum SessionPoll {
+  SessionContinue(progress~ : Int64, work~ : Int64)
+  SessionComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  SessionFailed(SessionIssue, progress~ : Int64, work~ : Int64)
+  SessionStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type TimeSeriesExecution

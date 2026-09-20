@@ -33,11 +33,15 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
   let window = variant == "window_fixed" || variant == "window_sliding"
+  let session = variant == "session"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"window_start_ms\",\"window_end_ms\"]"
+  } else if session {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
+    "\"session_start_ms\",\"session_end_ms\",\"session_id\"]"
   } else {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"watermark_ms\",\"late\",\"watermark_decision\"]"
@@ -47,6 +51,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if session {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else {
     "[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
     "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
@@ -60,6 +68,8 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if session {
+    "{\"session\":{\"by\":[\"payload\"],\"gap\":10}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
@@ -67,6 +77,8 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "[\"payload\",\"event_id\"]"
   } else if window {
     "[\"payload\",\"window_start_ms\",\"event_id\"]"
+  } else if session {
+    "[\"payload\",\"session_id\",\"event_id\"]"
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
@@ -128,6 +140,8 @@ fn carrier_events_owner(
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if variant == "session" {
+    "{\"session\":{\"by\":[\"payload\"],\"gap\":10}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":10," + "\"policy\":\"mark\"}}"
   }
@@ -429,7 +443,10 @@ test "registered Events provider advances and reclaims one typed pipeline" {
 
 ///|
 test "registered Events provider separates stop from cleanup" {
-  for variant in ["watermark", "dedupe", "window_fixed", "window_sliding"] {
+  for
+    variant in [
+      "watermark", "dedupe", "window_fixed", "window_sliding", "session",
+    ] {
     let source_owner = carrier_events_source_owner()
     let source = carrier_events_source_output(source_owner)
     let owner = carrier_events_owner(source_owner, variant~)
@@ -471,7 +488,10 @@ test "registered Events provider separates stop from cleanup" {
 
 ///|
 test "standard Host runs registered bounded Events provider" {
-  for variant in ["watermark", "dedupe", "window_fixed", "window_sliding"] {
+  for
+    variant in [
+      "watermark", "dedupe", "window_fixed", "window_sliding", "session",
+    ] {
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
       local_carrier_events_variant=variant,
@@ -573,6 +593,15 @@ test "standard Host runs registered bounded Events provider" {
     } else if variant == "window_fixed" || variant == "window_sliding" {
       assert_true(event_rows[0].contains("\"window_start_ms\""))
       assert_true(event_rows[0].contains("\"window_end_ms\""))
+    } else if variant == "session" {
+      assert_true(event_rows[0].contains("\"event_id\":2"))
+      assert_true(event_rows[1].contains("\"event_id\":1"))
+      assert_true(event_rows[2].contains("\"event_id\":3"))
+      assert_true(event_rows[0].contains("\"session_start_ms\":1"))
+      assert_true(event_rows[0].contains("\"session_end_ms\":13"))
+      assert_true(event_rows[0].contains("\"session_id\":\"session:"))
+      assert_true(event_rows[2].contains("\"session_start_ms\":13"))
+      assert_true(event_rows[2].contains("\"session_end_ms\":23"))
     } else {
       assert_true(event_rows[0].contains("\"watermark_decision\":\"keep\""))
       assert_true(event_rows[1].contains("\"late\":true"))
