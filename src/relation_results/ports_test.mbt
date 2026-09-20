@@ -91,6 +91,49 @@ test "named Result ports keep publication order distinct from their shared sourc
 }
 
 ///|
+test "Result port projection follows canonical output fields, not author order" {
+  let row = @contract.read_author(
+    cursor(
+      "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"total\":{\"type\":\"number\",\"nullable\":true}}}",
+    ),
+    { max_nodes: 100, max_depth: 10, max_text_bytes: 10000, },
+  ).unwrap()
+  let pipeline = @pipeline.check(
+    cursor("[{\"select\":[\"total\",\"id\"],\"as\":\"selected\"}]"),
+    [("rows", @schema.from_object(row).unwrap())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  let results = @relation_results.check(
+    pipeline,
+    cursor("{\"out\":{\"from\":\"selected\",\"fields\":[\"total\",\"id\"]}}"),
+    limits(),
+  ).unwrap()
+  let orders = @relation_results.resolve_all_orders(results, {
+    max_steps: 100,
+    max_results: 100,
+    max_work: 100000,
+    max_text_bytes: 100000,
+  }).unwrap()
+  let port = @relation_results.port_at(
+    @relation_results.prepare_ports(orders, port_limits()).unwrap(),
+    0,
+  ).unwrap()
+  let schema = @relation_results.port_schema(port)
+  assert_eq(@schema.field_at(schema, 0).unwrap().name, Unqualified("id"))
+  assert_eq(
+    @relation_results.port_projection_input_at(port, 0),
+    Some(Unqualified("id")),
+  )
+  assert_eq(@schema.field_at(schema, 1).unwrap().name, Unqualified("total"))
+  assert_eq(
+    @relation_results.port_projection_input_at(port, 1),
+    Some(Unqualified("total")),
+  )
+}
+
+///|
 test "Result port preparation budgets include prior order checking and every projection" {
   let orders = port_order_owner()
   let ports = @relation_results.prepare_ports(orders, port_limits()).unwrap()

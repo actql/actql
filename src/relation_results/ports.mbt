@@ -173,13 +173,28 @@ pub fn port_projection_input_at(
   port : ResultPort,
   index : Int,
 ) -> @schema.FieldName? {
+  let schema = port_schema(port)
+  guard @schema.field_at(schema, index) is Some(output) else { return None }
+  for
+    field in @relation.projection(
+      @pipeline.publication_projection(
+        @pipeline.input_publication(port.publication),
+      ),
+    ) {
+    if field.output == output.name {
+      return Some(field.input)
+    }
+  }
+  None
+}
+
+///|
+pub fn port_projection_count(port : ResultPort) -> Int {
   @relation.projection(
     @pipeline.publication_projection(
       @pipeline.input_publication(port.publication),
     ),
-  )
-  .get(index)
-  .map(field => field.input)
+  ).length()
 }
 
 ///|

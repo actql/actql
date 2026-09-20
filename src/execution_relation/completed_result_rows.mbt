@@ -146,7 +146,7 @@ fn completed_result_export_rows(
   let columns : Array[Int] = []
   let names : Array[String] = []
   for index = 0; index < count; index = index + 1 {
-    if !spend_result_mapping(work, 1) {
+    if !spend_result_mapping(work, @results.port_projection_count(port)) {
       return Err(Limit)
     }
     let output = @schema.field_at(schema, index).unwrap().name
