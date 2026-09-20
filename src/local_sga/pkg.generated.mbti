@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_runtime",
   "actql/actql/managed_graph_storage",
   "actql/actql/value_admission",
@@ -89,6 +90,8 @@ pub fn normalize_stopped(NormalizeExecution) -> Bool
 pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ComponentsExecution, ComponentsIssue]
 
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
+
+pub fn start_graft_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
 
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
