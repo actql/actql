@@ -273,32 +273,69 @@ export function createExecutionSiteControlFixture() {
       if (runFinished) return 0;
       return 2;
     },
-    hostTaskSuccessAction(
-      siteCompletionChecked,
-      siteCompletionReady,
-      commonCompletionChecked,
-      commonCompleted,
-      connectorOwnedOutput,
-      outputRetained,
-      siteOperationSettled,
-      managedBindingClaimed,
-      managedBindingChecked,
-      managedBindingValid,
-    ) {
-      if ((siteCompletionReady && !siteCompletionChecked) ||
-          (commonCompleted && !commonCompletionChecked) ||
-          (outputRetained && !commonCompleted) ||
-          (siteOperationSettled && !outputRetained) ||
-          (managedBindingValid && !managedBindingChecked)) return 10;
-      if (!siteCompletionChecked) return 0;
-      if (!siteCompletionReady) return 1;
-      if (!commonCompletionChecked) return 2;
-      if (!commonCompleted) return 3;
-      if (!outputRetained) return connectorOwnedOutput ? 4 : 5;
-      if (!siteOperationSettled) return 6;
-      if (managedBindingClaimed) {
-        if (!managedBindingChecked) return 7;
-        if (!managedBindingValid) return 8;
+    beginHostTaskSuccess(connectorOwnedOutput, managedBindingClaimed) {
+      return {
+        connectorOwnedOutput,
+        managedBindingClaimed,
+        siteCompletionChecked: false,
+        siteCompletionReady: false,
+        commonCompletionChecked: false,
+        commonCompleted: false,
+        outputRetained: false,
+        siteOperationSettled: false,
+        managedBindingChecked: false,
+        managedBindingValid: false,
+      };
+    },
+    recordHostTaskSiteCompletion(progress, ready) {
+      if (progress.siteCompletionChecked) return false;
+      progress.siteCompletionChecked = true;
+      progress.siteCompletionReady = ready;
+      return true;
+    },
+    recordHostTaskCommonCompletion(progress, completed) {
+      if (!progress.siteCompletionChecked ||
+          !progress.siteCompletionReady ||
+          progress.commonCompletionChecked) return false;
+      progress.commonCompletionChecked = true;
+      progress.commonCompleted = completed;
+      return true;
+    },
+    recordHostTaskOutputRetained(progress) {
+      if (!progress.commonCompletionChecked || !progress.commonCompleted ||
+          progress.outputRetained) return false;
+      progress.outputRetained = true;
+      return true;
+    },
+    recordHostTaskSiteOperationSettled(progress) {
+      if (!progress.outputRetained || progress.siteOperationSettled) {
+        return false;
+      }
+      progress.siteOperationSettled = true;
+      return true;
+    },
+    recordHostTaskManagedBinding(progress, valid) {
+      if (!progress.managedBindingClaimed ||
+          !progress.siteOperationSettled ||
+          progress.managedBindingChecked) return false;
+      progress.managedBindingChecked = true;
+      progress.managedBindingValid = valid;
+      return true;
+    },
+    hostTaskSiteOperationSettled: progress =>
+      progress.siteOperationSettled,
+    hostTaskSuccessAction(progress) {
+      if (!progress.siteCompletionChecked) return 0;
+      if (!progress.siteCompletionReady) return 1;
+      if (!progress.commonCompletionChecked) return 2;
+      if (!progress.commonCompleted) return 3;
+      if (!progress.outputRetained) {
+        return progress.connectorOwnedOutput ? 4 : 5;
+      }
+      if (!progress.siteOperationSettled) return 6;
+      if (progress.managedBindingClaimed) {
+        if (!progress.managedBindingChecked) return 7;
+        if (!progress.managedBindingValid) return 8;
       }
       return 9;
     },

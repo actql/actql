@@ -613,35 +613,101 @@ export function executionSiteHostTaskRunOutcome(
 
 export function executionSiteHostTaskSuccessAction(
   installation,
-  siteCompletionChecked,
-  siteCompletionReady,
-  commonCompletionChecked,
-  commonCompleted,
-  connectorOwnedOutput,
-  outputRetained,
-  siteOperationSettled,
-  managedBindingClaimed,
-  managedBindingChecked,
-  managedBindingValid,
+  progress,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
-  const action = state.control.hostTaskSuccessAction(
-    siteCompletionChecked,
-    siteCompletionReady,
-    commonCompletionChecked,
-    commonCompleted,
-    connectorOwnedOutput,
-    outputRetained,
-    siteOperationSettled,
-    managedBindingClaimed,
-    managedBindingChecked,
-    managedBindingValid,
-  );
+  const action = state.control.hostTaskSuccessAction(progress);
   if (!Number.isSafeInteger(action) || action < 0 || action > 10) {
     fail('InvalidExecutionSiteHostTaskSuccessAction');
   }
   return action;
+}
+
+export function beginExecutionSiteHostTaskSuccess(
+  installation,
+  connectorOwnedOutput,
+  managedBindingClaimed,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const progress = state.control.beginHostTaskSuccess(
+    connectorOwnedOutput,
+    managedBindingClaimed,
+  );
+  if (progress === undefined || progress === null) {
+    fail('InvalidExecutionSiteHostTaskSuccessProgress');
+  }
+  return progress;
+}
+
+function recordHostTaskSuccessFact(installation, method, progress, value) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  if (state.control[method](progress, ...value) !== true) {
+    fail('InvalidExecutionSiteHostTaskSuccessProgress');
+  }
+}
+
+export function recordExecutionSiteHostTaskSiteCompletion(
+  installation,
+  progress,
+  ready,
+) {
+  recordHostTaskSuccessFact(
+    installation, 'recordHostTaskSiteCompletion', progress, [ready],
+  );
+}
+
+export function recordExecutionSiteHostTaskCommonCompletion(
+  installation,
+  progress,
+  completed,
+) {
+  recordHostTaskSuccessFact(
+    installation, 'recordHostTaskCommonCompletion', progress, [completed],
+  );
+}
+
+export function recordExecutionSiteHostTaskOutputRetained(
+  installation,
+  progress,
+) {
+  recordHostTaskSuccessFact(
+    installation, 'recordHostTaskOutputRetained', progress, [],
+  );
+}
+
+export function recordExecutionSiteHostTaskSiteOperationSettled(
+  installation,
+  progress,
+) {
+  recordHostTaskSuccessFact(
+    installation, 'recordHostTaskSiteOperationSettled', progress, [],
+  );
+}
+
+export function recordExecutionSiteHostTaskManagedBinding(
+  installation,
+  progress,
+  valid,
+) {
+  recordHostTaskSuccessFact(
+    installation, 'recordHostTaskManagedBinding', progress, [valid],
+  );
+}
+
+export function executionSiteHostTaskSiteOperationSettled(
+  installation,
+  progress,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const settled = state.control.hostTaskSiteOperationSettled(progress);
+  if (typeof settled !== 'boolean') {
+    fail('InvalidExecutionSiteHostTaskSuccessProgress');
+  }
+  return settled;
 }
 
 export function retainExecutionSiteOperationHolding(operation, value, valueBytes) {

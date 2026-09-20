@@ -2790,25 +2790,74 @@ pub fn strategy_host_task_run_outcome(
 }
 
 ///|
+#export_name("strategyHostBeginTaskSuccessProgress")
+pub fn strategy_host_begin_task_success_progress(
+  connector_owned_output : Bool,
+  managed_binding_claimed : Bool,
+) -> @strategy.HostTaskSuccessProgress {
+  @strategy.begin_host_task_success_progress(
+    connector_owned_output, managed_binding_claimed,
+  )
+}
+
+///|
+#export_name("strategyHostRecordTaskSiteCompletion")
+pub fn strategy_host_record_task_site_completion(
+  progress : @strategy.HostTaskSuccessProgress,
+  ready : Bool,
+) -> Bool {
+  @strategy.record_host_task_site_completion(progress, ready)
+}
+
+///|
+#export_name("strategyHostRecordTaskCommonCompletion")
+pub fn strategy_host_record_task_common_completion(
+  progress : @strategy.HostTaskSuccessProgress,
+  completed : Bool,
+) -> Bool {
+  @strategy.record_host_task_common_completion(progress, completed)
+}
+
+///|
+#export_name("strategyHostRecordTaskOutputRetained")
+pub fn strategy_host_record_task_output_retained(
+  progress : @strategy.HostTaskSuccessProgress,
+) -> Bool {
+  @strategy.record_host_task_output_retained(progress)
+}
+
+///|
+#export_name("strategyHostRecordTaskSiteOperationSettled")
+pub fn strategy_host_record_task_site_operation_settled(
+  progress : @strategy.HostTaskSuccessProgress,
+) -> Bool {
+  @strategy.record_host_task_site_operation_settled(progress)
+}
+
+///|
+#export_name("strategyHostRecordTaskManagedBinding")
+pub fn strategy_host_record_task_managed_binding(
+  progress : @strategy.HostTaskSuccessProgress,
+  valid : Bool,
+) -> Bool {
+  @strategy.record_host_task_managed_binding(progress, valid)
+}
+
+///|
+#export_name("strategyHostTaskSiteOperationSettled")
+pub fn strategy_host_task_site_operation_settled(
+  progress : @strategy.HostTaskSuccessProgress,
+) -> Bool {
+  @strategy.host_task_success_site_operation_settled(progress)
+}
+
+///|
 #export_name("strategyHostTaskSuccessAction")
 pub fn strategy_host_task_success_action(
-  site_completion_checked : Bool,
-  site_completion_ready : Bool,
-  common_completion_checked : Bool,
-  common_completed : Bool,
-  connector_owned_output : Bool,
-  output_retained : Bool,
-  site_operation_settled : Bool,
-  managed_binding_claimed : Bool,
-  managed_binding_checked : Bool,
-  managed_binding_valid : Bool,
+  progress : @strategy.HostTaskSuccessProgress,
 ) -> Int {
   @strategy.host_task_success_action_code(
-    @strategy.prepare_host_task_success_step(
-      site_completion_checked, site_completion_ready, common_completion_checked,
-      common_completed, connector_owned_output, output_retained, site_operation_settled,
-      managed_binding_claimed, managed_binding_checked, managed_binding_valid,
-    ),
+    @strategy.prepare_host_task_success_progress_step(progress),
   )
 }
 
@@ -8691,25 +8740,74 @@ pub fn async_strategy_host_task_run_outcome(
 }
 
 ///|
+#export_name("asyncStrategyHostBeginTaskSuccessProgress")
+pub fn async_strategy_host_begin_task_success_progress(
+  connector_owned_output : Bool,
+  managed_binding_claimed : Bool,
+) -> @strategy.HostTaskSuccessProgress {
+  @strategy.begin_host_task_success_progress(
+    connector_owned_output, managed_binding_claimed,
+  )
+}
+
+///|
+#export_name("asyncStrategyHostRecordTaskSiteCompletion")
+pub fn async_strategy_host_record_task_site_completion(
+  progress : @strategy.HostTaskSuccessProgress,
+  ready : Bool,
+) -> Bool {
+  @strategy.record_host_task_site_completion(progress, ready)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTaskCommonCompletion")
+pub fn async_strategy_host_record_task_common_completion(
+  progress : @strategy.HostTaskSuccessProgress,
+  completed : Bool,
+) -> Bool {
+  @strategy.record_host_task_common_completion(progress, completed)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTaskOutputRetained")
+pub fn async_strategy_host_record_task_output_retained(
+  progress : @strategy.HostTaskSuccessProgress,
+) -> Bool {
+  @strategy.record_host_task_output_retained(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTaskSiteOperationSettled")
+pub fn async_strategy_host_record_task_site_operation_settled(
+  progress : @strategy.HostTaskSuccessProgress,
+) -> Bool {
+  @strategy.record_host_task_site_operation_settled(progress)
+}
+
+///|
+#export_name("asyncStrategyHostRecordTaskManagedBinding")
+pub fn async_strategy_host_record_task_managed_binding(
+  progress : @strategy.HostTaskSuccessProgress,
+  valid : Bool,
+) -> Bool {
+  @strategy.record_host_task_managed_binding(progress, valid)
+}
+
+///|
+#export_name("asyncStrategyHostTaskSiteOperationSettled")
+pub fn async_strategy_host_task_site_operation_settled(
+  progress : @strategy.HostTaskSuccessProgress,
+) -> Bool {
+  @strategy.host_task_success_site_operation_settled(progress)
+}
+
+///|
 #export_name("asyncStrategyHostTaskSuccessAction")
 pub fn async_strategy_host_task_success_action(
-  site_completion_checked : Bool,
-  site_completion_ready : Bool,
-  common_completion_checked : Bool,
-  common_completed : Bool,
-  connector_owned_output : Bool,
-  output_retained : Bool,
-  site_operation_settled : Bool,
-  managed_binding_claimed : Bool,
-  managed_binding_checked : Bool,
-  managed_binding_valid : Bool,
+  progress : @strategy.HostTaskSuccessProgress,
 ) -> Int {
   @strategy.host_task_success_action_code(
-    @strategy.prepare_host_task_success_step(
-      site_completion_checked, site_completion_ready, common_completion_checked,
-      common_completed, connector_owned_output, output_retained, site_operation_settled,
-      managed_binding_claimed, managed_binding_checked, managed_binding_valid,
-    ),
+    @strategy.prepare_host_task_success_progress_step(progress),
   )
 }
 

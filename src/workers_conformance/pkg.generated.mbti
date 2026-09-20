@@ -63,6 +63,8 @@ pub fn async_strategy_finish_durable_result_row_frames(@run_publication.DurableR
 
 pub fn async_strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise AsyncHostFailure
 
+pub fn async_strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strategy.HostTaskSuccessProgress
+
 pub fn async_strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
 
 pub fn async_strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
@@ -161,6 +163,16 @@ pub fn async_strategy_host_publication_inventory_program_cid(@run_publication.Ch
 
 pub fn async_strategy_host_publication_inventory_task(@run_publication.CheckedPublicationInventory, Int) -> Int raise AsyncHostFailure
 
+pub fn async_strategy_host_record_task_common_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn async_strategy_host_record_task_managed_binding(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn async_strategy_host_record_task_output_retained(@physical_strategy.HostTaskSuccessProgress) -> Bool
+
+pub fn async_strategy_host_record_task_site_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn async_strategy_host_record_task_site_operation_settled(@physical_strategy.HostTaskSuccessProgress) -> Bool
+
 pub fn async_strategy_host_record_transfer_destination_admission(@physical_strategy.ManagedTransferProgress, Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
 
 pub fn async_strategy_host_record_transfer_destination_cleanup_release(@physical_strategy.ManagedTransferProgress) -> Bool
@@ -213,7 +225,9 @@ pub fn async_strategy_host_task_completed(@connectors_workers_async.ConfiguredCo
 
 pub fn async_strategy_host_task_run_outcome(Bool, Bool) -> Int
 
-pub fn async_strategy_host_task_success_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn async_strategy_host_task_site_operation_settled(@physical_strategy.HostTaskSuccessProgress) -> Bool
+
+pub fn async_strategy_host_task_success_action(@physical_strategy.HostTaskSuccessProgress) -> Int
 
 pub fn async_strategy_host_transfer_abort(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise AsyncHostFailure
 
@@ -995,6 +1009,8 @@ pub fn strategy_finish_durable_result_row_frames(@run_publication.DurableResultR
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
+pub fn strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strategy.HostTaskSuccessProgress
+
 pub fn strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
 
 pub fn strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
@@ -1093,6 +1109,16 @@ pub fn strategy_host_publication_inventory_program_cid(@run_publication.CheckedP
 
 pub fn strategy_host_publication_inventory_task(@run_publication.CheckedPublicationInventory, Int) -> Int raise NodeHostFailure
 
+pub fn strategy_host_record_task_common_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn strategy_host_record_task_managed_binding(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn strategy_host_record_task_output_retained(@physical_strategy.HostTaskSuccessProgress) -> Bool
+
+pub fn strategy_host_record_task_site_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn strategy_host_record_task_site_operation_settled(@physical_strategy.HostTaskSuccessProgress) -> Bool
+
 pub fn strategy_host_record_transfer_destination_admission(@physical_strategy.ManagedTransferProgress, Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
 
 pub fn strategy_host_record_transfer_destination_cleanup_release(@physical_strategy.ManagedTransferProgress) -> Bool
@@ -1145,7 +1171,9 @@ pub fn strategy_host_task_completed(@connectors_workers.ConfiguredComputeHost[@p
 
 pub fn strategy_host_task_run_outcome(Bool, Bool) -> Int
 
-pub fn strategy_host_task_success_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn strategy_host_task_site_operation_settled(@physical_strategy.HostTaskSuccessProgress) -> Bool
+
+pub fn strategy_host_task_success_action(@physical_strategy.HostTaskSuccessProgress) -> Int
 
 pub fn strategy_host_transfer_abort(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
 

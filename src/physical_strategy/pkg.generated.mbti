@@ -23,6 +23,8 @@ pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, Ru
 
 pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
 
+pub fn begin_host_task_success_progress(Bool, Bool) -> HostTaskSuccessProgress
+
 pub fn begin_managed_transfer_progress(ManagedTransfer) -> ManagedTransferProgress
 
 pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
@@ -183,6 +185,8 @@ pub fn host_task_run_outcome_code(HostTaskRunOutcome) -> Int
 
 pub fn host_task_success_action_code(HostTaskSuccessAction) -> Int
 
+pub fn host_task_success_site_operation_settled(HostTaskSuccessProgress) -> Bool
+
 pub fn managed_failure_runtime_action_code(ManagedFailureRuntimeAction) -> Int
 
 pub fn managed_transfer_destination_admitted(ManagedTransferDestinationFacts, Int64, Int64) -> Bool
@@ -203,6 +207,8 @@ pub fn prepare_host_cleanup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Ho
 
 pub fn prepare_host_task_run_outcome(Bool, Bool) -> HostTaskRunOutcome
 
+pub fn prepare_host_task_success_progress_step(HostTaskSuccessProgress) -> HostTaskSuccessAction
+
 pub fn prepare_host_task_success_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostTaskSuccessAction
 
 pub fn prepare_managed_failure_step(Bool, Bool, Bool, Bool, Bool, Bool) -> ManagedFailureRuntimeAction
@@ -222,6 +228,16 @@ pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, In
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
+pub fn record_host_task_common_completion(HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn record_host_task_managed_binding(HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn record_host_task_output_retained(HostTaskSuccessProgress) -> Bool
+
+pub fn record_host_task_site_completion(HostTaskSuccessProgress, Bool) -> Bool
+
+pub fn record_host_task_site_operation_settled(HostTaskSuccessProgress) -> Bool
 
 pub fn record_managed_transfer_destination_admission(ManagedTransferProgress, ManagedTransferDestinationFacts, Int64, Int64) -> Bool
 
@@ -454,6 +470,8 @@ pub(all) enum HostTaskSuccessAction {
   HostTaskSuccessFinished
   HostTaskSuccessInvalid
 } derive(Eq, @debug.Debug)
+
+type HostTaskSuccessProgress
 
 pub(all) enum ManagedFailureRuntimeAction {
   FailureCloseAdditional

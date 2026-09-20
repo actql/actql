@@ -75,6 +75,19 @@ function siteControl(moon) {
     hostCleanupAction: moon.strategyHostCleanupAction,
     hostCleanupPending: moon.strategyHostCleanupPending,
     hostTaskRunOutcome: moon.strategyHostTaskRunOutcome,
+    beginHostTaskSuccess: moon.strategyHostBeginTaskSuccessProgress,
+    recordHostTaskSiteCompletion:
+      moon.strategyHostRecordTaskSiteCompletion,
+    recordHostTaskCommonCompletion:
+      moon.strategyHostRecordTaskCommonCompletion,
+    recordHostTaskOutputRetained:
+      moon.strategyHostRecordTaskOutputRetained,
+    recordHostTaskSiteOperationSettled:
+      moon.strategyHostRecordTaskSiteOperationSettled,
+    recordHostTaskManagedBinding:
+      moon.strategyHostRecordTaskManagedBinding,
+    hostTaskSiteOperationSettled:
+      moon.strategyHostTaskSiteOperationSettled,
     hostTaskSuccessAction: moon.strategyHostTaskSuccessAction,
   });
   siteControls.set(moon, control);

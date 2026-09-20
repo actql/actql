@@ -2,14 +2,21 @@
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
+  beginExecutionSiteHostTaskSuccess,
   executionSiteCandidate,
   executionSiteDescription, executionSiteHostCleanupAction,
   executionSiteHostCleanupPending, executionSiteHostTaskRunOutcome,
   executionSiteHostTaskSuccessAction,
+  executionSiteHostTaskSiteOperationSettled,
   executionSiteOperationAvailable,
   executionSitePlacements, failedExecutionSiteOperationAction,
   installExecutionSites,
   prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
+  recordExecutionSiteHostTaskCommonCompletion,
+  recordExecutionSiteHostTaskManagedBinding,
+  recordExecutionSiteHostTaskOutputRetained,
+  recordExecutionSiteHostTaskSiteCompletion,
+  recordExecutionSiteHostTaskSiteOperationSettled,
   retainedExecutionSiteHoldingAction,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
@@ -682,7 +689,7 @@ export async function runInstalledStrategy(
         siteCompletionReady,
       }) : task;
       let result, siteResult;
-      let siteOperationSettled = false;
+      let successProgress;
       try {
         result = await (managed
           ? entry.runPrepared(siteTask, signal)
@@ -690,39 +697,33 @@ export async function runInstalledStrategy(
         const connectorOwnedOutput = Boolean(managed || result?.close);
         const managedBindingClaimed = result?.completed != null ||
           result?.material != null;
-        let siteCompletionChecked = false;
-        let siteCompletionAvailable = false;
-        let commonCompletionChecked = false;
-        let commonCompleted = false;
-        let outputRetained = false;
-        let managedBindingChecked = false;
-        let managedBindingValid = false;
-        let successFinished = false;
+        successProgress = beginExecutionSiteHostTaskSuccess(
+          siteInstallation,
+          connectorOwnedOutput,
+          managedBindingClaimed,
+        );
         for (let step = 0; step < 12; step++) {
           const action = executionSiteHostTaskSuccessAction(
             siteInstallation,
-            siteCompletionChecked,
-            siteCompletionAvailable,
-            commonCompletionChecked,
-            commonCompleted,
-            connectorOwnedOutput,
-            outputRetained,
-            siteOperationSettled,
-            managedBindingClaimed,
-            managedBindingChecked,
-            managedBindingValid,
+            successProgress,
           );
           if (action === 0) {
-            siteCompletionAvailable = siteCompletionReady();
-            siteCompletionChecked = true;
+            recordExecutionSiteHostTaskSiteCompletion(
+              siteInstallation,
+              successProgress,
+              siteCompletionReady(),
+            );
             continue;
           }
           if (action === 1) {
             throw new StrategyHostError('ExecutionSiteCompletionNotReady');
           }
           if (action === 2) {
-            commonCompleted = core.completed(setup, index);
-            commonCompletionChecked = true;
+            recordExecutionSiteHostTaskCommonCompletion(
+              siteInstallation,
+              successProgress,
+              core.completed(setup, index),
+            );
             continue;
           }
           if (action === 3) throw new StrategyHostError('TaskNotCompleted');
@@ -731,7 +732,10 @@ export async function runInstalledStrategy(
               siteOperation, result, siteCandidate.capacity.retainedBytes,
             );
             outputs.push(siteResult);
-            outputRetained = true;
+            recordExecutionSiteHostTaskOutputRetained(
+              siteInstallation,
+              successProgress,
+            );
             continue;
           }
           if (action === 5) {
@@ -742,7 +746,10 @@ export async function runInstalledStrategy(
             coreSiteOutputs.retain(
               siteOperation, output, siteCandidate.capacity.retainedBytes,
             );
-            outputRetained = true;
+            recordExecutionSiteHostTaskOutputRetained(
+              siteInstallation,
+              successProgress,
+            );
             continue;
           }
           if (action === 6) {
@@ -751,33 +758,44 @@ export async function runInstalledStrategy(
                 'ExecutionSiteOperationSettlementRejected',
               );
             }
-            siteOperationSettled = true;
+            recordExecutionSiteHostTaskSiteOperationSettled(
+              siteInstallation,
+              successProgress,
+            );
             continue;
           }
           if (action === 7) {
-            managedBindingValid = result.completed != null &&
+            const managedBindingValid = result.completed != null &&
               result.material != null &&
               core.managedMatches(setup, index, result.completed);
-            managedBindingChecked = true;
+            recordExecutionSiteHostTaskManagedBinding(
+              siteInstallation,
+              successProgress,
+              managedBindingValid,
+            );
             continue;
           }
           if (action === 8) {
             throw new StrategyHostError('InvalidManagedCompletion');
           }
           if (action === 9) {
-            successFinished = true;
+            successProgress = undefined;
             break;
           }
           throw new StrategyHostError('InvalidHostTaskSuccessProgress');
         }
-        if (!successFinished) {
+        if (successProgress !== undefined) {
           throw new StrategyHostError('HostTaskSuccessDidNotConverge');
         }
       } catch (error) {
         throw settleSiteAfterFailure(
           siteOperation,
           error,
-          siteOperationSettled,
+          successProgress !== undefined &&
+            executionSiteHostTaskSiteOperationSettled(
+              siteInstallation,
+              successProgress,
+            ),
         );
       }
       // A callback's resolved Promise is not a completion proof. The core must
