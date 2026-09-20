@@ -361,7 +361,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     variant == "nearest_l2" ||
     variant == "nearest_inferred" ||
     variant == "nearest_k1" ||
-    variant == "nearest_empty" {
+    variant == "nearest_klarge" ||
+    variant == "nearest_empty" ||
+    variant == "nearest_empty_queries" {
     return local_vector_nearest_program(variant)
   }
   let relation_pool = variant == "relation_pool" ||
@@ -1582,7 +1584,9 @@ fn local_vector_nearest_program(variant : String) -> String {
     "[{\"id\":2,\"embedding\":[1,0]},{\"id\":1," +
     "\"embedding\":[1,0]},{\"id\":3,\"embedding\":[0,1]}]"
   }
-  let query_rows = if inferred {
+  let query_rows = if variant == "nearest_empty_queries" {
+    "[]"
+  } else if inferred {
     "[{\"id\":\"t\",\"embedding\":[1,0]},{\"id\":\"q\"," +
     "\"embedding\":[0,1]}]"
   } else {
@@ -1608,7 +1612,13 @@ fn local_vector_nearest_program(variant : String) -> String {
   } else {
     "dot"
   }
-  let k = if variant == "nearest_k1" { "1" } else { "2" }
+  let k = if variant == "nearest_k1" {
+    "1"
+  } else if variant == "nearest_klarge" {
+    "5"
+  } else {
+    "2"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
   "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
