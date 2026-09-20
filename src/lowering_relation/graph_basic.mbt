@@ -5,6 +5,45 @@ struct PreparedGraphBasic {
 }
 
 ///|
+pub(all) enum GraphBasicKind {
+  NormalizeBasic
+  DegreeIncomingBasic
+  DegreeOutgoingBasic
+  DegreeBothBasic
+  ComponentsWeakBasic
+  ComponentsStrongBasic
+  BoundsBasic
+} derive(Eq, Debug)
+
+///|
+pub fn graph_basic_kind(value : PreparedGraphBasic) -> GraphBasicKind {
+  match value.params {
+    NormalizeParams => NormalizeBasic
+    DegreeParams(@graph.Incoming) => DegreeIncomingBasic
+    DegreeParams(@graph.Outgoing) => DegreeOutgoingBasic
+    DegreeParams(@graph.Both) => DegreeBothBasic
+    ComponentParams(@graph.Weak, _) => ComponentsWeakBasic
+    ComponentParams(@graph.Strong, _) => ComponentsStrongBasic
+    BoundsParams(_, _, _) => BoundsBasic
+  }
+}
+
+///|
+pub fn graph_basic_output_schema(value : PreparedGraphBasic) -> @schema.Schema {
+  value.node.output_schema.unwrap()
+}
+
+///|
+pub fn graph_basic_bounds(
+  value : PreparedGraphBasic,
+) -> (Int64?, Int64?, Int64?)? {
+  match value.params {
+    BoundsParams(nodes, edges, degree) => Some((nodes, edges, degree))
+    _ => None
+  }
+}
+
+///|
 priv enum PreparedGraphBasicParams {
   NormalizeParams
   DegreeParams(@graph.Direction)

@@ -12,6 +12,7 @@ priv enum RelationExecution {
   ProjectionExecution(@bridge.GraphRowsExecution)
   MatchNodesExecution(@sga.MatchNodesExecution)
   MatchEdgesExecution(@sga.MatchEdgesExecution)
+  GraphBoundsExecution(@sga.GraphBoundsExecution)
 }
 
 ///|
@@ -96,6 +97,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
             @lower.NoLiteralSelection
           )
         }
+      (1, @lower.GraphBasicStep(basic)) =>
+        @lower.operation(node) == "SGA.bounds_check" &&
+        @lower.graph_basic_kind(basic) == @lower.BoundsBasic
       _ => false
     }
   })
@@ -351,6 +355,33 @@ fn advance_execution(
                 }
               _ => return fail_execution(value)
             }
+          Some(@lower.GraphBasicStep(basic)) =>
+            if @lower.graph_basic_kind(basic) == @lower.BoundsBasic {
+              match
+                @sga.start_graph_bounds(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  1,
+                  input,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                ) {
+                Ok(execution) => GraphBoundsExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
+            } else {
+              return fail_execution(value)
+            }
           _ => return fail_execution(value)
         }
         value.relation = Some(started)
@@ -395,6 +426,18 @@ fn advance_execution(
               Ok(@sga.MatchEdgesFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@sga.MatchEdgesStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          GraphBoundsExecution(execution) =>
+            match @sga.advance_graph_bounds(execution, quantum) {
+              Ok(@sga.GraphBoundsContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.GraphBoundsComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.GraphBoundsFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.GraphBoundsStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -476,6 +519,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      GraphBoundsExecution(execution) =>
+        match @sga.cleanup_graph_bounds(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -491,6 +539,8 @@ fn cleanup_execution(
       @sga.match_nodes_cleanup_pending(active)
     Some(MatchEdgesExecution(active)) =>
       @sga.match_edges_cleanup_pending(active)
+    Some(GraphBoundsExecution(active)) =>
+      @sga.graph_bounds_cleanup_pending(active)
     None => false
   }
   if failed {

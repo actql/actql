@@ -271,6 +271,12 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn graph_basic_bounds(PreparedGraphBasic) -> (Int64?, Int64?, Int64?)?
+
+pub fn graph_basic_kind(PreparedGraphBasic) -> GraphBasicKind
+
+pub fn graph_basic_output_schema(PreparedGraphBasic) -> @relation_schema.Schema
+
 pub fn graph_construction_edge_label(PreparedGraphConstruction) -> @relation_schema.FieldName?
 
 pub fn graph_construction_edge_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
@@ -1071,6 +1077,16 @@ pub(all) enum GraphBasicIssue {
   GraphBasicPreparationLimit
   MissingGraphBasicParameter(String)
   InvalidGraphBasicParameter(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphBasicKind {
+  NormalizeBasic
+  DegreeIncomingBasic
+  DegreeOutgoingBasic
+  DegreeBothBasic
+  ComponentsWeakBasic
+  ComponentsStrongBasic
+  BoundsBasic
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphConstructionIssue {

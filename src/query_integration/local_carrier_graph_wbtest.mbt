@@ -95,17 +95,24 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "match_edges" {
     "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
     "\"weight\"]},\"as\":\"out\""
+  } else if variant == "graph_bounds" {
+    "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
+    "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
   let result_fields = if variant == "match_edges" {
     "\"src\",\"dst\",\"weight\""
+  } else if variant == "graph_bounds" {
+    "\"kind\",\"node_id\",\"actual\",\"max\""
   } else {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
   let second_fields = if variant == "match_edges" {
     "\"weight\",\"src\""
+  } else if variant == "graph_bounds" {
+    "\"kind\",\"node_id\""
   } else {
     "\"node_name\""
   }
@@ -395,6 +402,56 @@ fn carrier_graph_edge_match_owner(
 }
 
 ///|
+fn carrier_graph_bounds_owner(
+  source : @lower.BoundPrepared,
+  body : String,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"graph_bounds\":" +
+      body +
+      "}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_storage_limits() -> @graph_storage.Limits {
   {
     max_input_rows: 20,
@@ -485,6 +542,26 @@ fn finish_match_edges(
       @local_sga.MatchEdgesFailed(issue, ..) => return Err(issue)
       @local_sga.MatchEdgesStopped(_, ..) =>
         return Err(@local_sga.MatchEdgesExecutionIssue(@bounded.Terminal))
+    }
+  }
+  abort("unreachable")
+}
+
+///|
+fn finish_graph_bounds(
+  execution : @local_sga.GraphBoundsExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.GraphBoundsIssue] {
+  while true {
+    let poll = match @local_sga.advance_graph_bounds(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.GraphBoundsContinue(..) => ()
+      @local_sga.GraphBoundsComplete(output, ..) => return Ok(output)
+      @local_sga.GraphBoundsFailed(issue, ..) => return Err(issue)
+      @local_sga.GraphBoundsStopped(_, ..) =>
+        return Err(@local_sga.GraphBoundsExecutionIssue(@bounded.Terminal))
     }
   }
   abort("unreachable")
@@ -810,6 +887,137 @@ test "bounded edge match admits workspace and cleans cancellation" {
   assert_true(@local_sga.match_edges_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
   assert_false(@local_sga.match_edges_cleanup_pending(execution))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "bounded graph diagnostics preserve row and identity order" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_bounds_owner(
+    source_owner, "{\"max_nodes\":1,\"max_edges\":1,\"max_degree\":1}",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_graph_bounds(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    10,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_graph_bounds(execution).unwrap()
+  assert_eq(@local_sga.cleanup_graph_bounds(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 4)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("nodes")))
+  assert_true(@execution.completed_cell(output, 0, 3) is Some(Null))
+  assert_true(@execution.completed_cell(output, 1, 1) is Some(Text("edges")))
+  assert_true(@execution.completed_cell(output, 2, 1) is Some(Text("degree")))
+  assert_true(@execution.completed_cell(output, 2, 3) is Some(Number(1.0)))
+  assert_true(@execution.completed_cell(output, 3, 3) is Some(Number(2.0)))
+  assert_true(@execution.completed_output_matches_inputs(output, [external]))
+  let limited_input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let limited = @local_sga.start_graph_bounds(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    limited_input,
+    3,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    10,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    finish_graph_bounds(limited)
+    is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(limited), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "graph diagnostics admit workspace before execution and clean cancel" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_bounds_owner(source_owner, "{\"max_degree\":1}")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let completion = task_test_completion(owner)
+  let start = fn(control, workspace) {
+    @local_sga.start_graph_bounds(
+      control,
+      completion,
+      sequence,
+      1,
+      input,
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 9) is Err(@local_sga.GraphBoundsWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = start(control, 10).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graph_bounds(execution, 1).unwrap()
+    is @local_sga.GraphBoundsStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.graph_bounds_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_graph_bounds(execution), Ok(true))
+  assert_false(@local_sga.graph_bounds_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
   assert_true(@graphs.discard_completed(graph))
 }
@@ -1257,11 +1465,16 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_obligations,
   )
   let graph_rows = local_managed_test_rows(graph_ops)
-  let expected_rows = 2
+  let expected_rows = if variant == "graph_bounds" { 4 } else { 2 }
   assert_eq(graph_rows.length(), expected_rows)
   if variant == "match_edges" {
     assert_true(graph_rows[0].contains("\"src\":1"))
     assert_true(graph_rows[1].contains("\"weight\":20"))
+  } else if variant == "graph_bounds" {
+    assert_true(graph_rows[0].contains("\"kind\":\"nodes\""))
+    assert_true(graph_rows[1].contains("\"kind\":\"edges\""))
+    assert_true(graph_rows[2].contains("\"node_id\":1"))
+    assert_true(graph_rows[3].contains("\"node_id\":2"))
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -1360,4 +1573,5 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")
   run_standard_host_graph_relation_path("match_edges")
+  run_standard_host_graph_relation_path("graph_bounds")
 }
