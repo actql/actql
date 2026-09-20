@@ -1,5 +1,11 @@
 ///|
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
+  if variant == "ranking_max" ||
+    variant == "ranking_weighted" ||
+    variant == "ranking_rrf" ||
+    variant == "ranking_rrf_repeated" {
+    return local_vector_ranking_program(variant)
+  }
   if variant == "nearest" ||
     variant == "nearest_cosine" ||
     variant == "nearest_l2" ||
@@ -107,6 +113,107 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   second_fields +
   "}}}],\"results\":{\"source\":{\"from\":{" +
   "\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+fn local_vector_ranking_program(variant : String) -> String {
+  let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
+  let repeated = variant == "ranking_rrf_repeated"
+  let schema = if rrf {
+    "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"rank\":{\"type\":\"number\",\"nullable\":false}}"
+  } else {
+    "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"score\":{\"type\":\"number\",\"nullable\":false}}"
+  }
+  let left_rows = if rrf {
+    "[{\"q\":1,\"id\":1,\"rank\":1},{\"q\":1,\"id\":2," +
+    "\"rank\":2},{\"q\":2,\"id\":1,\"rank\":1}]"
+  } else {
+    "[{\"q\":1,\"id\":1,\"score\":0.75},{\"q\":1," +
+    "\"id\":2,\"score\":0.5},{\"q\":2,\"id\":1," +
+    "\"score\":0.25}]"
+  }
+  let right_rows = if rrf {
+    "[{\"q\":1,\"id\":3,\"rank\":1},{\"q\":1,\"id\":1," +
+    "\"rank\":2},{\"q\":2,\"id\":1,\"rank\":1}]"
+  } else {
+    "[{\"q\":1,\"id\":1,\"score\":0.5},{\"q\":1," +
+    "\"id\":3,\"score\":0.25},{\"q\":2,\"id\":1," +
+    "\"score\":0.75}]"
+  }
+  let options = if rrf {
+    "\"rank\":\"rank\",\"score_policy\":{\"rrf\":{" +
+    "\"rank_constant\":1,\"weights\":" +
+    (if repeated { "[1,1,2]" } else { "[1,1]" }) +
+    ",\"rank_window\":2}}"
+  } else {
+    let policy = if variant == "ranking_weighted" {
+      "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"
+    } else {
+      "\"max\""
+    }
+    "\"score\":\"score\",\"score_policy\":" +
+    policy +
+    ",\"score_contract\":{\"domain\":\"unit.v1\"," +
+    "\"range\":[0,1],\"normalization\":\"unit.v1\"}"
+  }
+  let fields = "[\"q\",\"id\",\"score\",\"rank\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{" +
+  "\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"left\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  left_rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  (if rrf { "[\"q\",\"id\",\"rank\"]" } else { "[\"q\",\"id\",\"score\"]" }) +
+  "}}},{\"id\":\"right\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  right_rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  (if rrf { "[\"q\",\"id\",\"rank\"]" } else { "[\"q\",\"id\",\"score\"]" }) +
+  "}}},{\"id\":\"fusion\",\"inputs\":{\"left\":{\"result\":{" +
+  "\"stage\":\"left\",\"result\":\"r\"}},\"right\":{\"result\":{" +
+  "\"stage\":\"right\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"from\":\"left\",\"merge_rankings\":{\"with\":" +
+  (if repeated {
+    "[\"right\",\"right\"]"
+  } else if rrf {
+    "[\"right\"]"
+  } else {
+    "\"right\""
+  }) +
+  ",\"by\":[\"q\"],\"candidate\":\"id\"," +
+  options +
+  ",\"k\":2},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"rank\",\"score\",\"id\",\"q\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"rank\",\"score\",\"id\",\"q\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -642,8 +749,190 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
 }
 
 ///|
+fn run_standard_ranking_provider(variant : String) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_vectors_chain=true,
+    local_carrier_vectors_variant=variant,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 64000000L,
+      execution_bytes: 134217728L,
+    }),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[3],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  let left_live = Ref(true)
+  let (left_ops, left) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    left_live,
+  )
+  let left_rows = local_managed_test_rows(left_ops)
+  let right_live = Ref(true)
+  let (right_ops, right) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    right_live,
+  )
+  let right_rows = local_managed_test_rows(right_ops)
+  let fusion_live = Ref(true)
+  let (fusion_ops, fusion) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [left, right],
+    [left_rows, right_rows],
+    3,
+    fusion_live,
+  )
+  let fused_rows = local_managed_test_rows(fusion_ops)
+  assert_eq(fused_rows.length(), 3)
+  assert_true(fused_rows[0].contains("\"id\":1"))
+  assert_true(fused_rows[0].contains("\"q\":1"))
+  assert_true(fused_rows[0].contains("\"rank\":1"))
+  if variant == "ranking_rrf" || variant == "ranking_rrf_repeated" {
+    assert_true(fused_rows[1].contains("\"id\":3"))
+  } else {
+    assert_true(fused_rows[1].contains("\"id\":2"))
+  }
+  assert_true(fused_rows[2].contains("\"q\":2"))
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [fusion],
+    [fused_rows],
+    4,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [fusion],
+    [fused_rows],
+    5,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), fused_rows.length())
+  assert_eq(local_managed_test_rows(second_ops).length(), 3)
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(fusion))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  fusion_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (fusion_ops.close)()
+  (fusion_ops.cleanup_refresh)() |> ignore
+  right_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (right_ops.close)()
+  (right_ops.cleanup_refresh)() |> ignore
+  left_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (left_ops.close)()
+  (left_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "standard Host runs bounded vector normalization provider" {
   run_standard_vectors_provider("normalize")
+}
+
+///|
+test "standard Host runs RRF ranking fusion with two consumers" {
+  run_standard_ranking_provider("ranking_rrf")
+}
+
+///|
+test "standard Host preserves repeated RRF input occurrences" {
+  run_standard_ranking_provider("ranking_rrf_repeated")
 }
 
 ///|

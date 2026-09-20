@@ -19,6 +19,8 @@ pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, Norma
 
 pub fn advance_pool(PoolExecution, Int) -> Result[PoolPoll, PoolIssue]
 
+pub fn advance_ranking(RankingExecution, Int) -> Result[RankingPoll, RankingIssue]
+
 pub fn advance_score(ScoreExecution, Int) -> Result[ScorePoll, ScoreIssue]
 
 pub fn cleanup_nearest(NearestExecution) -> Result[Bool, NearestIssue]
@@ -26,6 +28,8 @@ pub fn cleanup_nearest(NearestExecution) -> Result[Bool, NearestIssue]
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
 pub fn cleanup_pool(PoolExecution) -> Result[Bool, PoolIssue]
+
+pub fn cleanup_ranking(RankingExecution) -> Result[Bool, RankingIssue]
 
 pub fn cleanup_score(ScoreExecution) -> Result[Bool, ScoreIssue]
 
@@ -51,6 +55,14 @@ pub fn pool_max_noninterruptible_value_nodes(PoolExecution) -> Int
 
 pub fn pool_stopped(PoolExecution) -> Bool
 
+pub fn ranking_cleanup_pending(RankingExecution) -> Bool
+
+pub fn ranking_max_noninterruptible_value_bytes(RankingExecution) -> Int
+
+pub fn ranking_max_noninterruptible_value_nodes(RankingExecution) -> Int
+
+pub fn ranking_stopped(RankingExecution) -> Bool
+
 pub fn score_cleanup_pending(ScoreExecution) -> Bool
 
 pub fn score_max_noninterruptible_value_bytes(ScoreExecution) -> Int
@@ -64,6 +76,8 @@ pub fn start_nearest_relations(@bounded_execution.Control, @execution_relation.C
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
 pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
+
+pub fn start_ranking(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[RankingExecution, RankingIssue]
 
 pub fn start_relation_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
@@ -140,6 +154,31 @@ pub enum PoolPoll {
   PoolComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
   PoolFailed(PoolIssue, progress~ : Int64, work~ : Int64)
   PoolStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type RankingExecution
+
+pub(all) enum RankingIssue {
+  InvalidRankingKernel
+  InvalidRankingLimits
+  RankingInputUnavailable(Int)
+  InvalidRankingRecord(Int, Int)
+  DuplicateRankingCandidate(Int, Int)
+  InvalidRankingPosition(Int, Int)
+  ConflictingRankingTie(Int)
+  RankingWorkspaceLimit
+  RankingNumeric(@vector_numeric.Issue)
+  RankingKeyOrder(@value_admission.KeyOrderIssue)
+  RankingOutput(@execution_relation.CaptureIssue)
+  RankingCompletion(@execution_relation.TrustedOutputIssue)
+  RankingExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum RankingPoll {
+  RankingContinue(progress~ : Int64, work~ : Int64)
+  RankingComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  RankingFailed(RankingIssue, progress~ : Int64, work~ : Int64)
+  RankingStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type ScoreExecution

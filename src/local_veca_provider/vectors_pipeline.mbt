@@ -9,6 +9,8 @@ priv enum Phase {
   Projection
   StartNearest
   Nearest
+  StartRanking
+  Ranking
   Terminal
 }
 
@@ -39,6 +41,7 @@ priv struct Execution {
   mut pending_transformed : @records.Completed?
   mut projection : @bridge.VectorsToRowsExecution?
   mut nearest : @veca.NearestExecution?
+  mut ranking : @veca.RankingExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
   mut terminal : Bool
@@ -74,11 +77,15 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
       return false
     }
-    return @lower.operation(node) == "VEC.knn_join" &&
-      @lower.vector_nearest_requires_bridge(vector, @evidence.Candidates) ==
-      Some(true) &&
-      @lower.vector_nearest_requires_bridge(vector, @evidence.Queries) ==
-      Some(true)
+    let operation = @lower.operation(node)
+    return operation == "VEC.merge_rankings" ||
+      (
+        operation == "VEC.knn_join" &&
+        @lower.vector_nearest_requires_bridge(vector, @evidence.Candidates) ==
+        Some(true) &&
+        @lower.vector_nearest_requires_bridge(vector, @evidence.Queries) ==
+        Some(true)
+      )
   }
   if count < 2 {
     return false
@@ -609,6 +616,71 @@ fn advance_execution(
           }
         }
       }
+      StartRanking => {
+        let started = match
+          @veca.start_ranking(
+            value.control,
+            @execution.generated_completion_preparation(value.generated),
+            value.sequence,
+            0,
+            value.inputs,
+            value.max_rows,
+            {
+              max_nodes: value.limits.max_value_nodes,
+              max_text_bytes: value.max_value_bytes,
+              max_depth: value.limits.max_value_depth,
+              max_work: value.limits.max_work,
+            },
+            value.limits.max_workspace_slots,
+            value.limits.max_workspace_slots,
+            value.max_value_bytes,
+          ) {
+          Ok(execution) => execution
+          Err(_) => return fail_execution(value)
+        }
+        value.ranking = Some(started)
+        value.phase = Ranking
+        reset_stage(value)
+      }
+      Ranking => {
+        guard value.ranking is Some(active) else {
+          return fail_execution(value)
+        }
+        match @veca.advance_ranking(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@veca.RankingContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@veca.RankingComplete(output, progress~, work~)) => {
+            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+              delta(work, value.stage_work) is Some(work_delta) else {
+              return fail_execution(value)
+            }
+            value.terminal = true
+            value.phase = Terminal
+            return Ok(
+              @local.managed_provider_complete(
+                output, progress_delta, work_delta,
+              ),
+            )
+          }
+          Ok(@veca.RankingFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@veca.RankingStopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
       Terminal => return Err(@connector.InvalidLimits)
     }
   }
@@ -650,6 +722,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.ranking is Some(active) {
+    match @veca.cleanup_ranking(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   discard(value.transformed) |> ignore
   value.transformed = None
   discard(value.pending_transformed) |> ignore
@@ -672,10 +750,18 @@ fn cleanup_execution(
     Some(active) => @veca.nearest_cleanup_pending(active)
     None => false
   }
+  let ranking_pending = match value.ranking {
+    Some(active) => @veca.ranking_cleanup_pending(active)
+    None => false
+  }
   if failed {
     return Err(issue())
   }
-  if rows_pending || kernel_pending || projection_pending || nearest_pending {
+  if rows_pending ||
+    kernel_pending ||
+    projection_pending ||
+    nearest_pending ||
+    ranking_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -712,7 +798,17 @@ pub fn provider(
         @execution.generated_prepared_sequence(sequence),
       )
       let relation_pool = count == 2
-      let nearest = count == 1
+      let direct = count == 1
+      let direct_operation = if direct {
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          0,
+        ).map(node => @lower.operation(node))
+      } else {
+        None
+      }
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
@@ -724,8 +820,10 @@ pub fn provider(
         max_value_bytes,
         projection_step: count - 1,
         relation_pool,
-        phase: if nearest {
+        phase: if direct_operation == Some("VEC.knn_join") {
           StartNearest
+        } else if direct_operation == Some("VEC.merge_rankings") {
+          StartRanking
         } else {
           StartRows
         },
@@ -740,6 +838,7 @@ pub fn provider(
         pending_transformed: None,
         projection: None,
         nearest: None,
+        ranking: None,
         stage_progress: 0L,
         stage_work: 0L,
         terminal: false,
