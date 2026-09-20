@@ -5,12 +5,26 @@
 struct ManagedProvider {
   accepts : (@execution.GeneratedSequence) -> Bool
   capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?
-  start : (
-    @execution.GeneratedSequence,
-    Array[@execution.ProducerRead],
-    Int,
-    Int,
-  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]
+  start : (@execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int) -> Result[
+    ManagedProviderExecution,
+    @connector.FixedComputeIssue,
+  ]
+}
+
+///|
+/// One exact ordered input to a family provider. Carrier values remain
+/// read-only views bound to their producer occurrence; they are not coerced
+/// into Relation rows or family storage handles.
+pub enum ManagedProviderInput {
+  RelationInput(@execution.ProducerRead)
+  CarrierInput(@carrier_runtime.ProducerView)
+}
+
+///|
+pub fn managed_provider_carrier_input(
+  value : @carrier_runtime.ProducerView,
+) -> ManagedProviderInput {
+  CarrierInput(value)
 }
 
 ///|
@@ -77,6 +91,34 @@ pub fn managed_provider(
     Int,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
 ) -> ManagedProvider {
+  managed_provider_with_inputs(accepts, capacity, (
+    sequence,
+    inputs,
+    rows,
+    bytes,
+  ) => {
+    let relations = []
+    for input in inputs {
+      match input {
+        RelationInput(value) => relations.push(value)
+        CarrierInput(_) => return Err(@connector.Execution(@execution.InputSet))
+      }
+    }
+    start(sequence, relations, rows, bytes)
+  })
+}
+
+///|
+/// Bind a provider that consumes the common ordered Relation/Carrier input
+/// set. Family code still owns all semantic interpretation and kernel work.
+pub fn managed_provider_with_inputs(
+  accepts : (@execution.GeneratedSequence) -> Bool,
+  capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?,
+  start : (@execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int) -> Result[
+    ManagedProviderExecution,
+    @connector.FixedComputeIssue,
+  ],
+) -> ManagedProvider {
   { accepts, capacity, start, }
 }
 
@@ -111,6 +153,23 @@ pub fn start_managed_provider(
   provider : ManagedProvider,
   sequence : @execution.GeneratedSequence,
   inputs : Array[@execution.ProducerRead],
+  max_rows : Int,
+  max_value_bytes : Int,
+) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
+  (provider.start)(
+    sequence,
+    inputs.map(input => RelationInput(input)),
+    max_rows,
+    max_value_bytes,
+  )
+}
+
+///|
+/// Start a provider with the exact ordered mixed-Carrier input set.
+pub fn start_managed_provider_with_inputs(
+  provider : ManagedProvider,
+  sequence : @execution.GeneratedSequence,
+  inputs : Array[ManagedProviderInput],
   max_rows : Int,
   max_value_bytes : Int,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {

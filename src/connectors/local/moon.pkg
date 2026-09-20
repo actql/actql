@@ -4,6 +4,7 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
+  "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/physical_cost" @cost,
   "actql/actql/numeric_reduction" @numeric,
 }
