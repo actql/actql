@@ -810,6 +810,54 @@ fn delivery_attempt_key(attempt_id : String) -> String {
 }
 
 ///|
+fn claim_result_read_grant_use(
+  store : Store,
+  grant : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  let scope = "result_read_grant_usage"
+  let key = @publication.publication_contract_identity(grant)
+  for _ in 0..<32 {
+    let existing = match store.database.read(scope, key) {
+      Ok(value) => Some(value)
+      Err(@sqlite.NotFound) => None
+      Err(@sqlite.Busy) => continue
+      Err(issue) => return Err(Database(issue))
+    }
+    let existing_wire = match existing {
+      Some(value) =>
+        Some(@utf8.decode(value.body) catch { _ => return Err(StateCollision) })
+      None => None
+    }
+    let claim = match
+      @publication.prepare_delivery_grant_usage_claim(
+        grant, existing_wire, attempt, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(DeliveryGrantUsage(issue))
+    }
+    if !@publication.delivery_grant_usage_claim_is_new(claim) {
+      return Ok(false)
+    }
+    let body = @utf8.encode(@publication.delivery_grant_usage_claim_wire(claim))
+    let committed = match existing {
+      Some(value) =>
+        store.database.compare_exchange(scope, key, value.revision, body)
+      None => store.database.insert(scope, key, body)
+    }
+    match committed {
+      Ok(_) => return Ok(true)
+      Err(@sqlite.Collision) | Err(@sqlite.Busy) => continue
+      Err(issue) => return Err(Database(issue))
+    }
+  }
+  Err(Database(@sqlite.Busy))
+}
+
+///|
 fn claim_delivery_attempt(
   store : Store,
   attempt_id : String,
@@ -1386,6 +1434,13 @@ pub fn Store::begin_result_delivery(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
+  }
+  match
+    claim_result_read_grant_use(
+      self, grant, attempt, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match claim_delivery_attempt(self, attempt_id, attempt) {
     Ok(_) => ()

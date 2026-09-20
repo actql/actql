@@ -14,6 +14,7 @@ pub(all) enum NativePublicationStoreIssue {
   RowFrame(@publication.DurableResultRowFrameIssue)
   SinkProgress(@publication.DeliverySinkProgressIssue)
   DeliveryIssuance(@publication.DeliveryIssuanceIssue)
+  DeliveryGrantUsage(@publication.DeliveryGrantUsageIssue)
   DeliveryLimit
   DeliveryIncomplete
   CleanupPending

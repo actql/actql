@@ -186,6 +186,83 @@ test "read grant and attempt bind an exact committed Result" {
 }
 
 ///|
+test "read grant use claims are durable, bounded, and retry-idempotent" {
+  let (index, manifest, _) = delivery_test_root()
+  let grant = issue_result_read_grant(
+    index,
+    manifest,
+    ["answer"],
+    ["json"],
+    "principal",
+    "download",
+    delivery_test_cid("a"),
+    4096,
+    1,
+    "2026-09-19T00:00:00.000Z",
+    delivery_test_cid("b"),
+    delivery_test_cid("c"),
+    32768,
+    256,
+    16,
+  ).unwrap()
+  let first = issue_delivery_attempt(
+    index, manifest, grant, "answer", "json", "attempt-1", "2026-09-18T01:00:00.000Z",
+    32768, 256, 16,
+  ).unwrap()
+  let claim = prepare_delivery_grant_usage_claim(
+    grant,
+    None,
+    first,
+    32768,
+    256,
+    16,
+  ).unwrap()
+  assert_true(delivery_grant_usage_claim_is_new(claim))
+  let wire = delivery_grant_usage_claim_wire(claim)
+  let retry = prepare_delivery_grant_usage_claim(
+    grant,
+    Some(wire),
+    first,
+    32768,
+    256,
+    16,
+  ).unwrap()
+  assert_false(delivery_grant_usage_claim_is_new(retry))
+  assert_eq(delivery_grant_usage_claim_wire(retry), wire)
+  let second = issue_delivery_attempt(
+    index, manifest, grant, "answer", "json", "attempt-2", "2026-09-18T01:00:01.000Z",
+    32768, 256, 16,
+  ).unwrap()
+  assert_true(
+    prepare_delivery_grant_usage_claim(
+      grant,
+      Some(wire),
+      second,
+      32768,
+      256,
+      16,
+    )
+    is Err(DeliveryGrantUsageExhausted),
+  )
+  assert_true(
+    prepare_delivery_grant_usage_claim(
+      grant,
+      Some(
+        "{\"delivery_attempt_cids\":[],\"grant_cid\":\"" +
+        publication_contract_identity(grant) +
+        "\",\"max_uses\":1,\"use_count\":1," +
+        "\"version\":\"actql-result-read-grant-usage/0.1\"}",
+      ),
+      first,
+      32768,
+      256,
+      16,
+    )
+    is Err(DeliveryGrantUsageInvalidWire),
+  )
+}
+
+///|
 test "delivery payload binding matches the committed logical Result" {
   let schema_wire = "{\"answer\":{\"nullable\":false,\"type\":\"integer\"}}"
   let schema_cid = "sha256:4b94cf57d7e0fa174c9edbdc43b22f3ca573038098f1b29ed64f39b149edc8a1"

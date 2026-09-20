@@ -38,6 +38,10 @@ pub fn delivery_failure_terminal_action_code(DeliveryFailureTerminalAction) -> I
 
 pub fn delivery_failure_terminal_state(DeliveryFailureTerminalAction) -> String
 
+pub fn delivery_grant_usage_claim_is_new(DeliveryGrantUsageClaim) -> Bool
+
+pub fn delivery_grant_usage_claim_wire(DeliveryGrantUsageClaim) -> String
+
 pub fn delivery_record_retry_action_code(DeliveryRecordRetryAction) -> Int
 
 pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
@@ -107,6 +111,8 @@ pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) 
 pub fn prepare_committed_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
 
 pub fn prepare_delivery_failure_terminal(Bool) -> DeliveryFailureTerminalAction
+
+pub fn prepare_delivery_grant_usage_claim(PublicationContract, String?, PublicationContract, Int, Int, Int) -> Result[DeliveryGrantUsageClaim, DeliveryGrantUsageIssue]
 
 pub fn prepare_delivery_record_retry_step(Int, Int) -> DeliveryRecordRetryAction
 
@@ -270,6 +276,16 @@ type CheckedPublicationInventory
 pub(all) enum DeliveryFailureTerminalAction {
   DeliveryAppendFailed
   DeliveryAppendCancelled
+} derive(Eq, @debug.Debug)
+
+type DeliveryGrantUsageClaim
+
+pub(all) enum DeliveryGrantUsageIssue {
+  DeliveryGrantUsageWrongContract
+  DeliveryGrantUsageReferenceMismatch
+  DeliveryGrantUsageExhausted
+  DeliveryGrantUsageInvalidWire
+  DeliveryGrantUsageEncoding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DeliveryIssuanceIssue {

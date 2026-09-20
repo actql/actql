@@ -160,6 +160,12 @@ end issues the canonical delivery receipt and terminal record before it is
 reported. A failed or cancelled end records the confirmed prefix and exposure
 state without converting an unconfirmed suffix into success.
 
+Each read-grant use is claimed by exact delivery-attempt CID in one canonical
+SQLite record. Compare-and-exchange serializes concurrent claims, an exact
+attempt retry consumes no additional use, and a different attempt is rejected
+before opening the payload when the durable `max_uses` limit is exhausted. A
+claimed use is not refunded merely because the process stops before delivery.
+
 Delivery contracts and the latest append-only record head are stored in the
 same SQLite authority and can be re-admitted after process restart. A terminal
 success remains an auditable historical fact after its payload is reclaimed;

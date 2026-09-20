@@ -525,7 +525,7 @@ test "native formal delivery durably binds attempt receipt and success" {
     "download",
     native_payload_cid(token + "-ceiling"),
     64,
-    1,
+    2,
     "2026-09-21T00:00:00.000Z",
     native_payload_cid(token + "-authorization"),
     native_payload_cid(token + "-egress"),
@@ -649,7 +649,6 @@ test "native formal delivery durably binds attempt receipt and success" {
     .unwrap()
   assert_eq(durable_failure.state, "cancelled")
   assert_eq(durable_failure.confirmed_bytes, 1L)
-  store.reclaim_payload(info.material_generation_cid).unwrap()
   assert_true(store.close().unwrap())
   let reopened = open_store(
     library,
@@ -659,10 +658,34 @@ test "native formal delivery durably binds attempt receipt and success" {
     8L,
     65536L,
   ).unwrap()
+  assert_true(
+    reopened.begin_result_delivery(
+      index,
+      manifest,
+      grant,
+      retention,
+      binding,
+      info.material_generation_cid,
+      "answer",
+      "jsonl",
+      token + "-exhausted-attempt",
+      "2026-09-20T01:00:06.000Z",
+      schema_wire,
+      ["n"],
+      3,
+      64,
+      65536,
+      512,
+      16,
+      64L,
+    )
+    is Err(DeliveryGrantUsage(@publication.DeliveryGrantUsageExhausted)),
+  )
   assert_eq(
     reopened.inspect_result_delivery(success_attempt_id).unwrap().state,
     "succeeded",
   )
+  reopened.reclaim_payload(info.material_generation_cid).unwrap()
   assert_true(reopened.inspect_payload(info.material_generation_cid) is Err(_))
   assert_true(reopened.close().unwrap())
 }
