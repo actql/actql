@@ -149,7 +149,7 @@
       "output": "relation",
       "canonical": ["SGA.match_edges"],
       "variants": ["absent/empty/repeated type filters", "literal predicate", "typed property predicate", "missing property", "projection order"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -173,7 +173,7 @@
       ],
       "implementation_evidence": [
         {
-          "scope": "typed_edge_filter_bounded_standard_host_execution",
+          "scope": "edge_type_and_literal_filter_standard_host_execution",
           "layers": [
             "kernel",
             "managed",
@@ -199,6 +199,29 @@
           "evidence": [
             "adapters/duckdb-node/test/standard-host.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "typed_property_predicate_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "935913a4",
+          "evidence": [
+            "src/execution_relation/predicate_expression.mbt",
+            "src/local_sga/match_edges.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/pipeline_typing/graph_test.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1261,6 +1284,24 @@
     }
   ],
   "evidence": [
+    {
+      "operation": "match_edges",
+      "sha": "935913a4",
+      "suites": [
+        {
+          "name": "portable managed edge predicates",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
     {
       "operation": "components",
       "sha": "bc7c89fa",

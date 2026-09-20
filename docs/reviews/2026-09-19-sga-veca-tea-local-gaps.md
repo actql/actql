@@ -22,7 +22,7 @@ readable coverage manifest is authoritative for individual operation status.
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
 consumer lifetime 15/39, cancellation 6/39, and publication 7/39. These are
-layer counts, not operation completion: four entries are `complete` and 35 remain
+layer counts, not operation completion: five entries are `complete` and 34 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -231,8 +231,12 @@ downstream Relation computations and final reclamation on JS, Wasm, and
 native. The formal Named Result path publishes and retrieves the exact edge
 Relation with its fixed logical CID. A real environment timer cancels edge
 matching, observes stop, and completes retryable cleanup without publishing a
-partial result. Typed property predicates remain open, so `match_edges`
-remains partial. Bounded
+partial result. Checked edge-property predicates now use the common resumable
+expression evaluator rather than a graph-specific interpretation. Predicate
+bindings are prepared one field at a time, expression workspace is admitted
+before use, unknown properties retain their typed source diagnostic, and the
+same standard Host path covers predicate publication and cancellation.
+`match_edges` is complete. Bounded
 Graph diagnostics now emit strict node, edge, and total-degree violations in
 canonical identity order. Their output is atomic under row limits, structural
 workspace is admitted before allocation, and the registered standard Host

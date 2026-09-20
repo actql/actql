@@ -39,7 +39,7 @@ async function withManifest(t, change) {
 test("local family coverage accepts the tracked normative gaps", () => {
   const result = run(manifestPath);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /39 normative entries, 4 complete, 35 open/u);
+  assert.match(result.stdout, /39 normative entries, 5 complete, 34 open/u);
 });
 
 test("local family coverage rejects an omitted normative operation", async t => {
