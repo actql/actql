@@ -378,7 +378,7 @@
         "self loops",
         "bounded depth"
       ],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -390,13 +390,15 @@
         "consumer_lifetime",
         "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/graph_reach_test.mbt",
         "src/local_sga/reach.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -416,6 +418,21 @@
             "src/local_sga/reach.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "reach_publication_retrieval_and_environment_cancellation",
+          "layers": [
+            "standard_host",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "04a5d5f2",
+          "evidence": [
+            "src/duckdb_conformance/reach_capacity_fixture.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1975,6 +1992,24 @@
       "suites": [
         {
           "name": "portable managed components",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "reach",
+      "sha": "04a5d5f2",
+      "suites": [
+        {
+          "name": "portable bounded reach variants and lifetime",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
