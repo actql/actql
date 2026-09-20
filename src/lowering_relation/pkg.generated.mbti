@@ -233,6 +233,24 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn graph_construction_edge_label(PreparedGraphConstruction) -> @relation_schema.FieldName?
+
+pub fn graph_construction_edge_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
+
+pub fn graph_construction_edge_property_count(PreparedGraphConstruction) -> Int
+
+pub fn graph_construction_edge_source(PreparedGraphConstruction) -> @relation_schema.FieldName
+
+pub fn graph_construction_edge_target(PreparedGraphConstruction) -> @relation_schema.FieldName
+
+pub fn graph_construction_node_identity(PreparedGraphConstruction) -> @relation_schema.FieldName
+
+pub fn graph_construction_node_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
+
+pub fn graph_construction_node_property_count(PreparedGraphConstruction) -> Int
+
+pub fn graph_construction_output_carrier(PreparedGraphConstruction) -> @carrier_contract.Carrier
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?
@@ -925,6 +943,10 @@ pub(all) enum GraphBasicIssue {
   InvalidGraphBasicParameter(String)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphConstructionIssue {
+  InvalidGraphConstruction
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphMatchIssue {
   InvalidGraphMatchLimits
   InvalidGraphMatchWiring
@@ -1139,6 +1161,7 @@ pub enum Payload {
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
+  GraphConstructionValue(@graph_typing.CheckedConstruction)
   VectorValue(@vector_typing.CheckedVector)
   NearestValue(@relation_evidence.CheckedNearest)
   PoolValue(@vector_typing.CheckedPool)
@@ -1206,6 +1229,8 @@ pub(all) enum PreparedFrameBoundary {
 } derive(Eq, @debug.Debug)
 
 type PreparedGraphBasic
+
+type PreparedGraphConstruction
 
 type PreparedGraphMatch
 
@@ -1292,6 +1317,7 @@ pub enum PreparedStep {
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
+  GraphConstructionStep(PreparedGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
@@ -1379,6 +1405,7 @@ pub(all) enum SequenceIssue {
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
+  GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
   CarrierProjectionFailure(Int, CarrierProjectionIssue)

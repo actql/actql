@@ -318,6 +318,7 @@ fn prepare_kernel_measured(
     | GraphEqualityRows(_)
     | GraphDiffRows(_)
     | GraphApplyValue(_)
+    | GraphConstructionValue(_)
     | VectorValue(_)
     | NearestValue(_)
     | PoolValue(_)

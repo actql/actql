@@ -27,6 +27,7 @@ pub enum PreparedStep {
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
+  GraphConstructionStep(PreparedGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
@@ -63,6 +64,7 @@ pub(all) enum SequenceIssue {
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
+  GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
   CarrierProjectionFailure(Int, CarrierProjectionIssue)
@@ -307,6 +309,14 @@ pub fn prepare_sequence(
         }
         GraphRelationStep(prepared)
       }
+      GraphConstructionValue(_) => {
+        let prepared = match
+          prepare_graph_construction_node(owner.prepared.nodes[i]) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphConstructionFailure(i, issue))
+        }
+        GraphConstructionStep(prepared)
+      }
       VectorValue(_) | NearestValue(_) | PoolValue(_) | RankingValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_vector_node(
@@ -510,6 +520,7 @@ pub fn emit_sequence_steps(
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       GraphShortestStep(v) => emit_graph_shortest_node(v, out)
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
+      GraphConstructionStep(v) => emit_graph_construction_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)
       EventStep(v) => emit_event_node(v, out)
       CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)

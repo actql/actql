@@ -186,6 +186,7 @@ pub fn prepare_kernel_roots(
     | GraphTraverseStep(_)
     | GraphShortestStep(_)
     | GraphRelationStep(_)
+    | GraphConstructionStep(_)
     | VectorStep(_)
     | EventStep(_)
     | CarrierProjectionStep(_) => return Err(NotExpressionKernel)
@@ -256,6 +257,7 @@ fn prepare_root_range(
       | GraphTraverseStep(_)
       | GraphShortestStep(_)
       | GraphRelationStep(_)
+      | GraphConstructionStep(_)
       | VectorStep(_)
       | EventStep(_)
       | CarrierProjectionStep(_) => continue

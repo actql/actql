@@ -69,6 +69,7 @@ pub enum Payload {
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
+  GraphConstructionValue(@graph.CheckedConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
   PoolValue(@vector.CheckedPool)
@@ -231,6 +232,7 @@ pub fn operation(value : PreparedNode) -> String {
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
+    GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
         @vector.ToVectors => "BRIDGE.rows.to_vectors"
@@ -318,7 +320,9 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
-    GraphConstruction(..) | TextRank(..) => None
+    GraphConstruction(nodes=Some(_), checked~, ..) =>
+      Some(GraphConstructionValue(checked))
+    GraphConstruction(nodes=None, ..) | TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
       match @event.options(value) {
@@ -492,6 +496,7 @@ pub fn prepare(
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
+      GraphConstructionValue(_) => ("graph", 2)
       VectorValue(value) =>
         (
           match @vector.operation(value) {
@@ -689,6 +694,7 @@ pub fn prepare(
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
+      GraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None
       PoolValue(_) => None

@@ -403,6 +403,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.GraphTraverseStep(_)
       | @lower.GraphShortestStep(_)
       | @lower.GraphRelationStep(_)
+      | @lower.GraphConstructionStep(_)
       | @lower.VectorStep(_)
       | @lower.EventStep(_)
       | @lower.CarrierProjectionStep(_) => false
