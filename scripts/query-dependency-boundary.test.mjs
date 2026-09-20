@@ -170,6 +170,28 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
   assert.deepEqual(imports('execution_site'), []);
 });
 
+test('runtime bundle signature meaning has one portable MoonBit owner', () => {
+  const adapter = readFileSync(
+    'adapters/site-node/remote-bundle-signature.mjs',
+    'utf8',
+  );
+  assert.doesNotMatch(
+    adapter,
+    /function preimage|actql-remote-runtime-bundle-signature\/0\.1/,
+  );
+  assert.match(adapter, /control\.signaturePreimage\(/);
+  assert.match(adapter, /control\.admitSignatureEnvelope\(/);
+  const owner = readFileSync('src/remote_bundle/bundle.mbt', 'utf8');
+  assert.match(owner, /pub fn bundle_signature_preimage\(/);
+  assert.match(owner, /pub fn admit_bundle_signature_envelope\(/);
+  const native = readFileSync(
+    'src/platform_native/runtime_bundle/runtime_bundle.mbt',
+    'utf8',
+  );
+  assert.match(native, /@bundle\.admit_bundle_signature_envelope\(/);
+  assert.match(native, /library\.verify_ed25519\(/);
+});
+
 test('DuckDB SQL and physical values belong to the connector package group', () => {
   assert.ok(!existsSync('src/duckdb_adapter/moon.pkg'));
   for (const file of ['count_group_query.mbt', 'inner_join_query.mbt',

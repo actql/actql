@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/runtime_bundle"
+
+import {
+  "actql/actql/platform_native/signature",
+  "actql/actql/remote_bundle",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_signed_bundle(@signature.Library, Array[NativeRuntimeBundleAuthority], String, String, String, String, String, String) -> Result[@remote_bundle.RemoteBundleManifest, NativeRuntimeBundleIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct NativeRuntimeBundleAuthority {
+  issuer_authority : String
+  key_id : String
+  public_key_pem : String
+}
+
+pub(all) enum NativeRuntimeBundleIssue {
+  InvalidConfiguration
+  AuthorityCollision
+  AuthorityRejected
+  TargetRejected
+  Bundle(@remote_bundle.RemoteBundleIssue)
+  Signature(@signature.NativeSignatureIssue)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -4533,6 +4533,64 @@ pub fn strategy_remote_bundle_manifest_projection(
 }
 
 ///|
+#export_name("strategyRemoteBundleSignaturePreimage")
+pub fn strategy_remote_bundle_signature_preimage(
+  manifest : @bundle.RemoteBundleManifest,
+) -> Bytes raise NodeHostFailure {
+  match @bundle.bundle_signature_preimage(manifest) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleSignatureEnvelopePrepare")
+pub fn strategy_remote_bundle_signature_envelope_prepare(
+  manifest : @bundle.RemoteBundleManifest,
+  key_id : String,
+  signature : String,
+) -> @bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure {
+  match @bundle.prepare_bundle_signature_envelope(manifest, key_id, signature) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleSignatureEnvelopeAdmit")
+pub fn strategy_remote_bundle_signature_envelope_admit(
+  version : String,
+  key_id : String,
+  runtime_bundle_cid : String,
+  body : String,
+  signature : String,
+) -> @bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure {
+  match
+    @bundle.admit_bundle_signature_envelope(
+      version, key_id, runtime_bundle_cid, body, signature,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleSignatureEnvelopeProjection")
+pub fn strategy_remote_bundle_signature_envelope_projection(
+  envelope : @bundle.RemoteBundleSignatureEnvelope,
+) -> Array[String] {
+  @bundle.bundle_signature_envelope_projection(envelope)
+}
+
+///|
+#export_name("strategyRemoteBundleSignatureEnvelopeManifest")
+pub fn strategy_remote_bundle_signature_envelope_manifest(
+  envelope : @bundle.RemoteBundleSignatureEnvelope,
+) -> @bundle.RemoteBundleManifest {
+  @bundle.bundle_signature_envelope_manifest(envelope)
+}
+
+///|
 #export_name("strategyRemoteBundleOpen")
 pub fn strategy_remote_bundle_open(
   manifest : @bundle.RemoteBundleManifest,

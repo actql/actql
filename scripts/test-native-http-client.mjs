@@ -249,6 +249,7 @@ try {
     'src/platform_native/run_publication',
     'src/platform_native/result_access',
     'src/platform_native/signature',
+    'src/platform_native/runtime_bundle',
     'src/platform_native/http_client',
     'src/platform_native/remote_journal',
     'src/platform_native/remote_client',

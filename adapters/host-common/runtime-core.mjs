@@ -878,6 +878,29 @@ function remoteBundleControl(moon) {
       moon.strategyRemoteBundleManifestAdmitJson(body, claimedCid),
     ),
     projection: moon.strategyRemoteBundleManifestProjection,
+    signaturePreimage: manifest => checked(
+      moon.strategyRemoteBundleSignaturePreimage(manifest),
+    ),
+    prepareSignatureEnvelope: (manifest, keyId, signature) => checked(
+      moon.strategyRemoteBundleSignatureEnvelopePrepare(
+        manifest,
+        keyId,
+        signature,
+      ),
+    ),
+    admitSignatureEnvelope: envelope => checked(
+      moon.strategyRemoteBundleSignatureEnvelopeAdmit(
+        envelope.version,
+        envelope.keyId,
+        envelope.runtimeBundleCid,
+        envelope.body,
+        envelope.signature,
+      ),
+    ),
+    signatureEnvelopeProjection:
+      moon.strategyRemoteBundleSignatureEnvelopeProjection,
+    signatureEnvelopeManifest:
+      moon.strategyRemoteBundleSignatureEnvelopeManifest,
     open: moon.strategyRemoteBundleOpen,
     prepareActivate: record => checked(
       moon.strategyRemoteBundleActivatePrepare(record),

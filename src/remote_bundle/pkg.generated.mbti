@@ -8,6 +8,8 @@ import {
 // Values
 pub fn admit_bundle_manifest_json(String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
 
+pub fn admit_bundle_signature_envelope(String, String, String, String, String) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue]
+
 pub fn bundle_manifest_identity(RemoteBundleManifest) -> String
 
 pub fn bundle_manifest_json(RemoteBundleManifest) -> Result[String, RemoteBundleIssue]
@@ -15,6 +17,12 @@ pub fn bundle_manifest_json(RemoteBundleManifest) -> Result[String, RemoteBundle
 pub fn bundle_manifest_projection(RemoteBundleManifest) -> Array[String]
 
 pub fn bundle_record_projection(RemoteBundleRecord) -> Array[String]
+
+pub fn bundle_signature_envelope_manifest(RemoteBundleSignatureEnvelope) -> RemoteBundleManifest
+
+pub fn bundle_signature_envelope_projection(RemoteBundleSignatureEnvelope) -> Array[String]
+
+pub fn bundle_signature_preimage(RemoteBundleManifest) -> Result[Bytes, RemoteBundleIssue]
 
 pub fn bundle_transition_key(RemoteBundleTransition) -> String
 
@@ -36,6 +44,8 @@ pub fn prepare_bundle_release(RemoteBundleRecord) -> Result[RemoteBundleTransiti
 
 pub fn prepare_bundle_retain(RemoteBundleRecord, Int) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
+pub fn prepare_bundle_signature_envelope(RemoteBundleManifest, String, String) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue]
+
 pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[RemoteBundleRecord, RemoteBundleIssue]
 
 // Errors
@@ -44,6 +54,7 @@ pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[Remo
 pub(all) enum RemoteBundleIssue {
   InvalidBundle
   BundleIdentityMismatch
+  InvalidBundleSignature
   InvalidBundleState
   BundleOwnerLimit
   BundleTransitionNotDurable
@@ -59,6 +70,8 @@ pub(all) enum RemoteBundlePhase {
 } derive(Eq, @debug.Debug)
 
 type RemoteBundleRecord
+
+type RemoteBundleSignatureEnvelope
 
 type RemoteBundleTransition
 

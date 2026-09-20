@@ -54,3 +54,46 @@ test "runtime bundle record restores exact drain ownership" {
     restore_bundle_record(manifest, 7, 3, 1) is Err(InvalidBundleState),
   )
 }
+
+///|
+test "bundle signature envelope owns exact preimage and authority binding" {
+  let manifest = bundle_manifest()
+  let signature = "A".repeat(86)
+  let envelope = prepare_bundle_signature_envelope(manifest, "key-a", signature).unwrap()
+  let projection = bundle_signature_envelope_projection(envelope)
+  assert_eq(projection[0], "actql-remote-runtime-bundle-signature/0.1")
+  assert_eq(projection[1], "key-a")
+  assert_eq(projection[2], bundle_manifest_identity(manifest))
+  assert_eq(projection[4], signature)
+  assert_eq(projection[5], "bundle-authority-a")
+  assert_eq(
+    bundle_signature_preimage(manifest).unwrap(),
+    @utf8.encode(
+      "actql-remote-runtime-bundle-signature/0.1\u{0000}" +
+      bundle_manifest_identity(manifest) +
+      "\u{0000}" +
+      bundle_manifest_json(manifest).unwrap(),
+    ),
+  )
+  let admitted = admit_bundle_signature_envelope(
+    projection[0],
+    projection[1],
+    projection[2],
+    projection[3],
+    projection[4],
+  ).unwrap()
+  assert_eq(
+    bundle_manifest_identity(bundle_signature_envelope_manifest(admitted)),
+    bundle_manifest_identity(manifest),
+  )
+  assert_true(
+    admit_bundle_signature_envelope(
+      projection[0],
+      projection[1],
+      projection[2],
+      projection[3],
+      "=".repeat(86),
+    )
+    is Err(InvalidBundleSignature),
+  )
+}

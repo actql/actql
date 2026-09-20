@@ -2,6 +2,7 @@
 pub(all) enum RemoteBundleIssue {
   InvalidBundle
   BundleIdentityMismatch
+  InvalidBundleSignature
   InvalidBundleState
   BundleOwnerLimit
   BundleTransitionNotDurable
@@ -27,6 +28,16 @@ struct RemoteBundleManifest {
   connector_revision : String
   strategy_revision : String
   runtime_bundle_cid : String
+}
+
+///|
+/// Canonical signature metadata for one admitted bundle manifest. The actual
+/// private-key operation and public-key verification are environment
+/// operations; this value owns the scheme, preimage and authority binding.
+struct RemoteBundleSignatureEnvelope {
+  manifest : RemoteBundleManifest
+  key_id : String
+  signature : String
 }
 
 ///|
@@ -304,6 +315,96 @@ pub fn bundle_manifest_projection(
     value.connector_revision,
     value.strategy_revision,
   ]
+}
+
+///|
+fn valid_signature(value : String) -> Bool {
+  if value.length() != 86 {
+    return false
+  }
+  for character in value.iter() {
+    if !((character >= 'a' && character <= 'z') ||
+      (character >= 'A' && character <= 'Z') ||
+      (character >= '0' && character <= '9') ||
+      character == '-' ||
+      character == '_') {
+      return false
+    }
+  }
+  let terminal = value[value.length() - 1]
+  terminal == 'A' || terminal == 'Q' || terminal == 'g' || terminal == 'w'
+}
+
+///|
+pub fn bundle_signature_preimage(
+  manifest : RemoteBundleManifest,
+) -> Result[Bytes, RemoteBundleIssue] {
+  let body = match bundle_manifest_json(manifest) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    @utf8.encode(
+      "actql-remote-runtime-bundle-signature/0.1\u{0000}" +
+      manifest.runtime_bundle_cid +
+      "\u{0000}" +
+      body,
+    ),
+  )
+}
+
+///|
+pub fn prepare_bundle_signature_envelope(
+  manifest : RemoteBundleManifest,
+  key_id : String,
+  signature : String,
+) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue] {
+  if !bounded(key_id, 512) || !valid_signature(signature) {
+    return Err(InvalidBundleSignature)
+  }
+  match bundle_signature_preimage(manifest) {
+    Ok(_) => Ok({ manifest, key_id, signature, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn admit_bundle_signature_envelope(
+  version : String,
+  key_id : String,
+  runtime_bundle_cid : String,
+  body : String,
+  signature : String,
+) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue] {
+  if version != "actql-remote-runtime-bundle-signature/0.1" {
+    return Err(InvalidBundleSignature)
+  }
+  let manifest = match admit_bundle_manifest_json(body, runtime_bundle_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  prepare_bundle_signature_envelope(manifest, key_id, signature)
+}
+
+///|
+pub fn bundle_signature_envelope_projection(
+  envelope : RemoteBundleSignatureEnvelope,
+) -> Array[String] {
+  [
+    "actql-remote-runtime-bundle-signature/0.1",
+    envelope.key_id,
+    envelope.manifest.runtime_bundle_cid,
+    bundle_manifest_json(envelope.manifest).unwrap(),
+    envelope.signature,
+    envelope.manifest.issuer_authority,
+  ]
+}
+
+///|
+pub fn bundle_signature_envelope_manifest(
+  envelope : RemoteBundleSignatureEnvelope,
+) -> RemoteBundleManifest {
+  envelope.manifest
 }
 
 ///|

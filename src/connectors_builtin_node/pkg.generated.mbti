@@ -382,6 +382,16 @@ pub fn strategy_remote_bundle_release_prepare(@remote_bundle.RemoteBundleRecord)
 
 pub fn strategy_remote_bundle_retain_prepare(@remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
+pub fn strategy_remote_bundle_signature_envelope_admit(String, String, String, String, String) -> @remote_bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_signature_envelope_manifest(@remote_bundle.RemoteBundleSignatureEnvelope) -> @remote_bundle.RemoteBundleManifest
+
+pub fn strategy_remote_bundle_signature_envelope_prepare(@remote_bundle.RemoteBundleManifest, String, String) -> @remote_bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_signature_envelope_projection(@remote_bundle.RemoteBundleSignatureEnvelope) -> Array[String]
+
+pub fn strategy_remote_bundle_signature_preimage(@remote_bundle.RemoteBundleManifest) -> Bytes raise NodeHostFailure
+
 pub fn strategy_remote_bundle_transition_commit(@remote_bundle.RemoteBundleTransition, Bool) -> @remote_bundle.RemoteBundleRecord raise NodeHostFailure
 
 pub fn strategy_remote_bundle_transition_key(@remote_bundle.RemoteBundleTransition) -> String

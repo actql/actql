@@ -1,0 +1,17 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/platform_native/signature",
+  "actql/actql/remote_bundle" @bundle,
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  targets: {
+    "runtime_bundle_native_wbtest.mbt": [ "native" ],
+    "runtime_bundle_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)
