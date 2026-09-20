@@ -94,6 +94,7 @@ fn query_capacity_proof(
   derivation : String,
   inputs? : Array[String] = [],
   step? : Int = 0,
+  unit? : String = "rows",
 ) -> @wire.ProgramProofClaim {
   let proof_inputs = inputs.copy()
   proof_inputs.sort()
@@ -105,7 +106,9 @@ fn query_capacity_proof(
     law +
     "\",\"semantic_ref\":\"" +
     semantic_ref +
-    "\",\"unit\":\"rows\",\"value\":" +
+    "\",\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(proof_body))
@@ -131,7 +134,9 @@ fn query_capacity_proof(
     proof_cid +
     "\",\"semantic_ref\":\"" +
     semantic_ref +
-    "\"},\"unit\":\"rows\",\"value\":" +
+    "\"},\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-witness/0.1\""
   let witness_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + "}"))
@@ -146,4 +151,138 @@ fn query_capacity_proof(
     limits,
   ).unwrap()
   @wire.bind_program_proof(@utf8.encode(proof_body), witness, limits).unwrap()
+}
+
+///|
+fn components_capacity_material(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  step? : Int = 1,
+  rows? : Int64 = 2L,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let input = query_capacity_proof(
+    "actql.bound.values",
+    rows,
+    "{\"op\":\"source\"}",
+    step=0,
+  )
+  let input_cid = @wire.cid(@wire.program_proof_witness(input))
+  let graph = query_capacity_proof(
+    "actql.bound.graph-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[input_cid],
+    step=0,
+    unit="nodes",
+  )
+  let graph_cid = @wire.cid(@wire.program_proof_witness(graph))
+  let nodes = query_capacity_proof(
+    "actql.bound.components-input-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[graph_cid],
+    step~,
+    unit="nodes",
+  )
+  let output = query_capacity_proof(
+    "actql.bound.components-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[graph_cid],
+    step~,
+  )
+  let host = @host.create(
+    @capacity_policy.ceiling(policy, "max_graph_output_rows").unwrap(),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, },
+  ).unwrap()
+  let writer = @encode.writer(10000, 1000, 30)
+  @host.emit(host, writer)
+  let host_wire = @wire.admit(
+    @utf8.encode(@encode.finish(writer)),
+    @host.cid(host),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, },
+  ).unwrap()
+  let proof_wires = [
+    @wire.program_proof_witness(input),
+    @wire.program_proof_witness(graph),
+    @wire.program_proof_witness(nodes),
+    @wire.program_proof_witness(output),
+  ]
+  let artifacts : Array[(Bytes, String)] = []
+  for
+    (unit, suffix, candidates) in [
+      ("nodes", ":nodes", [proof_wires[2]]),
+      ("rows", "", [proof_wires[3], host_wire]),
+    ] {
+    candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    let texts = candidates.map(candidate => {
+      let writer = @encode.writer(10000, 1000, 30)
+      @wire.emit(candidate, writer)
+      @encode.finish(writer)
+    })
+    let mut maximum = @wire.value(candidates[0])
+    for candidate in candidates {
+      maximum = Int64::min(maximum, @wire.value(candidate))
+    }
+    let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
+      texts.join(",") +
+      "],\"effective_max\":" +
+      maximum.to_string() +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"components:checked-step:" +
+      step.to_string() +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    artifacts.push(
+      (
+        @utf8.encode(
+          body.replace(
+            old="\"subject_ref\":",
+            new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+          ),
+        ),
+        cid,
+      ),
+    )
+  }
+  let witnesses = proof_wires.copy()
+  witnesses.push(host_wire)
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    mixed,
+    [input, graph, nodes, output],
+    { max_witnesses: 20, max_references: 100, },
+  ).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 20,
+    max_bytes: 20000,
+    max_nodes: 2000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage,
+    sources,
+    uses: [
+      @context.Components(
+        step~,
+        nodes=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
+  }
 }

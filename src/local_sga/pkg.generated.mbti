@@ -12,6 +12,8 @@ import {
 }
 
 // Values
+pub fn advance_components(ComponentsExecution, Int) -> Result[ComponentsPoll, ComponentsIssue]
+
 pub fn advance_graft(GraftExecution, Int) -> Result[GraftPoll, GraftIssue]
 
 pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
@@ -24,6 +26,8 @@ pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, M
 
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
+pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
+
 pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
 
 pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
@@ -35,6 +39,12 @@ pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
+
+pub fn components_cleanup_pending(ComponentsExecution) -> Bool
+
+pub fn components_max_noninterruptible_value_bytes(ComponentsExecution) -> Int
+
+pub fn components_max_noninterruptible_value_nodes(ComponentsExecution) -> Int
 
 pub fn graft_cleanup_pending(GraftExecution) -> Bool
 
@@ -76,6 +86,8 @@ pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
 
 pub fn normalize_stopped(NormalizeExecution) -> Bool
 
+pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ComponentsExecution, ComponentsIssue]
+
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
 
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphBoundsExecution, GraphBoundsIssue]
@@ -91,6 +103,26 @@ pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSe
 // Errors
 
 // Types and methods
+type ComponentsExecution
+
+pub(all) enum ComponentsIssue {
+  InvalidComponentsKernel
+  ComponentsInputUnavailable
+  ComponentsOutputLimit
+  ComponentsWorkspaceLimit
+  ComponentsKeyOrder(@value_admission.KeyOrderIssue)
+  ComponentsOutput(@execution_relation.CaptureIssue)
+  ComponentsCompletion(@execution_relation.TrustedOutputIssue)
+  ComponentsExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum ComponentsPoll {
+  ComponentsContinue(progress~ : Int64, work~ : Int64)
+  ComponentsComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  ComponentsFailed(ComponentsIssue, progress~ : Int64, work~ : Int64)
+  ComponentsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type GraftExecution
 
 pub(all) enum GraftIssue {

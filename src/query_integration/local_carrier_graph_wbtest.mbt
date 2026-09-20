@@ -54,6 +54,18 @@ fn carrier_graph_self_loop_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn carrier_graph_components_source_owner() -> @lower.BoundPrepared {
+  carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"node_name\":\"two\",\"weight\":20}," +
+    "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\"," +
+    "\"weight\":30},{\"id\":4,\"src\":4,\"dst\":4," +
+    "\"node_name\":\"four\",\"weight\":40}]",
+  )
+}
+
+///|
 fn carrier_graph_open_endpoint_source_owner() -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
@@ -120,6 +132,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"degree\":{\"direction\":\"out\"}," + "\"as\":\"out\""
   } else if variant == "degree_both" {
     "\"from\":\"g\",\"degree\":{\"direction\":\"both\"}," + "\"as\":\"out\""
+  } else if variant == "components_weak" {
+    "\"from\":\"g\",\"components\":{\"kind\":\"weak\"}," + "\"as\":\"out\""
+  } else if variant == "components_strong" {
+    "\"from\":\"g\",\"components\":{\"kind\":\"strong\"}," + "\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
@@ -129,6 +145,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"kind\",\"node_id\",\"actual\",\"max\""
   } else if variant.has_prefix("degree_") {
     "\"node\",\"degree\""
+  } else if variant.has_prefix("components_") {
+    "\"node_id\",\"component_id\",\"component_size\""
   } else {
     "\"id\",\"node_name\""
   }
@@ -139,6 +157,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"kind\",\"node_id\""
   } else if variant.has_prefix("degree_") {
     "\"degree\""
+  } else if variant.has_prefix("components_") {
+    "\"component_id\",\"component_size\""
   } else {
     "\"node_name\""
   }
@@ -528,6 +548,59 @@ fn carrier_graph_degree_owner(
 }
 
 ///|
+fn carrier_graph_components_owner(
+  source : @lower.BoundPrepared,
+  kind : String,
+  max_guard? : String = "",
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"components\":{\"kind\":\"" +
+      kind +
+      "\"" +
+      max_guard +
+      "}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_storage_limits() -> @graph_storage.Limits {
   {
     max_input_rows: 20,
@@ -661,6 +734,26 @@ fn finish_graph_degree(
     }
   }
   Err(@local_sga.GraphBoundsExecutionIssue(@bounded.Terminal))
+}
+
+///|
+fn finish_components(
+  execution : @local_sga.ComponentsExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.ComponentsIssue] {
+  while true {
+    let poll = match @local_sga.advance_components(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.ComponentsContinue(..) => ()
+      @local_sga.ComponentsComplete(output, ..) => return Ok(output)
+      @local_sga.ComponentsFailed(issue, ..) => return Err(issue)
+      @local_sga.ComponentsStopped(_, ..) =>
+        return Err(@local_sga.ComponentsExecutionIssue(@bounded.Terminal))
+    }
+  }
+  Err(@local_sga.ComponentsExecutionIssue(@bounded.Terminal))
 }
 
 ///|
@@ -1228,6 +1321,155 @@ test "total degree counts both self-loop incidences" {
 }
 
 ///|
+test "weak and strong components preserve canonical identities and bounds" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let completion = task_test_completion(owner)
+    let start = fn(workspace) {
+      @local_sga.start_components(
+        @bounded.control(),
+        completion,
+        sequence,
+        1,
+        input,
+        4,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 10000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+      )
+    }
+    assert_true(start(72) is Err(@local_sga.ComponentsWorkspaceLimit))
+    let execution = start(73).unwrap()
+    let output = finish_components(execution).unwrap()
+    assert_eq(@local_sga.cleanup_components(execution), Ok(true))
+    assert_eq(@execution.completed_row_count(output), 4)
+    let expected_components = if kind == "weak" {
+      [1.0, 1.0, 1.0, 4.0]
+    } else {
+      [1.0, 1.0, 3.0, 4.0]
+    }
+    let expected_sizes = if kind == "weak" {
+      [3.0, 3.0, 3.0, 1.0]
+    } else {
+      [2.0, 2.0, 1.0, 1.0]
+    }
+    for row in 0..<4 {
+      let expected_component = expected_components[row]
+      let expected_size = expected_sizes[row]
+      let expected_node = (row + 1).to_double()
+      assert_true(
+        @execution.completed_cell(output, row, 0) is Some(Number(value)) &&
+        value == expected_component,
+      )
+      assert_true(
+        @execution.completed_cell(output, row, 1) is Some(Number(value)) &&
+        value == expected_size,
+      )
+      assert_true(
+        @execution.completed_cell(output, row, 2) is Some(Number(value)) &&
+        value == expected_node,
+      )
+    }
+    assert_true(@execution.completed_output_matches_inputs(output, [external]))
+    let cancel_control = @bounded.control()
+    let cancelled = @local_sga.start_components(
+      cancel_control,
+      completion,
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      73,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    assert_true(@bounded.request_cancel(cancel_control))
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, progress=0L, work=0L),
+    )
+    assert_true(@local_sga.components_cleanup_pending(cancelled))
+    assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
+    assert_false(@local_sga.components_cleanup_pending(cancelled))
+    assert_true(@graphs.discard_completed(graph))
+    assert_true(@execution.completed_output_available(output))
+  }
+
+  let guarded_owner = carrier_graph_components_owner(
+    source_owner,
+    "weak",
+    max_guard=",\"max_output_rows\":3",
+  )
+  let guarded_sequence = prepared_sequence(guarded_owner)
+  let guarded_external = @execution.prepare_producer_read(
+    guarded_owner,
+    @execution.bind_completed_input(guarded_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let guarded_construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    guarded_sequence,
+    0,
+    [guarded_external, guarded_external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let guarded_graph = finish_rows_to_graph(guarded_construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(guarded_construction), Ok(true))
+  assert_true(
+    @local_sga.start_components(
+      @bounded.control(),
+      task_test_completion(guarded_owner),
+      guarded_sequence,
+      1,
+      @graphs.prepare_step_read(guarded_owner, 1, 0, guarded_graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      73,
+      1000,
+      1000,
+      [guarded_external],
+    )
+    is Err(@local_sga.ComponentsOutputLimit),
+  )
+  assert_true(@graphs.discard_completed(guarded_graph))
+}
+
+///|
 fn carrier_graph_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,
@@ -1705,6 +1947,11 @@ fn run_standard_host_graph_relation_path(
         "\"degree\":" + expected_degree.to_double().to_string(),
       ),
     )
+  } else if variant.has_prefix("components_") {
+    assert_true(graph_rows[0].contains("\"component_id\":1"))
+    assert_true(graph_rows[0].contains("\"component_size\":2"))
+    assert_true(graph_rows[0].contains("\"node_id\":1"))
+    assert_true(graph_rows[1].contains("\"node_id\":2"))
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -1805,4 +2052,6 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("degree_in")
   run_standard_host_graph_relation_path("degree_out")
   run_standard_host_graph_relation_path("degree_both", publication=true)
+  run_standard_host_graph_relation_path("components_weak")
+  run_standard_host_graph_relation_path("components_strong")
 }

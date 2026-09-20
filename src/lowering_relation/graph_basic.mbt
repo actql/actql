@@ -44,6 +44,16 @@ pub fn graph_basic_bounds(
 }
 
 ///|
+pub fn graph_basic_component_max_output_rows(
+  value : PreparedGraphBasic,
+) -> Int64? {
+  match value.params {
+    ComponentParams(_, maximum) => maximum
+    _ => None
+  }
+}
+
+///|
 priv enum PreparedGraphBasicParams {
   NormalizeParams
   DegreeParams(@graph.Direction)

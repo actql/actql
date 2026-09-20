@@ -432,7 +432,10 @@ fn query_checked_program_fixture(
   } else {
     environment
   }
-  let evidence = if dag_join {
+  let evidence = if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("components_") {
+    [components_capacity_material(environment, "graph")]
+  } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
     let left = query_capacity_proof(

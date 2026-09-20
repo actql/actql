@@ -14,6 +14,7 @@ priv enum RelationExecution {
   MatchEdgesExecution(@sga.MatchEdgesExecution)
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
+  ComponentsExecution(@sga.ComponentsExecution)
 }
 
 ///|
@@ -109,6 +110,13 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
             @lower.graph_basic_kind(basic) == @lower.DegreeIncomingBasic ||
             @lower.graph_basic_kind(basic) == @lower.DegreeOutgoingBasic ||
             @lower.graph_basic_kind(basic) == @lower.DegreeBothBasic
+          )
+        ) ||
+        (
+          @lower.operation(node) == "SGA.components" &&
+          (
+            @lower.graph_basic_kind(basic) == @lower.ComponentsWeakBasic ||
+            @lower.graph_basic_kind(basic) == @lower.ComponentsStrongBasic
           )
         )
       _ => false
@@ -416,6 +424,31 @@ fn advance_execution(
                 Ok(execution) => GraphDegreeExecution(execution)
                 Err(_) => return fail_execution(value)
               }
+            } else if @lower.graph_basic_kind(basic) ==
+              @lower.ComponentsWeakBasic ||
+              @lower.graph_basic_kind(basic) == @lower.ComponentsStrongBasic {
+              match
+                @sga.start_components(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  1,
+                  input,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                ) {
+                Ok(execution) => ComponentsExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
             } else {
               return fail_execution(value)
             }
@@ -487,6 +520,18 @@ fn advance_execution(
               Ok(@sga.GraphDegreeFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@sga.GraphDegreeStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          ComponentsExecution(execution) =>
+            match @sga.advance_components(execution, quantum) {
+              Ok(@sga.ComponentsContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.ComponentsComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.ComponentsFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.ComponentsStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -578,6 +623,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      ComponentsExecution(execution) =>
+        match @sga.cleanup_components(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -597,6 +647,7 @@ fn cleanup_execution(
       @sga.graph_bounds_cleanup_pending(active)
     Some(GraphDegreeExecution(active)) =>
       @sga.graph_degree_cleanup_pending(active)
+    Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
   if failed {

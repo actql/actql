@@ -273,6 +273,8 @@ pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
 pub fn graph_basic_bounds(PreparedGraphBasic) -> (Int64?, Int64?, Int64?)?
 
+pub fn graph_basic_component_max_output_rows(PreparedGraphBasic) -> Int64?
+
 pub fn graph_basic_kind(PreparedGraphBasic) -> GraphBasicKind
 
 pub fn graph_basic_output_schema(PreparedGraphBasic) -> @relation_schema.Schema
