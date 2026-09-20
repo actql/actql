@@ -144,6 +144,8 @@ pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDelive
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
+pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 

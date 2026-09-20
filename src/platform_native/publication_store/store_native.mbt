@@ -777,7 +777,7 @@ fn put_publication_contract(
 }
 
 ///|
-fn read_publication_contract(
+fn load_publication_contract(
   store : Store,
   name : String,
   identity : String,
@@ -802,6 +802,86 @@ fn read_publication_contract(
     return Err(StateCollision)
   }
   Ok(contract)
+}
+
+///|
+/// Load and re-admit one exact publication contract from durable storage.
+/// Callers must separately establish authority for the requested identity.
+pub fn Store::read_publication_contract(
+  self : Store,
+  name : String,
+  identity : String,
+) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  load_publication_contract(self, name, identity)
+}
+
+///|
+fn put_result_schema(
+  store : Store,
+  result_schema_cid : String,
+  result_schema_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  match
+    delivery_issuance(
+      @publication.validate_result_schema_wire(
+        result_schema_cid, result_schema_wire, max_wire_bytes, max_nodes, max_depth,
+      ),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let body = @utf8.encode(result_schema_wire)
+  match store.database.insert("result_schema", result_schema_cid, body) {
+    Ok(_) => Ok(())
+    Err(@sqlite.Collision) => {
+      let existing = match
+        store.database.read("result_schema", result_schema_cid) {
+        Ok(value) => value
+        Err(issue) => return Err(Database(issue))
+      }
+      if existing.body == body {
+        Ok(())
+      } else {
+        Err(StateCollision)
+      }
+    }
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// Load and revalidate the canonical schema retained for a committed Result.
+pub fn Store::read_result_schema(
+  self : Store,
+  result_schema_cid : String,
+) -> Result[String, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let stored = match self.database.read("result_schema", result_schema_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  let wire = @utf8.decode(stored.body) catch { _ => return Err(StateCollision) }
+  match
+    delivery_issuance(
+      @publication.validate_result_schema_wire(
+        result_schema_cid,
+        wire,
+        self.max_record_bytes,
+        self.max_record_bytes,
+        64,
+      ),
+    ) {
+    Ok(_) => Ok(wire)
+    Err(_) => Err(StateCollision)
+  }
 }
 
 ///|
@@ -932,6 +1012,27 @@ pub fn Store::commit_publication(
       Err(issue) => return Err(issue)
     }
   }
+  for binding_index, binding in bindings {
+    let projected = match
+      delivery_issuance(
+        @publication.project_durable_result_binding_read(binding),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match
+      put_result_schema(
+        self,
+        projected.result_schema_cid,
+        binding_schema_wires[binding_index],
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let identity = @publication.publication_contract_identity(index)
   let body = @utf8.encode(identity)
   match self.database.insert("public_index", key, body) {
@@ -994,7 +1095,7 @@ pub fn Store::inspect_committed_publication(
     _ => return Err(StateCollision)
   }
   let index = match
-    read_publication_contract(self, "public_index_entry", identity) {
+    load_publication_contract(self, "public_index_entry", identity) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2052,7 +2153,7 @@ pub fn Store::inspect_result_delivery(
     _ => return Err(StateCollision)
   }
   let attempt = match
-    read_publication_contract(self, "delivery_attempt", attempt_cid) {
+    load_publication_contract(self, "delivery_attempt", attempt_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2085,7 +2186,7 @@ pub fn Store::inspect_result_delivery(
   match projection.result_delivery_receipt_cid {
     Some(receipt_cid) => {
       let receipt = match
-        read_publication_contract(self, "result_delivery_receipt", receipt_cid) {
+        load_publication_contract(self, "result_delivery_receipt", receipt_cid) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }

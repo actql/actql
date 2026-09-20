@@ -80,6 +80,12 @@ finalizer is only a best-effort safeguard for abandoned uncommitted resources;
 it is not settlement or durable cleanup evidence, and it does not remove a
 successfully sealed object.
 
+Formal publication persists the canonical Result schema and every admitted
+Run-bound contract before installing the single scoped public-index row. The
+index row is the visibility boundary. Restart retrieval re-admits the stored
+contract bodies and revalidates the schema wire against its declared CID; it
+does not depend on a process-local schema copy retained by the caller.
+
 ## SQLite integration
 
 The native SQLite adapter is the first integration slice for a Node-free local

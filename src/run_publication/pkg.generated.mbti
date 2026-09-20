@@ -274,6 +274,8 @@ pub fn validate_result_evidence_set(Array[PublicationContract], Array[Publicatio
 
 pub fn validate_result_occurrence_ordering_evidence(PublicationContract, PublicationContract, PublicationContract, String, String, String) -> Result[ResultOrderingEvidence, ResultOrderingEvidenceIssue]
 
+pub fn validate_result_schema_wire(String, String, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
+
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
@@ -418,6 +420,7 @@ pub(all) enum DurableResultBindingIssue {
 
 pub(all) struct DurableResultBindingRead {
   material_generation_cid : String
+  result_schema_cid : String
   result_fields : Array[String]
 }
 

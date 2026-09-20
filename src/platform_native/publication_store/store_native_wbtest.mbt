@@ -780,6 +780,13 @@ test "native publication commit is unique durable and restart-visible" {
   }
   let token = "publication-commit-" + @env.now().to_string()
   let fixture = native_commit_fixture(store, authority, token)
+  let binding_read = @publication.project_durable_result_binding_read(
+    fixture.bindings[0],
+  ).unwrap()
+  assert_true(
+    store.read_result_schema(binding_read.result_schema_cid)
+    is Err(Database(@sqlite.NotFound)),
+  )
   assert_true(
     store
     .inspect_committed_publication(
@@ -851,6 +858,10 @@ test "native publication commit is unique durable and restart-visible" {
       32,
     )
     is Err(DeliveryIssuance(_)),
+  )
+  assert_true(
+    store.read_result_schema(binding_read.result_schema_cid)
+    is Err(Database(@sqlite.NotFound)),
   )
   let committed = commit_native_fixture(store, fixture).unwrap()
   assert_true(committed.committed)
@@ -929,6 +940,20 @@ test "native publication commit is unique durable and restart-visible" {
   assert_eq(
     @publication.publication_contract_identity(visible),
     committed.public_index_entry_cid,
+  )
+  assert_eq(
+    reopened.read_result_schema(binding_read.result_schema_cid).unwrap(),
+    fixture.schema_wire,
+  )
+  let stored_manifest = reopened
+    .read_publication_contract(
+      "result_manifest",
+      @publication.publication_contract_identity(fixture.manifest),
+    )
+    .unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(stored_manifest),
+    @publication.publication_contract_identity(fixture.manifest),
   )
   assert_true(reopened.close().unwrap())
 }
@@ -1090,6 +1115,9 @@ test "native formal delivery durably binds attempt receipt and success" {
     8L,
     65536L,
   ).unwrap()
+  let durable_schema_wire = reopened
+    .read_result_schema(info.result_schema_cid)
+    .unwrap()
   assert_true(
     reopened.begin_result_delivery(
       index,
@@ -1102,7 +1130,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       "jsonl",
       token + "-exhausted-attempt",
       "2026-09-20T01:00:06.000Z",
-      schema_wire,
+      durable_schema_wire,
       ["value"],
       3,
       64,

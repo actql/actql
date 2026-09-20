@@ -40,6 +40,7 @@ pub(all) struct DeliveryPayloadFacts {
 ///|
 pub(all) struct DurableResultBindingRead {
   material_generation_cid : String
+  result_schema_cid : String
   result_fields : Array[String]
 }
 
@@ -864,10 +865,43 @@ pub fn project_durable_result_binding_read(
   }
   guard contract_string(binding, "material_generation_cid")
     is Some(material_generation_cid) &&
+    contract_string(binding, "result_schema_cid") is Some(result_schema_cid) &&
     contract_string_array(binding, "result_fields") is Some(result_fields) else {
     return Err(DeliveryIssuanceReferenceMismatch("binding.physical_facts"))
   }
-  Ok({ material_generation_cid, result_fields, })
+  Ok({ material_generation_cid, result_schema_cid, result_fields, })
+}
+
+///|
+/// Verify that a Result schema wire is the exact canonical preimage of its
+/// declared identity. Store adapters use this before persisting or returning
+/// a schema, so restart recovery cannot substitute a non-canonical body.
+pub fn validate_result_schema_wire(
+  result_schema_cid : String,
+  result_schema_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, DeliveryIssuanceIssue] {
+  let schema = match
+    parse_contract_wire(
+      result_schema_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(DeliveryIssuanceEncoding)
+  }
+  let schema_cid = @json.cid_value(schema, max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(DeliveryIssuanceEncoding)
+  }
+  let canonical_schema = @json.stringify_value(
+    schema, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(DeliveryIssuanceEncoding)
+  }
+  if schema_cid != result_schema_cid || canonical_schema != result_schema_wire {
+    return Err(DeliveryIssuanceReferenceMismatch("binding.result_schema"))
+  }
+  Ok(())
 }
 
 ///|
@@ -903,29 +937,13 @@ pub fn validate_durable_result_binding_facts(
     contract_string_array(binding, "result_fields") != Some(facts.result_fields) {
     return Err(DeliveryIssuanceReferenceMismatch("binding.physical_facts"))
   }
-  let schema = match
-    parse_contract_wire(
-      facts.result_schema_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(DeliveryIssuanceEncoding)
-  }
-  let schema_cid = @json.cid_value(schema, max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(DeliveryIssuanceEncoding)
-  }
-  let canonical_schema = @json.stringify_value(
-    schema, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(DeliveryIssuanceEncoding)
-  }
-  if schema_cid != facts.result_schema_cid ||
-    canonical_schema != facts.result_schema_wire {
-    return Err(DeliveryIssuanceReferenceMismatch("binding.result_schema"))
-  }
-  Ok(())
+  validate_result_schema_wire(
+    facts.result_schema_cid,
+    facts.result_schema_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
 }
 
 ///|

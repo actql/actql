@@ -233,6 +233,23 @@ pub fn Store::inspect_committed_publication(
 }
 
 ///|
+pub fn Store::read_publication_contract(
+  _self : Store,
+  _name : String,
+  _identity : String,
+) -> Result[@publication.PublicationContract, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::read_result_schema(
+  _self : Store,
+  _result_schema_cid : String,
+) -> Result[String, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::begin_result_delivery(
   _self : Store,
   _index : @publication.PublicationContract,
