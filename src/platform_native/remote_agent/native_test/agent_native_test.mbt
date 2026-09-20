@@ -122,9 +122,6 @@ test "outbound agent observes durable acceptance before one execution" {
       @runtime.prepare_native_remote_output(
         {
           material_generation: "native-agent-material",
-          holding_evidence_cid: agent_test_cid(
-            "6666666666666666666666666666666666666666666666666666666666666666",
-          ),
           managed_profile_cid: agent_test_cid(
             "7777777777777777777777777777777777777777777777777777777777777777",
           ),

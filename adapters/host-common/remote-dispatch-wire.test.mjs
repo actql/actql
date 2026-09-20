@@ -183,7 +183,6 @@ test('managed output decoding binds canonical physical and logical facts', () =>
   }));
   const subject = control.prepareManagedOutputSubject(request, Object.freeze({
     materialGeneration: 'material-generation-a',
-    holdingEvidenceCid: cid('c'),
     managedProfileCid: cid('3'),
     resultSchemaCid: cid('5'),
     logicalViewCid: cid('6'),
@@ -191,7 +190,11 @@ test('managed output decoding binds canonical physical and logical facts', () =>
     physicalManifestCid: cid('8'),
     rowCount: 2,
     retainedBytes: 8n,
-  }), measurement);
+  }), measurement, control.outputHoldingEvidenceIdentity(
+    request,
+    'material-generation-a',
+    8n,
+  ));
   const measurementBody = control.managedOutputMeasurementJson(measurement);
   const admittedMeasurement = admitRemoteManagedOutputMeasurementJson(
     control,

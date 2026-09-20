@@ -202,7 +202,6 @@ async function startFixture(
       delayMs,
       output: {
         materialGeneration: 'material-generation-a',
-        holdingEvidenceCid: cid('c'),
         managedProfileCid: cid('3'),
         measurement: {
           rowCount: 2,

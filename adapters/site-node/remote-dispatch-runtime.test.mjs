@@ -60,7 +60,6 @@ function request(overrides = {}) {
 function managedOutput(overrides = {}) {
   return Object.freeze({
     materialGeneration: 'material-generation-a',
-    holdingEvidenceCid: cid('c'),
     managedProfileCid: cid('3'),
     measurement: Object.freeze({
       rowCount: 2,

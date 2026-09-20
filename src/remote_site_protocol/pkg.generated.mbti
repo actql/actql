@@ -309,6 +309,8 @@ pub fn remote_managed_output_subject_retention(RemoteManagedOutputSubject) -> (S
 
 pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[Array[String], DispatchIssue]
 
+pub fn remote_output_holding_evidence_cid(DispatchRequest, String, Int64) -> Result[String, DispatchIssue]
+
 pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBinding
 
 pub fn remote_poll_dispatch_json(DispatchRequest, RemoteInputBinding) -> Result[String, DispatchIssue]

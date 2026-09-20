@@ -3899,6 +3899,22 @@ pub fn strategy_remote_issue_execution_evidence(
 }
 
 ///|
+#export_name("strategyRemoteOutputHoldingEvidenceIdentity")
+pub fn strategy_remote_output_holding_evidence_identity(
+  request : @remote.DispatchRequest,
+  material_generation : String,
+  retained_bytes : Int64,
+) -> String raise NodeHostFailure {
+  match
+    @remote.remote_output_holding_evidence_cid(
+      request, material_generation, retained_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteManagedOutputSubjectPrepare")
 pub fn strategy_remote_managed_output_subject_prepare(
   dispatch_request_cid : String,

@@ -93,10 +93,13 @@ fn proof(
       [10],
     ).unwrap()
   })
+  let holding = @remote.remote_output_holding_evidence_cid(
+    request, "material-a", 8L,
+  ).unwrap()
   let subject = @remote.prepare_remote_managed_output_subject(
     @remote.dispatch_request_identity(request),
     "material-a",
-    cid("c"),
+    holding,
     profile.unwrap_or(cid("3")),
     cid("5"),
     cid("6"),
@@ -146,7 +149,7 @@ fn proof(
     true,
   ).unwrap()
   @remote.commit_dispatch_transition(
-    @remote.prepare_retain_remote_output(record, "material-a", cid("c")).unwrap(),
+    @remote.prepare_retain_remote_output(record, "material-a", holding).unwrap(),
     true,
   ).unwrap()
   let evidence = @remote.issue_remote_managed_output_evidence(

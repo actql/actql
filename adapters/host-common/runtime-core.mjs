@@ -402,11 +402,27 @@ function remoteSiteControl(moon) {
         claimedMeasurementCid,
       ),
     ),
-    prepareManagedOutputSubject: (dispatch, output, measurement) => checked(
+    outputHoldingEvidenceIdentity: (
+      dispatch,
+      materialGeneration,
+      retainedBytes,
+    ) => checked(
+      moon.strategyRemoteOutputHoldingEvidenceIdentity(
+        dispatch,
+        materialGeneration,
+        retainedBytes,
+      ),
+    ),
+    prepareManagedOutputSubject: (
+      dispatch,
+      output,
+      measurement,
+      holdingEvidenceCid,
+    ) => checked(
       moon.strategyRemoteManagedOutputSubjectPrepare(
         control.identity(dispatch),
         output.materialGeneration,
-        output.holdingEvidenceCid,
+        holdingEvidenceCid,
         output.managedProfileCid,
         output.resultSchemaCid,
         output.logicalViewCid,

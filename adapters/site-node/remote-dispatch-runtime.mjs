@@ -124,7 +124,6 @@ export async function prepareInstalledRemoteRuntimeRegistration({
 function checkedOutput(value) {
   if (!exactKeys(value, [
     'close',
-    'holdingEvidenceCid',
     'logicalViewCid',
     'managedProfileCid',
     'materialGeneration',
@@ -134,8 +133,7 @@ function checkedOutput(value) {
     'retainedBytes',
     'resultSchemaCid',
     'rowCount',
-  ]) || !text(value.materialGeneration) ||
-      !text(value.holdingEvidenceCid) || !text(value.logicalViewCid) ||
+  ]) || !text(value.materialGeneration) || !text(value.logicalViewCid) ||
       !text(value.managedProfileCid) || !text(value.physicalManifestCid) ||
       !text(value.representationCodecCid) || !text(value.resultSchemaCid) ||
       !Number.isSafeInteger(value.rowCount) || value.rowCount < 0 ||
@@ -194,6 +192,7 @@ export function createRemoteDispatchRuntime({
       typeof control.prepareRetained !== 'function' ||
       typeof control.prepareManagedOutputMeasurement !== 'function' ||
       typeof control.managedOutputMeasurementIdentity !== 'function' ||
+      typeof control.outputHoldingEvidenceIdentity !== 'function' ||
       typeof control.managedOutputSubjectMatchesMeasurement !== 'function' ||
       typeof control.prepareManagedOutputSubject !== 'function' ||
       typeof control.issueManagedOutputEvidence !== 'function' ||
@@ -529,6 +528,7 @@ export function createRemoteDispatchRuntime({
     let output;
     let bundle;
     let evidence;
+    let holdingEvidenceCid;
     let measurement;
     let subject;
     const custody = control.createRuntimeCustody();
@@ -618,6 +618,11 @@ export function createRemoteDispatchRuntime({
           if (!control.runtimeCustodyAcquireHolding(custody)) {
             fail('RemoteRuntimeCustodyTransitionRejected');
           }
+          holdingEvidenceCid = control.outputHoldingEvidenceIdentity(
+            dispatch,
+            output.materialGeneration,
+            output.retainedBytes,
+          );
           continue;
         }
         if (action === RUNTIME_SETTLE_OPERATION) {
@@ -649,7 +654,7 @@ export function createRemoteDispatchRuntime({
           store.advance(control.prepareRetained(
             record,
             output.materialGeneration,
-            output.holdingEvidenceCid,
+            holdingEvidenceCid,
           ), record, control);
           continue;
         }
@@ -661,6 +666,7 @@ export function createRemoteDispatchRuntime({
             dispatch,
             output,
             measurement,
+            holdingEvidenceCid,
           );
           if (!control.managedOutputSubjectMatchesMeasurement(
             subject,

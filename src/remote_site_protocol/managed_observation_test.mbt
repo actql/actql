@@ -21,9 +21,7 @@ test "managed observation binds transition and restored canonical bodies" {
     prepare_confirm_native_settled(record).unwrap(),
     true,
   ).unwrap()
-  let holding = cid(
-    "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-  )
+  let holding = remote_output_holding_evidence_cid(request, "material-a", 1L).unwrap()
   commit_dispatch_transition(
     prepare_retain_remote_output(record, "material-a", holding).unwrap(),
     true,

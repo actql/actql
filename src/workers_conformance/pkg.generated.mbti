@@ -587,6 +587,8 @@ pub fn async_strategy_remote_managed_output_subject_projection(@remote_site_prot
 
 pub fn async_strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise AsyncHostFailure
 
+pub fn async_strategy_remote_output_holding_evidence_identity(@remote_site_protocol.DispatchRequest, String, Int64) -> String raise AsyncHostFailure
+
 pub fn async_strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise AsyncHostFailure
 
 pub fn async_strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String
@@ -746,6 +748,8 @@ pub fn async_strategy_remote_transfer_destination_receipt_json(@remote_transfer.
 pub fn async_strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferDestinationReceipt raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
+
+pub fn async_strategy_remote_transfer_direct_cancel_decision(@remote_transfer.RemoteTransferRecord) -> Int
 
 pub fn async_strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
 
@@ -1577,6 +1581,8 @@ pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.R
 
 pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_remote_output_holding_evidence_identity(@remote_site_protocol.DispatchRequest, String, Int64) -> String raise NodeHostFailure
+
 pub fn strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise NodeHostFailure
 
 pub fn strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String
@@ -1736,6 +1742,8 @@ pub fn strategy_remote_transfer_destination_receipt_json(@remote_transfer.Remote
 pub fn strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferDestinationReceipt raise NodeHostFailure
 
 pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
+
+pub fn strategy_remote_transfer_direct_cancel_decision(@remote_transfer.RemoteTransferRecord) -> Int
 
 pub fn strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
 

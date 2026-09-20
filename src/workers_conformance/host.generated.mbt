@@ -3899,6 +3899,22 @@ pub fn strategy_remote_issue_execution_evidence(
 }
 
 ///|
+#export_name("strategyRemoteOutputHoldingEvidenceIdentity")
+pub fn strategy_remote_output_holding_evidence_identity(
+  request : @remote.DispatchRequest,
+  material_generation : String,
+  retained_bytes : Int64,
+) -> String raise NodeHostFailure {
+  match
+    @remote.remote_output_holding_evidence_cid(
+      request, material_generation, retained_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteManagedOutputSubjectPrepare")
 pub fn strategy_remote_managed_output_subject_prepare(
   dispatch_request_cid : String,
@@ -5989,6 +6005,19 @@ pub fn strategy_remote_transfer_direct_cleanup_confirmed(
   record : @transfer.RemoteTransferRecord,
 ) -> Bool {
   @transfer.direct_transfer_cleanup_confirmed(record)
+}
+
+///|
+#export_name("strategyRemoteTransferDirectCancelDecision")
+pub fn strategy_remote_transfer_direct_cancel_decision(
+  record : @transfer.RemoteTransferRecord,
+) -> Int {
+  match @transfer.direct_cancel_decision(record) {
+    @transfer.DirectCancelPreCommit => 0
+    @transfer.DirectCancelAlreadyCommitted => 1
+    @transfer.DirectCancelTerminal => 2
+    @transfer.DirectCancelReconciliationRequired => 3
+  }
 }
 
 ///|
@@ -10005,6 +10034,22 @@ pub fn async_strategy_remote_issue_execution_evidence(
 }
 
 ///|
+#export_name("asyncStrategyRemoteOutputHoldingEvidenceIdentity")
+pub fn async_strategy_remote_output_holding_evidence_identity(
+  request : @remote.DispatchRequest,
+  material_generation : String,
+  retained_bytes : Int64,
+) -> String raise AsyncHostFailure {
+  match
+    @remote.remote_output_holding_evidence_cid(
+      request, material_generation, retained_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("asyncStrategyRemoteManagedOutputSubjectPrepare")
 pub fn async_strategy_remote_managed_output_subject_prepare(
   dispatch_request_cid : String,
@@ -12097,6 +12142,19 @@ pub fn async_strategy_remote_transfer_direct_cleanup_confirmed(
   record : @transfer.RemoteTransferRecord,
 ) -> Bool {
   @transfer.direct_transfer_cleanup_confirmed(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteTransferDirectCancelDecision")
+pub fn async_strategy_remote_transfer_direct_cancel_decision(
+  record : @transfer.RemoteTransferRecord,
+) -> Int {
+  match @transfer.direct_cancel_decision(record) {
+    @transfer.DirectCancelPreCommit => 0
+    @transfer.DirectCancelAlreadyCommitted => 1
+    @transfer.DirectCancelTerminal => 2
+    @transfer.DirectCancelReconciliationRequired => 3
+  }
 }
 
 ///|

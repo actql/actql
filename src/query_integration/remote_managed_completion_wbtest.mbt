@@ -76,10 +76,13 @@ fn remote_completion_proof(
     [0],
     [10],
   ).unwrap()
+  let holding = @remote.remote_output_holding_evidence_cid(
+    request, "material-a", 8L,
+  ).unwrap()
   let subject = @remote.prepare_remote_managed_output_subject(
     @remote.dispatch_request_identity(request),
     "material-a",
-    remote_completion_cid("c"),
+    holding,
     profile_cid,
     remote_completion_cid("5"),
     remote_completion_cid("6"),
@@ -126,11 +129,7 @@ fn remote_completion_proof(
     true,
   ).unwrap()
   @remote.commit_dispatch_transition(
-    @remote.prepare_retain_remote_output(
-      record,
-      "material-a",
-      remote_completion_cid("c"),
-    ).unwrap(),
+    @remote.prepare_retain_remote_output(record, "material-a", holding).unwrap(),
     true,
   ).unwrap()
   let issuer = @remote.register_remote_evidence_issuer(
@@ -261,6 +260,9 @@ test "remote proof creates one exact common managed completion" {
   let attempt = @execution.issue_managed_execution_attempt()
   let live = Ref(true)
   let checked_physical = Ref(false)
+  let expected_holding = @remote.remote_output_holding_evidence_cid(
+    request, "material-a", 8L,
+  ).unwrap()
   let port = @remote_completion.prepare_remote_managed_completion_port(
     remote_completion_values(owner),
     request,
@@ -278,7 +280,7 @@ test "remote proof creates one exact common managed completion" {
     (handle : String, generation, holding, manifest, retained_bytes) => {
       if handle == "opaque-handle-a" &&
         generation == "material-a" &&
-        holding == remote_completion_cid("c") &&
+        holding == expected_holding &&
         manifest == remote_completion_cid("8") &&
         retained_bytes == 8L {
         checked_physical.val = true
@@ -406,6 +408,9 @@ test "remote completion commits only its selected task and registration" {
   let request = remote_completion_request()
   let profile = @execution.selected_managed_execution_profile()
   let profile_cid = @execution.managed_execution_profile_cid(profile)
+  let expected_holding = @remote.remote_output_holding_evidence_cid(
+    request, "material-a", 8L,
+  ).unwrap()
   let port = @remote_completion.prepare_remote_managed_completion_port(
     remote_completion_values(owner),
     request,
@@ -423,7 +428,7 @@ test "remote completion commits only its selected task and registration" {
     fn(handle : String, generation, holding, manifest, retained_bytes) {
       if handle == "opaque-handle-a" &&
         generation == "material-a" &&
-        holding == remote_completion_cid("c") &&
+        holding == expected_holding &&
         manifest == remote_completion_cid("8") &&
         retained_bytes == 8L {
         Some((handle, fn() { true }))

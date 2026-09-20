@@ -1,10 +1,9 @@
 ///|
 /// Physical output facts produced by one registered native implementation.
-/// The common runtime derives the exact subject and evidence from these facts;
-/// an executor cannot supply an arbitrary subject or evidence CID.
+/// The common runtime derives the exact holding, subject, and evidence from
+/// these facts; an executor cannot supply an arbitrary authority CID.
 pub(all) struct NativeRemoteOutputFacts {
   material_generation : String
-  holding_evidence_cid : String
   managed_profile_cid : String
   result_schema_cid : String
   logical_view_cid : String
@@ -110,6 +109,7 @@ priv struct NativeRemoteRuntimeOwner {
   mut operation : @site.SiteOperation?
   mut output : NativeRemoteOutput?
   mut holding : @site.SiteHolding?
+  mut holding_evidence_cid : String?
   mut physical_failure : NativeRemotePhysicalFailure?
   mut evidence : @remote.RemoteExecutionEvidence?
   mut subject : @remote.RemoteManagedOutputSubject?
@@ -180,7 +180,7 @@ pub fn prepare_native_remote_output(
     @remote.prepare_remote_managed_output_subject(
       "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       facts.material_generation,
-      facts.holding_evidence_cid,
+      "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       facts.managed_profile_cid,
       facts.result_schema_cid,
       facts.logical_view_cid,
@@ -932,6 +932,25 @@ fn NativeRemoteRuntime::run_success(
             ),
           )
         }
+        owner.holding_evidence_cid = match
+          @remote.remote_output_holding_evidence_cid(
+            owner.request,
+            output.facts.material_generation,
+            output.facts.retained_bytes,
+          ) {
+          Ok(value) => Some(value)
+          Err(issue) =>
+            return Err(
+              self.retain_failed_owner(
+                identity,
+                owner,
+                Protocol(issue),
+                false,
+                false,
+                true,
+              ),
+            )
+        }
         continue
       }
       @remote.RuntimeSettleOperation =>
@@ -988,11 +1007,23 @@ fn NativeRemoteRuntime::run_success(
             ),
           )
         }
+        guard owner.holding_evidence_cid is Some(holding_evidence_cid) else {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              CustodyRejected,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
         let transition = match
           @remote.prepare_retain_remote_output(
             owner.record,
             output.facts.material_generation,
-            output.facts.holding_evidence_cid,
+            holding_evidence_cid,
           ) {
           Ok(value) => value
           Err(issue) =>
@@ -1038,12 +1069,24 @@ fn NativeRemoteRuntime::run_success(
             ),
           )
         }
+        guard owner.holding_evidence_cid is Some(holding_evidence_cid) else {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              CustodyRejected,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
         let measurement = output.facts.measurement
         let subject = match
           @remote.prepare_remote_managed_output_subject(
             identity,
             output.facts.material_generation,
-            output.facts.holding_evidence_cid,
+            holding_evidence_cid,
             output.facts.managed_profile_cid,
             output.facts.result_schema_cid,
             output.facts.logical_view_cid,
@@ -1253,6 +1296,7 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
     operation: None,
     output: None,
     holding: None,
+    holding_evidence_cid: None,
     physical_failure: None,
     evidence: None,
     subject: None,

@@ -104,10 +104,11 @@ fn managed_output_for_coordinator(
     prepare_confirm_native_settled(site_record).unwrap(),
     true,
   ).unwrap()
+  let holding = remote_output_holding_evidence_cid(
+    request, "material-generation-a", 8L,
+  ).unwrap()
   commit_dispatch_transition(
-    prepare_retain_remote_output(
-      site_record, "material-generation-a", "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-    ).unwrap(),
+    prepare_retain_remote_output(site_record, "material-generation-a", holding).unwrap(),
     true,
   ).unwrap()
   let issuer = register_remote_evidence_issuer(
@@ -134,7 +135,7 @@ fn managed_output_for_coordinator(
   let subject = prepare_remote_managed_output_subject(
     dispatch_request_identity(request),
     "material-generation-a",
-    "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    holding,
     "sha256:3333333333333333333333333333333333333333333333333333333333333333",
     "sha256:5555555555555555555555555555555555555555555555555555555555555555",
     "sha256:6666666666666666666666666666666666666666666666666666666666666666",

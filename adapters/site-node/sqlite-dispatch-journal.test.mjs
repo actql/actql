@@ -218,10 +218,15 @@ test('evidence and cleanup planes persist independently', async t => {
   ), record, control);
   store.advance(control.prepareExecution(record), record, control);
   store.advance(control.prepareSettled(record), record, control);
+  const holdingEvidenceCid = control.outputHoldingEvidenceIdentity(
+    prepared,
+    'material-generation-a',
+    8n,
+  );
   store.advance(control.prepareRetained(
     record,
     'material-generation-a',
-    cid('c'),
+    holdingEvidenceCid,
   ), record, control);
   const issuer = control.registerEvidenceIssuer(Object.freeze({
     site: controlledSite,
@@ -246,7 +251,6 @@ test('evidence and cleanup planes persist independently', async t => {
   }));
   const subject = control.prepareManagedOutputSubject(prepared, Object.freeze({
     materialGeneration: 'material-generation-a',
-    holdingEvidenceCid: cid('c'),
     managedProfileCid: cid('3'),
     resultSchemaCid: cid('5'),
     logicalViewCid: cid('6'),
@@ -254,7 +258,7 @@ test('evidence and cleanup planes persist independently', async t => {
     physicalManifestCid: cid('8'),
     rowCount: 2,
     retainedBytes: 8n,
-  }), measurement);
+  }), measurement, holdingEvidenceCid);
   const evidence = control.issueManagedOutputEvidence(
     issuer,
     record,

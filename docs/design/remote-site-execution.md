@@ -153,6 +153,11 @@ registered verifier remains the trust boundary for the asserted subject; the
 record identity does not turn that assertion into a proof against a malicious
 implementation.
 
+Holding evidence is derived by the common runtime only after it acquires the
+exact Site holding. Its canonical identity binds the dispatch occurrence, Site
+generation, material generation, and retained byte charge. A physical executor
+may report immutable output facts, but it cannot choose this authority binding.
+
 Timeout, connection loss, or Agent restart does not prove that a child process
 or external operation stopped. Unknown responsibility retains its reservations
 and pins. An authorized force-loss operation may end management of a Run, but

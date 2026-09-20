@@ -106,6 +106,17 @@ fn managed_output_measurement() -> RemoteManagedOutputMeasurement {
 }
 
 ///|
+fn managed_holding(
+  dispatch : DispatchRequest,
+  material_generation : String,
+  retained_bytes : Int64,
+) -> String {
+  remote_output_holding_evidence_cid(
+    dispatch, material_generation, retained_bytes,
+  ).unwrap()
+}
+
+///|
 fn execution_capability() -> RemoteExecutionCapability {
   let site = @site.create_site(
     "site-a",
@@ -474,7 +485,30 @@ test "managed output subject has an independent canonical identity" {
     cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
   )
   let measurement = managed_output_measurement()
+  let holding = managed_holding(dispatch, "material-generation-a", 8L)
   let subject = prepare_remote_managed_output_subject(
+    dispatch_request_identity(dispatch),
+    "material-generation-a",
+    holding,
+    cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("4444444444444444444444444444444444444444444444444444444444444444"),
+    cid("5555555555555555555555555555555555555555555555555555555555555555"),
+    cid("6666666666666666666666666666666666666666666666666666666666666666"),
+    cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    remote_managed_output_measurement_cid(measurement),
+    2,
+    8L,
+  ).unwrap()
+  assert_eq(
+    remote_managed_output_subject_json(subject).unwrap(),
+    "{\"dispatch_request_cid\":\"sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba\",\"holding_evidence_cid\":\"sha256:7f25f99381914c631025306ed2b7d4626c3cae78dc0acfc7a6dc2d8592405ecf\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.2\"}",
+  )
+  assert_eq(
+    remote_managed_output_subject_cid(subject),
+    "sha256:d4480f667813e73e83947fb645d8946919426485b9bec3554bb2748c2bdf460a",
+  )
+  assert_true(remote_managed_output_subject_matches_dispatch(subject, dispatch))
+  let unbound = prepare_remote_managed_output_subject(
     dispatch_request_identity(dispatch),
     "material-generation-a",
     cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
@@ -487,20 +521,18 @@ test "managed output subject has an independent canonical identity" {
     2,
     8L,
   ).unwrap()
-  assert_eq(
-    remote_managed_output_subject_json(subject).unwrap(),
-    "{\"dispatch_request_cid\":\"sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.2\"}",
+  assert_false(
+    remote_managed_output_subject_matches_dispatch(unbound, dispatch),
   )
-  assert_eq(
-    remote_managed_output_subject_cid(subject),
-    "sha256:086791f0ee077bdb887ff9f796816323ae0f6aebde77c189a503504c0b9d90f2",
-  )
-  assert_true(remote_managed_output_subject_matches_dispatch(subject, dispatch))
+  let smaller_holding = remote_output_holding_evidence_cid(
+    dispatch, "material-generation-a", 7L,
+  ).unwrap()
+  assert_true(smaller_holding != holding)
   assert_true(
     admit_remote_managed_output_subject(
       dispatch_request_identity(dispatch),
       "material-generation-a",
-      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+      holding,
       cid("3333333333333333333333333333333333333333333333333333333333333333"),
       cid("4444444444444444444444444444444444444444444444444444444444444444"),
       cid("5555555555555555555555555555555555555555555555555555555555555555"),
@@ -528,19 +560,16 @@ test "managed output evidence accepts only its typed retained subject" {
   provision(record)
   execute(record)
   settle(record)
+  let holding = managed_holding(dispatch, "material-generation-a", 8L)
   commit_dispatch_transition(
-    prepare_retain_remote_output(
-      record,
-      "material-generation-a",
-      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
-    ).unwrap(),
+    prepare_retain_remote_output(record, "material-generation-a", holding).unwrap(),
     true,
   ).unwrap()
   let measurement = managed_output_measurement()
   let subject = prepare_remote_managed_output_subject(
     dispatch_request_identity(dispatch),
     "material-generation-a",
-    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    holding,
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
     cid("5555555555555555555555555555555555555555555555555555555555555555"),
@@ -557,7 +586,7 @@ test "managed output evidence accepts only its typed retained subject" {
   ).unwrap()
   assert_eq(
     remote_execution_evidence_cid(evidence),
-    "sha256:39bc9a762f4e87674d3700ae3d762652d857052a387a62a860034e19f5245dae",
+    "sha256:2ed0638123e7e97790b3031ea5e8bd5a11b203050a50d3ce2a12b9aa258ae36e",
   )
   assert_true(
     remote_managed_output_subject_matches_evidence(subject, evidence, dispatch),
@@ -568,7 +597,7 @@ test "managed output evidence accepts only its typed retained subject" {
   let foreign = prepare_remote_managed_output_subject(
     dispatch_request_identity(dispatch),
     "material-generation-b",
-    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    managed_holding(dispatch, "material-generation-b", 8L),
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
     cid("5555555555555555555555555555555555555555555555555555555555555555"),

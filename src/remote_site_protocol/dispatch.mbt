@@ -803,6 +803,49 @@ pub fn remote_managed_output_measurement_projection(
 }
 
 ///|
+/// Derive the evidence identity for the common Site holding acquired for one
+/// exact remote output. A physical executor reports the immutable material
+/// generation and size, but cannot manufacture the holding authority that is
+/// created later by the common runtime.
+pub fn remote_output_holding_evidence_cid(
+  request : DispatchRequest,
+  material_generation : String,
+  retained_bytes : Int64,
+) -> Result[String, DispatchIssue] {
+  if !valid_request(request) ||
+    material_generation.is_empty() ||
+    retained_bytes < 0L {
+    return Err(InvalidDispatch)
+  }
+  let writer = @encode.writer(32768, 16, 1) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, request.dispatch_request_cid)
+    @encode.key(writer, "material_generation")
+    @encode.string_value(writer, material_generation)
+    @encode.key(writer, "retained_bytes")
+    @encode.string_value(writer, retained_bytes.to_string())
+    @encode.key(writer, "site_generation")
+    @encode.number_value(writer, request.site_generation.to_double())
+    @encode.key(writer, "site_key")
+    @encode.string_value(writer, request.site_key)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-output-holding/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(InvalidDispatch) }
+  match @sha.text_hex(body) {
+    Ok(value) => Ok("sha256:" + value)
+    Err(_) => Err(InvalidDispatch)
+  }
+}
+
+///|
 fn emit_remote_managed_output_subject_body(
   subject : RemoteManagedOutputSubject,
 ) -> Result[String, DispatchIssue] {
@@ -1001,9 +1044,20 @@ pub fn remote_managed_output_subject_matches_dispatch(
   subject : RemoteManagedOutputSubject,
   request : DispatchRequest,
 ) -> Bool {
-  valid_remote_managed_output_subject_fields(subject) &&
-  subject.dispatch_request_cid == request.dispatch_request_cid &&
-  remote_managed_output_subject_identity(subject) == Ok(subject.subject_cid)
+  if !valid_remote_managed_output_subject_fields(subject) ||
+    subject.dispatch_request_cid != request.dispatch_request_cid ||
+    remote_managed_output_subject_identity(subject) != Ok(subject.subject_cid) {
+    return false
+  }
+  match
+    remote_output_holding_evidence_cid(
+      request,
+      subject.material_generation,
+      subject.retained_bytes,
+    ) {
+    Ok(expected) => subject.holding_evidence_cid == expected
+    Err(_) => false
+  }
 }
 
 ///|

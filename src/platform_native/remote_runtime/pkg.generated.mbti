@@ -33,7 +33,6 @@ pub(all) struct NativeRemoteOutputChunk {
 
 pub(all) struct NativeRemoteOutputFacts {
   material_generation : String
-  holding_evidence_cid : String
   managed_profile_cid : String
   result_schema_cid : String
   logical_view_cid : String

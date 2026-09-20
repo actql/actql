@@ -98,14 +98,11 @@ fn test_managed_output(
     @remote.prepare_confirm_native_settled(record).unwrap(),
     true,
   ).unwrap()
+  let holding = @remote.remote_output_holding_evidence_cid(
+    request, "native-material", 1L,
+  ).unwrap()
   @remote.commit_dispatch_transition(
-    @remote.prepare_retain_remote_output(
-      record,
-      "native-material",
-      test_cid(
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      ),
-    ).unwrap(),
+    @remote.prepare_retain_remote_output(record, "native-material", holding).unwrap(),
     true,
   ).unwrap()
   let measurement = @remote.prepare_remote_managed_output_measurement(
@@ -123,7 +120,7 @@ fn test_managed_output(
   let subject = @remote.prepare_remote_managed_output_subject(
     @remote.dispatch_request_identity(request),
     "native-material",
-    test_cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    holding,
     test_cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
     test_cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
     test_cid("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
@@ -255,9 +252,7 @@ test "native Site journal atomically restores typed output evidence" {
     @remote.prepare_retain_remote_output(
       record,
       "native-material",
-      test_cid(
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      ),
+      @remote.remote_output_holding_evidence_cid(request, "native-material", 1L).unwrap(),
     ).unwrap(),
   )
   .unwrap()
@@ -354,9 +349,7 @@ test "native Site recovery rejects evidence without its typed observation" {
     @remote.prepare_retain_remote_output(
       record,
       "native-material",
-      test_cid(
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      ),
+      @remote.remote_output_holding_evidence_cid(request, "native-material", 1L).unwrap(),
     ).unwrap(),
   )
   .unwrap()
