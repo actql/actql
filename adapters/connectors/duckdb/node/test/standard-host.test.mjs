@@ -1534,6 +1534,19 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'match-edges',
+    step: {
+      from: 'g',
+      match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'out',
+    },
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [
+      {src: 1, dst: 2, weight: 10},
+      {src: 2, dst: 1, weight: 20},
+    ],
+  }, {
     name: 'graph-bounds',
     step: {
       from: 'g',
@@ -1829,6 +1842,15 @@ async function exerciseStrategyGraph(
       as: 'out',
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
+  }, {
+    name: 'match-edges',
+    rows: 40,
+    step: {
+      from: 'g',
+      match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'out',
+    },
+    fields: ['src', 'dst', 'weight'],
   }, {
     name: 'degree-both',
     rows: 40,
