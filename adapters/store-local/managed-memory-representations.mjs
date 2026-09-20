@@ -357,6 +357,46 @@ export function registerManagedMemoryInput(
   });
 }
 
+// Publication-only scoped read of one exact managed material generation.
+// Semantic admission remains in MoonBit; this function owns only the physical
+// use pin while the installed representation emits its retained rows.
+export async function withManagedOutputRows(
+  material, emit, signal, commit,
+) {
+  const held = representations.get(material);
+  if (!held || typeof held.rowProvider?.read !== 'function' ||
+      typeof emit !== 'function' || typeof commit !== 'function') {
+    throw issue('UnsupportedManagedRowRepresentation');
+  }
+  const acquired = [];
+  let failed = false;
+  try {
+    held.acquire();
+    acquired.push(held);
+    if (held.sourceAvailable() !== true) {
+      throw issue('ManagedInputUnavailable');
+    }
+    signal?.throwIfAborted();
+    await held.rowProvider.read(undefined, emit, signal);
+    signal?.throwIfAborted();
+    if (held.sourceAvailable() !== true) {
+      throw issue('ManagedInputUnavailable');
+    }
+    return await commit();
+  } catch (error) {
+    failed = true;
+    if (member(error, 'cleanupPending') === true) {
+      const retained = memoryUseFailure(error, acquired);
+      if (retained !== undefined) throw retained;
+      throw error;
+    }
+    releaseMemoryUses(acquired, error);
+    throw error;
+  } finally {
+    if (!failed) releaseMemoryUses(acquired);
+  }
+}
+
 async function withManagedMemoryRows(
   occurrences, held, providers, authorize, append, use, signal, commit,
 ) {

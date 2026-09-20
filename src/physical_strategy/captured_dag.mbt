@@ -945,6 +945,7 @@ pub fn captured_releasable_managed_producers(run : CapturedDAG) -> Array[Int] {
   for producer in 1..<run.done.length() {
     if !run.done[producer] ||
       !run.lifetimes[producer].live ||
+      run.graph.results.any(result => result.task == producer) ||
       (
         managed_task_output_reference(run, producer) is None &&
         carrier_managed_task_output_reference(run, producer) is None

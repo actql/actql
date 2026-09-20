@@ -21,6 +21,18 @@ pub(all) suberror NodeHostFailure {
 /// interpretation, canonical ordering, admission, and the content receipt.
 struct StrategyHostOutputExport {
   core : @publication_host.PublicationOutputExport
+  managed_import : @execution.ManagedPublicationBridge[Int]?
+}
+
+///|
+/// Re-admission state for a retained managed Relation result. The environment
+/// may stream only the exact material bound to this completion.
+struct StrategyHostManagedResultImport {
+  bridge : @execution.ManagedPublicationBridge[Int]
+  occurrence : @execution.ManagedResultOccurrence
+  definition : @publication.PublicationContract
+  limits : @publication_host.PublicationOutputExportLimits
+  mut open : Bool
 }
 
 ///|
@@ -2020,6 +2032,7 @@ pub fn strategy_host_output_export_begin(
         },
       ),
     ),
+    managed_import: None,
   }
 }
 
@@ -2098,6 +2111,173 @@ pub fn strategy_host_result_output_export_begin(
         },
       ),
     ),
+    managed_import: None,
+  }
+}
+
+///|
+/// Admit the exact retained managed Relation selected by the common graph.
+#export_name("strategyHostManagedResultImportBegin")
+pub fn strategy_host_managed_result_import_begin(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> StrategyHostManagedResultImport raise NodeHostFailure {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) &&
+    @strategy.graph_result_name(graph, result) is Some(result_name) &&
+    @strategy.captured_task_target(run, task) is Some(target) &&
+    @strategy.captured_managed_task_output_matches(
+      run, task, target, output,
+    ) else {
+    raise InvalidCommand
+  }
+  let definition = match
+    @publication.prepare_result_definition(
+      @strategy.graph_program_definition_cid(graph), result_name,
+    ) {
+    Ok(value) => @publication.result_definition_contract(value)
+    Err(_) => raise InvalidCommand
+  }
+  let values : @execution.ValueLimits = {
+    max_nodes: max_value_nodes,
+    max_text_bytes: max_value_text_bytes,
+    max_depth: max_value_depth,
+    max_work: max_value_work,
+  }
+  let bridge = match
+    @execution.prepare_managed_publication_bridge(
+      output,
+      material,
+      max_rows,
+      values,
+      max_result_workspace_entries,
+      max_schema_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  {
+    bridge,
+    occurrence,
+    definition,
+    limits: {
+      max_result_fields,
+      max_result_mapping_work,
+      max_result_order_work,
+      max_result_workspace_entries,
+      max_rows,
+      values,
+      payload_wire: {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      logical_wire: {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
+      },
+      schema: {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
+      },
+      max_batch_bytes,
+    },
+    open: true,
+  }
+}
+
+///|
+#export_name("strategyHostManagedResultImportAppend")
+pub fn strategy_host_managed_result_import_append(
+  value : StrategyHostManagedResultImport,
+  row : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_text_bytes : Int,
+) -> Unit raise NodeHostFailure {
+  if !value.open {
+    raise InvalidCommand
+  }
+  match
+    @execution.append_managed_publication_bridge_wire(
+      value.bridge,
+      row,
+      { max_bytes, max_nodes, max_depth, max_text_bytes, },
+    ) {
+    Ok(_) => ()
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostManagedResultImportFinish")
+pub fn strategy_host_managed_result_import_finish(
+  value : StrategyHostManagedResultImport,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  if !value.open {
+    raise InvalidCommand
+  }
+  value.open = false
+  let output = match @execution.finish_managed_publication_bridge(value.bridge) {
+    Ok(output) => output
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @publication_host.prepare_result_publication_export(
+      output, value.occurrence, value.definition, value.limits,
+    ) {
+    Ok(core) => { core, managed_import: Some(value.bridge), }
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      strategy_publication_output_result(Err(issue))
+    }
+  }
+}
+
+///|
+#export_name("strategyHostManagedResultImportCancel")
+pub fn strategy_host_managed_result_import_cancel(
+  value : StrategyHostManagedResultImport,
+) -> Unit {
+  if value.open {
+    value.open = false
+    @execution.close_managed_publication_bridge(value.bridge)
   }
 }
 
@@ -2307,6 +2487,9 @@ pub fn strategy_host_output_export_cancel(
   value : StrategyHostOutputExport,
 ) -> Unit {
   value.core.cancel()
+  if value.managed_import is Some(bridge) {
+    @execution.close_managed_publication_bridge(bridge)
+  }
 }
 
 ///|

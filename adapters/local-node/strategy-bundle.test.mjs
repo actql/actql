@@ -332,7 +332,7 @@ test('reference preparation propagates fatal failures instead of hiding them as 
   );
 });
 
-test('Local preparation delegates checked zero-input applicability to MoonBit', async () => {
+test('Local delegates zero-input and identity applicability to MoonBit', async () => {
   const setup = {}, registration = {}, configuration = {};
   const seen = [];
   const entry = localStrategyContribution({
@@ -357,10 +357,8 @@ test('Local preparation delegates checked zero-input applicability to MoonBit', 
       assert.equal(owner, setup);
       return 0;
     },
-    strategyHostManagedRequiresLogicalIdentity: owner => {
-      assert.equal(owner, setup);
-      return ok(false);
-    },
+    strategyHostManagedRequiresLogicalIdentity: () =>
+      assert.fail('JavaScript re-decided a managed identity obligation'),
     strategyHostReleasableManagedProducers: owner => {
       assert.equal(owner, setup);
       return [];

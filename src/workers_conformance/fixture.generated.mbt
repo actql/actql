@@ -25,6 +25,7 @@ fn captured_graph_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
+  local_carrier_graph_variant? : String = "projection",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -80,6 +81,7 @@ fn captured_graph_fixture(
     local_carrier_events_chain~,
     local_carrier_events_variant~,
     local_carrier_graph_chain~,
+    local_carrier_graph_variant~,
     local_time_series_chain~,
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
@@ -424,7 +426,7 @@ fn local_carrier_graph_environment(
 
 ///|
 /// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
-fn local_carrier_graph_program() -> String {
+fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -434,6 +436,12 @@ fn local_carrier_graph_program() -> String {
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
+  let projection = if variant == "match_nodes" {
+    "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
+    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else {
+    "\"node_rows\":true,\"as\":\"out\""
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -454,7 +462,8 @@ fn local_carrier_graph_program() -> String {
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
   "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
-  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  projection +
+  "}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
   "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
@@ -2190,6 +2199,7 @@ fn query_checked_program_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
+  local_carrier_graph_variant? : String = "projection",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -2259,7 +2269,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_carrier_graph_chain {
-    local_carrier_graph_program()
+    local_carrier_graph_program(variant=local_carrier_graph_variant)
   } else {
     text
   }
@@ -2541,7 +2551,13 @@ fn query_checked_program_fixture(
   let text = if managed_publication {
     text.replace(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
-      new="\"results\":{\"published\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}}}}",
+      new=if local_carrier_graph_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"graph\",\"result\":\"r\"}}}}"
+      } else {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"compute_b\",\"result\":\"r\"}}}}"
+      },
     )
   } else {
     text

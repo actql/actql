@@ -65,6 +65,8 @@ pub fn append_managed_output_values(ManagedOutputValues, Int, (Int) -> @value_ad
 
 pub fn[T] append_managed_producer_bridge_wire(ManagedProducerBridge[T], String, RetainedRowDecodeLimits) -> Result[Unit, ManagedProducerBridgeIssue]
 
+pub fn[T] append_managed_publication_bridge_wire(ManagedPublicationBridge[T], String, RetainedRowDecodeLimits) -> Result[Unit, ManagedProducerBridgeIssue]
+
 pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits) -> Result[Unit, RetainedContentReadIssue]
 
 pub fn append_retained_producer_scan_values(RetainedProducerScan, Array[@value_admission.CheckedValue]) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
@@ -195,6 +197,8 @@ pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierMan
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
+pub fn[T] close_managed_publication_bridge(ManagedPublicationBridge[T]) -> Unit
+
 pub fn[P] complete_carrier_managed_output(CarrierManagedCompletionPort[P], P) -> Result[CarrierManagedCompletedOutput, TrustedOutputIssue]
 
 pub fn[P, T] complete_managed_output(ManagedCompletionPort[P, T], P) -> Result[ManagedCompletedOutput[T], TrustedOutputIssue]
@@ -308,6 +312,8 @@ pub fn[T] finish_managed_computed_view(ManagedComputedView[T]) -> Result[Managed
 pub fn finish_managed_output_values(ManagedOutputValues) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue]
 
 pub fn[T] finish_managed_producer_bridge(ManagedProducerBridge[T], Int, Int) -> Result[ProducerRead, ManagedProducerBridgeIssue]
+
+pub fn[T] finish_managed_publication_bridge(ManagedPublicationBridge[T]) -> Result[CompletedOutput, ManagedProducerBridgeIssue]
 
 pub fn[P] finish_managed_verified_output(ManagedVerifiedOutputPort[P], P) -> Result[ManagedOutputValueReceipt, ManagedVerifiedOutputIssue]
 
@@ -578,6 +584,8 @@ pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline
 pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
+
+pub fn[T] prepare_managed_publication_bridge(ManagedCompletedOutput[T], ManagedRetainedOutput[T], Int, ValueLimits, Int, Int) -> Result[ManagedPublicationBridge[T], ManagedProducerBridgeIssue]
 
 pub fn[P, T] prepare_managed_selected_view_output_port(ManagedViewSelection[T], ManagedOutputValues, (P) -> Bool) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue]
 
@@ -1191,6 +1199,8 @@ pub(all) enum ManagedProfileIssue {
   BodyLimit
   UnsupportedProfile
 } derive(Eq, @debug.Debug)
+
+type ManagedPublicationBridge[T]
 
 pub(all) enum ManagedPublicationRequirement {
   ManagedUse

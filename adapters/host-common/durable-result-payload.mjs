@@ -160,6 +160,7 @@ export async function storeCompletedResultPublicationPayload(
   limits,
   publication,
   signal,
+  beginResult,
 ) {
   if (!validStore(store) ||
       typeof store.createPreparedObjectWriter !== 'function' ||
@@ -177,7 +178,9 @@ export async function storeCompletedResultPublicationPayload(
   return storeCompletedPayload(
     store,
     control,
-    () => control.beginResult(host, result, limits),
+    () => typeof beginResult === 'function'
+      ? beginResult(host, result, limits)
+      : control.beginResult(host, result, limits),
     limits,
     signal,
     handle => {
@@ -236,7 +239,7 @@ async function storeCompletedPayload(
   let sealed = false;
   let exportReleased = false;
   try {
-    exportHandle = beginExport();
+    exportHandle = await beginExport();
     writer = preparePhysical
       ? store.createPreparedObjectWriter(limits.maxWireBytes)
       : store.createObjectWriter(limits.maxWireBytes);

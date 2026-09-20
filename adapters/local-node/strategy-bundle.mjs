@@ -4,7 +4,8 @@ import {readLocalRetainedInput} from './retained-input.mjs';
 import {localRetainedStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
-  withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
+  withManagedInputRows, withManagedOutputRows} from
+  '../store-local/managed-memory-representations.mjs';
 import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
@@ -63,8 +64,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       if (task < 1 || !Array.isArray(producers)) return undefined;
       const inputCount = moon.strategyHostManagedInputCount(setup);
       if (!Number.isInteger(inputCount) || inputCount < 0 ||
-          producers.length !== inputCount ||
-          checked(moon.strategyHostManagedRequiresLogicalIdentity(setup))) {
+          producers.length !== inputCount) {
         return undefined;
       }
       const inputs = producers.map(producer => outputs.get(producer));
@@ -216,6 +216,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         return Object.freeze({
           completed,
           material,
+          withRows: (emit, readSignal, commit) => withManagedOutputRows(
+            material, emit, readSignal, commit,
+          ),
           close: () => memory.close(),
           diagnostic: Object.freeze({
             realization: 'local-managed',

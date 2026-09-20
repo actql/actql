@@ -2545,6 +2545,57 @@ function outputExportControl(moon, publications) {
         limits.maxBatchBytes,
       ));
     },
+    beginManagedResultImport(host, result, output, material, limits) {
+      if (!Number.isSafeInteger(result) || result < 0 || output == null ||
+          material == null || !validResultOutputLimits(limits)) {
+        throw new TypeError('Invalid managed Result import request');
+      }
+      return checked(moon.strategyHostManagedResultImportBegin(
+        host,
+        result,
+        output,
+        material,
+        limits.maxResultFields,
+        limits.maxResultMappingWork,
+        limits.maxResultOrderWork,
+        limits.maxResultWorkspaceEntries,
+        limits.maxRows,
+        limits.maxValueNodes,
+        limits.maxValueTextBytes,
+        limits.maxValueDepth,
+        limits.maxValueWork,
+        limits.maxWireBytes,
+        limits.maxWireNodes,
+        limits.maxWireDepth,
+        limits.maxColumns,
+        limits.maxOrderWork,
+        limits.maxLogicalWireBytes,
+        limits.maxLogicalWireNodes,
+        limits.maxLogicalWireDepth,
+        limits.maxSchemaFields,
+        limits.maxSchemaBytes,
+        limits.maxSchemaNodes,
+        limits.maxSchemaDepth,
+        limits.maxBatchBytes,
+      ));
+    },
+    appendManagedResultImport(value, row, limits) {
+      if (typeof row !== 'string' || !validResultOutputLimits(limits)) {
+        throw new TypeError('Invalid managed Result import row');
+      }
+      checked(moon.strategyHostManagedResultImportAppend(
+        value,
+        row,
+        limits.maxWireBytes,
+        limits.maxWireNodes,
+        limits.maxWireDepth,
+        limits.maxValueTextBytes,
+      ));
+    },
+    finishManagedResultImport: value => checked(
+      moon.strategyHostManagedResultImportFinish(value),
+    ),
+    cancelManagedResultImport: moon.strategyHostManagedResultImportCancel,
     next: value => checked(moon.strategyHostOutputExportNext(value)),
     finish: value => checked(moon.strategyHostOutputExportFinish(value)),
     identity(value) {

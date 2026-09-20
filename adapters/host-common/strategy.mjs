@@ -833,6 +833,7 @@ export async function runInstalledStrategy(
           site: siteCandidate.site,
           siteMaterial: result.siteMaterial ?? result.material,
           materialGeneration: result.materialGeneration ?? result.material,
+          withRows: result.withRows,
           close: siteResult?.close,
           releaseOwner: siteResult,
         }));
@@ -944,6 +945,37 @@ export async function runInstalledStrategy(
       if (!publicationContract(occurrence.definitionContract)) {
         throw new StrategyHostError('MissingResultDefinitionContract');
       }
+      const managed = managedOutputs.get(occurrence.task);
+      const beginManagedResult = managed === undefined ||
+          typeof managed.withRows !== 'function'
+        ? undefined
+        : async (host, result, limits) => {
+          const importing = core.outputExportControl.beginManagedResultImport(
+            host,
+            result,
+            managed.completed,
+            managed.material,
+            limits,
+          );
+          let finished = false;
+          try {
+            const exported = await managed.withRows(
+              row => core.outputExportControl.appendManagedResultImport(
+                importing, row, limits,
+              ),
+              signal,
+              () => core.outputExportControl.finishManagedResultImport(
+                importing,
+              ),
+            );
+            finished = true;
+            return exported;
+          } finally {
+            if (!finished) {
+              core.outputExportControl.cancelManagedResultImport(importing);
+            }
+          }
+        };
       const stored = await storeCompletedResultPublicationPayload(
         store,
         core.outputExportControl,
@@ -960,6 +992,7 @@ export async function runInstalledStrategy(
           limits: publication.contractLimits,
         },
         signal,
+        beginManagedResult,
       );
       return Object.freeze({
         occurrence: Object.freeze({

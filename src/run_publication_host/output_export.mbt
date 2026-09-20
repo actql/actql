@@ -79,6 +79,45 @@ pub fn prepare_publication_output_export(
 }
 
 ///|
+/// Prepare an exact checked Result occurrence after a retained managed
+/// Relation has been re-admitted as a completed output. The caller supplies
+/// the definition and occurrence obtained from the same captured graph.
+pub fn prepare_result_publication_export(
+  output : @execution.CompletedOutput,
+  occurrence : @execution.ManagedResultOccurrence,
+  definition : @publication.PublicationContract,
+  limits : PublicationOutputExportLimits,
+) -> Result[PublicationOutputExport, PublicationOutputExportIssue] {
+  @execution.prepare_completed_result_relation_export(
+    output,
+    occurrence,
+    {
+      max_fields: limits.max_result_fields,
+      max_mapping_work: limits.max_result_mapping_work,
+      max_order_work: limits.max_result_order_work,
+      max_workspace_entries: limits.max_result_workspace_entries,
+    },
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  )
+  .map(stream => {
+    stream,
+    replay_values: limits.values,
+    replay_wire: limits.payload_wire,
+    max_batch_bytes: limits.max_batch_bytes,
+    definition: Some(definition),
+    receipt: None,
+    evidence: None,
+    artifact: None,
+  })
+  .map_err(issue => Output(issue))
+}
+
+///|
 /// Prepare the exact checked Named Result occurrence from a captured Run.
 /// Result lookup, projection, and ordering are fixed before any bytes escape.
 pub fn prepare_captured_result_publication_export(

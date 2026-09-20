@@ -14,6 +14,8 @@ pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG
 
 pub fn prepare_publication_output_export(@execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
+pub fn prepare_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
+
 // Errors
 
 // Types and methods
