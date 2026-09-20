@@ -15,14 +15,14 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 2/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 4/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, `degree`, and `components` outputs; 4/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 2/39, and publication 4/39. These are
-layer counts, not operation completion: one entry is `complete` and 38 remain
+consumer lifetime 15/39, cancellation 4/39, and publication 4/39. These are
+layer counts, not operation completion: three entries are `complete` and 36 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -205,15 +205,18 @@ canonical identity order. Their output is atomic under row limits, structural
 workspace is admitted before allocation, and the registered standard Host
 reaches two independent downstream Relation computations and final reclaim on
 all three targets. The Effect-free Named Result path publishes and retrieves
-the retained diagnostics through the formal Store. Environment cancellation
-delivery remains open, so `graph_bounds` remains partial. Directional degree metrics now count
+the retained diagnostics through the formal Store. A real environment timer
+now cancels bounded diagnostic work, observes kernel stop, prevents completion,
+and releases all holdings and reservations. `graph_bounds` is complete.
+Directional degree metrics now count
 incoming, outgoing, and total incidences in canonical node order, including
 two total incidences for a self-loop. The shared bounded kernel admits its
 workspace before allocation, emits its Relation atomically, and reaches two
 independent downstream computations and final reclaim through the registered
 standard Host on all three targets. The Effect-free Named Result path also
-publishes and retrieves the retained total-degree result. Environment
-cancellation delivery remains open, so `degree` remains partial. Weak and
+publishes and retrieves the retained total-degree result. The same environment
+cancellation path stops degree work before completion and completes retryable
+cleanup without leaking reservations. `degree` is complete. Weak and
 strong components now use admitted outgoing and incoming CSR indices and
 bounded iterative graph walks. Strong components use two graph passes; weak
 components traverse both directions. Component identity is the least semantic
