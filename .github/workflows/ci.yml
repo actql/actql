@@ -56,6 +56,10 @@ jobs:
         run: npm run check:process-capacity
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
+      - name: Test Node-free native storage publication and control
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
+        run: npm run check:native-http-client
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
@@ -82,6 +86,30 @@ jobs:
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: npm run check:docs
+  native-macos:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - run: npm ci
+      - name: Install pinned MoonBit
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Verify native macOS arm64 profile
+        run: |
+          test "$(uname -m)" = arm64
+          moon version --all
+          ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
+            npm run check:native-http-client
   workers:
     runs-on: ubuntu-24.04
     timeout-minutes: 20

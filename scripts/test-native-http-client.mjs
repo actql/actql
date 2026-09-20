@@ -11,6 +11,10 @@ if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
 }
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-http-'));
+const storeRoot = join(root, 'store');
+const sqliteRoot = join(root, 'sqlite');
+await mkdir(storeRoot, {recursive: true});
+await mkdir(sqliteRoot, {recursive: true});
 
 const openssl = (...arguments_) => execFileSync(
   'openssl',
@@ -221,6 +225,8 @@ try {
         : 'libsqlite3.so.0'),
     ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
     ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
+    ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
+    ACTQL_TEST_NATIVE_STORE_ROOT: storeRoot,
   };
   await writeFile(
     testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
@@ -228,7 +234,13 @@ try {
     {mode: 0o600},
   );
   for (const packagePath of [
+    'src/platform_native/filesystem',
+    'src/platform_native/sqlite',
+    'src/platform_native/publication_store',
+    'src/platform_native/run_publication',
+    'src/platform_native/result_access',
     'src/platform_native/http_client',
+    'src/platform_native/remote_journal',
     'src/platform_native/remote_client',
     'src/platform_native/credential_resource',
   ]) {
