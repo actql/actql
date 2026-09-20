@@ -198,9 +198,10 @@ replace final same-SHA Linux CI.
 
 ## Closed review findings after `241fad7b`
 
-Commit `a786e1b0` regenerates the Workers conformance package from its current
-query-integration sources. The freshness check and all 24 Workers tests pass,
-including the workerd execution cases.
+Commits `a786e1b0` and `248307a4` regenerate the Workers conformance package
+from its current query-integration sources, including the finalization
+boundary fixtures added while closing this review. The freshness check and all
+24 Workers tests pass, including the workerd execution cases.
 
 Commit `7022c6f5` makes every managed finalization phase respect the caller's
 work quantum. Retention, identity export, issuer construction, completion,
