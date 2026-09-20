@@ -123,6 +123,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "match_edges" {
     "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
     "\"weight\"]},\"as\":\"out\""
+  } else if variant == "match_edges_predicate" {
+    "\"from\":\"g\",\"match_edges\":{\"where\":\"weight > 10\"," +
+    "\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"out\""
   } else if variant == "graph_bounds" {
     "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
     "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
@@ -139,7 +142,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if variant == "match_edges" {
+  let result_fields = if variant.has_prefix("match_edges") {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -151,7 +154,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if variant == "match_edges" {
+  let second_fields = if variant.has_prefix("match_edges") {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -1024,6 +1027,69 @@ test "bounded edge match filters repeated types and sorts canonically" {
 }
 
 ///|
+test "bounded edge match evaluates a checked property predicate" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(
+    source_owner,
+    "[\"owns\"]",
+    predicate="\"weight > 10\"",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(workspace) raise {
+    @local_sga.start_match_edges(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    )
+  }
+  let insufficient = start(14).unwrap()
+  assert_true(
+    finish_match_edges(insufficient)
+    is Err(@local_sga.MatchEdgesPredicate(@execution.WorkspaceLimit)),
+  )
+  assert_eq(@local_sga.cleanup_match_edges(insufficient), Ok(true))
+  let execution = start(15).unwrap()
+  let output = finish_match_edges(execution).unwrap()
+  assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3.0)))
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("owns")))
+  assert_true(@execution.completed_cell(output, 0, 2) is Some(Number(1.0)))
+  assert_true(@execution.completed_cell(output, 0, 3) is Some(Number(30.0)))
+  assert_true(@execution.completed_output_matches_inputs(output, [external]))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
 test "bounded edge match admits workspace and cleans cancellation" {
   let source_owner = carrier_graph_labeled_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -1815,6 +1881,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:17d576d1679a19ebaa39babfe25c6922f65888c29781f7ea73b3f2af674b13c7"
   } else if variant == "match_edges" {
     "sha256:c60b5715592edabcbe32bd818f14c8d413b3717806662aa06c9e4eae57420932"
+  } else if variant == "match_edges_predicate" {
+    "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
   } else if variant == "degree_both" {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else {
@@ -1925,11 +1993,20 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_obligations,
   )
   let graph_rows = local_managed_test_rows(graph_ops)
-  let expected_rows = if variant == "graph_bounds" { 4 } else { 2 }
+  let expected_rows = if variant == "graph_bounds" {
+    4
+  } else if variant == "match_edges_predicate" {
+    1
+  } else {
+    2
+  }
   assert_eq(graph_rows.length(), expected_rows)
   if variant == "match_edges" {
     assert_true(graph_rows[0].contains("\"src\":1"))
     assert_true(graph_rows[1].contains("\"weight\":20"))
+  } else if variant == "match_edges_predicate" {
+    assert_true(graph_rows[0].contains("\"src\":2"))
+    assert_true(graph_rows[0].contains("\"weight\":20"))
   } else if variant == "graph_bounds" {
     assert_true(graph_rows[0].contains("\"kind\":\"nodes\""))
     assert_true(graph_rows[1].contains("\"kind\":\"edges\""))
@@ -2050,6 +2127,10 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")
   run_standard_host_graph_relation_path("match_edges", publication=true)
+  run_standard_host_graph_relation_path(
+    "match_edges_predicate",
+    publication=true,
+  )
   run_standard_host_graph_relation_path("graph_bounds", publication=true)
   run_standard_host_graph_relation_path("degree_in")
   run_standard_host_graph_relation_path("degree_out")

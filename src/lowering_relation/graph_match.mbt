@@ -66,6 +66,14 @@ pub fn graph_match_has_predicate(value : PreparedGraphMatch) -> Bool {
 }
 
 ///|
+/// The checked predicate retained by this graph match occurrence.
+/// Consumers must evaluate this expression through the common evaluator;
+/// it is not permission to rediscover or reinterpret authored syntax.
+pub fn graph_match_predicate(value : PreparedGraphMatch) -> Expression? {
+  value.predicate
+}
+
+///|
 /// The predicate-only selections that require no row-expression evaluator.
 /// A missing predicate is distinct from a checked literal that selects none.
 pub(all) enum GraphMatchLiteralSelection {

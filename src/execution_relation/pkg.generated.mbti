@@ -39,6 +39,8 @@ pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
+pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
+
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
@@ -144,6 +146,8 @@ pub fn cancel_managed_output_values(ManagedOutputValues) -> Bool
 pub fn[P] cancel_managed_verified_output_port(ManagedVerifiedOutputPort[P]) -> Bool
 
 pub fn[P, T] cancel_managed_view_output_port(ManagedViewOutputPort[P, T]) -> Bool
+
+pub fn cancel_predicate_expression(PredicateExpressionExecution) -> Bool
 
 pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
 
@@ -547,6 +551,8 @@ pub fn pivot_execution_supported(@lowering_relation.PreparedPivot) -> Bool
 
 pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) -> Bool
 
+pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
+
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
@@ -742,6 +748,8 @@ pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
+
+pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
 
@@ -1328,6 +1336,13 @@ pub(all) enum OutputStreamIssue {
   Admission(CaptureIssue)
   Wire(RowWireIssue)
   Closed
+}
+
+type PredicateExpressionExecution
+
+pub(all) enum PredicateExpressionPoll {
+  PredicateExpressionContinue
+  PredicateExpressionComplete(Bool)
 }
 
 pub(all) enum ProducerBindingIssue {

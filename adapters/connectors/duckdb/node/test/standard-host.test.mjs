@@ -1547,6 +1547,19 @@ async function exerciseStrategyGraph(
       {src: 2, dst: 1, weight: 20},
     ],
   }, {
+    name: 'match-edges-predicate',
+    step: {
+      from: 'g',
+      match_edges: {
+        where: 'weight > 10',
+        fields: ['src', 'dst', 'weight'],
+      },
+      as: 'out',
+    },
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
+  }, {
     name: 'graph-bounds',
     step: {
       from: 'g',
@@ -1848,6 +1861,18 @@ async function exerciseStrategyGraph(
     step: {
       from: 'g',
       match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'out',
+    },
+    fields: ['src', 'dst', 'weight'],
+  }, {
+    name: 'match-edges-predicate',
+    rows: 40,
+    step: {
+      from: 'g',
+      match_edges: {
+        where: 'weight > 10',
+        fields: ['src', 'dst', 'weight'],
+      },
       as: 'out',
     },
     fields: ['src', 'dst', 'weight'],

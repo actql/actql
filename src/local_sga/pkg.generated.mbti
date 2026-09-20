@@ -175,6 +175,7 @@ pub(all) enum MatchEdgesIssue {
   InvalidMatchEdgesLimits
   MatchEdgesInputUnavailable
   MatchEdgesWorkspaceLimit
+  MatchEdgesPredicate(@execution_relation.EvalIssueKind)
   MatchEdgesKeyOrder(@value_admission.KeyOrderIssue)
   MatchEdgesOutput(@execution_relation.CaptureIssue)
   MatchEdgesCompletion(@execution_relation.TrustedOutputIssue)

@@ -1,6 +1,8 @@
 ///|
 priv enum MatchEdgesPhase {
   SelectEdges
+  PreparePredicate
+  EvaluatePredicate
   PrepareSort
   PrepareMerge
   Merge
@@ -28,6 +30,13 @@ priv struct MatchEdgesState {
   mut phase : MatchEdgesPhase
   mut source_index : Int
   select_all : Bool
+  predicate : @lower.Expression?
+  mut predicate_field : Int
+  predicate_fields : Int
+  predicate_workspace : Int
+  mut predicate_work_remaining : Int
+  predicate_input : Map[String, @execution.Value]
+  mut predicate_execution : @execution.PredicateExpressionExecution?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
   mut width : Int
@@ -74,6 +83,7 @@ pub(all) enum MatchEdgesIssue {
   InvalidMatchEdgesLimits
   MatchEdgesInputUnavailable
   MatchEdgesWorkspaceLimit
+  MatchEdgesPredicate(@execution.EvalIssueKind)
   MatchEdgesKeyOrder(@value.KeyOrderIssue)
   MatchEdgesOutput(@execution.CaptureIssue)
   MatchEdgesCompletion(@execution.TrustedOutputIssue)
@@ -141,6 +151,81 @@ fn graph_edge_property_index(
     }
   }
   None
+}
+
+///|
+fn edge_predicate_field_count(graph : @carrier.Graph) -> Int {
+  let aliases = match @carrier.graph_names(graph) {
+    Some(names) => {
+      let (_, _, _, label) = @carrier.graph_row_fields(names)
+      if label is Some(_) {
+        3
+      } else {
+        2
+      }
+    }
+    None => 0
+  }
+  aliases + @carrier.field_count(@carrier.graph_edge_properties(graph))
+}
+
+///|
+fn edge_predicate_binding(
+  state : MatchEdgesState,
+  edge : Int,
+  index : Int,
+) -> (String, @execution.Value)? {
+  let mut remaining = index
+  match @carrier.graph_names(state.graph) {
+    Some(names) => {
+      let (_, source_name, target_name, label_name) = @carrier.graph_row_fields(
+        names,
+      )
+      guard @storage.edge_endpoints(state.source, edge)
+        is Some((source, target)) else {
+        return None
+      }
+      if remaining == 0 {
+        return @storage.node_identity(state.source, source).map(value => {
+          (@schema.reference_name(source_name), @execution.capture(value.value))
+        })
+      }
+      remaining -= 1
+      if remaining == 0 {
+        return @storage.node_identity(state.source, target).map(value => {
+          (@schema.reference_name(target_name), @execution.capture(value.value))
+        })
+      }
+      remaining -= 1
+      match label_name {
+        Some(name) => {
+          if remaining == 0 {
+            return match @storage.edge_label(state.source, edge) {
+              Some(Some(value)) =>
+                Some(
+                  (
+                    @schema.reference_name(name),
+                    @execution.capture(value.value),
+                  ),
+                )
+              Some(None) =>
+                Some((@schema.reference_name(name), @execution.Null))
+              None => None
+            }
+          }
+          remaining -= 1
+        }
+        None => ()
+      }
+    }
+    None => ()
+  }
+  let properties = @carrier.graph_edge_properties(state.graph)
+  guard @carrier.field_at(properties, remaining) is Some(field) &&
+    @storage.edge_property(state.source, edge, remaining) is Some(value) else {
+    return None
+  }
+  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
 }
 
 ///|
@@ -331,15 +416,97 @@ fn match_edges_step(
     match state.phase {
       SelectEdges =>
         if state.source_index < @storage.edge_count(state.source) {
-          if state.select_all && edge_matches_types(state, state.source_index) {
-            state.selected.push(state.source_index)
+          if edge_matches_types(state, state.source_index) {
+            match state.predicate {
+              Some(_) => {
+                state.predicate_field = 0
+                state.predicate_input.clear()
+                state.phase = PreparePredicate
+              }
+              None => {
+                if state.select_all {
+                  state.selected.push(state.source_index)
+                }
+                state.source_index += 1
+              }
+            }
+          } else {
+            state.source_index += 1
           }
-          state.source_index += 1
           used += 1
         } else {
           state.width = 1
           state.phase = PrepareSort
         }
+      PreparePredicate =>
+        if state.predicate_field < state.predicate_fields {
+          used += 1
+          guard edge_predicate_binding(
+              state,
+              state.source_index,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(MatchEdgesInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.predicate is Some(predicate) else {
+            return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                MatchEdgesPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluatePredicate
+            }
+          }
+        }
+      EvaluatePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              MatchEdgesPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            if selected {
+              state.selected.push(state.source_index)
+            }
+            state.predicate_input.clear()
+            state.source_index += 1
+            state.phase = SelectEdges
+          }
+        }
+      }
       PrepareSort =>
         if state.width >= state.selected.length() {
           state.emit_index = 0
@@ -450,6 +617,10 @@ fn match_edges_step(
 
 ///|
 fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
+  if state.predicate_execution is Some(execution) {
+    @execution.cancel_predicate_expression(execution) |> ignore
+    state.predicate_execution = None
+  }
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -461,6 +632,7 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   state.selected = []
   state.scratch = []
   state.values = []
+  state.predicate_input.clear()
   true
 }
 
@@ -486,11 +658,6 @@ pub fn start_match_edges(
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
     !@lower.graph_match_nodes(prepared) &&
-    (
-      !@lower.graph_match_has_predicate(prepared) ||
-      @lower.graph_match_literal_selection(prepared) !=
-      @lower.NoLiteralSelection
-    ) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) &&
     @storage.carrier(source) is @carrier.GraphValue(graph) else {
@@ -498,18 +665,32 @@ pub fn start_match_edges(
   }
   let select_all = !@lower.graph_match_has_predicate(prepared) ||
     @lower.graph_match_literal_selection(prepared) == @lower.SelectAllEntities
+  let predicate = if @lower.graph_match_has_predicate(prepared) &&
+    @lower.graph_match_literal_selection(prepared) == @lower.NoLiteralSelection {
+    @lower.graph_match_predicate(prepared)
+  } else {
+    None
+  }
   let count = @storage.edge_count(source)
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
+  let predicate_fields = if predicate is Some(_) {
+    edge_predicate_field_count(graph)
+  } else {
+    0
+  }
   guard max_rows >= 0 &&
     limits.max_nodes >= 0 &&
     limits.max_text_bytes >= 0 &&
     limits.max_depth >= 0 &&
     limits.max_work >= 0 &&
     match_edges_workspace(count, width) is Some(workspace) &&
-    workspace <= max_workspace_slots else {
+    checked_match_edges_add(workspace, predicate_fields)
+    is Some(fixed_workspace) &&
+    fixed_workspace <= max_workspace_slots else {
     return Err(MatchEdgesWorkspaceLimit)
   }
+  let predicate_workspace = max_workspace_slots - fixed_workspace
   let output = match
     @execution.prepare_admitted_output(
       owner,
@@ -557,6 +738,13 @@ pub fn start_match_edges(
     phase: SelectEdges,
     source_index: 0,
     select_all,
+    predicate,
+    predicate_field: 0,
+    predicate_fields,
+    predicate_workspace,
+    predicate_work_remaining: limits.max_work,
+    predicate_input: Map([]),
+    predicate_execution: None,
     selected: [],
     scratch: Array::make(count, None),
     width: 1,

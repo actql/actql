@@ -503,22 +503,24 @@ test "graph property matches connect relation consumers and preserve predicate r
       )
     }
   }
-  let e = @pipeline_typing.check_carriers(
-    cursor(
-      "[{\"match_nodes\":{\"where\":\"active AND missing\",\"fields\":[\"node_id\"]}}]",
-    ),
-    [("g", g)],
-    None,
-    None,
-    limits(),
-  ).unwrap_err()
-  assert_true(e.kind is GraphMatch(UnknownField("missing")))
-  assert_eq(e.path, [
-    @source.Index(0),
-    @source.Key("match_nodes"),
-    @source.Key("where"),
-  ])
-  assert_true(e.range is Some(_))
+  for (op, field) in [("match_nodes", "node_id"), ("match_edges", "source_id")] {
+    let e = @pipeline_typing.check_carriers(
+      cursor(
+        "[{\"" +
+        op +
+        "\":{\"where\":\"active AND missing\",\"fields\":[\"" +
+        field +
+        "\"]}}]",
+      ),
+      [("g", g)],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_true(e.kind is GraphMatch(UnknownField("missing")))
+    assert_eq(e.path, [@source.Index(0), @source.Key(op), @source.Key("where")])
+    assert_true(e.range is Some(_))
+  }
 }
 
 ///|

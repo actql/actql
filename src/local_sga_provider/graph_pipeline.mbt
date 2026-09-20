@@ -92,12 +92,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
             @lower.NoLiteralSelection
           )
         } else {
-          @lower.operation(node) == "SGA.match_edges" &&
-          (
-            !@lower.graph_match_has_predicate(matched) ||
-            @lower.graph_match_literal_selection(matched) !=
-            @lower.NoLiteralSelection
-          )
+          @lower.operation(node) == "SGA.match_edges"
         }
       (1, @lower.GraphBasicStep(basic)) =>
         (
