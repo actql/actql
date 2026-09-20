@@ -558,8 +558,24 @@
       "output": "relation",
       "canonical": ["VEC.merge_rankings"],
       "variants": ["maximum", "weighted sum", "finite-list reciprocal rank", "tie completion", "repeated inputs"],
-      "status": "missing",
-      "owner": "local-veca"
+      "status": "partial",
+      "owner": "local-veca",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt"
+      ],
+      "verified_slices": [
+        {
+          "scope": "typed_max_weighted_sum_and_ordered_finite_list_rrf",
+          "layers": ["lowering", "three_targets", "resource_admission"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b954085a",
+          "evidence": [
+            "src/lowering_relation/vector.mbt",
+            "src/lowering_relation/vector_test.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "Bridge",

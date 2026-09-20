@@ -186,7 +186,11 @@ and native. The same path now also covers cosine, negative L2, inferred
 Relation roles, `k=1`, `k` greater than corpus size, and empty candidate or
 query sides. The other three Carrier combinations, duplicate identity failures,
 environment cancellation delivery, and publication remain open. Ranking merge
-still lacks a portable Local kernel.
+now has typed canonical lowering for maximum, weighted-sum, and finite-list RRF
+policies. It retains score contracts, omitted versus explicit empty tie-breaks,
+and ordered repeated RRF inputs as one operation occurrence. A portable Local
+kernel, managed standard Host execution, two consumers, publication, and
+cancellation delivery remain open.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -369,6 +373,15 @@ downstream computations and final reclamation checks. The affected VecA and
 query-integration suites pass 30 tests on each portable target. This does not
 close direct Vectors inputs, duplicate identity failures, publication,
 cancellation delivery, or final Linux CI.
+
+At `b954085a`, all three ranking-fusion policy families reach canonical
+`VEC.merge_rankings` lowering from checked typed decisions. The RRF fixture
+retains three repeated positions in authored order, while scored policies keep
+their score contract and tie-break presence. Exact and one-short preparation
+budgets cover nodes, references, work, and identifier bytes. The lowering,
+ranking evidence, and vector typing suites pass 256 tests on each portable
+target. This does not establish the Local kernel, managed execution,
+publication, cancellation delivery, or final Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
