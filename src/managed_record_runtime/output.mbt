@@ -386,3 +386,29 @@ pub fn producer_read_carrier_reference(
 ) -> @lifecycle.ProducerReadReference {
   @lifecycle.producer_read_reference(value.core)
 }
+
+///|
+/// Expose an exact Events or Vectors read without exporting record Storage.
+pub fn producer_read_view(
+  value : ProducerRead,
+) -> Result[@lifecycle.ProducerView, Issue] {
+  guard producer_read_storage(value) is Some(storage) else {
+    return Err(Producer(@lifecycle.ProducerUnavailable))
+  }
+  @lifecycle.prepare_record_producer_view(
+    producer_read_carrier_reference(value),
+    @storage.record_count(storage),
+    record => @storage.record_field_count(storage, record),
+    (record, field) => @storage.record_field_at(storage, record, field),
+  ).map_err(issue => {
+    Lifecycle(
+      match issue {
+        @lifecycle.WrongCarrier => @lifecycle.WrongCarrier
+        @lifecycle.InvalidExtent => @lifecycle.InvalidMeasure
+        @lifecycle.Unavailable => @lifecycle.Unavailable
+        @lifecycle.InvalidRecord | @lifecycle.InvalidField =>
+          @lifecycle.Unverified
+      },
+    )
+  })
+}

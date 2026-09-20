@@ -5,6 +5,8 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/lowering_relation",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_schema",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -49,7 +51,11 @@ pub fn completion_reference_storage_bytes(CompletionReference) -> Int64?
 
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
+pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> (Int, Int)?, (Int) -> @value_admission.CheckedValue??, (Int, Int) -> @value_admission.CheckedValue?) -> Result[ProducerView, ViewIssue]
+
 pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
+
+pub fn prepare_record_producer_view(ProducerReadReference, Int, (Int) -> Int?, (Int, Int) -> (@relation_schema.FieldName, @value_admission.CheckedValue)?) -> Result[ProducerView, ViewIssue]
 
 pub fn[P, E, T] prepare_retention_port(Binding, (P) -> (Receipt, E, T, Int64, () -> Bool)?) -> RetentionPort[P, E, T]
 
@@ -82,6 +88,30 @@ pub fn producer_read_reference_matches_step(ProducerReadReference, @lowering_rel
 pub fn producer_read_reference_same(ProducerReadReference, ProducerReadReference) -> Bool
 
 pub fn[E, T] producer_read_same(ProducerRead[E, T], ProducerRead[E, T]) -> Bool
+
+pub fn producer_view_edge_count(ProducerView) -> Int?
+
+pub fn producer_view_edge_endpoints(ProducerView, Int) -> Result[(Int, Int), ViewIssue]
+
+pub fn producer_view_edge_label(ProducerView, Int) -> Result[@value_admission.CheckedValue?, ViewIssue]
+
+pub fn producer_view_edge_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_kind(ProducerView) -> @carrier_contract.Kind
+
+pub fn producer_view_matches_read(ProducerView, ProducerReadReference) -> Bool
+
+pub fn producer_view_node_count(ProducerView) -> Int?
+
+pub fn producer_view_node_identity(ProducerView, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_node_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_record_count(ProducerView) -> Int?
+
+pub fn producer_view_record_field(ProducerView, Int, Int) -> Result[(@relation_schema.FieldName, @value_admission.CheckedValue), ViewIssue]
+
+pub fn producer_view_record_field_count(ProducerView, Int) -> Result[Int, ViewIssue]
 
 pub fn receipt_matches(Receipt, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
 
@@ -144,11 +174,21 @@ pub(all) enum ProducerReadIssue {
 
 type ProducerReadReference
 
+type ProducerView
+
 type Receipt
 
 type Retained[E, T]
 
 type RetentionPort[P, E, T]
+
+pub(all) enum ViewIssue {
+  WrongCarrier
+  InvalidExtent
+  Unavailable
+  InvalidRecord
+  InvalidField
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

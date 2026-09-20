@@ -191,12 +191,41 @@ test "managed Graph completion supports two exact downstream consumers" {
   assert_false(producer_read_same(first, second))
   assert_eq(@storage.node_count(producer_read_storage(first).unwrap()), 2)
   assert_eq(@storage.edge_count(producer_read_storage(second).unwrap()), 1)
+  let view = producer_read_view(first).unwrap()
+  assert_eq(@lifecycle.producer_view_kind(view), @carrier.GraphKind)
+  assert_eq(@lifecycle.producer_view_node_count(view), Some(2))
+  assert_eq(@lifecycle.producer_view_edge_count(view), Some(1))
+  assert_eq(
+    @value.compare_key_values(
+      @lifecycle.producer_view_node_identity(view, 1).unwrap(),
+      number(2.0),
+    ),
+    Ok(0),
+  )
+  assert_eq(@lifecycle.producer_view_edge_endpoints(view, 0), Ok((0, 1)))
+  assert_eq(
+    @value.compare_key_values(
+      @lifecycle.producer_view_edge_property(view, 0, 0).unwrap(),
+      number(3.0),
+    ),
+    Ok(0),
+  )
+  assert_true(
+    @lifecycle.producer_view_matches_read(
+      view,
+      producer_read_carrier_reference(first),
+    ),
+  )
   let reference = completed_reference(completed)
   assert_true(producer_read_matches_reference(first, reference))
   assert_true(producer_read_matches_reference(second, reference))
   live.val = false
   assert_false(completed_available(completed))
   assert_false(completed_reference_available(reference))
+  assert_true(
+    @lifecycle.producer_view_node_identity(view, 0)
+    is Err(@lifecycle.Unavailable),
+  )
   assert_true(producer_read_storage(first) is None)
   assert_true(producer_read_storage(second) is None)
 }

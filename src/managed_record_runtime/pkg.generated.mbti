@@ -79,6 +79,8 @@ pub fn producer_read_same(ProducerRead, ProducerRead) -> Bool
 
 pub fn producer_read_storage(ProducerRead) -> @managed_record_storage.Storage?
 
+pub fn producer_read_view(ProducerRead) -> Result[@managed_carrier_runtime.ProducerView, Issue]
+
 // Errors
 
 // Types and methods

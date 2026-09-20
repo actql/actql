@@ -347,6 +347,40 @@ pub fn producer_read_carrier_reference(
 }
 
 ///|
+/// Expose the exact Graph read as a common structural view. The view keeps the
+/// producer occurrence and availability checks without exporting Storage.
+pub fn producer_read_view(
+  value : ProducerRead,
+) -> Result[@lifecycle.ProducerView, Issue] {
+  guard producer_read_storage(value) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    return Err(Producer(@lifecycle.ProducerUnavailable))
+  }
+  @lifecycle.prepare_graph_producer_view(
+    producer_read_carrier_reference(value),
+    @storage.node_count(storage),
+    @storage.edge_count(storage),
+    @carrier.field_count(@carrier.graph_node_properties(graph)),
+    @carrier.field_count(@carrier.graph_edge_properties(graph)),
+    node => @storage.node_identity(storage, node),
+    (node, property) => @storage.node_property(storage, node, property),
+    edge => @storage.edge_endpoints(storage, edge),
+    edge => @storage.edge_label(storage, edge),
+    (edge, property) => @storage.edge_property(storage, edge, property),
+  ).map_err(issue => {
+    Lifecycle(
+      match issue {
+        @lifecycle.WrongCarrier => @lifecycle.WrongCarrier
+        @lifecycle.InvalidExtent => @lifecycle.InvalidMeasure
+        @lifecycle.Unavailable => @lifecycle.Unavailable
+        @lifecycle.InvalidRecord | @lifecycle.InvalidField =>
+          @lifecycle.Unverified
+      },
+    )
+  })
+}
+
+///|
 /// Match a Graph read to the exact checked occurrence edge it supplies.
 pub fn producer_read_matches_operation_input(
   value : ProducerRead,
