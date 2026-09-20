@@ -14,7 +14,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
-  "actql/actql/connectors/duckdb/example_host" @dbhost,
+  "actql/actql/connectors/duckdb/standard_host" @dbhost,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_schema" @schema,

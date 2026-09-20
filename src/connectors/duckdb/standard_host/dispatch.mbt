@@ -1,5 +1,7 @@
 ///|
-/// DuckDB/Local example configuration, not the standard Host entry.
+/// Standard bounded DuckDB/Local Host configuration. Application entrypoints
+/// supply checked Programs, registrations, generated plans, and physical
+/// adapters without replacing this selection or dispatch authority.
 /// Bounded application configuration; no source connection, SQL callback or
 /// completion injection. Generated sequences retain their exact checked owners.
 pub(all) struct TaskDispatchLimits {
@@ -294,7 +296,7 @@ fn unwrap_issue(issue : @strategy.RunIssue) -> DispatchIssue {
 }
 
 ///|
-/// Expose the standard installation, not this example's configuration wrapper.
+/// Expose the standard installed implementation set.
 pub fn dispatch_installation(
   value : StrategyHostDispatch,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {

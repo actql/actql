@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "actql/actql/connectors/duckdb/example_host"
+package "actql/actql/connectors/duckdb/standard_host"
 
 import {
   "actql/actql/connector_sdk",

@@ -517,9 +517,10 @@ It stops on the first failure and preserves that failure, including any live
 cleanup handle, alongside internal completed task records. Its result is labeled
 Host-task completion/failure, never Program success or partial publication.
 Closing the result closes its task ports but not the caller-owned capture.
-The Local/DuckDB application profile is a dedicated example under
-`connectors/duckdb/example_host`, not a standard Host configuration or compatibility
-entry. It constructs the same standard installation and owns only example policy.
+The Local/DuckDB application profile lives under
+`connectors/duckdb/standard_host`; it is not a source-language compatibility
+entry. It constructs the generated standard installation and owns only the
+bounded application policy supplied at configuration time.
 The former top-level `duckdb_host` and `duckdb_host_node` packages are absent.
 The driver consumes the current selected revision. An explicitly installed
 estimate policy refreshes unstarted choices before the next dispatch preparation;

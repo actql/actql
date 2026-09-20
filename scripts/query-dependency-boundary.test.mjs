@@ -55,9 +55,9 @@ test('basic reference author uses checked context and common completion operatio
   assert.doesNotMatch(api, /NumericAttempt|TaskExecution/);
 });
 
-test('connector-owned example preparation projects the same fixed Compute contributions', () => {
-  const setup = readFileSync('src/connectors/duckdb/example_host/dispatch.mbt', 'utf8');
-  const estimates = readFileSync('src/connectors/duckdb/example_host/estimates.mbt', 'utf8');
+test('connector-owned standard profile projects fixed Compute contributions', () => {
+  const setup = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
+  const estimates = readFileSync('src/connectors/duckdb/standard_host/estimates.mbt', 'utf8');
   assert.match(setup, /ComputeHost\[Unit, @strategy\.RunIssue\]/);
   assert.match(setup, /@builtin\.configure_compute_modules\(/);
   assert.doesNotMatch(setup, /prepare_local_dispatch_module\(|prepare_duckdb_dispatch_module\(/);
@@ -96,23 +96,23 @@ test('linear cost schedules are neutral and implementations own their work inven
   const api = readFileSync('src/physical_cost/pkg.generated.mbti', 'utf8');
   assert.match(api, /^type RateSchedule$/m);
   assert.doesNotMatch(api, /DuckDB|LocalDispatch|connectors\//);
-  const composition = readFileSync('src/connectors/duckdb/example_host/estimates.mbt', 'utf8');
+  const composition = readFileSync('src/connectors/duckdb/standard_host/estimates.mbt', 'utf8');
   assert.match(composition, /@builtin\.local_estimate_work_slots\(\)/);
   assert.match(composition, /@builtin\.duckdb_estimate_work_slots\(\)/);
   assert.doesNotMatch(composition, /@local_driver\.|@duckdb_driver\./);
-  const resident = readFileSync('src/connectors/duckdb/example_host/resident_dispatch.mbt', 'utf8');
+  const resident = readFileSync('src/connectors/duckdb/standard_host/resident_dispatch.mbt', 'utf8');
   assert.match(resident, /@builtin\.prepare_duckdb_resource_policy\(/);
   assert.doesNotMatch(resident, /@duckdb_driver\./);
   assert.doesNotMatch(composition, /\(5, profile\.local_rates\)|\(8, profile\.native_rates\)/);
   assert.doesNotMatch(composition, /fn dispatch_rate_value\b/);
-  const proposals = readFileSync('src/connectors/duckdb/example_host/estimate_implementations.mbt', 'utf8');
+  const proposals = readFileSync('src/connectors/duckdb/standard_host/estimate_implementations.mbt', 'utf8');
   assert.doesNotMatch(proposals, /@cost\.evaluate_rate_schedule\(|policy\.profiles|host\.resident/);
   for (const owner of ['local', 'duckdb']) {
     const implementation = readFileSync(`src/connectors/${owner}/driver/estimates.mbt`, 'utf8');
     assert.match(implementation, /@cost\.evaluate_rate_schedule\(/);
     assert.doesNotMatch(implementation, /@dbhost|StrategyHostDispatch|DispatchEstimates/);
   }
-  const state = readFileSync('src/connectors/duckdb/example_host/dispatch.mbt', 'utf8');
+  const state = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(state, /mut resident\s*:\s*ResidentDispatch/);
   assert.doesNotMatch(composition, /profiles\s*:\s*Array\[InstalledDispatchEstimateProfile\]/);
   const adaptive = readFileSync('src/physical_host/adaptive_dispatch.mbt', 'utf8');
@@ -264,7 +264,7 @@ test('DuckDB acquisition Host does not depend on Compute composition or Local', 
   assert.match(api, /type NativeHostRun/);
   assert.match(api, /type BroadHostRun/);
   assert.doesNotMatch(api, /StrategyHostDispatch|ComputeHost|LocalDispatch/);
-  const composition = readFileSync('src/connectors/duckdb/example_host/pkg.generated.mbti', 'utf8');
+  const composition = readFileSync('src/connectors/duckdb/standard_host/pkg.generated.mbti', 'utf8');
   assert.doesNotMatch(composition, /NativeHostRun|BroadHostRun|configure_native_host|configure_broad_host/);
 });
 
@@ -481,7 +481,7 @@ test('prepared dispatch ownership has one common state machine and no connector 
     assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`));
   }
   assert.doesNotMatch(api, /DuckDB|Native|SQL|connectors\//);
-  const bridge = readFileSync('src/connectors/duckdb/example_host/dispatch.mbt', 'utf8');
+  const bridge = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(bridge, /mut (?:pending|consumed)\s*:/);
   assert.doesNotMatch(bridge, /@host_driver\.take_installed_task\(/);
   for (const implementation of ['local', 'duckdb']) {
@@ -510,7 +510,7 @@ test('prepared dispatch ownership has one common state machine and no connector 
   const synchronous = bridge.match(/pub fn execute_synchronous_dispatch\([\s\S]*?\n\}/)?.[0];
   assert.ok(synchronous);
   assert.doesNotMatch(synchronous, /@local_connector|local_execution|\.guards/);
-  const bridgeApi = readFileSync('src/connectors/duckdb/example_host/pkg.generated.mbti', 'utf8');
+  const bridgeApi = readFileSync('src/connectors/duckdb/standard_host/pkg.generated.mbti', 'utf8');
   assert.doesNotMatch(bridgeApi, /pub fn execute_local_dispatch\b/);
 });
 
@@ -518,7 +518,7 @@ test('Local installed preparation owns candidate construction and bounded sequen
   const api = readFileSync('src/connectors/local/pkg.generated.mbti', 'utf8');
   assert.match(api, /^type LocalComputeModule$/m);
   assert.doesNotMatch(api, /(?:struct|enum) LocalComputeModule\b/);
-  const source = readFileSync('src/connectors/duckdb/example_host/dispatch.mbt', 'utf8');
+  const source = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.match(source, /@builtin\.configure_compute_modules\(/);
   assert.match(readFileSync('src/connectors/local/driver/contribution.mbt', 'utf8'), /prepare_local_dispatch\(installed, task, revision, request\)/);
   assert.doesNotMatch(source, /local_fixed_compute_candidate\(|choose_fixed_compute_candidate\(|prepare_local_compute_execution\(/);
@@ -527,7 +527,7 @@ test('Local installed preparation owns candidate construction and bounded sequen
   assert.match(driver, /@local\.prepare_local_module_compute\(/);
   assert.match(driver, /@host\.take_installed_task\(/);
   assert.match(driver, /@strategy\.execute_captured_synchronous_task\(/);
-  const host = readFileSync('src/connectors/duckdb/example_host/dispatch.mbt', 'utf8');
+  const host = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(host, /local_channel|execute_captured_synchronous_task\(/);
   assert.match(host, /@builtin\.execute_configured_in_process\(/);
   assert.match(host, /@builtin\.dispatch_duckdb\(/);
@@ -548,7 +548,7 @@ test('concrete Compute capacity formula is owned and exported by its connector',
 });
 
 test('Host join dispatch cannot build SQL or exchange a compiled preparation request', () => {
-  const dispatch = readFileSync('src/connectors/duckdb/example_host/dispatch.mbt', 'utf8');
+  const dispatch = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(dispatch, /@duckdb\.(?:compile_fixed_inner_join|prepare_fixed_join_inputs|prepare_fixed_join_compute)\b/);
   assert.doesNotMatch(dispatch, /"owned_input"|compile_duckdb_join_candidate\(|bind_duckdb_join_candidate\(|choose_fixed_compute_candidate\(/);
   assert.doesNotMatch(dispatch, /native_channel|native_rejections|resident_rejections|duckdb_compute_static_rejection\(/);
@@ -573,7 +573,7 @@ test('Host join dispatch cannot build SQL or exchange a compiled preparation req
 });
 
 test('DuckDB execution configuration and resource start belong to its connector driver', () => {
-  const common = readFileSync('src/connectors/duckdb/example_host/pkg.generated.mbti', 'utf8');
+  const common = readFileSync('src/connectors/duckdb/standard_host/pkg.generated.mbti', 'utf8');
   assert.doesNotMatch(common, /^type (?:Strategy)?ComputeHostConfiguration$/m);
   assert.doesNotMatch(common, /pub fn (?:configure_compute_host|start_configured_compute_host|start_configured_strategy_compute_host|borrow_configured_resident_inputs)\(/);
   const api = readFileSync('src/connectors/duckdb/driver/pkg.generated.mbti', 'utf8');

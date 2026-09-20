@@ -275,10 +275,11 @@ mixed installations through that standard entry in a copied tree without
 `node_modules`. It uses the actual compiled Core and a mock captured-input fixture,
 not a substitute execution driver. Real DuckDB conformance runs separately.
 
-The Local/DuckDB rate and resource profile in `connectors/duckdb/example_host`
-belongs to the dedicated DuckDB example. It returns the standard installation;
-it is not a mandatory two-provider Host API. The old top-level packages and
-DuckDB-owned standard Node entry have been removed, without compatibility exports.
+The Local/DuckDB rate and resource profile in `connectors/duckdb/standard_host`
+belongs to the dedicated DuckDB application profile. It returns the generated
+standard installation; it is not a mandatory two-provider Host API. The old
+top-level packages and DuckDB-owned standard Node entry have been removed,
+without compatibility exports.
 
 Acquisition still uses the shared `CapabilityRegistry` and checked request/evidence
 SDK, with mock/DuckDB preparation, issuer, retention and capture in their owning

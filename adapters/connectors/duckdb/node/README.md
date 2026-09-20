@@ -562,7 +562,7 @@ This is an in-process handle, not durable recovery or a hard native-kill timeout
 
 ### Run-owned resident execution
 
-Before the first search, `connectors/duckdb/example_host.configure_resident_dispatch` can attach a
+Before the first search, `connectors/duckdb/standard_host.configure_resident_dispatch` can attach a
 run-owned `physical_strategy.ResidentProfile` and resident task rates to the
 standard dispatch setup. The profile specifies DB capacity, preparation/cleanup
 estimates and per-producer import transfer, scratch and table allowances. Task
