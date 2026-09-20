@@ -167,7 +167,7 @@ try {
     '--authority-root', inputRoot,
     '--trust-config-name', 'trust.json',
     '--capacity-bytes', '1024',
-    '--max-bundles', '4',
+    '--max-bundles', '16',
     '--max-owners', '4',
     '--max-record-bytes', '1048576',
   ];
@@ -239,6 +239,17 @@ try {
   const recovered = await run('recover');
   assert.equal(recovered.length, 2);
   assert.ok(recovered.every(value => value.state[1] === '3'));
+  for (let number = 3; number <= 13; number += 1) {
+    const bundle = await prepare(
+      number,
+      Buffer.from(`native-runtime-${number}`),
+      'key-b',
+      keysB.privateKey,
+    );
+    await install(number, bundle);
+  }
+  assert.equal((await run('list')).length, 13);
+  assert.equal((await run('recover')).length, 13);
   console.log('Native runtime bundle CLI lifecycle passed');
 } finally {
   await rm(root, {recursive: true, force: true});

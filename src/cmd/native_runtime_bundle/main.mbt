@@ -316,9 +316,50 @@ fn optional_snapshot_json(
 fn snapshots_json(
   values : Array[@runtime_bundle.NativeRuntimeBundleSnapshot],
 ) -> Result[String, String] {
-  let output_limit = 2 + values.length() * 131073
+  let output_limit = match snapshots_output_limit(values.length()) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let node_limit = match snapshots_node_limit(values) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  write_snapshots_with_limits(values, output_limit, node_limit)
+}
+
+///|
+fn snapshots_output_limit(count : Int) -> Result[Int, String] {
+  if count < 0 || count > (2147483647 - 2) / 131073 {
+    return Err("result size overflow")
+  }
+  Ok(2 + count * 131073)
+}
+
+///|
+// A snapshot has ten fixed JSON nodes plus one node for each state value.
+// The enclosing array contributes one more node.
+fn snapshots_node_limit(
+  values : Array[@runtime_bundle.NativeRuntimeBundleSnapshot],
+) -> Result[Int, String] {
+  let mut nodes = 1
+  for value in values {
+    let states = value.state.length()
+    if states > 2147483637 || nodes > 2147483647 - 10 - states {
+      return Err("result node count overflow")
+    }
+    nodes = nodes + 10 + states
+  }
+  Ok(nodes)
+}
+
+///|
+fn write_snapshots_with_limits(
+  values : Array[@runtime_bundle.NativeRuntimeBundleSnapshot],
+  output_limit : Int,
+  node_limit : Int,
+) -> Result[String, String] {
   try {
-    let writer = @encode.writer(output_limit, 64 + values.length() * 8, 10)
+    let writer = @encode.writer(output_limit, node_limit, 10)
     @encode.begin_array(writer)
     for value in values {
       write_snapshot(writer, value)
