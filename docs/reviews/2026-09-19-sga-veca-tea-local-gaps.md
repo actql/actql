@@ -222,7 +222,7 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 
-Four operations still lack portable Local execution. Checked typed lowering
+One operation still lacks portable Local execution. Checked typed lowering
 emits `TEA.watermark.label`, `TEA.dedupe`, and
 `TEA.window.session_assign`, while time series has both checked lowering and
 portable execution. Dedupe retains repeated partition positions,
@@ -230,8 +230,19 @@ stable order terms, null placement, and the mandatory tie failure. Session
 retains its exact roles, grouping positions, clock encoding, and resolved
 literal or bound gap. Interval join now has typed canonical lowering for all
 four join kinds, both temporal modes and time domains, repeated equality keys,
-projections, and resolved output guards. As-of join and sequence remain
-unimplemented in shared lowering. Event windows now preserve the Events
+projections, and resolved output guards. Interval and as-of joins execute
+through bounded kernels and the standard Host, reach two downstream
+consumers, and reclaim their retained output on all three targets. Their
+publication and environment cancellation delivery remain open. Sequence
+matching now has typed
+lowering and a portable bounded Relation kernel. It validates semantic event
+identity, orders by grouping keys and `(time,id)`, evaluates each demanded
+row-pattern predicate once, and supports both overlap and contiguity policies.
+Author match guards fail atomically, and output storage is admitted before
+publication. The focused lowering and runtime suites pass on JS, Wasm, and
+native. Standard Host selection, the Events input path, two downstream
+consumers, publication, and environment cancellation delivery remain open, so
+sequence matching is partial. Event windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
 sliding-assignment operation. Their bounded kernel validates the complete
 membership bound before output allocation, retains input occurrence order,
@@ -274,8 +285,7 @@ registered provider runs it through the standard Host, keeps two real
 downstream consumers live together, releases them independently, and reclaims
 the final ledger. The same affected suites pass on JS, Wasm, and native.
 Environment cancellation delivery and Named Result publication remain open,
-so time series is not complete. Session, interval join, as-of join, and
-sequence still lack portable Local kernels.
+so time series is not complete. Session still lacks a portable Local kernel.
 
 ### Bridges
 

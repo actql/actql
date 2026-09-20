@@ -447,8 +447,21 @@
       "output": "relation",
       "canonical": ["TEA.sequence.match"],
       "variants": ["relation/events", "allow/disallow overlap", "adjacent/subsequence", "global/grouped", "literal/parameter guards"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/sequence_match_test.mbt",
+        "src/execution_relation/sequence_match_rows_wbtest.mbt"
+      ]
     },
     {
       "family": "VecA",
