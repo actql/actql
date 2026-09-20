@@ -6,6 +6,56 @@ struct PreparedGraphMatch {
 }
 
 ///|
+/// Whether this prepared occurrence matches nodes rather than edges.
+pub fn graph_match_nodes(value : PreparedGraphMatch) -> Bool {
+  @graph.match_entity(value.checked) == @graph.Nodes
+}
+
+///|
+/// The checked Relation schema produced by this match occurrence.
+pub fn graph_match_output_schema(
+  value : PreparedGraphMatch,
+) -> @schema.Schema {
+  value.node.output_schema.unwrap()
+}
+
+///|
+/// Number of authored output fields, in authored projection order.
+pub fn graph_match_field_count(value : PreparedGraphMatch) -> Int {
+  @graph.match_field_count(value.checked)
+}
+
+///|
+/// One authored output field, in authored projection order.
+pub fn graph_match_field_at(
+  value : PreparedGraphMatch,
+  index : Int,
+) -> @schema.FieldName? {
+  @graph.match_field_at(value.checked, index)
+}
+
+///|
+/// Number of checked identities in the node identity-list branch.
+pub fn graph_match_id_count(value : PreparedGraphMatch) -> Int {
+  @graph.match_id_count(value.checked)
+}
+
+///|
+/// One checked node identity from the authored identity list.
+pub fn graph_match_id_at(
+  value : PreparedGraphMatch,
+  index : Int,
+) -> @value.CheckedValue? {
+  @graph.match_id_at(value.checked, index)
+}
+
+///|
+/// Whether this occurrence contains a checked predicate expression.
+pub fn graph_match_has_predicate(value : PreparedGraphMatch) -> Bool {
+  value.predicate is Some(_)
+}
+
+///|
 pub(all) enum GraphMatchIssue {
   InvalidGraphMatchLimits
   InvalidGraphMatchWiring

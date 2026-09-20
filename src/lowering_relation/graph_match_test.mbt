@@ -72,6 +72,44 @@ test "Graph node match retains repeated typed IDs and projection order" {
 }
 
 ///|
+test "Graph match exposes one checked typed kernel view" {
+  let sequence = @lowering_relation.prepare_sequence(
+    graph_match_owner(
+      "[{\"from\":\"g\",\"match_nodes\":{\"ids\":[2,10,2],\"fields\":[\"node_id\",\"active\"]}}]",
+    ),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.GraphMatchStep(view)) else {
+    fail("expected prepared graph match")
+  }
+  assert_true(@lowering_relation.graph_match_nodes(view))
+  assert_false(@lowering_relation.graph_match_has_predicate(view))
+  assert_eq(@lowering_relation.graph_match_field_count(view), 2)
+  assert_eq(
+    @lowering_relation.graph_match_field_at(view, 0),
+    Some(@schema.Unqualified("node_id")),
+  )
+  assert_eq(
+    @lowering_relation.graph_match_field_at(view, 1),
+    Some(@schema.Unqualified("active")),
+  )
+  assert_eq(@lowering_relation.graph_match_id_count(view), 3)
+  assert_true(
+    @lowering_relation.graph_match_id_at(view, 0).unwrap().value
+    is @value.Number(2.0),
+  )
+  assert_true(
+    @lowering_relation.graph_match_id_at(view, 2).unwrap().value
+    is @value.Number(2.0),
+  )
+  let schema = @lowering_relation.graph_match_output_schema(view)
+  assert_eq(@schema.field_count(schema), 2)
+  assert_true(@schema.lookup(schema, @schema.Unqualified("node_id")) is Some(_))
+  assert_true(@schema.lookup(schema, @schema.Unqualified("active")) is Some(_))
+}
+
+///|
 test "Graph edge match lowers checked predicate references" {
   assert_eq(
     graph_match_wire(

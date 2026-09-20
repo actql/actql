@@ -289,6 +289,20 @@ pub fn graph_construction_node_property_count(PreparedGraphConstruction) -> Int
 
 pub fn graph_construction_output_carrier(PreparedGraphConstruction) -> @carrier_contract.Carrier
 
+pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
+
+pub fn graph_match_field_count(PreparedGraphMatch) -> Int
+
+pub fn graph_match_has_predicate(PreparedGraphMatch) -> Bool
+
+pub fn graph_match_id_at(PreparedGraphMatch, Int) -> @value_admission.CheckedValue?
+
+pub fn graph_match_id_count(PreparedGraphMatch) -> Int
+
+pub fn graph_match_nodes(PreparedGraphMatch) -> Bool
+
+pub fn graph_match_output_schema(PreparedGraphMatch) -> @relation_schema.Schema
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?
