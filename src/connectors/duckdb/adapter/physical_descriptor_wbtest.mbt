@@ -41,3 +41,40 @@ test "physical metadata is checked before empty or NULL data can hide mismatch" 
     assert_true(decode_physical_type(payload(descriptor)) is Err(_))
   }
 }
+
+///|
+test "physical field metadata has one bounded Connector decoder" {
+  let limits : TransportColumnLimits = {
+    max_bytes: 512,
+    max_nodes: 32,
+    max_columns: 4,
+    max_rows: 4,
+    max_text_bytes: 128,
+  }
+  assert_eq(
+    decode_physical_fields(
+      "[[\"id\",\"INTEGER\",null,null]," +
+      "[\"amount\",\"DECIMAL\",\"38\",\"18\"]]",
+      limits,
+    ).unwrap(),
+    [
+      ("id", Integer(bits=32, signed=true)),
+      ("amount", Decimal(precision=38, scale=18)),
+    ],
+  )
+  assert_true(
+    decode_physical_fields("[[\"id\",\"INTEGER\",null]]", limits)
+    is Err(InvalidFields),
+  )
+  assert_true(
+    decode_physical_fields("[[\"id\",\"LIST\",null,null]]", limits)
+    is Err(Descriptor(UnsupportedType)),
+  )
+  assert_true(
+    decode_physical_fields(
+      "[[\"a\",\"INTEGER\",null,null]," + "[\"b\",\"INTEGER\",null,null]]",
+      { ..limits, max_columns: 1, },
+    )
+    is Err(Transport(ColumnLimit)),
+  )
+}

@@ -79,6 +79,8 @@ pub fn compile_fixed_query(@lowering_relation.BoundPrepared, String, String, Nat
 
 pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeQuery, NativeQueryIssue]
 
+pub fn decode_physical_fields(String, TransportColumnLimits) -> Result[Array[(String, PhysicalType)], PhysicalFieldsIssue]
+
 pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIssue]
 
 pub fn decode_transport_columns(String, TransportColumnLimits) -> Result[Array[@decode_core.Cursor], TransportColumnIssue]
@@ -668,6 +670,12 @@ pub(all) enum NativeValueIssue {
 }
 
 type PhysicalBatch
+
+pub(all) enum PhysicalFieldsIssue {
+  Transport(TransportColumnIssue)
+  InvalidFields
+  Descriptor(ValueIssue)
+} derive(Eq, @debug.Debug)
 
 type PhysicalParameter
 

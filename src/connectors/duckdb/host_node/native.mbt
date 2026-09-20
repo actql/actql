@@ -113,70 +113,12 @@ fn transport_fields(
   limits : @duckdb.TransportColumnLimits,
   text : String,
 ) -> Array[(String, @duckdb.PhysicalType)] raise NodeHostFailure {
-  let records = match
-    @duckdb.decode_transport_columns(text, { ..limits, max_rows: 4, }) {
+  match @duckdb.decode_physical_fields(text, limits) {
     Ok(value) => value
-    Err(issue) => raise Transport(issue)
+    Err(Transport(issue)) => raise Transport(issue)
+    Err(InvalidFields) => raise InvalidFields
+    Err(Descriptor(issue)) => raise Descriptor(issue)
   }
-  let output = []
-  for record in records {
-    if @decode.array_length(record) != Some(4) {
-      raise InvalidFields
-    }
-    let name = match @decode.text(@decode.element_at(record, 0).unwrap()) {
-      Ok(value) => value
-      Err(_) => raise InvalidFields
-    }
-    let id = match @decode.text(@decode.element_at(record, 1).unwrap()) {
-      Ok(value) => value
-      Err(_) => raise InvalidFields
-    }
-    let span = @decode.cursor_span(record)
-    let members : Array[@source.Field] = [
-      { key: "id", key_span: span, value: { value: String(id), span, }, },
-    ]
-    for (index, key) in [(2, "precision"), (3, "scale")] {
-      let cell = @decode.element_at(record, index).unwrap()
-      if @decode.is_null(cell) {
-        continue
-      }
-      let digits = match @decode.text(cell) {
-        Ok(value) => value
-        Err(_) => raise InvalidFields
-      }
-      if digits.length() == 0 || digits.length() > 2 {
-        raise InvalidFields
-      }
-      let mut number = 0
-      for c in digits.iter() {
-        if c < '0' || c > '9' {
-          raise InvalidFields
-        }
-        number = number * 10 + c.to_int() - 48
-      }
-      members.push({
-        key,
-        key_span: span,
-        value: { value: Number(number.to_double()), span, },
-      })
-    }
-    let descriptor = match
-      @decode.admit({ value: Object(members), span, }, {
-        max_nodes: 8,
-        max_depth: 2,
-        max_string_bytes: limits.max_text_bytes,
-        max_total_string_bytes: limits.max_text_bytes,
-      }) {
-      Ok(value) => value
-      Err(_) => raise InvalidFields
-    }
-    let physical = match @duckdb.decode_physical_type(descriptor) {
-      Ok(value) => value
-      Err(issue) => raise Descriptor(issue)
-    }
-    output.push((name, physical))
-  }
-  output
 }
 
 ///|

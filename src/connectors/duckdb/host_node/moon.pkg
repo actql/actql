@@ -13,7 +13,6 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,
-  "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_manifest" @manifest,
