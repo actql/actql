@@ -12,17 +12,17 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 18/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 26/39 reach the standard Host, and 19/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 14/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 15/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, and normalized, scored, or pooled Vectors projections; 17/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, and normalized, grafted, scored, or pooled Vectors projections; 18/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 18/39, cancellation 14/39, and publication 17/39. These are
-layer counts, not operation completion: 13 entries are `complete` and 26 remain
+kernel/managed/resources/three-target evidence 27/39, standard Host 26/39,
+consumer lifetime 19/39, cancellation 15/39, and publication 18/39. These are
+layer counts, not operation completion: 14 entries are `complete` and 25 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -267,9 +267,15 @@ limits, kernel cancellation observation, and managed Graph generations on JS,
 Wasm, and native. The registered provider now accepts two common read-only
 Graph Carrier views, preserves their exact operation-edge bindings, and runs
 the bounded graft output through the formal Graph-to-Relation Bridge. The
-provider and bridge fixture passes on all three portable targets. Standard
-Host scheduling, overlapping downstream lifetimes, publication, and
-environment cancellation remain open before `graft_graph` is complete. Node
+provider now also executes two ordered Graph construction steps before graft,
+keeps both exact source generations until the graft output takes custody, and
+then reclaims them independently. The portable standard Host carries the
+grafted Graph through the formal Relation Bridge, overlapping consumers, and
+Named Result publication and retrieval on JS, Wasm, and native. The Node Host
+delivers timer cancellation during graft, confirms stop, completes cleanup,
+and returns the ledger to zero. At `867489fb`, the affected portable suites
+pass 412 tests per target, the real Node Host passes, all 24 Workers tests pass,
+and the generated Workers fixture is current. This closes `graft_graph`. Node
 identity-list matching now resolves every checked
 identity through the admitted immutable Graph index before output, sorts by
 semantic identity with bounded merge passes, collapses repeated authored

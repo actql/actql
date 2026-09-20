@@ -536,7 +536,7 @@
       "output": "graph",
       "canonical": ["SGA.graft"],
       "variants": ["conflict laws", "equal semantic ids", "shared storage"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -544,12 +544,37 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
+        "consumer_lifetime",
         "resources",
+        "cancellation",
+        "publication",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft_wbtest.mbt"
+        "src/local_sga/graft_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "standard_host_consumers_publication_and_cancellation",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "867489fb",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -1527,6 +1552,24 @@
       "suites": [
         {
           "name": "portable shared Graph generation",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graft_graph",
+      "sha": "867489fb",
+      "suites": [
+        {
+          "name": "portable Graph graft and retained consumers",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
