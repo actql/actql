@@ -19,9 +19,9 @@ const root = fileURLToPath(new URL('../../..', import.meta.url));
 let fixturePromise;
 function managedFixture() {
   return fixturePromise ??= (async () => {
-    await promisify(execFile)('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], {cwd: root});
+    await promisify(execFile)('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], {cwd: root});
     await promisify(execFile)('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], {cwd: root});
-    const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+    const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
     const runtime = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
     return {fixture, runtime};
   })();

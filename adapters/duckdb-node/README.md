@@ -110,7 +110,8 @@ measurements, empty receipts and cleanup, not full MoonBit admission or evidence
 issuance. Integrating those callbacks and the two-receipt capture verifier remains
 required for end-to-end acquisition conformance.
 
-The additional MoonBit receiving conformance test builds `duckdb_conformance`, a
+The additional MoonBit receiving conformance test builds
+`connectors/duckdb/conformance`, a
 JS-only fixed test fixture using public checked entrances. It calls the portable
 `NativeReceiving` and physical value-admission implementation in the same process
 as Neo. It rejects discarded invalid scan values, nullability violations,
@@ -347,11 +348,13 @@ This is a low-level trusted assembly API, not the standard product Host
 entry. `runBroadHostQuery` installs the verifier through its own trusted bridge
 and takes no verifier/factory override from Program data or ordinary
 Connector registration. Product examples and CLI code must not import the fixed
-`duckdb_conformance` exports or test catalogs. The conformance package exercises
+`connectors/duckdb/conformance` exports or test catalogs. The conformance
+package exercises
 the implementation; it is not the application's runtime configuration.
 
 `test/issued-broad-query.test.mjs` connects real DuckDB to the actual MoonBit
-issuer in one process through the fixed `duckdb_conformance` fixture. It starts
+issuer in one process through the fixed `connectors/duckdb/conformance`
+fixture. It starts
 at public `program_check.check_parsed_with_evidence`, supplies definition evidence
 by authored Stage rather than internal producer visits, selects the registered broad candidate, and
 checks records and the complete observation against independently composed

@@ -34,10 +34,11 @@ const cases = [
 
 test('case-distinct names preserve group order and exclude lossy resident storage', async () => {
   const exec = promisify(execFile);
-  for (const name of ['connectors/duckdb/host_node', 'connectors_builtin_node', 'duckdb_conformance']) {
+  for (const name of ['connectors/duckdb/host_node', 'connectors_builtin_node',
+    'connectors/duckdb/conformance']) {
     await exec('moon', ['build', '--target', 'js', '--release', `src/${name}`], { cwd: root });
   }
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const source = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const match = source.split('fn query_amount_nullable_catalog')[1].match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);
   const seed = JSON.parse(JSON.parse(match[1]));

@@ -86,8 +86,8 @@ function broadPortFor(moon, nodes = 9) {
 }
 
 test('real Node callbacks use MoonBit admission before native filtering, including discarded invalid values', async () => {
-  await promisify(execFile)('moon', ['build', '--target', 'js', 'src/duckdb_conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/duckdb_conformance/duckdb_conformance.js')));
+  await promisify(execFile)('moon', ['build', '--target', 'js', 'src/connectors/duckdb/conformance'], { cwd: root });
+  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')));
   // Reuse the engine's adopted fixed contract fixture, not an unadmitted newer
   // registry or expected values derived from execution output.
   const residualContracts = await pinnedEngineContracts(root);

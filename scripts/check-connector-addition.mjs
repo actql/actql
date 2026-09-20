@@ -33,13 +33,13 @@ if (artifactDirectory) process.on('exit', code => {
 const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
   path.startsWith('src/connectors_builtin/') || path.startsWith('src/connectors_builtin_node/') ||
   path.startsWith('src/query_integration/') || path.startsWith('src/connector_conformance/') ||
-  path.startsWith('src/duckdb_conformance/') || path.startsWith('adapters/reference-compute-node/') ||
+  path.startsWith('src/connectors/duckdb/conformance/') || path.startsWith('adapters/reference-compute-node/') ||
   path.startsWith('adapters/connectors-builtin/');
 // The independent async Workers probe intentionally uses the third connector.
 // It is a separate conformance composition, not part of the two-connector
 // product baseline. Keep the Local-only Workers assembly in that baseline.
 const omitted = new Set(['connectors_builtin', 'connectors_builtin_node',
-  'query_integration', 'connector_conformance', 'duckdb_conformance',
+  'query_integration', 'connector_conformance',
   'workers_conformance', 'node_host_conformance', 'connectors_workers_async', 'connectors_workers_async_bridge']);
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
 cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {recursive:true});
@@ -55,7 +55,12 @@ for (const name of readdirSync(join(root, 'src'))) {
     mkdirSync(join(isolated, 'src/connectors'));
     for (const connector of readdirSync(join(root, 'src/connectors'))) {
       if (connector === 'reference_compute') continue;
-      cpSync(join(root, 'src/connectors', connector), join(isolated, 'src/connectors', connector), {recursive: true});
+      cpSync(join(root, 'src/connectors', connector),
+        join(isolated, 'src/connectors', connector), {
+          recursive: true,
+          filter: path => connector !== 'duckdb' ||
+            !path.includes('/duckdb/conformance'),
+        });
     }
   } else {
     cpSync(join(root, 'src', name), join(isolated, 'src', name), {recursive: true});
@@ -99,7 +104,7 @@ writeFileSync(join(isolated,'common-before.json'),JSON.stringify(
   Object.fromEntries([...before].filter(([path]) => !allowed(path))),null,2)+'\n');
 run('baseline-check', ['check', '--target', 'all', '--deny-warn']);
 
-for (const path of ['src/connectors/reference_compute', 'src/query_integration', 'src/connector_conformance', 'src/duckdb_conformance', 'adapters/reference-compute-node']) {
+for (const path of ['src/connectors/reference_compute', 'src/query_integration', 'src/connector_conformance', 'src/connectors/duckdb/conformance', 'adapters/reference-compute-node']) {
   cpSync(join(root, path), join(isolated, path), {recursive: true});
 }
 if (checkComputeAssembly(isolated, true) !== 3) throw new Error('Third declaration was not assembled');

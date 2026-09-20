@@ -33,8 +33,8 @@ const cases = [
 test('standard native and broad Hosts admit exact scalar families and reject discarded invalid values', async () => {
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
-  await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], { cwd: root });
+  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const source = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const match = source.split('fn query_amount_nullable_catalog')[1]
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);

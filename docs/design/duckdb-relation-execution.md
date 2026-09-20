@@ -213,7 +213,8 @@ The low-level bridge factory and verifier registration are trusted Host assembly
 operations, not Program inputs or ordinary Connector capability fields. A
 standard product entry must assemble this bridge internally with the trusted
 MoonBit implementation; it must not expose a per-call verifier override. Fixed
-`duckdb_conformance` exports and their catalogs are test inputs, not dependencies
+`connectors/duckdb/conformance` exports and its catalogs are test inputs, not
+dependencies
 of that product entry or its execution examples. A boolean returned by the exact
 live-provenance verifier is distinct from accepting a caller's success boolean.
 

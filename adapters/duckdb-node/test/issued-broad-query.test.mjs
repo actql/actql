@@ -102,8 +102,8 @@ function realBridge(moon, configuration, options, inspect) {
 }
 
 test('real DuckDB and public CheckedProgram complete owned broad evidence capture and consumer in one process', async () => {
-  await promisify(execFile)('moon', ['build', '--target', 'js', 'src/duckdb_conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/duckdb_conformance/duckdb_conformance.js')));
+  await promisify(execFile)('moon', ['build', '--target', 'js', 'src/connectors/duckdb/conformance'], { cwd: root });
+  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')));
   const catalogs = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);

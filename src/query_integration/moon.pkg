@@ -4,7 +4,7 @@ import {
   "actql/actql/connector_conformance" @conformance,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors/duckdb/host_native" @native_host,
-  "actql/actql/platform_native/duckdb" @native_duckdb,
+  "actql/actql/connectors/duckdb/adapters/native" @native_duckdb,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/mock/acquisition" @mock,

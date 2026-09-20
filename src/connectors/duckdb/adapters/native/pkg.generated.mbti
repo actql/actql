@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "actql/actql/platform_native/duckdb"
+package "actql/actql/connectors/duckdb/adapters/native"
 
 import {
   "moonbitlang/core/debug",

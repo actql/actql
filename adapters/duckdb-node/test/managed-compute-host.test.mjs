@@ -49,11 +49,12 @@ async function importManagedFile(connection, sql, path) {
 
 test('managed selected Compute verifies actual DuckDB transport and exact physical holding without output CID', async () => {
   const exec = promisify(execFile);
-  for (const target of ['connectors/duckdb/host_node', 'duckdb_conformance']) {
+  for (const target of ['connectors/duckdb/host_node',
+    'connectors/duckdb/conformance']) {
     await exec('moon', ['build', '--target', 'js', '--release', `src/${target}`], {cwd: root});
   }
   const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
-  const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const contracts = await pinnedEngineContracts(root);
   const profile = checked(fixture.managedFileProfile(await readFile(join(root,
     'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));

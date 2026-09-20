@@ -402,9 +402,9 @@ test('standard native and broad Node Hosts own verification through real capture
   await exec('moon', ['build', '--target', 'js', '--release', 'src/retained_host_bridge'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/process_host_bridge'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'], { cwd: root });
-  await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
-  const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const publicApi = await readFile(join(root, 'src/query_planning/pkg.generated.mbti'), 'utf8');
   assert.doesNotMatch(publicApi, /DuckDB|MockQuery|duckdb_broad_attempt/);
   const connectorApi = await readFile(join(root, 'src/connectors/duckdb/acquisition/pkg.generated.mbti'), 'utf8');
@@ -2669,7 +2669,7 @@ async function exerciseStrategyGraph(
     const applicationSource = await readFile(join(root, 'src/physical_strategy_example/moon.pkg'), 'utf8');
     assert.doesNotMatch(applicationSource, /conformance|query_integration/);
     const script = await readFile(join(root, 'adapters/duckdb-node/examples/physical-strategy.mjs'), 'utf8');
-    assert.doesNotMatch(script, /duckdb_conformance|query_integration/);
+    assert.doesNotMatch(script, /duckdb\/conformance|query_integration/);
     await writeFile(programFile, await readFile(join(root,
       'adapters/duckdb-node/examples/join-count.json'), 'utf8'));
     for (const [estimate, resident, expected, retained] of [

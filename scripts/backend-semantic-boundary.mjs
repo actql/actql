@@ -34,6 +34,9 @@ export function semanticBoundaryViolations(source, aliases, ownedProducerBinding
 export function checkBackendSemanticBoundary(root = '.') {
   const checked = [];
   function walk(directory, localEngine = false) {
+    if (directory === join(
+      root, 'src/connectors/duckdb/conformance',
+    )) return;
     const entries = readdirSync(directory, {withFileTypes: true});
     if (entries.some(entry => entry.name === 'moon.pkg')) {
       const manifest = readFileSync(join(directory, 'moon.pkg'), 'utf8');

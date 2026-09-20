@@ -17,5 +17,5 @@ pub fn strategy_fixture_module_subset(
       _ => abort("invalid fixture generation")
     }
   })
-  @conformance.configure_subset(f.run.unwrap(), generated, mode)
+  @connector_conformance.configure_subset(f.run.unwrap(), generated, mode)
 }

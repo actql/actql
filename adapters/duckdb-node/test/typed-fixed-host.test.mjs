@@ -18,8 +18,8 @@ const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value
 test('standard fixed Host retains typed projected values through completion and checked consumer', async () => {
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
-  await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], { cwd: root });
+  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const contracts = await pinnedEngineContracts(root);
   const cases = [
     [{ type: 'string', nullable: true }, '日本語'],
