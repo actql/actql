@@ -929,6 +929,10 @@ function remoteTransferControl(moon) {
       moon.strategyRemoteTransferTransitionCommit(value, durable),
     ),
     recordProjection: moon.strategyRemoteTransferRecordProjection,
+    recordIsDestinationCommitted:
+      moon.strategyRemoteTransferRecordIsDestinationCommitted,
+    directCleanupConfirmed:
+      moon.strategyRemoteTransferDirectCleanupConfirmed,
     revision: moon.strategyRemoteTransferRecordRevision,
     restore: (request, state) => {
       if (!Array.isArray(state) || state.length !== 9 ||

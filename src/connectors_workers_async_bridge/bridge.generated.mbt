@@ -5114,6 +5114,214 @@ pub fn strategy_remote_transfer_admit_json(
 }
 
 ///|
+#export_name("strategyRemoteTransferAdmissionEnvelopeJson")
+pub fn strategy_remote_transfer_admission_envelope_json(
+  request : @transfer.RemoteTransferRequest,
+) -> String raise NodeHostFailure {
+  match @transfer.transfer_admission_envelope_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferAdmissionEnvelopeAdmitJson")
+pub fn strategy_remote_transfer_admission_envelope_admit_json(
+  body : String,
+  claimed_request_cid : String,
+  claimed_manifest_cid : String,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> @transfer.RemoteTransferRequest raise NodeHostFailure {
+  match
+    @transfer.admit_transfer_admission_envelope_json(
+      body, claimed_request_cid, claimed_manifest_cid, max_chunks, max_manifest_bytes,
+      max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferReplyJson")
+pub fn strategy_remote_transfer_reply_json(
+  record : @transfer.RemoteTransferRecord,
+) -> String raise NodeHostFailure {
+  match @transfer.remote_transfer_reply_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferReplyAdmitJson")
+pub fn strategy_remote_transfer_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+) -> @transfer.RemoteTransferRecord raise NodeHostFailure {
+  match @transfer.admit_remote_transfer_reply_json(body, request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+fn remote_transfer_store_upload_reply_kind(
+  kind : Int,
+) -> @transfer.RemoteTransferStoreUploadReplyKind raise NodeHostFailure {
+  match kind {
+    0 => @transfer.StoreUploadAdmissionReply
+    1 => @transfer.StoreUploadChunkReply
+    2 => @transfer.StoreUploadCommitReply
+    _ => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUploadReplyJson")
+pub fn strategy_remote_transfer_store_upload_reply_json(
+  request : @transfer.RemoteTransferRequest,
+  kind : Int,
+  next_chunk : Int,
+  is_sealed : Bool,
+) -> String raise NodeHostFailure {
+  match
+    @transfer.remote_transfer_store_upload_reply_json(
+      request,
+      remote_transfer_store_upload_reply_kind(kind),
+      next_chunk,
+      is_sealed,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUploadReplyAdmitJson")
+pub fn strategy_remote_transfer_store_upload_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+  kind : Int,
+) -> @transfer.RemoteTransferStoreUploadReply raise NodeHostFailure {
+  match
+    @transfer.admit_remote_transfer_store_upload_reply_json(
+      body,
+      request,
+      remote_transfer_store_upload_reply_kind(kind),
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUploadReplyProjection")
+pub fn strategy_remote_transfer_store_upload_reply_projection(
+  reply : @transfer.RemoteTransferStoreUploadReply,
+) -> Array[String] {
+  @transfer.remote_transfer_store_upload_reply_projection(reply)
+}
+
+///|
+fn remote_transfer_store_use_reply_kind(
+  kind : Int,
+) -> @transfer.RemoteTransferStoreUseReplyKind raise NodeHostFailure {
+  match kind {
+    0 => @transfer.StoreUseAdmissionReply
+    1 => @transfer.StoreUseCompletionReply
+    _ => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseReplyJson")
+pub fn strategy_remote_transfer_store_use_reply_json(
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  kind : Int,
+  is_complete : Bool,
+) -> String raise NodeHostFailure {
+  match
+    @transfer.remote_transfer_store_use_reply_json(
+      request,
+      use_id,
+      remote_transfer_store_use_reply_kind(kind),
+      is_complete,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseReplyAdmitJson")
+pub fn strategy_remote_transfer_store_use_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  kind : Int,
+) -> @transfer.RemoteTransferStoreUseReply raise NodeHostFailure {
+  match
+    @transfer.admit_remote_transfer_store_use_reply_json(
+      body,
+      request,
+      use_id,
+      remote_transfer_store_use_reply_kind(kind),
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseReplyProjection")
+pub fn strategy_remote_transfer_store_use_reply_projection(
+  reply : @transfer.RemoteTransferStoreUseReply,
+) -> Array[String] {
+  @transfer.remote_transfer_store_use_reply_projection(reply)
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCancellationReplyJson")
+pub fn strategy_remote_transfer_store_use_cancellation_reply_json(
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> String raise NodeHostFailure {
+  match
+    @transfer.remote_transfer_store_use_cancellation_reply_json(request, use_id) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCancellationReplyAdmitJson")
+pub fn strategy_remote_transfer_store_use_cancellation_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> @transfer.RemoteTransferStoreUseCancellationReply raise NodeHostFailure {
+  match
+    @transfer.admit_remote_transfer_store_use_cancellation_reply_json(
+      body, request, use_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCancellationReplyProjection")
+pub fn strategy_remote_transfer_store_use_cancellation_reply_projection(
+  reply : @transfer.RemoteTransferStoreUseCancellationReply,
+) -> Array[String] {
+  @transfer.remote_transfer_store_use_cancellation_reply_projection(reply)
+}
+
+///|
 #export_name("strategyRemoteTransferDestinationReceiptPrepare")
 pub fn strategy_remote_transfer_destination_receipt_prepare(
   request : @transfer.RemoteTransferRequest,
@@ -5506,6 +5714,22 @@ pub fn strategy_remote_transfer_record_projection(
   record : @transfer.RemoteTransferRecord,
 ) -> Array[Int] {
   @transfer.record_projection(record)
+}
+
+///|
+#export_name("strategyRemoteTransferRecordIsDestinationCommitted")
+pub fn strategy_remote_transfer_record_is_destination_committed(
+  record : @transfer.RemoteTransferRecord,
+) -> Bool {
+  @transfer.record_is_destination_committed(record)
+}
+
+///|
+#export_name("strategyRemoteTransferDirectCleanupConfirmed")
+pub fn strategy_remote_transfer_direct_cleanup_confirmed(
+  record : @transfer.RemoteTransferRecord,
+) -> Bool {
+  @transfer.direct_transfer_cleanup_confirmed(record)
 }
 
 ///|

@@ -101,6 +101,30 @@ async function contents(retained) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+async function startReceiver(material, destinationStore, journal) {
+  return await startHttpsDirectTransferReceiver({
+    key: material.destinationKey,
+    cert: material.destinationCertificate,
+    ca: material.ca,
+    sourceAuthorities: new Map([
+      [material.sourceFingerprint, 'source-a'],
+    ]),
+    destinationSiteKey: 'destination-b',
+    destinationSiteGeneration: 2,
+    control,
+    journal,
+    store: destinationStore,
+    authorize: ({request, peer}) =>
+      peer.sourceSite === 'source-a' &&
+      control.requestProjection(request)[11] === cid('5'),
+    maxControlBytes: 32_768,
+    maxManifestBytes: 8192,
+    maxChunks: 8,
+    maxReferencedBytes: 1024n,
+    maxFrameBytes: 4,
+  });
+}
+
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-direct-transfer-'));
   const material = await certificates(root);
@@ -125,27 +149,7 @@ async function fixture(t) {
     maxManifestBytes: 8192,
     maxReferencedBytes: 1024n,
   });
-  const receiver = await startHttpsDirectTransferReceiver({
-    key: material.destinationKey,
-    cert: material.destinationCertificate,
-    ca: material.ca,
-    sourceAuthorities: new Map([
-      [material.sourceFingerprint, 'source-a'],
-    ]),
-    destinationSiteKey: 'destination-b',
-    destinationSiteGeneration: 2,
-    control,
-    journal,
-    store: destinationStore,
-    authorize: ({request, peer}) =>
-      peer.sourceSite === 'source-a' &&
-      control.requestProjection(request)[11] === cid('5'),
-    maxControlBytes: 32_768,
-    maxManifestBytes: 8192,
-    maxChunks: 8,
-    maxReferencedBytes: 1024n,
-    maxFrameBytes: 4,
-  });
+  const receiver = await startReceiver(material, destinationStore, journal);
   t.after(async () => {
     try { await receiver.close(); }
     catch (error) {
@@ -265,5 +269,191 @@ test('direct Transfer rejects a foreign authenticated client before use',
     assert.equal(setup.journal.recover(control).length, 0);
     source.close();
     await setup.sourceStore.cleanup();
+    assert.equal(await setup.receiver.close(), true);
+  });
+
+test('live direct receiver reconciles a commit without source access',
+  async t => {
+    const setup = await fixture(t);
+    const source = await body(setup.sourceStore, 'alpha');
+    const request = transferRequest(
+      ['alpha'],
+      BigInt(Date.now() + 60_000),
+    );
+    await sendHttpsDirectTransfer({
+      origin: setup.receiver.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request,
+      sourceBodies: [source],
+    });
+    let reads = 0;
+    const result = await sendHttpsDirectTransfer({
+      origin: setup.receiver.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request,
+      sourceBodies: [Object.freeze({
+        cid: digest('alpha'),
+        bytes: 5,
+        async consume() {
+          reads++;
+          throw new Error('source must not be read during reconciliation');
+        },
+      })],
+    });
+    assert.deepEqual(result.state, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
+    assert.equal(reads, 0);
+    assert.equal(setup.destinationStore.status().reservedBytes, 5);
+    assert.equal(await setup.receiver.release(control.identity(request)), true);
+    source.close();
+    await setup.sourceStore.cleanup();
+    assert.equal(await setup.receiver.close(), true);
+  });
+
+test('fresh direct receiver does not claim historical material availability',
+  async t => {
+    const setup = await fixture(t);
+    const source = await body(setup.sourceStore, 'alpha');
+    const request = transferRequest(
+      ['alpha'],
+      BigInt(Date.now() + 60_000),
+    );
+    await sendHttpsDirectTransfer({
+      origin: setup.receiver.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request,
+      sourceBodies: [source],
+    });
+    const restarted = await startReceiver(
+      setup.material,
+      setup.destinationStore,
+      setup.journal,
+    );
+    t.after(async () => { await restarted.close(); });
+    let reads = 0;
+    await assert.rejects(
+      sendHttpsDirectTransfer({
+        origin: restarted.origin,
+        ca: setup.material.ca,
+        cert: setup.material.sourceCertificate,
+        key: setup.material.sourceKey,
+        control,
+        request,
+        sourceBodies: [Object.freeze({
+          cid: digest('alpha'),
+          bytes: 5,
+          async consume() { reads++; },
+        })],
+      }),
+      {code: 'RemoteTransferRejected'},
+    );
+    assert.equal(reads, 0);
+    assert.equal(setup.destinationStore.status().reservedBytes, 5);
+    assert.equal(await restarted.close(), true);
+    assert.equal(await setup.receiver.release(control.identity(request)), true);
+    source.close();
+    await setup.sourceStore.cleanup();
+    assert.equal(await setup.receiver.close(), true);
+  });
+
+test('fresh direct receiver does not recreate an unfinished Transfer',
+  async t => {
+    const setup = await fixture(t);
+    const request = transferRequest(
+      ['alpha'],
+      BigInt(Date.now() + 60_000),
+    );
+    setup.journal.accept(request, control);
+    const restarted = await startReceiver(
+      setup.material,
+      setup.destinationStore,
+      setup.journal,
+    );
+    t.after(async () => { await restarted.close(); });
+    let reads = 0;
+    await assert.rejects(
+      sendHttpsDirectTransfer({
+        origin: restarted.origin,
+        ca: setup.material.ca,
+        cert: setup.material.sourceCertificate,
+        key: setup.material.sourceKey,
+        control,
+        request,
+        sourceBodies: [Object.freeze({
+          cid: digest('alpha'),
+          bytes: 5,
+          async consume(emit) {
+            reads++;
+            await emit(Buffer.from('alpha', 'utf8'));
+          },
+        })],
+      }),
+      {code: 'RemoteTransferRejected'},
+    );
+    assert.equal(reads, 0);
+    assert.equal(setup.destinationStore.status().reservedBytes, 0);
+    assert.equal(await restarted.close(), true);
+    assert.equal(await setup.receiver.close(), true);
+  });
+
+test('direct Transfer returns durable cleanup without retransmitting bytes',
+  async t => {
+    const setup = await fixture(t);
+    const request = transferRequest(
+      ['alpha'],
+      BigInt(Date.now() + 60_000),
+    );
+    const wrongSource = Object.freeze({
+      cid: digest('alpha'),
+      bytes: 5,
+      async consume(emit) { await emit(Buffer.from('omega', 'utf8')); },
+    });
+    await assert.rejects(
+      sendHttpsDirectTransfer({
+        origin: setup.receiver.origin,
+        ca: setup.material.ca,
+        cert: setup.material.sourceCertificate,
+        key: setup.material.sourceKey,
+        control,
+        request,
+        sourceBodies: [wrongSource],
+      }),
+      {code: 'RemoteTransferRejected'},
+    );
+    assert.equal(setup.destinationStore.status().reservedBytes, 0);
+    const durable = setup.journal.inspect(request, control);
+    assert.equal(
+      control.directCleanupConfirmed(
+        control.restore(request, durable.state),
+      ),
+      true,
+    );
+    let reads = 0;
+    await assert.rejects(
+      sendHttpsDirectTransfer({
+        origin: setup.receiver.origin,
+        ca: setup.material.ca,
+        cert: setup.material.sourceCertificate,
+        key: setup.material.sourceKey,
+        control,
+        request,
+        sourceBodies: [Object.freeze({
+          cid: digest('alpha'),
+          bytes: 5,
+          async consume() { reads++; },
+        })],
+      }),
+      {code: 'RemoteTransferTerminalFailure'},
+    );
+    assert.equal(reads, 0);
+    assert.equal(setup.destinationStore.status().reservedBytes, 0);
     assert.equal(await setup.receiver.close(), true);
   });

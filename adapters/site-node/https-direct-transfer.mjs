@@ -145,6 +145,8 @@ export async function startHttpsDirectTransferReceiver({
       typeof control.prepareFailure !== 'function' ||
       typeof control.prepareCleanup !== 'function' ||
       typeof control.recordProjection !== 'function' ||
+      typeof control.recordIsDestinationCommitted !== 'function' ||
+      typeof control.directCleanupConfirmed !== 'function' ||
       typeof control.replyJson !== 'function' ||
       journal === null || typeof journal !== 'object' ||
       typeof journal.accept !== 'function' ||
@@ -257,7 +259,11 @@ export async function startHttpsDirectTransferReceiver({
           return;
         }
         const accepted = journal.accept(admitted, control);
-        if (control.recordProjection(accepted.record)[0] !== 0) {
+        if (!accepted.created) {
+          if (control.directCleanupConfirmed(accepted.record)) {
+            replyCanonical(response, 200, control.replyJson(accepted.record));
+            return;
+          }
           fail('RemoteTransferReconciliationRequired');
         }
         const entry = {
@@ -564,7 +570,10 @@ export async function sendHttpsDirectTransfer({
       typeof control.admitReplyJson !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.requestProjection !== 'function' ||
-      typeof control.chunks !== 'function' || request === undefined ||
+      typeof control.chunks !== 'function' ||
+      typeof control.recordIsDestinationCommitted !== 'function' ||
+      typeof control.directCleanupConfirmed !== 'function' ||
+      request === undefined ||
       !Array.isArray(sourceBodies) || !integer(maxResponseBytes) ||
       maxResponseBytes === 0) {
     fail('InvalidDirectTransferSenderConfiguration');
@@ -608,7 +617,16 @@ export async function sendHttpsDirectTransfer({
     },
     write(outgoing) { outgoing.end(envelope); },
   });
-  control.admitReplyJson(admittedBody, request);
+  const admitted = control.admitReplyJson(admittedBody, request);
+  if (control.recordIsDestinationCommitted(admitted)) {
+    return Object.freeze({
+      requestCid,
+      state: Object.freeze([...control.recordProjection(admitted)]),
+    });
+  }
+  if (control.directCleanupConfirmed(admitted)) {
+    fail('RemoteTransferTerminalFailure');
+  }
   let sourceStopped = true;
   try {
     for (let index = 0; index < chunks.length; index++) {

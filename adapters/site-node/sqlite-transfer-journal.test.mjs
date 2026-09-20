@@ -65,6 +65,7 @@ test('Transfer request and lifecycle recover from exact durable state',
     const journal = open();
     const transfer = request();
     const accepted = journal.accept(transfer, control);
+    assert.equal(accepted.created, true);
     assert.deepEqual(
       control.recordProjection(accepted.record),
       [0, 0, 0, 0, 0, 0, 0, 1, 0],
@@ -88,8 +89,10 @@ test('Transfer request and lifecycle recover from exact durable state',
       control.recordProjection(recovered[0].record),
       [1, 1, 0, 0, 0, 0, 0, 1, 0],
     );
+    const reconciled = reopened.accept(transfer, control);
+    assert.equal(reconciled.created, false);
     assert.deepEqual(
-      control.recordProjection(reopened.accept(transfer, control).record),
+      control.recordProjection(reconciled.record),
       [1, 1, 0, 0, 0, 0, 0, 1, 0],
     );
     assert.throws(

@@ -309,7 +309,7 @@ export function openSqliteTransferJournal(root, {
               existing.manifest_json !== manifestJson) {
             fail('RemoteTransferCollision');
           }
-          return restore(existing, control);
+          return Object.freeze({...restore(existing, control), created: false});
         }
         const foundTotal = Number(total.get().count);
         if (!count(foundTotal) || foundTotal >= maxTransfers) {
@@ -328,7 +328,7 @@ export function openSqliteTransferJournal(root, {
           manifestJson,
           ...current,
         );
-        return Object.freeze({request, record});
+        return Object.freeze({request, record, created: true});
       });
     },
     advance(transition, control) {

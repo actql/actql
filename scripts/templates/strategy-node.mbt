@@ -6175,6 +6175,22 @@ pub fn strategy_remote_transfer_record_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferRecordIsDestinationCommitted")
+pub fn strategy_remote_transfer_record_is_destination_committed(
+  record : @transfer.RemoteTransferRecord,
+) -> Bool {
+  @transfer.record_is_destination_committed(record)
+}
+
+///|
+#export_name("strategyRemoteTransferDirectCleanupConfirmed")
+pub fn strategy_remote_transfer_direct_cleanup_confirmed(
+  record : @transfer.RemoteTransferRecord,
+) -> Bool {
+  @transfer.direct_transfer_cleanup_confirmed(record)
+}
+
+///|
 #export_name("strategyRemoteTransferRecordRevision")
 pub fn strategy_remote_transfer_record_revision(
   record : @transfer.RemoteTransferRecord,
