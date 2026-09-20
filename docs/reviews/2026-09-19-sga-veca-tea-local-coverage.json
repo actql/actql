@@ -426,10 +426,18 @@
       "completed_layers": [
         "contract",
         "checker",
-        "lowering"
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
       ],
       "layer_evidence": [
-        "src/lowering_relation/asof_join_test.mbt"
+        "src/lowering_relation/asof_join_test.mbt",
+        "src/execution_relation/asof_join_rows_wbtest.mbt",
+        "src/query_integration/local_managed_asof_join_wbtest.mbt"
       ]
     },
     {

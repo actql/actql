@@ -448,6 +448,19 @@ closed until the selected as-of search product and bounded evaluator are
 connected. The lowering suite passes 202 tests on each of JS, Wasm, and native.
 This is not kernel, managed execution, publication, or cancellation evidence.
 
+At `b2c7034d`, the exact selected as-of search limit reaches Local admission
+and execution. The portable evaluator validates every clock and left identity,
+preserves null-key nonmatching and stable left time/identity order, implements
+both kinds and all three directions, and rejects unresolved top ties. Authored
+tie fields use ascending null-last order. Search, output, value, work, and
+workspace limits remain independent. The standard Host consumes the selected
+12-pair limit, runs two downstream computations with overlapping holdings,
+releases them independently, and returns the ledger to zero. The affected
+execution, physical-strategy, Local connector, and query-integration suites
+pass 1,084 tests on each of JS, Wasm, and native. Events-left execution,
+publication, and bounded-step cancellation remain open, so as-of join remains
+partial.
+
 The Graph Bridge now lowers explicit node and edge sources into one typed
 `BRIDGE.rows.to_graph` occurrence without collapsing repeated input positions.
 Its bounded runtime constructs immutable Graph storage, projects both node and
