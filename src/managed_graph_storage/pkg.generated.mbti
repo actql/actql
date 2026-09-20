@@ -54,6 +54,8 @@ pub fn node_count(Storage) -> Int
 
 pub fn node_identity(Storage, Int) -> @value_admission.CheckedValue?
 
+pub fn node_index(Storage, @value_admission.CheckedValue) -> Result[Int?, Issue]
+
 pub fn node_property(Storage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]

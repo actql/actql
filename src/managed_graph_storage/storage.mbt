@@ -82,8 +82,10 @@ struct Builder {
 struct Storage {
   graph : @carrier.Graph
   mode : Mode
+  limits : Limits
   nodes : Array[Node]
   edges : Array[Edge]
+  node_keys : Map[String, Int]
   input_rows : Int
   value_bytes : Int
   retained_value_bytes : Int
@@ -596,8 +598,10 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
   Ok({
     graph: builder.graph,
     mode: builder.mode,
+    limits: builder.limits,
     nodes: builder.nodes,
     edges: builder.edges,
+    node_keys: builder.node_keys,
     input_rows: builder.input_rows,
     value_bytes: builder.value_bytes,
     retained_value_bytes: builder.retained_value_bytes,
@@ -704,6 +708,41 @@ pub fn retained_workspace_slots(value : Storage) -> Int {
 pub fn discard(value : Storage) -> Unit {
   value.nodes.clear()
   value.edges.clear()
+  value.node_keys.clear()
+}
+
+///|
+/// Resolve an admitted identity through the immutable construction index.
+/// The index and its canonical keys were admitted while the graph was built;
+/// lookup does not construct a second index or scan all nodes.
+pub fn node_index(
+  value : Storage,
+  identity : @value.CheckedValue,
+) -> Result[Int?, Issue] {
+  let expected = @carrier.graph_identity(value.graph)
+  let same = @contract.type_equal(
+    expected,
+    identity.contract,
+    value.limits.max_contract_work,
+  ) catch {
+    _ => false
+  }
+  if !same {
+    return Err(InvalidIdentity)
+  }
+  try {
+    let out = @encode.writer(
+      value.limits.max_value_bytes,
+      value.limits.max_value_nodes,
+      value.limits.max_value_depth,
+    )
+    @encode.begin_array(out)
+    @value.emit_wire_value(identity.value, out)
+    @encode.end_array(out)
+    Ok(value.node_keys.get(@encode.finish(out)))
+  } catch {
+    _ => Err(ValueLimit)
+  }
 }
 
 ///|

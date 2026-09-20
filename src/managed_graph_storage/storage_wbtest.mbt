@@ -135,6 +135,23 @@ test "declared graph collapses equal payloads and closes endpoints" {
   assert_true(measured_input_value_bytes(graph) > retained_value_bytes(graph))
   assert_eq(construction_work(graph), 37)
   assert_true(retained_workspace_slots(graph) > 0)
+  assert_eq(node_index(graph, number(1.0)).unwrap(), Some(0))
+  assert_eq(node_index(graph, number(2.0)).unwrap(), Some(1))
+  assert_eq(node_index(graph, number(3.0)).unwrap(), None)
+}
+
+///|
+test "completed graph reuses its admitted identity index" {
+  let builder = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
+  append_node(builder, number(2.0), [text("b")]).unwrap()
+  append_node(builder, number(1.0), [text("a")]).unwrap()
+  let graph = finish(builder).unwrap()
+  assert_eq(node_index(graph, number(2.0)).unwrap(), Some(0))
+  assert_eq(node_index(graph, number(1.0)).unwrap(), Some(1))
+  assert_eq(node_index(graph, number(4.0)).unwrap(), None)
+  assert_true(node_index(graph, text("2")) is Err(InvalidIdentity))
+  discard(graph)
+  assert_eq(node_index(graph, number(2.0)).unwrap(), None)
 }
 
 ///|
