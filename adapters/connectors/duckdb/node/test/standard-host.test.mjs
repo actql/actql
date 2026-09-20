@@ -1521,6 +1521,19 @@ async function exerciseStrategyGraph(
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
   const graphPublicationCases = [{
+    name: 'normalize',
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  }, {
     name: 'match-nodes',
     step: {
       from: 'g',
@@ -1614,7 +1627,11 @@ async function exerciseStrategyGraph(
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
-    graphProgram.stages[2].steps[1] = publicationCase.step;
+    graphProgram.stages[2].steps.splice(
+      1,
+      1,
+      ...(publicationCase.steps ?? [publicationCase.step]),
+    );
     graphProgram.stages[2].results.r.fields = publicationCase.fields;
     graphProgram.stages[3].steps[0].select = publicationCase.fields;
     graphProgram.stages[3].results.r.fields = publicationCase.fields;
@@ -1860,6 +1877,15 @@ async function exerciseStrategyGraph(
     await rm(vectorPublicationDirectory, {recursive: true, force: true});
   }
   const graphCancellationCases = [{
+    name: 'normalize',
+    rows: 40,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'graph-bounds',
     rows: 40,
     step: {
@@ -1936,7 +1962,11 @@ async function exerciseStrategyGraph(
         node_name: `node-${index + 1}`,
         weight: index + 1,
       }));
-    graphCancellationProgram.stages[2].steps[1] = cancellationCase.step;
+    graphCancellationProgram.stages[2].steps.splice(
+      1,
+      1,
+      ...(cancellationCase.steps ?? [cancellationCase.step]),
+    );
     const graphFields = cancellationCase.fields;
     graphCancellationProgram.stages[2].results.r.fields = graphFields;
     graphCancellationProgram.stages[3].steps[0].select = graphFields;

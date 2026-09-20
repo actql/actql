@@ -2,9 +2,17 @@
 priv enum Phase {
   StartConstruction
   Construction
+  StartKernel
+  Kernel
+  CleanupKernel
   StartProjection
   Projection
   Terminal
+}
+
+///|
+priv enum GraphExecution {
+  Normalize(@sga.NormalizeExecution)
 }
 
 ///|
@@ -35,9 +43,12 @@ priv struct Execution {
   storage_bytes : Int64
   max_rows : Int
   max_value_bytes : Int
+  projection_step : Int
   mut phase : Phase
   mut construction : @bridge.RowsToGraphExecution?
   mut graph : @graph.Completed?
+  mut kernel : GraphExecution?
+  mut pending_graph : @graph.Completed?
   mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
@@ -62,6 +73,12 @@ fn fail_execution(
 ///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
+  let count = @lower.sequence_count(
+    @execution.generated_prepared_sequence(sequence),
+  )
+  if count < 2 || count > 3 {
+    return false
+  }
   let index = Ref(0)
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
     let current = index.val
@@ -72,7 +89,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     match (current, step) {
       (0, @lower.GraphConstructionStep(_)) =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
-      (1, @lower.CarrierProjectionStep(projection)) =>
+      (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.normalize" &&
+        @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
+      (current, @lower.CarrierProjectionStep(projection)) if current ==
+        count - 1 =>
         (
           @lower.operation(node) == "BRIDGE.graph.to_node_rows" &&
           @lower.carrier_projection_operation(projection) ==
@@ -83,13 +104,13 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           @lower.carrier_projection_operation(projection) ==
           @projection.EdgeRows
         )
-      (1, @lower.GraphMatchStep(matched)) =>
+      (current, @lower.GraphMatchStep(matched)) if current == count - 1 =>
         if @lower.graph_match_nodes(matched) {
           @lower.operation(node) == "SGA.match_nodes"
         } else {
           @lower.operation(node) == "SGA.match_edges"
         }
-      (1, @lower.GraphBasicStep(basic)) =>
+      (current, @lower.GraphBasicStep(basic)) if current == count - 1 =>
         (
           @lower.operation(node) == "SGA.bounds_check" &&
           @lower.graph_basic_kind(basic) == @lower.BoundsBasic
@@ -112,18 +133,23 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       _ => false
     }
   })
-  accepted && index.val == 2
+  accepted && index.val == count
 }
 
 ///|
 fn provider_capacity(
   base : @execution.ExecutionCapacity,
   storage_bytes : Int64,
+  generation_count : Int,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || storage_bytes > 4611686018427387903L {
+  if storage_bytes < 0L || generation_count < 2 {
     return None
   }
-  let extra = storage_bytes * 2L
+  let count = generation_count.to_int64()
+  if storage_bytes != 0L && count > 9223372036854775807L / storage_bytes {
+    return None
+  }
+  let extra = storage_bytes * count
   let execution = @execution.execution_capacity_execution_bytes(base)
   if execution > 9223372036854775807L - extra {
     return None
@@ -253,7 +279,11 @@ fn advance_execution(
               return fail_execution(value)
             }
             value.graph = Some(output)
-            value.phase = StartProjection
+            value.phase = if value.projection_step > 1 {
+              StartKernel
+            } else {
+              StartProjection
+            }
             if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
               return Ok(poll)
             }
@@ -272,7 +302,7 @@ fn advance_execution(
           }
         }
       }
-      StartProjection => {
+      StartKernel => {
         guard value.graph is Some(output) else { return fail_execution(value) }
         let input = match
           @graph.prepare_step_read(
@@ -285,13 +315,99 @@ fn advance_execution(
           Err(_) => return fail_execution(value)
         }
         let started = match @lower.sequence_step(value.sequence, 1) {
+          Some(@lower.GraphBasicStep(basic)) if @lower.graph_basic_kind(basic) ==
+            @lower.NormalizeBasic =>
+            match
+              @sga.start_normalize(
+                value.control,
+                value.sequence,
+                1,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => Normalize(execution)
+              Err(_) => return fail_execution(value)
+            }
+          _ => return fail_execution(value)
+        }
+        value.kernel = Some(started)
+        value.phase = Kernel
+        reset_stage(value)
+      }
+      Kernel => {
+        guard value.kernel is Some(Normalize(active)) else {
+          return fail_execution(value)
+        }
+        match @sga.advance_normalize(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@sga.Continue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.Complete(output, progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            value.pending_graph = Some(output)
+            value.phase = CleanupKernel
+            if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+              return Ok(poll)
+            }
+          }
+          Ok(@sga.Failed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.Stopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
+      CleanupKernel => {
+        guard value.kernel is Some(Normalize(active)) &&
+          value.pending_graph is Some(completed) else {
+          return fail_execution(value)
+        }
+        match @sga.cleanup_normalize(active) {
+          Ok(true) => ()
+          Ok(false) | Err(_) => return fail_execution(value)
+        }
+        value.kernel = None
+        discard(value.graph) |> ignore
+        value.graph = Some(completed)
+        value.pending_graph = None
+        value.phase = StartProjection
+      }
+      StartProjection => {
+        guard value.graph is Some(output) else { return fail_execution(value) }
+        let input = match
+          @graph.prepare_step_read(
+            @execution.generated_sequence_owner(value.generated),
+            value.projection_step,
+            0,
+            output,
+          ) {
+          Ok(read) => read
+          Err(_) => return fail_execution(value)
+        }
+        let started = match
+          @lower.sequence_step(value.sequence, value.projection_step) {
           Some(@lower.CarrierProjectionStep(_)) =>
             match
               @bridge.start_graph_to_rows(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
                 value.sequence,
-                1,
+                value.projection_step,
                 input,
                 value.max_rows,
                 {
@@ -309,7 +425,7 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           Some(@lower.GraphMatchStep(_)) =>
-            match @lower.sequence_step(value.sequence, 1) {
+            match @lower.sequence_step(value.sequence, value.projection_step) {
               Some(@lower.GraphMatchStep(matched)) =>
                 if @lower.graph_match_nodes(matched) {
                   match
@@ -319,7 +435,7 @@ fn advance_execution(
                         value.generated,
                       ),
                       value.sequence,
-                      1,
+                      value.projection_step,
                       input,
                       value.max_rows,
                       {
@@ -344,7 +460,7 @@ fn advance_execution(
                         value.generated,
                       ),
                       value.sequence,
-                      1,
+                      value.projection_step,
                       input,
                       value.max_rows,
                       {
@@ -371,7 +487,7 @@ fn advance_execution(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
-                  1,
+                  value.projection_step,
                   input,
                   value.max_rows,
                   {
@@ -397,7 +513,7 @@ fn advance_execution(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
-                  1,
+                  value.projection_step,
                   input,
                   value.max_rows,
                   {
@@ -422,7 +538,7 @@ fn advance_execution(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
-                  1,
+                  value.projection_step,
                   input,
                   value.max_rows,
                   {
@@ -620,8 +736,16 @@ fn cleanup_execution(
         }
     }
   }
+  if value.kernel is Some(Normalize(active)) {
+    match @sga.cleanup_normalize(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   discard(value.graph) |> ignore
   value.graph = None
+  discard(value.pending_graph) |> ignore
+  value.pending_graph = None
   let construction_pending = match value.construction {
     Some(active) => @bridge.rows_to_graph_cleanup_pending(active)
     None => false
@@ -640,10 +764,14 @@ fn cleanup_execution(
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
+  let kernel_pending = match value.kernel {
+    Some(Normalize(active)) => @sga.normalize_cleanup_pending(active)
+    None => false
+  }
   if failed {
     return Err(issue())
   }
-  if construction_pending || projection_pending {
+  if construction_pending || kernel_pending || projection_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -660,7 +788,13 @@ pub fn provider(
     accepts,
     sequence => {
       if accepts(sequence) {
-        provider_capacity(capacity, storage_bytes)
+        provider_capacity(
+          capacity,
+          storage_bytes,
+          @lower.sequence_count(
+            @execution.generated_prepared_sequence(sequence),
+          ),
+        )
       } else {
         None
       }
@@ -678,9 +812,15 @@ pub fn provider(
         storage_bytes,
         max_rows,
         max_value_bytes,
+        projection_step: @lower.sequence_count(
+          @execution.generated_prepared_sequence(sequence),
+        ) -
+        1,
         phase: StartConstruction,
         construction: None,
         graph: None,
+        kernel: None,
+        pending_graph: None,
         relation: None,
         stage_progress: 0L,
         stage_work: 0L,
