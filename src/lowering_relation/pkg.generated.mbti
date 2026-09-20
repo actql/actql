@@ -305,6 +305,10 @@ pub fn graph_match_nodes(PreparedGraphMatch) -> Bool
 
 pub fn graph_match_output_schema(PreparedGraphMatch) -> @relation_schema.Schema
 
+pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
+
+pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?

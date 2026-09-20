@@ -11,6 +11,7 @@ priv enum Phase {
 priv enum RelationExecution {
   ProjectionExecution(@bridge.GraphRowsExecution)
   MatchNodesExecution(@sga.MatchNodesExecution)
+  MatchEdgesExecution(@sga.MatchEdgesExecution)
 }
 
 ///|
@@ -80,13 +81,21 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           @projection.EdgeRows
         )
       (1, @lower.GraphMatchStep(matched)) =>
-        @lower.operation(node) == "SGA.match_nodes" &&
-        @lower.graph_match_nodes(matched) &&
-        (
-          @lower.graph_match_id_count(matched) > 0 ||
-          @lower.graph_match_literal_selection(matched) !=
-          @lower.NoLiteralSelection
-        )
+        if @lower.graph_match_nodes(matched) {
+          @lower.operation(node) == "SGA.match_nodes" &&
+          (
+            @lower.graph_match_id_count(matched) > 0 ||
+            @lower.graph_match_literal_selection(matched) !=
+            @lower.NoLiteralSelection
+          )
+        } else {
+          @lower.operation(node) == "SGA.match_edges" &&
+          (
+            !@lower.graph_match_has_predicate(matched) ||
+            @lower.graph_match_literal_selection(matched) !=
+            @lower.NoLiteralSelection
+          )
+        }
       _ => false
     }
   })
@@ -287,27 +296,60 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           Some(@lower.GraphMatchStep(_)) =>
-            match
-              @sga.start_match_nodes(
-                value.control,
-                @execution.generated_completion_preparation(value.generated),
-                value.sequence,
-                1,
-                input,
-                value.max_rows,
-                {
-                  max_nodes: value.limits.max_value_nodes,
-                  max_text_bytes: value.max_value_bytes,
-                  max_depth: value.limits.max_value_depth,
-                  max_work: value.limits.max_work,
-                },
-                value.limits.max_workspace_slots,
-                value.limits.max_value_bytes,
-                value.limits.max_value_bytes,
-                value.inputs,
-              ) {
-              Ok(execution) => MatchNodesExecution(execution)
-              Err(_) => return fail_execution(value)
+            match @lower.sequence_step(value.sequence, 1) {
+              Some(@lower.GraphMatchStep(matched)) =>
+                if @lower.graph_match_nodes(matched) {
+                  match
+                    @sga.start_match_nodes(
+                      value.control,
+                      @execution.generated_completion_preparation(
+                        value.generated,
+                      ),
+                      value.sequence,
+                      1,
+                      input,
+                      value.max_rows,
+                      {
+                        max_nodes: value.limits.max_value_nodes,
+                        max_text_bytes: value.max_value_bytes,
+                        max_depth: value.limits.max_value_depth,
+                        max_work: value.limits.max_work,
+                      },
+                      value.limits.max_workspace_slots,
+                      value.limits.max_value_bytes,
+                      value.limits.max_value_bytes,
+                      value.inputs,
+                    ) {
+                    Ok(execution) => MatchNodesExecution(execution)
+                    Err(_) => return fail_execution(value)
+                  }
+                } else {
+                  match
+                    @sga.start_match_edges(
+                      value.control,
+                      @execution.generated_completion_preparation(
+                        value.generated,
+                      ),
+                      value.sequence,
+                      1,
+                      input,
+                      value.max_rows,
+                      {
+                        max_nodes: value.limits.max_value_nodes,
+                        max_text_bytes: value.max_value_bytes,
+                        max_depth: value.limits.max_value_depth,
+                        max_work: value.limits.max_work,
+                      },
+                      value.limits.max_workspace_slots,
+                      value.limits.max_value_bytes,
+                      value.limits.max_value_bytes,
+                      value.inputs,
+                    ) {
+                    Ok(execution) => MatchEdgesExecution(execution)
+                    Err(_) => return fail_execution(value)
+                  }
+                }
+              _ => return fail_execution(value)
             }
           _ => return fail_execution(value)
         }
@@ -341,6 +383,18 @@ fn advance_execution(
               Ok(@sga.MatchNodesFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@sga.MatchNodesStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          MatchEdgesExecution(execution) =>
+            match @sga.advance_match_edges(execution, quantum) {
+              Ok(@sga.MatchEdgesContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.MatchEdgesComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.MatchEdgesFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.MatchEdgesStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -417,6 +471,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      MatchEdgesExecution(execution) =>
+        match @sga.cleanup_match_edges(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -430,6 +489,8 @@ fn cleanup_execution(
       @bridge.graph_to_rows_cleanup_pending(active)
     Some(MatchNodesExecution(active)) =>
       @sga.match_nodes_cleanup_pending(active)
+    Some(MatchEdgesExecution(active)) =>
+      @sga.match_edges_cleanup_pending(active)
     None => false
   }
   if failed {

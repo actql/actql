@@ -92,8 +92,22 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "match_nodes_literal" {
     "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_edges" {
+    "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
+    "\"weight\"]},\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
+  }
+  let result_fields = if variant == "match_edges" {
+    "\"src\",\"dst\",\"weight\""
+  } else {
+    "\"id\",\"node_name\""
+  }
+  let first_fields = result_fields
+  let second_fields = if variant == "match_edges" {
+    "\"weight\",\"src\""
+  } else {
+    "\"node_name\""
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
@@ -109,7 +123,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{\"id\":\"graph\"," +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
+  "\"id\":\"graph\"," +
   "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
   "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
@@ -117,15 +132,25 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
   projection +
   "}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"from\":\"out\",\"fields\":[" +
+  result_fields +
+  "]}}},{" +
   "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}],\"results\":{" +
-  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"select\":[" +
+  first_fields +
+  "],\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[" +
+  first_fields +
+  "]}}},{" +
   "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"node_name\"],\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"node_name\"]}}}],\"results\":{" +
+  "\"select\":[" +
+  second_fields +
+  "],\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[" +
+  second_fields +
+  "]}}}],\"results\":{" +
   "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
@@ -277,6 +302,99 @@ fn carrier_graph_match_body_owner(
 }
 
 ///|
+fn carrier_graph_labeled_source_owner() -> @lower.BoundPrepared {
+  let checked = @pipeline.check(
+    input_cursor(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"src\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"dst\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"rel\":{\"type\":\"string\"," +
+      "\"nullable\":false},\"weight\":{\"type\":\"number\"," +
+      "\"nullable\":false}},\"rows\":[{\"id\":2,\"src\":2," +
+      "\"dst\":1,\"rel\":\"controls\",\"weight\":20},{\"id\":1," +
+      "\"src\":1,\"dst\":3,\"rel\":\"owns\",\"weight\":30},{" +
+      "\"id\":3,\"src\":1,\"dst\":2,\"rel\":\"owns\"," +
+      "\"weight\":10}]},\"as\":\"source\"}]",
+    ),
+    [],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graph_edge_match_owner(
+  source : @lower.BoundPrepared,
+  types : String,
+  predicate? : String = "\"true\"",
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"}," +
+      "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
+      "\"target\":\"dst\",\"label\":\"rel\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"match_edges\":{\"types\":" +
+      types +
+      ",\"where\":" +
+      predicate +
+      ",\"fields\":[\"src\",\"dst\",\"rel\",\"weight\"]}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_storage_limits() -> @graph_storage.Limits {
   {
     max_input_rows: 20,
@@ -347,6 +465,26 @@ fn finish_match_nodes(
       @local_sga.MatchNodesFailed(issue, ..) => return Err(issue)
       @local_sga.MatchNodesStopped(_, ..) =>
         return Err(@local_sga.MatchNodesExecutionIssue(@bounded.Terminal))
+    }
+  }
+  abort("unreachable")
+}
+
+///|
+fn finish_match_edges(
+  execution : @local_sga.MatchEdgesExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.MatchEdgesIssue] {
+  while true {
+    let poll = match @local_sga.advance_match_edges(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.MatchEdgesContinue(..) => ()
+      @local_sga.MatchEdgesComplete(output, ..) => return Ok(output)
+      @local_sga.MatchEdgesFailed(issue, ..) => return Err(issue)
+      @local_sga.MatchEdgesStopped(_, ..) =>
+        return Err(@local_sga.MatchEdgesExecutionIssue(@bounded.Terminal))
     }
   }
   abort("unreachable")
@@ -561,6 +699,117 @@ test "node identity match admits workspace before execution and cleans cancel" {
   assert_true(@local_sga.match_nodes_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
   assert_false(@local_sga.match_nodes_cleanup_pending(execution))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "bounded edge match filters repeated types and sorts canonically" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(
+    source_owner, "[\"owns\",\"owns\"]",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_match_edges(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    10,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_match_edges(execution).unwrap()
+  assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("owns")))
+  assert_true(@execution.completed_cell(output, 0, 2) is Some(Number(1.0)))
+  assert_true(@execution.completed_cell(output, 0, 3) is Some(Number(10.0)))
+  assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(3.0)))
+  assert_true(@execution.completed_cell(output, 1, 3) is Some(Number(30.0)))
+  assert_true(@execution.completed_output_matches_inputs(output, [external]))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "bounded edge match admits workspace and cleans cancellation" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(source_owner, "[]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let completion = task_test_completion(owner)
+  let start = fn(control, workspace) {
+    @local_sga.start_match_edges(
+      control,
+      completion,
+      sequence,
+      1,
+      input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 9) is Err(@local_sga.MatchEdgesWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = start(control, 10).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.match_edges_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_false(@local_sga.match_edges_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
   assert_true(@graphs.discard_completed(graph))
 }
@@ -1008,9 +1257,15 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_obligations,
   )
   let graph_rows = local_managed_test_rows(graph_ops)
-  assert_eq(graph_rows.length(), 2)
-  assert_true(graph_rows[0].contains("\"id\":1"))
-  assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
+  let expected_rows = 2
+  assert_eq(graph_rows.length(), expected_rows)
+  if variant == "match_edges" {
+    assert_true(graph_rows[0].contains("\"src\":1"))
+    assert_true(graph_rows[1].contains("\"weight\":20"))
+  } else {
+    assert_true(graph_rows[0].contains("\"id\":1"))
+    assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
+  }
   if graph_obligations is Some(obligations) {
     let requirements = @execution.managed_obligations_identities(obligations)
     let published = requirements.filter(requirement => {
@@ -1064,8 +1319,8 @@ fn run_standard_host_graph_relation_path(
     second_live,
     obligations?=graph_publication_obligations(run, publication),
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), 2)
-  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+  assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
+  assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
 
   first_live.val = false
   @strategy.close_captured_task_output(run, 3)
@@ -1104,4 +1359,5 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("projection")
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")
+  run_standard_host_graph_relation_path("match_edges")
 }

@@ -48,6 +48,18 @@ pub fn graph_match_id_at(
 }
 
 ///|
+/// Number of authored edge types, preserving absence versus an empty list.
+pub fn graph_match_type_count(value : PreparedGraphMatch) -> Int? {
+  @graph.match_type_count(value.checked)
+}
+
+///|
+/// One authored edge type. Repeated entries remain observable here.
+pub fn graph_match_type_at(value : PreparedGraphMatch, index : Int) -> String? {
+  @graph.match_type_at(value.checked, index)
+}
+
+///|
 /// Whether this occurrence contains a checked predicate expression.
 pub fn graph_match_has_predicate(value : PreparedGraphMatch) -> Bool {
   value.predicate is Some(_)
