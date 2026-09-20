@@ -48,6 +48,7 @@ pub fn NativeRemoteRuntime::cleanup_pending(Self) -> Bool
 pub fn NativeRemoteRuntime::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::release(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::start(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::start_after_acceptance(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, (@remote_site_protocol.DispatchRecord) -> Bool) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
 
 pub(all) struct NativeRemoteRuntimeCompletion {
   dispatch_request_cid : String
@@ -66,6 +67,7 @@ pub(all) enum NativeRemoteRuntimeIssue {
   BudgetUnsupported
   SiteUnavailable
   CapacityRejected
+  AcceptanceUnconfirmed
   DispatchAlreadyStarted
   OperationRejected
   HoldingRejected

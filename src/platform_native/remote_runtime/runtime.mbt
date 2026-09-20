@@ -99,6 +99,7 @@ pub(all) enum NativeRemoteRuntimeIssue {
   BudgetUnsupported
   SiteUnavailable
   CapacityRejected
+  AcceptanceUnconfirmed
   DispatchAlreadyStarted
   OperationRejected
   HoldingRejected
@@ -958,6 +959,22 @@ pub fn NativeRemoteRuntime::start(
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
 ) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue] {
+  self.start_after_acceptance(request, binding, _ => true)
+}
+
+///|
+/// Start one exact durable dispatch after its accepted record has been
+/// observed by the transport owner. The callback runs only after Site journal
+/// admission and before any bundle, Site-operation, or physical-executor
+/// acquisition. A rejected observation leaves the accepted record startable;
+/// an exact retransmission may retry the observation without duplicating
+/// native work.
+pub fn NativeRemoteRuntime::start_after_acceptance(
+  self : NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  observe_accepted : (@remote.DispatchRecord) -> Bool,
+) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue] {
   if self.closed {
     return Err(Closed)
   }
@@ -969,7 +986,12 @@ pub fn NativeRemoteRuntime::start(
     return Err(Protocol(@remote.DispatchIdentityMismatch))
   }
   match self.owners.get(identity) {
-    Some(owner) => return native_remote_runtime_completion(owner)
+    Some(owner) => {
+      if !observe_accepted(owner.record) {
+        return Err(AcceptanceUnconfirmed)
+      }
+      return native_remote_runtime_completion(owner)
+    }
     None => ()
   }
   let registration = match self.registration_for(request) {
@@ -1014,6 +1036,9 @@ pub fn NativeRemoteRuntime::start(
   }
   if !@remote.remote_runtime_record_startable(record) {
     return Err(DispatchAlreadyStarted)
+  }
+  if !observe_accepted(record) {
+    return Err(AcceptanceUnconfirmed)
   }
   let owner : NativeRemoteRuntimeOwner = {
     request,

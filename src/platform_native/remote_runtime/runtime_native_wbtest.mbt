@@ -202,11 +202,43 @@ test "native remote runtime owns success failure and cleanup progression" {
   }
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let first = request("dispatch-a")
-  let completion = runtime.start(first, input_binding).unwrap()
+  let accepted = [0]
+  let accepted_execution = [-1]
+  let accepted_revision = [-1]
+  assert_true(
+    runtime.start_after_acceptance(first, input_binding, record => {
+      accepted[0] += 1
+      accepted_execution[0] = executions[0]
+      accepted_revision[0] = @remote.dispatch_record_revision(record)
+      false
+    })
+    is Err(AcceptanceUnconfirmed),
+  )
+  assert_eq(accepted_execution[0], 0)
+  assert_eq(accepted_revision[0], 0)
+  assert_eq(executions[0], 0)
+  let completion = runtime
+    .start_after_acceptance(first, input_binding, _record => {
+      accepted[0] += 1
+      accepted_execution[0] = executions[0]
+      true
+    })
+    .unwrap()
+  assert_eq(accepted_execution[0], 0)
   assert_eq(
     completion.dispatch_request_cid,
     @remote.dispatch_request_identity(first),
   )
+  assert_eq(accepted[0], 2)
+  assert_eq(executions[0], 1)
+  assert_true(
+    runtime.start_after_acceptance(first, input_binding, _record => {
+      accepted[0] += 1
+      false
+    })
+    is Err(AcceptanceUnconfirmed),
+  )
+  assert_eq(accepted[0], 3)
   assert_eq(executions[0], 1)
   assert_true(runtime.release(first) is Err(CleanupPending("output")))
   assert_true(runtime.release(first).unwrap())
