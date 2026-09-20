@@ -240,9 +240,11 @@ identity, orders by grouping keys and `(time,id)`, evaluates each demanded
 row-pattern predicate once, and supports both overlap and contiguity policies.
 Author match guards fail atomically, and output storage is admitted before
 publication. The focused lowering and runtime suites pass on JS, Wasm, and
-native. Standard Host selection, the Events input path, two downstream
-consumers, publication, and environment cancellation delivery remain open, so
-sequence matching is partial. Event windows now preserve the Events
+native. A Relation input now reaches the standard Host under exact temporal
+limits, feeds two downstream computations with overlapping lifetimes, releases
+them independently, and reclaims the final ledger on all three targets. The
+Events input path, publication, and environment cancellation delivery remain
+open, so sequence matching is partial. Event windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
 sliding-assignment operation. Their bounded kernel validates the complete
 membership bound before output allocation, retains input occurrence order,
