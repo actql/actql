@@ -39,6 +39,7 @@ pub fn start_captured_duckdb_task(
   resident? : DuckDBResidentInputs,
   retained_storage? : (Int64, () -> Bool),
   auxiliary_retention_bytes? : Int64,
+  common_completion? : Bool = false,
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
   let retained_required = retained_storage is Some(_)
   guard (if retained_required {
@@ -206,7 +207,17 @@ pub fn start_captured_duckdb_task(
     Ok(value) => value
     Err(issue) => return Err(Compute(issue))
   }
-  match @strategy.start_captured_execution(run, task, bound, resident?) {
+  let started = if common_completion {
+    @strategy.start_captured_materializing_execution(
+      run,
+      task,
+      bound,
+      resident?,
+    )
+  } else {
+    @strategy.start_captured_execution(run, task, bound, resident?)
+  }
+  match started {
     Err(issue) => Err(issue)
     Ok((attempt, execution)) =>
       Ok({
@@ -216,6 +227,19 @@ pub fn start_captured_duckdb_task(
         output_plan,
         store,
       })
+  }
+}
+
+///|
+/// Finish the exact admitted DuckDB output for the common completion boundary.
+/// Resident publication remains owned by the common execution resource and
+/// does not require rebuilding or re-reading the result.
+pub fn captured_duckdb_completed_output(
+  task : CapturedDuckDBTask,
+) -> Result[@execution.CompletedOutput, @strategy.RunIssue] {
+  match @compute.complete_duckdb_compute_attempt(task.attempt) {
+    Ok(output) => Ok(output)
+    Err(issue) => Err(compute_failure(issue))
   }
 }
 

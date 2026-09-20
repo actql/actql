@@ -108,6 +108,7 @@ pub fn start_native_strategy_compute_runtime(
       },
       transfer_bytes,
       execution_bytes,
+      common_completion=true,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -221,7 +222,12 @@ pub fn execute_native_strategy_compute_runtime(
     }
     Ok(_) => ()
   }
-  match @strategy.complete_task_execution(runtime.graph, execution) {
+  match
+    @strategy.complete_deferred_materializing_task_execution(
+      runtime.graph,
+      execution,
+      fn() { @duckdb_driver.captured_duckdb_completed_output(runtime.task) },
+    ) {
     Err(issue) => {
       let settlement = dispose_native_strategy_task(runtime)
       return Err({ primary: Strategy(issue), rollback: None, settlement, })

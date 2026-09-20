@@ -175,8 +175,9 @@ pub fn[T] start_captured_materializing_execution(
   run : CapturedDAG,
   task : Int,
   prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
+  resident? : ResidentExecution,
 ) -> Result[(T, TaskExecution), RunIssue] {
-  match start_task_execution(run, task, prepared, None) {
+  match start_task_execution(run, task, prepared, resident) {
     Err(issue) => Err(issue)
     Ok((payload, execution)) => {
       execution.legacy_completion = None
@@ -877,12 +878,27 @@ pub fn complete_materializing_task_execution(
   execution : TaskExecution,
   output : @execution.CompletedOutput,
 ) -> Result[Unit, RunIssue] {
-  if execution.legacy_completion is Some(_) || execution.resident is Some(_) {
+  if execution.legacy_completion is Some(_) {
     return Err(ForeignCandidate)
   }
   complete_materialized_execution(run, execution, fn() { Ok(output) }, fn(_) {
     Ok(())
   })
+}
+
+///|
+/// Complete a materializing execution whose physical verifier can establish
+/// the output only after the common holding has been admitted. The callback
+/// has no publication authority and is not retained by the execution.
+pub fn complete_deferred_materializing_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  materialize : () -> Result[@execution.CompletedOutput, RunIssue],
+) -> Result[Unit, RunIssue] {
+  if execution.legacy_completion is Some(_) {
+    return Err(ForeignCandidate)
+  }
+  complete_materialized_execution(run, execution, materialize, fn(_) { Ok(()) })
 }
 
 ///|

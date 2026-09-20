@@ -192,6 +192,7 @@ fn open_strategy_compute_host(
       resident?,
       retained_storage?,
       auxiliary_retention_bytes?=managed_index.map(value => value.1),
+      common_completion=true,
     ) {
     Ok(task_handle) => {
       let graph = @duckdb_driver.configured_strategy_compute_graph(setup).0
@@ -536,9 +537,10 @@ pub fn compute_host_complete(
 ) -> @execution.CompletedOutput raise NodeHostFailure {
   if run.strategy is Some((graph, task, task_handle)) {
     match
-      @strategy.complete_task_execution(
+      @strategy.complete_deferred_materializing_task_execution(
         graph,
         @duckdb_driver.captured_duckdb_execution(task_handle),
+        fn() { @duckdb_driver.captured_duckdb_completed_output(task_handle) },
       ) {
       Err(issue) => raise Strategy(issue)
       Ok(_) => ()
@@ -548,10 +550,10 @@ pub fn compute_host_complete(
         @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
       ),
     )
-    guard @strategy.captured_task_output(graph, task, target) is Some(output) else {
+    guard @strategy.captured_task_output(graph, task, target) is Some(committed) else {
       raise InvalidCommand
     }
-    return output
+    return committed
   }
   match @duckdb_compute.complete_duckdb_compute_attempt(run.attempt) {
     Ok(value) => value
