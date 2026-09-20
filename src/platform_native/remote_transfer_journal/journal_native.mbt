@@ -78,6 +78,34 @@ fn Journal::existing(
 }
 
 ///|
+fn Journal::restore_store_use_value(
+  self : Journal,
+  value : @sqlite.NativeJournalValue,
+) -> Result[
+  @transfer.RemoteTransferStoreUseRecord,
+  NativeRemoteTransferJournalIssue,
+] {
+  let durable = match
+    @transfer.admit_durable_remote_transfer_store_use_record(
+      value.body,
+      self.max_chunks,
+      self.max_manifest_bytes,
+      self.max_referenced_bytes,
+    ) {
+    Ok(record) => record
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if value.revision !=
+    @transfer.durable_remote_transfer_store_use_revision(durable).to_int64() {
+    return Err(StateCollision)
+  }
+  match @transfer.restore_durable_remote_transfer_store_use_record(durable) {
+    Ok(record) => Ok(record)
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
 pub fn Journal::accept(
   self : Journal,
   request : @transfer.RemoteTransferRequest,
@@ -164,6 +192,98 @@ pub fn Journal::require(
 }
 
 ///|
+pub fn Journal::accept_store_use(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> Result[
+  (NativeRemoteTransferAdmission, @transfer.RemoteTransferStoreUseRecord),
+  NativeRemoteTransferJournalIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let store_use = match @transfer.prepare_store_use(request, use_id) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let key = @transfer.store_use_cid(store_use)
+  match self.database.read("remote_transfer_store_use", key) {
+    Ok(value) =>
+      match self.restore_store_use_value(value) {
+        Ok(record) => Ok((ExistingTransfer, record))
+        Err(issue) => Err(issue)
+      }
+    Err(@sqlite.NotFound) => {
+      let record = @transfer.open_store_use(store_use)
+      let body = match
+        @transfer.remote_transfer_store_use_record_durable_json(record) {
+        Ok(value) => journal_bytes(value)
+        Err(issue) => return Err(Protocol(issue))
+      }
+      match self.database.begin_immediate() {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      match self.database.read("remote_transfer_store_use", key) {
+        Ok(value) => {
+          ignore(self.database.rollback())
+          return match self.restore_store_use_value(value) {
+            Ok(existing) => Ok((ExistingTransfer, existing))
+            Err(issue) => Err(issue)
+          }
+        }
+        Err(@sqlite.NotFound) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.insert("remote_transfer_store_use", key, body) {
+        Ok(0L) => ()
+        Ok(_) | Err(@sqlite.Collision) => {
+          ignore(self.database.rollback())
+          return Err(StateCollision)
+        }
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.commit() {
+        Ok(_) => Ok((NewTransfer, record))
+        Err(issue) => {
+          ignore(self.database.rollback())
+          Err(Physical(issue))
+        }
+      }
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::require_store_use(
+  self : Journal,
+  store_use : @transfer.RemoteTransferStoreUse,
+) -> Result[
+  @transfer.RemoteTransferStoreUseRecord,
+  NativeRemoteTransferJournalIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match
+    self.database.read(
+      "remote_transfer_store_use",
+      @transfer.store_use_cid(store_use),
+    ) {
+    Ok(value) => self.restore_store_use_value(value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn Journal::commit_transition(
   self : Journal,
   transition : @transfer.RemoteTransferTransition,
@@ -222,6 +342,71 @@ pub fn Journal::commit_transition(
     }
   }
   match @transfer.commit_transition(transition, true) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+pub fn Journal::commit_store_use_transition(
+  self : Journal,
+  transition : @transfer.RemoteTransferStoreUseTransition,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = @transfer.remote_transfer_store_use_transition_journal_identity(
+    transition,
+  )
+  let expected = @transfer.remote_transfer_store_use_transition_expected_revision(
+    transition,
+  )
+  if expected < 0 {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  let body = match
+    @transfer.remote_transfer_store_use_transition_durable_json(transition) {
+    Ok(value) => journal_bytes(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let durable = match
+    self.database.compare_exchange(
+      "remote_transfer_store_use",
+      key,
+      expected.to_int64(),
+      body,
+    ) {
+    Ok(revision) => revision == expected.to_int64() + 1L
+    Err(@sqlite.Collision) =>
+      match self.database.read("remote_transfer_store_use", key) {
+        Ok(value) =>
+          value.revision == expected.to_int64() + 1L && value.body == body
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  if !durable {
+    ignore(self.database.rollback())
+    return Err(StateCollision)
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match @transfer.commit_store_use_transition(transition, true) {
     Ok(_) => Ok(())
     Err(issue) => Err(Protocol(issue))
   }

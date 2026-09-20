@@ -102,3 +102,38 @@ test "native Transfer journal recovers exact durable state after reopen" {
   )
   reopened.close() |> ignore
 }
+
+///|
+test "native Store use journal restores exact download progress" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root + "/store-use-" + @env.now().to_string() + ".sqlite3"
+  let request = journal_request(@transfer.TransferStore)
+  let first = open_journal(library, database_path, 262144L, 1, 4096, 5L).unwrap()
+  let (_, record) = first.accept_store_use(request, "native-use").unwrap()
+  first
+  .commit_store_use_transition(
+    @transfer.prepare_store_use_start(record).unwrap(),
+  )
+  .unwrap()
+  first
+  .commit_store_use_transition(
+    @transfer.prepare_store_use_progress(record, 1, 5L).unwrap(),
+  )
+  .unwrap()
+  first.close() |> ignore
+  let reopened = open_journal(library, database_path, 262144L, 1, 4096, 5L).unwrap()
+  let store_use = @transfer.prepare_store_use(request, "native-use").unwrap()
+  assert_eq(
+    @transfer.store_use_record_projection(
+      reopened.require_store_use(store_use).unwrap(),
+    ),
+    ["2", "1", "0", "1", "5", "0", ""],
+  )
+  reopened.close() |> ignore
+}

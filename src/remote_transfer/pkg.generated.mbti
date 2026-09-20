@@ -11,6 +11,8 @@ pub fn admit_destination_receipt_json(String, RemoteTransferRequest, String) -> 
 
 pub fn admit_durable_remote_transfer_record(Bytes, Int, Int, Int64) -> Result[DurableRemoteTransferRecord, RemoteTransferIssue]
 
+pub fn admit_durable_remote_transfer_store_use_record(Bytes, Int, Int, Int64) -> Result[DurableRemoteTransferStoreUseRecord, RemoteTransferIssue]
+
 pub fn admit_remote_transfer_reply_json(String, RemoteTransferRequest) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
 pub fn admit_remote_transfer_store_upload_reply_json(String, RemoteTransferRequest, RemoteTransferStoreUploadReplyKind) -> Result[RemoteTransferStoreUploadReply, RemoteTransferIssue]
@@ -40,6 +42,12 @@ pub fn durable_remote_transfer_record_json(DurableRemoteTransferRecord) -> Strin
 pub fn durable_remote_transfer_record_request_identity(DurableRemoteTransferRecord) -> String
 
 pub fn durable_remote_transfer_record_revision(DurableRemoteTransferRecord) -> Int
+
+pub fn durable_remote_transfer_store_use_identity(DurableRemoteTransferStoreUseRecord) -> String
+
+pub fn durable_remote_transfer_store_use_json(DurableRemoteTransferStoreUseRecord) -> String
+
+pub fn durable_remote_transfer_store_use_revision(DurableRemoteTransferStoreUseRecord) -> Int
 
 pub fn open_record(RemoteTransferRequest) -> RemoteTransferRecord
 
@@ -91,6 +99,14 @@ pub fn remote_transfer_store_upload_reply_json(RemoteTransferRequest, RemoteTran
 
 pub fn remote_transfer_store_upload_reply_projection(RemoteTransferStoreUploadReply) -> Array[String]
 
+pub fn remote_transfer_store_use_record_durable_json(RemoteTransferStoreUseRecord) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_store_use_transition_durable_json(RemoteTransferStoreUseTransition) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_store_use_transition_expected_revision(RemoteTransferStoreUseTransition) -> Int
+
+pub fn remote_transfer_store_use_transition_journal_identity(RemoteTransferStoreUseTransition) -> String
+
 pub fn remote_transfer_transition_durable_json(RemoteTransferTransition) -> Result[String, RemoteTransferIssue]
 
 pub fn remote_transfer_transition_expected_revision(RemoteTransferTransition) -> Int
@@ -123,6 +139,8 @@ pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
 
 pub fn restore_durable_remote_transfer_record(DurableRemoteTransferRecord) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
+pub fn restore_durable_remote_transfer_store_use_record(DurableRemoteTransferStoreUseRecord) -> Result[RemoteTransferStoreUseRecord, RemoteTransferIssue]
+
 pub fn restore_record(RemoteTransferRequest, Array[Int]) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
 pub fn restore_store_use_record(RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> Result[RemoteTransferStoreUseRecord, RemoteTransferIssue]
@@ -149,6 +167,8 @@ pub fn transition_projection(RemoteTransferTransition) -> (Array[Int], Array[Int
 
 // Types and methods
 type DurableRemoteTransferRecord
+
+type DurableRemoteTransferStoreUseRecord
 
 pub(all) enum RemoteDirectTransferProgress {
   DirectTransferStart

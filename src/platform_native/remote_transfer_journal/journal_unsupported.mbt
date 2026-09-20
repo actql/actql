@@ -40,9 +40,44 @@ pub fn Journal::require(
 }
 
 ///|
+pub fn Journal::accept_store_use(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> Result[
+  (NativeRemoteTransferAdmission, @transfer.RemoteTransferStoreUseRecord),
+  NativeRemoteTransferJournalIssue,
+] {
+  ignore(request)
+  ignore(use_id)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::require_store_use(
+  _self : Journal,
+  store_use : @transfer.RemoteTransferStoreUse,
+) -> Result[
+  @transfer.RemoteTransferStoreUseRecord,
+  NativeRemoteTransferJournalIssue,
+] {
+  ignore(store_use)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::commit_transition(
   _self : Journal,
   transition : @transfer.RemoteTransferTransition,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  ignore(transition)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::commit_store_use_transition(
+  _self : Journal,
+  transition : @transfer.RemoteTransferStoreUseTransition,
 ) -> Result[Unit, NativeRemoteTransferJournalIssue] {
   ignore(transition)
   Err(UnsupportedTarget)
