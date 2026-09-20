@@ -5,8 +5,32 @@ struct PreparedGraphRelation {
 }
 
 ///|
+pub(all) enum GraphRelationKind {
+  GraphsEqualRelation
+  GraphDiffRelation
+  ApplyGraphRelation
+} derive(Eq, Debug)
+
+///|
+pub fn graph_relation_kind(value : PreparedGraphRelation) -> GraphRelationKind {
+  match value.params {
+    EqualityGraphRelationParams => GraphsEqualRelation
+    DiffGraphRelationParams => GraphDiffRelation
+    ApplyGraphParams(_) => ApplyGraphRelation
+  }
+}
+
+///|
+pub fn graph_relation_output_schema(
+  value : PreparedGraphRelation,
+) -> @schema.Schema {
+  value.node.output_schema.unwrap()
+}
+
+///|
 priv enum PreparedGraphRelationParams {
-  EmptyGraphRelationParams
+  EqualityGraphRelationParams
+  DiffGraphRelationParams
   ApplyGraphParams(String)
 }
 
@@ -28,12 +52,13 @@ fn prepare_graph_relation_node(
     return Err(InvalidGraphRelationLimits)
   }
   let params = match node.payload {
-    GraphEqualityRows(_) | GraphDiffRows(_) => EmptyGraphRelationParams
+    GraphEqualityRows(_) => EqualityGraphRelationParams
+    GraphDiffRows(_) => DiffGraphRelationParams
     GraphApplyValue(checked) => ApplyGraphParams(@graph.apply_field(checked))
     _ => return Err(InvalidGraphRelationWiring)
   }
   let (entries, name_bytes, work) = match params {
-    EmptyGraphRelationParams => (0, 0, 0)
+    EqualityGraphRelationParams | DiffGraphRelationParams => (0, 0, 0)
     ApplyGraphParams(field) => (1, @utf8.encode(field).length(), 1)
   }
   if entries > max_entries || name_bytes > max_name_bytes || work > max_work {
@@ -61,7 +86,7 @@ fn emit_graph_relation_node(
   @encode.key(out, "params")
   @encode.begin_object(out)
   match prepared.params {
-    EmptyGraphRelationParams => ()
+    EqualityGraphRelationParams | DiffGraphRelationParams => ()
     ApplyGraphParams(field) => {
       @encode.key(out, "field")
       @encode.string_value(out, field)

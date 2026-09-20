@@ -1686,6 +1686,22 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'graphs-equal',
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['equal'],
+    secondFields: ['equal'],
+    expected: [{equal: true}],
+  }, {
     name: 'match-nodes',
     step: {
       from: 'g',

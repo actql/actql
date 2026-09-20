@@ -24,6 +24,7 @@ priv enum RelationExecution {
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
   ComponentsExecution(@sga.ComponentsExecution)
+  GraphsEqualExecution(@sga.GraphsEqualExecution)
 }
 
 ///|
@@ -145,6 +146,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
             @lower.graph_basic_kind(basic) == @lower.ComponentsStrongBasic
           )
         )
+      (current, @lower.GraphRelationStep(relation)) if current == count - 1 =>
+        @lower.operation(node) == "SGA.equal" &&
+        @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation
       _ => false
     }
   })
@@ -533,24 +537,36 @@ fn advance_execution(
         }
       }
       StartProjection => {
-        guard value.graph is Some(output) else { return fail_execution(value) }
-        let input = match value.projection_input {
-          Some(read) => read
-          None =>
-            match
-              @graph.prepare_step_read(
-                @execution.generated_sequence_owner(value.generated),
-                value.projection_step,
-                0,
-                output,
-              ) {
-              Ok(read) => read
-              Err(_) => return fail_execution(value)
-            }
+        let relation_step = match
+          @lower.sequence_step(value.sequence, value.projection_step) {
+          Some(@lower.GraphRelationStep(_)) => true
+          _ => false
+        }
+        let input = if relation_step {
+          None
+        } else {
+          guard value.graph is Some(output) else {
+            return fail_execution(value)
+          }
+          match value.projection_input {
+            Some(read) => Some(read)
+            None =>
+              match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.projection_step,
+                  0,
+                  output,
+                ) {
+                Ok(read) => Some(read)
+                Err(_) => return fail_execution(value)
+              }
+          }
         }
         let started = match
           @lower.sequence_step(value.sequence, value.projection_step) {
           Some(@lower.CarrierProjectionStep(_)) => {
+            guard input is Some(input) else { return fail_execution(value) }
             let started = if value.carrier_inputs.is_empty() {
               @bridge.start_graph_to_rows(
                 value.control,
@@ -594,63 +610,58 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
-          Some(@lower.GraphMatchStep(_)) =>
-            match @lower.sequence_step(value.sequence, value.projection_step) {
-              Some(@lower.GraphMatchStep(matched)) =>
-                if @lower.graph_match_nodes(matched) {
-                  match
-                    @sga.start_match_nodes(
-                      value.control,
-                      @execution.generated_completion_preparation(
-                        value.generated,
-                      ),
-                      value.sequence,
-                      value.projection_step,
-                      input,
-                      value.max_rows,
-                      {
-                        max_nodes: value.limits.max_value_nodes,
-                        max_text_bytes: value.max_value_bytes,
-                        max_depth: value.limits.max_value_depth,
-                        max_work: value.limits.max_work,
-                      },
-                      value.limits.max_workspace_slots,
-                      value.limits.max_value_bytes,
-                      value.limits.max_value_bytes,
-                      value.inputs,
-                    ) {
-                    Ok(execution) => MatchNodesExecution(execution)
-                    Err(_) => return fail_execution(value)
-                  }
-                } else {
-                  match
-                    @sga.start_match_edges(
-                      value.control,
-                      @execution.generated_completion_preparation(
-                        value.generated,
-                      ),
-                      value.sequence,
-                      value.projection_step,
-                      input,
-                      value.max_rows,
-                      {
-                        max_nodes: value.limits.max_value_nodes,
-                        max_text_bytes: value.max_value_bytes,
-                        max_depth: value.limits.max_value_depth,
-                        max_work: value.limits.max_work,
-                      },
-                      value.limits.max_workspace_slots,
-                      value.limits.max_value_bytes,
-                      value.limits.max_value_bytes,
-                      value.inputs,
-                    ) {
-                    Ok(execution) => MatchEdgesExecution(execution)
-                    Err(_) => return fail_execution(value)
-                  }
-                }
-              _ => return fail_execution(value)
+          Some(@lower.GraphMatchStep(matched)) => {
+            guard input is Some(input) else { return fail_execution(value) }
+            if @lower.graph_match_nodes(matched) {
+              match
+                @sga.start_match_nodes(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  input,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                ) {
+                Ok(execution) => MatchNodesExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
+            } else {
+              match
+                @sga.start_match_edges(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  input,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                ) {
+                Ok(execution) => MatchEdgesExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
             }
-          Some(@lower.GraphBasicStep(basic)) =>
+          }
+          Some(@lower.GraphBasicStep(basic)) => {
+            guard input is Some(input) else { return fail_execution(value) }
             if @lower.graph_basic_kind(basic) == @lower.BoundsBasic {
               match
                 @sga.start_graph_bounds(
@@ -728,6 +739,49 @@ fn advance_execution(
             } else {
               return fail_execution(value)
             }
+          }
+          Some(@lower.GraphRelationStep(relation)) => {
+            guard @lower.graph_relation_kind(relation) ==
+              @lower.GraphsEqualRelation &&
+              value.graphs.length() == 2 else {
+              return fail_execution(value)
+            }
+            let reads : Array[@graph.ProducerRead] = []
+            for index, output in value.graphs {
+              match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.projection_step,
+                  index,
+                  output,
+                ) {
+                Ok(read) => reads.push(read)
+                Err(_) => return fail_execution(value)
+              }
+            }
+            match
+              @sga.start_graphs_equal(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                reads[0],
+                reads[1],
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              ) {
+              Ok(execution) => GraphsEqualExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           _ => return fail_execution(value)
         }
         value.relation = Some(started)
@@ -811,6 +865,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          GraphsEqualExecution(execution) =>
+            match @sga.advance_graphs_equal(execution, quantum) {
+              Ok(@sga.GraphsEqualContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.GraphsEqualComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.GraphsEqualFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.GraphsEqualStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
         }
         match poll {
           Err(_) => return fail_execution(value)
@@ -827,6 +893,10 @@ fn advance_execution(
             }
             discard(value.graph) |> ignore
             value.graph = None
+            for graph in value.graphs {
+              discard(Some(graph)) |> ignore
+            }
+            value.graphs.clear()
             value.terminal = true
             value.phase = Terminal
             return Ok(
@@ -904,6 +974,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      GraphsEqualExecution(execution) =>
+        match @sga.cleanup_graphs_equal(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   if value.kernel is Some(active) {
@@ -946,6 +1021,8 @@ fn cleanup_execution(
     Some(GraphDegreeExecution(active)) =>
       @sga.graph_degree_cleanup_pending(active)
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
+    Some(GraphsEqualExecution(active)) =>
+      @sga.graphs_equal_cleanup_pending(active)
     None => false
   }
   let kernel_pending = match value.kernel {

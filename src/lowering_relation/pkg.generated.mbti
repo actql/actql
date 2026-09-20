@@ -319,6 +319,10 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
+
+pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?
@@ -1126,6 +1130,12 @@ pub(all) enum GraphRelationIssue {
   InvalidGraphRelationLimits
   InvalidGraphRelationWiring
   GraphRelationPreparationLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphRelationKind {
+  GraphsEqualRelation
+  GraphDiffRelation
+  ApplyGraphRelation
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphShortestIssue {

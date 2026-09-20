@@ -639,6 +639,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "graphs_equal" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"graphs_equal\":{\"with\":\"right_graph\"}," +
+    "\"as\":\"out\""
   } else if variant == "edge_projection" {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
@@ -653,6 +660,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
+  } else if variant == "graphs_equal" {
+    "\"equal\""
   } else {
     "\"id\",\"node_name\""
   }
@@ -666,6 +675,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
+  } else if variant == "graphs_equal" {
+    "\"equal\""
   } else {
     "\"node_name\""
   }

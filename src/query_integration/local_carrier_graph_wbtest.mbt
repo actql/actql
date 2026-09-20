@@ -159,6 +159,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "graphs_equal" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"graphs_equal\":{\"with\":\"right_graph\"}," +
+    "\"as\":\"out\""
   } else if variant == "edge_projection" {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
@@ -173,6 +180,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
+  } else if variant == "graphs_equal" {
+    "\"equal\""
   } else {
     "\"id\",\"node_name\""
   }
@@ -186,6 +195,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
+  } else if variant == "graphs_equal" {
+    "\"equal\""
   } else {
     "\"node_name\""
   }
@@ -2138,6 +2149,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "degree_both" {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
+  } else if variant == "graphs_equal" {
+    "sha256:e9f87b3bf1a837c8ac5b37d1c231c25071935f3dc3c202b3ace9c4d55acddc37"
   } else {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   }
@@ -2251,6 +2264,8 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
     1
+  } else if variant == "graphs_equal" {
+    1
   } else {
     2
   }
@@ -2288,6 +2303,8 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_nodes_predicate" {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
+  } else if variant == "graphs_equal" {
+    assert_true(graph_rows[0].contains("\"equal\":true"))
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -2401,6 +2418,7 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("degree_both", publication=true)
   run_standard_host_graph_relation_path("components_weak")
   run_standard_host_graph_relation_path("components_strong")
+  run_standard_host_graph_relation_path("graphs_equal", publication=true)
 }
 
 ///|
