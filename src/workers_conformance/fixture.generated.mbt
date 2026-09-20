@@ -55,6 +55,7 @@ fn captured_graph_fixture(
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
   ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
+  parameter_json? : String = "{\"minimum\":1}",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -107,6 +108,7 @@ fn captured_graph_fixture(
     join_steps~,
     managed_publication~,
     compute_filter~,
+    parameter_json~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)
@@ -428,7 +430,9 @@ fn join_graph_capacity_material(
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
   let window = variant == "window_fixed" || variant == "window_sliding"
-  let session = variant == "session"
+  let session = variant.has_prefix("session")
+  let session_global = variant == "session_global"
+  let session_parameter = variant == "session_parameter"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
@@ -446,6 +450,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if session_global {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"b\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else if session {
     "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
     "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"a\"}," +
@@ -464,7 +472,11 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
   } else if session {
-    "{\"session\":{\"by\":[\"payload\"],\"gap\":10}}"
+    "{\"session\":{\"by\":" +
+    (if session_global { "[]" } else { "[\"payload\"]" }) +
+    ",\"gap\":" +
+    (if session_parameter { "{\"$param\":\"minimum\"}" } else { "10" }) +
+    "}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
@@ -2761,6 +2773,9 @@ fn query_checked_program_fixture(
       new=if local_carrier_graph_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"graph\",\"result\":\"r\"}}}}"
+      } else if local_carrier_events_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"events\",\"result\":\"r\"}}}}"
       } else {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"compute_b\",\"result\":\"r\"}}}}"
