@@ -939,7 +939,7 @@
       "output": "vectors",
       "canonical": ["VEC.normalize_l2"],
       "variants": ["zero vector", "finite components", "rounding boundary"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
         "contract",
@@ -948,7 +948,10 @@
         "kernel",
         "managed",
         "standard_host",
+        "consumer_lifetime",
+        "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
@@ -957,7 +960,30 @@
         "src/vector_numeric/fixture.generated_wbtest.mbt",
         "src/vector_numeric/numeric_wbtest.mbt",
         "src/local_veca/normalize_wbtest.mbt",
-        "src/query_integration/local_carrier_vectors_wbtest.mbt"
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "shared_vector_generation_and_formal_bridge",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "8a204939",
+          "evidence": [
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "8a204939",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -1600,6 +1626,24 @@
         },
         {
           "name": "standard Host graph cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "normalize_vectors",
+      "sha": "8a204939",
+      "suites": [
+        {
+          "name": "portable shared Vectors generation",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
           "path": "adapters/duckdb-node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"

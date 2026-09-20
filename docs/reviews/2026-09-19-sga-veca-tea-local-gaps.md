@@ -12,17 +12,17 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 16/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 11/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 12/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 14/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, and normalized Vectors projections; 15/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 11/39, and publication 14/39. These are
-layer counts, not operation completion: ten entries are `complete` and 29 remain
+consumer lifetime 16/39, cancellation 12/39, and publication 15/39. These are
+layer counts, not operation completion: 11 entries are `complete` and 28 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -721,6 +721,20 @@ execution, physical-strategy, Local connector, and query-integration suites
 pass 1,084 tests on each of JS, Wasm, and native. Events-left execution,
 publication, and bounded-step cancellation remain open, so as-of join remains
 partial.
+
+At `8a204939`, normalization preserves one immutable Vectors generation across
+an actual `score_vectors` consumer and the formal Vectors-to-Relation Bridge.
+The portable standard Host fixture verifies exact normalized values, retained
+Named Result identity, two downstream Relation computations, independent
+release, and final reclamation on JS, Wasm, and native. The Node standard Host
+additionally publishes and retrieves the bridged Relation, delivers a timer
+cancellation after normalization starts, confirms stop, retries cleanup, and
+returns held and reserved bytes to zero. A family-specific conformance entry
+installs VecA without adding its kernel package to the ordinary module subset.
+The affected portable suites pass 397 tests per target; the real Node Host,
+Workers, package-composition, format, and generated-fixture checks also pass.
+This closes `normalize_vectors`; the remaining VecA operations retain their
+separate variant and lifecycle gaps.
 
 The Graph Bridge now lowers explicit node and edge sources through one finite
 typed expansion without collapsing repeated input positions. The expansion
