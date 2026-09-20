@@ -19,19 +19,26 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
   let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let scored = variant == "score_shared" || variant == "score_parameter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
+  } else if scored {
+    "[\"id\",\"embedding\",\"score\"]"
   } else {
     "[\"id\",\"embedding\"]"
   }
   let second_fields = if pooled {
     "[\"member_count\",\"embedding\",\"group\"]"
+  } else if scored {
+    "[\"score\",\"embedding\",\"id\"]"
   } else {
     "[\"embedding\",\"id\"]"
   }
   let kernel = if variant == "score" {
     "{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}"
+  } else if variant == "score_parameter" {
+    "{\"score_vectors\":{\"query\":{\"$param\":\"q\"}," + "\"metric\":\"dot\"}}"
   } else if variant == "pool" {
     "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}"
   } else if variant == "pool_normalize" {
@@ -66,8 +73,16 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   } else {
     kernel
   }
+  let parameters = if variant == "score_parameter" {
+    "{\"minimum\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"q\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}," +
+    "\"length\":2}}"
+  } else {
+    "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  parameters +
+  "," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
   "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
@@ -101,6 +116,14 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"query\":[1,0],\"metric\":\"dot\"}," +
     "\"as\":\"same_carrier\"},{\"from\":\"normalized\"," +
     "\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "score_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"score_vectors\":{\"query\":[0,1],\"metric\":\"dot\"}," +
+    "\"as\":\"scored\"},{\"from\":\"scored\"," +
+    "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
+    "{\"from\":\"scored\",\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
@@ -401,12 +424,19 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
   let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let scored = variant == "score_shared" || variant == "score_parameter"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
-    managed_publication=variant == "normalize_shared",
+    managed_publication=variant == "normalize_shared" ||
+      variant == "score_shared",
+    parameter_json=if variant == "score_parameter" {
+      "{\"minimum\":1,\"q\":[0,1]}"
+    } else {
+      "{\"minimum\":1}"
+    },
   )
-  if variant == "normalize_shared" {
+  if variant == "normalize_shared" || variant == "score_shared" {
     assert_true(
       @strategy.configure_captured_managed_identity_policy(
         run, true, false, false, false,
@@ -512,7 +542,15 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     assert_true(vector_rows[0].contains("\"member_count\":2"))
   }
   assert_true(
-    vector_rows[0].contains(if pooled { "\"group\":1" } else { "\"id\":1" }),
+    vector_rows[0].contains(
+      if pooled {
+        "\"group\":1"
+      } else if scored {
+        "\"id\":2"
+      } else {
+        "\"id\":1"
+      },
+    ),
   )
   assert_true(vector_rows[0].contains("\"embedding\""))
   if variant == "normalize_shared" {
@@ -536,6 +574,29 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
         @execution.EstablishedSourceRetained(
           @execution.logical_relation_canonical_contract_cid(),
           "sha256:4dcae0e6f3da74f61a0e6c3177bae62ac85ed202e6af740c4f672ffc61c2623a",
+        ),
+      ),
+    )
+  } else if variant == "score_shared" {
+    assert_eq(vector_rows, [
+      "{\"code\":\"é\",\"embedding\":[0,5],\"group\":1,\"id\":2,\"score\":5}", "{\"code\":\"😀\",\"embedding\":[3,4],\"group\":1,\"id\":1,\"score\":4}",
+    ])
+    let published = @execution.managed_obligations_identities(
+      vector_obligations,
+    ).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(published.length(), 1)
+    assert_eq(
+      @execution.managed_completed_identity_requirement_status(
+        vectors,
+        published[0],
+      ),
+      Some(
+        @execution.EstablishedSourceRetained(
+          @execution.logical_relation_canonical_contract_cid(),
+          "sha256:aeb34ab94d8916124de5af23a6bf39b6eff947099c6c6fbf486763662fd794e5",
         ),
       ),
     )
@@ -973,6 +1034,16 @@ test "standard Host runs bounded vector normalization provider" {
 ///|
 test "standard Host shares normalized Vectors with a Carrier consumer" {
   run_standard_vectors_provider("normalize_shared")
+}
+
+///|
+test "standard Host shares scored Vectors with a Carrier consumer" {
+  run_standard_vectors_provider("score_shared")
+}
+
+///|
+test "standard Host resolves a parameterized vector score query" {
+  run_standard_vectors_provider("score_parameter")
 }
 
 ///|

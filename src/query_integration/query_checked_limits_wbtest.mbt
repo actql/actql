@@ -1,5 +1,8 @@
 ///|
-fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
+fn query_checked_limits(
+  stage_count : Int,
+  parameter_count? : Int = 1,
+) -> @program_check.CompileLimits {
   {
     work: 100000000,
     artifacts: { bytes: 10000000, nodes: 1000000, depth: 100, },
@@ -7,7 +10,7 @@ fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
       stages: stage_count,
       steps: stage_count,
       results: stage_count,
-      parameters: 1,
+      parameters: parameter_count,
       bindings: 100,
       slots: 1000,
       references: 1000,

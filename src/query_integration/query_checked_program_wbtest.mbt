@@ -701,6 +701,11 @@ fn query_checked_program_fixture(
           } else {
             10
           },
+          parameter_count=if local_carrier_vectors_variant == "score_parameter" {
+            2
+          } else {
+            1
+          },
         ),
       },
     ) {

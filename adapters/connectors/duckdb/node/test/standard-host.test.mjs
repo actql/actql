@@ -2053,6 +2053,136 @@ async function exerciseStrategyGraph(
       force: true,
     });
   }
+  const scoredVectorPublicationProgram = structuredClone(
+    carrierVectorPublicationProgram,
+  );
+  scoredVectorPublicationProgram.stages[1].steps[0].values.rows = [
+    {id: 1, embedding: [3, 4]},
+    {id: 2, embedding: [0, 5]},
+  ];
+  scoredVectorPublicationProgram.stages[2].steps = [{
+    from: 'rows',
+    to_vectors: {id: 'id', vector: 'embedding'},
+    as: 'source',
+  }, {
+    from: 'source',
+    score_vectors: {query: [0, 1], metric: 'dot'},
+    as: 'scored',
+  }, {
+    from: 'scored', normalize_vectors: true, as: 'same_carrier',
+  }, {
+    from: 'scored', vectors: true, as: 'out',
+  }];
+  scoredVectorPublicationProgram.stages[2].results.r.fields =
+    ['id', 'embedding', 'score'];
+  scoredVectorPublicationProgram.stages[3].steps[0].select =
+    ['id', 'embedding', 'score'];
+  scoredVectorPublicationProgram.stages[3].results.r.fields =
+    ['id', 'embedding', 'score'];
+  scoredVectorPublicationProgram.stages[4].steps[0].select =
+    ['score', 'embedding', 'id'];
+  scoredVectorPublicationProgram.stages[4].results.r.fields =
+    ['score', 'embedding', 'id'];
+  const scoredVectorPublicationFixture = fixture.strategyFixtureVecaCreate(
+    ...args,
+    JSON.stringify(scoredVectorPublicationProgram),
+    orderedContract,
+  );
+  const scoredVectorCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(scoredVectorPublicationFixture),
+    suppliedLimits,
+  );
+  const scoredVectorPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/scored-vector-publication-entry-',
+  ));
+  let scoredVectorPublicationOwner;
+  let scoredVectorPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        scoredVectorPublicationFixture,
+        scoredVectorCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureVecaSubset(
+      scoredVectorPublicationFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 1);
+    scoredVectorPublicationStore = await openLocalPublicationStore({
+      directory: scoredVectorPublicationDirectory,
+      storeAuthorityCid: hash('scored-vector-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'scored-vector-publication-attempt',
+    );
+    scoredVectorPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: scoredVectorPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    );
+    assert.equal(scoredVectorPublicationOwner.status, 'published');
+    assert.equal(
+      scoredVectorPublicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.deepEqual(
+      scoredVectorPublicationOwner.execution.completed.map(
+        value => value.realization,
+      ),
+      Array(4).fill('local-managed'),
+    );
+    const occurrence = scoredVectorPublicationOwner.execution
+      .publicationInventory.occurrences[0];
+    const received = [];
+    await scoredVectorPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(
+      JSON.parse(Buffer.concat(received).toString('utf8')),
+      [
+        {id: 2, embedding: [0, 5], score: 5},
+        {id: 1, embedding: [3, 4], score: 4},
+      ],
+    );
+  } finally {
+    if (scoredVectorPublicationOwner !== undefined) {
+      await scoredVectorPublicationOwner.close();
+      assert.equal(scoredVectorPublicationOwner.cleanupPending(), false);
+      assert.equal(await scoredVectorPublicationOwner.cleanup(), true);
+      assert.equal(
+        scoredVectorPublicationOwner.execution.usage().heldBytes,
+        0n,
+      );
+      assert.equal(
+        scoredVectorPublicationOwner.execution.usage()
+          .reservedExecutionBytes,
+        0n,
+      );
+    }
+    scoredVectorCapture.close();
+    await scoredVectorPublicationStore?.close();
+    await rm(scoredVectorPublicationDirectory, {
+      recursive: true,
+      force: true,
+    });
+  }
   const graphCancellationCases = [{
     name: 'node-rows',
     rows: 100,
@@ -2166,10 +2296,19 @@ async function exerciseStrategyGraph(
   }, {
     name: 'vector-normalize',
     family: 'veca',
+    operation: 'normalize',
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
     fields: ['id', 'embedding'],
+  }, {
+    name: 'vector-score',
+    family: 'veca',
+    operation: 'score',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    fields: ['id', 'embedding', 'score'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -2324,19 +2463,35 @@ async function exerciseStrategyGraph(
             }, {
               id: 'vectors',
               inputs: {rows: {result: {stage: 'values', result: 'r'}}},
-              steps: [{
-                from: 'rows',
-                to_vectors: {id: 'id', vector: 'embedding'},
-                as: 'source',
-              }, {
-                from: 'source', normalize_vectors: true, as: 'normalized',
-              }, {
-                from: 'normalized',
-                score_vectors: {query: [1, 0], metric: 'dot'},
-                as: 'same_carrier',
-              }, {
-                from: 'normalized', vectors: true, as: 'out',
-              }],
+              steps: cancellationCase.operation === 'score'
+                ? [{
+                  from: 'rows',
+                  to_vectors: {id: 'id', vector: 'embedding'},
+                  as: 'source',
+                }, {
+                  from: 'source',
+                  score_vectors: {query: [0, 1], metric: 'dot'},
+                  as: 'scored',
+                }, {
+                  from: 'scored',
+                  normalize_vectors: true,
+                  as: 'same_carrier',
+                }, {
+                  from: 'scored', vectors: true, as: 'out',
+                }]
+                : [{
+                  from: 'rows',
+                  to_vectors: {id: 'id', vector: 'embedding'},
+                  as: 'source',
+                }, {
+                  from: 'source', normalize_vectors: true, as: 'normalized',
+                }, {
+                  from: 'normalized',
+                  score_vectors: {query: [1, 0], metric: 'dot'},
+                  as: 'same_carrier',
+                }, {
+                  from: 'normalized', vectors: true, as: 'out',
+                }],
               results: {r: {from: 'out', fields: ['id', 'embedding']}},
             }, {
               id: 'consumer_a',

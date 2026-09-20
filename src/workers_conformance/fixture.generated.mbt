@@ -717,19 +717,26 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
   let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let scored = variant == "score_shared" || variant == "score_parameter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
+  } else if scored {
+    "[\"id\",\"embedding\",\"score\"]"
   } else {
     "[\"id\",\"embedding\"]"
   }
   let second_fields = if pooled {
     "[\"member_count\",\"embedding\",\"group\"]"
+  } else if scored {
+    "[\"score\",\"embedding\",\"id\"]"
   } else {
     "[\"embedding\",\"id\"]"
   }
   let kernel = if variant == "score" {
     "{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}"
+  } else if variant == "score_parameter" {
+    "{\"score_vectors\":{\"query\":{\"$param\":\"q\"}," + "\"metric\":\"dot\"}}"
   } else if variant == "pool" {
     "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}"
   } else if variant == "pool_normalize" {
@@ -764,8 +771,16 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   } else {
     kernel
   }
+  let parameters = if variant == "score_parameter" {
+    "{\"minimum\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"q\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}," +
+    "\"length\":2}}"
+  } else {
+    "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  parameters +
+  "," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
   "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
@@ -799,6 +814,14 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"query\":[1,0],\"metric\":\"dot\"}," +
     "\"as\":\"same_carrier\"},{\"from\":\"normalized\"," +
     "\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "score_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"score_vectors\":{\"query\":[0,1],\"metric\":\"dot\"}," +
+    "\"as\":\"scored\"},{\"from\":\"scored\"," +
+    "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
+    "{\"from\":\"scored\",\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
@@ -2375,7 +2398,10 @@ fn query_catalog_from_wire(
 
 ///|
 /// Fixture owner: query_integration/query_checked_limits_wbtest.mbt
-fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
+fn query_checked_limits(
+  stage_count : Int,
+  parameter_count? : Int = 1,
+) -> @program_check.CompileLimits {
   {
     work: 100000000,
     artifacts: { bytes: 10000000, nodes: 1000000, depth: 100, },
@@ -2383,7 +2409,7 @@ fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
       stages: stage_count,
       steps: stage_count,
       results: stage_count,
-      parameters: 1,
+      parameters: parameter_count,
       bindings: 100,
       slots: 1000,
       references: 1000,
@@ -3108,6 +3134,11 @@ fn query_checked_program_fixture(
             20
           } else {
             10
+          },
+          parameter_count=if local_carrier_vectors_variant == "score_parameter" {
+            2
+          } else {
+            1
           },
         ),
       },
