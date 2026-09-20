@@ -127,7 +127,7 @@ fn native_result_evidence_failure(
 
 ///|
 fn execute_native_publication_local_run() -> @strategy.CapturedDAG raise {
-  let (run, _) = captured_graph_fixture()
+  let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let revision = channel_test_selection(run, registry)
   let registration = @strategy.strategy_registration(revision, 1).unwrap()
@@ -167,7 +167,142 @@ fn execute_native_publication_local_run() -> @strategy.CapturedDAG raise {
         is Some(task) {
     @local_driver.execute_local_dispatch(implementation, host, task).unwrap()
   }
+  @host_driver.stop_dispatch_driver(driver)
+  @mock.close_mock_query_issuer(issuer)
   run
+}
+
+///|
+fn execute_native_publication_duckdb_run(
+  library_path : String,
+) -> (@strategy.CapturedDAG, Array[@native_host.NativeStrategyComputeRuntime]) raise {
+  let (run, issuer) = captured_graph_fixture()
+  let registry = search_registry()
+  let registration = @connector.capability_registration_at(registry, 1).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 3,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let retention = @duckdb_compute.duckdb_task_retention_capacity(
+    fixed_compute_attempt_limits(),
+  ).unwrap()
+  let offers = Array::makei(3, index => {
+    @strategy.prepare_task_offer(
+      run,
+      index + 1,
+      registration,
+      8,
+      [
+        { work_slots: [0, 2, 3, 5, 6, 7], milliseconds: Some(1L), },
+        { work_slots: [1, 4], milliseconds: Some(20L), },
+      ],
+      {
+        transfer_bytes: 100000L,
+        retained_bytes: retention,
+        execution_bytes: 134217728L,
+      },
+      100,
+    ).unwrap()
+  })
+  ignore(@strategy.revise_strategy(run, offers, registry, None).unwrap())
+  let driver = @host_driver.open_dispatch_driver(run)
+  let limits = duckdb_dispatch_module_limits()
+  let implementation = @duckdb_driver.prepare_duckdb_dispatch_module(
+    driver,
+    registry,
+    registration,
+    dispatch_test_generated(run).map(
+      @execution.generated_completion_preparation,
+    ),
+    limits,
+  ).unwrap()
+  let entries = @connector.install_capability_implementations(
+    registry,
+    [
+      (
+        registration,
+        fn(_context : Unit, task, selected, request) {
+          @duckdb_driver.prepare_duckdb_dispatch(
+            implementation, task, selected, request,
+          )
+        },
+      ),
+    ],
+    1,
+  ).unwrap()
+  let host = @host_driver.open_dispatch_host(
+    driver,
+    entries,
+    limits.capacity,
+    100,
+    10000,
+  ).unwrap()
+  let library = @native_duckdb.load_library(library_path).unwrap()
+  let runtimes = []
+  let mut complete = false
+  while !complete {
+    let expected_task = @strategy.next_captured_task(run).unwrap_or(-1)
+    let task = match @host_driver.prepare_next_installed_task(host, ()) {
+      Ok(Some(value)) => value
+      Ok(None) => {
+        complete = true
+        continue
+      }
+      Err(NoStrategy) => abort("DuckDB publication has no strategy")
+      Err(MissingImplementation) =>
+        abort("DuckDB publication is missing an implementation")
+      Err(Dispatch(PendingTask)) =>
+        abort("DuckDB publication left a pending task")
+      Err(Dispatch(StaleTask)) => abort("DuckDB publication task is stale")
+      Err(Dispatch(Run(UnsupportedGraph))) =>
+        abort("DuckDB publication graph is unsupported")
+      Err(Dispatch(Run(ForeignCapture))) =>
+        abort("DuckDB publication capture is foreign")
+      Err(Dispatch(Run(NotReady))) =>
+        abort("DuckDB publication task is not ready")
+      Err(Dispatch(Run(Stopped))) => abort("DuckDB publication Run stopped")
+      Err(Dispatch(Run(ForeignCandidate))) =>
+        abort("DuckDB publication candidate is foreign")
+      Err(Dispatch(Run(MissingOutput))) =>
+        abort(
+          "DuckDB publication output is missing for task " +
+          expected_task.to_string(),
+        )
+      Err(Dispatch(Run(Capture(_)))) =>
+        abort("DuckDB publication source capture failed")
+      Err(Dispatch(Run(Binding(_)))) =>
+        abort("DuckDB publication input binding failed")
+      Err(Dispatch(Run(Read(_)))) =>
+        abort("DuckDB publication input read failed")
+      Err(Dispatch(Run(Compute(_)))) =>
+        abort("DuckDB publication compute preparation failed")
+      Err(Dispatch(Run(Implementation(_)))) =>
+        abort("DuckDB publication implementation failed")
+      Err(Dispatch(Run(Physical(_)))) =>
+        abort("DuckDB publication physical admission failed")
+      Err(Dispatch(Candidate(_))) =>
+        abort("DuckDB publication request admission failed")
+      Err(Implementation(_)) => abort("DuckDB publication preparation failed")
+    }
+    let setup = @duckdb_driver.take_duckdb_dispatch(implementation, host, task).unwrap()
+    let database = library.open_database().unwrap()
+    let runtime = @native_host.start_native_strategy_compute_runtime(
+      setup,
+      database,
+      native_compute_import_limits(),
+      100000L,
+      1000000L,
+    ).unwrap()
+    ignore(
+      @native_host.execute_native_strategy_compute_runtime(runtime).unwrap(),
+    )
+    runtimes.push(runtime)
+  }
+  @host_driver.stop_dispatch_driver(driver)
+  @mock.close_mock_query_issuer(issuer)
+  (run, runtimes)
 }
 
 ///|
@@ -371,16 +506,13 @@ fn consume_native_publication_result(
 }
 
 ///|
-test "standard Local output reaches the durable native publication commit" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
-    is Some(library_path) else {
-    return
-  }
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
-    return
-  }
-  let token = "local-publication-" + @env.now().to_string()
-  let run = execute_native_publication_local_run()
+fn verify_native_publication_run(
+  run : @strategy.CapturedDAG,
+  token : String,
+  sqlite_library_path : String,
+  root : String,
+  duckdb_runtimes? : Array[@native_host.NativeStrategyComputeRuntime]? = None,
+) -> Unit raise {
   let graph = @strategy.captured_dag_graph(run)
   let exports = [
     @publication_host.prepare_captured_result_publication_export(
@@ -400,7 +532,7 @@ test "standard Local output reaches the durable native publication commit" {
     token,
   )
   let authority = native_publication_cid(token + "-store")
-  let library = @native_sqlite.load_library(library_path).unwrap()
+  let library = @native_sqlite.load_library(sqlite_library_path).unwrap()
   let store = @native_publication_store.open_store(
     library, root, authority, 1048576L, 16L, 65536L,
   ).unwrap()
@@ -603,6 +735,15 @@ test "standard Local output reaches the durable native publication commit" {
     assert_eq(consume_native_publication_result(session), expected)
   }
   assert_true(reopened.close().unwrap())
+  match duckdb_runtimes {
+    Some(runtimes) =>
+      for runtime in runtimes {
+        assert_true(
+          @native_host.close_native_strategy_compute_runtime(runtime).unwrap(),
+        )
+      }
+    None => ()
+  }
   for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
     @strategy.close_captured_task_output(run, task)
   }
@@ -610,4 +751,48 @@ test "standard Local output reaches the durable native publication commit" {
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
+}
+
+///|
+test "standard Local output reaches the durable native publication commit" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    return
+  }
+  let token = "local-publication-" + @env.now().to_string()
+  verify_native_publication_run(
+    execute_native_publication_local_run(),
+    token,
+    sqlite_library_path,
+    root,
+  )
+}
+
+///|
+test "standard DuckDB output reaches the durable native publication commit" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY")
+    is Some(duckdb_library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    return
+  }
+  let token = "duckdb-publication-" + @env.now().to_string()
+  let (run, runtimes) = execute_native_publication_duckdb_run(
+    duckdb_library_path,
+  )
+  verify_native_publication_run(
+    run,
+    token,
+    sqlite_library_path,
+    root,
+    duckdb_runtimes=Some(runtimes),
+  )
 }
