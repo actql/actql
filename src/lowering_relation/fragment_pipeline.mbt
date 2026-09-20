@@ -23,6 +23,7 @@ pub fn prepare_fragment_pipeline(
     | TimeSeriesStep(_)
     | WindowStep(_)
     | JoinStep(_)
+    | IntervalJoinStep(_)
     | CrossJoinStep(_)
     | AppendStep(_)
     | SetStep(_)

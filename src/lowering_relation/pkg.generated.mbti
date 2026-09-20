@@ -161,6 +161,8 @@ pub fn emit_fragment_row_limits_body(FragmentRowLimits, String?, @encode_core.Wr
 
 pub fn emit_fragment_source_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_interval_join(PreparedIntervalJoin, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_join_kernel(PreparedJoinKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -324,6 +326,32 @@ pub fn inner_join_matches_node(PreparedInnerJoin, PreparedNode) -> Bool
 pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]
+
+pub fn interval_join_field_at(PreparedIntervalJoin, Int) -> InnerJoinField?
+
+pub fn interval_join_field_count(PreparedIntervalJoin) -> Int
+
+pub fn interval_join_input(PreparedIntervalJoin, Bool) -> String
+
+pub fn interval_join_input_schema(PreparedIntervalJoin, Bool) -> @relation_schema.Schema
+
+pub fn interval_join_key_at(PreparedIntervalJoin, Int) -> (@relation_schema.FieldName, @relation_schema.FieldName)?
+
+pub fn interval_join_key_count(PreparedIntervalJoin) -> Int
+
+pub fn interval_join_kind(PreparedIntervalJoin) -> @relation_join_shape.Kind
+
+pub fn interval_join_mode(PreparedIntervalJoin) -> @relation_join_shape.IntervalMode
+
+pub fn interval_join_operand(PreparedIntervalJoin, Bool) -> @relation_join_shape.TemporalOperand
+
+pub fn interval_join_output_limit(PreparedIntervalJoin) -> Int64?
+
+pub fn interval_join_owner(PreparedIntervalJoin) -> BoundPrepared
+
+pub fn interval_join_step(PreparedIntervalJoin) -> Int
+
+pub fn interval_join_uses_timestamps(PreparedIntervalJoin) -> Bool
 
 pub fn join_kernel_input(PreparedJoinKernel, Bool) -> String
 
@@ -1024,6 +1052,13 @@ pub(all) enum InnerJoinIssue {
   InvalidGuard
 } derive(Eq, @debug.Debug)
 
+pub(all) enum IntervalJoinIssue {
+  InvalidIntervalJoinLimits
+  InvalidIntervalJoinShape
+  IntervalJoinPreparationLimit
+  InvalidIntervalJoinGuard
+} derive(Eq, @debug.Debug)
+
 pub struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor
@@ -1149,6 +1184,7 @@ pub enum Payload {
   AssertRows(@relation_typing.CheckedOperation)
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
+  IntervalJoinRows(@relation_join_shape.CheckedIntervalJoin)
   CrossJoinRows(@relation_join_shape.CheckedCrossJoin)
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
@@ -1258,6 +1294,8 @@ type PreparedGroup
 
 type PreparedInnerJoin
 
+type PreparedIntervalJoin
+
 type PreparedJoinKernel
 
 type PreparedKernel
@@ -1307,6 +1345,7 @@ pub enum PreparedStep {
   WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
+  IntervalJoinStep(PreparedIntervalJoin)
   CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
@@ -1397,6 +1436,7 @@ pub(all) enum SequenceIssue {
   WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
+  IntervalJoinFailure(Int, IntervalJoinIssue)
   CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)

@@ -173,6 +173,7 @@ pub fn local_managed_sequence_supported(
       @lower.SetStep(_) => true
       @lower.CrossJoinStep(_) => true
       @lower.JoinStep(_) => true
+      @lower.IntervalJoinStep(_) => false
       @lower.NestStep(_) => true
       @lower.GraphBasicStep(_) => false
       @lower.GraphStructuralStep(_) => false

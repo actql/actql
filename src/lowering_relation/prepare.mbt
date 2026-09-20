@@ -53,6 +53,7 @@ pub enum Payload {
   AssertRows(@relation.CheckedOperation)
   JsonPick(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
+  IntervalJoinRows(@join.CheckedIntervalJoin)
   CrossJoinRows(@join.CheckedCrossJoin)
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
@@ -206,6 +207,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     JsonPick(_) => "REL.json.pick"
     InnerJoin(_) => "REL.join"
+    IntervalJoinRows(_) => "TEA.join.interval"
     CrossJoinRows(_) => "REL.cross_join"
     AppendRows(_) => "REL.unionAll"
     // Nest lowers to a registered multi-node expansion whose final node is a
@@ -303,7 +305,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Set(checked~, ..) => Some(SetRows(checked))
     WindowGroup(v) => Some(WindowGroup(v))
     Nest(checked~, ..) => Some(NestRows(checked))
-    IntervalJoin(..) | AsOfJoin(..) | Sequence(_) | Calendar(_) => None
+    IntervalJoin(checked~, ..) => Some(IntervalJoinRows(checked))
+    AsOfJoin(..) | Sequence(_) | Calendar(_) => None
     Projection(value) => Some(CarrierProjection(value))
     Graph(value) =>
       match @graph.operation(value) {
@@ -432,6 +435,7 @@ pub fn prepare(
       AssertRows(_) => ("assert", 1)
       JsonPick(_) => ("json_pick", 1)
       InnerJoin(_) => ("join", 2)
+      IntervalJoinRows(_) => ("interval_join", 2)
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
@@ -634,6 +638,7 @@ pub fn prepare(
         used[prefix] = true
         Some(prefix)
       }
+      IntervalJoinRows(_) => None
       Distinct(op) => {
         let width = @schema.field_count(@relation.output_schema(op))
         if width > limits.max_work - work {

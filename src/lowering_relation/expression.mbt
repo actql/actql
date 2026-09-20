@@ -519,6 +519,7 @@ fn lower_expression_measured(
       | Watermark(_)
       | JsonPick(_)
       | InnerJoin(_)
+      | IntervalJoinRows(_)
       | CrossJoinRows(_)
       | AppendRows(_)
       | SetRows(_)

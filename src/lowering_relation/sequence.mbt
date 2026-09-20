@@ -13,6 +13,7 @@ pub enum PreparedStep {
   WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
+  IntervalJoinStep(PreparedIntervalJoin)
   CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
@@ -52,6 +53,7 @@ pub(all) enum SequenceIssue {
   WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
+  IntervalJoinFailure(Int, IntervalJoinIssue)
   CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
@@ -126,6 +128,18 @@ pub fn prepare_sequence(
           names -= @utf8.encode(name).length()
         }
         JoinStep(kernel)
+      }
+      IntervalJoinRows(_) => {
+        let prepared = match prepare_interval_join(owner, i, bindings, names) {
+          Ok(value) => value
+          Err(issue) => return Err(IntervalJoinFailure(i, issue))
+        }
+        bindings -= prepared.keys.length() +
+          prepared.projection.length() +
+          interval_operand_field_count(prepared.left_operand) +
+          interval_operand_field_count(prepared.right_operand)
+        names -= prepared.name_bytes
+        IntervalJoinStep(prepared)
       }
       CrossJoinRows(_) => {
         let kernel = match
@@ -506,6 +520,7 @@ pub fn emit_sequence_steps(
       TimeSeriesStep(v) => emit_time_series_node(v, out)
       WindowStep(v) => emit_window_node(v, out)
       JoinStep(v) => emit_join_kernel(v, out)
+      IntervalJoinStep(v) => emit_interval_join(v, out)
       CrossJoinStep(v) => emit_cross_join_kernel(v, out)
       AppendStep(v) => emit_append_kernel(v, out)
       SetStep(v) => emit_set_kernel(v, out)

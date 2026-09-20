@@ -776,6 +776,7 @@ fn[T : RelationRows] run_sequence_steps(
         }
         evaluate(i, kernel, left.table, right.table)
       }
+      @lower.IntervalJoinStep(_) => return Err(InputSet)
       @lower.CrossJoinStep(kernel) => {
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&

@@ -302,6 +302,7 @@ fn prepare_kernel_measured(
     | TimeSeriesValue(_)
     | RowWindow(_)
     | InnerJoin(_)
+    | IntervalJoinRows(_)
     | CrossJoinRows(_)
     | AppendRows(_)
     | SetRows(_)

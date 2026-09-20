@@ -67,6 +67,7 @@ fn prepare_ordered_budgets(
       | @lower.TimeSeriesStep(_)
       | @lower.WindowStep(_)
       | @lower.JoinStep(_)
+      | @lower.IntervalJoinStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_)

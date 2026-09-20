@@ -389,6 +389,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.TimeSeriesStep(_)
       | @lower.WindowStep(_)
       | @lower.JoinStep(_)
+      | @lower.IntervalJoinStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_)
