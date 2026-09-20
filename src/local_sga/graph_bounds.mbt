@@ -19,6 +19,7 @@ priv struct GraphBoundsState {
   source : @storage.Storage
   schema : @schema.Schema
   value_limits : @value.Limits
+  operation : @lower.GraphBasicKind
   node_limit : Int64?
   edge_limit : Int64?
   degree_limit : Int64?
@@ -63,6 +64,11 @@ struct GraphBoundsExecution {
 }
 
 ///|
+struct GraphDegreeExecution {
+  inner : GraphBoundsExecution
+}
+
+///|
 pub enum GraphBoundsPoll {
   GraphBoundsContinue(progress~ : Int64, work~ : Int64)
   GraphBoundsComplete(
@@ -72,6 +78,18 @@ pub enum GraphBoundsPoll {
   )
   GraphBoundsFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
   GraphBoundsStopped(@bounded.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+///|
+pub enum GraphDegreePoll {
+  GraphDegreeContinue(progress~ : Int64, work~ : Int64)
+  GraphDegreeComplete(
+    @execution.CompletedOutput,
+    progress~ : Int64,
+    work~ : Int64
+  )
+  GraphDegreeFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
+  GraphDegreeStopped(@bounded.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 ///|
@@ -192,6 +210,8 @@ fn checked_graph_bounds_value(
   field : @schema.Field,
 ) -> @value.CheckedValue? {
   match field.name {
+    @schema.Unqualified("degree") =>
+      @value.checked_number_value(state.actual.to_double(), field.contract)
     @schema.Unqualified("actual") =>
       @value.checked_number_value(state.actual.to_double(), field.contract)
     @schema.Unqualified("kind") =>
@@ -210,6 +230,18 @@ fn checked_graph_bounds_value(
           })
         None => @value.checked_null_value(field.contract)
       }
+    @schema.Unqualified("node") =>
+      match state.node {
+        Some(node) =>
+          @storage.node_identity(state.source, node).bind(value => {
+            @value.recheck_runtime_value(
+              value.value,
+              field.contract,
+              state.value_limits,
+            )
+          })
+        None => None
+      }
     _ => None
   }
 }
@@ -218,7 +250,12 @@ fn checked_graph_bounds_value(
 fn select_graph_bounds_row(state : GraphBoundsState) -> Bool {
   let candidate = state.candidate
   state.candidate += 1
-  if candidate == 0 {
+  if state.operation != @lower.BoundsBasic {
+    let node = state.selected[candidate]
+    state.actual = state.degrees[node]
+    state.node = Some(node)
+    return true
+  } else if candidate == 0 {
     if state.node_limit is Some(maximum) &&
       @storage.node_count(state.source).to_int64() > maximum {
       state.kind = "nodes"
@@ -248,6 +285,15 @@ fn select_graph_bounds_row(state : GraphBoundsState) -> Bool {
     }
   }
   false
+}
+
+///|
+fn graph_bounds_candidate_count(state : GraphBoundsState) -> Int {
+  if state.operation == @lower.BoundsBasic {
+    state.selected.length() + 2
+  } else {
+    state.selected.length()
+  }
 }
 
 ///|
@@ -284,8 +330,19 @@ fn graph_bounds_step(
             state.degrees.get(target) is Some(target_degree) else {
             return @bounded.Failed(GraphBoundsInputUnavailable, progress, used)
           }
-          state.degrees[source] = source_degree + 1L
-          state.degrees[target] = target_degree + 1L
+          match state.operation {
+            @lower.DegreeIncomingBasic =>
+              state.degrees[target] = target_degree + 1L
+            @lower.DegreeOutgoingBasic =>
+              state.degrees[source] = source_degree + 1L
+            _ =>
+              if source == target {
+                state.degrees[source] = source_degree + 2L
+              } else {
+                state.degrees[source] = source_degree + 1L
+                state.degrees[target] = target_degree + 1L
+              }
+          }
           state.source_index += 1
           used += 1
         } else {
@@ -341,7 +398,7 @@ fn graph_bounds_step(
           state.phase = PrepareSort
         }
       SelectRow =>
-        if state.candidate >= state.selected.length() + 2 {
+        if state.candidate >= graph_bounds_candidate_count(state) {
           state.phase = Finish
         } else {
           used += 1
@@ -443,10 +500,104 @@ pub fn start_graph_bounds(
     @lower.graph_basic_bounds(prepared)
     is Some((node_limit, edge_limit, degree_limit)) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) else {
+    @graph.producer_read_storage(input) is Some(_) else {
     return Err(InvalidGraphBoundsKernel)
   }
-  let schema = @lower.graph_basic_output_schema(prepared)
+  start_graph_diagnostic(
+    control,
+    preparation,
+    owner,
+    step,
+    @lower.BoundsBasic,
+    @lower.graph_basic_output_schema(prepared),
+    node_limit,
+    edge_limit,
+    degree_limit,
+    input,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  )
+}
+
+///|
+pub fn start_graph_degree(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[GraphDegreeExecution, GraphBoundsIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphBasicStep(prepared)) else {
+    return Err(InvalidGraphBoundsKernel)
+  }
+  let kind = @lower.graph_basic_kind(prepared)
+  guard (
+      kind == @lower.DegreeIncomingBasic ||
+      kind == @lower.DegreeOutgoingBasic ||
+      kind == @lower.DegreeBothBasic
+    ) &&
+    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @graph.producer_read_storage(input) is Some(_) else {
+    return Err(InvalidGraphBoundsKernel)
+  }
+  start_graph_diagnostic(
+    control,
+    preparation,
+    owner,
+    step,
+    kind,
+    @lower.graph_basic_output_schema(prepared),
+    None,
+    None,
+    None,
+    input,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  ).map(inner => { inner, })
+}
+
+///|
+fn start_graph_diagnostic(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  owner : @lower.BoundPrepared,
+  step : Int,
+  operation : @lower.GraphBasicKind,
+  schema : @schema.Schema,
+  node_limit : Int64?,
+  edge_limit : Int64?,
+  degree_limit : Int64?,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
+  guard @graph.producer_read_storage(input) is Some(source) else {
+    return Err(GraphBoundsInputUnavailable)
+  }
   let nodes = @storage.node_count(source)
   let width = @schema.field_count(schema)
   guard graph_bounds_workspace(nodes, width) is Some(workspace) else {
@@ -492,6 +643,7 @@ pub fn start_graph_bounds(
       max_depth: limits.max_depth,
       max_text_bytes: limits.max_text_bytes,
     },
+    operation,
     node_limit,
     edge_limit,
     degree_limit,
@@ -548,10 +700,24 @@ pub fn graph_bounds_max_noninterruptible_value_nodes(
 }
 
 ///|
+pub fn graph_degree_max_noninterruptible_value_nodes(
+  value : GraphDegreeExecution,
+) -> Int {
+  graph_bounds_max_noninterruptible_value_nodes(value.inner)
+}
+
+///|
 pub fn graph_bounds_max_noninterruptible_value_bytes(
   value : GraphBoundsExecution,
 ) -> Int {
   value.max_noninterruptible_value_bytes
+}
+
+///|
+pub fn graph_degree_max_noninterruptible_value_bytes(
+  value : GraphDegreeExecution,
+) -> Int {
+  graph_bounds_max_noninterruptible_value_bytes(value.inner)
 }
 
 ///|
@@ -585,8 +751,32 @@ pub fn advance_graph_bounds(
 }
 
 ///|
+pub fn advance_graph_degree(
+  value : GraphDegreeExecution,
+  quantum : Int,
+) -> Result[GraphDegreePoll, GraphBoundsIssue] {
+  advance_graph_bounds(value.inner, quantum).map(poll => {
+    match poll {
+      GraphBoundsContinue(progress~, work~) =>
+        GraphDegreeContinue(progress~, work~)
+      GraphBoundsComplete(output, progress~, work~) =>
+        GraphDegreeComplete(output, progress~, work~)
+      GraphBoundsFailed(issue, progress~, work~) =>
+        GraphDegreeFailed(issue, progress~, work~)
+      GraphBoundsStopped(reason, progress~, work~) =>
+        GraphDegreeStopped(reason, progress~, work~)
+    }
+  })
+}
+
+///|
 pub fn graph_bounds_cleanup_pending(value : GraphBoundsExecution) -> Bool {
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+pub fn graph_degree_cleanup_pending(value : GraphDegreeExecution) -> Bool {
+  graph_bounds_cleanup_pending(value.inner)
 }
 
 ///|
@@ -596,4 +786,11 @@ pub fn cleanup_graph_bounds(
   @bounded.cleanup(value.session).map_err(issue => {
     GraphBoundsExecutionIssue(issue)
   })
+}
+
+///|
+pub fn cleanup_graph_degree(
+  value : GraphDegreeExecution,
+) -> Result[Bool, GraphBoundsIssue] {
+  cleanup_graph_bounds(value.inner)
 }

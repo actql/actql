@@ -16,6 +16,8 @@ pub fn advance_graft(GraftExecution, Int) -> Result[GraftPoll, GraftIssue]
 
 pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
 
+pub fn advance_graph_degree(GraphDegreeExecution, Int) -> Result[GraphDegreePoll, GraphBoundsIssue]
+
 pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, MatchEdgesIssue]
 
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
@@ -25,6 +27,8 @@ pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, Norma
 pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
 
 pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
+
+pub fn cleanup_graph_degree(GraphDegreeExecution) -> Result[Bool, GraphBoundsIssue]
 
 pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 
@@ -43,6 +47,12 @@ pub fn graph_bounds_cleanup_pending(GraphBoundsExecution) -> Bool
 pub fn graph_bounds_max_noninterruptible_value_bytes(GraphBoundsExecution) -> Int
 
 pub fn graph_bounds_max_noninterruptible_value_nodes(GraphBoundsExecution) -> Int
+
+pub fn graph_degree_cleanup_pending(GraphDegreeExecution) -> Bool
+
+pub fn graph_degree_max_noninterruptible_value_bytes(GraphDegreeExecution) -> Int
+
+pub fn graph_degree_max_noninterruptible_value_nodes(GraphDegreeExecution) -> Int
 
 pub fn match_edges_cleanup_pending(MatchEdgesExecution) -> Bool
 
@@ -69,6 +79,8 @@ pub fn normalize_stopped(NormalizeExecution) -> Bool
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
 
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphBoundsExecution, GraphBoundsIssue]
+
+pub fn start_graph_degree(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDegreeExecution, GraphBoundsIssue]
 
 pub fn start_match_edges(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[MatchEdgesExecution, MatchEdgesIssue]
 
@@ -113,6 +125,15 @@ pub enum GraphBoundsPoll {
   GraphBoundsComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   GraphBoundsFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
   GraphBoundsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type GraphDegreeExecution
+
+pub enum GraphDegreePoll {
+  GraphDegreeContinue(progress~ : Int64, work~ : Int64)
+  GraphDegreeComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  GraphDegreeFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
+  GraphDegreeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type MatchEdgesExecution

@@ -1,5 +1,5 @@
 ///|
-fn carrier_graph_source_owner() -> @lower.BoundPrepared {
+fn carrier_graph_source_owner_with_rows(rows : String) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
@@ -7,10 +7,9 @@ fn carrier_graph_source_owner() -> @lower.BoundPrepared {
       "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
       "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
       "\"weight\":{\"type\":\"number\",\"nullable\":false}}," +
-      "\"rows\":[{\"id\":1,\"src\":1,\"dst\":2," +
-      "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
-      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
-      "\"weight\":20}]},\"as\":\"source\"}]",
+      "\"rows\":" +
+      rows +
+      "},\"as\":\"source\"}]",
     ),
     [],
     None,
@@ -35,6 +34,23 @@ fn carrier_graph_source_owner() -> @lower.BoundPrepared {
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+fn carrier_graph_source_owner() -> @lower.BoundPrepared {
+  carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+    "\"weight\":20}]",
+  )
+}
+
+///|
+fn carrier_graph_self_loop_source_owner() -> @lower.BoundPrepared {
+  carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":1," + "\"node_name\":\"self\",\"weight\":10}]",
+  )
 }
 
 ///|
@@ -98,6 +114,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "graph_bounds" {
     "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
     "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
+  } else if variant == "degree_in" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"in\"}," + "\"as\":\"out\""
+  } else if variant == "degree_out" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"out\"}," + "\"as\":\"out\""
+  } else if variant == "degree_both" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"both\"}," + "\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
@@ -105,6 +127,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
+  } else if variant.has_prefix("degree_") {
+    "\"node\",\"degree\""
   } else {
     "\"id\",\"node_name\""
   }
@@ -113,6 +137,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
+  } else if variant.has_prefix("degree_") {
+    "\"degree\""
   } else {
     "\"node_name\""
   }
@@ -452,6 +478,56 @@ fn carrier_graph_bounds_owner(
 }
 
 ///|
+fn carrier_graph_degree_owner(
+  source : @lower.BoundPrepared,
+  direction : String,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"degree\":{\"direction\":\"" +
+      direction +
+      "\"}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_storage_limits() -> @graph_storage.Limits {
   {
     max_input_rows: 20,
@@ -565,6 +641,26 @@ fn finish_graph_bounds(
     }
   }
   abort("unreachable")
+}
+
+///|
+fn finish_graph_degree(
+  execution : @local_sga.GraphDegreeExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.GraphBoundsIssue] {
+  while true {
+    let poll = match @local_sga.advance_graph_degree(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.GraphDegreeContinue(..) => ()
+      @local_sga.GraphDegreeComplete(output, ..) => return Ok(output)
+      @local_sga.GraphDegreeFailed(issue, ..) => return Err(issue)
+      @local_sga.GraphDegreeStopped(_, ..) =>
+        return Err(@local_sga.GraphBoundsExecutionIssue(@bounded.Terminal))
+    }
+  }
+  Err(@local_sga.GraphBoundsExecutionIssue(@bounded.Terminal))
 }
 
 ///|
@@ -1023,6 +1119,115 @@ test "graph diagnostics admit workspace before execution and clean cancel" {
 }
 
 ///|
+test "degree metrics preserve directions and admitted execution" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  for direction in ["in", "out", "both"] {
+    let owner = carrier_graph_degree_owner(source_owner, direction)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let completion = task_test_completion(owner)
+    let start = fn(workspace) {
+      @local_sga.start_graph_degree(
+        @bounded.control(),
+        completion,
+        sequence,
+        1,
+        input,
+        2,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 10000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+      )
+    }
+    assert_true(start(7) is Err(@local_sga.GraphBoundsWorkspaceLimit))
+    let execution = start(8).unwrap()
+    let output = finish_graph_degree(execution).unwrap()
+    assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_true(@execution.completed_cell(output, 0, 1) is Some(Number(1.0)))
+    let expected = if direction == "both" { 2.0 } else { 1.0 }
+    guard @execution.completed_cell(output, 0, 0) is Some(Number(first)) &&
+      @execution.completed_cell(output, 1, 0) is Some(Number(second)) else {
+      fail("degree output must contain numeric metrics")
+    }
+    assert_eq(first, expected)
+    assert_eq(second, expected)
+    assert_true(@graphs.discard_completed(graph))
+    assert_true(@execution.completed_output_available(output))
+  }
+}
+
+///|
+test "total degree counts both self-loop incidences" {
+  let source_owner = carrier_graph_self_loop_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_degree_owner(source_owner, "both")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_graph_degree(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    5,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_graph_degree(execution).unwrap()
+  assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Number(1.0)))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 fn carrier_graph_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,
@@ -1475,6 +1680,20 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[1].contains("\"kind\":\"edges\""))
     assert_true(graph_rows[2].contains("\"node_id\":1"))
     assert_true(graph_rows[3].contains("\"node_id\":2"))
+  } else if variant.has_prefix("degree_") {
+    assert_true(graph_rows[0].contains("\"node\":1"))
+    assert_true(graph_rows[1].contains("\"node\":2"))
+    let expected_degree = if variant == "degree_both" { 2 } else { 1 }
+    assert_true(
+      graph_rows[0].contains(
+        "\"degree\":" + expected_degree.to_double().to_string(),
+      ),
+    )
+    assert_true(
+      graph_rows[1].contains(
+        "\"degree\":" + expected_degree.to_double().to_string(),
+      ),
+    )
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -1574,4 +1793,7 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("match_nodes_literal")
   run_standard_host_graph_relation_path("match_edges")
   run_standard_host_graph_relation_path("graph_bounds")
+  run_standard_host_graph_relation_path("degree_in")
+  run_standard_host_graph_relation_path("degree_out")
+  run_standard_host_graph_relation_path("degree_both")
 }

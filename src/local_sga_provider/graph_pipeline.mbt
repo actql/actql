@@ -13,6 +13,7 @@ priv enum RelationExecution {
   MatchNodesExecution(@sga.MatchNodesExecution)
   MatchEdgesExecution(@sga.MatchEdgesExecution)
   GraphBoundsExecution(@sga.GraphBoundsExecution)
+  GraphDegreeExecution(@sga.GraphDegreeExecution)
 }
 
 ///|
@@ -98,8 +99,18 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           )
         }
       (1, @lower.GraphBasicStep(basic)) =>
-        @lower.operation(node) == "SGA.bounds_check" &&
-        @lower.graph_basic_kind(basic) == @lower.BoundsBasic
+        (
+          @lower.operation(node) == "SGA.bounds_check" &&
+          @lower.graph_basic_kind(basic) == @lower.BoundsBasic
+        ) ||
+        (
+          @lower.operation(node) == "SGA.degree_metrics" &&
+          (
+            @lower.graph_basic_kind(basic) == @lower.DegreeIncomingBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeOutgoingBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeBothBasic
+          )
+        )
       _ => false
     }
   })
@@ -379,6 +390,32 @@ fn advance_execution(
                 Ok(execution) => GraphBoundsExecution(execution)
                 Err(_) => return fail_execution(value)
               }
+            } else if @lower.graph_basic_kind(basic) ==
+              @lower.DegreeIncomingBasic ||
+              @lower.graph_basic_kind(basic) == @lower.DegreeOutgoingBasic ||
+              @lower.graph_basic_kind(basic) == @lower.DegreeBothBasic {
+              match
+                @sga.start_graph_degree(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  1,
+                  input,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                ) {
+                Ok(execution) => GraphDegreeExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
             } else {
               return fail_execution(value)
             }
@@ -438,6 +475,18 @@ fn advance_execution(
               Ok(@sga.GraphBoundsFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@sga.GraphBoundsStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          GraphDegreeExecution(execution) =>
+            match @sga.advance_graph_degree(execution, quantum) {
+              Ok(@sga.GraphDegreeContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.GraphDegreeComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.GraphDegreeFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.GraphDegreeStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -524,6 +573,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      GraphDegreeExecution(execution) =>
+        match @sga.cleanup_graph_degree(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -541,6 +595,8 @@ fn cleanup_execution(
       @sga.match_edges_cleanup_pending(active)
     Some(GraphBoundsExecution(active)) =>
       @sga.graph_bounds_cleanup_pending(active)
+    Some(GraphDegreeExecution(active)) =>
+      @sga.graph_degree_cleanup_pending(active)
     None => false
   }
   if failed {
