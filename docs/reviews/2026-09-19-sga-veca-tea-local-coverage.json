@@ -67,7 +67,7 @@
       "output": "graph",
       "canonical": ["SGA.normalize"],
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -77,6 +77,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "cancellation",
         "three_targets"
@@ -88,6 +89,16 @@
         "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
+        {
+          "scope": "shared_graph_generation_carrier_and_bridge_consumers",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1905ea74",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
         {
           "scope": "managed_normalization_bridge_and_environment_cancellation",
           "layers": ["managed", "standard_host", "cancellation"],

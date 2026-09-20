@@ -17,12 +17,12 @@ readable coverage manifest is authoritative for individual operation status.
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 10/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 10/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions and Graph projections; 11/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
-consumer lifetime 15/39, cancellation 10/39, and publication 10/39. These are
-layer counts, not operation completion: eight entries are `complete` and 31 remain
+consumer lifetime 15/39, cancellation 10/39, and publication 11/39. These are
+layer counts, not operation completion: nine entries are `complete` and 30 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -253,8 +253,13 @@ bounded work units. The registered Graph provider now runs that generation
 through the formal Graph-to-Relation Bridge, two Relation consumers, and final
 reclamation on all three portable targets. A real environment timer also
 delivers cancellation during normalization, observes stop, and completes
-cleanup without exposing a partial generation. A same-Carrier SGA consumer of
-the normalized generation remains open, so `normalize_graph` is still partial.
+cleanup without exposing a partial generation. The standard Host now keeps one
+normalized Graph generation live across a second bounded normalization and a
+formal Graph-to-Relation Bridge. The same-Carrier consumer finishes and releases
+its independent output while the bridge's earlier read authority remains valid;
+the resulting Relation then reaches two independent consumers and the formal
+Named Result publication path on JS, Wasm, and native. `normalize_graph` is
+complete.
 Graft consumes two exact positioned inputs, preserves a
 repeated material occurrence, collapses an equal declaration, and rejects a
 conflicting payload atomically. Their portable tests cover pre-allocation
