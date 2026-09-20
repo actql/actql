@@ -72,7 +72,8 @@ try {
     privateKey: keys.privateKey,
   });
   execFileSync(moon, [
-    'test', 'src/platform_native/remote_runtime', '--target', 'native',
+    'test', 'src/platform_native/remote_runtime/native_test',
+    '--target', 'native',
   ], {
     cwd: repositoryRoot,
     env: {
@@ -90,7 +91,8 @@ try {
     stdio: 'inherit',
   });
   execFileSync(moon, [
-    'test', 'src/platform_native/remote_agent', '--target', 'native',
+    'test', 'src/platform_native/remote_agent/native_test',
+    '--target', 'native',
   ], {
     cwd: repositoryRoot,
     env: {

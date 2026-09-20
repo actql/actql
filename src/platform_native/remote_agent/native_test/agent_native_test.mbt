@@ -193,13 +193,13 @@ test "outbound agent observes durable acceptance before one execution" {
     }
   }
   assert_true(
-    run_native_outbound_operation(
+    @agent.advance_native_outbound_operation(
       runtime,
       Some(dispatch),
       reject_acceptance,
       report_status,
     )
-    is Err(Client(Closed)),
+    is Err(@agent.Client(@client.Closed)),
   )
   assert_eq(executions[0], 0)
   assert_eq(status_attempts[0], 0)
@@ -231,13 +231,13 @@ test "outbound agent observes durable acceptance before one execution" {
     Ok(record)
   }
   assert_true(
-    run_native_outbound_operation(
+    @agent.advance_native_outbound_operation(
       runtime,
       Some(dispatch),
       accept_foreign,
       report_status,
     )
-    is Err(ObservationMismatch),
+    is Err(@agent.ObservationMismatch),
   )
   assert_eq(executions[0], 0)
   assert_eq(status_attempts[0], 0)
@@ -246,26 +246,26 @@ test "outbound agent observes durable acceptance before one execution" {
     let (_, record) = journal.accept(request).unwrap()
     Ok(record)
   }
-  guard run_native_outbound_operation(
+  guard @agent.advance_native_outbound_operation(
       runtime,
       Some(dispatch),
       accept,
       report_status,
     )
-    is Ok(DispatchObserved(identity, revision)) else {
+    is Ok(@agent.DispatchObserved(identity, revision)) else {
     fail("dispatch was not observed")
   }
   assert_eq(identity, @remote.dispatch_request_identity(request))
   assert_true(revision > 0)
   assert_eq(executions[0], 1)
   assert_eq(status_attempts[0], 1)
-  guard run_native_outbound_operation(
+  guard @agent.advance_native_outbound_operation(
       runtime,
       Some(dispatch),
       accept,
       report_status,
     )
-    is Ok(DispatchObserved(_, _)) else {
+    is Ok(@agent.DispatchObserved(_, _)) else {
     fail("exact resend was not reconciled")
   }
   assert_eq(executions[0], 1)
@@ -274,13 +274,13 @@ test "outbound agent observes durable acceptance before one execution" {
   let query = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_query_json(request).unwrap(),
   ).unwrap()
-  guard run_native_outbound_operation(
+  guard @agent.advance_native_outbound_operation(
       runtime,
       Some(query),
       accept,
       report_status,
     )
-    is Ok(QueryObserved(_, _)) else {
+    is Ok(@agent.QueryObserved(_, _)) else {
     fail("query was not reconciled")
   }
   assert_eq(executions[0], 1)
@@ -291,18 +291,23 @@ test "outbound agent observes durable acceptance before one execution" {
     Ok(Some(@journal.recovered_site_dispatch_record(observation)))
   }
   assert_true(
-    run_native_outbound_operation(runtime, Some(query), accept, report_foreign)
-    is Err(ObservationMismatch),
+    @agent.advance_native_outbound_operation(
+      runtime,
+      Some(query),
+      accept,
+      report_foreign,
+    )
+    is Err(@agent.ObservationMismatch),
   )
   assert_eq(executions[0], 1)
   let lose_status = fn(_request) { Err(@client.Closed) }
-  guard run_native_outbound_operation(
+  guard @agent.advance_native_outbound_operation(
       runtime,
       Some(dispatch),
       accept,
       lose_status,
     )
-    is Err(CompletionObservationUnknown(completion, Closed)) else {
+    is Err(@agent.CompletionObservationUnknown(completion, @client.Closed)) else {
     fail("lost terminal observation was not preserved")
   }
   assert_eq(
@@ -313,24 +318,24 @@ test "outbound agent observes durable acceptance before one execution" {
   let release = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_release_json(request).unwrap(),
   ).unwrap()
-  guard run_native_outbound_operation(
+  guard @agent.advance_native_outbound_operation(
       runtime,
       Some(release),
       accept,
       report_status,
     )
-    is Ok(ReleaseObserved(release_identity, release_revision)) else {
+    is Ok(@agent.ReleaseObserved(release_identity, release_revision)) else {
     fail("release was not observed")
   }
   assert_eq(release_identity, @remote.dispatch_request_identity(request))
   assert_true(release_revision > revision)
-  guard run_native_outbound_operation(
+  guard @agent.advance_native_outbound_operation(
       runtime,
       Some(release),
       accept,
       report_status,
     )
-    is Ok(ReleaseObserved(_, exact_retry_revision)) else {
+    is Ok(@agent.ReleaseObserved(_, exact_retry_revision)) else {
     fail("released output was not reconciled")
   }
   assert_eq(exact_retry_revision, release_revision)

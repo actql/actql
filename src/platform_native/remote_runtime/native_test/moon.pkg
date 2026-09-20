@@ -1,0 +1,13 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol" @remote,
+  "moonbitlang/core/env",
+} for "test"

@@ -34,7 +34,7 @@ pub(all) enum NativeRemoteAgentIssue {
 ///|
 /// Advance one already-decoded outbound operation. The injected observation
 /// functions keep transport effects outside the common progression decision.
-fn run_native_outbound_operation(
+pub fn advance_native_outbound_operation(
   runtime : @runtime.NativeRemoteRuntime,
   operation : @remote.RemotePollOperation?,
   acknowledge_acceptance : (@remote.DispatchRequest) -> Result[
@@ -193,7 +193,7 @@ pub fn run_native_outbound_site_occurrence(
     Ok(value) => value
     Err(issue) => return Err(Client(issue))
   }
-  run_native_outbound_operation(
+  advance_native_outbound_operation(
     runtime,
     operation,
     request => {

@@ -94,7 +94,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   let executions = [0]
   let released = [0]
   let stopped = [0]
-  let registration = install_native_remote_runtime_registration(
+  let registration = @runtime.install_native_remote_runtime_registration(
     site,
     bundle_cid,
     "local",
@@ -109,7 +109,7 @@ test "native remote runtime owns success failure and cleanup progression" {
         executions[0] += 1000
       }
       if executions[0] == 2 {
-        return prepare_native_remote_failure(
+        return @runtime.prepare_native_remote_failure(
           "native-stop-pending",
           false,
           true,
@@ -133,7 +133,7 @@ test "native remote runtime owns success failure and cleanup progression" {
         [1],
       ).unwrap()
       let output_release_attempts = [0]
-      prepare_native_remote_output(
+      @runtime.prepare_native_remote_output(
         {
           material_generation: "native-material-a",
           holding_evidence_cid: runtime_test_cid(
@@ -166,9 +166,12 @@ test "native remote runtime owns success failure and cleanup progression" {
       ).unwrap()
     },
   ).unwrap()
-  let runtime = open_native_remote_runtime(journal, bundles, [registration], [
-    budget,
-  ]).unwrap()
+  let runtime = @runtime.open_native_remote_runtime(
+    journal,
+    bundles,
+    [registration],
+    [budget],
+  ).unwrap()
   let request = fn(dispatch_id : String) {
     @remote.prepare_dispatch_request(
       "native-coordinator",
@@ -212,7 +215,7 @@ test "native remote runtime owns success failure and cleanup progression" {
       accepted_revision[0] = @remote.dispatch_record_revision(record)
       false
     })
-    is Err(AcceptanceUnconfirmed),
+    is Err(@runtime.AcceptanceUnconfirmed),
   )
   assert_eq(accepted_execution[0], 0)
   assert_eq(accepted_revision[0], 0)
@@ -236,16 +239,17 @@ test "native remote runtime owns success failure and cleanup progression" {
       accepted[0] += 1
       false
     })
-    is Err(AcceptanceUnconfirmed),
+    is Err(@runtime.AcceptanceUnconfirmed),
   )
   assert_eq(accepted[0], 3)
   assert_eq(executions[0], 1)
-  assert_true(runtime.release(first) is Err(CleanupPending("output")))
+  assert_true(runtime.release(first) is Err(@runtime.CleanupPending("output")))
   assert_true(runtime.release(first).unwrap())
   assert_eq(released[0], 2)
   let second = request("dispatch-b")
   assert_true(
-    runtime.start(second, input_binding) is Err(Physical("native-stop-pending")),
+    runtime.start(second, input_binding)
+    is Err(@runtime.Physical("native-stop-pending")),
   )
   assert_true(runtime.cleanup_pending())
   assert_true(runtime.cleanup(second).unwrap())
@@ -259,7 +263,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_eq(status[8], 0L)
   runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
   runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
-  assert_true(runtime.close() is Err(CleanupPending("output")))
+  assert_true(runtime.close() is Err(@runtime.CleanupPending("output")))
   assert_eq(released[0], 4)
   assert_false(runtime.close().unwrap())
   assert_eq(released[0], 6)
