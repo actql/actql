@@ -220,44 +220,8 @@
       "variants": ["weak", "strong", "cycles", "disconnected nodes"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/graph_bounds.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
-        {
-          "scope": "bounded_graph_diagnostics_standard_host_execution",
-          "layers": [
-            "kernel",
-            "managed",
-            "standard_host",
-            "consumer_lifetime",
-            "resources",
-            "three_targets"
-          ],
-          "targets": ["js", "wasm", "native"],
-          "sha": "69685605",
-          "evidence": [
-            "src/lowering_relation/graph_basic.mbt",
-            "src/local_sga/graph_bounds.mbt",
-            "src/local_sga_provider/graph_pipeline.mbt",
-            "src/query_integration/local_carrier_graph_wbtest.mbt"
-          ]
-        }
-      ]
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_basic_test.mbt"]
     },
     {
       "family": "SGA",
@@ -299,6 +263,54 @@
       ],
       "implementation_evidence": [
         {
+          "scope": "bounded_graph_diagnostics_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "69685605",
+          "evidence": [
+            "src/lowering_relation/graph_basic.mbt",
+            "src/local_sga/graph_bounds.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "degree",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.degree_metrics"],
+      "variants": ["incoming", "outgoing", "both", "typed edges"],
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/graph_bounds.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
           "scope": "directional_degree_standard_host_execution",
           "layers": [
             "kernel",
@@ -317,18 +329,6 @@
           ]
         }
       ]
-    },
-    {
-      "family": "SGA",
-      "operation": "degree",
-      "input": "graph",
-      "output": "relation",
-      "canonical": ["SGA.degree_metrics"],
-      "variants": ["incoming", "outgoing", "both", "typed edges"],
-      "status": "partial",
-      "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_basic_test.mbt"]
     },
     {
       "family": "SGA",
