@@ -427,6 +427,18 @@ covered. The lowering, Relation execution, and Local connector packages pass
 887 tests on each of JS, Wasm, and native. Runtime selection remains closed;
 this is not kernel, managed execution, publication, or cancellation evidence.
 
+At `5d0e1a97`, the checked interval-search product reaches the captured DAG
+and constrains Local selection before execution. The portable kernel validates
+every temporal endpoint before matching, preserves repeated equality keys and
+left-major order, implements both temporal modes and all four admitted join
+kinds, and applies independent search, output, value, work, and workspace
+limits. The standard managed Host consumes the exact selected 12-pair bound,
+executes the result through two downstream computations, releases them
+independently, and returns the ledger to zero. The affected execution,
+physical-strategy, Local connector, and query-integration suites pass 1,079
+tests on each of JS, Wasm, and native. Publication and bounded-step
+cancellation remain open, so interval join remains partial.
+
 The Graph Bridge now lowers explicit node and edge sources into one typed
 `BRIDGE.rows.to_graph` occurrence without collapsing repeated input positions.
 Its bounded runtime constructs immutable Graph storage, projects both node and
