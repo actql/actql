@@ -163,13 +163,19 @@ during finalization. Cancellation closes unfinished admission, view, and
 identity state without publishing a completion; stop confirmation and
 resource reclamation remain distinct.
 
-The finalization regressions cover cancellation from a real timer, unchanged
-ordered Result identity, no completion publication after cancellation, and
-final ledger reclamation. The affected execution and query-integration suites
-pass 1,100 tests on each of JS, Wasm, and native. The retained boundary passes
-232 tests, the Workers adapter passes 24 tests, and tracked public interfaces
-agree across targets. These focused results do not replace final same-SHA
-Linux CI.
+Commit `01bb5876` exercises the compiled Node Host with two Named Result
+aliases. It delivers cancellation after the first identity has completed and
+while the second Result view is still being finalized, then observes stop and
+complete reclamation without accepting a partial completion. The test records
+delivery and stop times without imposing a universal wall-clock threshold.
+
+The finalization regressions cover output re-admission, cancellation from a
+real timer, unchanged ordered Result identity, no completion publication after
+cancellation, and final ledger reclamation. The affected execution and
+query-integration suites pass 1,100 tests on each of JS, Wasm, and native. The
+retained boundary passes 232 tests, the Workers adapter passes 24 tests, and
+tracked public interfaces agree across targets. These focused results do not
+replace final same-SHA Linux CI.
 
 ## Family execution gaps
 
