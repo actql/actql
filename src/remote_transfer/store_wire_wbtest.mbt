@@ -134,3 +134,25 @@ test "Store use replies bind the exact occurrence and completion" {
     is Err(TransferIdentityMismatch),
   )
 }
+
+///|
+test "Store cancellation reply confirms the exact stopped occurrence" {
+  let request = transfer_request(TransferStore)
+  let body = remote_transfer_store_use_cancellation_reply_json(
+    request, "cancel-a",
+  ).unwrap()
+  assert_eq(
+    remote_transfer_store_use_cancellation_reply_projection(
+      admit_remote_transfer_store_use_cancellation_reply_json(
+        body, request, "cancel-a",
+      ).unwrap(),
+    ),
+    [request_cid(request), "cancel-a"],
+  )
+  assert_true(
+    admit_remote_transfer_store_use_cancellation_reply_json(
+      body, request, "cancel-b",
+    )
+    is Err(TransferIdentityMismatch),
+  )
+}

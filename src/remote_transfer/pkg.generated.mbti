@@ -17,6 +17,8 @@ pub fn admit_remote_transfer_reply_json(String, RemoteTransferRequest) -> Result
 
 pub fn admit_remote_transfer_store_upload_reply_json(String, RemoteTransferRequest, RemoteTransferStoreUploadReplyKind) -> Result[RemoteTransferStoreUploadReply, RemoteTransferIssue]
 
+pub fn admit_remote_transfer_store_use_cancellation_reply_json(String, RemoteTransferRequest, String) -> Result[RemoteTransferStoreUseCancellationReply, RemoteTransferIssue]
+
 pub fn admit_remote_transfer_store_use_reply_json(String, RemoteTransferRequest, String, RemoteTransferStoreUseReplyKind) -> Result[RemoteTransferStoreUseReply, RemoteTransferIssue]
 
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
@@ -100,6 +102,10 @@ pub fn remote_transfer_reply_json(RemoteTransferRecord) -> Result[String, Remote
 pub fn remote_transfer_store_upload_reply_json(RemoteTransferRequest, RemoteTransferStoreUploadReplyKind, Int, Bool) -> Result[String, RemoteTransferIssue]
 
 pub fn remote_transfer_store_upload_reply_projection(RemoteTransferStoreUploadReply) -> Array[String]
+
+pub fn remote_transfer_store_use_cancellation_reply_json(RemoteTransferRequest, String) -> Result[String, RemoteTransferIssue]
+
+pub fn remote_transfer_store_use_cancellation_reply_projection(RemoteTransferStoreUseCancellationReply) -> Array[String]
 
 pub fn remote_transfer_store_use_record_durable_json(RemoteTransferStoreUseRecord) -> Result[String, RemoteTransferIssue]
 
@@ -249,6 +255,8 @@ pub(all) enum RemoteTransferStoreUploadReplyKind {
 } derive(Eq, @debug.Debug)
 
 type RemoteTransferStoreUse
+
+type RemoteTransferStoreUseCancellationReply
 
 pub(all) enum RemoteTransferStoreUseCleanupState {
   StoreUseCleanupActive

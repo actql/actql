@@ -352,6 +352,52 @@ fn store_use_exchange(
 }
 
 ///|
+fn cancel_store_use(
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> Result[Unit, NativeRemoteTransferClientIssue] {
+  let request_component = match
+    transfer_path_component(@transfer.request_cid(request)) {
+    Some(value) => value
+    None => return Err(InvalidRequest)
+  }
+  let use_component = match transfer_path_component(use_id) {
+    Some(value) => value
+    None => return Err(InvalidRequest)
+  }
+  let response = match
+    client.request(
+      @http.Post,
+      origin +
+      "/v1/transfer-store/downloads/" +
+      request_component +
+      "/" +
+      use_component +
+      "/cancel",
+      [{ name: "content-length", value: "0", }],
+      b"",
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  if response.status != 200 {
+    return Err(Rejected(response.status))
+  }
+  let body = @utf8.decode(response.body) catch {
+    _ => return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  match
+    @transfer.admit_remote_transfer_store_use_cancellation_reply_json(
+      body, request, use_id,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
 fn admit_store_use(
   client : @http.Client,
   base : String,
@@ -1022,5 +1068,96 @@ pub fn receive_durable_store_transfer(
   match commit_durable_transition(journal, committed) {
     Ok(_) => require_durable_record(journal, request)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn cancel_durable_store_transfer(
+  journal : @journal.Journal,
+  client : @http.Client,
+  destination_root : @filesystem.Root,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if !origin.has_prefix("https://") ||
+    origin.has_suffix("/") ||
+    use_id.is_empty() ||
+    use_id.length() > 256 ||
+    @transfer.request_projection(request)[1] != "store" {
+    return Err(InvalidRequest)
+  }
+  let mut record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  let initial = @transfer.record_projection(record)
+  if initial[1] == 2 {
+    return Err(InvalidRequest)
+  }
+  if initial[1] == 1 {
+    match cancel_store_use(client, origin, request, use_id) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  let chunk_count = @transfer.request_chunk_cids(request).length()
+  for index = 0; index < chunk_count; index = index + 1 {
+    let final_name = match destination_object_name(request, index) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let staging_name = match destination_staging_name(request, use_id, index) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    for name in [final_name, staging_name] {
+      match destination_root.inspect_generation(name) {
+        Ok(Some(generation)) =>
+          match destination_root.reclaim_generation(name, generation) {
+            Ok(_) => ()
+            Err(issue) => return Err(Destination(issue))
+          }
+        Ok(None) => ()
+        Err(issue) => return Err(Destination(issue))
+      }
+    }
+  }
+  match destination_root.sync_directory() {
+    Ok(_) => ()
+    Err(issue) => return Err(Destination(issue))
+  }
+  let state = @transfer.record_projection(record)
+  if state[1] != 3 && state[1] != 4 {
+    let failure = match @transfer.prepare_failure(record, true, true) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match commit_durable_transition(journal, failure) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    record = match require_durable_record(journal, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  }
+  if @transfer.record_projection(record)[4] != 1 {
+    let cleanup = match @transfer.prepare_cleanup(record, true, true, true) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match commit_durable_transition(journal, cleanup) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    record = match require_durable_record(journal, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  }
+  match journal.release_destination_holding(request) {
+    Ok(_) => Ok(record)
+    Err(issue) => Err(Durable(issue))
   }
 }

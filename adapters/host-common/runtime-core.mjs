@@ -759,6 +759,21 @@ function remoteTransferControl(moon) {
     ),
     storeUseReplyProjection:
       moon.strategyRemoteTransferStoreUseReplyProjection,
+    storeUseCancellationReplyJson: (request, useId) => checked(
+      moon.strategyRemoteTransferStoreUseCancellationReplyJson(
+        request,
+        useId,
+      ),
+    ),
+    admitStoreUseCancellationReplyJson: (body, request, useId) => checked(
+      moon.strategyRemoteTransferStoreUseCancellationReplyAdmitJson(
+        body,
+        request,
+        useId,
+      ),
+    ),
+    storeUseCancellationReplyProjection:
+      moon.strategyRemoteTransferStoreUseCancellationReplyProjection,
     prepareDestinationReceipt: (request, materialGeneration) => checked(
       moon.strategyRemoteTransferDestinationReceiptPrepare(
         request,

@@ -126,6 +126,7 @@ export async function startHttpsTransferObjectStore({
       typeof control.admitAdmissionEnvelopeJson !== 'function' ||
       typeof control.storeUploadReplyJson !== 'function' ||
       typeof control.storeUseReplyJson !== 'function' ||
+      typeof control.storeUseCancellationReplyJson !== 'function' ||
       typeof control.identity !== 'function' ||
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' ||
@@ -555,7 +556,11 @@ export async function startHttpsTransferObjectStore({
               control,
             );
           }
-          reply(response, 200, {requestCid, useId, cancelled: true});
+          replyCanonical(
+            response,
+            200,
+            control.storeUseCancellationReplyJson(entry.request, useId),
+          );
           return;
         }
       }
@@ -852,6 +857,7 @@ export async function receiveHttpsTransferObject({
       typeof control.destinationReceiptJson !== 'function' ||
       typeof control.destinationReceiptIdentity !== 'function' ||
       typeof control.admitStoreUseReplyJson !== 'function' ||
+      typeof control.admitStoreUseCancellationReplyJson !== 'function' ||
       destinationStore === null || typeof destinationStore !== 'object' ||
       typeof destinationStore.createPreparedObjectWriter !== 'function' ||
       typeof destinationStore.commitPhysicalHolding !== 'function' ||
@@ -931,7 +937,7 @@ export async function receiveHttpsTransferObject({
         catch (cleanupError) { failures.push(cleanupError); }
       }
       try {
-        await send({
+        const cancelledUse = await send({
           ...common,
           signal: undefined,
           path: `/v1/transfer-store/downloads/${encodeURIComponent(
@@ -941,6 +947,11 @@ export async function receiveHttpsTransferObject({
           headers: {'content-length': '0'},
           write(outgoing) { outgoing.end(); },
         });
+        control.admitStoreUseCancellationReplyJson(
+          responseWires.get(cancelledUse),
+          request,
+          useId,
+        );
       } catch {}
       if (failures.length !== 0) {
         throw new AggregateError(

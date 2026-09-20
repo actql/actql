@@ -164,11 +164,43 @@ test "native Store upload seals once and restores without source upload" {
     @transfer.StoreUploadSealed,
   )
   assert_true(reopened.close())
+  let destination_root = @filesystem.open_root(store_root).unwrap()
+  let failed_path = sqlite_root + "/store-destination-failed.sqlite"
+  let failed_destination = @journal.open_journal(
+    sqlite, failed_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  match
+    receive_durable_store_transfer(
+      failed_destination, client, destination_root, origin, request, "native-store-cancel",
+      1048576L, 8L,
+    ) {
+    Err(SourceMismatch) => ()
+    Err(Rejected(status)) =>
+      fail("native Store failure setup: rejected " + status.to_string())
+    Err(InvalidRequest) => fail("native Store failure setup: invalid request")
+    Err(Physical(_)) => ()
+    Err(Durable(_)) => fail("native Store failure setup: journal failure")
+    Err(Destination(_)) =>
+      fail("native Store failure setup: destination failure")
+    Err(Protocol(_)) => fail("native Store failure setup: protocol failure")
+    Err(ReconciliationRequired) =>
+      fail("native Store failure setup: reconciliation required")
+    Ok(_) => fail("native Store failure setup unexpectedly succeeded")
+  }
+  let cancelled = cancel_durable_store_transfer(
+    failed_destination, client, destination_root, origin, request, "native-store-cancel",
+  ).unwrap()
+  assert_eq(@transfer.record_projection(cancelled)[1], 4)
+  assert_eq(@transfer.record_projection(cancelled)[4], 1)
+  assert_eq(
+    failed_destination.destination_capacity_usage().unwrap().reserved_bytes,
+    0L,
+  )
+  assert_true(failed_destination.close())
   let destination_path = sqlite_root + "/store-destination.sqlite"
   let destination = @journal.open_journal(
     sqlite, destination_path, 1048576L, 8, 4096, 1024L,
   ).unwrap()
-  let destination_root = @filesystem.open_root(store_root).unwrap()
   let completed = match
     receive_durable_store_transfer(
       destination, client, destination_root, origin, request, "native-store-use",

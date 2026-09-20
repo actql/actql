@@ -5285,6 +5285,43 @@ pub fn strategy_remote_transfer_store_use_reply_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferStoreUseCancellationReplyJson")
+pub fn strategy_remote_transfer_store_use_cancellation_reply_json(
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> String raise NodeHostFailure {
+  match
+    @transfer.remote_transfer_store_use_cancellation_reply_json(request, use_id) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCancellationReplyAdmitJson")
+pub fn strategy_remote_transfer_store_use_cancellation_reply_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> @transfer.RemoteTransferStoreUseCancellationReply raise NodeHostFailure {
+  match
+    @transfer.admit_remote_transfer_store_use_cancellation_reply_json(
+      body, request, use_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferStoreUseCancellationReplyProjection")
+pub fn strategy_remote_transfer_store_use_cancellation_reply_projection(
+  reply : @transfer.RemoteTransferStoreUseCancellationReply,
+) -> Array[String] {
+  @transfer.remote_transfer_store_use_cancellation_reply_projection(reply)
+}
+
+///|
 #export_name("strategyRemoteTransferDestinationReceiptPrepare")
 pub fn strategy_remote_transfer_destination_receipt_prepare(
   request : @transfer.RemoteTransferRequest,

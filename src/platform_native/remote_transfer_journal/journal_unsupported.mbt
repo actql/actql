@@ -79,6 +79,22 @@ pub fn Journal::reserve_destination_holding(
 }
 
 ///|
+pub fn Journal::release_destination_holding(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::destination_capacity_usage(
+  _self : Journal,
+) -> Result[@sqlite.NativeCapacityUsage, NativeRemoteTransferJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::commit_destination_receipt(
   _self : Journal,
   receipt : @transfer.RemoteTransferDestinationReceipt,

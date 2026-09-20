@@ -365,6 +365,47 @@ pub fn Journal::reserve_destination_holding(
 }
 
 ///|
+pub fn Journal::release_destination_holding(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let mut bytes = 0L
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  for length in lengths {
+    if length < 0L || bytes > 9223372036854775807L - length {
+      return Err(Protocol(@transfer.InvalidTransfer))
+    }
+    bytes = bytes + length
+  }
+  match
+    self.database.release_capacity(
+      "remote_transfer_destination",
+      @transfer.request_cid(request),
+      bytes,
+      lengths.length().to_int64(),
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::destination_capacity_usage(
+  self : Journal,
+) -> Result[@sqlite.NativeCapacityUsage, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.database.capacity_usage("remote_transfer_destination") {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn Journal::commit_destination_receipt(
   self : Journal,
   receipt : @transfer.RemoteTransferDestinationReceipt,

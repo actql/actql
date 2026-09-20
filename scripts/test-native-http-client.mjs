@@ -78,8 +78,7 @@ let nativeStoreTransferCid;
 let nativeStoreTransferChunks = 0;
 let nativeStoreTransferSealed = false;
 const nativeStoreTransferBodies = [];
-let nativeStoreUseId;
-let nativeStoreUseComplete = false;
+const nativeStoreUses = new Map();
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -263,16 +262,12 @@ try {
         response.writeHead(404).end();
         return;
       }
-      if (nativeStoreUseId !== undefined && nativeStoreUseId !== useId) {
-        response.writeHead(409).end();
-        return;
-      }
-      nativeStoreUseId = useId;
+      if (!nativeStoreUses.has(useId)) nativeStoreUses.set(useId, false);
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({
         requestCid: nativeStoreTransferCid,
         useId,
-        complete: nativeStoreUseComplete,
+        complete: nativeStoreUses.get(useId),
       }));
       return;
     }
@@ -281,13 +276,13 @@ try {
       const requestCid = decodeURIComponent(parts[3] ?? '');
       const useId = decodeURIComponent(parts[4] ?? '');
       if (requestCid !== nativeStoreTransferCid ||
-          useId !== nativeStoreUseId) {
+          !nativeStoreUses.has(useId)) {
         response.writeHead(404).end();
         return;
       }
       if (request.method === 'GET' && parts[5] === 'chunks') {
         const chunk = nativeStoreTransferBodies[Number(parts[6])];
-        if (!Buffer.isBuffer(chunk) || nativeStoreUseComplete) {
+        if (!Buffer.isBuffer(chunk) || nativeStoreUses.get(useId)) {
           response.writeHead(409).end();
           return;
         }
@@ -295,7 +290,9 @@ try {
           'content-type': 'application/octet-stream',
           'content-length': String(chunk.byteLength),
         });
-        response.end(chunk);
+        response.end(useId === 'native-store-cancel'
+          ? Buffer.from(`altered-${Number(parts[6])}`)
+          : chunk);
         return;
       }
       if (request.method === 'POST' && parts[5] === 'complete' &&
@@ -311,12 +308,21 @@ try {
           response.writeHead(400).end();
           return;
         }
-        nativeStoreUseComplete = true;
+        nativeStoreUses.set(useId, true);
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify({
           requestCid: nativeStoreTransferCid,
           useId,
           complete: true,
+        }));
+        return;
+      }
+      if (request.method === 'POST' && parts[5] === 'cancel' && body === '') {
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify({
+          requestCid: nativeStoreTransferCid,
+          useId,
+          cancelled: true,
         }));
         return;
       }
