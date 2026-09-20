@@ -13,9 +13,7 @@ pub fn graph_match_nodes(value : PreparedGraphMatch) -> Bool {
 
 ///|
 /// The checked Relation schema produced by this match occurrence.
-pub fn graph_match_output_schema(
-  value : PreparedGraphMatch,
-) -> @schema.Schema {
+pub fn graph_match_output_schema(value : PreparedGraphMatch) -> @schema.Schema {
   value.node.output_schema.unwrap()
 }
 

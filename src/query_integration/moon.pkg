@@ -79,6 +79,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/local_bridge",
   "actql/actql/local_sga_provider",
+  "actql/actql/local_sga",
   "actql/actql/managed_graph_runtime" @graphs,
   "actql/actql/managed_graph_storage" @graph_storage,
   "actql/actql/local_tea",

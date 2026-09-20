@@ -206,6 +206,56 @@ fn carrier_graph_owner(
 }
 
 ///|
+fn carrier_graph_match_owner(
+  source : @lower.BoundPrepared,
+  ids : String,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"}," +
+      "{\"from\":\"graph\",\"match_nodes\":{\"ids\":" +
+      ids +
+      ",\"fields\":[\"id\",\"node_name\"]}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_storage_limits() -> @graph_storage.Limits {
   {
     max_input_rows: 20,
@@ -259,6 +309,177 @@ fn finish_graph_to_rows(
     }
   }
   abort("unreachable")
+}
+
+///|
+fn finish_match_nodes(
+  execution : @local_sga.MatchNodesExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.MatchNodesIssue] {
+  while true {
+    let poll = match @local_sga.advance_match_nodes(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.MatchNodesContinue(..) => ()
+      @local_sga.MatchNodesComplete(output, ..) => return Ok(output)
+      @local_sga.MatchNodesFailed(issue, ..) => return Err(issue)
+      @local_sga.MatchNodesStopped(_, ..) =>
+        return Err(@local_sga.MatchNodesExecutionIssue(@bounded.Terminal))
+    }
+  }
+  abort("unreachable")
+}
+
+///|
+test "bounded node identity match sorts deduplicates and completes atomically" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(source_owner, "[2,1,2]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_match_nodes(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    8,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_match_nodes(execution).unwrap()
+  assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(1.0)))
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("first")))
+  assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2.0)))
+  assert_true(@execution.completed_cell(output, 1, 1) is Some(Text("second")))
+  assert_true(@execution.completed_output_matches_inputs(output, [external]))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "bounded node identity match rejects a missing identity before output" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(source_owner, "[1,3]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_match_nodes(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    6,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    finish_match_nodes(execution) is Err(@local_sga.MissingMatchNodeIdentity(1)),
+  )
+  assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "node identity match admits workspace before execution and cleans cancel" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(source_owner, "[2,1,2]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let completion = task_test_completion(owner)
+  let start = fn(control, workspace) {
+    @local_sga.start_match_nodes(
+      control,
+      completion,
+      sequence,
+      1,
+      input,
+      3,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 7) is Err(@local_sga.MatchNodesWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = start(control, 8).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_match_nodes(execution, 1).unwrap()
+    is @local_sga.MatchNodesStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.match_nodes_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_false(@local_sga.match_nodes_cleanup_pending(execution))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|

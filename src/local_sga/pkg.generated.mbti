@@ -3,18 +3,24 @@ package "actql/actql/local_sga"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_graph_runtime",
   "actql/actql/managed_graph_storage",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn advance_graft(GraftExecution, Int) -> Result[GraftPoll, GraftIssue]
 
+pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
+
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
 pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
+
+pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
@@ -24,6 +30,14 @@ pub fn graft_max_noninterruptible_value_nodes(GraftExecution) -> Int
 
 pub fn graft_stopped(GraftExecution) -> Bool
 
+pub fn match_nodes_cleanup_pending(MatchNodesExecution) -> Bool
+
+pub fn match_nodes_max_noninterruptible_value_bytes(MatchNodesExecution) -> Int
+
+pub fn match_nodes_max_noninterruptible_value_nodes(MatchNodesExecution) -> Int
+
+pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
+
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
 
 pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
@@ -31,6 +45,8 @@ pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
 pub fn normalize_stopped(NormalizeExecution) -> Bool
 
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
+
+pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
@@ -52,6 +68,27 @@ pub enum GraftPoll {
   GraftComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
   GraftFailed(GraftIssue, progress~ : Int64, work~ : Int64)
   GraftStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type MatchNodesExecution
+
+pub(all) enum MatchNodesIssue {
+  InvalidMatchNodesKernel
+  InvalidMatchNodesLimits
+  MatchNodesInputUnavailable
+  MissingMatchNodeIdentity(Int)
+  MatchNodesWorkspaceLimit
+  MatchNodesKeyOrder(@value_admission.KeyOrderIssue)
+  MatchNodesOutput(@execution_relation.CaptureIssue)
+  MatchNodesCompletion(@execution_relation.TrustedOutputIssue)
+  MatchNodesExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum MatchNodesPoll {
+  MatchNodesContinue(progress~ : Int64, work~ : Int64)
+  MatchNodesComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  MatchNodesFailed(MatchNodesIssue, progress~ : Int64, work~ : Int64)
+  MatchNodesStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type NormalizeExecution
