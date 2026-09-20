@@ -9,6 +9,8 @@ import {
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/execution_relation",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
   "moonbitlang/core/debug",
 }
 
@@ -19,17 +21,25 @@ pub fn close_native_acquisition_runtime(NativeAcquisitionRuntime) -> Unit
 
 pub fn close_native_compute_runtime(NativeComputeRuntime) -> Unit
 
+pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
 
 pub fn execute_native_compute_runtime(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeFailure]
+
+pub fn execute_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeFailure]
 
 pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
+pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeIssue]
+
 pub fn start_native_acquisition_runtime(@host.NativeHostConfiguration, String, @native.Database) -> Result[NativeAcquisitionRuntime, @host.NativeHostIssue]
 
 pub fn start_native_compute_runtime(@driver.ComputeHostConfiguration, @native.Database, NativeComputeImportLimits) -> Result[NativeComputeRuntime, NativeComputeExecutionIssue]
+
+pub fn start_native_strategy_compute_runtime(@driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64) -> Result[NativeStrategyComputeRuntime, NativeStrategyComputeIssue]
 
 // Errors
 
@@ -88,6 +98,21 @@ pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@native.NativeDuckDBIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) struct NativeStrategyComputeFailure {
+  primary : NativeStrategyComputeIssue
+  rollback : @native.NativeDuckDBIssue?
+  settlement : @physical_resources.LedgerIssue?
+}
+
+pub(all) enum NativeStrategyComputeIssue {
+  Physical(NativeComputeExecutionIssue)
+  Strategy(@physical_strategy.RunIssue)
+  Settlement(@physical_resources.LedgerIssue)
+  MissingOutput
+}
+
+type NativeStrategyComputeRuntime
 
 // Type aliases
 

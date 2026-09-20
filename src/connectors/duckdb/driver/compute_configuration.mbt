@@ -52,6 +52,16 @@ pub fn configured_compute_limits(
 }
 
 ///|
+/// Exact selected physical plan. This inspection surface lets a trusted Host
+/// perform bounded physical preflight; it grants no execution or completion
+/// authority.
+pub fn configured_compute_plan(
+  setup : ComputeHostConfiguration,
+) -> @duckdb.FixedCompute? {
+  @connector.fixed_compute_choice_payload(setup.choice, setup.prepared)
+}
+
+///|
 struct StrategyComputeHostConfiguration {
   graph : @strategy.CapturedDAG
   task : Int
@@ -123,6 +133,15 @@ pub fn configured_strategy_compute_graph(
   setup : StrategyComputeHostConfiguration,
 ) -> (@strategy.CapturedDAG, Int) {
   (setup.graph, setup.task)
+}
+
+///|
+/// The exact Compute configuration already selected for this strategy task.
+/// Returning it does not reserve resources or start physical I/O.
+pub fn configured_strategy_compute_configuration(
+  setup : StrategyComputeHostConfiguration,
+) -> ComputeHostConfiguration {
+  setup.compute
 }
 
 ///|

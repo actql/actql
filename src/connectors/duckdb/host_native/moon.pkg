@@ -9,6 +9,8 @@ import {
   "actql/actql/connectors/duckdb/adapters/native" @native_duckdb,
   "actql/actql/decode_core" @decode,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/physical_strategy" @strategy,
 }
 
 import {

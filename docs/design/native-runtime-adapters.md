@@ -69,8 +69,11 @@ parameters, and streams physical result chunks into the existing portable
 Compute receiver. A committed DuckDB transaction is recorded as physical
 settlement, but only the exact portable attempt verifier can create common
 completion. A precommit failure rolls back and preserves the rollback outcome
-separately from the primary failure. Retained output storage and the standard
-strategy-dispatch connection remain later migration steps.
+separately from the primary failure. The standard dispatcher path registers
+the exact common task before native I/O, closes the physical database before
+settlement, and reaches DAG completion only through the common lifecycle.
+Retained output storage and Node-free Local execution remain later migration
+steps.
 
 Dynamic loading keeps the portable MoonBit packages and unrelated native tests
 independent of a locally installed DuckDB library. A packaged native Host must

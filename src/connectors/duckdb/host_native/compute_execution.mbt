@@ -65,12 +65,13 @@ struct NativeComputeRuntime {
   authority : NativeComputeRuntimeAuthority
   mut output : @execution.CompletedOutput?
   mut started : Bool
+  mut database_closed : Bool
   mut closed : Bool
 }
 
 ///|
 fn native_compute_import_plans(
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  compute : @duckdb.FixedCompute,
   transport : @duckdb.TransportColumnLimits,
   limits : NativeComputeImportLimits,
 ) -> Result[Array[NativeComputeImportPlan], NativeComputeExecutionIssue] {
@@ -86,7 +87,6 @@ fn native_compute_import_plans(
     transport.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  let compute = @duckdb_compute.duckdb_compute_attempt_plan(attempt)
   let count = @duckdb.fixed_compute_import_count(compute)
   if count < 1 || count > 2 {
     return Err(ImportCount)
@@ -268,20 +268,23 @@ fn execute_native_compute_import(
 
 ///|
 fn execute_native_compute_query(
-  runtime : NativeComputeRuntime,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  database : @native_duckdb.Database,
+  transport : @duckdb.TransportColumnLimits,
+  compute_limits : @duckdb_compute.DuckDBComputeLimits,
 ) -> Result[Unit, NativeComputeExecutionIssue] {
-  let compute = @duckdb_compute.duckdb_compute_attempt_plan(runtime.attempt)
-  if !@duckdb_compute.duckdb_compute_inputs_ready(runtime.attempt) {
+  let compute = @duckdb_compute.duckdb_compute_attempt_plan(attempt)
+  if !@duckdb_compute.duckdb_compute_inputs_ready(attempt) {
     return Err(RuntimeState)
   }
   let fixed = @duckdb.fixed_compute_query(compute)
   let query = match
-    runtime.database.prepare_stream_query(
+    database.prepare_stream_query(
       @duckdb.fixed_query_sql(fixed),
-      runtime.transport.max_columns,
-      runtime.compute_limits.physical.max_rows.to_int64(),
-      runtime.transport.max_rows,
-      runtime.transport.max_bytes,
+      transport.max_columns,
+      compute_limits.physical.max_rows.to_int64(),
+      transport.max_rows,
+      transport.max_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Runtime(issue))
@@ -313,7 +316,7 @@ fn execute_native_compute_query(
   }
   let fields = match query.fields_json() {
     Ok(text) =>
-      match @duckdb.decode_physical_fields(text, runtime.transport) {
+      match @duckdb.decode_physical_fields(text, transport) {
         Ok(value) => value
         Err(issue) => {
           query.close() |> ignore
@@ -325,7 +328,7 @@ fn execute_native_compute_query(
       return Err(Runtime(issue))
     }
   }
-  match @duckdb_compute.begin_duckdb_compute_result(runtime.attempt, fields) {
+  match @duckdb_compute.begin_duckdb_compute_result(attempt, fields) {
     Ok(_) => ()
     Err(issue) => {
       query.close() |> ignore
@@ -337,10 +340,7 @@ fn execute_native_compute_query(
     match query.next() {
       Ok(Some(chunk)) => {
         let columns = match
-          @duckdb.decode_transport_columns(
-            chunk.columns_json,
-            runtime.transport,
-          ) {
+          @duckdb.decode_transport_columns(chunk.columns_json, transport) {
           Ok(value) => value
           Err(issue) => {
             query.close() |> ignore
@@ -349,7 +349,7 @@ fn execute_native_compute_query(
         }
         match
           @duckdb_compute.receive_duckdb_compute_chunk(
-            runtime.attempt,
+            attempt,
             chunk.row_count,
             columns,
           ) {
@@ -370,7 +370,7 @@ fn execute_native_compute_query(
   if !query.close() {
     return Err(RuntimeState)
   }
-  @duckdb_compute.finish_duckdb_compute_result(runtime.attempt).map_err(issue => {
+  @duckdb_compute.finish_duckdb_compute_result(attempt).map_err(issue => {
     Compute(issue)
   })
 }
@@ -398,7 +398,11 @@ pub fn start_native_compute_runtime(
   }
   let transport = @duckdb_driver.configured_compute_transport(setup)
   let imports = match
-    native_compute_import_plans(attempt, transport, import_limits) {
+    native_compute_import_plans(
+      @duckdb_compute.duckdb_compute_attempt_plan(attempt),
+      transport,
+      import_limits,
+    ) {
     Ok(value) => value
     Err(issue) => {
       @duckdb_compute.abort_duckdb_compute_attempt(attempt)
@@ -416,6 +420,7 @@ pub fn start_native_compute_runtime(
     authority,
     output: None,
     started: false,
+    database_closed: false,
     closed: false,
   })
 }
@@ -432,7 +437,11 @@ pub fn execute_native_compute_runtime(
   }
   runtime.started = true
   match runtime.database.begin_transaction() {
-    Err(issue) => return Err({ primary: Runtime(issue), rollback: None, })
+    Err(issue) => {
+      runtime.database.close()
+      runtime.database_closed = true
+      return Err({ primary: Runtime(issue), rollback: None, })
+    }
     Ok(_) => ()
   }
   let mut failure : NativeComputeExecutionIssue? = None
@@ -450,7 +459,13 @@ pub fn execute_native_compute_runtime(
     }
   }
   if failure is None {
-    match execute_native_compute_query(runtime) {
+    match
+      execute_native_compute_query(
+        runtime.attempt,
+        runtime.database,
+        runtime.transport,
+        runtime.compute_limits,
+      ) {
       Ok(_) => ()
       Err(issue) => failure = Some(issue)
     }
@@ -461,6 +476,8 @@ pub fn execute_native_compute_runtime(
       Err(issue) => Some(issue)
     }
     @duckdb_compute.abort_duckdb_compute_attempt(runtime.attempt)
+    runtime.database.close()
+    runtime.database_closed = true
     return Err({ primary, rollback, })
   }
   match runtime.database.commit_transaction() {
@@ -470,10 +487,14 @@ pub fn execute_native_compute_runtime(
         Err(cleanup) => Some(cleanup)
       }
       @duckdb_compute.abort_duckdb_compute_attempt(runtime.attempt)
+      runtime.database.close()
+      runtime.database_closed = true
       return Err({ primary: Runtime(issue), rollback, })
     }
     Ok(_) => ()
   }
+  runtime.database.close()
+  runtime.database_closed = true
   runtime.authority.settled = Some(runtime.attempt)
   match @duckdb_compute.complete_duckdb_compute_attempt(runtime.attempt) {
     Ok(output) => {
@@ -508,5 +529,8 @@ pub fn close_native_compute_runtime(runtime : NativeComputeRuntime) -> Unit {
   runtime.closed = true
   runtime.authority.live = false
   @duckdb_compute.close_duckdb_compute_attempt(runtime.attempt)
-  runtime.database.close()
+  if !runtime.database_closed {
+    runtime.database.close()
+    runtime.database_closed = true
+  }
 }
