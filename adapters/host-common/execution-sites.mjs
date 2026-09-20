@@ -510,20 +510,47 @@ export function settleExecutionSiteOperation(operation) {
 
 export function failedExecutionSiteOperationAction(
   operation,
-  cleanupRequired,
-  cleanupStopped,
-  operationSettled,
+  progress,
 ) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
-  const action = state.control.failedOperationAction(
-    cleanupRequired,
-    cleanupStopped,
-    operationSettled,
-  );
+  const action = state.control.failedOperationAction(progress);
   if (!Number.isSafeInteger(action) || action < 0 || action > 2) {
     fail('InvalidExecutionSiteFailureAction');
   }
   return action;
+}
+
+export function beginFailedExecutionSiteOperation(
+  operation,
+  cleanupRequired,
+  alreadySettled,
+) {
+  const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
+  const progress = state.control.beginFailedOperation(
+    cleanupRequired,
+    alreadySettled,
+  );
+  if (progress === undefined || progress === null) {
+    fail('InvalidExecutionSiteFailureProgress');
+  }
+  return progress;
+}
+
+export function recordFailedExecutionSiteOperationStop(operation, progress) {
+  const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
+  if (state.control.recordFailedOperationStop(progress) !== true) {
+    fail('InvalidExecutionSiteFailureProgress');
+  }
+}
+
+export function recordFailedExecutionSiteOperationSettlement(
+  operation,
+  progress,
+) {
+  const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
+  if (state.control.recordFailedOperationSettlement(progress) !== true) {
+    fail('InvalidExecutionSiteFailureProgress');
+  }
 }
 
 export function retainedExecutionSiteHoldingAction(

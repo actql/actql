@@ -9,6 +9,64 @@ pub(all) enum FailedSiteOperationAction {
 } derive(Eq, Debug)
 
 ///|
+/// Common state for settling one failed Site operation. The adapter reports
+/// physical stop and performs the selected settlement operation; it does not
+/// own a parallel settlement flag.
+struct FailedSiteOperationProgress {
+  cleanup_required : Bool
+  mut cleanup_stopped : Bool
+  mut operation_settled : Bool
+}
+
+///|
+pub fn begin_failed_site_operation_progress(
+  cleanup_required : Bool,
+  already_settled : Bool,
+) -> FailedSiteOperationProgress {
+  {
+    cleanup_required,
+    cleanup_stopped: false,
+    operation_settled: already_settled,
+  }
+}
+
+///|
+pub fn record_failed_site_operation_stop(
+  progress : FailedSiteOperationProgress,
+) -> Bool {
+  if !progress.cleanup_required {
+    false
+  } else {
+    progress.cleanup_stopped = true
+    true
+  }
+}
+
+///|
+pub fn record_failed_site_operation_settlement(
+  progress : FailedSiteOperationProgress,
+) -> Bool {
+  if progress.operation_settled ||
+    (progress.cleanup_required && !progress.cleanup_stopped) {
+    false
+  } else {
+    progress.operation_settled = true
+    true
+  }
+}
+
+///|
+pub fn prepare_failed_site_operation_progress_step(
+  progress : FailedSiteOperationProgress,
+) -> FailedSiteOperationAction {
+  prepare_failed_site_operation_step(
+    progress.cleanup_required,
+    progress.cleanup_stopped,
+    progress.operation_settled,
+  )
+}
+
+///|
 pub fn prepare_failed_site_operation_step(
   cleanup_required : Bool,
   cleanup_stopped : Bool,

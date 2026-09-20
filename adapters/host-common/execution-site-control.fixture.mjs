@@ -220,9 +220,27 @@ export function createExecutionSiteControlFixture() {
       if (exclusionCodes.some(code => [3, 4, 5].includes(code))) return 2;
       return 3;
     },
-    failedOperationAction(cleanupRequired, cleanupStopped, settled) {
-      if (settled) return 2;
-      if (cleanupRequired && !cleanupStopped) return 0;
+    beginFailedOperation(cleanupRequired, alreadySettled) {
+      return {
+        cleanupRequired,
+        cleanupStopped: false,
+        operationSettled: alreadySettled,
+      };
+    },
+    recordFailedOperationStop(progress) {
+      if (!progress.cleanupRequired) return false;
+      progress.cleanupStopped = true;
+      return true;
+    },
+    recordFailedOperationSettlement(progress) {
+      if (progress.operationSettled ||
+          (progress.cleanupRequired && !progress.cleanupStopped)) return false;
+      progress.operationSettled = true;
+      return true;
+    },
+    failedOperationAction(progress) {
+      if (progress.operationSettled) return 2;
+      if (progress.cleanupRequired && !progress.cleanupStopped) return 0;
       return 1;
     },
     retainedHoldingAction(

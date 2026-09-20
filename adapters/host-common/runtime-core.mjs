@@ -70,6 +70,10 @@ function siteControl(moon) {
       ),
     ),
     managedCandidateFallback: moon.strategySiteManagedCandidateFallback,
+    beginFailedOperation: moon.strategySiteBeginFailedOperationProgress,
+    recordFailedOperationStop: moon.strategySiteRecordFailedOperationStop,
+    recordFailedOperationSettlement:
+      moon.strategySiteRecordFailedOperationSettlement,
     failedOperationAction: moon.strategySiteFailedOperationAction,
     retainedHoldingAction: moon.strategySiteRetainedHoldingAction,
     beginHostCleanup: moon.strategyHostBeginCleanupProgress,

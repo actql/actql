@@ -2716,16 +2716,37 @@ pub fn strategy_site_managed_candidate_fallback(
 }
 
 ///|
+#export_name("strategySiteBeginFailedOperationProgress")
+pub fn strategy_site_begin_failed_operation_progress(
+  cleanup_required : Bool,
+  already_settled : Bool,
+) -> @site.FailedSiteOperationProgress {
+  @site.begin_failed_site_operation_progress(cleanup_required, already_settled)
+}
+
+///|
+#export_name("strategySiteRecordFailedOperationStop")
+pub fn strategy_site_record_failed_operation_stop(
+  progress : @site.FailedSiteOperationProgress,
+) -> Bool {
+  @site.record_failed_site_operation_stop(progress)
+}
+
+///|
+#export_name("strategySiteRecordFailedOperationSettlement")
+pub fn strategy_site_record_failed_operation_settlement(
+  progress : @site.FailedSiteOperationProgress,
+) -> Bool {
+  @site.record_failed_site_operation_settlement(progress)
+}
+
+///|
 #export_name("strategySiteFailedOperationAction")
 pub fn strategy_site_failed_operation_action(
-  cleanup_required : Bool,
-  cleanup_stopped : Bool,
-  operation_settled : Bool,
+  progress : @site.FailedSiteOperationProgress,
 ) -> Int {
   @site.failed_site_operation_action_code(
-    @site.prepare_failed_site_operation_step(
-      cleanup_required, cleanup_stopped, operation_settled,
-    ),
+    @site.prepare_failed_site_operation_progress_step(progress),
   )
 }
 

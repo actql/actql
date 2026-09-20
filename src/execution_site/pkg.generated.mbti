@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn begin_failed_site_operation_progress(Bool, Bool) -> FailedSiteOperationProgress
+
 pub fn begin_site_teardown(ExecutionSite) -> Unit
 
 pub fn classify_managed_candidate_fallback(Int, Array[Int]) -> ManagedCandidateFallbackResult
@@ -18,9 +20,15 @@ pub fn managed_candidate_fallback_projection(ManagedCandidateFallbackResult) -> 
 
 pub fn plan_site_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> SiteCandidatePlanResult
 
+pub fn prepare_failed_site_operation_progress_step(FailedSiteOperationProgress) -> FailedSiteOperationAction
+
 pub fn prepare_failed_site_operation_step(Bool, Bool, Bool) -> FailedSiteOperationAction
 
 pub fn prepare_retained_site_holding_step(Bool, Bool, Bool, Bool, Bool, Bool) -> RetainedSiteHoldingAction
+
+pub fn record_failed_site_operation_settlement(FailedSiteOperationProgress) -> Bool
+
+pub fn record_failed_site_operation_stop(FailedSiteOperationProgress) -> Bool
 
 pub fn release_site_cleanup(SiteCleanup) -> Bool
 
@@ -82,6 +90,8 @@ pub(all) enum FailedSiteOperationAction {
   FailedSiteSettle
   FailedSiteFinished
 } derive(Eq, @debug.Debug)
+
+type FailedSiteOperationProgress
 
 pub(all) enum ManagedCandidateFallbackResult {
   ManagedCandidateLegacyAllowed

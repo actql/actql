@@ -2,6 +2,7 @@
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
+  beginFailedExecutionSiteOperation,
   beginExecutionSiteHostCleanup,
   beginExecutionSiteHostTaskSuccess,
   executionSiteCandidate,
@@ -20,6 +21,8 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   recordExecutionSiteHostTaskOutputRetained,
   recordExecutionSiteHostTaskSiteCompletion,
   recordExecutionSiteHostTaskSiteOperationSettled,
+  recordFailedExecutionSiteOperationSettlement,
+  recordFailedExecutionSiteOperationStop,
   retainedExecutionSiteHoldingAction,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
@@ -384,19 +387,29 @@ export async function runInstalledStrategy(
   ) => {
     const cleanupRequired = failureMember(error, 'cleanupPending') === true;
     const upstream = failureMember(error, 'cleanupHandle');
-    let operationSettled = alreadySettled;
-    const progress = cleanupStopped => failedExecutionSiteOperationAction(
+    const failureProgress = beginFailedExecutionSiteOperation(
       operation,
       cleanupRequired,
-      cleanupStopped,
-      operationSettled,
+      alreadySettled,
     );
     const drive = cleanupStopped => {
-      const action = progress(cleanupStopped);
+      if (cleanupRequired && cleanupStopped) {
+        recordFailedExecutionSiteOperationStop(operation, failureProgress);
+      }
+      const action = failedExecutionSiteOperationAction(
+        operation,
+        failureProgress,
+      );
       if (action === 1) {
         settleExecutionSiteOperation(operation);
-        operationSettled = true;
-        return progress(cleanupStopped);
+        recordFailedExecutionSiteOperationSettlement(
+          operation,
+          failureProgress,
+        );
+        return failedExecutionSiteOperationAction(
+          operation,
+          failureProgress,
+        );
       }
       return action;
     };

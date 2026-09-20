@@ -867,6 +867,8 @@ pub fn async_strategy_run_publication_chain_valid(@run_publication.PublicationCo
 
 pub fn async_strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
+pub fn async_strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
+
 pub fn async_strategy_site_begin_teardown(@execution_site.ExecutionSite) -> Unit
 
 pub fn async_strategy_site_binding_current(@execution_site.ExecutionSite, Int, String) -> Bool
@@ -875,13 +877,17 @@ pub fn async_strategy_site_capacity_supports(@execution_site.ExecutionSite, Int6
 
 pub fn async_strategy_site_create(String, Int, String, Int, Int, Int64, Int64) -> @execution_site.ExecutionSite?
 
-pub fn async_strategy_site_failed_operation_action(Bool, Bool, Bool) -> Int
+pub fn async_strategy_site_failed_operation_action(@execution_site.FailedSiteOperationProgress) -> Int
 
 pub fn async_strategy_site_managed_candidate_fallback(Int, Array[Int]) -> Int
 
 pub fn async_strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
 pub fn async_strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
+pub fn async_strategy_site_record_failed_operation_settlement(@execution_site.FailedSiteOperationProgress) -> Bool
+
+pub fn async_strategy_site_record_failed_operation_stop(@execution_site.FailedSiteOperationProgress) -> Bool
 
 pub fn async_strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool
 
@@ -1819,6 +1825,8 @@ pub fn strategy_run_publication_chain_valid(@run_publication.PublicationContract
 
 pub fn strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
+pub fn strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
+
 pub fn strategy_site_begin_teardown(@execution_site.ExecutionSite) -> Unit
 
 pub fn strategy_site_binding_current(@execution_site.ExecutionSite, Int, String) -> Bool
@@ -1827,13 +1835,17 @@ pub fn strategy_site_capacity_supports(@execution_site.ExecutionSite, Int64, Int
 
 pub fn strategy_site_create(String, Int, String, Int, Int, Int64, Int64) -> @execution_site.ExecutionSite?
 
-pub fn strategy_site_failed_operation_action(Bool, Bool, Bool) -> Int
+pub fn strategy_site_failed_operation_action(@execution_site.FailedSiteOperationProgress) -> Int
 
 pub fn strategy_site_managed_candidate_fallback(Int, Array[Int]) -> Int
 
 pub fn strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
 pub fn strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
+pub fn strategy_site_record_failed_operation_settlement(@execution_site.FailedSiteOperationProgress) -> Bool
+
+pub fn strategy_site_record_failed_operation_stop(@execution_site.FailedSiteOperationProgress) -> Bool
 
 pub fn strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool
 

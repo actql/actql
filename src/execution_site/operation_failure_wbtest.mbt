@@ -19,6 +19,27 @@ test "failed Site operation waits only for required physical stop" {
 }
 
 ///|
+test "failed Site operation progress owns stop and settlement facts" {
+  let progress = begin_failed_site_operation_progress(true, false)
+  assert_eq(
+    prepare_failed_site_operation_progress_step(progress),
+    FailedSiteAwaitStop,
+  )
+  assert_true(!record_failed_site_operation_settlement(progress))
+  assert_true(record_failed_site_operation_stop(progress))
+  assert_eq(
+    prepare_failed_site_operation_progress_step(progress),
+    FailedSiteSettle,
+  )
+  assert_true(record_failed_site_operation_settlement(progress))
+  assert_eq(
+    prepare_failed_site_operation_progress_step(progress),
+    FailedSiteFinished,
+  )
+  assert_true(record_failed_site_operation_stop(progress))
+}
+
+///|
 test "retained Site holding follows physical close and cleanup" {
   assert_eq(
     prepare_retained_site_holding_step(false, false, false, false, false, false),
