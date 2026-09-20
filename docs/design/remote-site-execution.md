@@ -171,12 +171,15 @@ choose whether a task may be retried. A disconnected waiter leaves the exact
 dispatch available for reconciliation instead of silently authorizing a new
 execution occurrence.
 
-Dispatch delivery and status reconciliation use distinct canonical poll
-operations. A query asks the Site journal for the exact durable observation
-and may return `not seen`; it never reaches dispatch admission or native start.
-Only an explicit dispatch operation may deliver or retransmit executable work.
-Cancellation before gateway admission creates no pending operation, while a
-caller disconnect after admission removes only that caller's waiter.
+Dispatch delivery, status reconciliation, and retained-output release use
+distinct canonical poll operations. A query asks the Site journal for the
+exact durable observation and may return `not seen`; it never reaches dispatch
+admission or native start. A release may advance only the exact existing
+output owner and reports the resulting durable cleanup state. It cannot admit
+or re-execute work. Only an explicit dispatch operation may deliver or
+retransmit executable work. Cancellation before gateway admission creates no
+pending operation, while a caller disconnect after admission removes only
+that caller's waiter.
 
 The required Remote Site tests cover an authenticated loopback subprocess and
 separated native Site networks. They use distinct Store roots and may not use

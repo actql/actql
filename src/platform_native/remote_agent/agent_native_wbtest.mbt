@@ -310,7 +310,31 @@ test "outbound agent observes durable acceptance before one execution" {
     @remote.dispatch_request_identity(request),
   )
   assert_eq(executions[0], 1)
-  assert_true(runtime.release(request).unwrap())
+  let release = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_release_json(request).unwrap(),
+  ).unwrap()
+  guard run_native_outbound_operation(
+      runtime,
+      Some(release),
+      accept,
+      report_status,
+    )
+    is Ok(ReleaseObserved(release_identity, release_revision)) else {
+    fail("release was not observed")
+  }
+  assert_eq(release_identity, @remote.dispatch_request_identity(request))
+  assert_true(release_revision > revision)
+  guard run_native_outbound_operation(
+      runtime,
+      Some(release),
+      accept,
+      report_status,
+    )
+    is Ok(ReleaseObserved(_, exact_retry_revision)) else {
+    fail("released output was not reconciled")
+  }
+  assert_eq(exact_retry_revision, release_revision)
+  assert_eq(executions[0], 1)
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())

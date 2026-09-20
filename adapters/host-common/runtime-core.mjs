@@ -154,6 +154,9 @@ function remoteSiteControl(moon) {
     pollDispatchRequest: moon.strategyRemotePollDispatchRequest,
     pollDispatchBindingBody: moon.strategyRemotePollDispatchBindingBody,
     pollQueryJson: value => checked(moon.strategyRemotePollQueryJson(value)),
+    pollReleaseJson: value => checked(
+      moon.strategyRemotePollReleaseJson(value),
+    ),
     pollNotSeenJson: value => checked(
       moon.strategyRemotePollNotSeenJson(value),
     ),

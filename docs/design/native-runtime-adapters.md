@@ -356,9 +356,13 @@ delivery reconciles that same record instead of starting another execution.
 The poll and acknowledgement calls deliberately contain no automatic retry or
 re-execution policy. A missing acknowledgement leaves the Coordinator and
 Site journals to reconcile their independently durable facts. The current
-slice proves outbound authenticated admission without requiring a native
-listener; it does not yet claim a complete remote compute, bulk transfer, or
-Coordinator gateway implementation.
+slice also carries an explicit release operation. Release advances only the
+exact accepted dispatch owner through the portable cleanup plan, posts the
+durable Site observation, and makes an exact retry observe the same released
+record rather than reclaiming twice. It proves outbound authenticated
+admission and release without requiring a native listener; it does not yet
+claim a complete remote compute, bulk transfer, or Coordinator gateway
+implementation.
 
 ## Supported native profiles
 

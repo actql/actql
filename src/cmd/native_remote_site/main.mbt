@@ -269,6 +269,23 @@ fn poll_once(
           )
         Err(issue) => Err("query " + client_issue_code(issue))
       }
+    Some(@remote.Release(request)) =>
+      match
+        @client.acknowledge_status(journal, client, observation_url, request) {
+        Ok(Some(record)) =>
+          poll_result_json(
+            "release-pending",
+            @remote.dispatch_request_identity(request),
+            @remote.dispatch_record_revision(record),
+          )
+        Ok(None) =>
+          poll_result_json(
+            "not-seen",
+            @remote.dispatch_request_identity(request),
+            0,
+          )
+        Err(issue) => Err("release " + client_issue_code(issue))
+      }
   }
   if !client.close() {
     return match result {

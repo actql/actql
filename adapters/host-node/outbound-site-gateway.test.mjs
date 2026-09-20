@@ -296,6 +296,30 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.deepEqual((await terminalCompletion).state, [3, 0, 0, 0, 0]);
     assert.equal(siteAcceptCount, 1);
 
+    const releaseCompletion = gateway.release({dispatch: request});
+    const releasePoll = await post(
+      gateway.origin,
+      `${path}/poll`,
+      siteMaterial,
+    );
+    assert.equal(releasePoll.status, 200);
+    assert.equal(
+      JSON.parse(releasePoll.body).version,
+      'actql-remote-poll-release/0.1',
+    );
+    siteStore.advance(control.prepareRelease(record), record, control);
+    siteStore.advance(control.prepareReleased(record), record, control);
+    const releaseObservation = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined),
+    );
+    assert.equal(releaseObservation.status, 200);
+    assert.deepEqual((await releaseCompletion).state, [3, 0, 2, 0, 0]);
+    assert.equal(siteAcceptCount, 1);
+    assert.equal(gateway.pending(), 0);
+
     const unseen = dispatch({
       dispatchId: 'dispatch-outbound-unseen',
       taskAttempt: 2,

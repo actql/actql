@@ -2114,6 +2114,14 @@ pub fn remote_completion_evidence_available(record : DispatchRecord) -> Bool {
 }
 
 ///|
+/// Historical completion and current material availability stay distinct.
+/// This predicate reports only that the exact Site cleanup responsibility was
+/// durably released; it grants no new execution or read authority.
+pub fn remote_runtime_record_released(record : DispatchRecord) -> Bool {
+  record.cleanup == CleanupReleased && !record.material_available
+}
+
+///|
 pub fn dispatch_record_state(
   record : DispatchRecord,
 ) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool) {

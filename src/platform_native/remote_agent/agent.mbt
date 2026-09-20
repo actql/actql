@@ -7,6 +7,8 @@ pub(all) enum NativeRemoteAgentOutcome {
   DispatchObserved(String, Int)
   QueryObserved(String, Int)
   QueryNotSeen(String)
+  ReleaseObserved(String, Int)
+  ReleasePending(String, Int)
 }
 
 ///|
@@ -62,6 +64,43 @@ fn run_native_outbound_operation(
         Ok(None) => Ok(QueryNotSeen(@remote.dispatch_request_identity(request)))
         Err(issue) => Err(Client(issue))
       }
+    Some(@remote.Release(request)) => {
+      let released = runtime.release(request)
+      match acknowledge_status(request) {
+        Ok(Some(record)) => {
+          if !@remote.dispatch_record_matches_request(record, request) {
+            return Err(ObservationMismatch)
+          }
+          let revision = @remote.dispatch_record_revision(record)
+          match released {
+            Err(issue) => Err(RuntimeObserved(issue, revision))
+            Ok(_) =>
+              if @remote.remote_runtime_record_released(record) {
+                Ok(
+                  ReleaseObserved(
+                    @remote.dispatch_request_identity(request),
+                    revision,
+                  ),
+                )
+              } else {
+                Ok(
+                  ReleasePending(
+                    @remote.dispatch_request_identity(request),
+                    revision,
+                  ),
+                )
+              }
+          }
+        }
+        Ok(None) => Err(ObservationMissing)
+        Err(observation_issue) =>
+          match released {
+            Err(runtime_issue) =>
+              Err(RuntimeObservationUnknown(runtime_issue, observation_issue))
+            Ok(_) => Err(Client(observation_issue))
+          }
+      }
+    }
     Some(@remote.Dispatch(dispatch)) => {
       let request = @remote.remote_poll_dispatch_request(dispatch)
       let binding = @remote.remote_poll_dispatch_input_binding(dispatch)
@@ -141,7 +180,8 @@ fn run_native_outbound_operation(
 /// Poll once through the authenticated outbound transport. A dispatch is made
 /// durable before its acceptance is posted, and physical execution begins
 /// only after that post succeeds. The terminal Site record is then posted as
-/// a separate observation. Query operations never enter runtime admission.
+/// a separate observation. Query operations never enter runtime admission;
+/// release operations can only advance an existing exact output owner.
 pub fn run_native_outbound_site_occurrence(
   runtime : @runtime.NativeRemoteRuntime,
   journal : @journal.Journal,

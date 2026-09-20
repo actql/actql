@@ -52,6 +52,7 @@ struct RemotePollDispatch {
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
   Query(DispatchRequest)
+  Release(DispatchRequest)
 }
 
 ///|
@@ -120,6 +121,16 @@ pub fn remote_poll_query_json(
   request : DispatchRequest,
 ) -> Result[String, DispatchIssue] {
   remote_poll_request_json(request, "actql-remote-poll-query/0.1")
+}
+
+///|
+/// Request release of the exact retained dispatch output. This operation has
+/// no authority to execute or recreate the dispatch; an exact retry only
+/// reconciles the existing Site owner and durable cleanup state.
+pub fn remote_poll_release_json(
+  request : DispatchRequest,
+) -> Result[String, DispatchIssue] {
+  remote_poll_request_json(request, "actql-remote-poll-release/0.1")
 }
 
 ///|
@@ -196,7 +207,12 @@ pub fn admit_remote_poll_operation_json(
   }
   match admit_remote_poll_request_json(body, "actql-remote-poll-query/0.1") {
     Ok(request) => Ok(Query(request))
-    Err(issue) => Err(issue)
+    Err(_) =>
+      match
+        admit_remote_poll_request_json(body, "actql-remote-poll-release/0.1") {
+        Ok(request) => Ok(Release(request))
+        Err(issue) => Err(issue)
+      }
   }
 }
 
@@ -206,7 +222,7 @@ pub fn remote_poll_operation_request(
 ) -> DispatchRequest {
   match operation {
     Dispatch(dispatch) => dispatch.request
-    Query(request) => request
+    Query(request) | Release(request) => request
   }
 }
 
@@ -215,6 +231,17 @@ pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
   match operation {
     Dispatch(_) => false
     Query(_) => true
+    Release(_) => false
+  }
+}
+
+///|
+pub fn remote_poll_operation_is_release(
+  operation : RemotePollOperation,
+) -> Bool {
+  match operation {
+    Release(_) => true
+    Dispatch(_) | Query(_) => false
   }
 }
 

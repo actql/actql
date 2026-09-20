@@ -363,6 +363,17 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     assert.deepEqual(retransmitted.state, completed.state);
     assert.equal(retransmitted.revision, completed.revision);
 
+    const released = await coordinator.release(options);
+    assert.deepEqual(released.state, [3, 2, 2, 0, 0]);
+    assert.equal(released.revision, 7);
+    assert.equal(
+      coordinator.completionEvidenceAvailable(options),
+      false,
+    );
+    const releasedAgain = await coordinator.release(options);
+    assert.deepEqual(releasedAgain.state, released.state);
+    assert.equal(releasedAgain.revision, released.revision);
+
     await assert.rejects(
       sendRemoteDispatch({
         ...options,
@@ -403,7 +414,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       store: reopenedStore,
     });
     assert.equal(reopened.recovered.length, 1);
-    assert.equal(reopened.completionEvidenceAvailable(options), true);
+    assert.equal(reopened.completionEvidenceAvailable(options), false);
     const reopenedEvidence = reopenedStore.inspectEvidence(
       request,
       runtime.remoteSiteControl,
@@ -532,6 +543,7 @@ test('Agent close retries runtime cleanup without reopening admission',
         supports: () => false,
         start() {},
         cancel() {},
+        release() {},
         async close() {
           closes++;
           if (closes === 1) throw pending;
@@ -575,6 +587,7 @@ test('concurrent Agent close calls share one runtime cleanup attempt',
         supports: () => false,
         start() {},
         cancel() {},
+        release() {},
         async close() {
           closes++;
           await closeGate;

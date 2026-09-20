@@ -47,6 +47,29 @@ test "outbound query is distinct and not-seen binds the exact request" {
 }
 
 ///|
+test "outbound release is distinct from dispatch and query" {
+  let request = coordinator_request("dispatch-release", 35)
+  let body = remote_poll_release_json(request).unwrap()
+  let admitted = admit_remote_poll_operation_json(body).unwrap()
+  assert_true(remote_poll_operation_is_release(admitted))
+  assert_false(remote_poll_operation_is_query(admitted))
+  assert_eq(
+    dispatch_request_identity(remote_poll_operation_request(admitted)),
+    dispatch_request_identity(request),
+  )
+  assert_true(admit_remote_poll_dispatch_json(body) is Err(InvalidDispatch))
+  assert_true(
+    admit_remote_poll_operation_json(
+      body.replace(
+        old="actql-remote-poll-release/0.1",
+        new="actql-remote-poll-query/0.1",
+      ),
+    )
+    is Ok(Query(_)),
+  )
+}
+
+///|
 test "Site reply is admitted as the same transport observation" {
   let request = coordinator_request("dispatch-reply", 32)
   let site = @site.create_site(

@@ -145,7 +145,8 @@ pub fn poll(
     Ok(None) => Ok(None)
     Ok(Some(@remote.Dispatch(dispatch))) =>
       Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
-    Ok(Some(@remote.Query(_))) => Err(Protocol(@remote.InvalidDispatch))
+    Ok(Some(@remote.Query(_))) | Ok(Some(@remote.Release(_))) =>
+      Err(Protocol(@remote.InvalidDispatch))
     Err(issue) => Err(issue)
   }
 }

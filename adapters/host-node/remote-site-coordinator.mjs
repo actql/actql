@@ -1,6 +1,7 @@
 import {
   cancelRemoteDispatch,
   queryRemoteDispatch,
+  releaseRemoteDispatch,
   sendRemoteDispatch,
 } from './remote-site-client.mjs';
 
@@ -15,6 +16,7 @@ export function createRemoteSiteCoordinator({
   send = sendRemoteDispatch,
   query = queryRemoteDispatch,
   cancel = cancelRemoteDispatch,
+  release = releaseRemoteDispatch,
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.prepareCoordinatorIntent !== 'function' ||
@@ -28,7 +30,7 @@ export function createRemoteSiteCoordinator({
       typeof store.contains !== 'function' ||
       typeof store.recoverJournal !== 'function' ||
       typeof send !== 'function' || typeof query !== 'function' ||
-      typeof cancel !== 'function') {
+      typeof cancel !== 'function' || typeof release !== 'function') {
     fail('InvalidRemoteSiteCoordinator');
   }
   const recovered = store.recoverJournal(journal, control);
@@ -106,6 +108,9 @@ export function createRemoteSiteCoordinator({
     },
     cancel(value) {
       return exchange(requireIntent(value), cancel);
+    },
+    release(value) {
+      return exchange(requireIntent(value), release);
     },
     completionEvidenceAvailable(value) {
       const request = requireIntent(value);

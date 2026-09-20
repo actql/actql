@@ -78,6 +78,7 @@ export async function startHttpsRemoteSiteAgent({
       typeof dispatchRuntime.supports !== 'function' ||
       typeof dispatchRuntime.start !== 'function' ||
       typeof dispatchRuntime.cancel !== 'function' ||
+      typeof dispatchRuntime.release !== 'function' ||
       typeof dispatchRuntime.close !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     fail('InvalidRemoteSiteAgentConfiguration');
@@ -86,6 +87,7 @@ export async function startHttpsRemoteSiteAgent({
     `${siteGeneration}/dispatches`;
   const queryEndpoint = `${endpoint}/query`;
   const cancelEndpoint = `${endpoint}/cancel`;
+  const releaseEndpoint = `${endpoint}/release`;
   let admissionClosed = false;
   let listenerClosed = false;
   let runtimeClosed = false;
@@ -111,7 +113,10 @@ export async function startHttpsRemoteSiteAgent({
         request.url === queryEndpoint;
       const cancelRequest = request.method === 'POST' &&
         request.url === cancelEndpoint;
-      if ((!admissionRequest && !queryRequest && !cancelRequest) ||
+      const releaseRequest = request.method === 'POST' &&
+        request.url === releaseEndpoint;
+      if ((!admissionRequest && !queryRequest && !cancelRequest &&
+          !releaseRequest) ||
           request.headers['content-type'] !== 'application/json') {
         reply(response, 404, {error: 'not_found'});
         return;
@@ -140,7 +145,7 @@ export async function startHttpsRemoteSiteAgent({
         reply(response, 404, {error: 'not_found'});
         return;
       }
-      if (queryRequest || cancelRequest) {
+      if (queryRequest || cancelRequest || releaseRequest) {
         const accepted = store.inspect(dispatch, control);
         const state = store.inspectState(dispatch, control);
         if (accepted === undefined || state === undefined ||
@@ -154,6 +159,12 @@ export async function startHttpsRemoteSiteAgent({
           replyCanonical(response, control.replyJson(record));
           return;
         }
+        if (releaseRequest) {
+          await dispatchRuntime.release(dispatch);
+        }
+        const observed = releaseRequest
+          ? control.restoreHistorical(journal, dispatch)
+          : record;
         const stored = store.inspectEvidence(dispatch, control);
         const evidence = stored === undefined
           ? undefined
@@ -180,7 +191,7 @@ export async function startHttpsRemoteSiteAgent({
           );
         replyCanonical(
           response,
-          control.statusJson(record, evidence, subject, measurement),
+          control.statusJson(observed, evidence, subject, measurement),
         );
         return;
       }

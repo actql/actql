@@ -78,6 +78,7 @@ export async function startHttpsOutboundSiteGateway({
       typeof control.prepareInputBinding !== 'function' ||
       typeof control.pollJson !== 'function' ||
       typeof control.pollQueryJson !== 'function' ||
+      typeof control.pollReleaseJson !== 'function' ||
       typeof control.admitPollNotSeen !== 'function' ||
       typeof control.admitResponseJson !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0 ||
@@ -136,7 +137,9 @@ export async function startHttpsOutboundSiteGateway({
       operation,
       envelope: operation === 'query'
         ? control.pollQueryJson(dispatch)
-        : control.pollJson(dispatch, inputBinding),
+        : operation === 'release'
+          ? control.pollReleaseJson(dispatch)
+          : control.pollJson(dispatch, inputBinding),
       sequence: sequence++,
       waiters: new Set(),
     };
@@ -221,7 +224,7 @@ export async function startHttpsOutboundSiteGateway({
           admitted = control.admitResponseJson(
             body,
             entry.dispatch,
-            entry.operation === 'query',
+            entry.operation === 'query' || entry.operation === 'release',
           );
           matched = entry;
           break;
@@ -294,6 +297,10 @@ export async function startHttpsOutboundSiteGateway({
     query({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');
       return waitFor(dispatch, signal, 'query', undefined);
+    },
+    release({dispatch, signal} = {}) {
+      if (dispatch === undefined) fail('InvalidOutboundDispatch');
+      return waitFor(dispatch, signal, 'release', undefined);
     },
     pending() {
       return pending.size;

@@ -85,7 +85,9 @@ async function exchangeRemoteDispatch({
   const parts = control.journalKey(dispatch);
   const suffix = operation === 'query'
     ? '/query'
-    : operation === 'cancel' ? '/cancel' : '';
+    : operation === 'cancel'
+      ? '/cancel'
+      : operation === 'release' ? '/release' : '';
   const path = `/v1/sites/${encodeURIComponent(parts[1])}/generations/` +
     `${parts[2]}/dispatches${suffix}`;
   return await new Promise((resolve, reject) => {
@@ -125,13 +127,17 @@ async function exchangeRemoteDispatch({
           }));
           return;
         }
-        const query = operation === 'query';
+        const statusReply = operation === 'query' || operation === 'release';
         let admitted;
         try {
           const bodyText = new TextDecoder('utf-8', {fatal: true}).decode(
             Buffer.concat(chunks, length),
           );
-          admitted = control.admitResponseJson(bodyText, dispatch, query);
+          admitted = control.admitResponseJson(
+            bodyText,
+            dispatch,
+            statusReply,
+          );
         } catch (error) {
           reject(Object.assign(new Error('InvalidRemoteSiteResponse', {
             cause: error,
@@ -142,7 +148,7 @@ async function exchangeRemoteDispatch({
           control,
           dispatch,
           admitted,
-          {statusReply: query},
+          {statusReply},
         ));
       });
     });
@@ -161,4 +167,8 @@ export function queryRemoteDispatch(options) {
 
 export function cancelRemoteDispatch(options) {
   return exchangeRemoteDispatch(options, 'cancel');
+}
+
+export function releaseRemoteDispatch(options) {
+  return exchangeRemoteDispatch(options, 'release');
 }
