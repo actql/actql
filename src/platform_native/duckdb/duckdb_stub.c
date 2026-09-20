@@ -772,13 +772,17 @@ static bool actql_stream_fields(
       goto failed;
     }
     if (query->types[column] == DUCKDB_TYPE_DECIMAL) {
-      if (!actql_text_i64(&text, query->decimal_widths[column])) goto failed;
+      if (!actql_text_quoted_i64(&text, query->decimal_widths[column])) {
+        goto failed;
+      }
     } else if (!actql_text_literal(&text, "null")) {
       goto failed;
     }
     if (!actql_text_literal(&text, ",")) goto failed;
     if (query->types[column] == DUCKDB_TYPE_DECIMAL) {
-      if (!actql_text_i64(&text, query->decimal_scales[column])) goto failed;
+      if (!actql_text_quoted_i64(&text, query->decimal_scales[column])) {
+        goto failed;
+      }
     } else if (!actql_text_literal(&text, "null")) {
       goto failed;
     }

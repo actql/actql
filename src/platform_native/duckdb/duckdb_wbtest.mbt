@@ -35,10 +35,12 @@ test "native DuckDB streams bounded physical column batches" {
   let query = database
     .stream_query(
       "SELECT * FROM (VALUES " +
-      "(1::INTEGER, 'a'::VARCHAR, 1.5::DOUBLE, true), " +
-      "(2::INTEGER, '日本語'::VARCHAR, NULL::DOUBLE, false)) " +
-      "AS t(i, s, d, b)",
-      4,
+      "(1::INTEGER, 'a'::VARCHAR, 1.5::DOUBLE, true, " +
+      "12.34::DECIMAL(4,2)), " +
+      "(2::INTEGER, '日本語'::VARCHAR, NULL::DOUBLE, false, " +
+      "-0.01::DECIMAL(4,2))) " +
+      "AS t(i, s, d, b, amount)",
+      5,
       2L,
       1,
       256,
@@ -49,20 +51,21 @@ test "native DuckDB streams bounded physical column batches" {
     "[[\"i\",\"INTEGER\",null,null]," +
     "[\"s\",\"VARCHAR\",null,null]," +
     "[\"d\",\"DOUBLE\",null,null]," +
-    "[\"b\",\"BOOLEAN\",null,null]]",
+    "[\"b\",\"BOOLEAN\",null,null]," +
+    "[\"amount\",\"DECIMAL\",\"4\",\"2\"]]",
   )
   assert_eq(
     query.next().unwrap(),
     Some({
       row_count: 1,
-      columns_json: "[[\"1\"],[\"a\"],[\"3ff8000000000000\"],[true]]",
+      columns_json: "[[\"1\"],[\"a\"],[\"3ff8000000000000\"],[true],[\"1234\"]]",
     }),
   )
   assert_eq(
     query.next().unwrap(),
     Some({
       row_count: 1,
-      columns_json: "[[\"2\"],[\"日本語\"],[null],[false]]",
+      columns_json: "[[\"2\"],[\"日本語\"],[null],[false],[\"-1\"]]",
     }),
   )
   assert_eq(query.next().unwrap(), None)
