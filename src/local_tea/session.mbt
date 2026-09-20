@@ -28,9 +28,14 @@ priv enum SessionIdentityScalarIssue {
 }
 
 ///|
+priv enum SessionSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@lifecycle.ProducerView)
+}
+
+///|
 priv struct SessionState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  source : SessionSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   prepared : @lower.PreparedEvent
@@ -77,6 +82,42 @@ priv struct SessionState {
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+}
+
+///|
+fn session_source_available(source : SessionSource) -> Bool {
+  match source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @lifecycle.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn session_source_field_count(source : SessionSource, record : Int) -> Int? {
+  match source {
+    Stored(_, storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn session_source_field(
+  source : SessionSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(_, storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -217,7 +258,7 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
         state.phase = SortBeginPass
         return Ok(())
       }
-      guard @storage.record_field_count(state.source, state.record) is Some(_) else {
+      guard session_source_field_count(state.source, state.record) is Some(_) else {
         return Err(InvalidSessionRecord(state.record))
       }
       state.field = 0
@@ -226,7 +267,7 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
       Ok(())
     }
     LoadField => {
-      let count = @storage.record_field_count(state.source, state.record).unwrap_or(
+      let count = session_source_field_count(state.source, state.record).unwrap_or(
         -1,
       )
       if state.field >= count {
@@ -234,7 +275,7 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
         state.phase = LoadVerify
         return Ok(())
       }
-      guard @storage.record_field_at(state.source, state.record, state.field)
+      guard session_source_field(state.source, state.record, state.field)
         is Some(value) else {
         return Err(InvalidSessionRecord(state.record))
       }
@@ -604,7 +645,7 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
         return Ok(false)
       }
       let record = state.source_order[state.emit]
-      guard @storage.record_field_count(state.source, record) is Some(fields) &&
+      guard session_source_field_count(state.source, record) is Some(fields) &&
         session_checked_multiply(fields + 3, 2) is Some(temporary) else {
         return Err(InvalidSessionRecord(record))
       }
@@ -624,9 +665,7 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
     }
     EmitFields => {
       let record = state.source_order[state.emit]
-      let count = @storage.record_field_count(state.source, record).unwrap_or(
-        -1,
-      )
+      let count = session_source_field_count(state.source, record).unwrap_or(-1)
       if state.emit_field >= count {
         if state.session_start < -9007199254740991L ||
           state.session_start > 9007199254740991L ||
@@ -654,7 +693,7 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
         state.phase = EmitCommit
         return Ok(false)
       }
-      guard @storage.record_field_at(state.source, record, state.emit_field)
+      guard session_source_field(state.source, record, state.emit_field)
         is Some(field) else {
         return Err(InvalidSessionRecord(record))
       }
@@ -692,7 +731,7 @@ fn session_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !session_source_available(state.source) {
       return @bounded.Failed(SessionInputUnavailable, progress, used)
     }
     used += 1
@@ -762,30 +801,20 @@ fn session_output_contract(
 }
 
 ///|
-pub fn start_session(
+fn start_session_with_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  event : @lower.PreparedEvent,
+  keys : Array[@schema.FieldName],
+  gap : Int64,
+  source : SessionSource,
+  records : Int,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
 ) -> Result[SessionExecution, SessionIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "TEA.window.session_assign" &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @lower.event_session_keys(event) is Some(keys) &&
-    @lower.event_session_gap(event) is Some(gap) &&
-    gap > 0L else {
-    return Err(InvalidSessionKernel)
-  }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.EventValue(_) else {
-    return Err(SessionInputUnavailable)
-  }
-  let records = @storage.record_count(source)
   let terms = keys.length() + 2
   guard records <= limits.max_input_records &&
     records <= limits.max_records &&
@@ -815,7 +844,6 @@ pub fn start_session(
     Err(issue) => return Err(SessionOutput(issue))
   }
   let state : SessionState = {
-    input,
     source,
     output: Some(output),
     limits,
@@ -872,6 +900,85 @@ pub fn start_session(
     token: Some(token),
     max_noninterruptible_value_bytes: limits.max_value_bytes,
   })
+}
+
+///|
+pub fn start_session(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[SessionExecution, SessionIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.window.session_assign" &&
+    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @lower.event_session_keys(event) is Some(keys) &&
+    @lower.event_session_gap(event) is Some(gap) &&
+    gap > 0L else {
+    return Err(InvalidSessionKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.EventValue(_) else {
+    return Err(SessionInputUnavailable)
+  }
+  start_session_with_source(
+    control,
+    sequence,
+    step,
+    event,
+    keys,
+    gap,
+    Stored(input, storage),
+    @storage.record_count(storage),
+    limits,
+    storage_bytes,
+    available,
+  )
+}
+
+///|
+pub fn start_session_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[SessionExecution, SessionIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  let reference = @lifecycle.producer_view_read_reference(input)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.window.session_assign" &&
+    @lifecycle.producer_view_kind(input) == @carrier.EventsKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      reference, owner, step, 0,
+    ) &&
+    @lifecycle.producer_view_record_count(input) is Some(records) &&
+    @lower.event_session_keys(event) is Some(keys) &&
+    @lower.event_session_gap(event) is Some(gap) &&
+    gap > 0L else {
+    return Err(InvalidSessionKernel)
+  }
+  start_session_with_source(
+    control,
+    sequence,
+    step,
+    event,
+    keys,
+    gap,
+    Viewed(input),
+    records,
+    limits,
+    storage_bytes,
+    available,
+  )
 }
 
 ///|

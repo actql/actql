@@ -5,6 +5,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @storage,
+  "actql/actql/managed_carrier_runtime" @lifecycle,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/carrier_contract" @carrier,

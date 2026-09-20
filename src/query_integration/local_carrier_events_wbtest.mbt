@@ -335,6 +335,50 @@ fn carrier_events_output_owner(
 }
 
 ///|
+fn carrier_events_session_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"events\",\"session\":{" +
+      "\"by\":[\"payload\"],\"gap\":10}}]",
+    ),
+    [
+      (
+        "events",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"events\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_events_storage_limits() -> @record_storage.Limits {
   {
     max_input_records: 10,
@@ -640,6 +684,142 @@ test "registered Events provider returns retained Carrier material" {
   )
   assert_true(@carrier_runtime.material_available(retained))
   assert_true(@carrier_runtime.reclaim_material(retained))
+}
+
+///|
+test "registered Events provider consumes exact Carrier in two sessions" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let events_generated = task_test_generated(events_owner)
+  let external = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let limits = carrier_events_storage_limits()
+  let events_provider = @local_tea_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      events_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let events_execution = @local_connector.start_managed_provider(
+    events_provider,
+    events_generated,
+    [external],
+    10,
+    1000,
+  ).unwrap()
+  let mut source_material = None
+  while source_material is None {
+    match
+      @local_connector.advance_managed_provider(events_execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) =>
+        source_material = Some(value)
+      @local_connector.Complete(_, ..) => fail("bridge returned rows")
+      @local_connector.Failed(_, ..) => fail("bridge provider failed")
+      @local_connector.Stopped(..) => fail("bridge provider stopped")
+    }
+  }
+  assert_true(
+    @local_connector.cleanup_managed_provider(events_execution).unwrap_or(false),
+  )
+  let source_material = source_material.unwrap()
+  let first_owner = carrier_events_session_owner(events_owner)
+  let second_owner = carrier_events_session_owner(events_owner)
+  let first_generated = task_test_generated(first_owner)
+  let second_generated = task_test_generated(second_owner)
+  let first_view = @carrier_runtime.material_prepare_view(
+    source_material, first_owner, 0, events_owner,
+  ).unwrap()
+  let second_view = @carrier_runtime.material_prepare_view(
+    source_material, second_owner, 0, events_owner,
+  ).unwrap()
+  let first_provider = @local_tea_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      first_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let second_provider = @local_tea_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      second_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(
+    @local_connector.managed_provider_accepts(first_provider, first_generated),
+  )
+  assert_true(
+    @local_connector.managed_provider_accepts(second_provider, second_generated),
+  )
+  let first = @local_connector.start_managed_provider_with_inputs(
+    first_provider,
+    first_generated,
+    [@local_connector.managed_provider_carrier_input(first_view)],
+    10,
+    1000,
+  ).unwrap()
+  let second = @local_connector.start_managed_provider_with_inputs(
+    second_provider,
+    second_generated,
+    [@local_connector.managed_provider_carrier_input(second_view)],
+    10,
+    1000,
+  ).unwrap()
+  let mut first_output = None
+  while first_output is None {
+    match @local_connector.advance_managed_provider(first, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) => first_output = Some(value)
+      @local_connector.Complete(_, ..) => fail("session returned rows")
+      @local_connector.Failed(_, ..) => fail("first session failed")
+      @local_connector.Stopped(..) => fail("first session stopped")
+    }
+  }
+  let first_output = first_output.unwrap()
+  assert_eq(
+    @carrier_runtime.material_kind(first_output),
+    @carrier_contract.EventsKind,
+  )
+  assert_true(@carrier_runtime.material_available(source_material))
+  assert_true(@local_connector.cleanup_managed_provider(first).unwrap_or(false))
+  assert_true(@carrier_runtime.reclaim_material(first_output))
+  assert_true(@carrier_runtime.material_available(source_material))
+  let mut second_output = None
+  while second_output is None {
+    match @local_connector.advance_managed_provider(second, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) => second_output = Some(value)
+      @local_connector.Complete(_, ..) => fail("session returned rows")
+      @local_connector.Failed(_, ..) => fail("second session failed")
+      @local_connector.Stopped(..) => fail("second session stopped")
+    }
+  }
+  let second_output = second_output.unwrap()
+  assert_eq(
+    @carrier_runtime.material_kind(second_output),
+    @carrier_contract.EventsKind,
+  )
+  assert_true(
+    @local_connector.cleanup_managed_provider(second).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.reclaim_material(second_output))
+  assert_false(@carrier_runtime.reclaim_material(second_output))
+  assert_true(@carrier_runtime.reclaim_material(source_material))
+  assert_false(@carrier_runtime.reclaim_material(source_material))
 }
 
 ///|

@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_record_runtime",
   "actql/actql/managed_record_storage",
   "moonbitlang/core/debug",
@@ -50,6 +51,8 @@ pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSeque
 pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[EventWindowExecution, EventWindowIssue]
 
 pub fn start_session(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
+
+pub fn start_session_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
 
 pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
 

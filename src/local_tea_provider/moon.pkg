@@ -11,4 +11,5 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @storage,
+  "actql/actql/managed_carrier_runtime" @lifecycle,
 }

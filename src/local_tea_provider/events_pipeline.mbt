@@ -14,6 +14,9 @@ priv struct Execution {
   generated : @execution.GeneratedSequence
   sequence : @lower.PreparedSequence
   inputs : Array[@execution.ProducerRead]
+  carrier_input : @lifecycle.ProducerView?
+  event_step : Int
+  projection_step : Int?
   control : @bounded.Control
   limits : @storage.Limits
   storage_bytes : Int64
@@ -66,7 +69,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     }
     match (current, step) {
       (0, @lower.EventStep(_)) =>
-        @lower.operation(node) == "BRIDGE.rows.to_events"
+        @lower.operation(node) == "BRIDGE.rows.to_events" ||
+        (count == 1 && @lower.operation(node) == "TEA.window.session_assign")
       (1, @lower.EventStep(_)) =>
         @lower.operation(node) == "TEA.watermark.label" ||
         @lower.operation(node) == "TEA.dedupe" ||
@@ -249,24 +253,25 @@ fn advance_execution(
         }
       }
       StartWatermark => {
-        guard value.row_events is Some(output) else {
-          return fail_execution(value)
-        }
-        let input = match
-          @records.prepare_step_read(
-            @execution.generated_sequence_owner(value.generated),
-            1,
-            0,
-            output,
-          ) {
-          Ok(read) => read
-          Err(_) => return fail_execution(value)
+        let input = match value.row_events {
+          Some(output) =>
+            match
+              @records.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                value.event_step,
+                0,
+                output,
+              ) {
+              Ok(read) => Some(read)
+              Err(_) => return fail_execution(value)
+            }
+          None => None
         }
         guard @lower.node_at(
             @lower.bound_preparation(
               @execution.generated_sequence_owner(value.generated),
             ),
-            1,
+            value.event_step,
           )
           is Some(node) else {
           return fail_execution(value)
@@ -277,8 +282,8 @@ fn advance_execution(
               @tea.start_watermark(
                 value.control,
                 value.sequence,
-                1,
-                input,
+                value.event_step,
+                input.unwrap(),
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
@@ -291,8 +296,8 @@ fn advance_execution(
               @tea.start_dedupe(
                 value.control,
                 value.sequence,
-                1,
-                input,
+                value.event_step,
+                input.unwrap(),
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
@@ -300,27 +305,42 @@ fn advance_execution(
               Ok(execution) => value.dedupe = Some(execution)
               Err(_) => return fail_execution(value)
             }
-          "TEA.window.session_assign" =>
-            match
-              @tea.start_session(
-                value.control,
-                value.sequence,
-                1,
-                input,
-                value.limits,
-                value.storage_bytes,
-                fn() { true },
-              ) {
+          "TEA.window.session_assign" => {
+            let started = match (input, value.carrier_input) {
+              (Some(input), _) =>
+                @tea.start_session(
+                  value.control,
+                  value.sequence,
+                  value.event_step,
+                  input,
+                  value.limits,
+                  value.storage_bytes,
+                  fn() { true },
+                )
+              (None, Some(input)) =>
+                @tea.start_session_view(
+                  value.control,
+                  value.sequence,
+                  value.event_step,
+                  input,
+                  value.limits,
+                  value.storage_bytes,
+                  fn() { true },
+                )
+              _ => return fail_execution(value)
+            }
+            match started {
               Ok(execution) => value.session = Some(execution)
               Err(_) => return fail_execution(value)
             }
+          }
           "TEA.window.fixed_label" | "TEA.window.sliding_assign" =>
             match
               @tea.start_event_window(
                 value.control,
                 value.sequence,
-                1,
-                input,
+                value.event_step,
+                input.unwrap(),
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
@@ -446,14 +466,35 @@ fn advance_execution(
               return Ok(poll)
             }
             Ok(@tea.SessionComplete(output, progress~, work~)) => {
-              guard continue_poll(value, progress, work) is Some(poll) else {
+              guard delta(progress, value.stage_progress)
+                is Some(progress_delta) &&
+                delta(work, value.stage_work) is Some(work_delta) else {
                 return fail_execution(value)
               }
+              if value.projection_step is None {
+                let material = match @records.completed_material(output) {
+                  Ok(value) => value
+                  Err(_) => {
+                    @records.discard_completed(output) |> ignore
+                    return fail_execution(value)
+                  }
+                }
+                value.terminal = true
+                value.phase = Terminal
+                return Ok(
+                  @local.managed_provider_carrier_complete(
+                    material, progress_delta, work_delta,
+                  ),
+                )
+              }
+              let poll = @local.managed_provider_continue(
+                progress_delta, work_delta,
+              )
               value.watermarked = Some(output)
               discard(value.row_events) |> ignore
               value.row_events = None
               value.phase = StartProjection
-              if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+              if work_delta > 0L {
                 return Ok(poll)
               }
             }
@@ -477,10 +518,13 @@ fn advance_execution(
         guard value.watermarked is Some(output) else {
           return fail_execution(value)
         }
+        guard value.projection_step is Some(projection_step) else {
+          return fail_execution(value)
+        }
         let input = match
           @records.prepare_step_read(
             @execution.generated_sequence_owner(value.generated),
-            2,
+            projection_step,
             0,
             output,
           ) {
@@ -492,7 +536,7 @@ fn advance_execution(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
-            2,
+            projection_step,
             input,
             value.max_rows,
             {
@@ -655,7 +699,7 @@ pub fn provider(
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
 ) -> @local.ManagedProvider {
-  @local.managed_provider(
+  @local.managed_provider_with_inputs(
     accepts,
     fn(sequence) {
       if accepts(sequence) {
@@ -668,16 +712,64 @@ pub fn provider(
       if !accepts(sequence) || storage_bytes < 0L {
         return Err(@connector.InvalidLimits)
       }
+      let owner = @execution.generated_sequence_owner(sequence)
+      let direct_session = @lower.sequence_count(
+          @execution.generated_prepared_sequence(sequence),
+        ) ==
+        1 &&
+        @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
+        @lower.operation(node) == "TEA.window.session_assign"
+      let relations : Array[@execution.ProducerRead] = []
+      let mut carrier_input = None
+      for input in inputs {
+        match input {
+          @local.RelationInput(value) => relations.push(value)
+          @local.CarrierInput(value) =>
+            if carrier_input is Some(_) {
+              return Err(@connector.InvalidLimits)
+            } else {
+              carrier_input = Some(value)
+            }
+        }
+      }
+      if direct_session {
+        if relations.length() != 0 || carrier_input is None {
+          return Err(@connector.InvalidLimits)
+        }
+      } else if relations.length() != inputs.length() ||
+        carrier_input is Some(_) {
+        return Err(@connector.InvalidLimits)
+      }
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
-        inputs: inputs.copy(),
+        inputs: relations,
+        carrier_input,
+        event_step: if direct_session {
+          0
+        } else {
+          1
+        },
+        projection_step: if direct_session {
+          None
+        } else if @lower.sequence_count(
+            @execution.generated_prepared_sequence(sequence),
+          ) ==
+          3 {
+          Some(2)
+        } else {
+          None
+        },
         control: @bounded.control(),
         limits,
         storage_bytes,
         max_rows,
         max_value_bytes,
-        phase: StartRows,
+        phase: if direct_session {
+          StartWatermark
+        } else {
+          StartRows
+        },
         rows: None,
         row_events: None,
         watermark: None,
