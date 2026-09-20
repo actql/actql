@@ -342,6 +342,58 @@ fn consume_native_publication_result(
 }
 
 ///|
+test "native standard Host exposes each checked task completion once" {
+  let (captured, runtime_owner, query_issuer) = prepare_native_publication_local_run()
+  for expected_task in [1, 2, 3] {
+    let completion = @native_host.execute_next_native_standard_strategy_task(
+        runtime_owner,
+      )
+      .unwrap()
+      .unwrap()
+    assert_eq(completion.task, expected_task)
+    let target = @strategy.captured_task_target(captured, expected_task).unwrap()
+    let recorded = @strategy.captured_task_output(
+      captured, expected_task, target,
+    ).unwrap()
+    assert_true(
+      @execution.completed_output_matches_port(
+        completion.output,
+        @strategy.graph_task_owner(
+          @strategy.captured_dag_graph(captured),
+          expected_task,
+        ).unwrap(),
+        target,
+      ),
+    )
+    assert_eq(
+      @execution.completed_row_count(completion.output),
+      @execution.completed_row_count(recorded),
+    )
+  }
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(runtime_owner)
+    is Ok(None),
+  )
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(runtime_owner)
+    is Err(Closed),
+  )
+  assert_true(@native_host.native_standard_strategy_run_complete(runtime_owner))
+  @mock.close_mock_query_issuer(query_issuer)
+  assert_true(
+    @native_host.close_native_standard_strategy_run(runtime_owner).unwrap(),
+  )
+  let graph = @strategy.captured_dag_graph(captured)
+  for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
+    @strategy.close_captured_task_output(captured, task)
+  }
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+}
+
+///|
 fn verify_native_publication_run(
   run : @strategy.CapturedDAG,
   token : String,

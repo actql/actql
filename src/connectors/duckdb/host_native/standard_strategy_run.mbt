@@ -27,6 +27,15 @@ pub(all) enum NativeStandardStrategyRunIssue {
 }
 
 ///|
+/// One exact task completed by the configured standard Host. The selected
+/// Connector remains private to the Host; remote and publication adapters
+/// receive only the checked task index and its admitted output.
+pub(all) struct NativeStandardStrategyTaskCompletion {
+  task : Int
+  output : @execution.CompletedOutput
+}
+
+///|
 /// Failures from the standard native application boundary. A publication
 /// commit failure returns the exact prepared owner so the caller can retry or
 /// cancel without re-executing the Program.
@@ -76,93 +85,128 @@ fn NativeStandardStrategyRun::stop_dispatch(
 }
 
 ///|
-/// Execute every checked-ready task through the exact implementation selected
-/// by the portable Host. Failure stops admission but leaves task runtimes in
-/// this owner until explicit cleanup confirms their release.
-pub fn execute_native_standard_strategy_run(
+/// Execute one checked-ready task through the exact implementation selected by
+/// the portable Host. `None` means the Run has no remaining task. Failure
+/// stops admission but leaves task runtimes in this owner until explicit
+/// cleanup confirms their release.
+pub fn execute_next_native_standard_strategy_task(
   run : NativeStandardStrategyRun,
-) -> Result[Unit, NativeStandardStrategyRunIssue] {
+) -> Result[
+  NativeStandardStrategyTaskCompletion?,
+  NativeStandardStrategyRunIssue,
+] {
   if !run.accepting {
     return Err(Closed)
   }
-  while true {
-    let prepared = match
-      @duckdb_standard_host.prepare_next_dispatch(run.dispatch) {
-      Ok(value) => value
+  let prepared = match
+    @duckdb_standard_host.prepare_next_dispatch(run.dispatch) {
+    Ok(value) => value
+    Err(issue) => {
+      run.accepting = false
+      run.stop_dispatch()
+      return Err(Dispatch(issue))
+    }
+  }
+  guard prepared is Some(task) else {
+    run.accepting = false
+    run.complete = true
+    run.stop_dispatch()
+    return Ok(None)
+  }
+  let task_index = @duckdb_standard_host.dispatch_task(task)
+  guard @duckdb_standard_host.dispatch_registration(task) is Some(selected) else {
+    run.accepting = false
+    run.stop_dispatch()
+    return Err(InvalidSelection)
+  }
+  if physical_equal(
+      selected,
+      @duckdb_standard_host.dispatch_local_registration(run.dispatch),
+    ) {
+    match @duckdb_standard_host.execute_synchronous_dispatch(task) {
       Err(issue) => {
         run.accepting = false
         run.stop_dispatch()
         return Err(Dispatch(issue))
       }
-    }
-    guard prepared is Some(task) else {
-      run.accepting = false
-      run.complete = true
-      run.stop_dispatch()
-      return Ok(())
-    }
-    guard @duckdb_standard_host.dispatch_registration(task) is Some(selected) else {
-      run.accepting = false
-      run.stop_dispatch()
-      return Err(InvalidSelection)
-    }
-    if physical_equal(
-        selected,
-        @duckdb_standard_host.dispatch_local_registration(run.dispatch),
-      ) {
-      match @duckdb_standard_host.execute_synchronous_dispatch(task) {
-        Ok(_) => continue
-        Err(issue) => {
+      Ok(_) => {
+        guard @strategy.captured_task_target(
+            @duckdb_standard_host.dispatch_run(run.dispatch),
+            task_index,
+          )
+          is Some(target) &&
+          @strategy.captured_task_output(
+            @duckdb_standard_host.dispatch_run(run.dispatch),
+            task_index,
+            target,
+          )
+          is Some(output) else {
           run.accepting = false
           run.stop_dispatch()
-          return Err(Dispatch(issue))
+          return Err(InvalidSelection)
         }
+        return Ok(Some({ task: task_index, output, }))
       }
     }
-    if !physical_equal(
-        selected,
-        @duckdb_standard_host.dispatch_duckdb_registration(run.dispatch),
-      ) {
+  }
+  if !physical_equal(
+      selected,
+      @duckdb_standard_host.dispatch_duckdb_registration(run.dispatch),
+    ) {
+    run.accepting = false
+    run.stop_dispatch()
+    return Err(InvalidSelection)
+  }
+  let setup = match @duckdb_standard_host.take_native_dispatch(task) {
+    Ok(value) => value
+    Err(issue) => {
       run.accepting = false
       run.stop_dispatch()
-      return Err(InvalidSelection)
+      return Err(Dispatch(issue))
     }
-    let setup = match @duckdb_standard_host.take_native_dispatch(task) {
-      Ok(value) => value
-      Err(issue) => {
-        run.accepting = false
-        run.stop_dispatch()
-        return Err(Dispatch(issue))
-      }
-    }
-    guard run.library is Some(library) else {
+  }
+  guard run.library is Some(library) else {
+    run.accepting = false
+    run.stop_dispatch()
+    return Err(DuckDBUnavailable)
+  }
+  let database = match library.open_database(path=run.database_path) {
+    Ok(value) => value
+    Err(issue) => {
       run.accepting = false
       run.stop_dispatch()
-      return Err(DuckDBUnavailable)
+      return Err(Database(issue))
     }
-    let database = match library.open_database(path=run.database_path) {
-      Ok(value) => value
-      Err(issue) => {
-        run.accepting = false
-        run.stop_dispatch()
-        return Err(Database(issue))
-      }
+  }
+  match
+    execute_native_strategy_compute_task(
+      run.runtimes,
+      setup,
+      database,
+      run.import_limits,
+      run.transfer_bytes,
+      run.execution_bytes,
+    ) {
+    Ok(output) => Ok(Some({ task: task_index, output, }))
+    Err(issue) => {
+      run.accepting = false
+      run.stop_dispatch()
+      Err(DuckDB(issue))
     }
-    match
-      execute_native_strategy_compute_task(
-        run.runtimes,
-        setup,
-        database,
-        run.import_limits,
-        run.transfer_bytes,
-        run.execution_bytes,
-      ) {
-      Ok(_) => ()
-      Err(issue) => {
-        run.accepting = false
-        run.stop_dispatch()
-        return Err(DuckDB(issue))
-      }
+  }
+}
+
+///|
+/// Execute every checked-ready task through the one-task boundary available to
+/// remote dispatch adapters. There is no second selection or completion path.
+pub fn execute_native_standard_strategy_run(
+  run : NativeStandardStrategyRun,
+) -> Result[Unit, NativeStandardStrategyRunIssue] {
+  while true {
+    match execute_next_native_standard_strategy_task(run) {
+      Ok(Some(_)) => continue
+      Ok(None) => return Ok(())
+      Err(issue) => return Err(issue)
     }
   } nobreak {
     Err(InvalidSelection)

@@ -42,6 +42,8 @@ pub fn execute_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> 
 
 pub fn execute_native_strategy_compute_task(NativeStrategyComputeRun, @driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeRunIssue]
 
+pub fn execute_next_native_standard_strategy_task(NativeStandardStrategyRun) -> Result[NativeStandardStrategyTaskCompletion?, NativeStandardStrategyRunIssue]
+
 pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
@@ -137,6 +139,11 @@ pub(all) enum NativeStandardStrategyRunIssue {
   Dispatch(@standard_host.DispatchIssue)
   Database(@native.NativeDuckDBIssue)
   DuckDB(NativeStrategyComputeRunIssue)
+}
+
+pub(all) struct NativeStandardStrategyTaskCompletion {
+  task : Int
+  output : @execution_relation.CompletedOutput
 }
 
 pub(all) struct NativeStrategyComputeFailure {
