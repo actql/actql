@@ -229,6 +229,13 @@ while execution, readers, or cleanup require it; historical verification keeps
 the manifest, signature, and required decoder rather than every old executable.
 OCI and existing signing tools are candidates, not semantic requirements.
 
+The native signature adapter dynamically loads OpenSSL 3 and invokes its EVP
+Ed25519 verifier. It does not implement a cryptographic primitive. Portable
+MoonBit control selects the signature scheme, authority, exact canonical
+preimage, and accepted key scope; the adapter reports only key decoding and
+signature verification observations. The configured library path is an
+explicit native deployment dependency rather than a hidden Node fallback.
+
 The initial filesystem adapter accepts a pre-positioned component and a signed
 canonical bundle envelope. `runtime-bundle-cli.mjs` exposes `install`,
 `activate`, `drain`, `rollback`, `verify`, `inspect`, `active`, `list`,

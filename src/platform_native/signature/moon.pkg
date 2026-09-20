@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  "native-stub": [ "signature_stub.c" ],
+  targets: {
+    "signature_native.mbt": [ "native" ],
+    "signature_native_wbtest.mbt": [ "native" ],
+    "signature_unsupported.mbt": [ "not", "native" ],
+    "signature_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)

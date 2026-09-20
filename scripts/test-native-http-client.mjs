@@ -1,6 +1,7 @@
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {once} from 'node:events';
+import {existsSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -208,9 +209,17 @@ try {
     (process.platform === 'darwin'
       ? '/usr/lib/libcurl.4.dylib'
       : 'libcurl.so.4');
+  const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
+    (process.platform === 'darwin'
+      ? [
+          '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib',
+          '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib',
+        ].find(existsSync) ?? 'libcrypto.3.dylib'
+      : 'libcrypto.so.3');
   const testEnvironment = {
     ...process.env,
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+    ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
     ACTQL_TEST_NATIVE_HTTP_URL: `https://127.0.0.1:${address.port}`,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
@@ -239,6 +248,7 @@ try {
     'src/platform_native/publication_store',
     'src/platform_native/run_publication',
     'src/platform_native/result_access',
+    'src/platform_native/signature',
     'src/platform_native/http_client',
     'src/platform_native/remote_journal',
     'src/platform_native/remote_client',

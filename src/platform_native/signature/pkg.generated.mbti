@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/signature"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn load_library(String) -> Result[Library, NativeSignatureIssue]
+
+// Errors
+
+// Types and methods
+type Library
+pub fn Library::verify_ed25519(Self, String, Bytes, String) -> Result[Bool, NativeSignatureIssue]
+
+pub(all) enum NativeSignatureIssue {
+  UnsupportedTarget
+  InvalidInput
+  LibraryLoad(String)
+  InvalidPublicKey(String)
+  UnsupportedKey(String)
+  Verification(String)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
