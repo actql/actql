@@ -123,6 +123,7 @@ fn captured_graph_fixture(
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
   ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
+  parameter_json? : String = "{\"minimum\":1}",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -175,6 +176,7 @@ fn captured_graph_fixture(
     join_steps~,
     managed_publication~,
     compute_filter~,
+    parameter_json~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)

@@ -33,7 +33,9 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
   let window = variant == "window_fixed" || variant == "window_sliding"
-  let session = variant == "session"
+  let session = variant.has_prefix("session")
+  let session_global = variant == "session_global"
+  let session_parameter = variant == "session_parameter"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
@@ -51,6 +53,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if session_global {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"b\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else if session {
     "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
     "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"a\"}," +
@@ -69,7 +75,11 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
   } else if session {
-    "{\"session\":{\"by\":[\"payload\"],\"gap\":10}}"
+    "{\"session\":{\"by\":" +
+    (if session_global { "[]" } else { "[\"payload\"]" }) +
+    ",\"gap\":" +
+    (if session_parameter { "{\"$param\":\"minimum\"}" } else { "10" }) +
+    "}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
@@ -132,6 +142,9 @@ fn carrier_events_owner(
   source : @lower.BoundPrepared,
   variant? : String = "watermark",
 ) -> @lower.BoundPrepared {
+  let session = variant.has_prefix("session")
+  let session_global = variant == "session_global"
+  let session_parameter = variant == "session_parameter"
   let transform = if variant == "dedupe" {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
@@ -140,10 +153,29 @@ fn carrier_events_owner(
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
   } else if variant == "window_sliding" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
-  } else if variant == "session" {
-    "{\"session\":{\"by\":[\"payload\"],\"gap\":10}}"
+  } else if session {
+    "{\"session\":{\"by\":" +
+    (if session_global { "[]" } else { "[\"payload\"]" }) +
+    ",\"gap\":" +
+    (if session_parameter { "{\"$param\":\"gap\"}" } else { "10" }) +
+    "}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":10," + "\"policy\":\"mark\"}}"
+  }
+  let declarations = if session_parameter {
+    Some(
+      @parameter.read_declarations(
+        Some(input_cursor("{\"gap\":{\"type\":\"number\",\"nullable\":false}}")),
+        {
+          max_parameters: 1,
+          max_nodes: 10,
+          max_depth: 10,
+          max_text_bytes: 100,
+        },
+      ).unwrap(),
+    )
+  } else {
+    None
   }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -163,7 +195,7 @@ fn carrier_events_owner(
         ),
       ),
     ],
-    None,
+    declarations,
     Some(input_cursor("\"rows\"")),
     {
       max_steps: 10,
@@ -174,6 +206,19 @@ fn carrier_events_owner(
       max_depth: 100,
     },
   ).unwrap()
+  let bound = match declarations {
+    Some(declarations) =>
+      match
+        @parameter.bind(declarations, Some(input_cursor("{\"gap\":2}")), {
+          max_nodes: 10,
+          max_depth: 10,
+          max_text_bytes: 100,
+        }).unwrap() {
+        @parameter.Ready(value) => Some(value)
+        @parameter.NeedsBindings(_) => abort("missing session gap binding")
+      }
+    None => None
+  }
   @lower.bind_parameters(
     @lower.prepare(checked, {
       max_nodes: 100,
@@ -181,9 +226,9 @@ fn carrier_events_owner(
       max_work: 1000,
       max_identifier_bytes: 1000,
     }).unwrap(),
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
+    bound,
+    max_parameters=if session_parameter { 1 } else { 0 },
+    max_name_bytes=if session_parameter { 3 } else { 0 },
   ).unwrap()
 }
 
@@ -543,7 +588,8 @@ test "registered Events provider returns retained Carrier material" {
 test "registered Events provider separates stop from cleanup" {
   for
     variant in [
-      "watermark", "dedupe", "window_fixed", "window_sliding", "session",
+      "watermark", "dedupe", "window_fixed", "window_sliding", "session", "session_global",
+      "session_parameter",
     ] {
     let source_owner = carrier_events_source_owner()
     let source = carrier_events_source_output(source_owner)
@@ -588,12 +634,27 @@ test "registered Events provider separates stop from cleanup" {
 test "standard Host runs registered bounded Events provider" {
   for
     variant in [
-      "watermark", "dedupe", "window_fixed", "window_sliding", "session",
+      "watermark", "dedupe", "window_fixed", "window_sliding", "session", "session_global",
+      "session_parameter",
     ] {
+    let publication = variant == "session"
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
       local_carrier_events_variant=variant,
+      managed_publication=publication,
+      parameter_json=if variant == "session_parameter" {
+        "{\"minimum\":2}"
+      } else {
+        "{\"minimum\":1}"
+      },
     )
+    if publication {
+      assert_true(
+        @strategy.configure_captured_managed_identity_policy(
+          run, true, false, false, false,
+        ),
+      )
+    }
     let registry = search_registry()
     let limits = dispatch_test_limits()
     let sequences = dispatch_test_generated(run)
@@ -638,11 +699,11 @@ test "standard Host runs registered bounded Events provider" {
         max_rows: 100,
         values: limits.local_execution.rows.input_values,
         wire: {
-          ..retained_attempt_wire_limits(),
           max_bytes: 3000,
           max_nodes: 300,
           max_depth: 10,
           max_columns: 10,
+          max_order_work: 1000,
         },
         row: {
           max_bytes: 3000,
@@ -664,9 +725,19 @@ test "standard Host runs registered bounded Events provider" {
       [],
       1,
       values_live,
+      obligations?=if publication {
+        Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+      } else {
+        None
+      },
     )
     let values_rows = local_managed_test_rows(values_ops)
     let events_live = Ref(true)
+    let event_obligations = if publication {
+      Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+    } else {
+      None
+    }
     let (events_ops, events) = run_local_managed_test_task(
       installed,
       run,
@@ -675,6 +746,7 @@ test "standard Host runs registered bounded Events provider" {
       [values_rows],
       2,
       events_live,
+      obligations?=event_obligations,
     )
     let event_rows = local_managed_test_rows(events_ops)
     let expected_rows = if variant == "dedupe" {
@@ -691,18 +763,57 @@ test "standard Host runs registered bounded Events provider" {
     } else if variant == "window_fixed" || variant == "window_sliding" {
       assert_true(event_rows[0].contains("\"window_start_ms\""))
       assert_true(event_rows[0].contains("\"window_end_ms\""))
-    } else if variant == "session" {
+    } else if variant.has_prefix("session") {
       assert_true(event_rows[0].contains("\"event_id\":2"))
       assert_true(event_rows[1].contains("\"event_id\":1"))
       assert_true(event_rows[2].contains("\"event_id\":3"))
       assert_true(event_rows[0].contains("\"session_start_ms\":1"))
-      assert_true(event_rows[0].contains("\"session_end_ms\":13"))
       assert_true(event_rows[0].contains("\"session_id\":\"session:"))
       assert_true(event_rows[2].contains("\"session_start_ms\":13"))
-      assert_true(event_rows[2].contains("\"session_end_ms\":23"))
+      if variant == "session_parameter" {
+        assert_true(event_rows[0].contains("\"session_end_ms\":3"))
+        assert_true(event_rows[1].contains("\"session_start_ms\":3"))
+        assert_true(event_rows[1].contains("\"session_end_ms\":5"))
+        assert_true(event_rows[2].contains("\"session_end_ms\":15"))
+      } else {
+        assert_true(event_rows[0].contains("\"session_end_ms\":13"))
+        assert_true(event_rows[2].contains("\"session_end_ms\":23"))
+      }
     } else {
       assert_true(event_rows[0].contains("\"watermark_decision\":\"keep\""))
       assert_true(event_rows[1].contains("\"late\":true"))
+    }
+    if publication {
+      let requirements = @execution.managed_obligations_identities(
+        event_obligations.unwrap(),
+      )
+      let published = requirements.filter(requirement => {
+        requirement.domain == @execution.LogicalRelation &&
+        requirement.subject == @execution.NamedResult
+      })
+      assert_eq(published.length(), 1)
+      match
+        @execution.managed_completed_identity_requirement_status(
+          events,
+          published[0],
+        ) {
+        Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+          assert_eq(
+            contract,
+            @execution.logical_relation_canonical_contract_cid(),
+          )
+          assert_eq(
+            cid, "sha256:cdb4e95a24f02c009ed6e25c03c17311d529d7941e7f594b24e73b5bc1d23ba3",
+          )
+        }
+        _ => fail("session output did not establish publication identity")
+      }
+      assert_true(
+        @execution.managed_completed_deadline_satisfied(
+          events,
+          @execution.BeforePublication,
+        ),
+      )
     }
 
     let first_live = Ref(true)
@@ -714,6 +825,11 @@ test "standard Host runs registered bounded Events provider" {
       [event_rows],
       3,
       first_live,
+      obligations?=if publication {
+        Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+      } else {
+        None
+      },
     )
     let second_live = Ref(true)
     let (second_ops, second) = run_local_managed_test_task(
@@ -724,6 +840,11 @@ test "standard Host runs registered bounded Events provider" {
       [event_rows],
       4,
       second_live,
+      obligations?=if publication {
+        Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+      } else {
+        None
+      },
     )
     assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
     assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
