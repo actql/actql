@@ -369,7 +369,7 @@ test "outbound agent observes durable acceptance before one execution" {
   assert_eq(exact_retry_revision, release_revision)
   assert_eq(executions[0], 1)
   assert_true(runtime.close().unwrap())
-  assert_true(bundles.release("runtime-process:native-agent-test").unwrap())
+  assert_false(bundles.release("runtime-process:native-agent-test").unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
 }

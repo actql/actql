@@ -32,8 +32,9 @@ Site executable.
   new process starts a new Site generation and proves that its loaded
   component matches the active bundle before accepting dispatch.
 - Component binding durably acquires a process-level bundle holding before the
-  runtime can register executors. The supervisor releases that holding only
-  after physical process stop is confirmed.
+  runtime can register executors. The MoonBit runtime takes ownership after
+  successful registration and releases the holding only after every physical
+  operation and retained output is closed.
 - Activation does not mutate a running process. Existing attempts retain the
   old executable and bundle holding while that Site generation drains.
 - Rollback starts another new Site generation from a previously verified

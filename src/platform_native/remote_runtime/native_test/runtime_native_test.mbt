@@ -384,17 +384,18 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_false(runtime.cleanup_pending())
   runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
   runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
-  assert_true(bundles.release("runtime-process:native-runtime-test").unwrap())
-  let executions_before_released_process = executions[0]
+  bundles.drain(bundle_cid).unwrap() |> ignore
+  let executions_before_draining_process = executions[0]
   assert_true(
-    runtime.start(request("dispatch-after-process-stop"), input_binding)
-    is Err(@runtime.Bundle(@bundle.MissingBundle)),
+    runtime.start(request("dispatch-after-process-drain"), input_binding)
+    is Err(@runtime.RuntimeUnsupported),
   )
-  assert_eq(executions[0], executions_before_released_process)
+  assert_eq(executions[0], executions_before_draining_process)
   assert_true(runtime.close() is Err(@runtime.CleanupPending("output")))
   assert_eq(released[0], 6)
-  assert_false(runtime.close().unwrap())
+  assert_true(runtime.close().unwrap())
   assert_eq(released[0], 8)
+  assert_false(bundles.release("runtime-process:native-runtime-test").unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
 }

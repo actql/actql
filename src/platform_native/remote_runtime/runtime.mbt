@@ -122,6 +122,7 @@ struct NativeRemoteRuntime {
   journal : @journal.Journal
   bundles : @bundle.NativeRuntimeBundleStore
   registrations : Map[String, NativeRemoteRuntimeRegistration]
+  process_holds : Map[String, Bool]
   budgets : Map[String, @remote.RemoteDispatchBudget]
   owners : Map[String, NativeRemoteRuntimeOwner]
   pending_cleanup : Map[String, NativeRemoteRuntimeOwner]
@@ -374,6 +375,11 @@ pub fn install_native_remote_runtime_registry_registration(
 }
 
 ///|
+/// Open one runtime from already acquired component bindings. On success this
+/// runtime owns every distinct process holding in the registrations. Callers
+/// must not install the same binding into another live runtime. `close`
+/// releases those holdings only after all physical execution and output
+/// owners have closed; an open failure leaves them with the caller.
 pub fn open_native_remote_runtime(
   journal : @journal.Journal,
   bundles : @bundle.NativeRuntimeBundleStore,
@@ -381,10 +387,19 @@ pub fn open_native_remote_runtime(
   budgets : Array[@remote.RemoteDispatchBudget],
 ) -> Result[NativeRemoteRuntime, NativeRemoteRuntimeIssue] {
   let installed : Map[String, NativeRemoteRuntimeRegistration] = Map([])
+  let process_holds : Map[String, Bool] = Map([])
   for registration in registrations {
     if installed.contains(registration.key) {
       return Err(RegistrationCollision)
     }
+    match bundles.verify_active_component_binding(registration.active_runtime) {
+      Ok(_) => ()
+      Err(issue) => return Err(Bundle(issue))
+    }
+    let process_hold_id = @bundle.native_active_runtime_process_hold_id(
+      registration.active_runtime,
+    )
+    process_holds[process_hold_id] = false
     installed[registration.key] = registration
   }
   let provisioned : Map[String, @remote.RemoteDispatchBudget] = Map([])
@@ -399,6 +414,7 @@ pub fn open_native_remote_runtime(
     journal,
     bundles,
     registrations: installed,
+    process_holds,
     budgets: provisioned,
     owners: Map([]),
     pending_cleanup: Map([]),
@@ -1434,6 +1450,19 @@ pub fn NativeRemoteRuntime::close(
       None => Err(CleanupPending("runtime"))
     }
   } else {
-    Ok(changed)
+    let mut released = false
+    let hold_ids = self.process_holds.keys().to_array()
+    for hold_id in hold_ids {
+      guard self.process_holds.get(hold_id) is Some(false) else { continue }
+      match self.bundles.release(hold_id) {
+        Ok(true) => {
+          self.process_holds[hold_id] = true
+          released = true
+        }
+        Ok(false) => return Err(Bundle(@bundle.MissingBundle))
+        Err(issue) => return Err(Bundle(issue))
+      }
+    }
+    Ok(changed || released)
   }
 }
