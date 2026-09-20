@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/remote_journal"
 
 import {
+  "actql/actql/execution_site",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_site_protocol",
 }
@@ -36,6 +37,8 @@ pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::recover_after(Self, String) -> Result[(String, @remote_site_protocol.DispatchRecord)?, NativeRemoteJournalIssue]
+pub fn Journal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
+pub fn Journal::restart(Self, @execution_site.ExecutionSite) -> Result[Int, NativeRemoteJournalIssue]
 
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget

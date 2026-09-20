@@ -83,6 +83,18 @@ extern "C" fn database_compare_exchange_ffi(
 ) -> Int = "actql_native_sqlite_database_compare_exchange"
 
 ///|
+#borrow(database)
+extern "C" fn database_begin_immediate_ffi(database : Database) -> Int = "actql_native_sqlite_database_begin_immediate"
+
+///|
+#borrow(database)
+extern "C" fn database_commit_ffi(database : Database) -> Int = "actql_native_sqlite_database_commit"
+
+///|
+#borrow(database)
+extern "C" fn database_rollback_ffi(database : Database) -> Int = "actql_native_sqlite_database_rollback"
+
+///|
 #borrow(database, scope, key)
 extern "C" fn database_reserve_capacity_ffi(
   database : Database,
@@ -332,6 +344,43 @@ pub fn Database::compare_exchange(
   )
   if code == 0 {
     Ok(database_result_revision_ffi(self))
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Begin one physical SQLite transaction for an adapter operation that must
+/// install several already prepared records atomically.
+pub fn Database::begin_immediate(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  let code = database_begin_immediate_ffi(self)
+  if code == 0 {
+    Ok(())
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Commit the current physical transaction. Application state must still be
+/// committed separately by the portable owner after this succeeds.
+pub fn Database::commit(self : Database) -> Result[Unit, NativeSqliteIssue] {
+  let code = database_commit_ffi(self)
+  if code == 0 {
+    Ok(())
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Roll back the current physical transaction after a failed adapter step.
+pub fn Database::rollback(self : Database) -> Result[Unit, NativeSqliteIssue] {
+  let code = database_rollback_ffi(self)
+  if code == 0 {
+    Ok(())
   } else {
     Err(operation_issue(self, code))
   }

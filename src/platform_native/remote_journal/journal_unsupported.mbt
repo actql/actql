@@ -43,11 +43,29 @@ pub fn Journal::accept(
 }
 
 ///|
+pub fn Journal::require(
+  _self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  ignore(request)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::recover_after(
   _self : Journal,
   after_key : String,
 ) -> Result[(String, @remote.DispatchRecord)?, NativeRemoteJournalIssue] {
   ignore(after_key)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::restart(
+  _self : Journal,
+  replacement : @site.ExecutionSite,
+) -> Result[Int, NativeRemoteJournalIssue] {
+  ignore(replacement)
   Err(UnsupportedTarget)
 }
 

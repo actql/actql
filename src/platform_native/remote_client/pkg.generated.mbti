@@ -10,6 +10,8 @@ import {
 // Values
 pub fn acknowledge_acceptance(@remote_journal.Journal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteClientIssue]
 
+pub fn acknowledge_status(@remote_journal.Journal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord?, NativeRemoteClientIssue]
+
 pub fn cancel(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
 
 pub fn dispatch(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]

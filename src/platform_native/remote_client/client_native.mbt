@@ -172,3 +172,38 @@ pub fn acknowledge_acceptance(
     Err(issue) => Err(Http(issue))
   }
 }
+
+///|
+/// Reply to an outbound status query from an existing durable Site record.
+/// A query never admits a new dispatch or starts physical execution.
+pub fn acknowledge_status(
+  journal : @journal.Journal,
+  client : @http.Client,
+  url : String,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord?, NativeRemoteClientIssue] {
+  let found = journal.require(request)
+  let (record, body) = match found {
+    Ok(record) => {
+      let body = match
+        @remote.remote_dispatch_status_json(record, None, None, None) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
+      (Some(record), body)
+    }
+    Err(@journal.StateCollision) => {
+      let body = match @remote.remote_poll_not_seen_json(request) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
+      (None, body)
+    }
+    Err(issue) => return Err(Journal(issue))
+  }
+  match client.post_json(url, @utf8.encode(body)) {
+    Ok(value) if value.status == 200 => Ok(record)
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}

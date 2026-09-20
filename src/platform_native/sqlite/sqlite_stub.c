@@ -785,6 +785,33 @@ int32_t actql_native_sqlite_database_compare_exchange(
   return result;
 }
 
+int32_t actql_native_sqlite_database_begin_immediate(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  int code = actql_exec(database, "BEGIN IMMEDIATE");
+  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+}
+
+int32_t actql_native_sqlite_database_commit(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  int code = actql_exec(database, "COMMIT");
+  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+}
+
+int32_t actql_native_sqlite_database_rollback(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  int code = actql_exec(database, "ROLLBACK");
+  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+}
+
 static void actql_capacity_rollback(
   actql_native_sqlite_database *database
 ) {

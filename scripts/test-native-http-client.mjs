@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {once} from 'node:events';
@@ -59,6 +60,7 @@ const remoteRequestCid = `sha256:${createHash('sha256')
   .update(remoteRequestBody).digest('hex')}`;
 
 let server;
+let outboundPolls = 0;
 try {
   openssl('genrsa', '-out', 'ca.key', '2048');
   openssl(
@@ -111,6 +113,7 @@ try {
           '/remote/foreign',
           '/outbound/poll',
           '/outbound/observation',
+          '/outbound/status-observation',
         ]
           .includes(request.url)) {
       response.writeHead(404).end();
@@ -142,11 +145,14 @@ try {
         response.writeHead(400).end();
         return;
       }
+      outboundPolls += 1;
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({
         dispatch_request_cid: remoteRequestCid,
         request_json: remoteRequestBody,
-        version: 'actql-remote-poll-dispatch/0.1',
+        version: outboundPolls <= 2
+          ? 'actql-remote-poll-dispatch/0.1'
+          : 'actql-remote-poll-query/0.1',
       }));
       return;
     }
@@ -161,6 +167,32 @@ try {
           observation.dispatch_request_cid !== remoteRequestCid ||
           observation.revision !== 0 ||
           JSON.stringify(observation.state) !== '[0,0,0,0,0]') {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"accepted":true}');
+      return;
+    }
+    if (request.url === '/outbound/status-observation') {
+      let observation;
+      try { observation = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      const status = observation.version ===
+        'actql-remote-dispatch-status/0.1' &&
+        observation.dispatch_request_cid === remoteRequestCid &&
+        observation.revision === 0 &&
+        JSON.stringify(observation.state) === '[0,0,0,0,0]' &&
+        observation.evidence === null &&
+        observation.subject === null &&
+        observation.measurement === null;
+      const notSeen = observation.version ===
+        'actql-remote-dispatch-not-seen/0.1' &&
+        observation.dispatch_request_cid !== remoteRequestCid;
+      if (!status && !notSeen) {
         response.writeHead(400).end();
         return;
       }
@@ -265,6 +297,86 @@ try {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }
   }
+  execFileSync(moon, [
+    'build', '--target', 'native', 'src/cmd/native_remote_site',
+  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
+  const executable = join(
+    new URL('../', import.meta.url).pathname,
+    '_build/native/debug/build/cmd/native_remote_site/' +
+      'native_remote_site.exe',
+  );
+  const journalPath = join(root, 'native-site-agent.sqlite3');
+  const revisionA = `sha256:${'a'.repeat(64)}`;
+  const revisionB = `sha256:${'b'.repeat(64)}`;
+  const common = [
+    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+    '--journal-path', journalPath,
+    '--site-key', 'native-site',
+    '--site-generation', '1',
+    '--runtime-revision', revisionA,
+  ];
+  const runAgent = async arguments_ => {
+    const child = spawn(executable, [...common, ...arguments_], {
+      cwd: new URL('../', import.meta.url),
+      env: {PATH: '/usr/bin:/bin', LANG: 'C'},
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on('data', chunk => stdout.push(chunk));
+    child.stderr.on('data', chunk => stderr.push(chunk));
+    const [code, signal] = await once(child, 'exit');
+    return Object.freeze({
+      code,
+      signal,
+      stdout: Buffer.concat(stdout).toString('utf8'),
+      stderr: Buffer.concat(stderr).toString('utf8'),
+    });
+  };
+  const accepted = await runAgent([
+    '--http-library', library,
+    '--ca', join(root, 'ca.crt'),
+    '--cert', join(root, 'client.crt'),
+    '--key', join(root, 'client.key'),
+    '--poll-url', `https://127.0.0.1:${address.port}/outbound/poll`,
+    '--observation-url',
+    `https://127.0.0.1:${address.port}/outbound/observation`,
+    'poll-once',
+  ]);
+  assert.equal(accepted.code, 0, accepted.stderr);
+  assert.deepEqual(JSON.parse(accepted.stdout), {
+    kind: 'dispatch',
+    request_cid: remoteRequestCid,
+    revision: 0,
+  });
+  const queried = await runAgent([
+    '--http-library', library,
+    '--ca', join(root, 'ca.crt'),
+    '--cert', join(root, 'client.crt'),
+    '--key', join(root, 'client.key'),
+    '--poll-url', `https://127.0.0.1:${address.port}/outbound/poll`,
+    '--observation-url',
+    `https://127.0.0.1:${address.port}/outbound/status-observation`,
+    'poll-once',
+  ]);
+  assert.equal(queried.code, 0, queried.stderr);
+  assert.deepEqual(JSON.parse(queried.stdout), {
+    kind: 'query',
+    request_cid: remoteRequestCid,
+    revision: 0,
+  });
+  const restarted = await runAgent([
+    'restart',
+    '--next-generation', '2',
+    '--next-runtime-revision', revisionB,
+  ]);
+  assert.equal(restarted.code, 0, restarted.stderr);
+  assert.deepEqual(JSON.parse(restarted.stdout), {reconciled_records: 1});
+  const stale = await runAgent(['restart',
+    '--next-generation', '2',
+    '--next-runtime-revision', revisionB,
+  ]);
+  assert.notEqual(stale.code, 0);
 } finally {
   if (server !== undefined) {
     server.close();

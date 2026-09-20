@@ -54,3 +54,13 @@ pub fn acknowledge_acceptance(
 ) -> Result[@remote.DispatchRecord, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn acknowledge_status(
+  _journal : @journal.Journal,
+  _client : @http.Client,
+  _url : String,
+  _request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord?, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}

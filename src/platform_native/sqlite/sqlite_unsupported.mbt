@@ -76,6 +76,23 @@ pub fn Database::compare_exchange(
 }
 
 ///|
+pub fn Database::begin_immediate(
+  _self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::commit(_self : Database) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::rollback(_self : Database) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::reserve_capacity(
   _self : Database,
   _scope : String,

@@ -307,11 +307,15 @@ pub fn restore_durable_dispatch_record(SiteDispatchJournal, DurableDispatchRecor
 
 pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
 
+pub fn site_dispatch_binding_json(SiteDispatchJournal) -> Result[String, DispatchIssue]
+
 pub fn site_dispatch_generation(SiteDispatchJournal) -> Int
 
 pub fn site_dispatch_protocol_version(SiteDispatchJournal) -> String
 
 pub fn site_restart_metadata(SiteRestartTransition) -> Array[String]
+
+pub fn site_restart_next_binding_json(SiteRestartTransition) -> Result[String, DispatchIssue]
 
 pub fn site_restart_transition_at(SiteRestartTransition, Int) -> DispatchTransition?
 

@@ -1,0 +1,15 @@
+import {
+  "actql/actql/encode_core" @encode,
+  "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_client" @client,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol" @remote,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")

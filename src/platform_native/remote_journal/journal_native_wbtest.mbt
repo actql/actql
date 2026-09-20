@@ -203,6 +203,67 @@ test "native remote journal durably accepts reconciles and fences transitions" {
 }
 
 ///|
+test "native Site restart durably fences the old generation" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-restart-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let old_site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(old_site),
+  ).unwrap()
+  let request = test_request("dispatch-restart")
+  let (_, record) = journal.accept(request).unwrap()
+  journal
+  .commit_transition(
+    @remote.prepare_begin_provisioning(record, test_capability(old_site)).unwrap(),
+  )
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_begin_remote_execution(record).unwrap())
+  .unwrap()
+  let next_revision = test_cid(
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  )
+  let replacement = @site.create_site(
+    "native-site", 5, next_revision, 4, 4, 1048576L, 1048576L,
+  ).unwrap()
+  assert_eq(journal.restart(replacement).unwrap(), 1)
+  assert_eq(@remote.dispatch_record_state_codes(record), [6, 0, 3, 0, 0])
+  assert_true(journal.close())
+
+  guard open_journal(library, database_path, 262144L, test_control(test_site()))
+    is Err(StateCollision) else {
+    fail("the old Site generation reopened after restart")
+  }
+  let reopened_site = @site.create_site(
+    "native-site", 5, next_revision, 4, 4, 1048576L, 1048576L,
+  ).unwrap()
+  let reopened = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(reopened_site),
+  ).unwrap()
+  let recovered = reopened.recover_after("").unwrap().unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(recovered.1), [6, 0, 3, 0, 0])
+  guard reopened.accept(request) is Err(Protocol(@remote.StaleSiteGeneration)) else {
+    fail("the old dispatch authority was revived")
+  }
+  assert_true(reopened.close())
+}
+
+///|
 test "native remote recovery rejects a durable key alias" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     return

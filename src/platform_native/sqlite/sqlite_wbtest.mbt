@@ -65,6 +65,33 @@ test "native SQLite journal persists and fences competing revisions" {
 }
 
 ///|
+test "native SQLite adapter transactions atomically commit or roll back" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = load_library(path).unwrap()
+  let database_path = root +
+    "/transaction-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let database = library.open_database(database_path, 64L).unwrap()
+  database.begin_immediate().unwrap()
+  assert_eq(database.insert("transaction", "rolled-back", b"one").unwrap(), 0L)
+  database.rollback().unwrap()
+  guard database.read("transaction", "rolled-back") is Err(NotFound) else {
+    fail("rolled back journal data remained visible")
+  }
+  database.begin_immediate().unwrap()
+  assert_eq(database.insert("transaction", "committed", b"two").unwrap(), 0L)
+  database.commit().unwrap()
+  assert_eq(database.read("transaction", "committed").unwrap().body, b"two")
+  database.close()
+}
+
+///|
 test "native SQLite capacity reservations are atomic and restart safe" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     return

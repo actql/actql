@@ -154,6 +154,60 @@ test "native Site polls outbound and durably accepts before acknowledgement" {
     request,
   ).unwrap()
   assert_eq(@remote.dispatch_record_revision(record), 0)
+  assert_true(
+    acknowledge_status(
+      journal,
+      client,
+      origin + "/outbound/status-observation",
+      request,
+    ).unwrap()
+    is Some(_),
+  )
+  assert_true(
+    acknowledge_status(
+      journal,
+      client,
+      origin + "/outbound/status-observation",
+      native_remote_request_for("dispatch-not-seen"),
+    ).unwrap()
+    is None,
+  )
   assert_true(journal.close())
   assert_true(client.close())
+}
+
+///|
+fn native_remote_request_for(dispatch_id : String) -> @remote.DispatchRequest {
+  @remote.prepare_dispatch_request(
+    "native-coordinator",
+    native_remote_cid(
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+    "task-native-remote-" + dispatch_id,
+    1,
+    dispatch_id,
+    "native-site",
+    1,
+    native_remote_cid(
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    ),
+    "local",
+    "local/1",
+    "strategy/1",
+    native_remote_cid(
+      "1111111111111111111111111111111111111111111111111111111111111111",
+    ),
+    native_remote_cid(
+      "2222222222222222222222222222222222222222222222222222222222222222",
+    ),
+    native_remote_cid(
+      "3333333333333333333333333333333333333333333333333333333333333333",
+    ),
+    native_remote_cid(
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    ),
+    native_remote_cid(
+      "4444444444444444444444444444444444444444444444444444444444444444",
+    ),
+  ).unwrap()
 }
