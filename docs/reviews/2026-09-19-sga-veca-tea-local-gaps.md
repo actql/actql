@@ -471,8 +471,14 @@ now traverse the same standard Host path on all three targets. The ordinary
 session path also establishes its formal Named Result identity before
 publication. The compiled Node Host delivers timer cancellation during the
 session kernel, observes stop, retries cleanup, and releases all held and
-reserved bytes. The exact Events-input and same-Carrier downstream path still
-remain open, so session assignment is partial. Session identity construction
+reserved bytes. At `90e18aff`, exact owner-bound Events material feeds two
+bounded managed session consumers with overlapping lifetimes. Each returns
+retained Events material, one consumer can clean up and reclaim independently,
+and the other consumer and source remain available until their own final
+reclamation. The same provider path passes on JS, Wasm, and native. The Node
+standard Host still needs to carry that Carrier completion across a physical
+task boundary into the exact session input, so session assignment remains
+partial. Session identity construction
 now advances one scalar
 part per bounded phase, checks complete UTF-8 prefixes and separators before
 retention, and reclaims partial buffers after cancellation. Interval join now
@@ -545,8 +551,9 @@ so time series is not complete. Session has a portable bounded kernel and a
 registered Relation-to-Events-to-Relation standard-Host path. Its global,
 grouped, literal-gap, and parameter-gap variants now have standard-Host
 evidence, and the grouped literal path has formal publication evidence. Its
-compiled environment cancellation path is also closed. The exact Events-input
-and same-Carrier downstream path remains tracked above.
+compiled environment cancellation path is also closed. Its exact Events-input
+managed provider path is closed at `90e18aff`; the standard Host task boundary
+remains tracked above.
 
 ### Bridges
 

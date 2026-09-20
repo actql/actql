@@ -898,6 +898,23 @@
             "src/local_tea/session.mbt",
             "src/local_tea/session_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "exact_events_input_and_overlapping_carrier_consumers",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "90e18aff",
+          "evidence": [
+            "src/local_tea/session.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
         }
       ]
     },
