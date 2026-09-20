@@ -373,6 +373,8 @@ pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 
 pub fn strategy_fixture_veca_create(String, String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
+pub fn strategy_fixture_veca_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn typed_count_create(String, String, String, String) -> OwnedFixedFixture
 
 pub fn typed_fixed_create(String, String, String, String, String) -> OwnedFixedFixture

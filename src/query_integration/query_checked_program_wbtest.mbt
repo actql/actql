@@ -390,6 +390,9 @@ fn query_checked_program_fixture(
       } else if local_carrier_events_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"events\",\"result\":\"r\"}}}}"
+      } else if local_carrier_vectors_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"vectors\",\"result\":\"r\"}}}}"
       } else if local_time_series_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"series\",\"result\":\"r\"}}}}"

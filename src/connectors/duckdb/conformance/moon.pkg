@@ -16,6 +16,7 @@ import {
   "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/local_sga_provider",
   "actql/actql/local_tea_provider",
+  "actql/actql/local_veca_provider",
   "actql/actql/managed_record_storage" @record_storage,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_resources" @resources,

@@ -1894,6 +1894,165 @@ async function exerciseStrategyGraph(
     await vectorPublicationStore?.close();
     await rm(vectorPublicationDirectory, {recursive: true, force: true});
   }
+  const carrierVectorPublicationProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{
+      id: 'a',
+      inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [
+        {filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'},
+      ],
+      results: {r: {from: 'captured', fields: ['id']}},
+    }, {
+      id: 'values',
+      inputs: {},
+      steps: [{
+        values: {
+          schema: {
+            id: {type: 'number', nullable: false},
+            embedding: {type: 'vector', dimensions: 2, nullable: false},
+          },
+          rows: [
+            {id: 1, embedding: [3, 4]},
+            {id: 2, embedding: [0, 2]},
+          ],
+        },
+        as: 'out',
+      }],
+      results: {r: {from: 'out', fields: ['id', 'embedding']}},
+    }, {
+      id: 'vectors',
+      inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+      steps: [{
+        from: 'rows',
+        to_vectors: {id: 'id', vector: 'embedding'},
+        as: 'source',
+      }, {
+        from: 'source', normalize_vectors: true, as: 'normalized',
+      }, {
+        from: 'normalized',
+        score_vectors: {query: [1, 0], metric: 'dot'},
+        as: 'same_carrier',
+      }, {
+        from: 'normalized', vectors: true, as: 'out',
+      }],
+      results: {r: {from: 'out', fields: ['id', 'embedding']}},
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+      steps: [{select: ['id', 'embedding'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id', 'embedding']}},
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+      steps: [{select: ['embedding', 'id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['embedding', 'id']}},
+    }],
+    results: {published: {from: {stage: 'vectors', result: 'r'}}},
+  };
+  const carrierVectorPublicationFixture = fixture.strategyFixtureVecaCreate(
+    ...args,
+    JSON.stringify(carrierVectorPublicationProgram),
+    orderedContract,
+  );
+  const carrierVectorCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(carrierVectorPublicationFixture),
+    suppliedLimits,
+  );
+  const carrierVectorPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/carrier-vector-publication-entry-',
+  ));
+  let carrierVectorPublicationOwner;
+  let carrierVectorPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        carrierVectorPublicationFixture,
+        carrierVectorCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureVecaSubset(
+      carrierVectorPublicationFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 1);
+    carrierVectorPublicationStore = await openLocalPublicationStore({
+      directory: carrierVectorPublicationDirectory,
+      storeAuthorityCid: hash('carrier-vector-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'carrier-vector-publication-attempt',
+    );
+    carrierVectorPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: carrierVectorPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    );
+    assert.equal(carrierVectorPublicationOwner.status, 'published');
+    assert.equal(
+      carrierVectorPublicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.deepEqual(
+      carrierVectorPublicationOwner.execution.completed.map(
+        value => value.realization,
+      ),
+      Array(4).fill('local-managed'),
+    );
+    const occurrence = carrierVectorPublicationOwner.execution
+      .publicationInventory.occurrences[0];
+    const received = [];
+    await carrierVectorPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(
+      JSON.parse(Buffer.concat(received).toString('utf8')),
+      [
+        {id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
+        {id: 2, embedding: [0, 1]},
+      ],
+    );
+  } finally {
+    if (carrierVectorPublicationOwner !== undefined) {
+      await carrierVectorPublicationOwner.close();
+      assert.equal(carrierVectorPublicationOwner.cleanupPending(), false);
+      assert.equal(await carrierVectorPublicationOwner.cleanup(), true);
+      assert.equal(
+        carrierVectorPublicationOwner.execution.usage().heldBytes,
+        0n,
+      );
+      assert.equal(
+        carrierVectorPublicationOwner.execution.usage()
+          .reservedExecutionBytes,
+        0n,
+      );
+    }
+    carrierVectorCapture.close();
+    await carrierVectorPublicationStore?.close();
+    await rm(carrierVectorPublicationDirectory, {
+      recursive: true,
+      force: true,
+    });
+  }
   const graphCancellationCases = [{
     name: 'node-rows',
     rows: 100,
@@ -2004,10 +2163,19 @@ async function exerciseStrategyGraph(
     rows: 100,
     advanceQuantum: 1,
     fields: ['time'],
+  }, {
+    name: 'vector-normalize',
+    family: 'veca',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    fields: ['id', 'embedding'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series';
+    const vecaFamily = cancellationCase.family === 'veca';
+    const graphFamily = !teaFamily && !vecaFamily;
     const graphCancellationProgram = cancellationCase.family === 'tea'
       ? {
         version: 'actql/0.1',
@@ -2118,8 +2286,73 @@ async function exerciseStrategyGraph(
           }],
           results: {published: {from: {stage: 'series', result: 'r'}}},
         }
-        : structuredClone(graphProgramBase);
-    if (!teaFamily) {
+        : vecaFamily
+          ? {
+            version: 'actql/0.1',
+            id: 'p',
+            params: {minimum: {type: 'number', nullable: false}},
+            stages: [{
+              id: 'a',
+              inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+              steps: [
+                {filter: 'id > $minimum', as: 'filtered'},
+                {select: ['id'], as: 'captured'},
+              ],
+              results: {r: {from: 'captured', fields: ['id']}},
+            }, {
+              id: 'values',
+              inputs: {},
+              steps: [{
+                values: {
+                  schema: {
+                    id: {type: 'number', nullable: false},
+                    embedding: {
+                      type: 'vector', dimensions: 2, nullable: false,
+                    },
+                  },
+                  rows: Array.from(
+                    {length: cancellationCase.rows},
+                    (_, index) => ({
+                      id: index + 1,
+                      embedding: [index + 1, index + 2],
+                    }),
+                  ),
+                },
+                as: 'out',
+              }],
+              results: {r: {from: 'out', fields: ['id', 'embedding']}},
+            }, {
+              id: 'vectors',
+              inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+              steps: [{
+                from: 'rows',
+                to_vectors: {id: 'id', vector: 'embedding'},
+                as: 'source',
+              }, {
+                from: 'source', normalize_vectors: true, as: 'normalized',
+              }, {
+                from: 'normalized',
+                score_vectors: {query: [1, 0], metric: 'dot'},
+                as: 'same_carrier',
+              }, {
+                from: 'normalized', vectors: true, as: 'out',
+              }],
+              results: {r: {from: 'out', fields: ['id', 'embedding']}},
+            }, {
+              id: 'consumer_a',
+              inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+              steps: [{select: ['id', 'embedding'], as: 'out'}],
+              results: {r: {from: 'out', fields: ['id', 'embedding']}},
+            }, {
+              id: 'consumer_b',
+              inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+              steps: [{select: ['embedding', 'id'], as: 'out'}],
+              results: {r: {from: 'out', fields: ['embedding', 'id']}},
+            }],
+            results: {published: {from: {stage: 'vectors', result: 'r'}}},
+          }
+          : structuredClone(graphProgramBase);
+    if (graphFamily) {
       graphCancellationProgram.stages[1].steps[0].values.rows =
         Array.from({length: cancellationCase.rows}, (_, index) => ({
           id: index + 1,
@@ -2135,7 +2368,7 @@ async function exerciseStrategyGraph(
       );
     }
     const graphFields = cancellationCase.fields;
-    if (!teaFamily) {
+    if (graphFamily) {
       graphCancellationProgram.stages[2].results.r.fields = graphFields;
       graphCancellationProgram.stages[3].steps[0].select = graphFields;
       graphCancellationProgram.stages[3].results.r.fields = graphFields;
@@ -2157,16 +2390,20 @@ async function exerciseStrategyGraph(
     }
     const createCancellationFixture = teaFamily
       ? fixture.strategyFixtureTeaCreate
+      : vecaFamily
+        ? fixture.strategyFixtureVecaCreate
       : cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : fixture.strategyFixtureSgaSizedCreate;
     const cancellationFixture = createCancellationFixture(
-      ...(teaFamily
+      ...(teaFamily || vecaFamily
         ? args
         : sgaEnvironmentArguments(args)),
       JSON.stringify(graphCancellationProgram),
       ...(teaFamily
         ? []
+        : vecaFamily
+          ? [orderedContract]
         : [BigInt(cancellationCase.rows)]),
     );
     const cancellationCapture = await runNativeHostQuery(
@@ -2199,7 +2436,9 @@ async function exerciseStrategyGraph(
       );
       const setup = teaFamily
         ? fixture.strategyFixtureTeaSubset(cancellationFixture)
-        : fixture.strategyFixtureSgaSubset(cancellationFixture);
+        : vecaFamily
+          ? fixture.strategyFixtureVecaSubset(cancellationFixture)
+          : fixture.strategyFixtureSgaSubset(cancellationFixture);
       assert.equal(
         hostRuntime.strategyHostConfigureManagedIdentity(
           setup,
@@ -2381,7 +2620,17 @@ async function exerciseStrategyGraph(
             value.name === 'execution_stopped' && value.result === true),
           true,
           `${cancellationCase.name}: ${JSON.stringify(
-            {lifecycleObservations, finalizationObservations},
+            {
+              status: cancellationExecution.status,
+              failure: cancellationExecution.failure?.name,
+              failureMessage: cancellationExecution.failure?.message,
+              failureCause: cancellationExecution.failure?.cause,
+              aborted: graphCancellation.signal.aborted,
+              managedStarts,
+              constructionProgress,
+              lifecycleObservations,
+              finalizationObservations,
+            },
             (_, value) => typeof value === 'bigint' ? value.toString() : value,
           )}`,
         );

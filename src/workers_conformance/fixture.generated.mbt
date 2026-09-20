@@ -790,9 +790,19 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   "}}},{\"id\":\"vectors\",\"inputs\":{" +
   "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}}," +
   "\"steps\":[" +
-  vector_prefix +
-  relation_vector +
-  ",{\"vectors\":true,\"as\":\"out\"}]," +
+  (if variant == "normalize_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"normalize_vectors\":true,\"as\":\"normalized\"}," +
+    "{\"from\":\"normalized\",\"score_vectors\":{" +
+    "\"query\":[1,0],\"metric\":\"dot\"}," +
+    "\"as\":\"same_carrier\"},{\"from\":\"normalized\"," +
+    "\"vectors\":true,\"as\":\"out\"}"
+  } else {
+    vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
+  }) +
+  "]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   result_fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -2788,6 +2798,9 @@ fn query_checked_program_fixture(
       } else if local_carrier_events_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"events\",\"result\":\"r\"}}}}"
+      } else if local_carrier_vectors_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"vectors\",\"result\":\"r\"}}}}"
       } else if local_time_series_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"series\",\"result\":\"r\"}}}}"

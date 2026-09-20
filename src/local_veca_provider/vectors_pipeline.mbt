@@ -39,6 +39,7 @@ priv struct Execution {
   mut kernel : VectorExecution?
   mut transformed : @records.Completed?
   mut pending_transformed : @records.Completed?
+  mut projection_input : @records.ProducerRead?
   mut projection : @bridge.VectorsToRowsExecution?
   mut nearest : @veca.NearestExecution?
   mut ranking : @veca.RankingExecution?
@@ -302,6 +303,30 @@ fn advance_execution(
         guard value.transformed is Some(output) else {
           return fail_execution(value)
         }
+        if value.kernel_step == value.projection_step - 1 {
+          guard @lower.node_at(
+              @lower.bound_preparation(
+                @execution.generated_sequence_owner(value.generated),
+              ),
+              value.projection_step,
+            )
+            is Some(projection) else {
+            return fail_execution(value)
+          }
+          if @lower.node_input_target(projection, 0) ==
+            Some(@pipeline.Step(value.kernel_step - 1)) {
+            value.projection_input = match
+              @records.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                value.projection_step,
+                0,
+                output,
+              ) {
+              Ok(read) => Some(read)
+              Err(_) => return fail_execution(value)
+            }
+          }
+        }
         let input = match
           @records.prepare_step_read(
             @execution.generated_sequence_owner(value.generated),
@@ -458,8 +483,12 @@ fn advance_execution(
           Ok(false) | Err(_) => return fail_execution(value)
         }
         value.kernel = None
-        discard(value.transformed) |> ignore
-        value.transformed = Some(completed)
+        if value.projection_input is Some(_) {
+          discard(Some(completed)) |> ignore
+        } else {
+          discard(value.transformed) |> ignore
+          value.transformed = Some(completed)
+        }
         value.pending_transformed = None
         value.kernel_step += 1
         if value.kernel_step < value.projection_step {
@@ -472,15 +501,19 @@ fn advance_execution(
         guard value.transformed is Some(output) else {
           return fail_execution(value)
         }
-        let input = match
-          @records.prepare_step_read(
-            @execution.generated_sequence_owner(value.generated),
-            value.projection_step,
-            0,
-            output,
-          ) {
-          Ok(read) => read
-          Err(_) => return fail_execution(value)
+        let input = match value.projection_input {
+          Some(read) => read
+          None =>
+            match
+              @records.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                value.projection_step,
+                0,
+                output,
+              ) {
+              Ok(read) => read
+              Err(_) => return fail_execution(value)
+            }
         }
         let started = match
           @bridge.start_vectors_to_rows(
@@ -836,6 +869,7 @@ pub fn provider(
         kernel: None,
         transformed: None,
         pending_transformed: None,
+        projection_input: None,
         projection: None,
         nearest: None,
         ranking: None,

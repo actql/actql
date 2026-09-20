@@ -92,9 +92,19 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   "}}},{\"id\":\"vectors\",\"inputs\":{" +
   "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}}," +
   "\"steps\":[" +
-  vector_prefix +
-  relation_vector +
-  ",{\"vectors\":true,\"as\":\"out\"}]," +
+  (if variant == "normalize_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"normalize_vectors\":true,\"as\":\"normalized\"}," +
+    "{\"from\":\"normalized\",\"score_vectors\":{" +
+    "\"query\":[1,0],\"metric\":\"dot\"}," +
+    "\"as\":\"same_carrier\"},{\"from\":\"normalized\"," +
+    "\"vectors\":true,\"as\":\"out\"}"
+  } else {
+    vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
+  }) +
+  "]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   result_fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -394,7 +404,15 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
+    managed_publication=variant == "normalize_shared",
   )
+  if variant == "normalize_shared" {
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
+      ),
+    )
+  }
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
@@ -468,6 +486,7 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   )
   let values_rows = local_managed_test_rows(values_ops)
   let vectors_live = Ref(true)
+  let vector_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (vectors_ops, vectors) = run_local_managed_test_task(
     installed,
     run,
@@ -476,6 +495,7 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     [values_rows],
     2,
     vectors_live,
+    obligations=vector_obligations,
   )
   let vector_rows = local_managed_test_rows(vectors_ops)
   let expected_rows = if pooled { 1 } else { 2 }
@@ -495,6 +515,31 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     vector_rows[0].contains(if pooled { "\"group\":1" } else { "\"id\":1" }),
   )
   assert_true(vector_rows[0].contains("\"embedding\""))
+  if variant == "normalize_shared" {
+    assert_eq(vector_rows, [
+      "{\"code\":\"😀\",\"embedding\":[0.6000000238418579,0.800000011920929],\"group\":1,\"id\":1}",
+      "{\"code\":\"é\",\"embedding\":[0,1],\"group\":1,\"id\":2}",
+    ])
+    let published = @execution.managed_obligations_identities(
+      vector_obligations,
+    ).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(published.length(), 1)
+    assert_eq(
+      @execution.managed_completed_identity_requirement_status(
+        vectors,
+        published[0],
+      ),
+      Some(
+        @execution.EstablishedSourceRetained(
+          @execution.logical_relation_canonical_contract_cid(),
+          "sha256:4dcae0e6f3da74f61a0e6c3177bae62ac85ed202e6af740c4f672ffc61c2623a",
+        ),
+      ),
+    )
+  }
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -923,6 +968,11 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
 ///|
 test "standard Host runs bounded vector normalization provider" {
   run_standard_vectors_provider("normalize")
+}
+
+///|
+test "standard Host shares normalized Vectors with a Carrier consumer" {
+  run_standard_vectors_provider("normalize_shared")
 }
 
 ///|
