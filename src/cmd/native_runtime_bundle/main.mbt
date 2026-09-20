@@ -7,6 +7,41 @@ fn option(matches : @argparse.Matches, name : String) -> Result[String, String] 
 }
 
 ///|
+fn optional_option(
+  matches : @argparse.Matches,
+  name : String,
+) -> Result[String?, String] {
+  match matches.values.get(name) {
+    None => Ok(None)
+    Some([value]) if !value.is_empty() => Ok(Some(value))
+    _ => Err("invalid or repeated option --" + name)
+  }
+}
+
+///|
+priv suberror TrustConfigurationStop {
+  TrustConfigurationStop
+}
+
+///|
+fn[T] trust_decoded(
+  value : Result[T, @decode.Issue],
+) -> T raise TrustConfigurationStop {
+  match value {
+    Ok(result) => result
+    Err(_) => raise TrustConfigurationStop
+  }
+}
+
+///|
+fn trust_text(
+  object : @decode.ObjectView,
+  key : String,
+) -> String raise TrustConfigurationStop {
+  trust_decoded(@decode.text(trust_decoded(@decode.required(object, key))))
+}
+
+///|
 fn parse_int64(value : String, name : String) -> Result[Int64, String] {
   let parsed : Int64 = @string.from_str(value) catch {
     _ => return Err("invalid integer option --" + name)
@@ -65,6 +100,7 @@ fn store_issue_code(
     @runtime_bundle.UnsupportedTarget => "unsupported-target"
     @runtime_bundle.Closed => "closed"
     @runtime_bundle.InvalidConfiguration => "invalid-configuration"
+    @runtime_bundle.AdmissionRejected => "admission-rejected"
     @runtime_bundle.MissingBundle => "missing-bundle"
     @runtime_bundle.ExistingBundle => "existing-bundle"
     @runtime_bundle.BundleLimit => "bundle-limit"
@@ -145,6 +181,83 @@ fn read_text_file(
 }
 
 ///|
+fn load_trust_configuration(
+  authority_root : String,
+  configuration_name : String,
+) -> Result[Array[@runtime_bundle.NativeRuntimeBundleTrust], String] {
+  let body = match
+    read_text_file(authority_root, configuration_name, 1048576L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  try {
+    let source = match
+      @source.parse_json_bytes(@utf8.encode(body), {
+        max_input_bytes: 1048576,
+        max_nodes: 8192,
+        max_depth: 4,
+      }) {
+      Ok(value) => value
+      Err(_) => raise TrustConfigurationStop
+    }
+    let cursor = trust_decoded(
+      @decode.admit(source, {
+        max_nodes: 8192,
+        max_depth: 4,
+        max_string_bytes: 16384,
+        max_total_string_bytes: 1048576,
+      }),
+    )
+    let object = trust_decoded(
+      @decode.closed_object(cursor, ["authorities", "version"]),
+    )
+    if trust_text(object, "version") != "actql-native-runtime-bundle-trust/0.1" {
+      raise TrustConfigurationStop
+    }
+    let authorities = trust_decoded(@decode.required(object, "authorities"))
+    let count = match @decode.array_length(authorities) {
+      Some(value) if value > 0 && value <= 1024 => value
+      _ => raise TrustConfigurationStop
+    }
+    let result : Array[@runtime_bundle.NativeRuntimeBundleTrust] = []
+    for index = 0; index < count; index = index + 1 {
+      guard @decode.element_at(authorities, index) is Some(value) else {
+        raise TrustConfigurationStop
+      }
+      let entry = trust_decoded(
+        @decode.closed_object(value, [
+          "admit_new_bundles", "issuer_authority", "key_id", "public_key_name",
+        ]),
+      )
+      let public_key = match
+        read_text_file(
+          authority_root,
+          trust_text(entry, "public_key_name"),
+          16384L,
+        ) {
+        Ok(key) => key
+        Err(_) => raise TrustConfigurationStop
+      }
+      result.push({
+        authority: {
+          issuer_authority: trust_text(entry, "issuer_authority"),
+          key_id: trust_text(entry, "key_id"),
+          public_key_pem: public_key,
+        },
+        admit_new_bundles: trust_decoded(
+          @decode.boolean(
+            trust_decoded(@decode.required(entry, "admit_new_bundles")),
+          ),
+        ),
+      })
+    }
+    Ok(result)
+  } catch {
+    TrustConfigurationStop => Err("invalid runtime bundle trust configuration")
+  }
+}
+
+///|
 fn write_snapshot(
   writer : @encode.Writer,
   value : @runtime_bundle.NativeRuntimeBundleSnapshot,
@@ -221,6 +334,7 @@ fn snapshots_json(
 fn install_bundle(
   store : @runtime_bundle.NativeRuntimeBundleStore,
   matches : @argparse.Matches,
+  signature_key_id : String,
 ) -> Result[@runtime_bundle.NativeRuntimeBundleSnapshot, String] {
   let input_root_path = match option(matches, "input-root") {
     Ok(value) => value
@@ -287,13 +401,7 @@ fn install_bundle(
           return Err(issue)
         }
       },
-      match option(matches, "key-id") {
-        Ok(value) => value
-        Err(issue) => {
-          ignore(reader.close())
-          return Err(issue)
-        }
-      },
+      signature_key_id,
       match option(matches, "bundle-cid") {
         Ok(value) => value
         Err(issue) => {
@@ -434,14 +542,12 @@ fn command() -> @argparse.Command {
       ),
       @argparse.OptionArg(
         "issuer-authority",
-        about="Trusted runtime bundle issuer authority",
-        required=true,
+        about="Legacy single-key runtime bundle issuer authority",
         global=true,
       ),
       @argparse.OptionArg(
         "key-id",
-        about="Trusted runtime bundle signing key identifier",
-        required=true,
+        about="Install signature key ID or legacy trusted key ID",
         global=true,
       ),
       @argparse.OptionArg(
@@ -452,8 +558,12 @@ fn command() -> @argparse.Command {
       ),
       @argparse.OptionArg(
         "public-key-name",
-        about="Public key file below the authority root",
-        required=true,
+        about="Legacy single-key public key below the authority root",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "trust-config-name",
+        about="Versioned trust configuration below the authority root",
         global=true,
       ),
       @argparse.OptionArg(
@@ -487,6 +597,10 @@ fn command() -> @argparse.Command {
         about="Verify and stream one signed bundle into the Store",
         options=[
           @argparse.OptionArg("install-id", required=true),
+          @argparse.OptionArg(
+            "signature-key-id",
+            about="Key ID declared by the signed bundle envelope",
+          ),
           @argparse.OptionArg("signature-version", default_values=[
             "actql-remote-runtime-bundle-signature/0.1",
           ]),
@@ -548,15 +662,6 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let public_key_name = match option(matches, "public-key-name") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let public_key = match
-    read_text_file(authority_root, public_key_name, 16384L) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   let capacity_bytes = match option(matches, "capacity-bytes") {
     Ok(value) =>
       match parse_int64(value, "capacity-bytes") {
@@ -593,25 +698,64 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let issuer_authority = match option(matches, "issuer-authority") {
+  let legacy_issuer = match optional_option(matches, "issuer-authority") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let key_id = match option(matches, "key-id") {
+  let legacy_key_id = match optional_option(matches, "key-id") {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let legacy_public_key = match optional_option(matches, "public-key-name") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let trust_configuration = match
+    optional_option(matches, "trust-config-name") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let trust = match trust_configuration {
+    Some(name) => {
+      if legacy_issuer is Some(_) ||
+        legacy_key_id is Some(_) ||
+        legacy_public_key is Some(_) {
+        return Err(
+          "--trust-config-name cannot be combined with legacy trust options",
+        )
+      }
+      match load_trust_configuration(authority_root, name) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    }
+    None => {
+      guard legacy_issuer is Some(issuer_authority) else {
+        return Err("missing option --issuer-authority")
+      }
+      guard legacy_key_id is Some(key_id) else {
+        return Err("missing option --key-id")
+      }
+      guard legacy_public_key is Some(public_key_name) else {
+        return Err("missing option --public-key-name")
+      }
+      let public_key = match
+        read_text_file(authority_root, public_key_name, 16384L) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      [
+        {
+          authority: { issuer_authority, key_id, public_key_pem: public_key, },
+          admit_new_bundles: true,
+        },
+      ]
+    }
   }
   let store = match
-    @runtime_bundle.open_runtime_bundle_store(
-      sqlite_library,
-      crypto_library,
-      store_root,
-      [{ issuer_authority, key_id, public_key_pem: public_key, }],
-      target_triple,
-      capacity_bytes,
-      max_bundles,
-      max_owners,
-      max_record_bytes,
+    @runtime_bundle.open_runtime_bundle_store_with_trust(
+      sqlite_library, crypto_library, store_root, trust, target_triple, capacity_bytes,
+      max_bundles, max_owners, max_record_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err("Store open " + store_issue_code(issue))
@@ -624,11 +768,25 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
     }
   }
   let result : Result[String, String] = match operation {
-    ("install", child) =>
-      match install_bundle(store, child) {
-        Ok(value) => snapshot_json(value)
+    ("install", child) => {
+      let signature_key_id = match optional_option(child, "signature-key-id") {
+        Ok(Some(value)) => Ok(value)
+        Ok(None) =>
+          match legacy_key_id {
+            Some(value) => Ok(value)
+            None => Err("missing option --signature-key-id")
+          }
         Err(issue) => Err(issue)
       }
+      match signature_key_id {
+        Ok(value) =>
+          match install_bundle(store, child, value) {
+            Ok(snapshot) => snapshot_json(snapshot)
+            Err(issue) => Err(issue)
+          }
+        Err(issue) => Err(issue)
+      }
+    }
     ("activate", child) =>
       match option(child, "bundle-cid") {
         Ok(cid) =>

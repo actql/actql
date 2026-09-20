@@ -61,14 +61,44 @@ try {
       'connectors_builtin_node.js',
   )).href);
   const control = runtimeCore(moonModule).remoteBundleControl;
-  const keys = generateKeyPairSync('ed25519');
-  await writeFile(
-    join(inputRoot, 'public.pem'),
-    keys.publicKey.export({type: 'spki', format: 'pem'}),
+  const keysA = generateKeyPairSync('ed25519');
+  const keysB = generateKeyPairSync('ed25519');
+  await Promise.all([
+    writeFile(
+      join(inputRoot, 'public-a.pem'),
+      keysA.publicKey.export({type: 'spki', format: 'pem'}),
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(inputRoot, 'public-b.pem'),
+      keysB.publicKey.export({type: 'spki', format: 'pem'}),
+      {mode: 0o600},
+    ),
+  ]);
+  const writeTrust = async ({admitA, admitB}) => writeFile(
+    join(inputRoot, 'trust.json'),
+    JSON.stringify({
+      authorities: [
+        {
+          admit_new_bundles: admitA,
+          issuer_authority: 'bundle-authority-a',
+          key_id: 'key-a',
+          public_key_name: 'public-a.pem',
+        },
+        {
+          admit_new_bundles: admitB,
+          issuer_authority: 'bundle-authority-a',
+          key_id: 'key-b',
+          public_key_name: 'public-b.pem',
+        },
+      ],
+      version: 'actql-native-runtime-bundle-trust/0.1',
+    }),
     {mode: 0o600},
   );
+  await writeTrust({admitA: true, admitB: false});
 
-  const prepare = async (number, component) => {
+  const prepare = async (number, component, keyId, privateKey) => {
     const manifest = control.prepare({
       issuerAuthority: 'bundle-authority-a',
       bundleName: 'native-site-runtime',
@@ -82,8 +112,8 @@ try {
       strategyRevision: `strategy/${number}`,
     });
     const envelope = signRemoteRuntimeBundle(manifest, control, {
-      keyId: 'key-a',
-      privateKey: keys.privateKey,
+      keyId,
+      privateKey,
     });
     const names = {
       component: `component-${number}.bin`,
@@ -101,12 +131,29 @@ try {
     ]);
     return Object.freeze({
       cid: control.identity(manifest),
+      keyId,
       names: Object.freeze(names),
     });
   };
 
-  const first = await prepare(1, Buffer.from('native-runtime-one'));
-  const second = await prepare(2, Buffer.from('native-runtime-two'));
+  const first = await prepare(
+    1,
+    Buffer.from('native-runtime-one'),
+    'key-a',
+    keysA.privateKey,
+  );
+  const second = await prepare(
+    2,
+    Buffer.from('native-runtime-two'),
+    'key-b',
+    keysB.privateKey,
+  );
+  const rejected = await prepare(
+    3,
+    Buffer.from('native-runtime-old'),
+    'key-a',
+    keysA.privateKey,
+  );
   const executable = join(
     repositoryRoot,
     '_build/native/debug/build/cmd/native_runtime_bundle/' +
@@ -117,10 +164,8 @@ try {
     '--sqlite-library', sqliteLibrary,
     '--crypto-library', cryptoLibrary,
     '--target-triple', targetTriple,
-    '--issuer-authority', 'bundle-authority-a',
-    '--key-id', 'key-a',
     '--authority-root', inputRoot,
-    '--public-key-name', 'public.pem',
+    '--trust-config-name', 'trust.json',
     '--capacity-bytes', '1024',
     '--max-bundles', '4',
     '--max-owners', '4',
@@ -137,6 +182,7 @@ try {
   const install = async (number, bundle) => run(
     'install',
     '--install-id', `native-cli-install-${number}`,
+    '--signature-key-id', bundle.keyId,
     '--bundle-cid', bundle.cid,
     '--input-root', inputRoot,
     '--manifest-name', bundle.names.manifest,
@@ -149,6 +195,16 @@ try {
     (await run('activate', '--bundle-cid', first.cid)).state,
     ['1', '1', '0'],
   );
+  await writeTrust({admitA: false, admitB: true});
+  assert.equal(
+    (await run('verify', '--bundle-cid', first.cid)).runtime_bundle_cid,
+    first.cid,
+  );
+  await assert.rejects(
+    install(3, rejected),
+    error => `${error.stdout}\n${error.stderr}`.includes('admission-rejected'),
+  );
+  assert.equal((await run('list')).length, 1);
   assert.deepEqual((await install(2, second)).state, ['0', '0', '0']);
   assert.deepEqual(
     (await run('activate', '--bundle-cid', second.cid)).state,

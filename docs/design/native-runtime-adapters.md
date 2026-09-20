@@ -163,10 +163,28 @@ not invent a cleanup decision in the command layer: installer cancellation and
 Store close report unresolved durable responsibility as cleanup pending.
 
 The command receives library paths, target scope, authority material, and
-capacity limits explicitly. This makes the selected deployment dependencies
-observable and prevents a hidden Node fallback. Public-key, manifest, and
-signature inputs are bounded before allocation; component bytes are never
-assembled into one command-layer buffer.
+capacity limits explicitly. A versioned trust configuration may name multiple
+public keys and independently mark each key as eligible for new bundle
+admission. A normally rotated key can therefore remain available to verify
+records already accepted into the durable catalog without authorizing another
+install or adoption. Omitting the key removes historical verification too;
+that is a stronger trust revocation and can make the Store intentionally
+unopenable until an operator supplies the required audit key. The legacy
+single-key options remain an explicit configuration in which that one key is
+eligible for admission.
+
+The trust configuration has version
+`actql-native-runtime-bundle-trust/0.1` and contains a bounded `authorities`
+array. Each closed entry contains `issuer_authority`, `key_id`,
+`public_key_name`, and `admit_new_bundles`. The install command separately
+names the signature key in the signed envelope. Duplicate authority/key pairs,
+unknown fields, unbounded inputs, and a signature from a verification-only key
+are rejected before component output is created.
+
+This explicit input makes the selected deployment dependencies observable and
+prevents a hidden Node fallback. Public-key, trust, manifest, and signature
+inputs are bounded before allocation; component bytes are never assembled into
+one command-layer buffer.
 
 The native Remote Site journal stores the portable dispatch-record body under
 an attempt-occurrence key. A changed dispatch ID therefore cannot create a

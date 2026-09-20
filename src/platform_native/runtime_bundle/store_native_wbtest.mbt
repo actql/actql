@@ -56,6 +56,55 @@ fn native_bundle_authorities() -> Array[NativeRuntimeBundleAuthority] {
 }
 
 ///|
+fn rotated_bundle_authority() -> NativeRuntimeBundleAuthority {
+  {
+    issuer_authority: "bundle-authority-b",
+    key_id: "key-b",
+    public_key_pem: "-----BEGIN PUBLIC KEY-----\n" +
+    "MCowBQYDK2VwAyEANcMbAe2pxniljiDNtULyS6N23OFacFQwUGOy4GQL1P4=\n" +
+    "-----END PUBLIC KEY-----\n",
+  }
+}
+
+///|
+fn rotated_bundle_body() -> String {
+  "{\"bundle_name\":\"native-runtime\",\"component_bytes\":\"11\"," +
+  "\"component_cid\":\"sha256:" +
+  "5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f\"," +
+  "\"connector_registration\":\"local\"," +
+  "\"connector_revision\":\"local/rotation\"," +
+  "\"issuer_authority\":\"bundle-authority-b\"," +
+  "\"revision\":\"native/rotation\"," +
+  "\"strategy_revision\":\"strategy/1\"," +
+  "\"target_triple\":\"aarch64-apple-darwin\"," +
+  "\"version\":\"actql-remote-runtime-bundle/0.1\"}"
+}
+
+///|
+fn rotated_bundle_cid() -> String {
+  "sha256:27b8a9bba8e0f071b19e4856920bdaa57a6550c2ddfda6c6163726922331033d"
+}
+
+///|
+fn rotated_bundle_signature() -> String {
+  "mr3OGOBwp4WkvNjXM7_bQc-Vj3WqKBypoYSFaLXQf074uOxYk3xwP54sCK7OcV0_" +
+  "AyaU6Xqk3mCtULKIyHpYDg"
+}
+
+///|
+fn rotation_trust(
+  rotated_key_admits_new_bundles : Bool,
+) -> Array[NativeRuntimeBundleTrust] {
+  [
+    { authority: native_bundle_authorities()[0], admit_new_bundles: false, },
+    {
+      authority: rotated_bundle_authority(),
+      admit_new_bundles: rotated_key_admits_new_bundles,
+    },
+  ]
+}
+
+///|
 fn native_bundle_fixture(
   label : String,
 ) -> (
@@ -393,4 +442,103 @@ test "native bundle streaming install reserves, cancels, and commits once" {
   store.reclaim(installed.runtime_bundle_cid).unwrap() |> ignore
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(store.close().unwrap())
+}
+
+///|
+test "rotated bundle key verifies history without admitting new bundles" {
+  guard native_bundle_fixture("rotation")
+    is Some((store, generation, artifact_name, sqlite, crypto)) else {
+    return
+  }
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  assert_true(store.close().unwrap())
+  let current = open_runtime_bundle_store_with_trust(
+    sqlite,
+    crypto,
+    root_path,
+    rotation_trust(true),
+    "aarch64-apple-darwin",
+    22L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  let installed = current
+    .adopt(
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-b",
+      rotated_bundle_cid(),
+      rotated_bundle_body(),
+      rotated_bundle_signature(),
+      artifact_name,
+      generation,
+    )
+    .unwrap()
+  assert_true(current.close().unwrap())
+  let historical = open_runtime_bundle_store_with_trust(
+    sqlite,
+    crypto,
+    root_path,
+    rotation_trust(false),
+    "aarch64-apple-darwin",
+    22L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  assert_eq(
+    historical.verify(installed.runtime_bundle_cid).unwrap().runtime_bundle_cid,
+    installed.runtime_bundle_cid,
+  )
+  assert_true(
+    historical.begin_install(
+      "rotation-reject-old-key",
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-b",
+      rotated_bundle_cid(),
+      rotated_bundle_body(),
+      rotated_bundle_signature(),
+    )
+    is Err(AdmissionRejected),
+  )
+  assert_true(
+    historical.adopt(
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-b",
+      rotated_bundle_cid(),
+      rotated_bundle_body(),
+      rotated_bundle_signature(),
+      artifact_name,
+      generation,
+    )
+    is Err(AdmissionRejected),
+  )
+  assert_true(historical.close().unwrap())
+  let current = open_runtime_bundle_store_with_trust(
+    sqlite,
+    crypto,
+    root_path,
+    rotation_trust(true),
+    "aarch64-apple-darwin",
+    22L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  let readmitted = current
+    .adopt(
+      "actql-remote-runtime-bundle-signature/0.1",
+      "key-b",
+      rotated_bundle_cid(),
+      rotated_bundle_body(),
+      rotated_bundle_signature(),
+      artifact_name,
+      generation,
+    )
+    .unwrap()
+  assert_eq(readmitted.runtime_bundle_cid, installed.runtime_bundle_cid)
+  current.activate(installed.runtime_bundle_cid).unwrap() |> ignore
+  current.drain(installed.runtime_bundle_cid).unwrap() |> ignore
+  current.reclaim(installed.runtime_bundle_cid).unwrap() |> ignore
+  assert_true(current.close().unwrap())
 }

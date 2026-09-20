@@ -11,6 +11,9 @@ pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
 // Errors
 
 // Types and methods
+type Lock
+pub fn Lock::close(Self) -> Bool
+
 pub(all) struct NativeFileChunk {
   bytes : Bytes
   eof : Bool
@@ -27,6 +30,7 @@ pub(all) enum NativeFilesystemIssue {
   InvalidName
   InvalidLimit
   RootOpen(String)
+  Lock(String)
   WriterCreate(String)
   CapacityExceeded
   WriterClosed
@@ -47,6 +51,7 @@ pub fn Reader::finish(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
 
 type Root
+pub fn Root::acquire_lock(Self, String) -> Result[Lock, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]

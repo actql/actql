@@ -6,6 +6,17 @@ pub(all) struct NativeRuntimeBundleAuthority {
 }
 
 ///|
+/// A verification key and its current bundle-admission authority.
+///
+/// Historical records may continue to use a key after normal rotation while
+/// `admit_new_bundles` is false. Removing the trust entry entirely also makes
+/// records signed by that key unverifiable when the Store is reopened.
+pub(all) struct NativeRuntimeBundleTrust {
+  authority : NativeRuntimeBundleAuthority
+  admit_new_bundles : Bool
+}
+
+///|
 pub(all) enum NativeRuntimeBundleIssue {
   InvalidConfiguration
   AuthorityCollision

@@ -3,6 +3,7 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   UnsupportedTarget
   Closed
   InvalidConfiguration
+  AdmissionRejected
   MissingBundle
   ExistingBundle
   BundleLimit

@@ -45,6 +45,7 @@ struct NativeRuntimeBundleStore {
   database : @sqlite.Database
   signature_library : @signature.Library
   authorities : Array[NativeRuntimeBundleAuthority]
+  admission_authorities : Array[NativeRuntimeBundleAuthority]
   target_triple : String
   capacity_bytes : Int64
   max_bundles : Int
@@ -89,8 +90,55 @@ fn[T] runtime_bundle_result(
     Ok(result) => Ok(result)
     Err(Signature(issue)) => Err(Signature(issue))
     Err(Bundle(issue)) => Err(Bundle(issue))
-    Err(_) => Err(StateCollision)
+    Err(AuthorityRejected) => Err(AdmissionRejected)
+    Err(InvalidConfiguration | AuthorityCollision) => Err(InvalidConfiguration)
+    Err(TargetRejected) => Err(ComponentMismatch)
   }
+}
+
+///|
+fn valid_authority_set(
+  authorities : Array[NativeRuntimeBundleAuthority],
+) -> Bool {
+  if authorities.is_empty() || authorities.length() > 1024 {
+    return false
+  }
+  for index = 0; index < authorities.length(); index = index + 1 {
+    let authority = authorities[index]
+    if !bounded(authority.issuer_authority, 512) ||
+      !bounded(authority.key_id, 512) ||
+      !bounded(authority.public_key_pem, 16384) {
+      return false
+    }
+    for prior = 0; prior < index; prior = prior + 1 {
+      if authorities[prior].issuer_authority == authority.issuer_authority &&
+        authorities[prior].key_id == authority.key_id {
+        return false
+      }
+    }
+  }
+  true
+}
+
+///|
+fn authorities_are_subset(
+  authorities : Array[NativeRuntimeBundleAuthority],
+  candidates : Array[NativeRuntimeBundleAuthority],
+) -> Bool {
+  for candidate in candidates {
+    let mut found = false
+    for authority in authorities {
+      if authority.issuer_authority == candidate.issuer_authority &&
+        authority.key_id == candidate.key_id &&
+        authority.public_key_pem == candidate.public_key_pem {
+        found = true
+      }
+    }
+    if !found {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -890,11 +938,12 @@ fn migrate_catalog_if_needed(
 }
 
 ///|
-pub fn open_runtime_bundle_store(
+fn open_runtime_bundle_store_with_authorities(
   sqlite_library : @sqlite.Library,
   signature_library : @signature.Library,
   root_path : String,
   authorities : Array[NativeRuntimeBundleAuthority],
+  admission_authorities : Array[NativeRuntimeBundleAuthority],
   target_triple : String,
   capacity_bytes : Int64,
   max_bundles : Int,
@@ -902,8 +951,9 @@ pub fn open_runtime_bundle_store(
   max_record_bytes : Int64,
 ) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue] {
   if root_path.is_empty() ||
-    authorities.is_empty() ||
-    authorities.length() > 1024 ||
+    !valid_authority_set(authorities) ||
+    admission_authorities.length() > authorities.length() ||
+    !authorities_are_subset(authorities, admission_authorities) ||
     !bounded(target_triple, 512) ||
     capacity_bytes < 0L ||
     max_bundles < 1 ||
@@ -939,6 +989,7 @@ pub fn open_runtime_bundle_store(
     database,
     signature_library,
     authorities: authorities.copy(),
+    admission_authorities: admission_authorities.copy(),
     target_triple,
     capacity_bytes,
     max_bundles,
@@ -1014,6 +1065,64 @@ pub fn open_runtime_bundle_store(
       Err(Database(issue))
     }
   }
+}
+
+///|
+/// Open a Store using one verification set for historical records and a
+/// potentially narrower set for new bundle admission.
+pub fn open_runtime_bundle_store_with_trust(
+  sqlite_library : @sqlite.Library,
+  signature_library : @signature.Library,
+  root_path : String,
+  trust : Array[NativeRuntimeBundleTrust],
+  target_triple : String,
+  capacity_bytes : Int64,
+  max_bundles : Int,
+  max_owners : Int,
+  max_record_bytes : Int64,
+) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue] {
+  if trust.is_empty() || trust.length() > 1024 {
+    return Err(InvalidConfiguration)
+  }
+  let authorities : Array[NativeRuntimeBundleAuthority] = []
+  let admission_authorities : Array[NativeRuntimeBundleAuthority] = []
+  for entry in trust {
+    for prior in authorities {
+      if prior.issuer_authority == entry.authority.issuer_authority &&
+        prior.key_id == entry.authority.key_id {
+        return Err(InvalidConfiguration)
+      }
+    }
+    authorities.push(entry.authority)
+    if entry.admit_new_bundles {
+      admission_authorities.push(entry.authority)
+    }
+  }
+  open_runtime_bundle_store_with_authorities(
+    sqlite_library, signature_library, root_path, authorities, admission_authorities,
+    target_triple, capacity_bytes, max_bundles, max_owners, max_record_bytes,
+  )
+}
+
+///|
+/// Open a Store whose configured verification keys may all admit new bundles.
+/// Use `open_runtime_bundle_store_with_trust` when rotation or revocation needs
+/// to retain historical verification without allowing new bundle admission.
+pub fn open_runtime_bundle_store(
+  sqlite_library : @sqlite.Library,
+  signature_library : @signature.Library,
+  root_path : String,
+  authorities : Array[NativeRuntimeBundleAuthority],
+  target_triple : String,
+  capacity_bytes : Int64,
+  max_bundles : Int,
+  max_owners : Int,
+  max_record_bytes : Int64,
+) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue] {
+  open_runtime_bundle_store_with_authorities(
+    sqlite_library, signature_library, root_path, authorities, authorities, target_triple,
+    capacity_bytes, max_bundles, max_owners, max_record_bytes,
+  )
 }
 
 ///|
@@ -1203,11 +1312,14 @@ pub fn NativeRuntimeBundleStore::begin_install(
   if !bounded(install_id, 512) || self.active_installers.contains(install_id) {
     return Err(InvalidConfiguration)
   }
+  if self.admission_authorities.is_empty() {
+    return Err(AdmissionRejected)
+  }
   let manifest = match
     runtime_bundle_result(
       admit_signed_bundle(
         self.signature_library,
-        self.authorities,
+        self.admission_authorities,
         version,
         key_id,
         runtime_bundle_cid,
@@ -1465,11 +1577,14 @@ pub fn NativeRuntimeBundleStore::adopt(
   if !bounded(artifact_name, 128) || generation.size < 0L {
     return Err(InvalidConfiguration)
   }
+  if self.admission_authorities.is_empty() {
+    return Err(AdmissionRejected)
+  }
   let manifest = match
     runtime_bundle_result(
       admit_signed_bundle(
         self.signature_library,
-        self.authorities,
+        self.admission_authorities,
         version,
         key_id,
         runtime_bundle_cid,

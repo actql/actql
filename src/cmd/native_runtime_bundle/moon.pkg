@@ -1,9 +1,11 @@
 import {
+  "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
+  "actql/actql/source_value" @source,
   "moonbitlang/core/argparse",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",

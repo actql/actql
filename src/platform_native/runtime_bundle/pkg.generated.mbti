@@ -14,6 +14,8 @@ pub fn admit_signed_bundle(@signature.Library, Array[NativeRuntimeBundleAuthorit
 
 pub fn open_runtime_bundle_store(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleAuthority], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue]
 
+pub fn open_runtime_bundle_store_with_trust(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleTrust], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue]
+
 // Errors
 
 // Types and methods
@@ -22,6 +24,19 @@ pub(all) struct NativeRuntimeBundleAuthority {
   key_id : String
   public_key_pem : String
 }
+
+pub(all) struct NativeRuntimeBundleInstallSnapshot {
+  install_id : String
+  runtime_bundle_cid : String
+  artifact_name : String
+  staging_name : String
+  reserved_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+type NativeRuntimeBundleInstaller
+pub fn NativeRuntimeBundleInstaller::append(Self, Bytes) -> Result[Unit, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleInstaller::cancel(Self) -> Result[Unit, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleInstaller::seal(Self) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 
 pub(all) enum NativeRuntimeBundleIssue {
   InvalidConfiguration
@@ -45,13 +60,16 @@ type NativeRuntimeBundleStore
 pub fn NativeRuntimeBundleStore::activate(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::active(Self) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::adopt(Self, String, String, String, String, String, String, @filesystem.NativeFileGeneration) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::begin_install(Self, String, String, String, String, String, String) -> Result[NativeRuntimeBundleInstaller, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativeRuntimeBundleStoreIssue]
-pub fn NativeRuntimeBundleStore::close(Self) -> Bool
+pub fn NativeRuntimeBundleStore::close(Self) -> Result[Bool, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::drain(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::inspect(Self, String) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::inspect_install(Self, String) -> Result[NativeRuntimeBundleInstallSnapshot?, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::list(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::reclaim(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::recover(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::recover_install(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::release(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::retain(Self, String, String, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::rollback(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
@@ -61,6 +79,7 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   UnsupportedTarget
   Closed
   InvalidConfiguration
+  AdmissionRejected
   MissingBundle
   ExistingBundle
   BundleLimit
@@ -68,11 +87,17 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   HoldCollision
   StateCollision
   ComponentMismatch
+  RecoveryRequired
   CleanupPending
   Bundle(@remote_bundle.RemoteBundleIssue)
   Signature(@signature.NativeSignatureIssue)
   Filesystem(@filesystem.NativeFilesystemIssue)
   Database(@sqlite.NativeSqliteIssue)
+}
+
+pub(all) struct NativeRuntimeBundleTrust {
+  authority : NativeRuntimeBundleAuthority
+  admit_new_bundles : Bool
 }
 
 // Type aliases

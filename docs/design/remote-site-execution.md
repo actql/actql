@@ -183,6 +183,15 @@ must be independently verified. Durability alone does not require a separate
 signature. Record type and version provide domain separation. The receiver
 accepts only configured suites, keys, and scopes.
 
+Runtime bundle trust separates historical verification from authority for a
+new install. Normal key rotation may keep an old public key as
+verification-only while enabling a replacement key for new bundles. A key
+compromise response may remove the key entirely, but the resulting inability
+to reopen records signed only by that key is not silently converted into
+successful verification. Durable catalog membership records prior acceptance;
+signature validity by itself does not prove that an artifact was issued before
+a later compromise or revocation event.
+
 ## Transfer routes
 
 Transfer is an explicit managed operation and not a language task. Both direct
