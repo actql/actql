@@ -22,7 +22,7 @@ readable coverage manifest is authoritative for individual operation status.
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 27/39, standard Host 26/39,
 consumer lifetime 22/39, cancellation 18/39, and publication 21/39. These are
-layer counts, not operation completion: 16 entries are `complete` and 23 remain
+layer counts, not operation completion: 17 entries are `complete` and 22 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -488,12 +488,13 @@ parameterized fixed variants run through the standard Host, reach two Relation
 consumers, establish stable publication identities, and reclaim the final
 ledger on JS, Wasm, and native. The Node Host delivers timer cancellation
 during both window kernels, confirms stop, completes cleanup, and returns the
-ledger to zero. Page-split equivalence for one bounded observation remains
-open, so event windows are not complete. Runtime work must preserve finite
-event-time observation semantics
-across transport page splits and bind checkpoint advancement to the existing
-successful commit boundary. No long-lived streaming state is required by TEA
-0.1. Common immutable record storage preserves typed event roles, open payload
+ledger to zero. A real acquisition now runs the same bounded observation with
+one-row and whole-observation transport pages. Both executions preserve the
+capture observation, fixed-window result identities, two downstream consumers,
+and final reclamation. This closes event windows. Checkpoint advancement remains
+bound to the existing successful commit boundary; page receipt and kernel steps
+do not advance it. No long-lived streaming state is required by TEA 0.1. Common
+immutable record storage preserves typed event roles, open payload
 evidence, semantic identity uniqueness, and bounded allocation. Watermarking
 now executes as a bounded-step kernel for numeric and canonical UTC clocks. It
 implements both policies, preserves the exact late boundary and retained order,
@@ -546,9 +547,9 @@ computations, and release the retained output independently. A real
 environment timer reaches each Bridge boundary, stop is observed, and final
 cleanup returns all holdings and reservations. Both Graph projection
 operations are complete. Standalone Bridge selection, overlapping direct
-Carrier consumer lifetime, page-split coverage, and Graph construction remain
-open. A Relation-shaped buffer alone is not evidence of a completed
-conversion.
+Carrier consumer lifetime and Graph construction remain open. The bounded
+Relation-to-Events-to-Relation path now has page-split evidence, but a
+Relation-shaped buffer alone is not evidence of a completed conversion.
 
 ## Current verification boundary
 
@@ -775,6 +776,15 @@ cleanup, and returns the ledger to zero. The portable affected suites pass 418
 tests per target, all 24 Workers tests pass, and package composition and format
 checks pass. This closes `pool_vectors` without treating the remaining VecA
 operations as complete.
+
+At `c000f109`, the standard Host admits the exact Acquisition Relation binding
+only for a registered Carrier family provider. The same bounded Events
+observation executes with one-row and whole-observation transport pages,
+preserves the capture evidence and both downstream result identities, and
+reclaims all held and reserved capacity. Ordinary RelA execution remains on
+its established dispatcher. The affected MoonBit suites pass 1,122 tests on
+each of JS, Wasm, and native; the real Node Host, Local adapter, Workers
+generation, and all 24 Workers tests also pass.
 
 The Graph Bridge now lowers explicit node and edge sources through one finite
 typed expansion without collapsing repeated input positions. The expansion
