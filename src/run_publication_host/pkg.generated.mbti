@@ -30,6 +30,7 @@ pub fn PublicationOutputExport::finish(Self) -> Result[String, PublicationOutput
 pub fn PublicationOutputExport::issue_artifact(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::issue_result_evidence(Self, String, Array[String], String, String, String, Int, Int, Int) -> Result[Unit, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::measurement(Self) -> Result[@execution_relation.CompletedRelationExportMeasurement, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::next(Self) -> Result[String?, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::ordering(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::replay(Self) -> Result[PublicationOutputReplay, PublicationOutputExportIssue]

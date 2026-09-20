@@ -364,6 +364,19 @@ pub fn PublicationOutputExport::schema_usage(
 }
 
 ///|
+/// Return measurement established by the same successful traversal as the
+/// logical Relation and physical content identities.
+pub fn PublicationOutputExport::measurement(
+  self : PublicationOutputExport,
+) -> Result[
+  @execution.CompletedRelationExportMeasurement,
+  PublicationOutputExportIssue,
+] {
+  guard self.receipt is Some(receipt) else { return Err(InvalidState) }
+  Ok(@execution.completed_relation_export_measurement(receipt))
+}
+
+///|
 pub fn PublicationOutputExport::issue_result_evidence(
   self : PublicationOutputExport,
   computation_contract_cid : String,

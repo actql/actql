@@ -382,3 +382,9 @@ pub fn projection(manifest : PhysicalManifest) -> Array[String] {
     manifest.row_count.to_string(),
   ]
 }
+
+///|
+/// Canonical identity of the complete admitted manifest.
+pub fn manifest_cid(manifest : PhysicalManifest) -> String {
+  manifest.manifest_cid
+}

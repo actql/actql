@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_standard_host"
+
+import {
+  "actql/actql/connectors/duckdb/host_native",
+  "actql/actql/platform_native/remote_runtime",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn install_native_remote_standard_task_executor(String, String, String, Int, () -> Result[@host_native.NativeStandardStrategyRun, String], NativeRemoteStandardTaskLimits) -> Result[@remote_runtime.NativeRemoteTaskExecutor, NativeRemoteStandardHostIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeRemoteStandardHostIssue {
+  InvalidConfiguration
+  Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+}
+
+pub(all) struct NativeRemoteStandardTaskLimits {
+  output_export : @run_publication_host.PublicationOutputExportLimits
+  max_manifest_bytes : Int
+  max_retained_bytes : Int64
+}
+
+// Type aliases
+
+// Traits

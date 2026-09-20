@@ -14,6 +14,8 @@ pub fn admit_json(String, String, Int, Int, Int64) -> Result[PhysicalManifest, P
 
 pub fn contract_projection(PhysicalContracts) -> Array[String]
 
+pub fn manifest_cid(PhysicalManifest) -> String
+
 pub fn manifest_json(PhysicalManifest) -> Result[String, PhysicalManifestIssue]
 
 pub fn projection(PhysicalManifest) -> Array[String]

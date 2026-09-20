@@ -10,6 +10,15 @@ struct CompletedOutputExport {
   writer : @encode.Writer
   logical_writer : @encode.Writer?
   budget : ValueBudget
+  column_rows : Array[Int]
+  column_bytes : Array[Int]
+  column_nodes : Array[Int]
+  column_max_value_bytes : Array[Int]
+  column_null_rows : Array[Int]
+  column_admitted_depths : Array[Int]
+  measurement_max_bytes : Int
+  measurement_max_nodes : Int
+  measurement_max_depth : Int
   mut row : Int
   mut reading : Bool
 }
@@ -31,6 +40,24 @@ struct CompletedRelationExportReceipt {
   logical : LogicalRelationIdentity
   schema : RelationSchemaIdentity
   fields : Array[String]
+  measurement : CompletedRelationExportMeasurement
+}
+
+///|
+/// Exact column summaries established by the same bounded traversal that
+/// identifies a completed Relation. This is reusable measurement data, not an
+/// issuer capability or physical-retention evidence.
+pub(all) struct CompletedRelationExportMeasurement {
+  row_count : Int
+  admission_nodes : Int
+  admission_text_bytes : Int
+  admission_work : Int
+  column_rows : Array[Int]
+  column_bytes : Array[Int]
+  column_nodes : Array[Int]
+  column_max_value_bytes : Array[Int]
+  column_null_rows : Array[Int]
+  column_admitted_depths : Array[Int]
 }
 
 ///|
@@ -208,6 +235,15 @@ fn prepare_completed_export(
       writer,
       logical_writer,
       budget,
+      column_rows: Array::make(order.columns.length(), 0),
+      column_bytes: Array::make(order.columns.length(), 0),
+      column_nodes: Array::make(order.columns.length(), 0),
+      column_max_value_bytes: Array::make(order.columns.length(), 0),
+      column_null_rows: Array::make(order.columns.length(), 0),
+      column_admitted_depths: Array::make(order.columns.length(), 0),
+      measurement_max_bytes: wire.max_bytes,
+      measurement_max_nodes: wire.max_nodes,
+      measurement_max_depth: wire.max_depth,
       row: 0,
       reading: false,
     })
@@ -270,6 +306,15 @@ pub fn replay_completed_relation_export(
       writer,
       logical_writer: None,
       budget,
+      column_rows: Array::make(order.columns.length(), 0),
+      column_bytes: Array::make(order.columns.length(), 0),
+      column_nodes: Array::make(order.columns.length(), 0),
+      column_max_value_bytes: Array::make(order.columns.length(), 0),
+      column_null_rows: Array::make(order.columns.length(), 0),
+      column_admitted_depths: Array::make(order.columns.length(), 0),
+      measurement_max_bytes: wire.max_bytes,
+      measurement_max_nodes: wire.max_nodes,
+      measurement_max_depth: wire.max_depth,
       row: 0,
       reading: false,
     })
@@ -340,10 +385,36 @@ fn export_completed_row(
     return Err(Admission(CaptureLimit))
   }
   try {
-    for (name, column) in value.order.columns {
+    for index, (name, column) in value.order.columns {
       let cell = IndexedRows::read_cell(table, value.row, column)
-      if !charge_text(value.budget, name) || !measure_result(cell, value.budget) {
+      if !charge_text(value.budget, name) {
         return Err(Admission(CaptureLimit))
+      }
+      if !measure_result(cell, value.budget) {
+        return Err(Admission(CaptureLimit))
+      }
+      let measurement_writer = @encode.measuring_writer(
+        value.measurement_max_bytes,
+        value.measurement_max_nodes,
+        value.measurement_max_depth,
+      )
+      emit_runtime_value(cell, measurement_writer)
+      let (cell_bytes, cell_nodes, cell_depth) = @encode.finish_measurement_usage(
+        measurement_writer,
+      )
+      value.column_rows[index] += 1
+      value.column_bytes[index] += cell_bytes
+      value.column_nodes[index] += cell_nodes
+      value.column_max_value_bytes[index] = Int::max(
+        value.column_max_value_bytes[index],
+        cell_bytes,
+      )
+      value.column_admitted_depths[index] = Int::max(
+        value.column_admitted_depths[index],
+        cell_depth,
+      )
+      if cell is Null || cell is Captured(@admitted.Null) {
+        value.column_null_rows[index] += 1
       }
     }
     emit_completed_export_row(value, table, value.writer)
@@ -449,6 +520,18 @@ pub fn finish_completed_relation_export(
           logical,
           schema,
           fields: completed_export_field_names(value.rows),
+          measurement: {
+            row_count: value.row,
+            admission_nodes: value.budget.nodes,
+            admission_text_bytes: value.budget.text,
+            admission_work: value.budget.work,
+            column_rows: value.column_rows.copy(),
+            column_bytes: value.column_bytes.copy(),
+            column_nodes: value.column_nodes.copy(),
+            column_max_value_bytes: value.column_max_value_bytes.copy(),
+            column_null_rows: value.column_null_rows.copy(),
+            column_admitted_depths: value.column_admitted_depths.copy(),
+          },
         },
         finished.1,
       ),
@@ -463,6 +546,24 @@ pub fn completed_relation_export_field_names(
   value : CompletedRelationExportReceipt,
 ) -> Array[String] {
   value.fields.copy()
+}
+
+///|
+/// Return an independent snapshot of the exact successful export
+/// measurement. Mutating the returned arrays cannot alter the receipt.
+pub fn completed_relation_export_measurement(
+  value : CompletedRelationExportReceipt,
+) -> CompletedRelationExportMeasurement {
+  let measurement = value.measurement
+  {
+    ..measurement,
+    column_rows: measurement.column_rows.copy(),
+    column_bytes: measurement.column_bytes.copy(),
+    column_nodes: measurement.column_nodes.copy(),
+    column_max_value_bytes: measurement.column_max_value_bytes.copy(),
+    column_null_rows: measurement.column_null_rows.copy(),
+    column_admitted_depths: measurement.column_admitted_depths.copy(),
+  }
 }
 
 ///|

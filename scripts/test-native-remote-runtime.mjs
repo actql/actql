@@ -17,8 +17,10 @@ await mkdir(scratchParent, {recursive: true});
 const root = await mkdtemp(join(scratchParent, 'native-remote-runtime-'));
 const storeRoot = join(root, 'store');
 const agentRoot = join(root, 'agent');
+const standardRoot = join(root, 'standard');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(agentRoot, {recursive: true});
+await mkdir(standardRoot, {recursive: true});
 
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
 const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
@@ -32,6 +34,23 @@ const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
   (process.platform === 'darwin'
     ? '/usr/lib/libsqlite3.dylib'
     : 'libsqlite3.so.0');
+const duckdbLibraryName = process.platform === 'darwin'
+  ? 'libduckdb.dylib'
+  : 'libduckdb.so';
+const duckdbLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
+  repositoryRoot,
+  'adapters',
+  'connectors',
+  'duckdb',
+  'node',
+  'node_modules',
+  '@duckdb',
+  `node-bindings-${process.platform}-${process.arch}`,
+  duckdbLibraryName,
+);
+if (!existsSync(duckdbLibrary)) {
+  throw new Error(`native DuckDB library is required: ${duckdbLibrary}`);
+}
 const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
   ? 'aarch64-apple-darwin'
   : process.platform === 'linux' && process.arch === 'x64'
@@ -81,6 +100,25 @@ try {
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_ROOT: storeRoot,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
+        keys.publicKey.export({type: 'spki', format: 'pem'}),
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: envelope.body,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: envelope.runtimeBundleCid,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: envelope.signature,
+    },
+    stdio: 'inherit',
+  });
+  execFileSync(moon, [
+    'test', 'src/query_integration', '--target', 'native',
+  ], {
+    cwd: repositoryRoot,
+    env: {
+      ...process.env,
+      ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
+      ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
+      ACTQL_TEST_DUCKDB_LIBRARY: duckdbLibrary,
+      ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
         keys.publicKey.export({type: 'spki', format: 'pem'}),

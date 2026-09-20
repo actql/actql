@@ -189,6 +189,8 @@ pub fn completed_relation_export_field_names(CompletedRelationExportReceipt) -> 
 
 pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity
 
+pub fn completed_relation_export_measurement(CompletedRelationExportReceipt) -> CompletedRelationExportMeasurement
+
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
@@ -760,6 +762,19 @@ type CompletedOutputExport
 type CompletedOutputExportReceipt
 
 type CompletedOutputImport
+
+pub(all) struct CompletedRelationExportMeasurement {
+  row_count : Int
+  admission_nodes : Int
+  admission_text_bytes : Int
+  admission_work : Int
+  column_rows : Array[Int]
+  column_bytes : Array[Int]
+  column_nodes : Array[Int]
+  column_max_value_bytes : Array[Int]
+  column_null_rows : Array[Int]
+  column_admitted_depths : Array[Int]
+}
 
 type CompletedRelationExportReceipt
 

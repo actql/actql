@@ -1,0 +1,13 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/duckdb/host_native" @native_host,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+}

@@ -142,6 +142,19 @@ test "publication export separates ordered rows from logical Relation identity" 
   )
   assert_eq(relation_schema_usage(schema), (79, 7, 2))
   assert_true(relation_schema_cid(schema) != logical_relation_cid(relation))
+  let measurement = completed_relation_export_measurement(receipt)
+  assert_eq(measurement.row_count, 2)
+  assert_eq(measurement.admission_nodes, 6)
+  assert_eq(measurement.admission_text_bytes, 10)
+  assert_eq(measurement.admission_work, 16)
+  assert_eq(measurement.column_rows, [2, 2])
+  assert_eq(measurement.column_bytes, [2, 10])
+  assert_eq(measurement.column_nodes, [2, 2])
+  assert_eq(measurement.column_max_value_bytes, [1, 6])
+  assert_eq(measurement.column_null_rows, [0, 0])
+  assert_eq(measurement.column_admitted_depths, [0, 0])
+  measurement.column_rows[0] = 0
+  assert_eq(completed_relation_export_measurement(receipt).column_rows, [2, 2])
   cancel_completed_relation_export_receipt(receipt)
 }
 

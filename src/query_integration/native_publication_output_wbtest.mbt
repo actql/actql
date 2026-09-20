@@ -582,3 +582,270 @@ test "standard DuckDB output reaches the durable native publication commit" {
     run, token, sqlite_library_path, root, runtime_owner, query_issuer, 3,
   )
 }
+
+///|
+fn assert_native_remote_standard_output(
+  runtime : @native_remote_runtime.NativeRemoteRuntime,
+  journal : @native_remote_journal.Journal,
+  request : @remote.DispatchRequest,
+  input_binding : @remote.RemoteInputBinding,
+  expected : String,
+) -> Unit raise {
+  ignore(runtime.start(request, input_binding).unwrap())
+  let observed = journal.observation(request).unwrap()
+  let subject = @native_remote_journal.recovered_site_dispatch_subject(observed).unwrap()
+  let material_generation = @remote.remote_managed_output_subject_projection(
+      subject,
+    )[1]
+  let reader = runtime
+    .open_output_reader(request, material_generation, 7)
+    .unwrap()
+  let bytes : Array[Byte] = []
+  while true {
+    let chunk = reader.next().unwrap()
+    for byte in chunk.bytes {
+      bytes.push(byte)
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  assert_eq(@utf8.decode_lossy(Bytes::from_array(bytes)), expected)
+  assert_true(reader.finish().unwrap())
+  assert_true(runtime.release(request).unwrap())
+}
+
+///|
+test "native Remote Site executes registered Local and DuckDB tasks" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(duckdb_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY")
+    is Some(crypto_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT")
+    is Some(root_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET")
+    is Some(target) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY")
+    is Some(public_key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY")
+    is Some(bundle_body) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID")
+    is Some(bundle_cid) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE")
+    is Some(signature) else {
+    return
+  }
+  let sqlite = @native_sqlite.load_library(sqlite_path).unwrap()
+  let crypto = @native_signature.load_library(crypto_path).unwrap()
+  let root = @native_filesystem.open_root(root_path).unwrap()
+  let component = b"native-runtime"
+  let writer = root
+    .create_writer("runtime-stage", component.length().to_int64())
+    .unwrap()
+  writer.append(component).unwrap()
+  let generation = writer.seal("runtime-component").unwrap()
+  let bundles = @native_runtime_bundle.open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    [
+      {
+        issuer_authority: "bundle-authority-a",
+        key_id: "key-a",
+        public_key_pem: public_key,
+      },
+    ],
+    target,
+    component.length().to_int64(),
+    4,
+    8,
+    262144L,
+  ).unwrap()
+  bundles
+  .adopt(
+    "actql-remote-runtime-bundle-signature/0.1", "key-a", bundle_cid, bundle_body,
+    signature, "runtime-component", generation,
+  )
+  .unwrap()
+  |> ignore
+  bundles.activate(bundle_cid).unwrap() |> ignore
+  let active_runtime = bundles
+    .acquire_active_component(
+      "sha256:" + @sha.hex(component),
+      target,
+      "runtime-process:standard-local",
+    )
+    .unwrap()
+  let site = @site.create_site(
+    "native-standard-site", 1, bundle_cid, 2, 2, 1048576L, 268435456L,
+  ).unwrap()
+  let journal_control = @remote.create_site_dispatch_journal(
+    site, "actql-remote-site/0.1",
+  ).unwrap()
+  let journal = @native_remote_journal.open_journal(
+    sqlite,
+    root_path + "/standard-journal.sqlite3",
+    262144L,
+    journal_control,
+  ).unwrap()
+  let (local_captured, local_run, local_query_issuer) = prepare_native_publication_local_run()
+  let local_graph = @strategy.captured_dag_graph(local_captured)
+  let run_definition_cid = @strategy.graph_program_definition_cid(local_graph)
+  let (duckdb_captured, duckdb_run, duckdb_query_issuer) = prepare_native_publication_duckdb_run(
+    duckdb_path,
+  )
+  let duckdb_graph = @strategy.captured_dag_graph(duckdb_captured)
+  assert_eq(
+    @strategy.graph_program_definition_cid(duckdb_graph),
+    run_definition_cid,
+  )
+  let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
+  let local_run_owner = [Some(local_run)]
+  let local_executor = @native_remote_standard.install_native_remote_standard_task_executor(
+    run_definition_cid,
+    "task-1-local",
+    @remote.remote_input_binding_cid(input_binding),
+    1,
+    () => {
+      match local_run_owner[0] {
+        Some(value) => {
+          local_run_owner[0] = None
+          Ok(value)
+        }
+        None => Err("standard Run already opened")
+      }
+    },
+    {
+      output_export: native_publication_export_limits(),
+      max_manifest_bytes: 65536,
+      max_retained_bytes: 1048576L,
+    },
+  ).unwrap()
+  let duckdb_run_owner = [Some(duckdb_run)]
+  let duckdb_executor = @native_remote_standard.install_native_remote_standard_task_executor(
+    run_definition_cid,
+    "task-1-duckdb",
+    @remote.remote_input_binding_cid(input_binding),
+    1,
+    () => {
+      match duckdb_run_owner[0] {
+        Some(value) => {
+          duckdb_run_owner[0] = None
+          Ok(value)
+        }
+        None => Err("standard Run already opened")
+      }
+    },
+    {
+      output_export: native_publication_export_limits(),
+      max_manifest_bytes: 65536,
+      max_retained_bytes: 1048576L,
+    },
+  ).unwrap()
+  let operation_capability = native_publication_cid(
+    "remote-standard-operation-capability",
+  )
+  let issuer_capability = native_publication_cid(
+    "remote-standard-issuer-capability",
+  )
+  let registration = @native_remote_runtime.install_native_remote_runtime_registry_registration(
+    site,
+    active_runtime,
+    operation_capability,
+    issuer_capability,
+    [local_executor, duckdb_executor],
+  ).unwrap()
+  let local_budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
+  let duckdb_budget = @remote.prepare_remote_dispatch_budget(
+    1048576L, 134217728L,
+  ).unwrap()
+  let runtime = @native_remote_runtime.open_native_remote_runtime(
+    journal,
+    bundles,
+    [registration],
+    [local_budget, duckdb_budget],
+  ).unwrap()
+  let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
+    active_runtime,
+  )
+  let local_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    run_definition_cid,
+    "task-1-local",
+    1,
+    "native-standard-local-dispatch-1",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(local_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_native_remote_standard_output(
+    runtime, journal, local_request, input_binding, "[{\"id\":3}]",
+  )
+  let duckdb_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    run_definition_cid,
+    "task-1-duckdb",
+    1,
+    "native-standard-duckdb-dispatch-1",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(duckdb_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_native_remote_standard_output(
+    runtime, journal, duckdb_request, input_binding, "[{\"id\":3}]",
+  )
+  assert_true(runtime.close().unwrap())
+  assert_true(journal.close())
+  assert_true(bundles.close().unwrap())
+  @mock.close_mock_query_issuer(local_query_issuer)
+  @mock.close_mock_query_issuer(duckdb_query_issuer)
+  for task = @strategy.graph_task_count(local_graph) - 1
+      task > 0
+      task = task - 1 {
+    @strategy.close_captured_task_output(local_captured, task)
+  }
+  for task = @strategy.graph_task_count(duckdb_graph) - 1
+      task > 0
+      task = task - 1 {
+    @strategy.close_captured_task_output(duckdb_captured, task)
+  }
+  for captured in [local_captured, duckdb_captured] {
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+  }
+}
