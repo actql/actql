@@ -377,7 +377,13 @@ fn query_checked_program_fixture(
   let text = if managed_publication {
     text.replace(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
-      new="\"results\":{\"published\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}}}}",
+      new=if local_carrier_graph_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"graph\",\"result\":\"r\"}}}}"
+      } else {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"compute_b\",\"result\":\"r\"}}}}"
+      },
     )
   } else {
     text

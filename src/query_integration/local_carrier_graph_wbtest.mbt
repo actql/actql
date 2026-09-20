@@ -818,11 +818,34 @@ test "registered Graph provider executes node identity match for two consumers" 
 }
 
 ///|
-fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
+fn graph_publication_obligations(
+  run : @strategy.CapturedDAG,
+  publication : Bool,
+) -> @execution.ManagedObligations? {
+  if publication {
+    Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+  } else {
+    None
+  }
+}
+
+///|
+fn run_standard_host_graph_relation_path(
+  variant : String,
+  publication? : Bool = false,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
+    managed_publication=publication,
   )
+  if publication {
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
+      ),
+    )
+  }
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
@@ -893,9 +916,11 @@ fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
     [],
     1,
     values_live,
+    obligations?=graph_publication_obligations(run, publication),
   )
   let values_rows = local_managed_test_rows(values_ops)
   let graph_live = Ref(true)
+  let graph_obligations = graph_publication_obligations(run, publication)
   let (graph_ops, graph) = run_local_managed_test_task(
     installed,
     run,
@@ -904,11 +929,42 @@ fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
     [values_rows],
     2,
     graph_live,
+    obligations?=graph_obligations,
   )
   let graph_rows = local_managed_test_rows(graph_ops)
   assert_eq(graph_rows.length(), 2)
   assert_true(graph_rows[0].contains("\"id\":1"))
   assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
+  if graph_obligations is Some(obligations) {
+    let requirements = @execution.managed_obligations_identities(obligations)
+    let published = requirements.filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(published.length(), 1)
+    match
+      @execution.managed_completed_identity_requirement_status(
+        graph,
+        published[0],
+      ) {
+      Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+        assert_eq(
+          contract,
+          @execution.logical_relation_canonical_contract_cid(),
+        )
+        assert_eq(
+          cid, "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576",
+        )
+      }
+      _ => fail("Graph match output did not establish publication identity")
+    }
+    assert_true(
+      @execution.managed_completed_deadline_satisfied(
+        graph,
+        @execution.BeforePublication,
+      ),
+    )
+  }
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -919,6 +975,7 @@ fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
     [graph_rows],
     3,
     first_live,
+    obligations?=graph_publication_obligations(run, publication),
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
@@ -929,6 +986,7 @@ fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
     [graph_rows],
     4,
     second_live,
+    obligations?=graph_publication_obligations(run, publication),
   )
   assert_eq(local_managed_test_rows(first_ops).length(), 2)
   assert_eq(local_managed_test_rows(second_ops).length(), 2)
@@ -968,5 +1026,5 @@ fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
 ///|
 test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("projection")
-  run_standard_host_graph_relation_path("match_nodes")
+  run_standard_host_graph_relation_path("match_nodes", publication=true)
 }
