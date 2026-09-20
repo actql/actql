@@ -26,4 +26,5 @@ import {
   "actql/actql/connectors/local/driver" @binding19,
   "actql/actql/connectors/reference_compute/driver" @binding20,
   "actql/actql/remote_transfer" @transfer,
+  "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }
