@@ -657,6 +657,34 @@ pub fn vector_pool_output_id(PreparedVector) -> String?
 
 pub fn vector_pool_vector_role(PreparedVector) -> String?
 
+pub fn vector_ranking_by_at(PreparedVector, Int) -> String?
+
+pub fn vector_ranking_by_count(PreparedVector) -> Int?
+
+pub fn vector_ranking_candidate(PreparedVector) -> String?
+
+pub fn vector_ranking_input_count(PreparedVector) -> Int?
+
+pub fn vector_ranking_k(PreparedVector) -> Int64?
+
+pub fn vector_ranking_policy(PreparedVector) -> PreparedVectorRankingPolicy?
+
+pub fn vector_ranking_rank(PreparedVector) -> String?
+
+pub fn vector_ranking_score(PreparedVector) -> String?
+
+pub fn vector_ranking_score_domain(PreparedVector) -> String?
+
+pub fn vector_ranking_score_maximum(PreparedVector) -> Double?
+
+pub fn vector_ranking_score_minimum(PreparedVector) -> Double?
+
+pub fn vector_ranking_score_normalization(PreparedVector) -> String?
+
+pub fn vector_ranking_tie_break_at(PreparedVector, Int) -> String?
+
+pub fn vector_ranking_tie_break_count(PreparedVector) -> Int?
+
 pub fn vector_score_metric(PreparedVector) -> PreparedVectorMetric?
 
 pub fn vector_score_query_at(PreparedVector, Int) -> Double?
@@ -1114,6 +1142,7 @@ pub enum Payload {
   VectorValue(@vector_typing.CheckedVector)
   NearestValue(@relation_evidence.CheckedNearest)
   PoolValue(@vector_typing.CheckedPool)
+  RankingValue(@relation_evidence.CheckedRanking)
   EventValue(@event_typing.CheckedEvent)
   CarrierProjection(@carrier_projection.CheckedProjection)
 }
@@ -1285,6 +1314,12 @@ pub(all) enum PreparedVectorPoolMethod {
   PoolSum
   PoolMax
 } derive(Eq, @debug.Debug)
+
+pub(all) enum PreparedVectorRankingPolicy {
+  RankingMaximum
+  RankingWeightedSum(Double, Double)
+  RankingRrf(Double, Array[Double], Double)
+}
 
 pub enum PreparedWatermarkThreshold {
   FixedWatermark(Double)

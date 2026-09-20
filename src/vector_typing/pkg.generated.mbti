@@ -218,6 +218,8 @@ pub fn ranking_options_usage(@relation_evidence.RankingOptions) -> @vector_check
 
 pub fn ranking_policy(@relation_evidence.RankingOptions) -> @relation_evidence.RankingPolicy
 
+pub fn ranking_policy_kind(@relation_evidence.RankingOptions) -> RankingPolicyKind
+
 pub fn ranking_rank(@relation_evidence.RankingOptions) -> @relation_schema.FieldName?
 
 pub fn ranking_rank_constant(@relation_evidence.RankingOptions) -> Double?
@@ -263,6 +265,14 @@ pub fn read_pool_options(@decode_core.Cursor, @vector_checking.Limits) -> Result
 pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.RankingOptions, @vector_checking.Issue]
 
 pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.TextRankOptions, @vector_checking.Issue]
+
+pub fn score_contract_domain(@relation_evidence.ScoreContract) -> String
+
+pub fn score_contract_maximum(@relation_evidence.ScoreContract) -> Double
+
+pub fn score_contract_minimum(@relation_evidence.ScoreContract) -> Double
+
+pub fn score_contract_normalization(@relation_evidence.ScoreContract) -> String
 
 pub fn source(CheckedVector) -> @decode_core.Cursor
 
@@ -353,6 +363,12 @@ pub(all) enum PoolObligation {
 type PoolOptions
 
 type Query
+
+pub(all) enum RankingPolicyKind {
+  MaximumPolicy
+  WeightedSumPolicy
+  ReciprocalRankPolicy
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 pub using @relation_evidence {type CheckedNearest}

@@ -321,6 +321,7 @@ fn prepare_kernel_measured(
     | VectorValue(_)
     | NearestValue(_)
     | PoolValue(_)
+    | RankingValue(_)
     | EventValue(_)
     | CarrierProjection(_) => return Err(MissingKernelNode)
   }

@@ -8,6 +8,22 @@ pub type ScoreContract = @evidence.ScoreContract
 pub type RankingOptions = @evidence.RankingOptions
 
 ///|
+pub(all) enum RankingPolicyKind {
+  MaximumPolicy
+  WeightedSumPolicy
+  ReciprocalRankPolicy
+} derive(Eq, Debug)
+
+///|
+pub fn ranking_policy_kind(value : RankingOptions) -> RankingPolicyKind {
+  match @evidence.ranking_policy(value) {
+    @evidence.Maximum => MaximumPolicy
+    @evidence.WeightedSum => WeightedSumPolicy
+    @evidence.ReciprocalRank => ReciprocalRankPolicy
+  }
+}
+
+///|
 pub using @evidence {
   read_ranking_options,
   ranking_source,
@@ -32,4 +48,8 @@ pub using @evidence {
   ranking_tie_break_at,
   ranking_k,
   ranking_options_usage,
+  score_contract_domain,
+  score_contract_normalization,
+  score_contract_minimum,
+  score_contract_maximum,
 }

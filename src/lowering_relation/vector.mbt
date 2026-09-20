@@ -24,6 +24,33 @@ priv struct PreparedVectorBridgeRoles {
 }
 
 ///|
+pub(all) enum PreparedVectorRankingPolicy {
+  RankingMaximum
+  RankingWeightedSum(Double, Double)
+  RankingRrf(Double, Array[Double], Double)
+}
+
+///|
+priv struct PreparedRankingScoreContract {
+  domain : String
+  normalization : String
+  minimum : Double
+  maximum : Double
+}
+
+///|
+priv struct PreparedRankingParams {
+  by : Array[String]
+  candidate : String
+  score : String?
+  rank : String?
+  policy : PreparedVectorRankingPolicy
+  contract : PreparedRankingScoreContract?
+  tie_break : Array[String]?
+  k : Int64
+}
+
+///|
 fn vector_generated_role_id(step : Int, role : String) -> String {
   "vector_" + role + "_" + step.to_string()
 }
@@ -121,6 +148,7 @@ priv enum PreparedVectorParams {
     Array[String],
     Bool
   )
+  VectorRankingParams(PreparedRankingParams)
 }
 
 ///|
@@ -324,6 +352,137 @@ pub fn vector_pool_member_vectors(value : PreparedVector) -> @carrier.Vectors? {
 }
 
 ///|
+pub fn vector_ranking_input_count(value : PreparedVector) -> Int? {
+  match value.params {
+    VectorRankingParams(_) => Some(value.node.inputs.length())
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_by_count(value : PreparedVector) -> Int? {
+  match value.params {
+    VectorRankingParams(ranking) => Some(ranking.by.length())
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_by_at(value : PreparedVector, index : Int) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) => ranking.by.get(index)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_candidate(value : PreparedVector) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) => Some(ranking.candidate)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_score(value : PreparedVector) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) => ranking.score
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_rank(value : PreparedVector) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) => ranking.rank
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_policy(
+  value : PreparedVector,
+) -> PreparedVectorRankingPolicy? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      Some(
+        match ranking.policy {
+          RankingMaximum => RankingMaximum
+          RankingWeightedSum(left, right) => RankingWeightedSum(left, right)
+          RankingRrf(rank_constant, weights, rank_window) =>
+            RankingRrf(rank_constant, weights.copy(), rank_window)
+        },
+      )
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_k(value : PreparedVector) -> Int64? {
+  match value.params {
+    VectorRankingParams(ranking) => Some(ranking.k)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_score_domain(value : PreparedVector) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      ranking.contract.map(contract => contract.domain)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_score_normalization(value : PreparedVector) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      ranking.contract.map(contract => contract.normalization)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_score_minimum(value : PreparedVector) -> Double? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      ranking.contract.map(contract => contract.minimum)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_score_maximum(value : PreparedVector) -> Double? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      ranking.contract.map(contract => contract.maximum)
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_tie_break_count(value : PreparedVector) -> Int? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      ranking.tie_break.map(fields => fields.length())
+    _ => None
+  }
+}
+
+///|
+pub fn vector_ranking_tie_break_at(
+  value : PreparedVector,
+  index : Int,
+) -> String? {
+  match value.params {
+    VectorRankingParams(ranking) =>
+      ranking.tie_break.bind(fields => fields.get(index))
+    _ => None
+  }
+}
+
+///|
 pub(all) enum VectorIssue {
   InvalidVectorLimits
   InvalidVectorWiring
@@ -393,6 +552,111 @@ fn checked_nearest_bridge_roles(
       Some({ identity, vector, }),
       @utf8.encode(identity).length() + @utf8.encode(vector).length(),
       2,
+    ),
+  )
+}
+
+///|
+fn checked_ranking_params(
+  checked : @vector.CheckedRanking,
+) -> Result[(PreparedRankingParams, Int, Int), VectorIssue] {
+  let options = @vector.merged_ranking_options(checked)
+  let by : Array[String] = []
+  let mut names = 0
+  for index in 0..<@vector.ranking_by_count(options) {
+    guard @vector.ranking_by_at(options, index) is Some(field) else {
+      return Err(InvalidVectorWiring)
+    }
+    let name = @schema.reference_name(field)
+    by.push(name)
+    names += @utf8.encode(name).length()
+  }
+  let candidate = @schema.reference_name(@vector.ranking_candidate(options))
+  names += @utf8.encode(candidate).length()
+  let score = @vector.ranking_score(options).map(field => {
+    let name = @schema.reference_name(field)
+    names += @utf8.encode(name).length()
+    name
+  })
+  let rank = @vector.ranking_rank(options).map(field => {
+    let name = @schema.reference_name(field)
+    names += @utf8.encode(name).length()
+    name
+  })
+  let tie_break = match @vector.ranking_tie_break_count(options) {
+    None => None
+    Some(count) => {
+      let fields : Array[String] = []
+      for index in 0..<count {
+        guard @vector.ranking_tie_break_at(options, index) is Some(field) else {
+          return Err(InvalidVectorWiring)
+        }
+        let name = @schema.reference_name(field)
+        fields.push(name)
+        names += @utf8.encode(name).length()
+      }
+      Some(fields)
+    }
+  }
+  let contract = @vector.ranking_score_contract(options).map(value => {
+    let domain = @vector.score_contract_domain(value)
+    let normalization = @vector.score_contract_normalization(value)
+    names += @utf8.encode(domain).length()
+    names += @utf8.encode(normalization).length()
+    {
+      domain,
+      normalization,
+      minimum: @vector.score_contract_minimum(value),
+      maximum: @vector.score_contract_maximum(value),
+    }
+  })
+  let policy = match @vector.ranking_policy_kind(options) {
+    @vector.MaximumPolicy => RankingMaximum
+    @vector.WeightedSumPolicy => {
+      guard @vector.ranking_weight_at(options, 0) is Some(left) &&
+        @vector.ranking_weight_at(options, 1) is Some(right) else {
+        return Err(InvalidVectorWiring)
+      }
+      RankingWeightedSum(left, right)
+    }
+    @vector.ReciprocalRankPolicy => {
+      guard @vector.ranking_rank_constant(options) is Some(rank_constant) &&
+        @vector.ranking_rank_window(options) is Some(rank_window) else {
+        return Err(InvalidVectorWiring)
+      }
+      let weights : Array[Double] = []
+      for index in 0..<@vector.ranking_weight_count(options) {
+        guard @vector.ranking_weight_at(options, index) is Some(weight) else {
+          return Err(InvalidVectorWiring)
+        }
+        weights.push(weight)
+      }
+      RankingRrf(rank_constant, weights, rank_window)
+    }
+  }
+  let input_count = @vector.merged_ranking_input_count(checked)
+  if input_count < 2 {
+    return Err(InvalidVectorWiring)
+  }
+  let work = by.length() +
+    input_count +
+    @vector.ranking_weight_count(options) +
+    tie_break.map(fields => fields.length()).unwrap_or(0) +
+    6
+  Ok(
+    (
+      {
+        by,
+        candidate,
+        score,
+        rank,
+        policy,
+        contract,
+        tie_break,
+        k: @vector.ranking_k(options).to_int64(),
+      },
+      names,
+      work,
     ),
   )
 }
@@ -525,6 +789,14 @@ fn prepare_vector_node(
         groups.length() + identities.length() * 4 + 2,
       )
     }
+    RankingValue(checked) => {
+      let (params, used_names, used_work) = match
+        checked_ranking_params(checked) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      (VectorRankingParams(params), 0, used_names, used_work)
+    }
     _ => return Err(InvalidVectorWiring)
   }
   if bindings > max_bindings || names > max_name_bytes || work > max_work {
@@ -533,7 +805,7 @@ fn prepare_vector_node(
   let expansion = match node.vector_expansion {
     Some(expansion) => expansion
     None =>
-      if node.payload is VectorValue(_) {
+      if node.payload is VectorValue(_) || node.payload is RankingValue(_) {
         []
       } else {
         return Err(InvalidVectorWiring)
@@ -625,6 +897,80 @@ fn emit_vector_operation(
       if include_pool_vector && vector is Some(name) {
         @encode.key(out, "vector")
         @encode.string_value(out, name)
+      }
+    }
+    VectorRankingParams(ranking) => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for field in ranking.by {
+        @encode.string_value(out, field)
+      }
+      @encode.end_array(out)
+      @encode.key(out, "candidate")
+      @encode.string_value(out, ranking.candidate)
+      @encode.key(out, "k")
+      @encode.number_value(out, ranking.k.to_double())
+      if ranking.rank is Some(name) {
+        @encode.key(out, "rank")
+        @encode.string_value(out, name)
+      }
+      if ranking.score is Some(name) {
+        @encode.key(out, "score")
+        @encode.string_value(out, name)
+      }
+      if ranking.contract is Some(contract) {
+        @encode.key(out, "score_contract")
+        @encode.begin_object(out)
+        @encode.key(out, "domain")
+        @encode.string_value(out, contract.domain)
+        @encode.key(out, "normalization")
+        @encode.string_value(out, contract.normalization)
+        @encode.key(out, "range")
+        @encode.begin_array(out)
+        @encode.number_value(out, contract.minimum)
+        @encode.number_value(out, contract.maximum)
+        @encode.end_array(out)
+        @encode.end_object(out)
+      }
+      @encode.key(out, "score_policy")
+      match ranking.policy {
+        RankingMaximum => @encode.string_value(out, "max")
+        RankingWeightedSum(left, right) => {
+          @encode.begin_object(out)
+          @encode.key(out, "weighted_sum")
+          @encode.begin_object(out)
+          @encode.key(out, "left")
+          @encode.number_value(out, left)
+          @encode.key(out, "right")
+          @encode.number_value(out, right)
+          @encode.end_object(out)
+          @encode.end_object(out)
+        }
+        RankingRrf(rank_constant, weights, rank_window) => {
+          @encode.begin_object(out)
+          @encode.key(out, "rrf")
+          @encode.begin_object(out)
+          @encode.key(out, "rank_constant")
+          @encode.number_value(out, rank_constant)
+          @encode.key(out, "rank_window")
+          @encode.number_value(out, rank_window)
+          @encode.key(out, "weights")
+          @encode.begin_array(out)
+          for weight in weights {
+            @encode.number_value(out, weight)
+          }
+          @encode.end_array(out)
+          @encode.end_object(out)
+          @encode.end_object(out)
+        }
+      }
+      if ranking.tie_break is Some(fields) {
+        @encode.key(out, "tie_break")
+        @encode.begin_array(out)
+        for field in fields {
+          @encode.string_value(out, field)
+        }
+        @encode.end_array(out)
       }
     }
   }

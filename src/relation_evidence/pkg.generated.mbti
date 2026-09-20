@@ -385,6 +385,14 @@ pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Res
 
 pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[TextRankOptions, @vector_checking.Issue]
 
+pub fn score_contract_domain(ScoreContract) -> String
+
+pub fn score_contract_maximum(ScoreContract) -> Double
+
+pub fn score_contract_minimum(ScoreContract) -> Double
+
+pub fn score_contract_normalization(ScoreContract) -> String
+
 pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.FieldName], TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn select_interval_join_key(@relation_join_shape.CheckedIntervalJoin, @relation_schema.Side, KeySet?, TransferLimits) -> Result[KeySelection, Issue]
@@ -661,7 +669,22 @@ pub(all) enum RankingObligation {
   DeriveOutputScoreEnvelope
 } derive(Eq, @debug.Debug)
 
-type RankingOptions
+pub struct RankingOptions {
+  source : @decode_core.Cursor
+  others : Array[String]
+  by : Array[@relation_schema.FieldName]
+  candidate : @relation_schema.FieldName
+  score : @relation_schema.FieldName?
+  rank : @relation_schema.FieldName?
+  policy : RankingPolicy
+  weights : Array[Double]
+  rank_constant : Double?
+  rank_window : Double?
+  contract : ScoreContract?
+  tie_break : Array[@relation_schema.FieldName]?
+  k : Double
+  usage : @vector_checking.Usage
+}
 
 pub(all) enum RankingPolicy {
   Maximum

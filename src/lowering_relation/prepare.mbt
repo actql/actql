@@ -72,6 +72,7 @@ pub enum Payload {
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
   PoolValue(@vector.CheckedPool)
+  RankingValue(@vector.CheckedRanking)
   EventValue(@event.CheckedEvent)
   CarrierProjection(@projection.CheckedProjection)
 }
@@ -238,6 +239,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     NearestValue(_) => "VEC.knn_join"
     PoolValue(_) => "VEC.pool"
+    RankingValue(_) => "VEC.merge_rankings"
     EventValue(value) =>
       match @event.options(value) {
         @event.ToEvents => "BRIDGE.rows.to_events"
@@ -315,7 +317,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphMean(value) => Some(GraphMeanValue(value))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
-    GraphConstruction(..) | Ranking(_) | TextRank(..) => None
+    Ranking(value) => Some(RankingValue(value))
+    GraphConstruction(..) | TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
       match @event.options(value) {
@@ -500,6 +503,8 @@ pub fn prepare(
         )
       NearestValue(_) => ("nearest", 2)
       PoolValue(_) => ("pool_vectors", 1)
+      RankingValue(value) =>
+        ("merge_rankings", @vector.merged_ranking_input_count(value))
       EventValue(value) =>
         (
           match @event.options(value) {
@@ -687,6 +692,7 @@ pub fn prepare(
       VectorValue(_) => None
       NearestValue(_) => None
       PoolValue(_) => None
+      RankingValue(_) => None
       EventValue(_) => None
       CarrierProjection(_) => None
     }

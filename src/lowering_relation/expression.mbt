@@ -534,6 +534,7 @@ fn lower_expression_measured(
       | VectorValue(_)
       | NearestValue(_)
       | PoolValue(_)
+      | RankingValue(_)
       | EventValue(_)
       | CarrierProjection(_) =>
         expression_fail(step.source, MissingCheckedBinding)

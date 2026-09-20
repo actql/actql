@@ -14,7 +14,27 @@ pub struct ScoreContract {
 }
 
 ///|
-struct RankingOptions {
+pub fn score_contract_domain(value : ScoreContract) -> String {
+  value.domain
+}
+
+///|
+pub fn score_contract_normalization(value : ScoreContract) -> String {
+  value.normalization
+}
+
+///|
+pub fn score_contract_minimum(value : ScoreContract) -> Double {
+  value.minimum
+}
+
+///|
+pub fn score_contract_maximum(value : ScoreContract) -> Double {
+  value.maximum
+}
+
+///|
+pub struct RankingOptions {
   source : @decode.Cursor
   others : Array[String]
   by : Array[@row.FieldName]

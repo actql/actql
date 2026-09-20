@@ -308,6 +308,169 @@ test "nearest preserves repeated source positions through canonical order" {
 }
 
 ///|
+test "ranking lowering preserves ordered repeated RRF occurrences" {
+  let body = "[{\"nearest\":{\"queries\":\"v\",\"metric\":\"dot\"," +
+    "\"k\":10},\"as\":\"n\"},{\"merge_rankings\":{\"with\":[\"n\",\"n\"]," +
+    "\"by\":[\"query_id\"],\"candidate\":\"candidate_id\",\"rank\":\"rank\"," +
+    "\"k\":5,\"score_policy\":{\"rrf\":{\"rank_constant\":60," +
+    "\"weights\":[1,0,2],\"rank_window\":10}}}}]"
+  let checked = @pipeline.check_carriers(
+    cursor(body),
+    [("v", vector_carrier())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
+  let usage = @lowering_relation.usage(prepared)
+  let exact : @lowering_relation.Limits = {
+    max_nodes: usage.nodes,
+    max_references: usage.references,
+    max_work: usage.work,
+    max_identifier_bytes: usage.identifier_bytes,
+  }
+  assert_true(@lowering_relation.prepare(checked, exact) is Ok(_))
+  for
+    cap in [
+      { ..exact, max_nodes: exact.max_nodes - 1, },
+      { ..exact, max_references: exact.max_references - 1, },
+      { ..exact, max_work: exact.max_work - 1, },
+      { ..exact, max_identifier_bytes: exact.max_identifier_bytes - 1, },
+    ] {
+    assert_true(
+      @lowering_relation.prepare(checked, cap)
+      is Err({ kind: @lowering_relation.BudgetExceeded, .. }),
+    )
+  }
+  let owner = @lowering_relation.bind_parameters(
+    prepared,
+    None,
+    max_parameters=0,
+    max_name_bytes=100,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.VectorStep(ranking)) else {
+    fail("ranking step")
+  }
+  assert_eq(@lowering_relation.vector_ranking_input_count(ranking), Some(3))
+  assert_eq(@lowering_relation.vector_ranking_by_count(ranking), Some(1))
+  assert_eq(
+    @lowering_relation.vector_ranking_by_at(ranking, 0),
+    Some("query_id"),
+  )
+  assert_eq(
+    @lowering_relation.vector_ranking_candidate(ranking),
+    Some("candidate_id"),
+  )
+  assert_eq(@lowering_relation.vector_ranking_rank(ranking), Some("rank"))
+  assert_eq(@lowering_relation.vector_ranking_k(ranking), Some(5L))
+  assert_true(
+    @lowering_relation.vector_ranking_policy(ranking)
+    is Some(@lowering_relation.RankingRrf(60.0, [1.0, 0.0, 2.0], 10.0)),
+  )
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 1),
+    Some(1),
+  )
+  let writer = @encode.writer(20000, 2000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "[{\"id\":\"nearest_0\",\"in\":[\"input_0\",\"input_0\"],\"op\":\"VEC.knn_join\",\"params\":{\"exact\":true,\"k\":10,\"metric\":\"dot\"}},{\"id\":\"merge_rankings_1\",\"in\":[\"nearest_0\",\"nearest_0\",\"nearest_0\"],\"op\":\"VEC.merge_rankings\",\"params\":{\"by\":[\"query_id\"],\"candidate\":\"candidate_id\",\"k\":5,\"rank\":\"rank\",\"score_policy\":{\"rrf\":{\"rank_constant\":60,\"rank_window\":10,\"weights\":[1,0,2]}}}}]",
+  )
+}
+
+///|
+test "ranking lowering preserves scored policy decisions" {
+  let number = @contract.primitive(@contract.NumberType, nullable=false)
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [
+        (@schema.Unqualified("q"), Some(number)),
+        (@schema.Unqualified("id"), Some(number)),
+        (@schema.Unqualified("score"), Some(number)),
+        (@schema.Unqualified("tie"), Some(number)),
+      ],
+      field_set=@carrier.Closed,
+      max_fields=4,
+      max_name_bytes=11,
+    ).unwrap(),
+  )
+  let contract = "{\"domain\":\"relevance\",\"range\":[0,1]," +
+    "\"normalization\":\"identity\"}"
+  let ranking = @vector.declare_ranking_score(
+    cursor(contract),
+    relation,
+    @schema.Unqualified("score"),
+    { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for
+    (policy, suffix) in [
+      ("\"max\"", "\"max\",\"tie_break\":[]"),
+      (
+        "{\"weighted_sum\":{\"left\":0.25,\"right\":0.75}}", "{\"weighted_sum\":{\"left\":0.25,\"right\":0.75}}",
+      ),
+    ] {
+    let tie = if policy == "\"max\"" { ",\"tie_break\":[]" } else { "" }
+    let body = "[{\"merge_rankings\":{\"with\":\"right\",\"by\":[\"q\"]," +
+      "\"candidate\":\"id\",\"score\":\"score\",\"score_policy\":" +
+      policy +
+      ",\"score_contract\":" +
+      contract +
+      ",\"k\":2" +
+      tie +
+      "}}]"
+    let checked = @pipeline.check_with_evidence(
+      cursor(body),
+      [
+        ("left", @pipeline.RankingInput(ranking)),
+        ("right", @pipeline.RankingInput(ranking)),
+      ],
+      None,
+      Some(cursor("\"left\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap()
+    let owner = @lowering_relation.bind_parameters(
+      @lowering_relation.prepare(checked, limits()).unwrap(),
+      None,
+      max_parameters=0,
+      max_name_bytes=100,
+    ).unwrap()
+    let writer = @encode.writer(20000, 2000, 100)
+    @lowering_relation.emit_sequence_steps(
+      @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap(),
+      writer,
+    )
+    assert_eq(
+      @encode.finish(writer),
+      "[{\"id\":\"merge_rankings_0\",\"in\":[\"input_0\",\"input_1\"]," +
+      "\"op\":\"VEC.merge_rankings\",\"params\":{\"by\":[\"q\"]," +
+      "\"candidate\":\"id\",\"k\":2,\"score\":\"score\"," +
+      "\"score_contract\":{\"domain\":\"relevance\"," +
+      "\"normalization\":\"identity\",\"range\":[0,1]}," +
+      "\"score_policy\":" +
+      suffix +
+      "}}]",
+    )
+  }
+}
+
+///|
 test "checked vector pooling lowers canonical parameters" {
   let checked = @pipeline.check_carriers(
     cursor(

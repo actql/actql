@@ -307,7 +307,7 @@ pub fn prepare_sequence(
         }
         GraphRelationStep(prepared)
       }
-      VectorValue(_) | NearestValue(_) | PoolValue(_) => {
+      VectorValue(_) | NearestValue(_) | PoolValue(_) | RankingValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_vector_node(
             owner,
