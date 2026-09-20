@@ -220,8 +220,24 @@
       "variants": ["weak", "strong", "cycles", "disconnected nodes"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_basic_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/components.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "src/query_integration/join_graph_capacity_wbtest.mbt",
+        "src/query_integration/query_checked_program_wbtest.mbt"
+      ]
     },
     {
       "family": "SGA",

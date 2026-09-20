@@ -12,16 +12,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 26/39 entries have kernels and managed completion, 24/39 reach the standard Host, and 14/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 26/39 entries have resource and three-target kernel evidence | Implement and register the remaining 13 entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; 27/39 entries have kernels and managed completion, 25/39 reach the standard Host, and 15/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 27/39 entries have resource and three-target kernel evidence | Implement and register the remaining 12 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected, but only 1/39 entries currently records complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`, `graph_bounds`, and `degree` outputs; 3/39 entries record publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 26/39, standard Host 24/39,
-consumer lifetime 14/39, cancellation 1/39, and publication 3/39. These are
+kernel/managed/resources/three-target evidence 27/39, standard Host 25/39,
+consumer lifetime 15/39, cancellation 1/39, and publication 3/39. These are
 layer counts, not operation completion: all 39 entries remain `partial` until
 their classified variants and required layers close on one verified SHA.
 
@@ -212,8 +212,17 @@ workspace before allocation, emits its Relation atomically, and reaches two
 independent downstream computations and final reclaim through the registered
 standard Host on all three targets. The Effect-free Named Result path also
 publishes and retrieves the retained total-degree result. Environment
-cancellation delivery remains open, so `degree` remains partial. The remaining
-SGA operations still lack portable Local kernels.
+cancellation delivery remains open, so `degree` remains partial. Weak and
+strong components now use admitted outgoing and incoming CSR indices and
+bounded iterative graph walks. Strong components use two graph passes; weak
+components traverse both directions. Component identity is the least semantic
+node identity, and output is ordered by component identity and then node
+identity. Exact authored output guards and structural workspace are admitted
+before allocation. Both variants reach two independent downstream Relation
+computations and final reclaim through the registered standard Host on JS,
+Wasm, and native. Formal publication and environment cancellation delivery
+remain open, so `components` remains partial. The remaining SGA operations
+still lack portable Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
 
