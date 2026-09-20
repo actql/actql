@@ -230,7 +230,7 @@ fn local_module_candidate(
 /// Pure preparation for an installed Local implementation receiving retained
 /// inputs. The common Host must reserve and start the returned execution before
 /// a Store reader is invoked. No file or transport implementation is selected here.
-pub fn[E, P] prepare_local_module_materializing_compute(
+pub fn[E] prepare_local_module_materializing_compute(
   installed : LocalComputeModule,
   slot : Int,
   request : @connector.FixedComputeRequest,
@@ -240,7 +240,7 @@ pub fn[E, P] prepare_local_module_materializing_compute(
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
-  @connector.PreparedExecution[LocalMaterializingAttempt, E, P],
+  @connector.PreparedExecution[LocalMaterializingAttempt, E],
   LocalModuleIssue,
 ] {
   let (candidate, choice) = match

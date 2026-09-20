@@ -1,36 +1,4 @@
 ///|
-priv struct PublicationScope {
-  mut active : Bool
-  mut claimed : Bool
-}
-
-///|
-/// Constructed only after common port/input/holding verification. A connector
-/// publication hook cannot exchange the output or keep publication authority
-/// after returning. No public constructor or output getter is provided.
-struct TaskPublication {
-  owner : StrategyOfferOwner
-  task : Int
-  holding : @resources.Holding
-  scope : PublicationScope
-  mut output : @execution.CompletedOutput?
-}
-
-///|
-fn claim_publication_scope(scope : PublicationScope) -> Bool {
-  if !scope.active || scope.claimed {
-    return false
-  }
-  scope.claimed = true
-  true
-}
-
-///|
-fn close_publication_scope(scope : PublicationScope) -> Unit {
-  scope.active = false
-}
-
-///|
 /// The only mutation that makes a task output visible to scheduling and
 /// producer binding. Representation-specific verification must finish before
 /// this call; no Connector callback runs after the slot is committed.
@@ -63,22 +31,6 @@ fn commit_task_output(
   clear_captured_inputs(run, task)
   run.generation += 1
   Ok(())
-}
-
-///|
-fn claim_task_publication(
-  run : CapturedDAG,
-  task : Int,
-  publication : TaskPublication,
-) -> @execution.CompletedOutput? {
-  if run.stopped ||
-    !physical_equal(run.offer_owner, publication.owner) ||
-    task != publication.task ||
-    !@resources.holding_available(run.ledger, publication.holding) ||
-    !claim_publication_scope(publication.scope) {
-    return None
-  }
-  publication.output
 }
 
 ///|
@@ -122,48 +74,6 @@ fn commit_materialized_task_output(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  commit_task_output(run, task, Materialized(output), Some(holding))
-}
-
-///|
-/// Compatibility success boundary for implementations that still expose a
-/// scoped publication hook. New product paths commit through
-/// `commit_materialized_task_output` and never receive `TaskPublication`.
-fn publish_task_completion(
-  run : CapturedDAG,
-  task : Int,
-  output : @execution.CompletedOutput,
-  holding : @resources.Holding,
-  mismatch : RunIssue,
-  publish : (TaskPublication) -> Result[Unit, RunIssue],
-) -> Result[Unit, RunIssue] {
-  match
-    validate_materialized_task_output(run, task, output, holding, mismatch) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  let publication = {
-    owner: run.offer_owner,
-    task,
-    holding,
-    scope: { active: true, claimed: false, },
-    output: Some(output),
-  }
-  let published = publish(publication)
-  close_publication_scope(publication.scope)
-  publication.output = None
-  match published {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  if run.stopped {
-    return Err(Stopped)
-  }
-  if !@resources.holding_available(run.ledger, holding) {
-    return Err(Physical(InvalidCharge))
-  }
-  // No connector callback or fallible operation splits retention attachment
-  // from success. Completed descendants do not borrow upstream availability.
   commit_task_output(run, task, Materialized(output), Some(holding))
 }
 

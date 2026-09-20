@@ -7,7 +7,7 @@ suberror IndependentPreparationFailure {
 test "common execution preserves independent connector errors and releases unstarted reservations" {
   let (run, _) = captured_graph_fixture()
   let (_, choice, candidate) = synchronous_test_choice(run)
-  let prepared = @connector.bind_prepared_execution(
+  let prepared = @connector.bind_prepared_materializing_execution(
     choice,
     candidate,
     {
@@ -20,13 +20,7 @@ test "common execution preserves independent connector errors and releases unsta
     fn(
       _payload,
     ) -> Result[
-      (
-        Unit,
-        @connector.ExecutionOperations[
-          @strategy.RunIssue,
-          @strategy.TaskPublication,
-        ],
-      ),
+      (Unit, @connector.ExecutionLifecycleOperations[@strategy.RunIssue]),
       @strategy.RunIssue,
     ] {
       Err(Implementation(IndependentPreparationFailure::Refused(37)))
@@ -34,7 +28,7 @@ test "common execution preserves independent connector errors and releases unsta
   ).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
   let before = @resources.ledger_usage(ledger)
-  guard @strategy.start_captured_execution(run, 1, prepared)
+  guard @strategy.start_captured_materializing_execution(run, 1, prepared)
     is Err(Implementation(error)) else {
     fail("expected the independent implementation failure")
   }

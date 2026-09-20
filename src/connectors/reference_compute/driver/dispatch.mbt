@@ -12,11 +12,7 @@ struct NumericDispatchModule {
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
   channel : @host.DispatchChannel[
-    @connector.PreparedExecution[
-      @numeric.NumericAttempt,
-      @strategy.RunIssue,
-      @strategy.TaskPublication,
-    ],
+    @connector.PreparedExecution[@numeric.NumericAttempt, @strategy.RunIssue],
   ]
   limits : @numeric.NumericExecutionLimits
   expressions : @lower.ExpressionLimits

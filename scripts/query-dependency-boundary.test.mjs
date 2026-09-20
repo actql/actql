@@ -441,7 +441,7 @@ test('DAG execution storage does not maintain a backend attempt lookup table', (
   assert.match(api, /^type TaskExecution$/m);
   assert.doesNotMatch(api, /(?:struct|enum) TaskExecution\b/);
   for (const name of ['charge_task_execution_transfer', 'settle_task_execution',
-    'complete_task_execution', 'close_task_execution']) {
+    'complete_materializing_task_execution', 'close_task_execution']) {
     const signature = api.split('\n').find(line => line.startsWith(`pub fn ${name}(`));
     assert.ok(signature, name);
     assert.match(signature, /TaskExecution/);
@@ -450,7 +450,7 @@ test('DAG execution storage does not maintain a backend attempt lookup table', (
   assert.doesNotMatch(api, /pub fn (?:charge_captured_duckdb_transfer|settle_captured_duckdb_native|complete_captured_duckdb_task|close_captured_duckdb_task)\b/);
 });
 
-test('synchronous and asynchronous completion share private retained-output installation', () => {
+test('synchronous and materializing completion share private retained-output installation', () => {
   for (const file of ['captured_dag.mbt', 'task_execution.mbt']) {
     const source = readFileSync(`src/physical_strategy/${file}`, 'utf8');
     assert.match(source, /commit_materialized_task_output\(/);
@@ -481,20 +481,22 @@ test('common synchronous dispatch has no Local connector or generated-sequence e
   assert.doesNotMatch(sdk, /(?:struct|enum) SynchronousCompute\b/);
 });
 
-test('asynchronous common start takes an owned preparation rather than transport callbacks', () => {
+test('materializing common start takes an owned preparation without legacy completion hooks', () => {
   const source = readFileSync('src/physical_strategy/task_execution.mbt', 'utf8');
   assert.doesNotMatch(source, /@(?:duckdb|duckdb_compute|local_connector)\b/);
   assert.match(source, /@connector\.start_prepared_execution_lifecycle\(prepared\)/);
   const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
-  const signature = api.split('\n').find(line => line.startsWith('pub fn[T] start_captured_execution('));
+  const signature = api.split('\n').find(line => line.startsWith('pub fn[T] start_captured_materializing_execution('));
   assert.ok(signature);
   assert.match(signature, /PreparedExecution/);
   assert.doesNotMatch(signature, /DuckDB|GeneratedSequence|Bool|-> Result.*->/);
-  assert.match(api, /^type TaskPublication$/m);
-  assert.doesNotMatch(api, /pub fn (?:claim_task_publication|publish_task_completion)\b/);
+  assert.doesNotMatch(api, /TaskPublication|start_captured_execution|complete_task_execution/);
   const sdk = readFileSync('src/connector_sdk/pkg.generated.mbti', 'utf8');
-  assert.match(sdk, /^type PreparedExecution\[T, E, P\]$/m);
+  assert.match(sdk, /^type PreparedExecution\[T, E\]$/m);
   assert.doesNotMatch(sdk, /(?:struct|enum) PreparedExecution\b/);
+  assert.doesNotMatch(sdk, /^pub\(all\) struct ExecutionOperations\b/m);
+  assert.doesNotMatch(sdk, /^pub fn[^\n]*\bbind_prepared_execution\(/m);
+  assert.doesNotMatch(sdk, /^pub fn[^\n]*\bstart_prepared_execution\(/m);
 });
 
 test('concrete DuckDB task construction and lifecycle stay in the connector driver', () => {

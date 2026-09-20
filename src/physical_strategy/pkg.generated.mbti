@@ -131,8 +131,6 @@ pub fn complete_materializing_task_execution(CapturedDAG, TaskExecution, @execut
 
 pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
-pub fn complete_task_execution(CapturedDAG, TaskExecution) -> Result[Unit, RunIssue]
-
 pub fn configure_captured_managed_identity_policy(CapturedDAG, Bool, Bool, Bool, Bool) -> Bool
 
 pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
@@ -343,11 +341,9 @@ pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @
 
 pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
 
-pub fn[T] start_captured_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
-
 pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
 
-pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
+pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -648,8 +644,6 @@ pub struct TaskOperationRequirement {
   site : @pipeline_check_context.OperationRequirementSite
   disposition : @pipeline_check_context.OperationDisposition
 }
-
-type TaskPublication
 
 type TaskRetainedAllocation
 

@@ -64,13 +64,13 @@ pub fn numeric_execution_capacity(
 ///|
 /// Pure installed wiring. The SDK creates the attempt only after common start
 /// admission. No engine executor, provider tag, cast or external I/O is used.
-pub fn[E, P] prepare_numeric_execution(
+pub fn[E] prepare_numeric_execution(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[NumericCompute],
   generated : @execution.CompletionPreparation,
   limits : NumericExecutionLimits,
   issue : (PlanIssue) -> E,
-) -> Result[@connector.PreparedExecution[NumericAttempt, E, P], PlanIssue] {
+) -> Result[@connector.PreparedExecution[NumericAttempt, E], PlanIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(compute) &&
     physical_equal(

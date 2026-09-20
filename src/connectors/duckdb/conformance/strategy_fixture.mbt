@@ -904,15 +904,6 @@ pub fn strategy_fixture_managed_execution_settle(
 }
 
 ///|
-#export_name("strategyFixtureManagedExecutionLegacyComplete")
-pub fn strategy_fixture_managed_execution_legacy_complete(
-  f : StrategyFixture,
-  execution : @strategy.TaskExecution,
-) -> Bool {
-  @strategy.complete_task_execution(f.run.unwrap(), execution) is Ok(_)
-}
-
-///|
 #export_name("strategyFixtureManagedExecutionClose")
 pub fn strategy_fixture_managed_execution_close(
   f : StrategyFixture,

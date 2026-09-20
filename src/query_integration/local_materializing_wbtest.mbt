@@ -77,7 +77,6 @@ test "Local materializing execution uses the common reservation and exact retain
       @connector.PreparedExecution[
         @local_connector.LocalMaterializingAttempt,
         @strategy.RunIssue,
-        @strategy.TaskPublication,
       ],
       @local_connector.LocalModuleIssue,
     ] = @local_connector.prepare_local_module_materializing_compute(
@@ -209,10 +208,6 @@ test "Local materializing execution uses the common reservation and exact retain
         }
       }
       if mode != 6 {
-        assert_true(
-          @strategy.complete_task_execution(run, ticket)
-          is Err(ForeignCandidate),
-        )
         let output = @local_connector.local_materializing_completed_output(
           consumer,
         ).unwrap()

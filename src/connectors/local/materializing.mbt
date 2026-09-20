@@ -95,7 +95,7 @@ pub fn local_import_retention_capacity(limits : LocalImportLimits) -> Int64? {
 ///|
 /// Preparation is pure. Actual imports may start only after the common Host
 /// reserves this attempt. The same selected Local candidate remains authoritative.
-pub fn[E, P] prepare_local_materializing_execution(
+pub fn[E] prepare_local_materializing_execution(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
   execution : @execution.SequenceExecutionLimits,
@@ -106,7 +106,7 @@ pub fn[E, P] prepare_local_materializing_execution(
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
-  @connector.PreparedExecution[LocalMaterializingAttempt, E, P],
+  @connector.PreparedExecution[LocalMaterializingAttempt, E],
   LocalMaterializingIssue,
 ] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)

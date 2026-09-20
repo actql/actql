@@ -44,7 +44,7 @@ pub fn[T] offer_managed_numeric_compute(@connector_sdk.CapabilityRegistration, @
 
 pub fn offer_numeric_compute(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, Int, Int, @lowering_relation.ExpressionLimits, Int, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities) -> Result[@connector_sdk.PreparedCompute[NumericCompute], PlanIssue]
 
-pub fn[E, P] prepare_numeric_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[NumericCompute], @execution_relation.CompletionPreparation, NumericExecutionLimits, (PlanIssue) -> E) -> Result[@connector_sdk.PreparedExecution[NumericAttempt, E, P], PlanIssue]
+pub fn[E] prepare_numeric_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[NumericCompute], @execution_relation.CompletionPreparation, NumericExecutionLimits, (PlanIssue) -> E) -> Result[@connector_sdk.PreparedExecution[NumericAttempt, E], PlanIssue]
 
 pub fn prepare_numeric_plan(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.ExpressionLimits) -> Result[NumericPlan, PlanIssue]
 

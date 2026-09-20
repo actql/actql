@@ -156,42 +156,9 @@ pub fn confirm_captured_resident_output(
 }
 
 ///|
-fn publish_resident_output(
-  run : CapturedDAG,
-  task : Int,
-  pending : ResidentPendingOutput,
-  publication : TaskPublication,
-) -> Result[Unit, RunIssue] {
-  if !pending.committed ||
-    !resident_environment_available(run, pending.environment) ||
-    pending.environment.tables[task] is Some(_) {
-    return Err(NotReady)
-  }
-  guard claim_task_publication(run, task, publication) is Some(output) else {
-    return Err(ForeignCandidate)
-  }
-  let storage = match (pending.bind_output)(output) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if !@execution.producer_storage_matches_output(storage, output) {
-    return Err(ForeignCandidate)
-  }
-  pending.environment.tables[task] = Some({
-    environment: pending.environment,
-    producer: task,
-    storage,
-    allocation: pending.allocation,
-    committed: true,
-    import_started: true,
-  })
-  Ok(())
-}
-
-///|
-/// Bind a resident result after common output validation. Unlike the legacy
-/// adapter above, this function receives no publication authority and cannot
-/// make the task visible in the DAG.
+/// Bind a resident result after common output validation. This function
+/// receives no publication authority and cannot make the task visible in the
+/// DAG.
 fn bind_resident_output(
   run : CapturedDAG,
   task : Int,

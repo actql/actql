@@ -19,7 +19,6 @@ priv enum LocalDispatchPlan {
     @connector.PreparedExecution[
       @local.LocalMaterializingAttempt,
       @strategy.RunIssue,
-      @strategy.TaskPublication,
     ],
     @local.LocalImportLimits,
     @local.LocalExportLimits?

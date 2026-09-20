@@ -9,37 +9,6 @@ pub(all) struct ExecutionCapacity {
 }
 
 ///|
-/// Trusted installed implementation operations. The Host owns the lifecycle:
-/// these report implementation facts, not permission to publish or free budget.
-/// P is the Host's opaque, scoped publication authority, never a success Bool.
-pub(all) struct ExecutionOperations[E, P] {
-  cancel : () -> Unit
-  dispose : () -> Unit
-  settled : () -> Unit
-  // Confirmed physical release of task-owned retained/provisional storage.
-  // Disposal or stopped execution alone is not storage cleanup confirmation.
-  retention_released : () -> Bool
-  released : () -> Unit
-  ready : () -> Result[Unit, E]
-  finish : () -> Result[@execution.CompletedOutput, E]
-  publish : (P) -> Result[Unit, E]
-}
-
-///|
-pub fn[E, P] execution_lifecycle(
-  operations : ExecutionOperations[E, P],
-) -> ExecutionLifecycleOperations[E] {
-  {
-    cancel: operations.cancel,
-    dispose: operations.dispose,
-    settled: operations.settled,
-    retention_released: operations.retention_released,
-    released: operations.released,
-    ready: operations.ready,
-  }
-}
-
-///|
 pub(all) enum ExecutionPreparationIssue[E] {
   Candidate(FixedComputeIssue)
   Implementation(E)
@@ -49,89 +18,22 @@ pub(all) enum ExecutionPreparationIssue[E] {
 /// The selected private payload is captured without casts or provider tags.
 /// T is the implementation's transport handle; the common driver need not
 /// inspect or retain it. Construction and preparation perform no external I/O.
-struct PreparedExecution[T, E, P] {
+struct PreparedExecution[T, E] {
   candidate : FixedComputeCandidate
   capacity : ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[AggregateOutputCeiling]
   analytic_envelopes : Array[AnalyticEnvelope]
-  prepare : () -> Result[
-    (
-      T,
-      ExecutionLifecycleOperations[E],
-      (() -> Result[@execution.CompletedOutput, E])?,
-      ((P) -> Result[Unit, E])?,
-    ),
-    E,
-  ]
+  prepare : () -> Result[(T, ExecutionLifecycleOperations[E]), E]
   retained_bytes : () -> Result[Int64, E]
   mut started : Bool
-}
-
-///|
-/// Connector-author SDK, not a Program-supplied callback. Actual work must wait
-/// until the owning Host reserves capacity and registers the returned attempt.
-pub fn[T, E, P, U] bind_prepared_execution(
-  choice : FixedComputeChoice,
-  prepared : PreparedCompute[U],
-  capacity : ExecutionCapacity,
-  join_output_ceilings : Array[(Int, Int64)],
-  prepare : (U) -> Result[(T, ExecutionOperations[E, P]), E],
-  retained_bytes? : () -> Result[Int64, E],
-  aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
-  analytic_envelopes? : Array[AnalyticEnvelope] = [],
-) -> Result[PreparedExecution[T, E, P], FixedComputeIssue] {
-  guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
-    return Err(NotSelected)
-  }
-  if capacity.transfer_bytes < 0L ||
-    capacity.retained_bytes < 0L ||
-    capacity.scratch_bytes < 0L ||
-    capacity.execution_bytes < capacity.scratch_bytes {
-    return Err(InvalidLimits)
-  }
-  let steps = @pipeline.step_count(
-    @lower.pipeline(@lower.bound_preparation(prepared.candidate.request.owner)),
-  )
-  guard snapshot_step_ceilings(join_output_ceilings, steps) is Some(ceilings) else {
-    return Err(InvalidLimits)
-  }
-  guard snapshot_aggregate_output_ceilings(aggregate_output_ceilings, steps)
-    is Some(aggregate_ceilings) else {
-    return Err(InvalidLimits)
-  }
-  guard snapshot_analytic_envelopes(analytic_envelopes, steps)
-    is Some(analytic_envelopes) else {
-    return Err(InvalidLimits)
-  }
-  Ok({
-    candidate: prepared.candidate,
-    capacity,
-    join_output_ceilings: ceilings,
-    aggregate_output_ceilings: aggregate_ceilings,
-    analytic_envelopes,
-    prepare: fn() {
-      prepare(payload).map(operations => {
-        (
-          operations.0,
-          execution_lifecycle(operations.1),
-          Some(operations.1.finish),
-          Some(operations.1.publish),
-        )
-      })
-    },
-    retained_bytes: retained_bytes.unwrap_or(fn() {
-      Ok(capacity.retained_bytes)
-    }),
-    started: false,
-  })
 }
 
 ///|
 /// Bind materializing work without granting a Connector its own finish or
 /// publication authority. The Host receives the exact typed output separately
 /// at the common completion boundary.
-pub fn[T, E, P, U] bind_prepared_materializing_execution(
+pub fn[T, E, U] bind_prepared_materializing_execution(
   choice : FixedComputeChoice,
   prepared : PreparedCompute[U],
   capacity : ExecutionCapacity,
@@ -140,7 +42,7 @@ pub fn[T, E, P, U] bind_prepared_materializing_execution(
   retained_bytes? : () -> Result[Int64, E],
   aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[AnalyticEnvelope] = [],
-) -> Result[PreparedExecution[T, E, P], FixedComputeIssue] {
+) -> Result[PreparedExecution[T, E], FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
     return Err(NotSelected)
   }
@@ -170,9 +72,7 @@ pub fn[T, E, P, U] bind_prepared_materializing_execution(
     join_output_ceilings: ceilings,
     aggregate_output_ceilings: aggregate_ceilings,
     analytic_envelopes,
-    prepare: fn() {
-      prepare(payload).map(value => (value.0, value.1, None, None))
-    },
+    prepare: fn() { prepare(payload) },
     retained_bytes: retained_bytes.unwrap_or(fn() {
       Ok(capacity.retained_bytes)
     }),
@@ -184,8 +84,8 @@ pub fn[T, E, P, U] bind_prepared_materializing_execution(
 /// Installed implementation accounting after preparation, before holding
 /// attachment. The original reservation remains intact until settlement.
 /// This reports physical capacity, not output validity or completion evidence.
-pub fn[T, E, P] prepared_execution_retained_bytes(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_retained_bytes(
+  prepared : PreparedExecution[T, E],
 ) -> Result[Int64, ExecutionPreparationIssue[E]] {
   if !prepared.started {
     return Err(Candidate(NotSelected))
@@ -202,30 +102,30 @@ pub fn[T, E, P] prepared_execution_retained_bytes(
 }
 
 ///|
-pub fn[T, E, P] prepared_execution_candidate(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_candidate(
+  prepared : PreparedExecution[T, E],
 ) -> FixedComputeCandidate {
   prepared.candidate
 }
 
 ///|
-pub fn[T, E, P] prepared_execution_capacity(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_capacity(
+  prepared : PreparedExecution[T, E],
 ) -> ExecutionCapacity {
   prepared.capacity
 }
 
 ///|
-pub fn[T, E, P] prepared_execution_join_output_ceiling(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_join_output_ceiling(
+  prepared : PreparedExecution[T, E],
   step : Int,
 ) -> Int64? {
   step_ceiling(prepared.join_output_ceilings, step)
 }
 
 ///|
-pub fn[T, E, P] prepared_execution_aggregate_output_ceiling(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_aggregate_output_ceiling(
+  prepared : PreparedExecution[T, E],
   step : Int,
   aggregate : String,
   unit : AggregateOutputUnit,
@@ -239,16 +139,16 @@ pub fn[T, E, P] prepared_execution_aggregate_output_ceiling(
 }
 
 ///|
-pub fn[T, E, P] prepared_execution_analytic_envelope(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_analytic_envelope(
+  prepared : PreparedExecution[T, E],
   step : Int,
 ) -> AnalyticEnvelope? {
   find_analytic_envelope(prepared.analytic_envelopes, step)
 }
 
 ///|
-pub fn[T, E, P] prepared_execution_available(
-  prepared : PreparedExecution[T, E, P],
+pub fn[T, E] prepared_execution_available(
+  prepared : PreparedExecution[T, E],
 ) -> Bool {
   !prepared.started && prepared.candidate.registration.owner.live
 }
@@ -256,54 +156,9 @@ pub fn[T, E, P] prepared_execution_available(
 ///|
 /// Host implementation entry, after reservation. A rejected reservation must
 /// not call this function and therefore does not consume the preparation.
-pub fn[T, E, P] start_prepared_execution(
-  prepared : PreparedExecution[T, E, P],
-) -> Result[(T, ExecutionOperations[E, P]), ExecutionPreparationIssue[E]] {
-  if !prepared_execution_available(prepared) {
-    return Err(Candidate(NotSelected))
-  }
-  prepared.started = true
-  for input in prepared.candidate.request.inputs {
-    if !@execution.producer_read_available(input) {
-      return Err(Candidate(InputUnavailable))
-    }
-  }
-  match (prepared.prepare)() {
-    Ok((payload, lifecycle, Some(finish), Some(publish))) =>
-      Ok(
-        (
-          payload,
-          {
-            cancel: lifecycle.cancel,
-            dispose: lifecycle.dispose,
-            settled: lifecycle.settled,
-            retention_released: lifecycle.retention_released,
-            released: lifecycle.released,
-            ready: lifecycle.ready,
-            finish,
-            publish,
-          },
-        ),
-      )
-    Ok(_) => Err(Candidate(NotSelected))
-    Err(issue) => Err(Implementation(issue))
-  }
-}
-
-///|
-/// Start either a native materializing preparation or a compatibility
-/// preparation. Legacy completion hooks are returned only for the latter.
-pub fn[T, E, P] start_prepared_execution_lifecycle(
-  prepared : PreparedExecution[T, E, P],
-) -> Result[
-  (
-    T,
-    ExecutionLifecycleOperations[E],
-    (() -> Result[@execution.CompletedOutput, E])?,
-    ((P) -> Result[Unit, E])?,
-  ),
-  ExecutionPreparationIssue[E],
-] {
+pub fn[T, E] start_prepared_execution_lifecycle(
+  prepared : PreparedExecution[T, E],
+) -> Result[(T, ExecutionLifecycleOperations[E]), ExecutionPreparationIssue[E]] {
   if !prepared_execution_available(prepared) {
     return Err(Candidate(NotSelected))
   }

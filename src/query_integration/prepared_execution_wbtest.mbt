@@ -6,7 +6,7 @@ test "confirmed retention is bounded and never substitutes for completion or cle
     let ledger = @strategy.captured_dag_ledger(run)
     let cleaned = Ref(false)
     let finishes = Ref(0)
-    let prepared = @connector.bind_prepared_execution(
+    let prepared = @connector.bind_prepared_materializing_execution(
       choice,
       candidate,
       {
@@ -17,9 +17,8 @@ test "confirmed retention is bounded and never substitutes for completion or cle
       },
       [],
       fn(payload) {
-        let operations : @connector.ExecutionOperations[
+        let operations : @connector.ExecutionLifecycleOperations[
           @strategy.RunIssue,
-          @strategy.TaskPublication,
         ] = {
           cancel: fn() {  },
           dispose: fn() {  },
@@ -27,11 +26,6 @@ test "confirmed retention is bounded and never substitutes for completion or cle
           retention_released: fn() { cleaned.val },
           released: fn() {  },
           ready: fn() { Ok(()) },
-          finish: fn() {
-            finishes.val += 1
-            Err(MissingOutput)
-          },
-          publish: fn(_) { Ok(()) },
         }
         Ok((payload, operations))
       },
@@ -41,10 +35,19 @@ test "confirmed retention is bounded and never substitutes for completion or cle
       @connector.prepared_execution_retained_bytes(prepared)
       is Err(Candidate(NotSelected)),
     )
-    let (_, execution) = @strategy.start_captured_execution(run, 1, prepared).unwrap()
+    let (_, execution) = @strategy.start_captured_materializing_execution(
+      run, 1, prepared,
+    ).unwrap()
     @strategy.charge_task_execution_transfer(run, execution, 23L).unwrap()
     @strategy.settle_task_execution(run, execution, true).unwrap()
-    let result = @strategy.complete_task_execution(run, execution)
+    let result = @strategy.complete_deferred_materializing_task_execution(
+      run,
+      execution,
+      fn() {
+        finishes.val += 1
+        Err(MissingOutput)
+      },
+    )
     if amount == 40L {
       assert_true(result is Err(MissingOutput))
       assert_eq(finishes.val, 1)
@@ -81,7 +84,7 @@ test "prepared asynchronous execution reserves before calling installed payload"
   let disposed = Ref(0)
   let settled = Ref(0)
   let released = Ref(0)
-  let prepared = @connector.bind_prepared_execution(
+  let prepared = @connector.bind_prepared_materializing_execution(
     choice,
     candidate,
     {
@@ -93,9 +96,8 @@ test "prepared asynchronous execution reserves before calling installed payload"
     [],
     fn(payload) {
       calls.val += 1
-      let operations : @connector.ExecutionOperations[
+      let operations : @connector.ExecutionLifecycleOperations[
         @strategy.RunIssue,
-        @strategy.TaskPublication,
       ] = {
         cancel: fn() { cancelled.val += 1 },
         dispose: fn() { disposed.val += 1 },
@@ -103,8 +105,6 @@ test "prepared asynchronous execution reserves before calling installed payload"
         retention_released: fn() { true },
         released: fn() { released.val += 1 },
         ready: fn() { Ok(()) },
-        finish: fn() { Err(MissingOutput) },
-        publish: fn(_) { Ok(()) },
       }
       Ok((payload, operations))
     },
@@ -114,24 +114,28 @@ test "prepared asynchronous execution reserves before calling installed payload"
   ).unwrap()
   let full = @resources.ledger_usage(ledger)
   assert_true(
-    @strategy.start_captured_execution(run, 1, prepared) is Err(Physical(_)),
+    @strategy.start_captured_materializing_execution(run, 1, prepared)
+    is Err(Physical(_)),
   )
   assert_eq(@resources.ledger_usage(ledger), full)
   assert_eq(calls.val, 0)
   assert_true(@connector.prepared_execution_available(prepared))
   @resources.settle_reservation(ledger, saturation).unwrap()
-  let (payload, execution) = @strategy.start_captured_execution(
+  let (payload, execution) = @strategy.start_captured_materializing_execution(
     run, 1, prepared,
   ).unwrap()
   assert_eq(payload, 17)
   assert_eq(calls.val, 1)
   assert_false(@connector.prepared_execution_available(prepared))
   assert_true(
-    @connector.start_prepared_execution(prepared) is Err(Candidate(NotSelected)),
+    @connector.start_prepared_execution_lifecycle(prepared)
+    is Err(Candidate(NotSelected)),
   )
   @strategy.charge_task_execution_transfer(run, execution, 23L).unwrap()
   assert_true(
-    @strategy.complete_task_execution(run, execution)
+    @strategy.complete_deferred_materializing_task_execution(run, execution, fn() {
+      Err(MissingOutput)
+    })
     is Err(Physical(InvalidCharge)),
   )
   @strategy.close_task_execution(run, execution)
@@ -164,13 +168,7 @@ test "prepared execution rejects foreign task and revoked input without preparat
   let prepare = fn(
     _payload : Int,
   ) -> Result[
-    (
-      Int,
-      @connector.ExecutionOperations[
-        @strategy.RunIssue,
-        @strategy.TaskPublication,
-      ],
-    ),
+    (Int, @connector.ExecutionLifecycleOperations[@strategy.RunIssue]),
     @strategy.RunIssue,
   ] {
     calls.val += 1
@@ -183,7 +181,7 @@ test "prepared execution rejects foreign task and revoked input without preparat
     execution_bytes: 100L,
   }
   assert_true(
-    @connector.bind_prepared_execution(
+    @connector.bind_prepared_materializing_execution(
       foreign_choice,
       candidate,
       capacity,
@@ -192,7 +190,7 @@ test "prepared execution rejects foreign task and revoked input without preparat
     )
     is Err(NotSelected),
   )
-  let prepared = @connector.bind_prepared_execution(
+  let prepared = @connector.bind_prepared_materializing_execution(
     choice,
     candidate,
     capacity,
@@ -202,14 +200,14 @@ test "prepared execution rejects foreign task and revoked input without preparat
   let ledger = @strategy.captured_dag_ledger(other)
   let before = @resources.ledger_usage(ledger)
   assert_true(
-    @strategy.start_captured_execution(other, 1, prepared)
+    @strategy.start_captured_materializing_execution(other, 1, prepared)
     is Err(ForeignCandidate),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(@connector.prepared_execution_available(prepared))
   @mock.close_mock_query_issuer(issuer)
   assert_true(
-    @strategy.start_captured_execution(run, 1, prepared)
+    @strategy.start_captured_materializing_execution(run, 1, prepared)
     is Err(Compute(InputUnavailable)),
   )
   assert_eq(calls.val, 0)
@@ -227,8 +225,7 @@ test "prepared execution still rejects foreign completed output and keeps holdin
   captured_graph_local(other, 1).unwrap()
   let foreign = @strategy.captured_task_output(other, 1, Step(1)).unwrap()
   let (_, choice, candidate) = synchronous_test_choice(run)
-  let publications = Ref(0)
-  let prepared = @connector.bind_prepared_execution(
+  let prepared = @connector.bind_prepared_materializing_execution(
     choice,
     candidate,
     {
@@ -239,9 +236,8 @@ test "prepared execution still rejects foreign completed output and keeps holdin
     },
     [],
     fn(payload) {
-      let operations : @connector.ExecutionOperations[
+      let operations : @connector.ExecutionLifecycleOperations[
         @strategy.RunIssue,
-        @strategy.TaskPublication,
       ] = {
         cancel: fn() {  },
         dispose: fn() {  },
@@ -249,22 +245,19 @@ test "prepared execution still rejects foreign completed output and keeps holdin
         retention_released: fn() { true },
         released: fn() {  },
         ready: fn() { Ok(()) },
-        finish: fn() { Ok(foreign) },
-        publish: fn(_) {
-          publications.val += 1
-          Ok(())
-        },
       }
       Ok((payload, operations))
     },
     retained_bytes=fn() { Ok(40L) },
   ).unwrap()
-  let (_, execution) = @strategy.start_captured_execution(run, 1, prepared).unwrap()
+  let (_, execution) = @strategy.start_captured_materializing_execution(
+    run, 1, prepared,
+  ).unwrap()
   @strategy.settle_task_execution(run, execution, true).unwrap()
   assert_true(
-    @strategy.complete_task_execution(run, execution) is Err(ForeignCandidate),
+    @strategy.complete_materializing_task_execution(run, execution, foreign)
+    is Err(ForeignCandidate),
   )
-  assert_eq(publications.val, 0)
   assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
   let ledger = @strategy.captured_dag_ledger(run)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 40L)

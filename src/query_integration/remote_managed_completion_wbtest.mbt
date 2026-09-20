@@ -219,7 +219,7 @@ fn start_remote_completion_test_execution(
     abort("remote test candidate")
   }
   let settled = Ref(false)
-  let bound = @connector.bind_prepared_execution(
+  let bound = @connector.bind_prepared_materializing_execution(
     choice,
     prepared,
     {
@@ -230,9 +230,8 @@ fn start_remote_completion_test_execution(
     },
     [],
     fn(_) {
-      let operations : @connector.ExecutionOperations[
+      let operations : @connector.ExecutionLifecycleOperations[
         @strategy.RunIssue,
-        @strategy.TaskPublication,
       ] = {
         cancel: fn() { () },
         dispose: fn() { () },
@@ -246,13 +245,11 @@ fn start_remote_completion_test_execution(
             Err(@strategy.RunIssue::NotReady)
           }
         },
-        finish: fn() { Err(@strategy.RunIssue::NotReady) },
-        publish: fn(_) { Err(@strategy.RunIssue::NotReady) },
       }
       Ok(((), operations))
     },
   ).unwrap()
-  @strategy.start_captured_execution(run, 1, bound).unwrap().1
+  @strategy.start_captured_materializing_execution(run, 1, bound).unwrap().1
 }
 
 ///|

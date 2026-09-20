@@ -111,7 +111,7 @@ test "both execution protocols bind immutable per-step ceiling declarations to t
   ).unwrap()
   let prepare = fn(
     _payload : Int,
-  ) -> Result[(Unit, @connector.ExecutionOperations[Unit, Unit]), Unit] {
+  ) -> Result[(Unit, @connector.ExecutionLifecycleOperations[Unit]), Unit] {
     Err(())
   }
   let capacity : @connector.ExecutionCapacity = {
@@ -120,7 +120,7 @@ test "both execution protocols bind immutable per-step ceiling declarations to t
     scratch_bytes: 0L,
     execution_bytes: 100L,
   }
-  let asynchronous = @connector.bind_prepared_execution(
+  let asynchronous = @connector.bind_prepared_materializing_execution(
     choice,
     candidate,
     capacity,
@@ -171,7 +171,7 @@ test "both execution protocols bind immutable per-step ceiling declarations to t
       is Err(InvalidLimits),
     )
     assert_true(
-      @connector.bind_prepared_execution(
+      @connector.bind_prepared_materializing_execution(
         choice, candidate, capacity, bad, prepare,
       )
       is Err(InvalidLimits),

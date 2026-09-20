@@ -10,7 +10,6 @@ struct TaskExecution {
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
   mut hooks : @connector.ExecutionLifecycleOperations[RunIssue]?
-  mut legacy_completion : LegacyTaskCompletion?
   mut execution_settled : Bool
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
@@ -101,14 +100,6 @@ fn[I] select_task_numeric_reductions(
 }
 
 ///|
-/// Temporary one-way adapter for product callers not yet migrated to typed
-/// managed completion. It has no independent lifecycle or output store.
-priv struct LegacyTaskCompletion {
-  finish : () -> Result[@execution.CompletedOutput, RunIssue]
-  publish : (TaskPublication) -> Result[Unit, RunIssue]
-}
-
-///|
 fn task_execution_cancel(execution : TaskExecution) -> Unit {
   (execution.hooks.unwrap().cancel)()
 }
@@ -154,36 +145,17 @@ struct TaskRetainedAllocation {
 }
 
 ///|
-/// Registered asynchronous execution. A selected shared-resource realization
+/// Registered materializing execution. A selected shared-resource realization
 /// must supply its exact resource admission; omitting it cannot evade the
-/// selected reuse contract.
-pub fn[T] start_captured_execution(
-  run : CapturedDAG,
-  task : Int,
-  prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
-  resident? : ResidentExecution,
-) -> Result[(T, TaskExecution), RunIssue] {
-  start_task_execution(run, task, prepared, resident)
-}
-
-///|
-/// Transitional materializing entry. It reuses the compatible preparation
-/// envelope but removes its old finisher/publication authority immediately.
-/// The owning driver must supply the already admitted output to the common
-/// completion boundary.
+/// selected reuse contract. The owning driver supplies the admitted output at
+/// the common completion boundary.
 pub fn[T] start_captured_materializing_execution(
   run : CapturedDAG,
   task : Int,
-  prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
+  prepared : @connector.PreparedExecution[T, RunIssue],
   resident? : ResidentExecution,
 ) -> Result[(T, TaskExecution), RunIssue] {
-  match start_task_execution(run, task, prepared, resident) {
-    Err(issue) => Err(issue)
-    Ok((payload, execution)) => {
-      execution.legacy_completion = None
-      Ok((payload, execution))
-    }
-  }
+  start_task_execution(run, task, prepared, resident)
 }
 
 ///|
@@ -294,7 +266,6 @@ pub fn[I, T] start_captured_managed_execution(
         }),
         scratch,
         hooks: Some(@connector.managed_execution_lifecycle(hooks)),
-        legacy_completion: None,
         execution_settled: false,
         disposed: false,
         failed_holding: None,
@@ -320,7 +291,7 @@ pub fn[I, T] start_captured_managed_execution(
 fn[T] start_task_execution(
   run : CapturedDAG,
   task : Int,
-  prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
+  prepared : @connector.PreparedExecution[T, RunIssue],
   resident : ResidentExecution?,
 ) -> Result[(T, TaskExecution), RunIssue] {
   if run.stopped {
@@ -425,20 +396,7 @@ fn[T] start_task_execution(
       fail_captured_task(run, task, failure)
       Err(failure)
     }
-    Ok((payload, hooks, finish, publish)) => {
-      let legacy_completion = match (finish, publish) {
-        (Some(finish), Some(publish)) => Some({ finish, publish, })
-        (None, None) => None
-        _ => {
-          if resident is Some(resource) {
-            abandon_resident_execution(resource)
-          }
-          @resources.settle_reservation(run.ledger, reservation) |> ignore
-          let failure = RunIssue::ForeignCandidate
-          fail_captured_task(run, task, failure)
-          return Err(failure)
-        }
-      }
+    Ok((payload, hooks)) => {
       if resident is Some(resource) {
         resource.inputs.claimed = true
       }
@@ -458,7 +416,6 @@ fn[T] start_task_execution(
         }),
         scratch,
         hooks: Some(hooks),
-        legacy_completion,
         execution_settled: false,
         disposed: false,
         failed_holding: None,
@@ -807,7 +764,6 @@ fn complete_materialized_execution(
   run : CapturedDAG,
   execution : TaskExecution,
   finish : () -> Result[@execution.CompletedOutput, RunIssue],
-  legacy_publish : ((TaskPublication) -> Result[Unit, RunIssue])?,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -847,58 +803,37 @@ fn complete_materialized_execution(
   execution.retained_bytes = None
   match finish() {
     Ok(output) => {
-      let completed = match legacy_publish {
-        Some(publish) =>
-          publish_task_completion(
-            run,
-            task,
-            output,
-            holding,
-            ForeignCandidate,
-            fn(publication) {
-              if execution.resident is Some(resource) &&
-                resource.pending is Some(pending) {
-                match publish_resident_output(run, task, pending, publication) {
-                  Err(issue) => return Err(issue)
-                  Ok(_) => ()
-                }
-              }
-              publish(publication)
-            },
-          )
-        None =>
-          match
-            validate_materialized_task_output(
-              run,
-              task,
-              output,
-              holding,
-              ForeignCandidate,
-            ) {
-            Err(issue) => Err(issue)
-            Ok(_) => {
-              let binding = match execution.resident {
-                Some(resource) =>
-                  match resource.pending {
-                    Some(pending) =>
-                      bind_resident_output(run, task, pending, output)
-                    None => Ok(())
-                  }
+      let completed = match
+        validate_materialized_task_output(
+          run,
+          task,
+          output,
+          holding,
+          ForeignCandidate,
+        ) {
+        Err(issue) => Err(issue)
+        Ok(_) => {
+          let binding = match execution.resident {
+            Some(resource) =>
+              match resource.pending {
+                Some(pending) =>
+                  bind_resident_output(run, task, pending, output)
                 None => Ok(())
               }
-              match binding {
-                Err(issue) => Err(issue)
-                Ok(_) =>
-                  commit_materialized_task_output(
-                    run,
-                    task,
-                    output,
-                    holding,
-                    ForeignCandidate,
-                  )
-              }
-            }
+            None => Ok(())
           }
+          match binding {
+            Err(issue) => Err(issue)
+            Ok(_) =>
+              commit_materialized_task_output(
+                run,
+                task,
+                output,
+                holding,
+                ForeignCandidate,
+              )
+          }
+        }
       }
       match completed {
         Err(issue) => {
@@ -929,10 +864,7 @@ pub fn complete_materializing_task_execution(
   execution : TaskExecution,
   output : @execution.CompletedOutput,
 ) -> Result[Unit, RunIssue] {
-  if execution.legacy_completion is Some(_) {
-    return Err(ForeignCandidate)
-  }
-  complete_materialized_execution(run, execution, fn() { Ok(output) }, None)
+  complete_materialized_execution(run, execution, fn() { Ok(output) })
 }
 
 ///|
@@ -944,28 +876,7 @@ pub fn complete_deferred_materializing_task_execution(
   execution : TaskExecution,
   materialize : () -> Result[@execution.CompletedOutput, RunIssue],
 ) -> Result[Unit, RunIssue] {
-  if execution.legacy_completion is Some(_) {
-    return Err(ForeignCandidate)
-  }
-  complete_materialized_execution(run, execution, materialize, None)
-}
-
-///|
-/// Compatibility completion for product callers not yet migrated to a typed
-/// materializing or managed output boundary.
-pub fn complete_task_execution(
-  run : CapturedDAG,
-  execution : TaskExecution,
-) -> Result[Unit, RunIssue] {
-  guard execution.legacy_completion is Some(completion) else {
-    return Err(ForeignCandidate)
-  }
-  complete_materialized_execution(
-    run,
-    execution,
-    completion.finish,
-    Some(completion.publish),
-  )
+  complete_materialized_execution(run, execution, materialize)
 }
 
 ///|
