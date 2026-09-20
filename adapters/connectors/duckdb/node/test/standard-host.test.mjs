@@ -1845,6 +1845,14 @@ async function exerciseStrategyGraph(
     cancelDuringFinalization: true,
     step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
     fields: ['node', 'degree'],
+  }, {
+    name: 'degree-second-result-finalization',
+    rows: 40,
+    cancelDuringFinalization: true,
+    cancelAfterFirstIdentity: true,
+    resultAliases: 2,
+    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
+    fields: ['node', 'degree'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const graphCancellationProgram = structuredClone(graphProgramBase);
@@ -1870,6 +1878,12 @@ async function exerciseStrategyGraph(
       [graphFields[0]];
     graphCancellationProgram.stages[5].results.r.fields =
       [graphFields[0]];
+    if (cancellationCase.resultAliases === 2) {
+      graphCancellationProgram.results = {
+        first: {from: {stage: 'graph', result: 'r'}},
+        second: {from: {stage: 'graph', result: 'r'}},
+      };
+    }
     const createCancellationFixture =
       cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
@@ -1890,10 +1904,15 @@ async function exerciseStrategyGraph(
     let constructionComplete = false;
     let sawOperationWork = false;
     let cancellationScheduled = false;
+    let cancellationDeliveredAt;
+    let stopObservedAt;
     let managedStarts = 0;
     const advanceObservations = [];
     const finalizationObservations = [];
     const lifecycleObservations = [];
+    graphCancellation.signal.addEventListener('abort', () => {
+      cancellationDeliveredAt = performance.now();
+    }, {once: true});
     try {
       assert.equal(
         fixture.strategyFixtureOpen(
@@ -1905,7 +1924,11 @@ async function exerciseStrategyGraph(
       const setup = fixture.strategyFixtureSgaSubset(cancellationFixture);
       assert.equal(
         hostRuntime.strategyHostConfigureManagedIdentity(
-          setup, false, false, false, false,
+          setup,
+          cancellationCase.cancelDuringFinalization === true,
+          false,
+          false,
+          false,
         ),
         true,
       );
@@ -1936,7 +1959,11 @@ async function exerciseStrategyGraph(
                     if (cancellationCase.cancelDuringFinalization &&
                         start === 2 &&
                         observation?.complete === false &&
-                        observation.work > 0n && !cancellationScheduled) {
+                        observation.work > 0n &&
+                        (!cancellationCase.cancelAfterFirstIdentity ||
+                          observation.progress >
+                            BigInt(cancellationCase.rows)) &&
+                        !cancellationScheduled) {
                       sawOperationWork = true;
                       cancellationScheduled = true;
                       setTimeout(() => graphCancellation.abort(), 0);
@@ -1947,6 +1974,11 @@ async function exerciseStrategyGraph(
                 if (name !== 'advance') {
                   return (...arguments_) => {
                     const result = operation[name](...arguments_);
+                    if (name === 'execution_stopped' && result === true &&
+                        graphCancellation.signal.aborted &&
+                        stopObservedAt === undefined) {
+                      stopObservedAt = performance.now();
+                    }
                     lifecycleObservations.push({start, name, result});
                     return result;
                   };
@@ -2001,6 +2033,9 @@ async function exerciseStrategyGraph(
           typeof value === 'bigint' ? value.toString() : value),
       );
       assert.equal(graphCancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(cancellationDeliveredAt), true);
+      assert.equal(Number.isFinite(stopObservedAt), true);
+      assert(stopObservedAt >= cancellationDeliveredAt);
       if (cancellationCase.cancelDuringFinalization) {
         assert.equal(
           finalizationObservations.some(value =>
@@ -2008,6 +2043,15 @@ async function exerciseStrategyGraph(
             value.observation.work > 0n),
           true,
         );
+        if (cancellationCase.cancelAfterFirstIdentity) {
+          assert.equal(
+            finalizationObservations.some(value =>
+              value.start === 2 &&
+              value.observation?.complete === false &&
+              value.observation.progress > BigInt(cancellationCase.rows)),
+            true,
+          );
+        }
       }
       assert.equal(cancellationExecution.status, 'host-tasks-failed');
       assert.equal(cancellationExecution.failure?.name, 'AbortError');
@@ -2041,6 +2085,10 @@ async function exerciseStrategyGraph(
           lifecycleObservations.some(value =>
             value.name === 'execution_stopped' && value.result === true),
           true,
+          `${cancellationCase.name}: ${JSON.stringify(
+            {lifecycleObservations, finalizationObservations},
+            (_, value) => typeof value === 'bigint' ? value.toString() : value,
+          )}`,
         );
         assert.equal(
           lifecycleObservations.some(value =>
