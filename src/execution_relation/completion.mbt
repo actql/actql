@@ -135,7 +135,8 @@ pub fn completed_output_matches_inputs(
   // Generated execution can receive the bindings in a different array order;
   // their checked port positions, not that incidental order, are authoritative.
   for identity in completion.input_bindings {
-    guard inputs.get(identity.input_index) is Some(input) &&
+    guard identity.carrier is None &&
+      inputs.get(identity.input_index) is Some(input) &&
       physical_equal(input.bound.identity, identity) else {
       return false
     }

@@ -14,6 +14,34 @@ struct TrustedOutputPort[P] {
 }
 
 ///|
+/// One exact trusted input used to establish Relation output provenance.
+/// Carrier references retain only their checked use-site binding and current
+/// availability; this value does not expose the underlying family storage.
+struct TrustedOutputInput {
+  value : TrustedOutputInputValue
+}
+
+///|
+priv enum TrustedOutputInputValue {
+  RelationInput(ProducerRead)
+  CarrierInput(@managed_carrier.ProducerReadReference)
+}
+
+///|
+pub fn trusted_output_relation_input(
+  input : ProducerRead,
+) -> TrustedOutputInput {
+  { value: RelationInput(input), }
+}
+
+///|
+pub fn trusted_output_carrier_input(
+  input : @managed_carrier.ProducerReadReference,
+) -> TrustedOutputInput {
+  { value: CarrierInput(input), }
+}
+
+///|
 pub(all) enum TrustedOutputIssue {
   InvalidLimits
   Limit
@@ -50,12 +78,53 @@ pub fn[P] prepare_trusted_output_port(
 }
 
 ///|
+/// Carrier-aware trusted output construction. Every supplied use site must
+/// match its exact external input position and remain available at admission.
+pub fn[P] prepare_trusted_output_port_with_inputs(
+  generated : CompletionPreparation,
+  target : @pipeline.Target,
+  max_entries : Int,
+  max_name_bytes : Int,
+  verify : (P) -> AdmittedOutputRows?,
+  inputs? : Array[TrustedOutputInput],
+) -> Result[TrustedOutputPort[P], TrustedOutputIssue] {
+  let (id, names, input_bindings) = match
+    validate_trusted_output_contract_with_inputs(
+      generated, target, max_entries, max_name_bytes, inputs,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ generated, target, id, names, verify, input_bindings, })
+}
+
+///|
 fn validate_trusted_output_contract(
   generated : CompletionPreparation,
   target : @pipeline.Target,
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[ProducerRead]?,
+) -> Result[
+  (String, Array[String], Array[ProducerBindingIdentity]),
+  TrustedOutputIssue,
+] {
+  validate_trusted_output_contract_with_inputs(
+    generated,
+    target,
+    max_entries,
+    max_name_bytes,
+    inputs.map(values => values.map(trusted_output_relation_input)),
+  )
+}
+
+///|
+fn validate_trusted_output_contract_with_inputs(
+  generated : CompletionPreparation,
+  target : @pipeline.Target,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[TrustedOutputInput]?,
 ) -> Result[
   (String, Array[String], Array[ProducerBindingIdentity]),
   TrustedOutputIssue,
@@ -74,12 +143,24 @@ fn validate_trusted_output_contract(
       return Err(ForeignInputs)
     }
     for index, input in inputs {
-      if !physical_equal(input.bound.receiver, owner) ||
-        input.bound.input_index != index ||
-        !producer_read_available(input) {
-        return Err(ForeignInputs)
+      match input.value {
+        RelationInput(input) => {
+          if !physical_equal(input.bound.receiver, owner) ||
+            input.bound.input_index != index ||
+            !producer_read_available(input) {
+            return Err(ForeignInputs)
+          }
+          input_bindings.push(input.bound.identity)
+        }
+        CarrierInput(input) => {
+          if !@managed_carrier.producer_read_reference_matches_input(
+              input, owner, index,
+            ) {
+            return Err(ForeignInputs)
+          }
+          input_bindings.push({ input_index: index, carrier: Some(input), })
+        }
       }
-      input_bindings.push(input.bound.identity)
     }
   }
   guard target is Step(index) &&

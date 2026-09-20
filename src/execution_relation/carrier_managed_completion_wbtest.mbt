@@ -110,6 +110,38 @@ fn carrier_completion_consumer(
 }
 
 ///|
+fn carrier_completion_relation_consumer(
+  producer : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  carrier_completion_bind(
+    @pipeline.check_with_evidence(
+      carrier_completion_cursor("[{\"events\":true}]"),
+      [
+        (
+          "prior",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(producer)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(carrier_completion_cursor("\"prior\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn carrier_completion_preparation(
   owner : @lower.BoundPrepared,
   retained : String,
@@ -288,6 +320,65 @@ test "carrier completion seals exact event attempt and input use site" {
   assert_false(carrier_managed_completed_output_available(output))
   assert_false(carrier_managed_completed_reference_available(reference))
   assert_true(carrier_managed_completed_output_storage_bytes(output) is None)
+}
+
+///|
+test "trusted relation output retains exact Carrier input provenance" {
+  let producer = carrier_completion_producer()
+  let producer_live = Ref(true)
+  let producer_raw = raw_event_completion(producer, producer_live, 16L)
+  let consumer = carrier_completion_relation_consumer(producer)
+  let read = @managed_carrier.prepare_producer_read(
+    consumer, 0, producer, producer_raw,
+  ).unwrap()
+  let reference = @managed_carrier.producer_read_reference(read)
+  let preparation = carrier_completion_preparation(consumer, "events_0")
+  let port = prepare_trusted_output_port_with_inputs(
+    preparation,
+    @pipeline.Step(0),
+    10,
+    100,
+    fn(_proof : Unit) { None },
+    inputs=[trusted_output_carrier_input(reference)],
+  ).unwrap()
+  assert_eq(port.input_bindings.length(), 1)
+  assert_true(
+    port.input_bindings[0].carrier is Some(saved) &&
+    @managed_carrier.producer_read_reference_matches_input(saved, consumer, 0),
+  )
+  assert_true(complete_trusted_output(port, ()) is Err(Unverified))
+
+  let foreign_consumer = carrier_completion_relation_consumer(producer)
+  let foreign_read = @managed_carrier.prepare_producer_read(
+    foreign_consumer, 0, producer, producer_raw,
+  ).unwrap()
+  assert_true(
+    prepare_trusted_output_port_with_inputs(
+      preparation,
+      @pipeline.Step(0),
+      10,
+      100,
+      fn(_proof : Unit) { None },
+      inputs=[
+        trusted_output_carrier_input(
+          @managed_carrier.producer_read_reference(foreign_read),
+        ),
+      ],
+    )
+    is Err(ForeignInputs),
+  )
+  producer_live.val = false
+  assert_true(
+    prepare_trusted_output_port_with_inputs(
+      preparation,
+      @pipeline.Step(0),
+      10,
+      100,
+      fn(_proof : Unit) { None },
+      inputs=[trusted_output_carrier_input(reference)],
+    )
+    is Err(ForeignInputs),
+  )
 }
 
 ///|

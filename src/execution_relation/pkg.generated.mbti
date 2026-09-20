@@ -667,6 +667,8 @@ pub fn prepare_streamed_fixed_producer_measurement(Array[ProducerRead], @pipelin
 
 pub fn[P] prepare_trusted_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> AdmittedOutputRows?, inputs? : Array[ProducerRead]) -> Result[TrustedOutputPort[P], TrustedOutputIssue]
 
+pub fn[P] prepare_trusted_output_port_with_inputs(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> AdmittedOutputRows?, inputs? : Array[TrustedOutputInput]) -> Result[TrustedOutputPort[P], TrustedOutputIssue]
+
 pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> RetainedOutputMaterial?, inputs? : Array[ProducerRead]) -> Result[TrustedRetainedOutputPort[P], TrustedOutputIssue]
 
 pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
@@ -786,6 +788,10 @@ pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccu
 pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
+
+pub fn trusted_output_carrier_input(@managed_carrier_runtime.ProducerReadReference) -> TrustedOutputInput
+
+pub fn trusted_output_relation_input(ProducerRead) -> TrustedOutputInput
 
 pub fn[T] try_bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> Result[ManagedIdentityIssuer[T], ManagedIdentityIssuanceIssue]
 
@@ -1628,6 +1634,8 @@ pub(all) enum StoreIssue {
   MissingInput
   Limit
 }
+
+type TrustedOutputInput
 
 pub(all) enum TrustedOutputIssue {
   InvalidLimits

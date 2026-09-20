@@ -14,6 +14,7 @@ struct BoundProducerInput {
 /// Immutable process-local binding identity; no producer rows or live closure.
 priv struct ProducerBindingIdentity {
   input_index : Int
+  carrier : @managed_carrier.ProducerReadReference?
 }
 
 ///|
@@ -109,7 +110,7 @@ pub fn bind_completed_input(
     Ok(_) => ()
   }
   Ok({
-    identity: { input_index, },
+    identity: { input_index, carrier: None, },
     receiver,
     input_index,
     output,
