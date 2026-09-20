@@ -549,6 +549,8 @@ pub fn async_strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRe
 
 pub fn async_strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
 
+pub fn async_strategy_remote_poll_release_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
+
 pub fn async_strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise AsyncHostFailure
 
 pub fn async_strategy_remote_prepare_evidence(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence) -> @remote_site_protocol.DispatchTransition raise AsyncHostFailure
@@ -1430,6 +1432,8 @@ pub fn strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.Dispatc
 pub fn strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_release_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 

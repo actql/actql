@@ -6,9 +6,12 @@ import {
   "actql/actql/platform_native/remote_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
+  "actql/actql/remote_site_protocol",
 }
 
 // Values
+pub fn advance_native_outbound_operation(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.RemotePollOperation?, (@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, @remote_client.NativeRemoteClientIssue], (@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord?, @remote_client.NativeRemoteClientIssue]) -> Result[NativeRemoteAgentOutcome, NativeRemoteAgentIssue]
+
 pub fn run_native_outbound_site_occurrence(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @http_client.Client, String, String) -> Result[NativeRemoteAgentOutcome, NativeRemoteAgentIssue]
 
 // Errors
@@ -29,6 +32,8 @@ pub(all) enum NativeRemoteAgentOutcome {
   DispatchObserved(String, Int)
   QueryObserved(String, Int)
   QueryNotSeen(String)
+  ReleaseObserved(String, Int)
+  ReleasePending(String, Int)
 }
 
 // Type aliases

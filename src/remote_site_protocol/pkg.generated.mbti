@@ -313,9 +313,13 @@ pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssu
 
 pub fn remote_poll_operation_is_query(RemotePollOperation) -> Bool
 
+pub fn remote_poll_operation_is_release(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
 
 pub fn remote_poll_query_json(DispatchRequest) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_release_json(DispatchRequest) -> Result[String, DispatchIssue]
 
 pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
 
@@ -358,6 +362,8 @@ pub fn remote_runtime_custody_resources_reclaimed(RemoteRuntimeCustody) -> Bool
 pub fn remote_runtime_custody_settle_operation(RemoteRuntimeCustody) -> Bool
 
 pub fn remote_runtime_custody_stop_pending(RemoteRuntimeCustody) -> Bool
+
+pub fn remote_runtime_record_released(DispatchRecord) -> Bool
 
 pub fn remote_runtime_record_startable(DispatchRecord) -> Bool
 
@@ -500,6 +506,7 @@ type RemotePollDispatch
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
   Query(DispatchRequest)
+  Release(DispatchRequest)
 }
 
 pub(all) enum RemoteRuntimeAction {
