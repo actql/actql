@@ -427,18 +427,11 @@ fn verify_native_publication_run(
   strategy_runtime_owner : @native_host.NativeStandardStrategyRun,
 ) -> Unit raise {
   let graph = @strategy.captured_dag_graph(run)
-  let exports = [
-    @publication_host.prepare_captured_result_publication_export(
-      run,
-      0,
-      native_publication_export_limits(),
-    ).unwrap(),
-    @publication_host.prepare_captured_result_publication_export(
-      run,
-      1,
-      native_publication_export_limits(),
-    ).unwrap(),
-  ]
+  let exports = @publication_host.prepare_all_captured_result_publication_exports(
+    run,
+    native_publication_export_limits(),
+  ).unwrap()
+  assert_eq(exports.length(), @strategy.graph_result_count(graph))
   let definitions = exports.map(output => output.definition().unwrap())
   let (run_context, retentions, intent, occurrence) = native_publication_run_context(
     @strategy.graph_program_definition_cid(graph),

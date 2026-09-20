@@ -140,6 +140,30 @@ pub fn prepare_captured_result_publication_export(
 }
 
 ///|
+/// Prepare every declared Named Result in checked Program order. The caller
+/// cannot omit a Result or substitute a name: the exact Result occurrences
+/// come from the captured graph and each export remains bound to that graph.
+pub fn prepare_all_captured_result_publication_exports(
+  run : @strategy.CapturedDAG,
+  limits : PublicationOutputExportLimits,
+) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue] {
+  let graph = @strategy.captured_dag_graph(run)
+  let outputs : Array[PublicationOutputExport] = []
+  for result in 0..<@strategy.graph_result_count(graph) {
+    match prepare_captured_result_publication_export(run, result, limits) {
+      Ok(output) => outputs.push(output)
+      Err(issue) => {
+        for output in outputs {
+          output.cancel()
+        }
+        return Err(issue)
+      }
+    }
+  }
+  Ok(outputs)
+}
+
+///|
 /// Re-open the exact identified Result view for bounded durable persistence.
 /// The replay is accepted only if its final physical receipt matches the first
 /// traversal, while logical identity remains owned by that first traversal.
