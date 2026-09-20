@@ -11,18 +11,25 @@ import {
 // Values
 pub fn install_native_remote_runtime_registry_registration(@execution_site.ExecutionSite, String, String, String, String, String, String, Array[NativeRemoteTaskExecutor]) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue]
 
-pub fn install_native_remote_task_executor(String, String, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteTaskExecutor, NativeRemoteRuntimeIssue]
+pub fn install_native_remote_task_executor(String, String, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.RemoteDispatchBudget) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteTaskExecutor, NativeRemoteRuntimeIssue]
 
 pub fn open_native_remote_runtime(@remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[NativeRemoteRuntimeRegistration], Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[NativeRemoteRuntime, NativeRemoteRuntimeIssue]
 
 pub fn prepare_native_remote_failure(String, Bool, Bool, Bool, () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
 
-pub fn prepare_native_remote_output(NativeRemoteOutputFacts, () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
+pub fn prepare_native_remote_output(NativeRemoteOutputFacts, () -> Result[NativeRemotePhysicalReader, String], () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
+
+pub fn prepare_native_remote_physical_reader((Int) -> Result[NativeRemoteOutputChunk, String], () -> Result[Unit, String], () -> Result[Unit, String]) -> NativeRemotePhysicalReader
 
 // Errors
 
 // Types and methods
 type NativeRemoteOutput
+
+pub(all) struct NativeRemoteOutputChunk {
+  bytes : Bytes
+  eof : Bool
+}
 
 pub(all) struct NativeRemoteOutputFacts {
   material_generation : String
@@ -37,6 +44,11 @@ pub(all) struct NativeRemoteOutputFacts {
   measurement : @remote_site_protocol.RemoteManagedOutputMeasurement
 }
 
+type NativeRemoteOutputReader
+pub fn NativeRemoteOutputReader::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteOutputReader::finish(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteOutputReader::next(Self) -> Result[NativeRemoteOutputChunk, NativeRemoteRuntimeIssue]
+
 pub(all) enum NativeRemotePhysicalExecution {
   NativeRemoteOutputReady(NativeRemoteOutput)
   NativeRemoteExecutionFailed(NativeRemotePhysicalFailure)
@@ -44,10 +56,13 @@ pub(all) enum NativeRemotePhysicalExecution {
 
 type NativeRemotePhysicalFailure
 
+type NativeRemotePhysicalReader
+
 type NativeRemoteRuntime
 pub fn NativeRemoteRuntime::cleanup(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::cleanup_pending(Self) -> Bool
 pub fn NativeRemoteRuntime::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputReader, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::release(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::start(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::start_after_acceptance(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, (@remote_site_protocol.DispatchRecord) -> Bool) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
@@ -76,6 +91,11 @@ pub(all) enum NativeRemoteRuntimeIssue {
   SettlementRejected
   CustodyRejected
   OutputRejected
+  OutputReaderUnavailable
+  OutputReaderClosed
+  OutputReaderIncomplete
+  OutputReaderChunkExceeded
+  OutputReaderPhysical(String)
   Physical(String)
   CleanupPending(String)
   Protocol(@remote_site_protocol.DispatchIssue)

@@ -98,7 +98,7 @@ test "outbound agent observes durable acceptance before one execution" {
       "0000000000000000000000000000000000000000000000000000000000000000",
     ),
     "task-agent",
-    (_request, _binding) => {
+    (_request, _binding, _budget) => {
       executions[0] += 1
       let measurement = @remote.prepare_remote_managed_output_measurement(
         1,
@@ -136,6 +136,23 @@ test "outbound agent observes durable acceptance before one execution" {
           row_count: 1,
           retained_bytes: 1L,
           measurement,
+        },
+        () => {
+          let emitted = [false]
+          Ok(
+            @runtime.prepare_native_remote_physical_reader(
+              _max_bytes => {
+                if emitted[0] {
+                  Ok({ bytes: b"", eof: true, })
+                } else {
+                  emitted[0] = true
+                  Ok({ bytes: b"x", eof: true, })
+                }
+              },
+              () => Ok(()),
+              () => Ok(()),
+            ),
+          )
         },
         () => true,
       ).unwrap()

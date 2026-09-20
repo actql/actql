@@ -21,7 +21,35 @@ pub(all) struct NativeRemoteOutputFacts {
 /// in the common runtime progression.
 struct NativeRemoteOutput {
   facts : NativeRemoteOutputFacts
+  open_reader : () -> Result[NativeRemotePhysicalReader, String]
   release : () -> Bool
+}
+
+///|
+/// One bounded physical read result. The common runtime rejects a physical
+/// adapter that returns more bytes than the admitted request size.
+pub(all) struct NativeRemoteOutputChunk {
+  bytes : Bytes
+  eof : Bool
+}
+
+///|
+/// Environment-owned output access. These callbacks only perform and report
+/// physical I/O; the common runtime owns reader pins and release eligibility.
+struct NativeRemotePhysicalReader {
+  next : (Int) -> Result[NativeRemoteOutputChunk, String]
+  finish : () -> Result[Unit, String]
+  close : () -> Result[Unit, String]
+}
+
+///|
+/// One common-owned read pin for an exact retained remote output.
+struct NativeRemoteOutputReader {
+  owner : NativeRemoteRuntimeOwner
+  physical : NativeRemotePhysicalReader
+  max_chunk_bytes : Int
+  mut eof : Bool
+  mut closed : Bool
 }
 
 ///|
@@ -50,7 +78,11 @@ struct NativeRemoteRuntimeRegistration {
   issuer : @remote.RemoteEvidenceIssuer
   key : String
   supports : (@remote.DispatchRequest) -> Bool
-  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution
+  execute : (
+    @remote.DispatchRequest,
+    @remote.RemoteInputBinding,
+    @remote.RemoteDispatchBudget,
+  ) -> NativeRemotePhysicalExecution
 }
 
 ///|
@@ -59,7 +91,11 @@ struct NativeRemoteRuntimeRegistration {
 /// prevents a Connector-wide callback from accepting an arbitrary task name.
 struct NativeRemoteTaskExecutor {
   key : String
-  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution
+  execute : (
+    @remote.DispatchRequest,
+    @remote.RemoteInputBinding,
+    @remote.RemoteDispatchBudget,
+  ) -> NativeRemotePhysicalExecution
 }
 
 ///|
@@ -77,6 +113,7 @@ priv struct NativeRemoteRuntimeOwner {
   mut evidence : @remote.RemoteExecutionEvidence?
   mut subject : @remote.RemoteManagedOutputSubject?
   mut measurement : @remote.RemoteManagedOutputMeasurement?
+  mut active_readers : Int
 }
 
 ///|
@@ -116,6 +153,11 @@ pub(all) enum NativeRemoteRuntimeIssue {
   SettlementRejected
   CustodyRejected
   OutputRejected
+  OutputReaderUnavailable
+  OutputReaderClosed
+  OutputReaderIncomplete
+  OutputReaderChunkExceeded
+  OutputReaderPhysical(String)
   Physical(String)
   CleanupPending(String)
   Protocol(@remote.DispatchIssue)
@@ -126,6 +168,7 @@ pub(all) enum NativeRemoteRuntimeIssue {
 ///|
 pub fn prepare_native_remote_output(
   facts : NativeRemoteOutputFacts,
+  open_reader : () -> Result[NativeRemotePhysicalReader, String],
   release : () -> Bool,
 ) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue] {
   let measurement_cid = @remote.remote_managed_output_measurement_cid(
@@ -145,9 +188,20 @@ pub fn prepare_native_remote_output(
       facts.row_count,
       facts.retained_bytes,
     ) {
-    Ok(_) => Ok(NativeRemoteOutputReady({ facts, release, }))
+    Ok(_) => Ok(NativeRemoteOutputReady({ facts, open_reader, release, }))
     Err(_) => Err(OutputRejected)
   }
+}
+
+///|
+/// Wrap environment-owned physical output operations for common runtime use.
+/// The callbacks must not make lifecycle or accounting decisions.
+pub fn prepare_native_remote_physical_reader(
+  next : (Int) -> Result[NativeRemoteOutputChunk, String],
+  finish : () -> Result[Unit, String],
+  close : () -> Result[Unit, String],
+) -> NativeRemotePhysicalReader {
+  { next, finish, close, }
 }
 
 ///|
@@ -186,7 +240,11 @@ fn install_native_remote_runtime_scope(
   strategy_revision : String,
   operation_capability_cid : String,
   issuer_capability_cid : String,
-  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution,
+  execute : (
+    @remote.DispatchRequest,
+    @remote.RemoteInputBinding,
+    @remote.RemoteDispatchBudget,
+  ) -> NativeRemotePhysicalExecution,
 ) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue] {
   let capability = match
     @remote.register_remote_execution_capability(
@@ -232,7 +290,11 @@ fn install_native_remote_runtime_scope(
 pub fn install_native_remote_task_executor(
   run_definition_cid : String,
   task_key : String,
-  execute : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> NativeRemotePhysicalExecution,
+  execute : (
+    @remote.DispatchRequest,
+    @remote.RemoteInputBinding,
+    @remote.RemoteDispatchBudget,
+  ) -> NativeRemotePhysicalExecution,
 ) -> Result[NativeRemoteTaskExecutor, NativeRemoteRuntimeIssue] {
   if task_key.is_empty() ||
     !run_definition_cid.has_prefix("sha256:") ||
@@ -275,7 +337,7 @@ pub fn install_native_remote_runtime_registry_registration(
       strategy_revision,
       operation_capability_cid,
       issuer_capability_cid,
-      (request, binding) => {
+      (request, binding, budget) => {
         let (run_definition_cid, task_key) = @remote.dispatch_request_task_scope(
           request,
         )
@@ -289,7 +351,7 @@ pub fn install_native_remote_runtime_registry_registration(
             retry_stop: () => true,
           })
         }
-        (executor.execute)(request, binding)
+        (executor.execute)(request, binding, budget)
       },
     ) {
     Ok(value) => value
@@ -451,6 +513,9 @@ fn NativeRemoteRuntime::reclaim_owner_resources(
 ) -> Result[Unit, NativeRemoteRuntimeIssue] {
   if @remote.remote_runtime_custody_output_acquired(owner.custody) &&
     !@remote.remote_runtime_custody_output_released(owner.custody) {
+    if owner.active_readers != 0 {
+      return Err(CleanupPending("output-readers"))
+    }
     guard owner.output is Some(output) else { return Err(CustodyRejected) }
     if !(output.release)() {
       return Err(CleanupPending("output"))
@@ -526,7 +591,10 @@ fn NativeRemoteRuntime::drive_cleanup(
           Err(issue) => return Err(issue)
         }
       }
-      3 =>
+      3 => {
+        if owner.active_readers != 0 {
+          return Ok(false)
+        }
         match self.reclaim_owner_resources(owner) {
           Ok(_) => continue
           Err(issue) => {
@@ -541,6 +609,7 @@ fn NativeRemoteRuntime::drive_cleanup(
             }
           }
         }
+      }
       4 => return Ok(true)
       _ => return Err(Protocol(@remote.InvalidTransition))
     }
@@ -732,7 +801,8 @@ fn NativeRemoteRuntime::run_success(
         }
       }
       @remote.RuntimeExecutePhysical =>
-        match (owner.registration.execute)(owner.request, owner.binding) {
+        match
+          (owner.registration.execute)(owner.request, owner.binding, budget) {
           NativeRemoteOutputReady(output) => {
             owner.output = Some(output)
             if !@remote.remote_runtime_custody_acquire_output(owner.custody) {
@@ -741,6 +811,18 @@ fn NativeRemoteRuntime::run_success(
                   identity,
                   owner,
                   CustodyRejected,
+                  false,
+                  false,
+                  true,
+                ),
+              )
+            }
+            if output.facts.retained_bytes > retained_bytes {
+              return Err(
+                self.retain_failed_owner(
+                  identity,
+                  owner,
+                  OutputRejected,
                   false,
                   false,
                   true,
@@ -1149,13 +1231,124 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
     evidence: None,
     subject: None,
     measurement: None,
+    active_readers: 0,
   }
   self.run_success(owner, budget)
 }
 
 ///|
+/// Open a bounded reader for the exact currently retained material. This is a
+/// new consumer admission: a closed runtime or unavailable Site cannot grant
+/// another pin, while already-open readers remain owned until physical close.
+pub fn NativeRemoteRuntime::open_output_reader(
+  self : NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+  material_generation : String,
+  max_chunk_bytes : Int,
+) -> Result[NativeRemoteOutputReader, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if max_chunk_bytes <= 0 || max_chunk_bytes > 1048576 {
+    return Err(OutputReaderUnavailable)
+  }
+  let identity = @remote.dispatch_request_identity(request)
+  guard self.owners.get(identity) is Some(owner) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if !@remote.dispatch_record_matches_request(owner.record, request) ||
+    !@site.site_available(owner.registration.site) {
+    return Err(OutputReaderUnavailable)
+  }
+  guard owner.output is Some(output) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if output.facts.material_generation != material_generation ||
+    !@remote.remote_runtime_custody_output_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_output_released(owner.custody) ||
+    !@remote.remote_runtime_custody_holding_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_holding_released(owner.custody) {
+    return Err(OutputReaderUnavailable)
+  }
+  match native_remote_runtime_completion(owner) {
+    Ok(_) => ()
+    Err(_) => return Err(OutputReaderUnavailable)
+  }
+  let physical = match (output.open_reader)() {
+    Ok(value) => value
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  owner.active_readers += 1
+  Ok({ owner, physical, max_chunk_bytes, eof: false, closed: false, })
+}
+
+///|
+/// Read one bounded chunk. Physical errors and oversized adapter responses do
+/// not release the reader pin; the caller must confirm finish or close.
+pub fn NativeRemoteOutputReader::next(
+  self : NativeRemoteOutputReader,
+) -> Result[NativeRemoteOutputChunk, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(OutputReaderClosed)
+  }
+  if self.eof {
+    return Err(OutputReaderIncomplete)
+  }
+  let chunk = match (self.physical.next)(self.max_chunk_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  if chunk.bytes.length() > self.max_chunk_bytes {
+    return Err(OutputReaderChunkExceeded)
+  }
+  if chunk.eof {
+    self.eof = true
+  }
+  Ok(chunk)
+}
+
+///|
+/// Confirm complete physical consumption and release this reader pin once.
+pub fn NativeRemoteOutputReader::finish(
+  self : NativeRemoteOutputReader,
+) -> Result[Bool, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Ok(false)
+  }
+  if !self.eof {
+    return Err(OutputReaderIncomplete)
+  }
+  match (self.physical.finish)() {
+    Ok(_) => ()
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  self.owner.active_readers -= 1
+  self.closed = true
+  Ok(true)
+}
+
+///|
+/// Abort a physical read and release its pin only after close is confirmed.
+/// A failed close remains retryable on the same reader.
+pub fn NativeRemoteOutputReader::close(
+  self : NativeRemoteOutputReader,
+) -> Result[Bool, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Ok(false)
+  }
+  match (self.physical.close)() {
+    Ok(_) => ()
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  self.owner.active_readers -= 1
+  self.closed = true
+  Ok(true)
+}
+
+///|
 /// Release one successfully retained output. A false result means there was
-/// no live owner for this exact dispatch; cleanup failures remain retryable.
+/// no live owner or an admitted reader still pins it; cleanup failures remain
+/// retryable.
 pub fn NativeRemoteRuntime::release(
   self : NativeRemoteRuntime,
   request : @remote.DispatchRequest,

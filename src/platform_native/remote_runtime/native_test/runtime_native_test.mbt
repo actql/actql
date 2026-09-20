@@ -94,12 +94,17 @@ test "native remote runtime owns success failure and cleanup progression" {
   let executions = [0]
   let released = [0]
   let stopped = [0]
+  let observed_budget = [(0L, 0L)]
+  let oversized_reads = [false]
   let executor = @runtime.install_native_remote_task_executor(
     runtime_test_cid(
       "0000000000000000000000000000000000000000000000000000000000000000",
     ),
     "task-a",
-    (_request, binding) => {
+    (_request, binding, admitted_budget) => {
+      observed_budget[0] = @remote.remote_dispatch_budget_capacity(
+        admitted_budget,
+      )
       if @remote.remote_input_binding_body(binding) == "{}" {
         executions[0] += 1
       } else {
@@ -152,8 +157,42 @@ test "native remote runtime owns success failure and cleanup progression" {
             "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           ),
           row_count: 1,
-          retained_bytes: 1L,
+          retained_bytes: if executions[0] == 3 {
+            129L
+          } else {
+            1L
+          },
           measurement,
+        },
+        () => {
+          let emitted = [false]
+          let close_attempts = [0]
+          Ok(
+            @runtime.prepare_native_remote_physical_reader(
+              max_bytes => {
+                if max_bytes < 1 {
+                  Err("invalid-read-size")
+                } else if oversized_reads[0] {
+                  emitted[0] = true
+                  Ok({ bytes: b"xx", eof: true, })
+                } else if emitted[0] {
+                  Ok({ bytes: b"", eof: true, })
+                } else {
+                  emitted[0] = true
+                  Ok({ bytes: b"x", eof: true, })
+                }
+              },
+              () => if emitted[0] { Ok(()) } else { Err("incomplete") },
+              () => {
+                close_attempts[0] += 1
+                if close_attempts[0] > 1 {
+                  Ok(())
+                } else {
+                  Err("close-pending")
+                }
+              },
+            ),
+          )
         },
         () => {
           released[0] += 1
@@ -190,7 +229,9 @@ test "native remote runtime owns success failure and cleanup progression" {
         "dispatch-a" => 1
         "dispatch-b" => 2
         "dispatch-c" => 3
-        _ => 4
+        "dispatch-over-budget" => 4
+        "dispatch-d" => 5
+        _ => 6
       },
       dispatch_id,
       "native-runtime-site",
@@ -269,6 +310,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(accepted[0], 2)
   assert_eq(executions[0], 1)
+  assert_eq(observed_budget[0], (128L, 128L))
   assert_true(
     runtime.start_after_acceptance(first, input_binding, _record => {
       accepted[0] += 1
@@ -278,6 +320,36 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(accepted[0], 3)
   assert_eq(executions[0], 1)
+  assert_true(
+    runtime.open_output_reader(first, "foreign-material", 1)
+    is Err(@runtime.OutputReaderUnavailable),
+  )
+  assert_true(
+    runtime.open_output_reader(first, "native-material-a", 0)
+    is Err(@runtime.OutputReaderUnavailable),
+  )
+  let reader = runtime
+    .open_output_reader(first, "native-material-a", 1)
+    .unwrap()
+  assert_false(runtime.release(first).unwrap())
+  let chunk = reader.next().unwrap()
+  assert_eq(chunk.bytes, b"x")
+  assert_true(chunk.eof)
+  assert_true(reader.finish().unwrap())
+  assert_false(reader.finish().unwrap())
+  oversized_reads[0] = true
+  let cancelled_reader = runtime
+    .open_output_reader(first, "native-material-a", 1)
+    .unwrap()
+  assert_true(
+    cancelled_reader.next() is Err(@runtime.OutputReaderChunkExceeded),
+  )
+  assert_true(
+    cancelled_reader.close()
+    is Err(@runtime.OutputReaderPhysical("close-pending")),
+  )
+  assert_false(runtime.release(first).unwrap())
+  assert_true(cancelled_reader.close().unwrap())
   assert_true(runtime.release(first) is Err(@runtime.CleanupPending("output")))
   assert_true(runtime.release(first).unwrap())
   assert_eq(released[0], 2)
@@ -296,12 +368,22 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_eq(status[6], 0L)
   assert_eq(status[7], 0L)
   assert_eq(status[8], 0L)
+  let over_budget = request("dispatch-over-budget")
+  assert_true(
+    runtime.start(over_budget, input_binding) is Err(@runtime.OutputRejected),
+  )
+  assert_true(runtime.cleanup_pending())
+  assert_true(
+    runtime.cleanup(over_budget) is Err(@runtime.CleanupPending("output")),
+  )
+  assert_true(runtime.cleanup(over_budget).unwrap())
+  assert_false(runtime.cleanup_pending())
   runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
   runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
   assert_true(runtime.close() is Err(@runtime.CleanupPending("output")))
-  assert_eq(released[0], 4)
-  assert_false(runtime.close().unwrap())
   assert_eq(released[0], 6)
+  assert_false(runtime.close().unwrap())
+  assert_eq(released[0], 8)
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
 }
