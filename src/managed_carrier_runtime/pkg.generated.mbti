@@ -49,9 +49,21 @@ pub fn completion_reference_same(CompletionReference, CompletionReference) -> Bo
 
 pub fn completion_reference_storage_bytes(CompletionReference) -> Int64?
 
+pub fn material_available(Material) -> Bool
+
+pub fn material_kind(Material) -> @carrier_contract.Kind
+
+pub fn material_prepare_view(Material, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[ProducerView, Issue]
+
+pub fn material_reference(Material) -> CompletionReference
+
+pub fn material_storage_bytes(Material) -> Int64?
+
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
 pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> (Int, Int)?, (Int) -> @value_admission.CheckedValue??, (Int, Int) -> @value_admission.CheckedValue?) -> Result[ProducerView, ViewIssue]
+
+pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> ProducerView?, () -> Bool) -> Result[Material, Issue]
 
 pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
 
@@ -107,6 +119,8 @@ pub fn producer_view_node_identity(ProducerView, Int) -> Result[@value_admission
 
 pub fn producer_view_node_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
 
+pub fn producer_view_read_reference(ProducerView) -> ProducerReadReference
+
 pub fn producer_view_record_count(ProducerView) -> Int?
 
 pub fn producer_view_record_field(ProducerView, Int, Int) -> Result[(@relation_schema.FieldName, @value_admission.CheckedValue), ViewIssue]
@@ -120,6 +134,8 @@ pub fn receipt_matches_binding(Receipt, Binding) -> Bool
 pub fn receipt_measure(Receipt) -> Measure
 
 pub fn[E, T] reclaim_completed(Completed[E, T], (T) -> Bool) -> Bool
+
+pub fn reclaim_material(Material) -> Bool
 
 pub fn[P, E, T] retain(RetentionPort[P, E, T], P) -> Result[Retained[E, T], Issue]
 
@@ -154,6 +170,8 @@ pub(all) enum Issue {
   Unavailable
   Unverified
 } derive(Eq, @debug.Debug)
+
+type Material
 
 pub(all) enum Measure {
   RelationMeasure(rows~ : Int, columns~ : Int)

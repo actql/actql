@@ -126,6 +126,13 @@ pub fn producer_view_matches_read(
 }
 
 ///|
+pub fn producer_view_read_reference(
+  value : ProducerView,
+) -> ProducerReadReference {
+  value.read
+}
+
+///|
 pub fn producer_view_node_count(value : ProducerView) -> Int? {
   if producer_view_live(value) && value.kind == @carrier.GraphKind {
     Some(value.nodes)

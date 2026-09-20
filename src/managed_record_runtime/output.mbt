@@ -412,3 +412,25 @@ pub fn producer_read_view(
     )
   })
 }
+
+///|
+/// Erase only the storage representation while retaining exact record custody.
+pub fn completed_material(
+  value : Completed,
+) -> Result[@lifecycle.Material, Issue] {
+  @lifecycle.prepare_material(
+    completed_carrier_reference(value),
+    (receiver, input_index, expected_producer) => {
+      match
+        prepare_producer_read(receiver, input_index, expected_producer, value) {
+        Ok(read) =>
+          match producer_read_view(read) {
+            Ok(view) => Some(view)
+            Err(_) => None
+          }
+        Err(_) => None
+      }
+    },
+    fn() { discard_completed(value) },
+  ).map_err(issue => Lifecycle(issue))
+}

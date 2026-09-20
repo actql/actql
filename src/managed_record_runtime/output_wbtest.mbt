@@ -313,6 +313,13 @@ test "managed Vectors support two exact downstream consumers" {
   let reference = completed_reference(completed)
   assert_true(producer_read_matches_reference(first, reference))
   assert_true(producer_read_matches_reference(second, reference))
+  let material = completed_material(completed).unwrap()
+  assert_eq(@lifecycle.material_kind(material), @carrier.VectorsKind)
+  assert_eq(@lifecycle.material_storage_bytes(material), Some(2048L))
+  let material_view = @lifecycle.material_prepare_view(
+    material, receiver, 0, owner,
+  ).unwrap()
+  assert_eq(@lifecycle.producer_view_record_count(material_view), Some(1))
   live.val = false
   assert_false(completed_available(completed))
   assert_false(completed_reference_available(reference))

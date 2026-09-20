@@ -219,6 +219,22 @@ test "managed Graph completion supports two exact downstream consumers" {
   let reference = completed_reference(completed)
   assert_true(producer_read_matches_reference(first, reference))
   assert_true(producer_read_matches_reference(second, reference))
+  let material = completed_material(completed).unwrap()
+  assert_eq(@lifecycle.material_kind(material), @carrier.GraphKind)
+  assert_eq(@lifecycle.material_storage_bytes(material), Some(4096L))
+  let material_first = @lifecycle.material_prepare_view(
+    material, receiver, 0, owner,
+  ).unwrap()
+  let material_second = @lifecycle.material_prepare_view(
+    material, receiver, 0, owner,
+  ).unwrap()
+  assert_false(
+    @lifecycle.producer_view_matches_read(
+      material_first,
+      @lifecycle.producer_view_read_reference(material_second),
+    ),
+  )
+  assert_eq(@lifecycle.producer_view_node_count(material_first), Some(2))
   live.val = false
   assert_false(completed_available(completed))
   assert_false(completed_reference_available(reference))
@@ -228,6 +244,26 @@ test "managed Graph completion supports two exact downstream consumers" {
   )
   assert_true(producer_read_storage(first) is None)
   assert_true(producer_read_storage(second) is None)
+}
+
+///|
+test "managed Graph material owns final reclamation" {
+  let owner = producer_owner()
+  let output = prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  append_node(output, number(1.0), [text("a")]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let material = completed_material(completed).unwrap()
+  assert_true(@lifecycle.material_available(material))
+  assert_true(@lifecycle.reclaim_material(material))
+  assert_false(@lifecycle.material_available(material))
+  assert_false(@lifecycle.reclaim_material(material))
 }
 
 ///|

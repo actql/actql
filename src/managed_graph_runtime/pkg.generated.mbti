@@ -23,6 +23,8 @@ pub fn completed_carrier_reference(Completed) -> @managed_carrier_runtime.Comple
 
 pub fn completed_evidence(Completed) -> Evidence?
 
+pub fn completed_material(Completed) -> Result[@managed_carrier_runtime.Material, Issue]
+
 pub fn completed_measure(Completed) -> @managed_carrier_runtime.Measure
 
 pub fn completed_reference(Completed) -> CompletionReference
