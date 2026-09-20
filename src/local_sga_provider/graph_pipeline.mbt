@@ -44,11 +44,13 @@ priv struct Execution {
   max_rows : Int
   max_value_bytes : Int
   projection_step : Int
+  mut kernel_step : Int
   mut phase : Phase
   mut construction : @bridge.RowsToGraphExecution?
   mut graph : @graph.Completed?
   mut kernel : GraphExecution?
   mut pending_graph : @graph.Completed?
+  mut projection_input : @graph.ProducerRead?
   mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
@@ -76,7 +78,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let count = @lower.sequence_count(
     @execution.generated_prepared_sequence(sequence),
   )
-  if count < 2 || count > 3 {
+  if count < 2 || count > 4 {
     return false
   }
   let index = Ref(0)
@@ -304,24 +306,37 @@ fn advance_execution(
       }
       StartKernel => {
         guard value.graph is Some(output) else { return fail_execution(value) }
+        if value.kernel_step == value.projection_step - 1 {
+          value.projection_input = match
+            @graph.prepare_step_read(
+              @execution.generated_sequence_owner(value.generated),
+              value.projection_step,
+              0,
+              output,
+            ) {
+            Ok(read) => Some(read)
+            Err(_) => None
+          }
+        }
         let input = match
           @graph.prepare_step_read(
             @execution.generated_sequence_owner(value.generated),
-            1,
+            value.kernel_step,
             0,
             output,
           ) {
           Ok(read) => read
           Err(_) => return fail_execution(value)
         }
-        let started = match @lower.sequence_step(value.sequence, 1) {
+        let started = match
+          @lower.sequence_step(value.sequence, value.kernel_step) {
           Some(@lower.GraphBasicStep(basic)) if @lower.graph_basic_kind(basic) ==
             @lower.NormalizeBasic =>
             match
               @sga.start_normalize(
                 value.control,
                 value.sequence,
-                1,
+                value.kernel_step,
                 input,
                 value.limits,
                 value.storage_bytes,
@@ -382,22 +397,35 @@ fn advance_execution(
           Ok(false) | Err(_) => return fail_execution(value)
         }
         value.kernel = None
-        discard(value.graph) |> ignore
-        value.graph = Some(completed)
+        if value.projection_input is Some(_) {
+          discard(Some(completed)) |> ignore
+        } else {
+          discard(value.graph) |> ignore
+          value.graph = Some(completed)
+        }
         value.pending_graph = None
-        value.phase = StartProjection
+        value.kernel_step += 1
+        value.phase = if value.kernel_step < value.projection_step {
+          StartKernel
+        } else {
+          StartProjection
+        }
       }
       StartProjection => {
         guard value.graph is Some(output) else { return fail_execution(value) }
-        let input = match
-          @graph.prepare_step_read(
-            @execution.generated_sequence_owner(value.generated),
-            value.projection_step,
-            0,
-            output,
-          ) {
-          Ok(read) => read
-          Err(_) => return fail_execution(value)
+        let input = match value.projection_input {
+          Some(read) => read
+          None =>
+            match
+              @graph.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                value.projection_step,
+                0,
+                output,
+              ) {
+              Ok(read) => read
+              Err(_) => return fail_execution(value)
+            }
         }
         let started = match
           @lower.sequence_step(value.sequence, value.projection_step) {
@@ -816,11 +844,13 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
         ) -
         1,
+        kernel_step: 1,
         phase: StartConstruction,
         construction: None,
         graph: None,
         kernel: None,
         pending_graph: None,
+        projection_input: None,
         relation: None,
         stage_progress: 0L,
         stage_work: 0L,

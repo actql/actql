@@ -143,6 +143,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"components\":{\"kind\":\"weak\"}," + "\"as\":\"out\""
   } else if variant == "components_strong" {
     "\"from\":\"g\",\"components\":{\"kind\":\"strong\"}," + "\"as\":\"out\""
+  } else if variant == "normalize_shared" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"normalize_graph\":true," +
+    "\"as\":\"same_carrier\"},{" +
+    "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
@@ -2162,6 +2167,7 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("projection", publication=true)
   run_standard_host_graph_relation_path("edge_projection", publication=true)
   run_standard_host_graph_relation_path("normalize")
+  run_standard_host_graph_relation_path("normalize_shared", publication=true)
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")
   run_standard_host_graph_relation_path(
