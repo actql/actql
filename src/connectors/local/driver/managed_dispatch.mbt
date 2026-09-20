@@ -166,7 +166,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
           @strategy.captured_task_input(
             installed.run,
             task,
-            @local.local_module_max_work(installed.implementation),
+            @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
             imports.wire.max_bytes,
             input_index=index,
           ) {
@@ -190,7 +190,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
             installed.run,
             task,
             output,
-            @local.local_module_max_work(installed.implementation),
+            @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
             imports.wire.max_bytes,
             input_index=index,
           ) {
