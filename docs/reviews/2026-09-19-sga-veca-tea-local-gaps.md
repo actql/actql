@@ -228,7 +228,9 @@ emits `TEA.watermark.label`, `TEA.dedupe`, and
 portable execution. Dedupe retains repeated partition positions,
 stable order terms, null placement, and the mandatory tie failure. Session
 retains its exact roles, grouping positions, clock encoding, and resolved
-literal or bound gap. Interval join, as-of join, and sequence remain
+literal or bound gap. Interval join now has typed canonical lowering for all
+four join kinds, both temporal modes and time domains, repeated equality keys,
+projections, and resolved output guards. As-of join and sequence remain
 unimplemented in shared lowering. Event windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
 sliding-assignment operation. Their bounded kernel validates the complete
@@ -415,6 +417,15 @@ zero. The complete Local VecA, provider, and query-integration selection passes
 386 tests on each of JS, Wasm, and native. This does not establish maximum or
 weighted-sum runtime authentication, their tie rules, negative RRF execution
 fixtures, publication, environment cancellation delivery, or final Linux CI.
+
+At `a9174bee`, interval join reaches one typed canonical
+`TEA.join.interval` occurrence without rediscovering frontend syntax. The
+lowering retains point and overlap operands, timestamp and safe-integer clock
+domains, all four admitted join kinds, repeated equality keys, projections,
+and resolved output guards. Exact and one-short preparation budgets are
+covered. The lowering, Relation execution, and Local connector packages pass
+887 tests on each of JS, Wasm, and native. Runtime selection remains closed;
+this is not kernel, managed execution, publication, or cancellation evidence.
 
 The Graph Bridge now lowers explicit node and edge sources into one typed
 `BRIDGE.rows.to_graph` occurrence without collapsing repeated input positions.

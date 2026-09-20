@@ -370,8 +370,16 @@
       "output": "relation",
       "canonical": ["TEA.join.interval"],
       "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/interval_join_test.mbt"
+      ]
     },
     {
       "family": "TEA",
