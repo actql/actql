@@ -17,11 +17,11 @@ readable coverage manifest is authoritative for individual operation status.
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 19/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections and equality, bounded Events transforms, and normalized, grafted, scored, or pooled Vectors projections; 22/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections and equality, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 23/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 28/39, standard Host 27/39,
-consumer lifetime 23/39, cancellation 19/39, and publication 22/39. These are
+consumer lifetime 23/39, cancellation 19/39, and publication 23/39. These are
 layer counts, not operation completion: 18 entries are `complete` and 21 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -696,6 +696,15 @@ downstream computations and final reclamation checks. The affected VecA and
 query-integration suites pass 30 tests on each portable target. This does not
 close direct Vectors inputs, duplicate identity failures, publication,
 cancellation delivery, or final Linux CI.
+
+At `6b723dd9`, every currently connected Relation-by-Relation nearest variant
+establishes and verifies its exact LogicalRelation identity through the formal
+Named Result publication contract. Independent expected rows, two overlapping
+downstream consumers, individual release, and final reclamation remain part of
+the same standard Host fixture. Query integration passes 403 tests on each of
+JS, Wasm, and native, and all 24 Workers tests pass with a fresh generated
+fixture. Direct Vectors inputs, duplicate identity failures, environment
+cancellation delivery, and final same-SHA Linux CI remain open.
 
 At `b954085a`, all three ranking-fusion policy families reach canonical
 `VEC.merge_rankings` lowering from checked typed decisions. The RRF fixture
