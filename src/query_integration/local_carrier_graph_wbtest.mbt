@@ -1568,6 +1568,17 @@ fn graph_publication_obligations(
 }
 
 ///|
+fn graph_relation_publication_cid(variant : String) -> String {
+  if variant == "graph_bounds" {
+    "sha256:17d576d1679a19ebaa39babfe25c6922f65888c29781f7ea73b3f2af674b13c7"
+  } else if variant == "degree_both" {
+    "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
+  } else {
+    "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
+  }
+}
+
+///|
 fn run_standard_host_graph_relation_path(
   variant : String,
   publication? : Bool = false,
@@ -1715,9 +1726,7 @@ fn run_standard_host_graph_relation_path(
           contract,
           @execution.logical_relation_canonical_contract_cid(),
         )
-        assert_eq(
-          cid, "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576",
-        )
+        assert_eq(cid, graph_relation_publication_cid(variant))
       }
       _ => fail("Graph match output did not establish publication identity")
     }
@@ -1792,8 +1801,8 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("match_nodes", publication=true)
   run_standard_host_graph_relation_path("match_nodes_literal")
   run_standard_host_graph_relation_path("match_edges")
-  run_standard_host_graph_relation_path("graph_bounds")
+  run_standard_host_graph_relation_path("graph_bounds", publication=true)
   run_standard_host_graph_relation_path("degree_in")
   run_standard_host_graph_relation_path("degree_out")
-  run_standard_host_graph_relation_path("degree_both")
+  run_standard_host_graph_relation_path("degree_both", publication=true)
 }

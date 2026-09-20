@@ -1444,7 +1444,7 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
-  const graphProgram = {
+  const graphProgramBase = {
     version: 'actql/0.1',
     id: 'p',
     params: {minimum: {type: 'number', nullable: false}},
@@ -1513,90 +1513,133 @@ async function exerciseStrategyGraph(
     }],
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
-  const sgaFixture = fixture.strategyFixtureSgaCreate(
-    ...sgaEnvironmentArguments(args),
-    JSON.stringify(graphProgram),
-  );
-  const sgaCapture = await runNativeHostQuery(
-    grant,
-    fixture.strategyFixtureAcquisition(sgaFixture),
-    suppliedLimits,
-  );
-  const sgaPublicationDirectory = await mkdtemp(join(
-    root,
-    '_build/duckdb-fixtures/sga-publication-entry-',
-  ));
-  let sgaPublicationOwner;
-  let sgaPublicationStore;
-  try {
-    assert.equal(
-      fixture.strategyFixtureOpen(sgaFixture, sgaCapture.source()),
-      true,
+  const graphPublicationCases = [{
+    name: 'match-nodes',
+    step: {
+      from: 'g',
+      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+      as: 'out',
+    },
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  }, {
+    name: 'graph-bounds',
+    step: {
+      from: 'g',
+      graph_bounds: {max_nodes: 1, max_edges: 1, max_degree: 1},
+      as: 'out',
+    },
+    fields: ['kind', 'node_id', 'actual', 'max'],
+    secondFields: ['kind', 'node_id'],
+    expected: [
+      {kind: 'degree', node_id: 1, actual: 2, max: 1},
+      {kind: 'degree', node_id: 2, actual: 2, max: 1},
+      {kind: 'edges', node_id: null, actual: 2, max: 1},
+      {kind: 'nodes', node_id: null, actual: 2, max: 1},
+    ],
+  }, {
+    name: 'degree-both',
+    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
+    fields: ['node', 'degree'],
+    secondFields: ['degree'],
+    expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
+  }];
+  for (const publicationCase of graphPublicationCases) {
+    const graphProgram = structuredClone(graphProgramBase);
+    graphProgram.stages[2].steps[1] = publicationCase.step;
+    graphProgram.stages[2].results.r.fields = publicationCase.fields;
+    graphProgram.stages[3].steps[0].select = publicationCase.fields;
+    graphProgram.stages[3].results.r.fields = publicationCase.fields;
+    graphProgram.stages[4].steps[0].select = publicationCase.secondFields;
+    graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
+    graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
+    graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
+    const sgaFixture = fixture.strategyFixtureSgaCreate(
+      ...sgaEnvironmentArguments(args),
+      JSON.stringify(graphProgram),
     );
-    const setup = fixture.strategyFixtureSgaSubset(sgaFixture);
-    const runtime = runtimeCore(hostRuntime);
-    const resultCount = runtime.resultInventory(setup).length;
-    assert.equal(resultCount, 1);
-    sgaPublicationStore = await openLocalPublicationStore({
-      directory: sgaPublicationDirectory,
-      storeAuthorityCid: hash('sga-publication-store'),
-      capacityBytes: 4 * 1024 * 1024,
-      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
-      maxObjects: 100,
-      maxContractNodes: 10000,
-      maxContractDepth: 64,
-    }, runtime.publicationControl);
-    const plan = standardPublicationPlan(
-      runtime,
-      runtime.programDefinitionCid(setup),
-      resultCount,
-      'sga-publication-attempt',
+    const sgaCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(sgaFixture),
+      suppliedLimits,
     );
-    sgaPublicationOwner = await runPublishedCapturedStrategy(
-      setup,
-      {store: sgaPublicationStore, plan},
-      {},
-      new AbortController().signal,
-    );
-    assert.equal(sgaPublicationOwner.status, 'published');
-    assert.equal(
-      sgaPublicationOwner.publication.publication.state,
-      'succeeded',
-    );
-    assert.deepEqual(
-      sgaPublicationOwner.execution.completed.map(value => value.realization),
-      Array(5).fill('local-managed'),
-    );
-    const occurrence =
-      sgaPublicationOwner.execution.publicationInventory.occurrences[0];
-    const received = [];
-    await sgaPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
-      authorityScopeCid: plan.request.authorityScopeCid,
-      runDefinitionCid: plan.runDefinition.identity,
-    }, occurrence.definitionContract.identity, () => true,
-    chunk => received.push(Buffer.from(chunk)));
-    assert.deepEqual(
-      JSON.parse(Buffer.concat(received).toString('utf8')),
-      [
-        {id: 1, node_name: 'first'},
-        {id: 2, node_name: 'second'},
-      ],
-    );
-  } finally {
-    if (sgaPublicationOwner !== undefined) {
-      await sgaPublicationOwner.close();
-      assert.equal(sgaPublicationOwner.cleanupPending(), false);
-      assert.equal(await sgaPublicationOwner.cleanup(), true);
-      assert.equal(sgaPublicationOwner.execution.usage().heldBytes, 0n);
+    const sgaPublicationDirectory = await mkdtemp(join(
+      root,
+      '_build/duckdb-fixtures/sga-publication-entry-',
+    ));
+    let sgaPublicationOwner;
+    let sgaPublicationStore;
+    try {
       assert.equal(
-        sgaPublicationOwner.execution.usage().reservedExecutionBytes,
-        0n,
+        fixture.strategyFixtureOpen(sgaFixture, sgaCapture.source()),
+        true,
       );
+      const setup = fixture.strategyFixtureSgaSubset(sgaFixture);
+      const runtime = runtimeCore(hostRuntime);
+      const resultCount = runtime.resultInventory(setup).length;
+      assert.equal(resultCount, 1);
+      sgaPublicationStore = await openLocalPublicationStore({
+        directory: sgaPublicationDirectory,
+        storeAuthorityCid: hash('sga-publication-store'),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        runtime.programDefinitionCid(setup),
+        resultCount,
+        `sga-publication-attempt-${publicationCase.name}`,
+      );
+      sgaPublicationOwner = await runPublishedCapturedStrategy(
+        setup,
+        {store: sgaPublicationStore, plan},
+        {},
+        new AbortController().signal,
+      );
+      assert.equal(sgaPublicationOwner.status, 'published');
+      assert.equal(
+        sgaPublicationOwner.publication.publication.state,
+        'succeeded',
+      );
+      assert.deepEqual(
+        sgaPublicationOwner.execution.completed.map(value => value.realization),
+        Array(5).fill('local-managed'),
+      );
+      const occurrence =
+        sgaPublicationOwner.execution.publicationInventory.occurrences[0];
+      const received = [];
+      await sgaPublicationStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        publicationCase.expected,
+      );
+    } finally {
+      if (sgaPublicationOwner !== undefined) {
+        await sgaPublicationOwner.close();
+        assert.equal(sgaPublicationOwner.cleanupPending(), false);
+        assert.equal(await sgaPublicationOwner.cleanup(), true);
+        assert.equal(sgaPublicationOwner.execution.usage().heldBytes, 0n);
+        assert.equal(
+          sgaPublicationOwner.execution.usage().reservedExecutionBytes,
+          0n,
+        );
+      }
+      sgaCapture.close();
+      await sgaPublicationStore?.close();
+      await rm(sgaPublicationDirectory, {recursive: true, force: true});
     }
-    sgaCapture.close();
-    await sgaPublicationStore?.close();
-    await rm(sgaPublicationDirectory, {recursive: true, force: true});
   }
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(
     ...args,
