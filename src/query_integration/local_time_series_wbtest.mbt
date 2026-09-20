@@ -93,6 +93,8 @@ test "registered time-series provider emits a bounded UTC grid" {
     match @local_connector.advance_managed_provider(execution, 1).unwrap() {
       @local_connector.Continue(work~, ..) => assert_eq(work, 1L)
       @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("time-series provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("time-series provider failed")
       @local_connector.Stopped(..) => fail("time-series provider stopped")
     }

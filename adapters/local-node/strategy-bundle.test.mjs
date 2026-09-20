@@ -673,3 +673,85 @@ test('standard Host runs Local with mixed memory and provider inputs',
       await result.close();
     }
   });
+
+test('standard Local dispatches a Carrier input to a Carrier output',
+  async () => {
+    const setup = {};
+    const registration = {};
+    const inputCompleted = {};
+    const inputMaterial = {};
+    const outputCompleted = {};
+    const outputMaterial = {};
+    const configuration = {};
+    const wrappedInput = {};
+    const outputs = new Map([[1, {
+      completed: inputCompleted,
+      carrierMaterial: inputMaterial,
+      close() {},
+    }]]);
+    let settled = false;
+    let closed = false;
+    const operations = {
+      inputs: [],
+      advance: quantum => {
+        assert.equal(quantum, 256);
+        return ok({complete: true, progress: 1n, work: 1n});
+      },
+      request_cancel: () => false,
+      execution_stopped: () => true,
+      settle: () => { settled = true; return ok(); },
+      complete_carrier: () => {
+        assert.equal(settled, true);
+        return ok(outputCompleted);
+      },
+      carrier_material: () => outputMaterial,
+      material: () => undefined,
+      storage_bytes: 32n,
+      close: () => { closed = true; },
+    };
+    const local = localStrategyContribution({
+      strategyModule_local_Registration: () => registration,
+      strategyHostRegistrationSelectionKey: () => 'local-carrier',
+      strategyHostNextTask: () => 2,
+      strategyHostManagedProducers: () => [1],
+      strategyHostManagedInputCount: () => 1,
+      strategyHostReleasableManagedProducers: () => [1],
+      strategyModule_local_RelationOutput: () =>
+        assert.fail('Carrier input was wrapped as a Relation'),
+      strategyModule_local_CarrierOutput: (completed, material) => {
+        assert.equal(completed, inputCompleted);
+        assert.equal(material, inputMaterial);
+        return wrappedInput;
+      },
+      strategyModule_local_ManagedCarrierDispatch: (
+        owner, inputs, outputBytes,
+      ) => {
+        assert.equal(owner, setup);
+        assert.deepEqual(inputs, [wrappedInput]);
+        assert.equal(outputBytes, 0n);
+        return ok(configuration);
+      },
+      strategyModule_local_ManagedDuration: value => {
+        assert.equal(value, configuration);
+        return 0n;
+      },
+      strategyModule_local_ManagedCapacity: value => {
+        assert.equal(value, configuration);
+        return [32n, 16n];
+      },
+      strategyModule_local_ManagedStart: value => {
+        assert.equal(value, configuration);
+        return ok(operations);
+      },
+    }, setup, checked);
+    const prepared = await local.prepareNext(outputs);
+    assert.equal(prepared.task, 2);
+    const result = await local.runPrepared(prepared);
+    assert.equal(result.completed, outputCompleted);
+    assert.equal(result.carrierMaterial, outputMaterial);
+    assert.equal(result.diagnostic.outputRepresentation,
+      'managed-local-carrier');
+    assert.equal(settled, true);
+    result.close();
+    assert.equal(closed, true);
+  });

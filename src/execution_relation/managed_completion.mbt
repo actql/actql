@@ -9,6 +9,7 @@ struct ManagedCompletionPort[P, T] {
   target : @pipeline.Target
   inputs : Array[ProducerRead]
   managed_inputs : Array[ManagedProducerRead[T]]
+  common_inputs : Array[ManagedInputBinding]
   bindings : Array[ProducerBindingIdentity]
   verify : (P) -> ManagedRetainedOutput[T]?
   obligations : ManagedObligations
@@ -221,6 +222,7 @@ pub fn[P, T] prepare_managed_completion_port(
   verify : (P) -> ManagedRetainedOutput[T]?,
   inputs? : Array[ProducerRead],
   managed_inputs? : Array[ManagedProducerRead[T]],
+  common_inputs? : Array[ManagedInputBinding],
   obligations? : ManagedObligations,
   identity_issuer? : ManagedIdentityIssuer[T],
   identity_issuers? : Array[ManagedIdentityIssuer[T]],
@@ -228,7 +230,11 @@ pub fn[P, T] prepare_managed_completion_port(
 ) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue] {
   // A fixed-input set has one explicit provenance family, never a partial mix
   // that silently drops the remaining ports. Acquisition may omit both.
-  if inputs is Some(_) && managed_inputs is Some(_) {
+  if (
+      inputs is Some(_) &&
+      (managed_inputs is Some(_) || common_inputs is Some(_))
+    ) ||
+    (managed_inputs is Some(_) && common_inputs is Some(_)) {
     return Err(ForeignInputs)
   }
   let (_, _, bindings) = match
@@ -252,6 +258,29 @@ pub fn[P, T] prepare_managed_completion_port(
         input.input_index != index ||
         input.output.profile.cid != profile.cid ||
         !managed_producer_read_available(input) {
+        return Err(ForeignInputs)
+      }
+    }
+  }
+  let selected_common_inputs = match common_inputs {
+    Some(values) => values.copy()
+    None =>
+      managed_inputs
+      .map(values => values.map(input => managed_relation_input_binding(input)))
+      .unwrap_or([])
+  }
+  if common_inputs is Some(_) {
+    if selected_common_inputs.length() > max_entries {
+      return Err(Limit)
+    }
+    let owner = completion_preparation_owner(preparation)
+    if selected_common_inputs.length() !=
+      @lower.preparation_input_count(@lower.bound_preparation(owner)) {
+      return Err(ForeignInputs)
+    }
+    for index, input in selected_common_inputs {
+      if !managed_input_binding_matches_input(input, owner, index) ||
+        managed_input_binding_profile_cid(input) != profile.cid {
         return Err(ForeignInputs)
       }
     }
@@ -312,6 +341,7 @@ pub fn[P, T] prepare_managed_completion_port(
     bindings,
     inputs: inputs.map(values => values.copy()).unwrap_or([]),
     managed_inputs: managed_inputs.map(values => values.copy()).unwrap_or([]),
+    common_inputs: selected_common_inputs,
     verify,
     obligations: selected_obligations,
     identity_issuers: selected_identity_issuers,
@@ -388,7 +418,7 @@ pub fn[P, T] complete_managed_output(
     preparation: port.preparation,
     target: port.target,
     bindings: port.bindings,
-    managed_bindings: port.managed_inputs.map(input => input.identity),
+    managed_bindings: port.common_inputs.map(input => input.identity),
     material,
     identities: managed_obligations_identities(port.obligations).map(requirement => {
       requirement,
@@ -653,6 +683,11 @@ fn[P, T] verify_managed_completion_material(
       return Err(ForeignInputs)
     }
   }
+  for input in port.common_inputs {
+    if !managed_input_binding_available(input) {
+      return Err(ForeignInputs)
+    }
+  }
   let verified = (port.verify)(proof)
   if port.revoked {
     return Err(Unverified)
@@ -682,6 +717,11 @@ fn[P, T] verify_managed_completion_material(
   }
   for input in port.managed_inputs {
     if !managed_producer_read_available(input) {
+      return Err(ForeignInputs)
+    }
+  }
+  for input in port.common_inputs {
+    if !managed_input_binding_available(input) {
       return Err(ForeignInputs)
     }
   }
@@ -797,6 +837,23 @@ pub fn[T] managed_completed_output_matches_inputs(
 pub fn[T] managed_completed_output_matches_managed_inputs(
   output : ManagedCompletedOutput[T],
   inputs : Array[ManagedProducerRead[T]],
+) -> Bool {
+  if !output.bindings.is_empty() ||
+    inputs.length() != output.managed_bindings.length() {
+    return false
+  }
+  for index, binding in output.managed_bindings {
+    if !physical_equal(inputs[index].identity, binding) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+pub fn[T] managed_completed_output_matches_common_inputs(
+  output : ManagedCompletedOutput[T],
+  inputs : Array[ManagedInputBinding],
 ) -> Bool {
   if !output.bindings.is_empty() ||
     inputs.length() != output.managed_bindings.length() {

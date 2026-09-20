@@ -5,6 +5,7 @@
 struct ManagedFixedComputeRequest[T] {
   owner : @lower.BoundPrepared
   inputs : Array[@execution.ManagedProducerRead[T]]
+  bindings : Array[@execution.ManagedInputBinding]
   capacity : FixedComputeCapacity
   obligations : @execution.ManagedObligations
 }
@@ -26,6 +27,7 @@ pub fn[T] prepare_managed_fixed_compute_request(
   prepare_managed_fixed_compute_request_for_owner_validated(
     @execution.managed_producer_read_receiver(first),
     inputs,
+    inputs.map(input => @execution.managed_relation_input_binding(input)),
     capacity,
     obligations,
   )
@@ -46,7 +48,34 @@ pub fn[T] prepare_managed_fixed_compute_request_for_owner(
     Ok(_) => ()
   }
   prepare_managed_fixed_compute_request_for_owner_validated(
-    owner, inputs, capacity, obligations,
+    owner,
+    inputs,
+    inputs.map(input => @execution.managed_relation_input_binding(input)),
+    capacity,
+    obligations,
+  )
+}
+
+///|
+/// Admit a complete ordered mixture of managed Relation and Carrier use sites.
+/// Payload access remains in the selected implementation; the common request
+/// retains only exact binding, capacity, and obligation evidence.
+pub fn[T] prepare_managed_fixed_compute_request_for_bindings(
+  owner : @lower.BoundPrepared,
+  bindings : Array[@execution.ManagedInputBinding],
+  capacity : FixedComputeCapacity,
+  obligations : @execution.ManagedObligations,
+) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue] {
+  match validate_managed_fixed_capacity(capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  prepare_managed_fixed_compute_request_for_owner_validated(
+    owner,
+    [],
+    bindings,
+    capacity,
+    obligations,
   )
 }
 
@@ -68,6 +97,7 @@ fn validate_managed_fixed_capacity(
 fn[T] prepare_managed_fixed_compute_request_for_owner_validated(
   owner : @lower.BoundPrepared,
   inputs : Array[@execution.ManagedProducerRead[T]],
+  bindings : Array[@execution.ManagedInputBinding],
   capacity : FixedComputeCapacity,
   obligations : @execution.ManagedObligations,
 ) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue] {
@@ -79,15 +109,22 @@ fn[T] prepare_managed_fixed_compute_request_for_owner_validated(
     return Err(ForeignPreparation)
   }
   if @lower.preparation_input_count(@lower.bound_preparation(owner)) !=
-    inputs.length() {
+    bindings.length() {
     return Err(UnsupportedInputShape)
   }
-  for index in 0..<inputs.length() {
-    let input = inputs[index]
-    if !physical_equal(@execution.managed_producer_read_receiver(input), owner) {
-      return Err(ForeignPreparation)
+  for index, binding in bindings {
+    if !@execution.managed_input_binding_matches_input(binding, owner, index) {
+      return Err(InputUnavailable)
     }
-    if @execution.managed_producer_read_input_index(input) != index {
+  }
+  for input in inputs {
+    let index = @execution.managed_producer_read_input_index(input)
+    if index < 0 ||
+      index >= bindings.length() ||
+      !@execution.managed_input_binding_same(
+        bindings[index],
+        @execution.managed_relation_input_binding(input),
+      ) {
       return Err(UnsupportedInputShape)
     }
     if !@execution.managed_producer_read_available(input) {
@@ -97,7 +134,13 @@ fn[T] prepare_managed_fixed_compute_request_for_owner_validated(
       return Err(CommonInputRows)
     }
   }
-  Ok({ owner, inputs: inputs.copy(), capacity, obligations, })
+  Ok({
+    owner,
+    inputs: inputs.copy(),
+    bindings: bindings.copy(),
+    capacity,
+    obligations,
+  })
 }
 
 ///|
@@ -126,7 +169,14 @@ pub fn[T] managed_fixed_compute_request_input(
 pub fn[T] managed_fixed_compute_request_input_count(
   request : ManagedFixedComputeRequest[T],
 ) -> Int {
-  request.inputs.length()
+  request.bindings.length()
+}
+
+///|
+pub fn[T] managed_fixed_compute_request_bindings(
+  request : ManagedFixedComputeRequest[T],
+) -> Array[@execution.ManagedInputBinding] {
+  request.bindings.copy()
 }
 
 ///|

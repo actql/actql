@@ -121,6 +121,8 @@ pub fn[T, P] managed_fixed_compute_choice_payload(ManagedFixedComputeChoice[T], 
 
 pub fn[T] managed_fixed_compute_choice_reason(ManagedFixedComputeChoice[T]) -> @physical_cost.CostChoice
 
+pub fn[T] managed_fixed_compute_request_bindings(ManagedFixedComputeRequest[T]) -> Array[@execution_relation.ManagedInputBinding]
+
 pub fn[T] managed_fixed_compute_request_capacity(ManagedFixedComputeRequest[T]) -> FixedComputeCapacity
 
 pub fn[T] managed_fixed_compute_request_input(ManagedFixedComputeRequest[T], Int) -> @execution_relation.ManagedProducerRead[T]?
@@ -148,6 +150,8 @@ pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Re
 pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
 pub fn[T] prepare_managed_fixed_compute_request(Array[@execution_relation.ManagedProducerRead[T]], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
+
+pub fn[T] prepare_managed_fixed_compute_request_for_bindings(@lowering_relation.BoundPrepared, Array[@execution_relation.ManagedInputBinding], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
 
 pub fn[T] prepare_managed_fixed_compute_request_for_owner(@lowering_relation.BoundPrepared, Array[@execution_relation.ManagedProducerRead[T]], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
 

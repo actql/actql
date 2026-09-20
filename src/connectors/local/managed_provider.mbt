@@ -21,6 +21,13 @@ pub enum ManagedProviderInput {
 }
 
 ///|
+pub fn managed_provider_relation_input(
+  value : @execution.ProducerRead,
+) -> ManagedProviderInput {
+  RelationInput(value)
+}
+
+///|
 pub fn managed_provider_carrier_input(
   value : @carrier_runtime.ProducerView,
 ) -> ManagedProviderInput {
@@ -40,8 +47,18 @@ struct ManagedProviderExecution {
 pub enum ManagedProviderPoll {
   Continue(progress~ : Int64, work~ : Int64)
   Complete(@execution.CompletedOutput, progress~ : Int64, work~ : Int64)
+  CarrierComplete(@carrier_runtime.Material, progress~ : Int64, work~ : Int64)
   Failed(@connector.FixedComputeIssue, progress~ : Int64, work~ : Int64)
   Stopped(progress~ : Int64, work~ : Int64)
+}
+
+///|
+pub fn managed_provider_carrier_complete(
+  material : @carrier_runtime.Material,
+  progress : Int64,
+  work : Int64,
+) -> ManagedProviderPoll {
+  CarrierComplete(material, progress~, work~)
 }
 
 ///|

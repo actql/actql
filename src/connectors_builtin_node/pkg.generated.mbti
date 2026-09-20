@@ -8,6 +8,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
   "actql/actql/physical_strategy",
@@ -36,9 +37,15 @@ pub fn local_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strate
 
 pub fn local_managed_capacity(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 
+pub fn local_managed_carrier_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure
+
+pub fn local_managed_carrier_output(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material) -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]
+
 pub fn local_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure
 
 pub fn local_managed_duration(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Int64?
+
+pub fn local_managed_relation_output(@execution_relation.ManagedCompletedOutput[Int]) -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]
 
 pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 

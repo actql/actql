@@ -146,6 +146,10 @@ pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution
 
 pub fn complete_materializing_task_execution(CapturedDAG, TaskExecution, @execution_relation.CompletedOutput) -> Result[Unit, RunIssue]
 
+pub fn[T] complete_managed_task_execution_with_inputs(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedInputBinding]) -> Result[Unit, RunIssue]
+
+pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
+
 pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
 pub fn configure_captured_managed_identity_policy(CapturedDAG, Bool, Bool, Bool, Bool) -> Bool

@@ -8,6 +8,9 @@ struct LocalManagedDispatchConfiguration[T] {
   prepared : @connector.PreparedManagedCompute[T, @execution.GeneratedSequence]
   sequence : @execution.GeneratedSequence
   provider : @local.ManagedProvider?
+  relation_inputs : Array[@execution.ManagedProducerRead[T]]
+  provider_inputs : Array[LocalManagedPreparedInput]
+  completion_inputs : Array[@execution.ManagedInputBinding]
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
@@ -17,6 +20,36 @@ struct LocalManagedDispatchConfiguration[T] {
   asof_search_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[@connector.AggregateOutputCeiling]
   analytic_envelopes : Array[@connector.AnalyticEnvelope]
+}
+
+///|
+pub enum LocalManagedAvailableOutput[T] {
+  RelationOutput(@execution.ManagedCompletedOutput[T])
+  CarrierOutput(
+    @execution.CarrierManagedCompletedOutput,
+    @carrier_runtime.Material
+  )
+}
+
+///|
+pub fn[T] local_managed_relation_output(
+  output : @execution.ManagedCompletedOutput[T],
+) -> LocalManagedAvailableOutput[T] {
+  RelationOutput(output)
+}
+
+///|
+pub fn[T] local_managed_carrier_output(
+  output : @execution.CarrierManagedCompletedOutput,
+  material : @carrier_runtime.Material,
+) -> LocalManagedAvailableOutput[T] {
+  CarrierOutput(output, material)
+}
+
+///|
+priv enum LocalManagedPreparedInput {
+  PreparedRelation(Int)
+  PreparedCarrier(@carrier_runtime.ProducerView)
 }
 
 ///|
@@ -53,9 +86,14 @@ pub struct LocalManagedDispatchOperations[T] {
     @execution.ManagedCompletedOutput[T],
     LocalDispatchIssue,
   ]
+  complete_carrier : () -> Result[
+    @execution.CarrierManagedCompletedOutput,
+    LocalDispatchIssue,
+  ]
   output_rows : () -> Int
   output_row : (Int) -> Result[String, LocalDispatchIssue]
   material : () -> @execution.ManagedRetainedOutput[T]?
+  carrier_material : () -> @carrier_runtime.Material?
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
@@ -80,23 +118,89 @@ pub fn[T] prepare_local_managed_dispatch(
   obligations : @execution.ManagedObligations,
   _output_file_bytes : Int64,
 ) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue] {
+  prepare_local_managed_dispatch_with_outputs(
+    installed,
+    outputs.map(output => local_managed_relation_output(output)),
+    obligations,
+    _output_file_bytes,
+  )
+}
+
+///|
+/// Prepare Local execution from the exact ordered Relation/Carrier output set.
+pub fn[T] prepare_local_managed_dispatch_with_outputs(
+  installed : LocalDispatchModule,
+  outputs : Array[LocalManagedAvailableOutput[T]],
+  obligations : @execution.ManagedObligations,
+  _output_file_bytes : Int64,
+) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
     installed.import_policy is Some((imports, _)) else {
     return Ok(None)
   }
-  let inputs = []
+  let relation_inputs = []
+  let provider_inputs = []
+  let completion_inputs = []
+  let producers = @strategy.captured_next_managed_producers(installed.run)
+  if producers.length() != outputs.length() {
+    return Err(Configuration(InputUnavailable))
+  }
   for index, output in outputs {
-    match
-      @strategy.captured_managed_task_input(
-        installed.run,
-        task,
-        output,
-        @local.local_module_max_work(installed.implementation),
-        imports.wire.max_bytes,
-        input_index=index,
-      ) {
-      Ok(value) => inputs.push(value)
-      Err(issue) => return Err(Execution(issue))
+    match output {
+      RelationOutput(output) =>
+        match
+          @strategy.captured_managed_task_input(
+            installed.run,
+            task,
+            output,
+            @local.local_module_max_work(installed.implementation),
+            imports.wire.max_bytes,
+            input_index=index,
+          ) {
+          Ok(value) => {
+            let relation_index = relation_inputs.length()
+            relation_inputs.push(value)
+            provider_inputs.push(PreparedRelation(relation_index))
+            completion_inputs.push(
+              @execution.managed_relation_input_binding(value),
+            )
+          }
+          Err(issue) => return Err(Execution(issue))
+        }
+      CarrierOutput(output, material) => {
+        guard @strategy.graph_task_owner(
+            @strategy.captured_dag_graph(installed.run),
+            task,
+          )
+          is Some(receiver) &&
+          @strategy.graph_task_owner(
+            @strategy.captured_dag_graph(installed.run),
+            producers[index],
+          )
+          is Some(producer) else {
+          return Err(Execution(ForeignCandidate))
+        }
+        let view = match
+          @carrier_runtime.material_prepare_view(
+            material, receiver, index, producer,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        let read = match
+          @strategy.captured_carrier_managed_task_input(
+            installed.run,
+            task,
+            output,
+            @carrier_runtime.producer_view_read_reference(view),
+            input_index=index,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Execution(issue))
+        }
+        provider_inputs.push(PreparedCarrier(view))
+        completion_inputs.push(@execution.managed_carrier_input_binding(read))
+      }
     }
   }
   guard @strategy.graph_task_owner(
@@ -114,13 +218,24 @@ pub fn[T] prepare_local_managed_dispatch(
     is Some(asof_search_ceilings) else {
     return Err(Configuration(InvalidLimits))
   }
-  let request = match
-    @connector.prepare_managed_fixed_compute_request_for_owner(
+  let request_result = if provider_inputs.any(input => {
+      input is PreparedCarrier(_)
+    }) {
+    @connector.prepare_managed_fixed_compute_request_for_bindings(
       owner,
-      inputs,
+      completion_inputs,
       @local.local_module_managed_capacity(installed.implementation),
       obligations,
-    ) {
+    )
+  } else {
+    @connector.prepare_managed_fixed_compute_request_for_owner(
+      owner,
+      relation_inputs,
+      @local.local_module_managed_capacity(installed.implementation),
+      obligations,
+    )
+  }
+  let request = match request_result {
     Ok(value) => value
     Err(
       LogicalIdentityUnsupported
@@ -129,7 +244,8 @@ pub fn[T] prepare_local_managed_dispatch(
     ) => return Ok(None)
     Err(issue) => return Err(Configuration(issue))
   }
-  let estimates = match local_managed_estimate_lines(installed, task, inputs) {
+  let estimates = match
+    local_managed_estimate_lines(installed, task, relation_inputs) {
     Ok(value) => value
     Err(_) => return Err(Configuration(InvalidLimits))
   }
@@ -174,7 +290,7 @@ pub fn[T] prepare_local_managed_dispatch(
     @local.local_import_retention_capacity(imports) is Some(per_input) else {
     return Err(Configuration(InvalidLimits))
   }
-  let count = inputs.length().to_int64()
+  let count = relation_inputs.length().to_int64()
   if per_input > 0L && count > 9223372036854775807L / per_input {
     return Err(Configuration(InvalidLimits))
   }
@@ -231,6 +347,9 @@ pub fn[T] prepare_local_managed_dispatch(
       prepared,
       sequence,
       provider,
+      relation_inputs,
+      provider_inputs,
+      completion_inputs,
       execution: @local.local_module_execution_limits(installed.implementation),
       measurement: @local.local_module_measurement_limits(
         installed.implementation,
@@ -289,12 +408,16 @@ pub fn[T] start_local_managed_dispatch(
   let reads : Array[@execution.ProducerRead?] = []
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
+  let carrier : Ref[@carrier_runtime.Material?] = Ref(None)
+  let carrier_completed : Ref[@execution.CarrierManagedCompletedOutput?] = Ref(
+    None,
+  )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
   let execution_finished = Ref(false)
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
-  let managed_inputs = @connector.managed_fixed_compute_request_inputs(request)
+  let managed_inputs = setup.relation_inputs
   let obligations = @connector.managed_fixed_compute_request_obligations(
     request,
   )
@@ -396,12 +519,17 @@ pub fn[T] start_local_managed_dispatch(
           },
           settled: fn() { settled.val = true },
           retention_released: fn() {
-            retained.val is None ||
-            retained.val
-            .map(value => {
-              @execution.managed_retained_output_payload(value) is None
-            })
-            .unwrap()
+            let relation_released = retained.val is None ||
+              retained.val
+              .map(value => {
+                @execution.managed_retained_output_payload(value) is None
+              })
+              .unwrap()
+            let carrier_released = carrier.val is None ||
+              carrier.val
+              .map(value => !@carrier_runtime.material_available(value))
+              .unwrap()
+            relation_released && carrier_released
           },
           released: fn() { () },
           ready: fn() {
@@ -529,10 +657,17 @@ pub fn[T] start_local_managed_dispatch(
           Some(value) => value
           None => {
             let started = match
-              @local.start_managed_provider(
+              @local.start_managed_provider_with_inputs(
                 provider,
                 setup.sequence,
-                exact,
+                setup.provider_inputs.map(input => {
+                  match input {
+                    PreparedRelation(index) =>
+                      @local.managed_provider_relation_input(exact[index])
+                    PreparedCarrier(view) =>
+                      @local.managed_provider_carrier_input(view)
+                  }
+                }),
                 @connector.managed_fixed_compute_request_capacity(request).max_rows,
                 @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
               ) {
@@ -562,6 +697,20 @@ pub fn[T] start_local_managed_dispatch(
             }
             Ok({ complete: true, progress, work, })
           }
+          Ok(@local.CarrierComplete(material, progress~, work~)) => {
+            if progress < 0L ||
+              work < 0L ||
+              work > quantum.to_int64() ||
+              !@carrier_runtime.material_available(material) {
+              return Err(Configuration(InvalidLimits))
+            }
+            carrier.val = Some(material)
+            execution_finished.val = true
+            for bridge in bridges {
+              @execution.close_managed_producer_bridge(bridge)
+            }
+            Ok({ complete: true, progress, work, })
+          }
           Ok(@local.Failed(issue, progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {
               return Err(Configuration(InvalidLimits))
@@ -579,6 +728,11 @@ pub fn[T] start_local_managed_dispatch(
         }
       }
       None => {
+        if setup.provider_inputs.length() != exact.length() ||
+          setup.provider_inputs.any(input => input is PreparedCarrier(_)) {
+          execution_finished.val = true
+          return Err(Configuration(UnsupportedInputShape))
+        }
         let output = match
           @local.execute_local_managed_fixed_compute(
             setup.choice,
@@ -999,7 +1153,7 @@ pub fn[T] start_local_managed_dispatch(
               None
             }
           },
-          managed_inputs~,
+          common_inputs=setup.completion_inputs,
           obligations~,
           identity_issuers~,
           attempt=execution_attempt,
@@ -1043,7 +1197,7 @@ pub fn[T] start_local_managed_dispatch(
     },
     settle: fn() {
       let failed_or_stopped = !live.val ||
-        (execution_finished.val && ordinary.val is None)
+        (execution_finished.val && ordinary.val is None && carrier.val is None)
       if !finalization_ready.val &&
         !finalization_cancelled.val &&
         !failed_or_stopped {
@@ -1075,12 +1229,12 @@ pub fn[T] start_local_managed_dispatch(
         Err(issue) => return Err(Execution(Physical(issue)))
       }
       match
-        @strategy.complete_managed_task_execution(
+        @strategy.complete_managed_task_execution_with_inputs(
           setup.run,
           execution,
           completed,
           allocation~,
-          managed_inputs~,
+          managed_inputs=setup.completion_inputs,
         ) {
         Err(issue) => {
           @strategy.release_task_execution_allocation(allocation) |> ignore
@@ -1088,6 +1242,73 @@ pub fn[T] start_local_managed_dispatch(
         }
         Ok(_) => {
           retained.val = Some(material)
+          Ok(completed)
+        }
+      }
+    },
+    complete_carrier: fn() {
+      guard execution_finished.val &&
+        ordinary.val is None &&
+        carrier.val is Some(material) &&
+        carrier_completed.val is None &&
+        output_target is Some(target) &&
+        @carrier_runtime.material_available(material) &&
+        @carrier_runtime.material_storage_bytes(material) is Some(storage_bytes) &&
+        storage_bytes == setup.capacity.retained_bytes &&
+        !@execution.managed_obligations_require_logical_identity(obligations) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      let common_inputs = setup.completion_inputs
+      let reference = @carrier_runtime.material_reference(material)
+      let completion = match
+        @execution.prepare_carrier_managed_completion_port_with_inputs(
+          @execution.selected_managed_execution_profile(),
+          @execution.generated_completion_preparation(setup.sequence),
+          target,
+          setup.imports.wire.max_nodes,
+          setup.imports.wire.max_bytes,
+          (_ : Unit) => {
+            if @carrier_runtime.material_available(material) {
+              Some(reference)
+            } else {
+              None
+            }
+          },
+          inputs=common_inputs,
+          obligations~,
+          attempt=execution_attempt,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(ManagedCompletion(issue))
+      }
+      let completed = match
+        @execution.complete_carrier_managed_output(completion, ()) {
+        Ok(value) => value
+        Err(issue) => return Err(ManagedCompletion(issue))
+      }
+      let allocation = match
+        @strategy.retain_task_execution_allocation(
+          setup.run,
+          execution,
+          storage_bytes,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Execution(Physical(issue)))
+      }
+      match
+        @strategy.complete_carrier_managed_task_execution_with_inputs(
+          setup.run,
+          execution,
+          completed,
+          allocation~,
+          managed_inputs=common_inputs,
+        ) {
+        Err(issue) => {
+          @strategy.release_task_execution_allocation(allocation) |> ignore
+          Err(Execution(issue))
+        }
+        Ok(_) => {
+          carrier_completed.val = Some(completed)
           Ok(completed)
         }
       }
@@ -1108,10 +1329,14 @@ pub fn[T] start_local_managed_dispatch(
       ).map_err(_ => Configuration(InputUnavailable))
     },
     material: fn() { retained.val },
+    carrier_material: fn() { carrier.val },
     storage_bytes: setup.capacity.retained_bytes,
     close: fn() {
       live.val = false
       cancel_finalization()
+      if carrier.val is Some(material) {
+        @carrier_runtime.reclaim_material(material) |> ignore
+      }
       @strategy.close_task_execution(setup.run, execution)
     },
     cleanup_refresh: fn() {
@@ -1125,6 +1350,15 @@ pub fn[T] start_local_managed_dispatch(
           }
       }
       if !provider_reclaimed {
+        return false
+      }
+      let carrier_reclaimed = match carrier.val {
+        None => true
+        Some(material) =>
+          !@carrier_runtime.material_available(material) ||
+          @carrier_runtime.reclaim_material(material)
+      }
+      if !carrier_reclaimed {
         return false
       }
       @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(

@@ -90,6 +90,27 @@ pub fn[T] complete_managed_task_execution(
   allocation? : TaskRetainedAllocation,
   managed_inputs? : Array[@execution.ManagedProducerRead[T]],
 ) -> Result[Unit, RunIssue] {
+  complete_managed_task_execution_with_inputs(
+    run,
+    execution,
+    output,
+    allocation?,
+    managed_inputs?=managed_inputs.map(inputs => {
+      inputs.map(input => @execution.managed_relation_input_binding(input))
+    }),
+  )
+}
+
+///|
+/// Complete a Relation output from an exact ordered mixture of managed input
+/// Carriers.
+pub fn[T] complete_managed_task_execution_with_inputs(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  output : @execution.ManagedCompletedOutput[T],
+  allocation? : TaskRetainedAllocation,
+  managed_inputs? : Array[@execution.ManagedInputBinding],
+) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
   }
@@ -122,8 +143,8 @@ pub fn[T] complete_managed_task_execution(
   }
   let input_matches = match managed_inputs {
     Some(inputs) =>
-      captured_managed_inputs_match(run, task, inputs) &&
-      @execution.managed_completed_output_matches_managed_inputs(output, inputs)
+      captured_mixed_managed_inputs_match(run, task, inputs) &&
+      @execution.managed_completed_output_matches_common_inputs(output, inputs)
     None => {
       let inputs = []
       for input in run.inputs[task] {

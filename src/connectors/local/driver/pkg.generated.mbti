@@ -5,6 +5,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
   "actql/actql/execution_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/physical_cost",
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
@@ -35,9 +36,13 @@ pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?
 
 pub fn local_dispatch_work_slots() -> Int
 
+pub fn[T] local_managed_carrier_output(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material) -> LocalManagedAvailableOutput[T]
+
 pub fn[T] local_managed_dispatch_duration(LocalManagedDispatchConfiguration[T]) -> Int64?
 
 pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration[T]) -> (Int64, Int64)?
+
+pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
 
@@ -48,6 +53,8 @@ pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.R
 pub fn prepare_local_estimate_settings(LocalDispatchModule, LocalEstimateSettings) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
 pub fn[T] prepare_local_managed_dispatch(LocalDispatchModule, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue]
+
+pub fn[T] prepare_local_managed_dispatch_with_outputs(LocalDispatchModule, Array[LocalManagedAvailableOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue]
 
 pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
 
@@ -135,6 +142,11 @@ pub(all) struct LocalManagedAdvance {
   work : Int64
 }
 
+pub enum LocalManagedAvailableOutput[T] {
+  RelationOutput(@execution_relation.ManagedCompletedOutput[T])
+  CarrierOutput(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material)
+}
+
 type LocalManagedDispatchConfiguration[T]
 
 pub struct LocalManagedDispatchOperations[T] {
@@ -147,9 +159,11 @@ pub struct LocalManagedDispatchOperations[T] {
   advance_finalization : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : (T, Int64, () -> Bool) -> Result[@execution_relation.ManagedCompletedOutput[T], LocalDispatchIssue]
+  complete_carrier : () -> Result[@execution_relation.CarrierManagedCompletedOutput, LocalDispatchIssue]
   output_rows : () -> Int
   output_row : (Int) -> Result[String, LocalDispatchIssue]
   material : () -> @execution_relation.ManagedRetainedOutput[T]?
+  carrier_material : () -> @managed_carrier_runtime.Material?
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool

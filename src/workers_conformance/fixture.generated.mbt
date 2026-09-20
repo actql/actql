@@ -577,9 +577,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "match_nodes_literal" {
     "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
-  } else if variant == "match_edges" {
+  } else if variant == "match_nodes_predicate" {
+    "\"from\":\"g\",\"match_nodes\":{\"where\":" +
+    "\"node_name = 'second'\",\"fields\":[\"id\",\"node_name\"]}," +
+    "\"as\":\"out\""
+  } else if variant == "match_edges" || variant == "edge_projection" {
     "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
     "\"weight\"]},\"as\":\"out\""
+  } else if variant == "match_edges_predicate" {
+    "\"from\":\"g\",\"match_edges\":{\"where\":\"weight > 10\"," +
+    "\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"out\""
   } else if variant == "graph_bounds" {
     "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
     "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
@@ -593,10 +600,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"components\":{\"kind\":\"weak\"}," + "\"as\":\"out\""
   } else if variant == "components_strong" {
     "\"from\":\"g\",\"components\":{\"kind\":\"strong\"}," + "\"as\":\"out\""
+  } else if variant == "normalize" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "edge_projection" {
+    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if variant == "match_edges" {
+  let result_fields = if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -608,7 +621,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if variant == "match_edges" {
+  let second_fields = if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""

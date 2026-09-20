@@ -51,6 +51,12 @@ fn fail_execution(
 ///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
+  let count = @lower.sequence_count(
+    @execution.generated_prepared_sequence(sequence),
+  )
+  if count != 1 && count != 3 {
+    return false
+  }
   let index = Ref(0)
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
     let current = index.val
@@ -78,7 +84,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       _ => false
     }
   })
-  accepted && index.val == 3
+  accepted && index.val == count
 }
 
 ///|
@@ -198,7 +204,28 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@bridge.Complete(output, progress~, work~)) => {
+            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+              delta(work, value.stage_work) is Some(work_delta) else {
+              return fail_execution(value)
+            }
+            if @lower.sequence_count(value.sequence) == 1 {
+              let material = match @records.completed_material(output) {
+                Ok(value) => value
+                Err(_) => {
+                  @records.discard_completed(output) |> ignore
+                  return fail_execution(value)
+                }
+              }
+              value.terminal = true
+              value.phase = Terminal
+              return Ok(
+                @local.managed_provider_carrier_complete(
+                  material, progress_delta, work_delta,
+                ),
+              )
+            }
             guard continue_poll(value, progress, work) is Some(poll) else {
+              @records.discard_completed(output) |> ignore
               return fail_execution(value)
             }
             value.row_events = Some(output)

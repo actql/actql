@@ -188,6 +188,50 @@ fn carrier_events_owner(
 }
 
 ///|
+fn carrier_events_output_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"rows\",\"to_events\":{" +
+      "\"id\":\"event_id\",\"time\":\"occurred_at\"}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_events_storage_limits() -> @record_storage.Limits {
   {
     max_input_records: 10,
@@ -424,6 +468,8 @@ test "registered Events provider advances and reclaims one typed pipeline" {
     match @local_connector.advance_managed_provider(execution, 1).unwrap() {
       @local_connector.Continue(work~, ..) => assert_true(work > 0L)
       @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("provider failed")
       @local_connector.Stopped(..) => fail("provider stopped")
     }
@@ -439,6 +485,58 @@ test "registered Events provider advances and reclaims one typed pipeline" {
     @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
   )
   assert_true(@execution.completed_output_available(completed))
+}
+
+///|
+test "registered Events provider returns retained Carrier material" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_events_output_owner(source_owner)
+  let generated = task_test_generated(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let provider = @local_tea_provider.provider(
+    carrier_events_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider(
+    provider,
+    generated,
+    [external],
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  while material is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) => material = Some(value)
+      @local_connector.Complete(_, ..) => fail("provider returned rows")
+      @local_connector.Failed(_, ..) => fail("provider failed")
+      @local_connector.Stopped(..) => fail("provider stopped")
+    }
+  }
+  let retained = material.unwrap()
+  assert_eq(
+    @carrier_runtime.material_kind(retained),
+    @carrier_contract.EventsKind,
+  )
+  assert_eq(@carrier_runtime.material_storage_bytes(retained), Some(4096L))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(retained))
+  assert_true(@carrier_runtime.reclaim_material(retained))
 }
 
 ///|

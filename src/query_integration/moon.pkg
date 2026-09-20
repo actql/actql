@@ -87,4 +87,6 @@ import {
   "actql/actql/local_veca_provider",
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @record_storage,
+  "actql/actql/managed_carrier_runtime" @carrier_runtime,
+  "actql/actql/carrier_contract",
 } for "wbtest"

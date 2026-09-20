@@ -1232,45 +1232,6 @@ fn captured_output_inputs_match(
 }
 
 ///|
-/// A managed downstream use must name the exact graph edge and exact managed
-/// producer occurrence. Equal values, profile pins or physical bytes do not
-/// make another output an input of this task.
-fn[T] captured_managed_inputs_match(
-  run : CapturedDAG,
-  task : Int,
-  inputs : Array[@execution.ManagedProducerRead[T]],
-) -> Bool {
-  if task <= 0 ||
-    task >= run.inputs.length() ||
-    inputs.length() != run.inputs[task].length() {
-    return false
-  }
-  for port, input in inputs {
-    if !physical_equal(
-        @execution.managed_producer_read_receiver(input),
-        run.graph.owners[task],
-      ) ||
-      @execution.managed_producer_read_input_index(input) != port {
-      return false
-    }
-    let mut selected : DataEdge? = None
-    for edge in run.graph.data {
-      if edge.consumer == task && edge.input == port {
-        selected = Some(edge)
-        break
-      }
-    }
-    guard selected is Some(edge) &&
-      edge.producer > 0 &&
-      managed_task_output_reference(run, edge.producer) is Some(reference) &&
-      @execution.managed_producer_read_matches_reference(input, reference) else {
-      return false
-    }
-  }
-  true
-}
-
-///|
 /// Verify an ordered mixture of managed Relation and Carrier use sites against
 /// the exact producer occurrences retained by the common graph.
 fn captured_mixed_managed_inputs_match(
@@ -1328,10 +1289,10 @@ fn[T] captured_managed_request_inputs_match(
   task : Int,
   request : @connector.ManagedFixedComputeRequest[T],
 ) -> Bool {
-  captured_managed_inputs_match(
+  captured_mixed_managed_inputs_match(
     run,
     task,
-    @connector.managed_fixed_compute_request_inputs(request),
+    @connector.managed_fixed_compute_request_bindings(request),
   )
 }
 

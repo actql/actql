@@ -1813,6 +1813,8 @@ test "registered Graph provider expands repeated semantic input positions" {
     match @local_connector.advance_managed_provider(execution, 1).unwrap() {
       @local_connector.Continue(work~, ..) => assert_true(work > 0L)
       @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("Graph provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("Graph provider failed")
       @local_connector.Stopped(..) => fail("Graph provider stopped")
     }
@@ -1862,6 +1864,8 @@ test "registered Graph provider executes node identity match for two consumers" 
     match @local_connector.advance_managed_provider(execution, 1).unwrap() {
       @local_connector.Continue(work~, ..) => assert_true(work > 0L)
       @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("Graph provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("Graph match provider failed")
       @local_connector.Stopped(..) => fail("Graph match provider stopped")
     }

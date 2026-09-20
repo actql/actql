@@ -411,6 +411,8 @@ pub fn[T] managed_completed_output_available(ManagedCompletedOutput[T]) -> Bool
 
 pub fn[T] managed_completed_output_matches_attempt(ManagedCompletedOutput[T], ManagedExecutionAttempt) -> Bool
 
+pub fn[T] managed_completed_output_matches_common_inputs(ManagedCompletedOutput[T], Array[ManagedInputBinding]) -> Bool
+
 pub fn[T] managed_completed_output_matches_inputs(ManagedCompletedOutput[T], Array[ProducerRead]) -> Bool
 
 pub fn[T] managed_completed_output_matches_managed_inputs(ManagedCompletedOutput[T], Array[ManagedProducerRead[T]]) -> Bool
@@ -607,7 +609,7 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
-pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T], identity_issuers? : Array[ManagedIdentityIssuer[T]], attempt? : ManagedExecutionAttempt) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], common_inputs? : Array[ManagedInputBinding], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T], identity_issuers? : Array[ManagedIdentityIssuer[T]], attempt? : ManagedExecutionAttempt) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
 

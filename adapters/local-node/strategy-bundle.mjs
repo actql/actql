@@ -102,13 +102,31 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       }
       const inputs = producers.map(producer => outputs.get(producer));
       if (inputs.some(input => input == null)) return undefined;
-      const rowPlan = planManagedInputRows(inputs.map(input =>
+      const relationInputs = inputs.filter(input => input.carrierMaterial == null);
+      const rowPlan = planManagedInputRows(relationInputs.map(input =>
         input.siteMaterial ?? input.material));
       if (rowPlan === undefined) return undefined;
+      const carrierAware =
+        typeof moon.strategyModule_local_RelationOutput === 'function' &&
+        typeof moon.strategyModule_local_CarrierOutput === 'function' &&
+        typeof moon.strategyModule_local_ManagedCarrierDispatch === 'function';
+      if (!carrierAware && inputs.some(input => input.carrierMaterial != null)) {
+        return undefined;
+      }
+      const managedOutputs = carrierAware
+        ? inputs.map(input => input.carrierMaterial == null
+          ? moon.strategyModule_local_RelationOutput(input.completed)
+          : moon.strategyModule_local_CarrierOutput(
+            input.completed,
+            input.carrierMaterial,
+          ))
+        : inputs.map(input => input.completed);
       const managedConfiguration = checked(
-        moon.strategyModule_local_ManagedDispatch(
+        (carrierAware
+          ? moon.strategyModule_local_ManagedCarrierDispatch
+          : moon.strategyModule_local_ManagedDispatch)(
           setup,
-          inputs.map(input => input.completed),
+          managedOutputs,
           0n,
         ),
       );
@@ -139,7 +157,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     async runPrepared(prepared, signal) {
       signal?.throwIfAborted();
       const plannedMaterials = prepared.inputs.map(input =>
-        input.siteMaterial ?? input.material);
+        input.carrierMaterial == null
+          ? input.siteMaterial ?? input.material
+          : undefined).filter(material => material !== undefined);
       const preparedRowPlan = prepared.rowPlan ??
         planManagedInputRows(plannedMaterials);
       if (preparedRowPlan === undefined) {
@@ -156,8 +176,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       let available = true;
       try {
         const transfers = operations.inputs;
+        const relationInputs = prepared.inputs.filter(
+          input => input.carrierMaterial == null);
         if (!Array.isArray(transfers) ||
-            transfers.length !== prepared.inputs.length) {
+            transfers.length !== relationInputs.length) {
           throw new Error('InvalidLocalManagedInputCount');
         }
         const resolved = typeof prepared.resolveSiteInputs === 'function'
@@ -165,7 +187,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             transfers.map(transfer => transfer.input), signal,
           )
           : Object.freeze({
-            materials: Object.freeze(prepared.inputs.map(input =>
+            materials: Object.freeze(relationInputs.map(input =>
               input.siteMaterial ?? input.material)),
             records: Object.freeze([]),
           });
@@ -180,7 +202,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         }
         let completed;
         await withManagedInputRows(
-          prepared.inputs.map((input, index) => ({
+          relationInputs.map((input, index) => ({
             material: resolved.materials[index],
             input: transfers[index].input,
             codecContractCid: undefined,
@@ -188,7 +210,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           (input, index) =>
             moon.strategyHostManagedInputMatchesMaterial(
               input,
-              prepared.inputs[index].material,
+              relationInputs[index].material,
             ),
           (index, row) => checked(transfers[index].append(row)),
           async () => {
@@ -202,11 +224,12 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             if (prepared.siteCompletionReady?.() === false) {
               throw new Error('ExecutionSiteCompletionNotReady');
             }
+            const carrierMaterial = operations.carrier_material?.();
             const payload = nextMaterial++;
             const boundedFinalization =
               typeof operations.prepare_finalization === 'function' &&
               typeof operations.advance_finalization === 'function';
-            if (boundedFinalization) {
+            if (carrierMaterial == null && boundedFinalization) {
               await runManagedFinalization(
                 operations,
                 checked,
@@ -218,18 +241,33 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             }
             checked(operations.settle());
             recordManagedFailureExecutionSettled(failureProgress);
-            completed = checked(operations.complete(
-              payload,
-              operations.storage_bytes,
-              () => available,
-            ));
+            completed = carrierMaterial == null
+              ? checked(operations.complete(
+                payload,
+                operations.storage_bytes,
+                () => available,
+              ))
+              : checked(operations.complete_carrier());
           },
           resolvedRowPlan,
         );
         const material = operations.material();
-        if (completed == null || material == null) {
+        const carrierMaterial = operations.carrier_material?.();
+        if (completed == null || (material == null && carrierMaterial == null)) {
           throw new Error('MissingLocalManagedOutput');
         }
+        if (carrierMaterial != null) return Object.freeze({
+          completed,
+          carrierMaterial,
+          close: () => operations.close(),
+          diagnostic: Object.freeze({
+            realization: 'local-managed',
+            outputRepresentation: 'managed-local-carrier',
+            outputRows: 0,
+            siteTransfers: resolved.records.length,
+            siteTransferRecords: resolved.records,
+          }),
+        });
         const outputRows = operations.output_rows();
         const storageBytes = BigInt(operations.storage_bytes);
         // Safe Transfer advertisement for the row-wire fallback. It covers a

@@ -9,4 +9,5 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }
