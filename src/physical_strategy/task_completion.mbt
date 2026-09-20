@@ -31,6 +31,41 @@ fn close_publication_scope(scope : PublicationScope) -> Unit {
 }
 
 ///|
+/// The only mutation that makes a task output visible to scheduling and
+/// producer binding. Representation-specific verification must finish before
+/// this call; no Connector callback runs after the slot is committed.
+fn commit_task_output(
+  run : CapturedDAG,
+  task : Int,
+  output : CommittedTaskOutput,
+  holding : @resources.Holding?,
+) -> Result[Unit, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  guard task > 0 &&
+    task < run.outputs.length() &&
+    !run.done[task] &&
+    run.outputs[task] is None &&
+    run.resources[task] is None else {
+    return Err(ForeignCandidate)
+  }
+  if holding is Some(value) && !@resources.holding_available(run.ledger, value) {
+    return Err(Physical(InvalidCharge))
+  }
+  run.resources[task] = Some({
+    holding,
+    release_confirmed: fn() { true },
+    parents: task_parents(run, task),
+  })
+  run.outputs[task] = Some(output)
+  run.done[task] = true
+  clear_captured_inputs(run, task)
+  run.generation += 1
+  Ok(())
+}
+
+///|
 fn claim_task_publication(
   run : CapturedDAG,
   task : Int,
@@ -96,16 +131,7 @@ fn publish_task_completion(
   }
   // No connector callback or fallible operation splits retention attachment
   // from success. Completed descendants do not borrow upstream availability.
-  run.resources[task] = Some({
-    holding: Some(holding),
-    release_confirmed: fn() { true },
-    parents: task_parents(run, task),
-  })
-  run.outputs[task] = Some(Materialized(output))
-  run.done[task] = true
-  clear_captured_inputs(run, task)
-  run.generation += 1
-  Ok(())
+  commit_task_output(run, task, Materialized(output), Some(holding))
 }
 
 ///|
@@ -190,23 +216,22 @@ pub fn[T] complete_managed_task_execution(
   if run.stopped || !@execution.managed_completed_output_available(output) {
     return Err(if run.stopped { Stopped } else { MissingOutput })
   }
+  match
+    commit_task_output(
+      run,
+      task,
+      Managed(@execution.managed_completed_reference(output)),
+      holding,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if allocation is Some(owned) {
-    // Ownership moves to the graph's retained task resource. The old Host
+    // Ownership moved to the graph's retained task resource. The old Host
     // token can no longer release it independently.
     owned.live = false
   }
   execution.retained_bytes = None
-  run.resources[task] = Some({
-    holding,
-    release_confirmed: fn() { true },
-    parents: task_parents(run, task),
-  })
-  run.outputs[task] = Some(
-    Managed(@execution.managed_completed_reference(output)),
-  )
-  run.done[task] = true
-  clear_captured_inputs(run, task)
-  run.generation += 1
   @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
   run.running = None
   Ok(())
