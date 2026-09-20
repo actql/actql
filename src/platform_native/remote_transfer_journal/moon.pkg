@@ -1,9 +1,11 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_transfer" @transfer,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
 }
 
 import {

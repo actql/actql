@@ -8,6 +8,178 @@ struct Journal {
 }
 
 ///|
+fn destination_allocation_key(
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+) -> Result[String, NativeRemoteTransferJournalIssue] {
+  if index < 0 {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  let store_use = match @transfer.prepare_store_use(request, use_id) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  Ok(@transfer.store_use_cid(store_use) + "-" + index.to_string())
+}
+
+///|
+fn destination_allocation_body(
+  staging_name : String,
+  final_name : String,
+  phase : NativeRemoteDestinationAllocationPhase,
+) -> Bytes {
+  let (code, device, inode, size) = match phase {
+    DestinationAllocationIntent => ("intent", "", "", "")
+    DestinationAllocationStagingOwned(value) =>
+      ("owned", value.device.to_string(), value.inode.to_string(), "")
+    DestinationAllocationSealed(value) =>
+      (
+        "sealed",
+        value.device.to_string(),
+        value.inode.to_string(),
+        value.size.to_string(),
+      )
+    DestinationAllocationReused(value) =>
+      (
+        "reused",
+        value.device.to_string(),
+        value.inode.to_string(),
+        value.size.to_string(),
+      )
+    DestinationAllocationReclaimingOwned(value) =>
+      ("reclaim-owned", value.device.to_string(), value.inode.to_string(), "")
+    DestinationAllocationReclaimingSealed(value) =>
+      (
+        "reclaim-sealed",
+        value.device.to_string(),
+        value.inode.to_string(),
+        value.size.to_string(),
+      )
+    DestinationAllocationReleased => ("released", "", "", "")
+  }
+  @utf8.encode(
+    "1\n" +
+    staging_name +
+    "\n" +
+    final_name +
+    "\n" +
+    code +
+    "\n" +
+    device +
+    "\n" +
+    inode +
+    "\n" +
+    size,
+  )
+}
+
+///|
+fn parse_destination_allocation(
+  key : String,
+  value : @sqlite.NativeJournalValue,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  let body = @utf8.decode(value.body) catch { _ => return Err(StateCollision) }
+  let fields = body.split("\n").to_array()
+  if fields.length() != 7 ||
+    fields[0] != "1" ||
+    fields[1].is_empty() ||
+    fields[2].is_empty() {
+    return Err(StateCollision)
+  }
+  let ownership = fn() -> Result[
+    @filesystem.NativeFileOwnership,
+    NativeRemoteTransferJournalIssue,
+  ] {
+    guard destination_allocation_u64(fields[4].to_owned()) is Some(device) else {
+      return Err(StateCollision)
+    }
+    guard destination_allocation_u64(fields[5].to_owned()) is Some(inode) else {
+      return Err(StateCollision)
+    }
+    Ok({ device, inode, })
+  }
+  let generation = fn() -> Result[
+    @filesystem.NativeFileGeneration,
+    NativeRemoteTransferJournalIssue,
+  ] {
+    let owned = match ownership() {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    guard destination_allocation_i64(fields[6].to_owned()) is Some(size) else {
+      return Err(StateCollision)
+    }
+    if size < 0L {
+      return Err(StateCollision)
+    }
+    Ok({ device: owned.device, inode: owned.inode, size, })
+  }
+  let phase = match fields[3] {
+    "intent" => DestinationAllocationIntent
+    "owned" =>
+      match ownership() {
+        Ok(value) => DestinationAllocationStagingOwned(value)
+        Err(issue) => return Err(issue)
+      }
+    "sealed" =>
+      match generation() {
+        Ok(value) => DestinationAllocationSealed(value)
+        Err(issue) => return Err(issue)
+      }
+    "reused" =>
+      match generation() {
+        Ok(value) => DestinationAllocationReused(value)
+        Err(issue) => return Err(issue)
+      }
+    "reclaim-owned" =>
+      match ownership() {
+        Ok(value) => DestinationAllocationReclaimingOwned(value)
+        Err(issue) => return Err(issue)
+      }
+    "reclaim-sealed" =>
+      match generation() {
+        Ok(value) => DestinationAllocationReclaimingSealed(value)
+        Err(issue) => return Err(issue)
+      }
+    "released" => DestinationAllocationReleased
+    _ => return Err(StateCollision)
+  }
+  Ok({
+    key,
+    staging_name: fields[1].to_owned(),
+    final_name: fields[2].to_owned(),
+    revision: value.revision,
+    phase,
+  })
+}
+
+///|
+fn Journal::replace_destination_allocation(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  phase : NativeRemoteDestinationAllocationPhase,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  let body = destination_allocation_body(
+    current.staging_name,
+    current.final_name,
+    phase,
+  )
+  match
+    self.database.compare_exchange(
+      "remote_transfer_destination_allocation",
+      current.key,
+      current.revision,
+      body,
+    ) {
+    Ok(revision) if revision == current.revision + 1L =>
+      Ok({ ..current, revision, phase, })
+    Ok(_) | Err(@sqlite.Collision) => Err(StateCollision)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 fn receipt_storage_body(
   receipt : @transfer.RemoteTransferDestinationReceipt,
 ) -> Result[Bytes, NativeRemoteTransferJournalIssue] {
@@ -402,6 +574,166 @@ pub fn Journal::destination_capacity_usage(
   match self.database.capacity_usage("remote_transfer_destination") {
     Ok(value) => Ok(value)
     Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::prepare_destination_allocation(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+  staging_name : String,
+  final_name : String,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if self.closed || staging_name.is_empty() || final_name.is_empty() {
+    return if self.closed { Err(Closed) } else { Err(StateCollision) }
+  }
+  let key = match destination_allocation_key(request, use_id, index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("remote_transfer_destination_allocation", key) {
+    Ok(value) => {
+      let existing = match parse_destination_allocation(key, value) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if existing.staging_name == staging_name &&
+        existing.final_name == final_name {
+        Ok(existing)
+      } else {
+        Err(StateCollision)
+      }
+    }
+    Err(@sqlite.NotFound) => {
+      let body = destination_allocation_body(
+        staging_name,
+        final_name,
+        DestinationAllocationIntent,
+      )
+      match
+        self.database.insert(
+          "remote_transfer_destination_allocation", key, body,
+        ) {
+        Ok(revision) =>
+          Ok({
+            key,
+            staging_name,
+            final_name,
+            revision,
+            phase: DestinationAllocationIntent,
+          })
+        Err(@sqlite.Collision) => Err(StateCollision)
+        Err(issue) => Err(Physical(issue))
+      }
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+pub fn Journal::record_destination_allocation_owned(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  ownership : @filesystem.NativeFileOwnership,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if current.phase != DestinationAllocationIntent {
+    return Err(StateCollision)
+  }
+  self.replace_destination_allocation(
+    current,
+    DestinationAllocationStagingOwned(ownership),
+  )
+}
+
+///|
+pub fn Journal::record_destination_allocation_sealed(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  generation : @filesystem.NativeFileGeneration,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  guard current.phase is DestinationAllocationStagingOwned(ownership) else {
+    return Err(StateCollision)
+  }
+  if generation.device != ownership.device ||
+    generation.inode != ownership.inode {
+    return Err(StateCollision)
+  }
+  self.replace_destination_allocation(
+    current,
+    DestinationAllocationSealed(generation),
+  )
+}
+
+///|
+pub fn Journal::record_destination_allocation_reused(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  generation : @filesystem.NativeFileGeneration,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if current.phase != DestinationAllocationIntent {
+    return Err(StateCollision)
+  }
+  self.replace_destination_allocation(
+    current,
+    DestinationAllocationReused(generation),
+  )
+}
+
+///|
+pub fn Journal::begin_destination_allocation_reclaim(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  match current.phase {
+    DestinationAllocationStagingOwned(value) =>
+      self.replace_destination_allocation(
+        current,
+        DestinationAllocationReclaimingOwned(value),
+      )
+    DestinationAllocationSealed(value) =>
+      self.replace_destination_allocation(
+        current,
+        DestinationAllocationReclaimingSealed(value),
+      )
+    DestinationAllocationReclaimingOwned(_)
+    | DestinationAllocationReclaimingSealed(_)
+    | DestinationAllocationReleased => Ok(current)
+    DestinationAllocationReused(_) =>
+      self.replace_destination_allocation(
+        current,
+        DestinationAllocationReleased,
+      )
+    DestinationAllocationIntent => Err(RecoveryRequired)
+  }
+}
+
+///|
+pub fn Journal::release_destination_allocation_intent(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if current.phase != DestinationAllocationIntent {
+    return Err(StateCollision)
+  }
+  self.replace_destination_allocation(current, DestinationAllocationReleased)
+}
+
+///|
+pub fn Journal::finish_destination_allocation_reclaim(
+  self : Journal,
+  current : NativeRemoteDestinationAllocation,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  match current.phase {
+    DestinationAllocationReclaimingOwned(_)
+    | DestinationAllocationReclaimingSealed(_) =>
+      self.replace_destination_allocation(
+        current,
+        DestinationAllocationReleased,
+      )
+    DestinationAllocationReleased => Ok(current)
+    _ => Err(StateCollision)
   }
 }
 

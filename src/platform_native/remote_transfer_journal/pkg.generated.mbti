@@ -2,12 +2,19 @@
 package "actql/actql/platform_native/remote_transfer_journal"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_transfer",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn destination_allocation_final_name(NativeRemoteDestinationAllocation) -> String
+
+pub fn destination_allocation_phase(NativeRemoteDestinationAllocation) -> NativeRemoteDestinationAllocationPhase
+
+pub fn destination_allocation_staging_name(NativeRemoteDestinationAllocation) -> String
+
 pub fn open_journal(@sqlite.Library, String, Int64, Int, Int, Int64) -> Result[Journal, NativeRemoteTransferJournalIssue]
 
 pub fn recovered_remote_transfer_key(RecoveredRemoteTransfer) -> String
@@ -20,17 +27,42 @@ pub fn recovered_remote_transfer_record(RecoveredRemoteTransfer) -> @remote_tran
 type Journal
 pub fn Journal::accept(Self, @remote_transfer.RemoteTransferRequest) -> Result[(NativeRemoteTransferAdmission, @remote_transfer.RemoteTransferRecord), NativeRemoteTransferJournalIssue]
 pub fn Journal::accept_store_use(Self, @remote_transfer.RemoteTransferRequest, String) -> Result[(NativeRemoteTransferAdmission, @remote_transfer.RemoteTransferStoreUseRecord), NativeRemoteTransferJournalIssue]
+pub fn Journal::begin_destination_allocation_reclaim(Self, NativeRemoteDestinationAllocation) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_destination_receipt(Self, @remote_transfer.RemoteTransferDestinationReceipt, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferDestinationReceipt, NativeRemoteTransferJournalIssue]
 pub fn Journal::commit_store_use_transition(Self, @remote_transfer.RemoteTransferStoreUseTransition) -> Result[Unit, NativeRemoteTransferJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_transfer.RemoteTransferTransition) -> Result[Unit, NativeRemoteTransferJournalIssue]
 pub fn Journal::destination_capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativeRemoteTransferJournalIssue]
+pub fn Journal::finish_destination_allocation_reclaim(Self, NativeRemoteDestinationAllocation) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
 pub fn Journal::inspect_destination_receipt(Self, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferDestinationReceipt?, NativeRemoteTransferJournalIssue]
+pub fn Journal::prepare_destination_allocation(Self, @remote_transfer.RemoteTransferRequest, String, Int, String, String) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
+pub fn Journal::record_destination_allocation_owned(Self, NativeRemoteDestinationAllocation, @filesystem.NativeFileOwnership) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
+pub fn Journal::record_destination_allocation_reused(Self, NativeRemoteDestinationAllocation, @filesystem.NativeFileGeneration) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
+pub fn Journal::record_destination_allocation_sealed(Self, NativeRemoteDestinationAllocation, @filesystem.NativeFileGeneration) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
 pub fn Journal::recover_after(Self, String) -> Result[RecoveredRemoteTransfer?, NativeRemoteTransferJournalIssue]
+pub fn Journal::release_destination_allocation_intent(Self, NativeRemoteDestinationAllocation) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
 pub fn Journal::release_destination_holding(Self, @remote_transfer.RemoteTransferRequest) -> Result[Bool, NativeRemoteTransferJournalIssue]
 pub fn Journal::require(Self, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferJournalIssue]
 pub fn Journal::require_store_use(Self, @remote_transfer.RemoteTransferStoreUse) -> Result[@remote_transfer.RemoteTransferStoreUseRecord, NativeRemoteTransferJournalIssue]
 pub fn Journal::reserve_destination_holding(Self, @remote_transfer.RemoteTransferRequest, Int64, Int64) -> Result[Bool, NativeRemoteTransferJournalIssue]
+
+pub struct NativeRemoteDestinationAllocation {
+  key : String
+  staging_name : String
+  final_name : String
+  revision : Int64
+  phase : NativeRemoteDestinationAllocationPhase
+}
+
+pub(all) enum NativeRemoteDestinationAllocationPhase {
+  DestinationAllocationIntent
+  DestinationAllocationStagingOwned(@filesystem.NativeFileOwnership)
+  DestinationAllocationSealed(@filesystem.NativeFileGeneration)
+  DestinationAllocationReused(@filesystem.NativeFileGeneration)
+  DestinationAllocationReclaimingOwned(@filesystem.NativeFileOwnership)
+  DestinationAllocationReclaimingSealed(@filesystem.NativeFileGeneration)
+  DestinationAllocationReleased
+} derive(Eq, @debug.Debug)
 
 pub(all) enum NativeRemoteTransferAdmission {
   NewTransfer
@@ -43,6 +75,7 @@ pub(all) enum NativeRemoteTransferJournalIssue {
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote_transfer.RemoteTransferIssue)
   StateCollision
+  RecoveryRequired
 }
 
 type RecoveredRemoteTransfer

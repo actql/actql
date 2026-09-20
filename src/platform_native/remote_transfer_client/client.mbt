@@ -503,6 +503,7 @@ fn verify_destination_object(
 
 ///|
 fn prepare_destination_chunk(
+  journal : @journal.Journal,
   root : @filesystem.Root,
   client : @http.Client,
   base : String,
@@ -516,6 +517,65 @@ fn prepare_destination_chunk(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let staging_name = match destination_staging_name(request, use_id, index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut allocation = match
+    journal.prepare_destination_allocation(
+      request, use_id, index, staging_name, final_name,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  match @journal.destination_allocation_phase(allocation) {
+    @journal.DestinationAllocationSealed(generation)
+    | @journal.DestinationAllocationReused(generation) => {
+      if !root.verify_generation(final_name, generation) {
+        return Err(ReconciliationRequired)
+      }
+      return match
+        verify_destination_object(
+          root, final_name, generation, expected_cid, expected_bytes,
+        ) {
+        Ok(true) => Ok(generation)
+        Ok(false) => Err(ReconciliationRequired)
+        Err(issue) => Err(issue)
+      }
+    }
+    @journal.DestinationAllocationStagingOwned(ownership) => {
+      // A crash may move an owned staging inode to its final name before the
+      // sealed generation is journaled. Only that exact ownership may resume.
+      let final_generation = match root.inspect_generation(final_name) {
+        Ok(value) => value
+        Err(issue) => return Err(Destination(issue))
+      }
+      match final_generation {
+        Some(generation) if generation.device == ownership.device &&
+          generation.inode == ownership.inode => {
+          allocation = match
+            journal.record_destination_allocation_sealed(allocation, generation) {
+            Ok(value) => value
+            Err(issue) => return Err(Durable(issue))
+          }
+          return match
+            verify_destination_object(
+              root, final_name, generation, expected_cid, expected_bytes,
+            ) {
+            Ok(true) => Ok(generation)
+            Ok(false) => Err(ReconciliationRequired)
+            Err(issue) => Err(issue)
+          }
+        }
+        Some(_) | None => return Err(ReconciliationRequired)
+      }
+    }
+    @journal.DestinationAllocationReclaimingOwned(_)
+    | @journal.DestinationAllocationReclaimingSealed(_)
+    | @journal.DestinationAllocationReleased =>
+      return Err(ReconciliationRequired)
+    @journal.DestinationAllocationIntent => ()
+  }
   let existing = match root.inspect_generation(final_name) {
     Ok(value) => value
     Err(issue) => return Err(Destination(issue))
@@ -526,26 +586,19 @@ fn prepare_destination_chunk(
         verify_destination_object(
           root, final_name, generation, expected_cid, expected_bytes,
         ) {
-        Ok(true) => return Ok(generation)
-        Ok(false) =>
-          match root.reclaim_generation(final_name, generation) {
-            Ok(_) => ()
-            Err(issue) => return Err(Destination(issue))
+        Ok(true) =>
+          match
+            journal.record_destination_allocation_reused(allocation, generation) {
+            Ok(_) => return Ok(generation)
+            Err(issue) => return Err(Durable(issue))
           }
+        Ok(false) => return Err(ReconciliationRequired)
         Err(issue) => return Err(issue)
       }
     None => ()
   }
-  let staging_name = match destination_staging_name(request, use_id, index) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   match root.inspect_generation(staging_name) {
-    Ok(Some(generation)) =>
-      match root.reclaim_generation(staging_name, generation) {
-        Ok(_) => ()
-        Err(issue) => return Err(Destination(issue))
-      }
+    Ok(Some(_)) => return Err(ReconciliationRequired)
     Ok(None) => ()
     Err(issue) => return Err(Destination(issue))
   }
@@ -583,6 +636,14 @@ fn prepare_destination_chunk(
     Ok(value) => value
     Err(issue) => return Err(Destination(issue))
   }
+  allocation = match
+    journal.record_destination_allocation_owned(allocation, writer.ownership()) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(writer.cancel())
+      return Err(Durable(issue))
+    }
+  }
   match writer.append(response.body) {
     Ok(_) => ()
     Err(issue) => {
@@ -591,7 +652,11 @@ fn prepare_destination_chunk(
     }
   }
   match writer.seal(final_name) {
-    Ok(value) => Ok(value)
+    Ok(value) =>
+      match journal.record_destination_allocation_sealed(allocation, value) {
+        Ok(_) => Ok(value)
+        Err(issue) => Err(Durable(issue))
+      }
     Err(issue) => {
       ignore(writer.cancel())
       Err(Destination(issue))
@@ -1072,6 +1137,7 @@ pub fn receive_durable_store_transfer(
   for index, expected_cid in chunk_cids {
     let generation = match
       prepare_destination_chunk(
+        journal,
         destination_root,
         client,
         origin + "/v1/transfer-store",
@@ -1199,6 +1265,7 @@ pub fn cancel_durable_store_transfer(
     }
   }
   let chunk_count = @transfer.request_chunk_cids(request).length()
+  let reclaiming : Array[@journal.NativeRemoteDestinationAllocation] = []
   for index = 0; index < chunk_count; index = index + 1 {
     let final_name = match destination_object_name(request, index) {
       Ok(value) => value
@@ -1208,21 +1275,98 @@ pub fn cancel_durable_store_transfer(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    for name in [final_name, staging_name] {
-      match destination_root.inspect_generation(name) {
-        Ok(Some(generation)) =>
-          match destination_root.reclaim_generation(name, generation) {
-            Ok(_) => ()
-            Err(issue) => return Err(Destination(issue))
-          }
-        Ok(None) => ()
-        Err(issue) => return Err(Destination(issue))
+    let allocation = match
+      journal.prepare_destination_allocation(
+        request, use_id, index, staging_name, final_name,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Durable(issue))
+    }
+    match @journal.destination_allocation_phase(allocation) {
+      @journal.DestinationAllocationIntent => {
+        let staging = match destination_root.inspect_generation(staging_name) {
+          Ok(value) => value
+          Err(issue) => return Err(Destination(issue))
+        }
+        let final_generation = match
+          destination_root.inspect_generation(final_name) {
+          Ok(value) => value
+          Err(issue) => return Err(Destination(issue))
+        }
+        if staging is Some(_) || final_generation is Some(_) {
+          return Err(ReconciliationRequired)
+        }
+        match journal.release_destination_allocation_intent(allocation) {
+          Ok(_) => ()
+          Err(issue) => return Err(Durable(issue))
+        }
+      }
+      @journal.DestinationAllocationReused(_) =>
+        match journal.begin_destination_allocation_reclaim(allocation) {
+          Ok(_) => ()
+          Err(issue) => return Err(Durable(issue))
+        }
+      @journal.DestinationAllocationReleased => ()
+      @journal.DestinationAllocationStagingOwned(_)
+      | @journal.DestinationAllocationSealed(_)
+      | @journal.DestinationAllocationReclaimingOwned(_)
+      | @journal.DestinationAllocationReclaimingSealed(_) => {
+        let active = match
+          journal.begin_destination_allocation_reclaim(allocation) {
+          Ok(value) => value
+          Err(issue) => return Err(Durable(issue))
+        }
+        let (ownership, sealed_generation) = match
+          @journal.destination_allocation_phase(active) {
+          @journal.DestinationAllocationReclaimingOwned(value) => (value, None)
+          @journal.DestinationAllocationReclaimingSealed(value) =>
+            ({ device: value.device, inode: value.inode, }, Some(value))
+          _ => return Err(Durable(@journal.StateCollision))
+        }
+        let staging = match destination_root.inspect_generation(staging_name) {
+          Ok(value) => value
+          Err(issue) => return Err(Destination(issue))
+        }
+        match staging {
+          Some(value) if value.device == ownership.device &&
+            value.inode == ownership.inode =>
+            match destination_root.reclaim_generation(staging_name, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(Destination(issue))
+            }
+          Some(_) => return Err(ReconciliationRequired)
+          None => ()
+        }
+        let final_generation = match
+          destination_root.inspect_generation(final_name) {
+          Ok(value) => value
+          Err(issue) => return Err(Destination(issue))
+        }
+        match final_generation {
+          Some(value) if value.device == ownership.device &&
+            value.inode == ownership.inode &&
+            (sealed_generation is None || sealed_generation == Some(value)) =>
+            match destination_root.reclaim_generation(final_name, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(Destination(issue))
+            }
+          Some(_) if sealed_generation is Some(_) =>
+            return Err(ReconciliationRequired)
+          Some(_) | None => ()
+        }
+        reclaiming.push(active)
       }
     }
   }
   match destination_root.sync_directory() {
     Ok(_) => ()
     Err(issue) => return Err(Destination(issue))
+  }
+  for allocation in reclaiming {
+    match journal.finish_destination_allocation_reclaim(allocation) {
+      Ok(_) => ()
+      Err(issue) => return Err(Durable(issue))
+    }
   }
   let state = @transfer.record_projection(record)
   if state[1] != 3 && state[1] != 4 {

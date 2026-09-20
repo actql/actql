@@ -95,6 +95,83 @@ pub fn Journal::destination_capacity_usage(
 }
 
 ///|
+pub fn Journal::prepare_destination_allocation(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+  staging_name : String,
+  final_name : String,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(use_id)
+  ignore(index)
+  ignore(staging_name)
+  ignore(final_name)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::record_destination_allocation_owned(
+  _self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  ownership : @filesystem.NativeFileOwnership,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(current)
+  ignore(ownership)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::record_destination_allocation_sealed(
+  _self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  generation : @filesystem.NativeFileGeneration,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(current)
+  ignore(generation)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::record_destination_allocation_reused(
+  _self : Journal,
+  current : NativeRemoteDestinationAllocation,
+  generation : @filesystem.NativeFileGeneration,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(current)
+  ignore(generation)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::begin_destination_allocation_reclaim(
+  _self : Journal,
+  current : NativeRemoteDestinationAllocation,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(current)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::release_destination_allocation_intent(
+  _self : Journal,
+  current : NativeRemoteDestinationAllocation,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(current)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::finish_destination_allocation_reclaim(
+  _self : Journal,
+  current : NativeRemoteDestinationAllocation,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(current)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::commit_destination_receipt(
   _self : Journal,
   receipt : @transfer.RemoteTransferDestinationReceipt,

@@ -341,3 +341,110 @@ test "native Store upload seals once and restores without source upload" {
   assert_true(destination_reopened.close())
   assert_true(client.close())
 }
+
+///|
+test "native Store cleanup follows durable destination ownership" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(store_root) else {
+    return
+  }
+  let http = @http.load_library(path).unwrap()
+  let client = http.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let root = @filesystem.open_root(store_root).unwrap()
+  let foreign = @journal.open_journal(
+    sqlite,
+    sqlite_root + "/store-foreign-allocation.sqlite",
+    1048576L,
+    8,
+    4096,
+    1024L,
+  ).unwrap()
+  let foreign_request = native_transfer_request(
+    [b"foreign-target"],
+    @transfer.TransferStore,
+  )
+  ignore(foreign.accept(foreign_request).unwrap())
+  let foreign_final = destination_object_name(foreign_request, 0).unwrap()
+  let foreign_staging = destination_staging_name(
+    foreign_request, "foreign-use", 0,
+  ).unwrap()
+  let final_writer = root.create_writer("foreign-final-seed", 7L).unwrap()
+  final_writer.append(b"foreign").unwrap()
+  let final_generation = final_writer.seal(foreign_final).unwrap()
+  let staging_writer = root.create_writer(foreign_staging, 7L).unwrap()
+  staging_writer.append(b"foreign").unwrap()
+  let staging_ownership = staging_writer.ownership()
+  assert_true(
+    cancel_durable_store_transfer(
+      foreign, client, root, "https://unused.invalid", foreign_request, "foreign-use",
+    )
+    is Err(ReconciliationRequired),
+  )
+  assert_true(root.verify_generation(foreign_final, final_generation))
+  guard root.inspect_generation(foreign_staging).unwrap() is Some(staging) else {
+    fail("foreign staging generation disappeared")
+  }
+  assert_eq(staging.device, staging_ownership.device)
+  assert_eq(staging.inode, staging_ownership.inode)
+  staging_writer.cancel().unwrap()
+  root.reclaim_generation(foreign_final, final_generation).unwrap()
+  assert_true(foreign.close())
+  let owned = @journal.open_journal(
+    sqlite,
+    sqlite_root + "/store-owned-allocation.sqlite",
+    1048576L,
+    8,
+    4096,
+    1024L,
+  ).unwrap()
+  let owned_request = native_transfer_request(
+    [b"owned-residual"],
+    @transfer.TransferStore,
+  )
+  ignore(owned.accept(owned_request).unwrap())
+  assert_true(
+    owned.reserve_destination_holding(owned_request, 1024L, 8L).unwrap(),
+  )
+  let owned_final = destination_object_name(owned_request, 0).unwrap()
+  let owned_staging = destination_staging_name(owned_request, "owned-use", 0).unwrap()
+  let allocation = owned
+    .prepare_destination_allocation(
+      owned_request, "owned-use", 0, owned_staging, owned_final,
+    )
+    .unwrap()
+  let writer = root.create_writer(owned_staging, 14L).unwrap()
+  writer.append(b"owned-residual").unwrap()
+  ignore(
+    owned
+    .record_destination_allocation_owned(allocation, writer.ownership())
+    .unwrap(),
+  )
+  let cancelled = cancel_durable_store_transfer(
+    owned, client, root, "https://unused.invalid", owned_request, "owned-use",
+  ).unwrap()
+  assert_eq(@transfer.record_projection(cancelled)[1], 4)
+  assert_true(root.inspect_generation(owned_staging).unwrap() is None)
+  assert_eq(owned.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  root.sync_directory().unwrap()
+  assert_true(owned.close())
+  assert_true(client.close())
+}
