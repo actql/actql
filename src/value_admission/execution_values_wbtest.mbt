@@ -1,6 +1,7 @@
 ///|
 test "computed scalar constructors preserve exact contracts" {
   let boolean = @contract.primitive(@contract.BooleanType, nullable=false)
+  let nullable = @contract.primitive(@contract.StringType, nullable=true)
   let text = @contract.string_contract(
     nullable=false,
     min_length=Some(4L),
@@ -9,6 +10,12 @@ test "computed scalar constructors preserve exact contracts" {
   ).unwrap()
   assert_true(checked_boolean_value(true, boolean) is Some(_))
   assert_true(checked_boolean_value(true, text) is None)
+  guard checked_null_value(nullable) is Some(null) else {
+    abort("expected a checked nullable value")
+  }
+  assert_true(null.value is Null)
+  assert_true(@contract.type_equal(null.contract, nullable, 1))
+  assert_true(checked_null_value(text) is None)
   assert_true(checked_text_value("keep", text) is Some(_))
   assert_true(checked_text_value("mark!", text) is None)
 }

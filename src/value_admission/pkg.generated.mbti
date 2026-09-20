@@ -36,6 +36,8 @@ pub fn canonical_scalar_text(CheckedValue, Int) -> String?
 
 pub fn checked_boolean_value(Bool, @value_contract.Contract) -> CheckedValue?
 
+pub fn checked_null_value(@value_contract.Contract) -> CheckedValue?
+
 pub fn checked_number_value(Double, @value_contract.Contract) -> CheckedValue?
 
 pub fn checked_text_value(String, @value_contract.Contract) -> CheckedValue?

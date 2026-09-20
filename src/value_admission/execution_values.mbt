@@ -1,4 +1,14 @@
 ///|
+/// Bind a computed null to its exact nullable contract.
+pub fn checked_null_value(contract : @contract.Contract) -> CheckedValue? {
+  if contract.nullable {
+    Some({ contract, value: Null, })
+  } else {
+    None
+  }
+}
+
+///|
 /// Bind a computed Boolean to its exact non-null Boolean contract.
 pub fn checked_boolean_value(
   value : Bool,
