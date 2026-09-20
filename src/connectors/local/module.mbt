@@ -79,6 +79,7 @@ pub fn[T] prepare_local_module_managed_compute(
   installed : LocalComputeModule,
   slot : Int,
   request : @connector.ManagedFixedComputeRequest[T],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
   (
     @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
@@ -91,6 +92,7 @@ pub fn[T] prepare_local_module_managed_compute(
     slot,
     request,
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+    interval_search_ceilings~,
   )
 }
 
@@ -103,6 +105,7 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
   slot : Int,
   request : @connector.ManagedFixedComputeRequest[T],
   estimates : Array[@cost.SerialEstimateLine],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
   (
     @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
@@ -110,8 +113,16 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
   ),
   LocalModuleIssue,
 ] {
-  guard installed.sequences.get(slot) is Some(sequence) else {
+  guard installed.sequences.get(slot) is Some(configured) else {
     return Err(Candidate(ComputeUnsupported))
+  }
+  let mut sequence = configured
+  for (step, ceiling) in interval_search_ceilings {
+    sequence = match
+      @execution.constrain_generated_interval_search(sequence, step, ceiling) {
+      Ok(value) => value
+      Err(_) => return Err(Candidate(ForeignPreparation))
+    }
   }
   let provider = local_module_managed_provider(installed, sequence)
   let candidate = match

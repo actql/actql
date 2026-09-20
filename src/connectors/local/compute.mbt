@@ -173,7 +173,12 @@ pub fn local_managed_sequence_supported(
       @lower.SetStep(_) => true
       @lower.CrossJoinStep(_) => true
       @lower.JoinStep(_) => true
-      @lower.IntervalJoinStep(_) => false
+      @lower.IntervalJoinStep(kernel) =>
+        @execution.generated_interval_search_ceiling(
+          sequence,
+          @lower.interval_join_step(kernel),
+        )
+        is Some(_)
       @lower.NestStep(_) => true
       @lower.GraphBasicStep(_) => false
       @lower.GraphStructuralStep(_) => false
@@ -203,6 +208,7 @@ pub fn[T] execute_local_managed_fixed_compute(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   join_output_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
   numeric? : @execution.NumericAggregateExecution? = None,
@@ -237,6 +243,13 @@ pub fn[T] execute_local_managed_fixed_compute(
   for (step, ceiling) in join_output_ceilings {
     constrained = match
       @execution.constrain_generated_join_output(constrained, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
+  }
+  for (step, ceiling) in interval_search_ceilings {
+    constrained = match
+      @execution.constrain_generated_interval_search(constrained, step, ceiling) {
       Ok(value) => value
       Err(issue) => return Err(Execution(issue))
     }

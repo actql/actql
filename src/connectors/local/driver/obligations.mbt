@@ -26,6 +26,25 @@ pub fn local_dispatch_rejection(
 }
 
 ///|
+fn local_task_interval_search_ceilings(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[(Int, Int64)]? {
+  guard @strategy.captured_task_interval_search_count(run, task) is Some(count) else {
+    return None
+  }
+  let ceilings = []
+  for index in 0..<count {
+    guard @strategy.captured_task_interval_search_at(run, task, index)
+      is Some(ceiling) else {
+      return None
+    }
+    ceilings.push(ceiling)
+  }
+  Some(ceilings)
+}
+
+///|
 fn local_task_join_output_ceilings(
   run : @strategy.CapturedDAG,
   task : Int,

@@ -7,6 +7,7 @@ struct GeneratedSequence {
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
   join_ceilings : Array[(Int, Int64)]
+  interval_search_ceilings : Array[(Int, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
   analytic_envelopes : Array[SelectedAnalyticEnvelope]
   nest_item_ceilings : Array[(Int, Int64)]
@@ -92,6 +93,7 @@ pub fn prepare_generated_sequence(
         contexts,
         retained_ids,
         join_ceilings: [],
+        interval_search_ceilings: [],
         aggregate_outputs: [],
         analytic_envelopes: [],
         nest_item_ceilings: [],
@@ -122,6 +124,7 @@ pub fn execute_generated_sequence(
     produced~,
     fragments=Some(generated.contexts),
     join_ceilings=generated.join_ceilings,
+    interval_search_ceilings=generated.interval_search_ceilings,
     aggregate_outputs=generated.aggregate_outputs,
     analytic_envelopes=generated.analytic_envelopes,
     nest_item_ceilings=generated.nest_item_ceilings,
@@ -183,7 +186,11 @@ pub fn constrain_generated_join_output(
     return Err(InvalidLimits)
   }
   guard @lower.sequence_step(generated.sequence, step) is Some(value) &&
-    (value is @lower.JoinStep(_) || value is @lower.CrossJoinStep(_)) else {
+    (
+      value is @lower.JoinStep(_) ||
+      value is @lower.IntervalJoinStep(_) ||
+      value is @lower.CrossJoinStep(_)
+    ) else {
     return Err(InputSet)
   }
   let ceilings = generated.join_ceilings.copy()
@@ -199,6 +206,46 @@ pub fn constrain_generated_join_output(
     ceilings.push((step, ceiling))
   }
   Ok({ ..generated, join_ceilings: ceilings, })
+}
+
+///|
+/// Attach the separately selected ordered pair-visit ceiling for one interval
+/// join. This is not inferred from observed input cardinality or output limits.
+pub fn constrain_generated_interval_search(
+  generated : GeneratedSequence,
+  step : Int,
+  ceiling : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if ceiling < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.IntervalJoinStep(_)) else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.interval_search_ceilings.copy()
+  let mut replaced = false
+  for index, (prior_step, prior) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (step, Int64::min(prior, ceiling))
+      replaced = true
+      break
+    }
+  }
+  if !replaced {
+    ceilings.push((step, ceiling))
+  }
+  Ok({ ..generated, interval_search_ceilings: ceilings, })
+}
+
+///|
+/// The selected semantic search ceiling for one exact prepared interval step.
+/// Absence is not a zero bound and must keep execution selection closed.
+pub fn generated_interval_search_ceiling(
+  generated : GeneratedSequence,
+  step : Int,
+) -> Int64? {
+  selected_step_ceiling(generated.interval_search_ceilings, step)
 }
 
 ///|

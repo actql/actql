@@ -69,6 +69,7 @@ fn evaluate_physical_sequence(
   fragments : Array[FragmentRuntimeContext]?,
   ordered : OrderedExecution,
   join_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   numeric? : NumericAggregateExecution? = None,
@@ -138,6 +139,24 @@ fn evaluate_physical_sequence(
           join_ceilings,
           @lower.join_kernel_step(kernel),
         ),
+      ).map(table => RowTable(table))
+    }),
+    evaluate_interval_join=Some((kernel, left, right) => {
+      let step = @lower.interval_join_step(kernel)
+      guard selected_step_ceiling(interval_search_ceilings, step)
+        is Some(search_ceiling) else {
+        return Err(InvalidRowLimits)
+      }
+      evaluate_interval_join_rows(
+        kernel,
+        left,
+        right,
+        limits.max_rows,
+        search_ceiling,
+        control,
+        invocation.output_budget,
+        { limit: limits.operation_entries, live: 0, peak: 0, },
+        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
       ).map(table => RowTable(table))
     }),
     evaluate_cross_join=Some((kernel, left, right) => {

@@ -41,6 +41,7 @@ fn query_checked_program_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
+  local_values_interval_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
@@ -96,6 +97,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_time_series_chain {
     local_time_series_program()
+  } else {
+    text
+  }
+  let text = if local_values_interval_chain {
+    local_values_interval_program()
   } else {
     text
   }
@@ -472,6 +478,38 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
+  } else if local_values_interval_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      3L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      4L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let joined = query_capacity_proof(
+      "actql.bound.join-output",
+      12L,
+      "{\"op\":\"source\"}",
+      inputs=[
+        @wire.cid(@wire.program_proof_witness(left)),
+        @wire.cid(@wire.program_proof_witness(right)),
+      ],
+      step=0,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "joined",
+        steps=[0],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
   } else if local_values_join_chain {
     let same_stage_full = local_values_join_kind == "full" &&
       !local_values_join_imported_full
@@ -536,7 +574,9 @@ fn query_checked_program_fixture(
         {
           rela: true,
           sga: local_carrier_graph_chain,
-          tea: local_carrier_events_chain || local_time_series_chain,
+          tea: local_carrier_events_chain ||
+          local_time_series_chain ||
+          local_values_interval_chain,
           calendar: false,
           text_rank: false,
         },

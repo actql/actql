@@ -1,0 +1,154 @@
+///|
+fn local_values_interval_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"number","nullable":true},"time":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"time":2,"value":10},{"key":2,"time":7,"value":11},{"key":null,"time":1,"value":12}]},"as":"out"}],"results":{"r":{"from":"out","fields":["key","time","value"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"number","nullable":true},"start":{"type":"number","nullable":false},"end":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"start":0,"end":3,"value":20},{"key":1,"start":2,"end":4,"value":21},{"key":2,"start":8,"end":9,"value":22},{"key":null,"start":0,"end":3,"value":23}]},"as":"out"}],"results":{"r":{"from":"out","fields":["key","start","end","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","interval_join":{"with":"r","kind":"inner","mode":"point_in_interval","on":[{"left":"key","right":"key"}],"left":{"time":"time"},"right":{"start":"start","end":"end"},"select":{"left_value":"left.value","right_value":"right.value"},"max_output_rows":12},"as":"out"}],"results":{"r":{"from":"out","fields":["left_value","right_value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["right_value","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+test "standard Host runs bounded interval join for two consumers" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_interval_chain=true,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 536870912L,
+    }),
+  )
+  assert_eq(@strategy.captured_task_interval_search_count(run, 3), Some(1))
+  assert_eq(
+    @strategy.captured_task_interval_search_at(run, 3, 0),
+    Some((0, 12L)),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_columns: 4,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  let left_live = Ref(true)
+  let (left_ops, left) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    left_live,
+  )
+  let left_rows = local_managed_test_rows(left_ops)
+  let right_live = Ref(true)
+  let (right_ops, right) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    right_live,
+  )
+  let right_rows = local_managed_test_rows(right_ops)
+
+  let join_live = Ref(true)
+  let (join_ops, joined) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [left, right],
+    [left_rows, right_rows],
+    3,
+    join_live,
+  )
+  let joined_rows = local_managed_test_rows(join_ops)
+  assert_eq(joined_rows, [
+    "{\"left_value\":10,\"right_value\":20}", "{\"left_value\":10,\"right_value\":21}",
+  ])
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [joined],
+    [joined_rows],
+    4,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [joined],
+    [joined_rows],
+    5,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops), joined_rows)
+  assert_eq(local_managed_test_rows(second_ops), [
+    "{\"right_value\":20,\"left_value\":10}", "{\"right_value\":21,\"left_value\":10}",
+  ])
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(joined))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  join_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (join_ops.close)()
+  (join_ops.cleanup_refresh)() |> ignore
+  left_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (left_ops.close)()
+  (left_ops.cleanup_refresh)() |> ignore
+  right_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (right_ops.close)()
+  (right_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}

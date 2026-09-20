@@ -11,6 +11,7 @@ struct CapturedDAG {
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
   join_limits : Array[Array[(Int, Int64)]]
+  interval_search_limits : Array[Array[(Int, Int64)]]
   aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]]
   analytic_envelopes : Array[Array[@connector.AnalyticEnvelope]]
   inputs : Array[Array[@execution.ProducerRead?]]
@@ -202,6 +203,10 @@ pub fn open_captured_dag(
     @pipeline.input_count(pipeline)
   })
   let join_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => [])
+  let interval_search_limits : Array[Array[(Int, Int64)]] = Array::makei(
+    count,
+    _ => [],
+  )
   let aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]] = Array::makei(
     count,
     _ => [],
@@ -230,6 +235,22 @@ pub fn open_captured_dag(
             @step_bounds.join_limit_effective_maximum(check.limit),
           ),
         )
+      }
+      if requirement.disposition is ExecutionCheck(IntervalSearch(check)) {
+        let step = check.site.step
+        let upper = @step_bounds.interval_search_upper(check.product)
+        let mut duplicate = false
+        for (previous_step, previous_upper) in interval_search_limits[index] {
+          if previous_step == step {
+            if previous_upper != upper {
+              return Err(UnsupportedGraph)
+            }
+            duplicate = true
+          }
+        }
+        if !duplicate {
+          interval_search_limits[index].push((step, upper))
+        }
       }
       if requirement.disposition is ExecutionCheck(GroupExecution(check)) {
         let ceiling = match check.rule {
@@ -403,6 +424,7 @@ pub fn open_captured_dag(
     lifetimes,
     resources,
     join_limits,
+    interval_search_limits,
     aggregate_limits,
     analytic_envelopes,
     inputs: Array::makei(count, task => {
@@ -1315,6 +1337,27 @@ pub fn captured_task_join_output_at(
   index : Int,
 ) -> (Int, Int64)? {
   run.join_limits.get(task).bind(items => items.get(index)).map(pair => pair)
+}
+
+///|
+/// Selected checked interval-search bounds, retained by exact occurrence.
+pub fn captured_task_interval_search_count(
+  run : CapturedDAG,
+  task : Int,
+) -> Int? {
+  run.interval_search_limits.get(task).map(items => items.length())
+}
+
+///|
+pub fn captured_task_interval_search_at(
+  run : CapturedDAG,
+  task : Int,
+  index : Int,
+) -> (Int, Int64)? {
+  run.interval_search_limits
+  .get(task)
+  .bind(items => items.get(index))
+  .map(pair => pair)
 }
 
 ///|

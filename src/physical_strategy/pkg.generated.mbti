@@ -100,6 +100,10 @@ pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
+pub fn captured_task_interval_search_at(CapturedDAG, Int, Int) -> (Int, Int64)?
+
+pub fn captured_task_interval_search_count(CapturedDAG, Int) -> Int?
+
 pub fn captured_task_join_output_at(CapturedDAG, Int, Int) -> (Int, Int64)?
 
 pub fn captured_task_join_output_count(CapturedDAG, Int) -> Int?

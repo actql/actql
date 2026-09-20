@@ -245,6 +245,8 @@ pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, Aggr
 
 pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int64, Int64, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn constrain_generated_interval_search(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_nest_items(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -328,6 +330,8 @@ pub fn fixed_producer_stream_measurement_matches(FixedProducerStreamMeasuredOutp
 pub fn fixed_producer_stream_measurement_usage(FixedProducerStreamMeasuredOutput) -> (Int, Int, Int)
 
 pub fn generated_completion_preparation(GeneratedSequence) -> CompletionPreparation
+
+pub fn generated_interval_search_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_prepared_sequence(GeneratedSequence) -> @lowering_relation.PreparedSequence
 

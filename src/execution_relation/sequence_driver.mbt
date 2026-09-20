@@ -83,6 +83,7 @@ fn evaluate_sequence_components(
   produced? : Array[BoundProducerInput] = [],
   fragments? : Array[FragmentRuntimeContext]? = None,
   join_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   nest_item_ceilings? : Array[(Int, Int64)] = [],
@@ -116,6 +117,7 @@ fn evaluate_sequence_components(
       fragments,
       ordered,
       join_ceilings~,
+      interval_search_ceilings~,
       aggregate_outputs~,
       analytic_envelopes~,
       nest_item_ceilings~,
@@ -142,6 +144,7 @@ fn evaluate_sequence_components(
   run_sequence_invocation(
     invocation,
     join_ceilings~,
+    interval_search_ceilings~,
     aggregate_outputs~,
     analytic_envelopes~,
     nest_item_ceilings~,
@@ -438,6 +441,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
 fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
   join_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   numeric? : NumericAggregateExecution? = None,
@@ -499,6 +503,24 @@ fn run_sequence_invocation(
           join_ceilings,
           @lower.join_kernel_step(kernel),
         ),
+      )
+    }),
+    evaluate_interval_join=Some((kernel, left, right) => {
+      let step = @lower.interval_join_step(kernel)
+      guard selected_step_ceiling(interval_search_ceilings, step)
+        is Some(search_ceiling) else {
+        return Err(InvalidRowLimits)
+      }
+      evaluate_interval_join_rows(
+        kernel,
+        left,
+        right,
+        invocation.limits.max_rows,
+        search_ceiling,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
       )
     }),
     evaluate_cross_join=Some((kernel, left, right) => {
@@ -570,6 +592,10 @@ fn[T : RelationRows] run_completed_sequence_backend(
   wrap : (TableStore[T]) -> CompletedStore,
   evaluate_window? : ((@lower.PreparedWindow, T) -> Result[T, RowIssue])? = None,
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_interval_join? : ((@lower.PreparedIntervalJoin, T, T) -> Result[
+    T,
+    RowIssue,
+  ])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     RowIssue,
@@ -584,6 +610,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     evaluate,
     evaluate_window~,
     evaluate_join~,
+    evaluate_interval_join~,
     evaluate_cross_join~,
     evaluate_append~,
     evaluate_set~,
@@ -613,6 +640,10 @@ fn[T : RelationRows] run_sequence_with_backend(
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
   evaluate_window? : ((@lower.PreparedWindow, T) -> Result[T, RowIssue])? = None,
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_interval_join? : ((@lower.PreparedIntervalJoin, T, T) -> Result[
+    T,
+    RowIssue,
+  ])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     RowIssue,
@@ -679,6 +710,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
       }
     }),
+    evaluate_interval_join=evaluate_interval_join.map(evaluate => {
+      fn(i, kernel, left, right) {
+        evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
+      }
+    }),
     evaluate_cross_join=evaluate_cross_join.map(evaluate => {
       fn(i, kernel, left, right) {
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
@@ -729,6 +765,10 @@ fn[T : RelationRows] run_sequence_steps(
     T,
     SequenceRunIssue,
   ])? = None,
+  evaluate_interval_join? : ((Int, @lower.PreparedIntervalJoin, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
   evaluate_cross_join? : ((Int, @lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
     SequenceRunIssue,
@@ -776,7 +816,16 @@ fn[T : RelationRows] run_sequence_steps(
         }
         evaluate(i, kernel, left.table, right.table)
       }
-      @lower.IntervalJoinStep(_) => return Err(InputSet)
+      @lower.IntervalJoinStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 2 &&
+          evaluate_interval_join is Some(evaluate) &&
+          store.tables[route[0]] is Some(left) &&
+          store.tables[route[1]] is Some(right) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, left.table, right.table)
+      }
       @lower.CrossJoinStep(kernel) => {
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&
