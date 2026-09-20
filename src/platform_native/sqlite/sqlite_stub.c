@@ -250,7 +250,7 @@ static bool actql_initialize_schema(
   }
   int version = actql_user_version(database);
   if (version < 0) return false;
-  if (version > 2) {
+  if (version > 3) {
     actql_replace_error(&database->error, "unsupported SQLite schema version");
     return false;
   }
@@ -270,7 +270,14 @@ static bool actql_initialize_schema(
     "reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),"
     "PRIMARY KEY(namespace, reservation_key)"
     ") STRICT;"
-    "PRAGMA user_version=2;"
+    "CREATE TABLE IF NOT EXISTS actql_claims("
+    "namespace TEXT NOT NULL,"
+    "claim_key TEXT NOT NULL,"
+    "ordinal INTEGER NOT NULL CHECK(ordinal > 0),"
+    "PRIMARY KEY(namespace, claim_key),"
+    "UNIQUE(namespace, ordinal)"
+    ") STRICT;"
+    "PRAGMA user_version=3;"
     "COMMIT;";
   if (actql_exec(database, schema) != SQLITE_OK) {
     database->library->exec(database->database, "ROLLBACK", NULL, NULL, NULL);
@@ -1098,6 +1105,162 @@ int32_t actql_native_sqlite_database_release_capacity(
     return result;
   }
   return actql_capacity_commit(database);
+}
+
+int32_t actql_native_sqlite_database_claim_ordinal(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length,
+  int64_t max_claims
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  if (max_claims <= 0) return 6;
+  int32_t result = actql_capacity_begin(database);
+  if (result != 0) return result;
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "SELECT ordinal FROM actql_claims "
+    "WHERE namespace = ?1 AND claim_key = ?2",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare bounded claim read failed");
+    actql_capacity_rollback(database);
+    return actql_operation_code(code);
+  }
+  result = actql_bind_key(
+    database,
+    statement,
+    1,
+    namespace_bytes,
+    namespace_length,
+    2,
+    key,
+    key_length
+  );
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code == SQLITE_ROW) {
+      database->result_revision = (int64_t)database->library->column_int64(
+        statement,
+        0
+      );
+      result = database->result_revision > 0 ? 7 : -1;
+    } else if (code != SQLITE_DONE) {
+      actql_database_error(database, "read bounded claim failed");
+      result = actql_operation_code(code);
+    }
+  }
+  int finalize_code = database->library->finalize(statement);
+  statement = NULL;
+  if (result == 7) {
+    int32_t commit = actql_capacity_commit(database);
+    return commit == 0 ? 7 : commit;
+  }
+  if (result != 0 || finalize_code != SQLITE_OK) {
+    if (result == 0) {
+      actql_database_error(database, "finalize bounded claim read failed");
+      result = actql_operation_code(finalize_code);
+    }
+    actql_capacity_rollback(database);
+    return result;
+  }
+  code = database->library->prepare_v2(
+    database->database,
+    "SELECT COALESCE(MAX(ordinal), 0) FROM actql_claims "
+    "WHERE namespace = ?1",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare bounded claim count failed");
+    actql_capacity_rollback(database);
+    return actql_operation_code(code);
+  }
+  code = database->library->bind_text(
+    statement,
+    1,
+    (const char *)namespace_bytes,
+    namespace_length,
+    SQLITE_TRANSIENT
+  );
+  int64_t prior = 0;
+  if (code == SQLITE_OK) code = database->library->step(statement);
+  if (code == SQLITE_ROW) {
+    prior = (int64_t)database->library->column_int64(statement, 0);
+  } else {
+    actql_database_error(database, "count bounded claims failed");
+    result = actql_operation_code(code);
+  }
+  finalize_code = database->library->finalize(statement);
+  statement = NULL;
+  if (result == 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize bounded claim count failed");
+    result = actql_operation_code(finalize_code);
+  }
+  if (result != 0) {
+    actql_capacity_rollback(database);
+    return result;
+  }
+  if (prior < 0 || prior >= max_claims || prior == INT64_MAX) {
+    actql_capacity_rollback(database);
+    return 6;
+  }
+  int64_t ordinal = prior + 1;
+  code = database->library->prepare_v2(
+    database->database,
+    "INSERT INTO actql_claims(namespace, claim_key, ordinal) "
+    "VALUES(?1, ?2, ?3)",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare bounded claim insert failed");
+    actql_capacity_rollback(database);
+    return actql_operation_code(code);
+  }
+  result = actql_bind_key(
+    database,
+    statement,
+    1,
+    namespace_bytes,
+    namespace_length,
+    2,
+    key,
+    key_length
+  );
+  if (result == 0) {
+    code = database->library->bind_int64(
+      statement,
+      3,
+      (sqlite3_int64)ordinal
+    );
+    if (code == SQLITE_OK) code = database->library->step(statement);
+    if (code != SQLITE_DONE) {
+      actql_database_error(database, "insert bounded claim failed");
+      result = actql_operation_code(code);
+    }
+  }
+  finalize_code = database->library->finalize(statement);
+  if (result == 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize bounded claim insert failed");
+    result = actql_operation_code(finalize_code);
+  }
+  if (result != 0) {
+    actql_capacity_rollback(database);
+    return result;
+  }
+  result = actql_capacity_commit(database);
+  if (result == 0) database->result_revision = ordinal;
+  return result;
 }
 
 int32_t actql_native_sqlite_database_capacity_usage(

@@ -109,6 +109,17 @@ extern "C" fn database_release_capacity_ffi(
 ) -> Int = "actql_native_sqlite_database_release_capacity"
 
 ///|
+#borrow(database, scope, key)
+extern "C" fn database_claim_ordinal_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  max_claims : Int64,
+) -> Int = "actql_native_sqlite_database_claim_ordinal"
+
+///|
 #borrow(database, scope)
 extern "C" fn database_capacity_usage_ffi(
   database : Database,
@@ -397,6 +408,38 @@ pub fn Database::release_capacity(
     ) {
     0 => Ok(true)
     7 => Ok(false)
+    code => Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Atomically assigns a stable one-based ordinal under a bounded namespace.
+/// Repeating the same key returns its original ordinal without consuming a
+/// second claim.
+pub fn Database::claim_ordinal(
+  self : Database,
+  scope : String,
+  key : String,
+  max_claims : Int64,
+) -> Result[Int64, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  if max_claims <= 0L {
+    return Err(InvalidLimit)
+  }
+  match
+    database_claim_ordinal_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      max_claims,
+    ) {
+    0 | 7 => Ok(database_result_revision_ffi(self))
     code => Err(operation_issue(self, code))
   }
 }

@@ -110,3 +110,32 @@ test "native SQLite capacity reservations are atomic and restart safe" {
   assert_eq(released.reserved_objects, 0L)
   reopened.close()
 }
+
+///|
+test "native SQLite bounded claims are stable and restart safe" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = load_library(path).unwrap()
+  let database_path = root + "/claims-" + @env.now().to_string() + ".sqlite3"
+  let first = library.open_database(database_path, 64L).unwrap()
+  let second = library.open_database(database_path, 64L).unwrap()
+  assert_eq(first.claim_ordinal("credential", "one", 2L).unwrap(), 1L)
+  assert_eq(second.claim_ordinal("credential", "one", 2L).unwrap(), 1L)
+  assert_eq(second.claim_ordinal("credential", "two", 2L).unwrap(), 2L)
+  guard first.claim_ordinal("credential", "three", 2L) is Err(CapacityExceeded) else {
+    fail("bounded claim ceiling was not enforced")
+  }
+  first.close()
+  second.close()
+  let reopened = library.open_database(database_path, 64L).unwrap()
+  assert_eq(reopened.claim_ordinal("credential", "two", 2L).unwrap(), 2L)
+  guard reopened.claim_ordinal("credential", "three", 2L)
+    is Err(CapacityExceeded) else {
+    fail("bounded claims were not retained across restart")
+  }
+  reopened.close()
+}

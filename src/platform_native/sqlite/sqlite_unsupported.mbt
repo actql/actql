@@ -100,6 +100,19 @@ pub fn Database::release_capacity(
 }
 
 ///|
+pub fn Database::claim_ordinal(
+  _self : Database,
+  scope : String,
+  key : String,
+  max_claims : Int64,
+) -> Result[Int64, NativeSqliteIssue] {
+  ignore(scope)
+  ignore(key)
+  ignore(max_claims)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::capacity_usage(
   _self : Database,
   _scope : String,
