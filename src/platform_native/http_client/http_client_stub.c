@@ -56,6 +56,8 @@ enum {
   ACTQL_CURLOPT_SSLKEY = 10087,
   ACTQL_CURLOPT_NOSIGNAL = 99,
   ACTQL_CURLOPT_POSTFIELDSIZE_LARGE = 30120,
+  ACTQL_CURLOPT_CUSTOMREQUEST = 10036,
+  ACTQL_CURLOPT_HTTPGET = 80,
   ACTQL_CURLOPT_TIMEOUT_MS = 155,
   ACTQL_CURLOPT_CONNECTTIMEOUT_MS = 156,
   ACTQL_CURLOPT_XFERINFOFUNCTION = 20219,
@@ -482,6 +484,177 @@ int32_t actql_native_http_client_post_json(
   }
   client->library->slist_free_all(headers);
   client->library->easy_cleanup(curl);
+  free(url_text);
+  if (client->capacity_exceeded) return 1;
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed) ||
+      code == ACTQL_CURLE_ABORTED_BY_CALLBACK) return 2;
+  return code == ACTQL_CURLE_OK ? 0 : -1;
+}
+
+static bool actql_http_header_name_byte(unsigned char value) {
+  return (value >= 'a' && value <= 'z') ||
+    (value >= '0' && value <= '9') || value == '-';
+}
+
+static curl_slist *actql_http_headers_from_block(
+  actql_native_http_client *client,
+  moonbit_bytes_t block,
+  int32_t length,
+  bool *valid
+) {
+  *valid = false;
+  if (length < 0 || length > 32768) {
+    actql_replace_error(&client->error, "invalid HTTP header block");
+    return NULL;
+  }
+  curl_slist *headers = NULL;
+  int32_t offset = 0;
+  while (offset < length) {
+    int32_t end = offset;
+    while (end < length && block[end] != '\n') end += 1;
+    if (end == length || end == offset) goto invalid;
+    int32_t colon = offset;
+    while (colon < end && block[colon] != ':') colon += 1;
+    if (colon == offset || colon == end || colon + 1 >= end ||
+        block[colon + 1] != ' ') goto invalid;
+    for (int32_t index = offset; index < colon; index += 1) {
+      if (!actql_http_header_name_byte(block[index])) goto invalid;
+    }
+    for (int32_t index = colon + 2; index < end; index += 1) {
+      if (block[index] < 32 || block[index] > 126) goto invalid;
+    }
+    size_t line_length = (size_t)(end - offset);
+    char *line = malloc(line_length + 1);
+    if (line == NULL) {
+      actql_replace_error(&client->error, "HTTP header allocation failed");
+      client->library->slist_free_all(headers);
+      return NULL;
+    }
+    memcpy(line, block + offset, line_length);
+    line[line_length] = '\0';
+    curl_slist *next = client->library->slist_append(headers, line);
+    free(line);
+    if (next == NULL) {
+      actql_replace_error(&client->error, "HTTP header allocation failed");
+      client->library->slist_free_all(headers);
+      return NULL;
+    }
+    headers = next;
+    offset = end + 1;
+  }
+  *valid = true;
+  return headers;
+
+invalid:
+  actql_replace_error(&client->error, "invalid HTTP header block");
+  client->library->slist_free_all(headers);
+  return NULL;
+}
+
+int32_t actql_native_http_client_request(
+  actql_native_http_client *client,
+  moonbit_bytes_t method,
+  int32_t method_length,
+  moonbit_bytes_t url,
+  int32_t url_length,
+  moonbit_bytes_t headers_block,
+  int32_t headers_length,
+  moonbit_bytes_t body,
+  int32_t body_length
+) {
+  if (client == NULL || client->closed) return 3;
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
+  actql_clear_response(client);
+  char *method_text = actql_copy_text(method, method_length);
+  char *url_text = actql_copy_text(url, url_length);
+  bool is_get = method_text != NULL && strcmp(method_text, "GET") == 0;
+  bool is_post = method_text != NULL && strcmp(method_text, "POST") == 0;
+  bool is_put = method_text != NULL && strcmp(method_text, "PUT") == 0;
+  if (url_text == NULL || (!is_get && !is_post && !is_put) ||
+      body_length < 0 || (is_get && body_length != 0)) {
+    free(method_text);
+    free(url_text);
+    actql_replace_error(&client->error, "invalid HTTPS request");
+    return -1;
+  }
+  bool headers_valid = false;
+  curl_slist *headers = actql_http_headers_from_block(
+    client,
+    headers_block,
+    headers_length,
+    &headers_valid
+  );
+  if (!headers_valid) {
+    free(method_text);
+    free(url_text);
+    return -1;
+  }
+  CURL *curl = client->library->easy_init();
+  if (curl == NULL) {
+    client->library->slist_free_all(headers);
+    free(method_text);
+    free(url_text);
+    actql_replace_error(&client->error, "initialize HTTP request failed");
+    return -1;
+  }
+  char error_buffer[ACTQL_CURL_ERROR_SIZE];
+  memset(error_buffer, 0, sizeof(error_buffer));
+  bool configured = true;
+#define ACTQL_SET(option, value) \
+  do { \
+    if (configured && !actql_option( \
+          client, curl, client->library->easy_setopt(curl, (option), (value)), \
+          "configure HTTP request failed" \
+        )) configured = false; \
+  } while (0)
+  ACTQL_SET(ACTQL_CURLOPT_URL, url_text);
+  ACTQL_SET(ACTQL_CURLOPT_ERRORBUFFER, error_buffer);
+  if (is_get) {
+    ACTQL_SET(ACTQL_CURLOPT_HTTPGET, 1L);
+  } else {
+    if (is_post) ACTQL_SET(ACTQL_CURLOPT_POST, 1L);
+    if (is_put) ACTQL_SET(ACTQL_CURLOPT_CUSTOMREQUEST, method_text);
+    ACTQL_SET(ACTQL_CURLOPT_POSTFIELDS, body);
+    ACTQL_SET(ACTQL_CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)body_length);
+  }
+  ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
+  ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
+  ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
+  ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYPEER, 1L);
+  ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYHOST, 2L);
+  ACTQL_SET(ACTQL_CURLOPT_FOLLOWLOCATION, 0L);
+  ACTQL_SET(ACTQL_CURLOPT_PROTOCOLS, 2L);
+  ACTQL_SET(ACTQL_CURLOPT_NOSIGNAL, 1L);
+  ACTQL_SET(ACTQL_CURLOPT_CONNECTTIMEOUT_MS, client->connect_timeout_ms);
+  ACTQL_SET(ACTQL_CURLOPT_TIMEOUT_MS, client->operation_timeout_ms);
+  ACTQL_SET(ACTQL_CURLOPT_WRITEFUNCTION, actql_receive_response);
+  ACTQL_SET(ACTQL_CURLOPT_WRITEDATA, client);
+  ACTQL_SET(ACTQL_CURLOPT_NOPROGRESS, 0L);
+  ACTQL_SET(ACTQL_CURLOPT_XFERINFOFUNCTION, actql_transfer_progress);
+  ACTQL_SET(ACTQL_CURLOPT_XFERINFODATA, client);
+#undef ACTQL_SET
+  CURLcode code = configured
+    ? client->library->easy_perform(curl)
+    : ACTQL_CURLE_WRITE_ERROR;
+  if (configured && code == ACTQL_CURLE_OK) {
+    code = client->library->easy_getinfo(
+      curl,
+      ACTQL_CURLINFO_RESPONSE_CODE,
+      &client->status
+    );
+  }
+  if (code != ACTQL_CURLE_OK && client->error == NULL &&
+      !client->capacity_exceeded &&
+      !atomic_load_explicit(&client->cancelled, memory_order_relaxed)) {
+    const char *message = error_buffer[0] == '\0'
+      ? client->library->easy_strerror(code)
+      : error_buffer;
+    actql_replace_error(&client->error, message);
+  }
+  client->library->slist_free_all(headers);
+  client->library->easy_cleanup(curl);
+  free(method_text);
   free(url_text);
   if (client->capacity_exceeded) return 1;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed) ||

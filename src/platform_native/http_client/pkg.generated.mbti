@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/platform_native/http_client"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn load_library(String) -> Result[Library, NativeHttpIssue]
 
@@ -12,10 +16,16 @@ pub fn Client::cancel(Self) -> Bool
 pub fn Client::close(Self) -> Bool
 pub fn Client::get_bearer_file(Self, String, String) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
+pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 
 type Library
 pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
 pub fn Library::version(Self) -> String
+
+pub(all) struct NativeHttpHeader {
+  name : String
+  value : String
+}
 
 pub(all) enum NativeHttpIssue {
   UnsupportedTarget
@@ -28,6 +38,12 @@ pub(all) enum NativeHttpIssue {
   Closed
   Transport(String)
 }
+
+pub(all) enum NativeHttpMethod {
+  Get
+  Post
+  Put
+} derive(Eq, @debug.Debug)
 
 pub(all) struct NativeHttpResponse {
   status : Int

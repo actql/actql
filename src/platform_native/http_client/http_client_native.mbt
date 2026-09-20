@@ -54,6 +54,20 @@ extern "C" fn client_post_json_ffi(
 ) -> Int = "actql_native_http_client_post_json"
 
 ///|
+#borrow(client, verb, url, headers, body)
+extern "C" fn client_request_ffi(
+  client : Client,
+  verb : Bytes,
+  verb_length : Int,
+  url : Bytes,
+  url_length : Int,
+  headers : Bytes,
+  headers_length : Int,
+  body : Bytes,
+  body_length : Int,
+) -> Int = "actql_native_http_client_request"
+
+///|
 #borrow(client, url, secret_path)
 extern "C" fn client_get_bearer_file_ffi(
   client : Client,
@@ -165,6 +179,98 @@ pub fn Client::post_json(
       self,
       encoded_url,
       encoded_url.length(),
+      body,
+      body.length(),
+    ) {
+    0 => Ok({ status: client_status_ffi(self), body: client_body_ffi(self), })
+    1 => Err(CapacityExceeded)
+    2 => Err(Cancelled)
+    3 => Err(Closed)
+    _ => Err(Transport(decode_message(client_error_ffi(self))))
+  }
+}
+
+///|
+fn method_name(verb : NativeHttpMethod) -> String {
+  match verb {
+    Get => "GET"
+    Post => "POST"
+    Put => "PUT"
+  }
+}
+
+///|
+fn valid_header_name_byte(byte : Byte) -> Bool {
+  let value = byte.to_int()
+  (value >= 97 && value <= 122) || (value >= 48 && value <= 57) || value == 45
+}
+
+///|
+fn encode_headers(headers : Array[NativeHttpHeader]) -> Bytes? {
+  if headers.length() > 32 {
+    return None
+  }
+  let output : Array[Byte] = []
+  for header in headers {
+    let name = @utf8.encode(header.name)
+    let value = @utf8.encode(header.value)
+    if name.length() == 0 ||
+      name.length() > 128 ||
+      value.length() > 8192 ||
+      output.length() + name.length() + value.length() + 3 > 32768 {
+      return None
+    }
+    for byte in name {
+      if !valid_header_name_byte(byte) {
+        return None
+      }
+      output.push(byte)
+    }
+    output.push((58 : Byte))
+    output.push((32 : Byte))
+    for byte in value {
+      let number = byte.to_int()
+      if number < 32 || number > 126 {
+        return None
+      }
+      output.push(byte)
+    }
+    output.push((10 : Byte))
+  }
+  Some(Bytes::from_array(output))
+}
+
+///|
+/// Perform one bounded mTLS request. The entire response is bounded by the
+/// client configuration. Callers use this for control bodies and one admitted
+/// data chunk at a time, not for an unbounded whole-result materialization.
+pub fn Client::request(
+  self : Client,
+  verb : NativeHttpMethod,
+  url : String,
+  headers : Array[NativeHttpHeader],
+  body : Bytes,
+) -> Result[NativeHttpResponse, NativeHttpIssue] {
+  if !url.has_prefix("https://") ||
+    url.length() > 8192 ||
+    url.contains("\u{0}") ||
+    (verb == Get && body.length() != 0) {
+    return Err(InvalidRequest)
+  }
+  guard encode_headers(headers) is Some(encoded_headers) else {
+    return Err(InvalidRequest)
+  }
+  let encoded_method = @utf8.encode(method_name(verb))
+  let encoded_url = @utf8.encode(url)
+  match
+    client_request_ffi(
+      self,
+      encoded_method,
+      encoded_method.length(),
+      encoded_url,
+      encoded_url.length(),
+      encoded_headers,
+      encoded_headers.length(),
       body,
       body.length(),
     ) {

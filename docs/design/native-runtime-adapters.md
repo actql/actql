@@ -299,12 +299,17 @@ MoonBit validates the request shape and bounds, selects the operation, and
 classifies the physical result. The adapter performs only the synchronous
 physical exchange and reports its observed status, response bytes, or error.
 
-The initial operation is a bounded JSON POST over HTTPS with mutual TLS. Peer
-and hostname verification are mandatory, redirects are disabled, and the
-protocol set is restricted to HTTPS. The response limit is checked before
-each allocation or copy, so an oversized response is rejected without first
-materializing it in full. Request bytes remain borrowed for the synchronous
-call and response bytes cross the FFI once after the exchange completes.
+The adapter supports the existing bounded JSON control POST and a bounded
+GET, POST, or PUT exchange over HTTPS with mutual TLS. The generic exchange
+accepts a strictly bounded set of validated headers. It is a physical
+operation for one control body or one admitted data chunk; it is not an
+unbounded whole-result transport and does not decide Transfer retry, commit,
+or cleanup state. Peer and hostname verification are mandatory, redirects are
+disabled, and the protocol set is restricted to HTTPS. The response limit is
+checked before each allocation or copy, so an oversized response is rejected
+without first materializing it in full. Request bytes remain borrowed for the
+synchronous call and response bytes cross the FFI once after the exchange
+completes.
 
 Cancellation is checked before the request and through libcurl's transfer
 progress callback. The current MoonBit call is synchronous; a caller that must

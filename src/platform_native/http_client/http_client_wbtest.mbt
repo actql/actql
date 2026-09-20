@@ -53,6 +53,48 @@ test "native HTTPS client verifies mTLS and bounds response bytes" {
   let response = client.post_json(url + "/probe", b"{\"probe\":true}").unwrap()
   assert_eq(response.status, 200)
   assert_eq(response.body, b"{\"accepted\":true}")
+  let uploaded = client
+    .request(
+      Put,
+      url + "/generic-put",
+      [
+        { name: "content-type", value: "application/octet-stream", },
+        { name: "x-actql-test", value: "bounded-chunk", },
+      ],
+      b"chunk-a",
+    )
+    .unwrap()
+  assert_eq(uploaded.status, 200)
+  assert_eq(uploaded.body, b"{\"stored\":7}")
+  let downloaded = client
+    .request(
+      Get,
+      url + "/generic-get",
+      [{ name: "accept", value: "application/octet-stream", }],
+      b"",
+    )
+    .unwrap()
+  assert_eq(downloaded.status, 200)
+  assert_eq(downloaded.body, b"chunk-b")
+  let empty = client
+    .request(
+      Post,
+      url + "/generic-post-empty",
+      [{ name: "content-type", value: "application/json", }],
+      b"",
+    )
+    .unwrap()
+  assert_eq(empty.status, 200)
+  assert_eq(empty.body, b"{\"empty\":true}")
+  guard client.request(
+      Put,
+      url + "/generic-put",
+      [{ name: "Invalid Header", value: "value", }],
+      b"chunk-a",
+    )
+    is Err(InvalidRequest) else {
+    fail("invalid physical header was accepted")
+  }
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_SECRET") is Some(secret) else {
     return
   }

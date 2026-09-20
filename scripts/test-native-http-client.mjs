@@ -99,6 +99,16 @@ try {
       request.socket.destroy();
       return;
     }
+    if (request.url === '/generic-get') {
+      if (request.method !== 'GET' ||
+          request.headers.accept !== 'application/octet-stream') {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/octet-stream'});
+      response.end('chunk-b');
+      return;
+    }
     if (request.url === '/credential') {
       if (request.method !== 'GET' ||
           request.headers.authorization !== 'Bearer native-secret') {
@@ -109,9 +119,12 @@ try {
       response.end('{"authorized":true}');
       return;
     }
-    if (request.method !== 'POST' ||
+    const genericPut = request.method === 'PUT' &&
+      request.url === '/generic-put';
+    if (!genericPut && (request.method !== 'POST' ||
         ![
           '/probe',
+          '/generic-post-empty',
           '/remote/dispatch',
           '/remote/query',
           '/remote/foreign',
@@ -119,7 +132,7 @@ try {
           '/outbound/observation',
           '/outbound/status-observation',
         ]
-          .includes(request.url)) {
+          .includes(request.url))) {
       response.writeHead(404).end();
       return;
     }
@@ -134,6 +147,27 @@ try {
       chunks.push(chunk);
     }
     const body = Buffer.concat(chunks).toString('utf8');
+    if (request.url === '/generic-put') {
+      if (request.method !== 'PUT' || body !== 'chunk-a' ||
+          request.headers['content-type'] !== 'application/octet-stream' ||
+          request.headers['x-actql-test'] !== 'bounded-chunk') {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"stored":7}');
+      return;
+    }
+    if (request.url === '/generic-post-empty') {
+      if (request.method !== 'POST' || body !== '' ||
+          request.headers['content-type'] !== 'application/json') {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"empty":true}');
+      return;
+    }
     if (request.url === '/probe' &&
         body !== '{"probe":true}' && body !== '{}') {
       response.writeHead(400).end();

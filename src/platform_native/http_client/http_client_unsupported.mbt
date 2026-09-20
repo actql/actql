@@ -46,6 +46,17 @@ pub fn Client::post_json(
 }
 
 ///|
+pub fn Client::request(
+  _self : Client,
+  _verb : NativeHttpMethod,
+  _url : String,
+  _headers : Array[NativeHttpHeader],
+  _body : Bytes,
+) -> Result[NativeHttpResponse, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::get_bearer_file(
   _self : Client,
   url : String,
