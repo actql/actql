@@ -10,14 +10,20 @@ readable coverage manifest is authoritative for individual operation status.
 | Area | Baseline state | Required closure |
 |---|---|---|
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
-| Lowering | All seventeen SGA operations, both record-producing Bridges, vector normalization and scoring, event watermarking, and both VecA expressions reach typed canonical occurrences; the remaining TEA operations, VecA operations, and Bridges remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
+| Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Common lifecycle and physical task completion retain exact Relation, Graph, Events, and Vectors occurrences; one registered Events pipeline now reaches common managed completion and two Relation consumers | Extend the registered boundary to every Carrier-producing operation and principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; the first registered provider connects rows-to-Events, watermarking, and Events-to-rows without an intermediate wire copy | Register the remaining family kernels and direct Carrier outputs without forced copies |
-| Progress | The portable session core enforces bounded reports and retryable cleanup; the Node adapter now performs a real event-loop yield between managed advances | Convert every remaining potentially long kernel and verify each compiled environment path |
-| Cancellation | The common provider boundary carries cancel, stop confirmation, and cleanup retry, and the Node adapter delivers cancellation between bounded steps | Exercise the compiled provider through each environment and connect the remaining kernels |
+| Completion | Carrier-aware lifecycle is shared; 23/39 entries have kernels and managed completion, 21/39 reach the standard Host, and 11/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 23/39 entries have resource and three-target kernel evidence | Implement and register the remaining 16 entries without forced Carrier-erasing copies |
+| Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected, but only 1/39 entries currently records complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
-| Publication | Existing Effect-free path accepts ordered Relations | Connect every new Relation result and Carrier projection through that path |
+| Publication | The existing Effect-free path publishes and retrieves managed `match_nodes`; 1/39 entries records publication evidence | Connect every applicable Relation result and Carrier projection through the formal path |
+
+Manifest snapshot at this revision: contract/checker/lowering 39/39,
+kernel/managed/resources/three-target evidence 23/39, standard Host 21/39,
+consumer lifetime 11/39, cancellation 1/39, and publication 1/39. These are
+layer counts, not operation completion: all 39 entries remain `partial` until
+their classified variants and required layers close on one verified SHA.
 
 ## Closed normative contract mismatches
 
@@ -117,8 +123,28 @@ The regressions cover absent and present endpoints, selected properties,
 repeated node and edge roles, exact and one-short limits, re-admission, and
 agreement between canonical expansion and Local execution on JS, Wasm, and
 native. Commit `b7e1df7e` records that evidence in the coverage manifest.
+Commit `f37b3714` also prepares stable node and edge projection descriptors.
+Each branch emits a shared physical field once while preserving distinct
+source, target, label, and input-position roles. Self-loop construction and
+the revised exact budget boundaries pass on all three targets.
 Concise endpoint-derived construction, formal publication, and environment
 cancellation delivery remain separate open requirements.
+
+## Closed review findings after `d49191b9`
+
+Commits `f37b3714`, `2bf2499d`, and `c62ce4f2` close the three fixed
+review findings without expanding the Local milestone.
+
+- Explicit Graph construction deduplicates each physical projection branch
+  while retaining distinct logical Graph roles and repeated input positions.
+- Session identity construction is resumable, bounded by the admitted value
+  ceiling, and clears partial buffers during cancellation cleanup.
+- Delayed identity issuance marks the exact requirement as establishing
+  before invoking Host code. Same-requirement reentry is rejected, failed
+  transitions are cleared, and established CIDs remain monotonic.
+
+Focused JS, Wasm, and native suites pass for Graph lowering, Local TEA, and
+managed completion. Full same-SHA acceptance and Linux CI remain pending.
 
 ## Family execution gaps
 
@@ -161,9 +187,12 @@ Named Result occurrence also reaches the match output, establishes its fixed
 Logical Relation CID, publishes it, and retrieves the stored rows. The
 standard Host re-admits the exact managed Relation generation in MoonBit
 before the existing publication contract runs. The output remains retained
-through publication even when an unrelated later task completes. Predicate
-matching and environment cancellation delivery remain open, so `match_nodes`
-remains partial. The other SGA operations still lack portable Local kernels.
+through publication even when an unrelated later task completes. Literal
+true and false predicates now execute through the bounded node scan and the
+standard Host with two downstream consumers on all three targets. Typed
+property predicates and environment cancellation delivery remain open, so
+`match_nodes` remains partial. The other SGA operations still lack portable
+Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
 
@@ -270,7 +299,10 @@ through the registered Events bridges and standard Host to two downstream
 computations with overlapping holdings, independent release, and final ledger
 reclamation on JS, Wasm, and native. Global partitions, parameterized gaps,
 publication, and environment cancellation delivery remain open, so session
-assignment is partial. Interval join now has typed canonical lowering for all
+assignment is partial. Session identity construction now advances one scalar
+part per bounded phase, checks complete UTF-8 prefixes and separators before
+retention, and reclaims partial buffers after cancellation. Interval join now
+has typed canonical lowering for all
 four join kinds, both temporal modes and time domains, repeated equality keys,
 projections, and resolved output guards. Interval and as-of joins execute
 through bounded kernels and the standard Host, reach two downstream

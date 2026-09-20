@@ -45,7 +45,10 @@
     "failed_builder_cleanup_custody",
     "bounded_result_cleanup_custody",
     "registered_carrier_provider_boundary",
-    "environment_yield_adapter"
+    "environment_yield_adapter",
+    "stable_graph_construction_projection",
+    "bounded_session_identity_generation",
+    "monotonic_identity_issuance"
   ],
   "operations": [
     {
@@ -65,7 +68,6 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
-        "publication",
         "resources",
         "three_targets"
       ],
@@ -91,6 +93,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "publication",
         "resources",
         "three_targets"
       ],
@@ -113,6 +116,25 @@
             "adapters/host-common/strategy.test.mjs",
             "adapters/host-common/strategy.mjs",
             "src/execution_relation/managed_publication_bridge.mbt"
+          ]
+        },
+        {
+          "scope": "literal_predicate_bounded_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b5898232",
+          "evidence": [
+            "src/lowering_relation/graph_match.mbt",
+            "src/local_sga/match_nodes.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         }
       ]
@@ -403,6 +425,16 @@
             "src/local_tea/session.mbt",
             "src/local_tea_provider/events_pipeline.mbt",
             "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "resumable_bounded_session_identity_generation",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "2bf2499d",
+          "evidence": [
+            "src/local_tea/session.mbt",
+            "src/local_tea/session_wbtest.mbt"
           ]
         }
       ]
@@ -769,6 +801,16 @@
             "src/lowering_relation/graph_construction_test.mbt",
             "src/local_bridge/graph.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "stable_unique_physical_projection_per_graph_branch",
+          "layers": ["lowering", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "f37b3714",
+          "evidence": [
+            "src/lowering_relation/graph_construction.mbt",
+            "src/lowering_relation/graph_construction_test.mbt"
           ]
         }
       ]
