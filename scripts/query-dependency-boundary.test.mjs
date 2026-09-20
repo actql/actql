@@ -178,10 +178,15 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
   assert.match(strategy, /beginExecutionSiteHostTaskSuccess\(/);
   assert.match(strategy, /recordExecutionSiteHostTaskSiteCompletion\(/);
   assert.match(strategy, /recordExecutionSiteHostTaskManagedBinding\(/);
+  assert.match(strategy, /beginExecutionSiteHostCleanup\(/);
+  assert.match(strategy, /recordExecutionSiteHostCleanupRetry\(/);
   assert.doesNotMatch(strategy, /let siteCompletionChecked\s*=/);
   assert.doesNotMatch(strategy, /let commonCompletionChecked\s*=/);
   assert.doesNotMatch(strategy, /let outputRetained\s*=/);
   assert.doesNotMatch(strategy, /let managedBindingChecked\s*=/);
+  assert.doesNotMatch(strategy, /let initialRetryDone\s*=/);
+  assert.doesNotMatch(strategy, /let closesAwaited\s*=/);
+  assert.doesNotMatch(strategy, /let finalRetryDone\s*=/);
   assert.deepEqual(imports('execution_site'), []);
 });
 

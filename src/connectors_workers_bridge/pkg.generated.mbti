@@ -71,11 +71,13 @@ pub fn strategy_finish_durable_result_row_frames(@run_publication.DurableResultR
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
+pub fn strategy_host_begin_cleanup_progress() -> @physical_strategy.HostCleanupProgress
+
 pub fn strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strategy.HostTaskSuccessProgress
 
 pub fn strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
 
-pub fn strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn strategy_host_cleanup_action(@physical_strategy.HostCleanupProgress, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
@@ -170,6 +172,10 @@ pub fn strategy_host_publication_inventory_name(@run_publication.CheckedPublicat
 pub fn strategy_host_publication_inventory_program_cid(@run_publication.CheckedPublicationInventory) -> String
 
 pub fn strategy_host_publication_inventory_task(@run_publication.CheckedPublicationInventory, Int) -> Int raise NodeHostFailure
+
+pub fn strategy_host_record_cleanup_closes_awaited(@physical_strategy.HostCleanupProgress) -> Bool
+
+pub fn strategy_host_record_cleanup_retry(@physical_strategy.HostCleanupProgress) -> Bool
 
 pub fn strategy_host_record_task_common_completion(@physical_strategy.HostTaskSuccessProgress, Bool) -> Bool
 

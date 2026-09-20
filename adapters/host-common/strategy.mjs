@@ -2,6 +2,7 @@
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
+  beginExecutionSiteHostCleanup,
   beginExecutionSiteHostTaskSuccess,
   executionSiteCandidate,
   executionSiteDescription, executionSiteHostCleanupAction,
@@ -12,6 +13,8 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   executionSitePlacements, failedExecutionSiteOperationAction,
   installExecutionSites,
   prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
+  recordExecutionSiteHostCleanupClosesAwaited,
+  recordExecutionSiteHostCleanupRetry,
   recordExecutionSiteHostTaskCommonCompletion,
   recordExecutionSiteHostTaskManagedBinding,
   recordExecutionSiteHostTaskOutputRetained,
@@ -954,9 +957,7 @@ export async function runInstalledStrategy(
         // Only an explicit recovery handle authorizes retry; never run Compute.
         const errors = [];
         const attempted = new Set();
-        let initialRetryDone = false;
-        let closesAwaited = false;
-        let finalRetryDone = false;
+        const cleanupProgress = beginExecutionSiteHostCleanup(siteInstallation);
         const retryKnown = async () => {
           for (const handle of [...pendingCleanup]) {
             if (attempted.has(handle)) continue;
@@ -970,9 +971,7 @@ export async function runInstalledStrategy(
         for (let step = 0; step < 8; step++) {
           const action = executionSiteHostCleanupAction(
             siteInstallation,
-            initialRetryDone,
-            closesAwaited,
-            finalRetryDone,
+            cleanupProgress,
             pendingCloses.size !== 0,
             knownCleanupPending(),
             unconfirmedRelease.size !== 0 ||
@@ -981,13 +980,18 @@ export async function runInstalledStrategy(
           );
           if (action === 0) {
             await retryKnown();
-            if (!initialRetryDone) initialRetryDone = true;
-            else finalRetryDone = true;
+            recordExecutionSiteHostCleanupRetry(
+              siteInstallation,
+              cleanupProgress,
+            );
             continue;
           }
           if (action === 1) {
             await Promise.all([...pendingCloses]);
-            closesAwaited = true;
+            recordExecutionSiteHostCleanupClosesAwaited(
+              siteInstallation,
+              cleanupProgress,
+            );
             continue;
           }
           if (action === 2) return false;

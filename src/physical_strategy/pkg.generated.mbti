@@ -23,6 +23,8 @@ pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, Ru
 
 pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
 
+pub fn begin_host_cleanup_progress() -> HostCleanupProgress
+
 pub fn begin_host_task_success_progress(Bool, Bool) -> HostTaskSuccessProgress
 
 pub fn begin_managed_transfer_progress(ManagedTransfer) -> ManagedTransferProgress
@@ -203,6 +205,8 @@ pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relati
 
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
+pub fn prepare_host_cleanup_progress_step(HostCleanupProgress, Bool, Bool, Bool, Bool) -> HostCleanupRuntimeAction
+
 pub fn prepare_host_cleanup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostCleanupRuntimeAction
 
 pub fn prepare_host_task_run_outcome(Bool, Bool) -> HostTaskRunOutcome
@@ -228,6 +232,10 @@ pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, In
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
+pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
+
+pub fn record_host_cleanup_retry(HostCleanupProgress) -> Bool
 
 pub fn record_host_task_common_completion(HostTaskSuccessProgress, Bool) -> Bool
 
@@ -442,6 +450,8 @@ pub(all) enum GraphIssue {
   NonDAG(Int)
   ForeignRequirement(Int)
 } derive(Eq, @debug.Debug)
+
+type HostCleanupProgress
 
 pub(all) enum HostCleanupRuntimeAction {
   HostCleanupRetryKnown

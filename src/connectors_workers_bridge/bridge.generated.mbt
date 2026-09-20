@@ -2748,20 +2748,39 @@ pub fn strategy_site_retained_holding_action(
 }
 
 ///|
+#export_name("strategyHostBeginCleanupProgress")
+pub fn strategy_host_begin_cleanup_progress() -> @strategy.HostCleanupProgress {
+  @strategy.begin_host_cleanup_progress()
+}
+
+///|
+#export_name("strategyHostRecordCleanupRetry")
+pub fn strategy_host_record_cleanup_retry(
+  progress : @strategy.HostCleanupProgress,
+) -> Bool {
+  @strategy.record_host_cleanup_retry(progress)
+}
+
+///|
+#export_name("strategyHostRecordCleanupClosesAwaited")
+pub fn strategy_host_record_cleanup_closes_awaited(
+  progress : @strategy.HostCleanupProgress,
+) -> Bool {
+  @strategy.record_host_cleanup_closes_awaited(progress)
+}
+
+///|
 #export_name("strategyHostCleanupAction")
 pub fn strategy_host_cleanup_action(
-  initial_retry_done : Bool,
-  closes_awaited : Bool,
-  final_retry_done : Bool,
+  progress : @strategy.HostCleanupProgress,
   closes_pending : Bool,
   known_cleanup_pending : Bool,
   unconfirmed_ownership : Bool,
   cleanup_failed : Bool,
 ) -> Int {
   @strategy.host_cleanup_runtime_action_code(
-    @strategy.prepare_host_cleanup_step(
-      initial_retry_done, closes_awaited, final_retry_done, closes_pending, known_cleanup_pending,
-      unconfirmed_ownership, cleanup_failed,
+    @strategy.prepare_host_cleanup_progress_step(
+      progress, closes_pending, known_cleanup_pending, unconfirmed_ownership, cleanup_failed,
     ),
   )
 }

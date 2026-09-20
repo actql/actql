@@ -72,6 +72,10 @@ function siteControl(moon) {
     managedCandidateFallback: moon.strategySiteManagedCandidateFallback,
     failedOperationAction: moon.strategySiteFailedOperationAction,
     retainedHoldingAction: moon.strategySiteRetainedHoldingAction,
+    beginHostCleanup: moon.strategyHostBeginCleanupProgress,
+    recordHostCleanupRetry: moon.strategyHostRecordCleanupRetry,
+    recordHostCleanupClosesAwaited:
+      moon.strategyHostRecordCleanupClosesAwaited,
     hostCleanupAction: moon.strategyHostCleanupAction,
     hostCleanupPending: moon.strategyHostCleanupPending,
     hostTaskRunOutcome: moon.strategyHostTaskRunOutcome,

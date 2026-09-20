@@ -553,9 +553,7 @@ export function retainedExecutionSiteHoldingAction(
 
 export function executionSiteHostCleanupAction(
   installation,
-  initialRetryDone,
-  closesAwaited,
-  finalRetryDone,
+  progress,
   closesPending,
   knownCleanupPending,
   unconfirmedOwnership,
@@ -564,9 +562,7 @@ export function executionSiteHostCleanupAction(
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
   const action = state.control.hostCleanupAction(
-    initialRetryDone,
-    closesAwaited,
-    finalRetryDone,
+    progress,
     closesPending,
     knownCleanupPending,
     unconfirmedOwnership,
@@ -576,6 +572,38 @@ export function executionSiteHostCleanupAction(
     fail('InvalidExecutionSiteHostCleanupAction');
   }
   return action;
+}
+
+export function beginExecutionSiteHostCleanup(installation) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const progress = state.control.beginHostCleanup();
+  if (progress === undefined || progress === null) {
+    fail('InvalidExecutionSiteHostCleanupProgress');
+  }
+  return progress;
+}
+
+export function recordExecutionSiteHostCleanupRetry(
+  installation,
+  progress,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  if (state.control.recordHostCleanupRetry(progress) !== true) {
+    fail('InvalidExecutionSiteHostCleanupProgress');
+  }
+}
+
+export function recordExecutionSiteHostCleanupClosesAwaited(
+  installation,
+  progress,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  if (state.control.recordHostCleanupClosesAwaited(progress) !== true) {
+    fail('InvalidExecutionSiteHostCleanupProgress');
+  }
 }
 
 export function executionSiteHostCleanupPending(

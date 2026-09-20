@@ -245,18 +245,39 @@ export function createExecutionSiteControlFixture() {
       if (closeFailed) return 2;
       return 1;
     },
+    beginHostCleanup() {
+      return {
+        initialRetryDone: false,
+        closesAwaited: false,
+        finalRetryDone: false,
+      };
+    },
+    recordHostCleanupRetry(progress) {
+      if (!progress.initialRetryDone) {
+        progress.initialRetryDone = true;
+        return true;
+      }
+      if (!progress.finalRetryDone) {
+        progress.finalRetryDone = true;
+        return true;
+      }
+      return false;
+    },
+    recordHostCleanupClosesAwaited(progress) {
+      if (!progress.initialRetryDone || progress.closesAwaited) return false;
+      progress.closesAwaited = true;
+      return true;
+    },
     hostCleanupAction(
-      initialRetryDone,
-      closesAwaited,
-      finalRetryDone,
+      progress,
       closesPending,
       knownCleanupPending,
       unconfirmedOwnership,
       cleanupFailed,
     ) {
-      if (!initialRetryDone) return 0;
-      if (closesPending && !closesAwaited) return 1;
-      if (!finalRetryDone) return 0;
+      if (!progress.initialRetryDone) return 0;
+      if (closesPending && !progress.closesAwaited) return 1;
+      if (!progress.finalRetryDone) return 0;
       if (cleanupFailed) return 3;
       if (closesPending || knownCleanupPending || unconfirmedOwnership) {
         return 2;
