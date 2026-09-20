@@ -17,7 +17,7 @@ owner and the superseded decision implementation has been removed.
 | Remote dispatch and reconciliation | `remote_site_protocol` | HTTPS and SQLite physical operations | Current Node and native integration slices use the portable owner. The full native standard Host and separated-network profile remain open. |
 | Runtime bundle lifecycle | `remote_bundle` | Verify signatures, install bytes, synchronize files, and persist transitions | Product dispatch is bound to the active bundle. Native bundle operations and the separated-network update profile remain open. |
 | Credential use | `remote_credential` | Resolve and apply a secret within a scoped HTTP operation | Node integration is connected. Native standard-Host credential use remains open. |
-| Local and DuckDB task progression | common Host and Connector packages | Native evaluation, database calls, cancellation delivery, and stop observation | Handwritten Node orchestration still contains migration targets. Node-free Local and bounded native DuckDB execution remain open. |
+| Local and DuckDB task progression | common Host and Connector packages | Native evaluation, database calls, cancellation delivery, and stop observation | Handwritten Node orchestration still contains migration targets. The native DuckDB adapter now exposes bounded streaming metadata and physical column batches without a Node process; parameter binding, common physical admission, and the standard native Host connection remain open. Node-free Local execution also remains open. |
 
 The JavaScript retained-row parser is not a second authority for formal
 publication after this change. It remains a temporary product implementation

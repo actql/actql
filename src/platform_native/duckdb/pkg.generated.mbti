@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/platform_native/duckdb"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn load_library(String) -> Result[Library, NativeDuckDBIssue]
 
@@ -10,17 +14,31 @@ pub fn load_library(String) -> Result[Library, NativeDuckDBIssue]
 type Database
 pub fn Database::close(Self) -> Unit
 pub fn Database::query_i64(Self, String) -> Result[Int64, NativeDuckDBIssue]
+pub fn Database::stream_query(Self, String, Int, Int64, Int, Int) -> Result[Query, NativeDuckDBIssue]
 
 type Library
 pub fn Library::open_database(Self, path? : String) -> Result[Database, NativeDuckDBIssue]
 pub fn Library::version(Self) -> String
 
+pub(all) struct NativeDuckDBChunk {
+  row_count : Int
+  columns_json : String
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NativeDuckDBIssue {
   UnsupportedTarget
+  InvalidLimits
   LibraryLoad(String)
   DatabaseOpen(String)
   Query(String)
+  CapacityExceeded
+  Closed
 }
+
+type Query
+pub fn Query::close(Self) -> Bool
+pub fn Query::fields_json(Self) -> Result[String, NativeDuckDBIssue]
+pub fn Query::next(Self) -> Result[NativeDuckDBChunk?, NativeDuckDBIssue]
 
 // Type aliases
 

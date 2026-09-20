@@ -25,3 +25,80 @@ test "native DuckDB executes through the selected C API library" {
     fail("closed database accepted a query")
   }
 }
+
+///|
+test "native DuckDB streams bounded physical column batches" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
+    return
+  }
+  let database = load_library(path).unwrap().open_database().unwrap()
+  let query = database
+    .stream_query(
+      "SELECT * FROM (VALUES " +
+      "(1::INTEGER, 'a'::VARCHAR, 1.5::DOUBLE, true), " +
+      "(2::INTEGER, '日本語'::VARCHAR, NULL::DOUBLE, false)) " +
+      "AS t(i, s, d, b)",
+      4,
+      2L,
+      1,
+      256,
+    )
+    .unwrap()
+  assert_eq(
+    query.fields_json().unwrap(),
+    "[[\"i\",\"INTEGER\",null,null]," +
+    "[\"s\",\"VARCHAR\",null,null]," +
+    "[\"d\",\"DOUBLE\",null,null]," +
+    "[\"b\",\"BOOLEAN\",null,null]]",
+  )
+  assert_eq(
+    query.next().unwrap(),
+    Some({
+      row_count: 1,
+      columns_json: "[[\"1\"],[\"a\"],[\"3ff8000000000000\"],[true]]",
+    }),
+  )
+  assert_eq(
+    query.next().unwrap(),
+    Some({
+      row_count: 1,
+      columns_json: "[[\"2\"],[\"日本語\"],[null],[false]]",
+    }),
+  )
+  assert_eq(query.next().unwrap(), None)
+  assert_true(query.close())
+  assert_false(query.close())
+  database.close()
+}
+
+///|
+test "native DuckDB rejects physical results before crossing hard bounds" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
+    return
+  }
+  let database = load_library(path).unwrap().open_database().unwrap()
+  assert_true(
+    database.stream_query("SELECT 1, 2", 1, 1L, 1, 256) is Err(CapacityExceeded),
+  )
+  assert_true(database.stream_query("SELECT ?", 1, 1L, 1, 256) is Err(Query(_)))
+  assert_true(
+    database.stream_query("SELECT [1, 2]", 1, 1L, 1, 256) is Err(Query(_)),
+  )
+  let row_limit = database
+    .stream_query("SELECT * FROM (VALUES (1), (2)) t(i)", 1, 1L, 2, 256)
+    .unwrap()
+  assert_true(row_limit.next() is Err(CapacityExceeded))
+  assert_true(row_limit.close())
+  let byte_limit = database
+    .stream_query("SELECT repeat('x', 1024)::VARCHAR AS value", 1, 1L, 1, 64)
+    .unwrap()
+  assert_true(byte_limit.next() is Err(CapacityExceeded))
+  assert_true(byte_limit.close())
+  let closing = database
+    .stream_query("SELECT 1::INTEGER", 1, 1L, 1, 64)
+    .unwrap()
+  database.close()
+  assert_true(closing.next() is Err(Closed))
+  assert_true(closing.close())
+  assert_true(database.stream_query("SELECT 1", 1, 1L, 1, 64) is Err(Closed))
+}

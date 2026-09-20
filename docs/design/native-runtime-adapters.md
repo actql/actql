@@ -47,6 +47,17 @@ library handle, explicit close is idempotent, and automatic finalization is a
 last-resort resource safeguard. ActQL settlement still requires an observed
 operation outcome; garbage collection is not settlement evidence.
 
+Result transport uses DuckDB's streaming prepared-result API. The adapter
+checks the column ceiling before exposing metadata, fetches one native data
+chunk at a time, and subdivides it under an admitted row and byte ceiling.
+Metadata and each column-major physical batch are bounded before allocation in
+the Host-facing buffer. Integers and decimals retain exact coefficients,
+floating-point values retain their exact bits, and date or timestamp values
+retain their physical ticks. These private physical frames still require the
+Connector's MoonBit type matching, value admission, guards, and completion;
+the C adapter cannot issue logical evidence. Parameter binding and the
+standard native Host connection remain separate migration steps.
+
 Dynamic loading keeps the portable MoonBit packages and unrelated native tests
 independent of a locally installed DuckDB library. A packaged native Host must
 ship or require a compatible, verified DuckDB shared library as part of its

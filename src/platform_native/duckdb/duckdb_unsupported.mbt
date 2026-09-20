@@ -7,6 +7,9 @@ type Library
 type Database
 
 ///|
+type Query
+
+///|
 pub fn load_library(_path : String) -> Result[Library, NativeDuckDBIssue] {
   Err(UnsupportedTarget)
 }
@@ -32,6 +35,40 @@ pub fn Database::query_i64(
 ) -> Result[Int64, NativeDuckDBIssue] {
   ignore(sql)
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::stream_query(
+  _self : Database,
+  sql : String,
+  max_columns : Int,
+  max_rows : Int64,
+  max_chunk_rows : Int,
+  max_chunk_bytes : Int,
+) -> Result[Query, NativeDuckDBIssue] {
+  ignore(sql)
+  ignore(max_columns)
+  ignore(max_rows)
+  ignore(max_chunk_rows)
+  ignore(max_chunk_bytes)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Query::fields_json(_self : Query) -> Result[String, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Query::next(
+  _self : Query,
+) -> Result[NativeDuckDBChunk?, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Query::close(_self : Query) -> Bool {
+  false
 }
 
 ///|
