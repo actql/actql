@@ -55,6 +55,7 @@ pub(all) enum NativeRemoteJournalIssue {
   Closed
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote_site_protocol.DispatchIssue)
+  StaleSiteBinding
   StateCollision
 }
 

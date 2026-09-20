@@ -23,15 +23,30 @@ fn test_control(site : @site.ExecutionSite) -> @remote.SiteDispatchJournal {
 
 ///|
 fn test_request(dispatch_id : String) -> @remote.DispatchRequest {
+  test_request_for(
+    dispatch_id,
+    7,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+}
+
+///|
+fn test_request_for(
+  dispatch_id : String,
+  task_attempt : Int,
+  site_generation : Int,
+  runtime_revision : String,
+) -> @remote.DispatchRequest {
   @remote.prepare_dispatch_request(
     "native-coordinator",
     test_cid("0000000000000000000000000000000000000000000000000000000000000000"),
     "task-a",
-    7,
+    task_attempt,
     dispatch_id,
     "native-site",
-    4,
-    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    site_generation,
+    runtime_revision,
     "local",
     "local/1",
     "strategy/1",
@@ -389,6 +404,17 @@ test "native Site restart durably fences the old generation" {
   ).unwrap()
   let request = test_request("dispatch-restart")
   let (_, record) = journal.accept(request).unwrap()
+  let stale = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let stale_record = stale.require(request).unwrap()
+  let stale_progress = @remote.prepare_begin_provisioning(
+    stale_record,
+    test_capability(test_site()),
+  ).unwrap()
   journal
   .commit_transition(
     @remote.prepare_begin_provisioning(record, test_capability(old_site)).unwrap(),
@@ -405,6 +431,22 @@ test "native Site restart durably fences the old generation" {
   ).unwrap()
   assert_eq(journal.restart(replacement).unwrap(), 1)
   assert_eq(@remote.dispatch_record_state_codes(record), [6, 0, 3, 0, 0])
+  assert_true(
+    stale.accept(
+      test_request_for(
+        "stale-new",
+        8,
+        4,
+        test_cid(
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        ),
+      ),
+    )
+    is Err(StaleSiteBinding),
+  )
+  assert_true(stale.commit_transition(stale_progress) is Err(StaleSiteBinding))
+  assert_true(stale.require(request) is Ok(_))
+  assert_true(stale.close())
   assert_true(journal.close())
 
   guard open_journal(library, database_path, 262144L, test_control(test_site()))
@@ -425,6 +467,19 @@ test "native Site restart durably fences the old generation" {
   guard reopened.accept(request) is Err(Protocol(@remote.StaleSiteGeneration)) else {
     fail("the old dispatch authority was revived")
   }
+  reopened
+  .commit_transition(@remote.prepare_begin_remote_release(recovered.1).unwrap())
+  .unwrap()
+  reopened
+  .commit_transition(
+    @remote.prepare_confirm_remote_release(recovered.1).unwrap(),
+  )
+  .unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(recovered.1), [6, 0, 2, 0, 0])
+  let (new_kind, _) = reopened
+    .accept(test_request_for("new-generation", 8, 5, next_revision))
+    .unwrap()
+  assert_eq(new_kind, @remote.NewDispatch)
   assert_true(reopened.close())
 }
 

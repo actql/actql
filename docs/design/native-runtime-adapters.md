@@ -215,6 +215,14 @@ the corresponding MoonBit transition commits. A lost response can reconcile
 the identical installed body; a different body at that revision is a state
 collision, not permission to overwrite or retry execution.
 
+Every admission or transition that exercises current execution or evidence
+authority reads the exact durable Site binding in the same immediate SQLite
+transaction as its record mutation. Restart takes that transaction before it
+recovers the dispatch set, fences every nonterminal record, and advances the
+binding. An already open handle for the prior generation can still query
+historical records and commit cleanup-only transitions, but it cannot admit
+new execution or advance execution or evidence state.
+
 Restart recovery scans one record at a time in stable binary key order. The
 physical adapter returns only the stored key, revision, and bounded body.
 MoonBit re-admits the canonical record, verifies that its attempt occurrence
@@ -242,9 +250,11 @@ from multiple processes cannot split its byte or object authority. Capacity is
 reserved before a physical writer is created and is released only after the
 exact owned generation is reclaimed. Sealed payloads survive process restart;
 recovery verifies their exact generation and reclaims unfinished payloads one
-record at a time. The physical digest is checked while a bounded reader emits
-the stored bytes. It remains distinct from the logical relation CID and from
-any delivery-format digest.
+record at a time. If unlink succeeds but directory synchronization fails, a
+retry synchronizes the directory even after the name has disappeared;
+capacity is not released until that confirmation succeeds. The physical
+digest is checked while a bounded reader emits the stored bytes. It remains
+distinct from the logical relation CID and from any delivery-format digest.
 
 Native delivery composes that verified reader with the portable durable-row
 framer and canonical JSON, JSONL, and CSV serializers. Input chunks, row

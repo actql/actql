@@ -59,12 +59,27 @@ const remoteRequestBody = JSON.stringify({
 });
 const remoteRequestCid = `sha256:${createHash('sha256')
   .update(remoteRequestBody).digest('hex')}`;
+const staleRemoteRequestBody = JSON.stringify({
+  ...JSON.parse(remoteRequestBody),
+  dispatch_id: 'dispatch-stale-process',
+  task_attempt: 2,
+});
+const staleRemoteRequestCid = `sha256:${createHash('sha256')
+  .update(staleRemoteRequestBody).digest('hex')}`;
 const remoteInputBindingBody = '{}';
 const remoteInputBindingCid = `sha256:${createHash('sha256')
   .update(remoteInputBindingBody).digest('hex')}`;
 
 let server;
 let outboundPolls = 0;
+let observeStalePoll;
+const stalePollObserved = new Promise(resolve => {
+  observeStalePoll = resolve;
+});
+let releaseStalePoll;
+const stalePollReleased = new Promise(resolve => {
+  releaseStalePoll = resolve;
+});
 try {
   openssl('genrsa', '-out', 'ca.key', '2048');
   openssl(
@@ -129,8 +144,10 @@ try {
           '/remote/query',
           '/remote/foreign',
           '/outbound/poll',
+          '/outbound/stale-poll',
           '/outbound/observation',
           '/outbound/status-observation',
+          '/outbound/stale-observation',
         ]
           .includes(request.url))) {
       response.writeHead(404).end();
@@ -196,6 +213,40 @@ try {
         request_json: remoteRequestBody,
         version: 'actql-remote-poll-query/0.1',
       }));
+      return;
+    }
+    if (request.url === '/outbound/stale-poll') {
+      if (body !== '{}') {
+        response.writeHead(400).end();
+        return;
+      }
+      observeStalePoll();
+      await stalePollReleased;
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({
+        dispatch_request_cid: staleRemoteRequestCid,
+        input_binding_cid: remoteInputBindingCid,
+        input_binding_json: remoteInputBindingBody,
+        request_json: staleRemoteRequestBody,
+        version: 'actql-remote-poll-dispatch/0.2',
+      }));
+      return;
+    }
+    if (request.url === '/outbound/stale-observation') {
+      let observation;
+      try { observation = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      if (observation.version !== 'actql-remote-dispatch-response/0.1' ||
+          observation.dispatch_request_cid !== staleRemoteRequestCid ||
+          observation.revision !== 0) {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"accepted":true}');
       return;
     }
     if (request.url === '/outbound/observation') {
@@ -357,7 +408,7 @@ try {
     '--site-generation', '1',
     '--runtime-revision', revisionA,
   ];
-  const runAgent = async arguments_ => {
+  const startAgent = arguments_ => {
     const child = spawn(executable, [...common, ...arguments_], {
       cwd: new URL('../', import.meta.url),
       env: {PATH: '/usr/bin:/bin', LANG: 'C'},
@@ -367,14 +418,17 @@ try {
     const stderr = [];
     child.stdout.on('data', chunk => stdout.push(chunk));
     child.stderr.on('data', chunk => stderr.push(chunk));
-    const [code, signal] = await once(child, 'exit');
-    return Object.freeze({
-      code,
-      signal,
-      stdout: Buffer.concat(stdout).toString('utf8'),
-      stderr: Buffer.concat(stderr).toString('utf8'),
-    });
+    return (async () => {
+      const [code, signal] = await once(child, 'exit');
+      return Object.freeze({
+        code,
+        signal,
+        stdout: Buffer.concat(stdout).toString('utf8'),
+        stderr: Buffer.concat(stderr).toString('utf8'),
+      });
+    })();
   };
+  const runAgent = arguments_ => startAgent(arguments_);
   const accepted = await runAgent([
     '--http-library', library,
     '--ca', join(root, 'ca.crt'),
@@ -407,6 +461,17 @@ try {
     request_cid: remoteRequestCid,
     revision: 0,
   });
+  const staleProcess = startAgent([
+    '--http-library', library,
+    '--ca', join(root, 'ca.crt'),
+    '--cert', join(root, 'client.crt'),
+    '--key', join(root, 'client.key'),
+    '--poll-url', `https://127.0.0.1:${address.port}/outbound/stale-poll`,
+    '--observation-url',
+    `https://127.0.0.1:${address.port}/outbound/stale-observation`,
+    'poll-once',
+  ]);
+  await stalePollObserved;
   const restarted = await runAgent([
     'restart',
     '--next-generation', '2',
@@ -414,12 +479,16 @@ try {
   ]);
   assert.equal(restarted.code, 0, restarted.stderr);
   assert.deepEqual(JSON.parse(restarted.stdout), {reconciled_records: 1});
+  releaseStalePoll();
+  const fenced = await staleProcess;
+  assert.notEqual(fenced.code, 0);
   const stale = await runAgent(['restart',
     '--next-generation', '2',
     '--next-runtime-revision', revisionB,
   ]);
   assert.notEqual(stale.code, 0);
 } finally {
+  releaseStalePoll?.();
   if (server !== undefined) {
     server.close();
     await once(server, 'close');

@@ -61,6 +61,41 @@ fn install_site_binding(
 }
 
 ///|
+/// Start one physical mutation and, when required, fence it against the exact
+/// Site binding opened by this Journal. The binding read and the caller's
+/// writes share one SQLite transaction.
+fn Journal::begin_mutation(
+  self : Journal,
+  require_current_site : Bool,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  if !require_current_site {
+    return Ok(())
+  }
+  let expected = match expected_site_binding(self.control) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  match self.database.read("site_metadata", "binding") {
+    Ok(value) if value.body == expected => Ok(())
+    Ok(_) | Err(@sqlite.NotFound) => {
+      ignore(self.database.rollback())
+      Err(StaleSiteBinding)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
 pub fn open_journal(
   library : @sqlite.Library,
   path : String,
@@ -200,22 +235,42 @@ pub fn Journal::accept(
         Ok(value) => @utf8.encode(value)
         Err(issue) => return Err(Protocol(issue))
       }
-      match self.database.insert("site_dispatch", key, body) {
-        Ok(revision) => {
-          if revision != 0L {
-            return Err(StateCollision)
-          }
-          match @remote.commit_dispatch_acceptance(admission, true) {
-            Ok(value) => Ok(value)
-            Err(issue) => Err(Protocol(issue))
-          }
+      match self.begin_mutation(true) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      match self.database.read("site_dispatch", key) {
+        Ok(value) => {
+          ignore(self.database.rollback())
+          return self.existing(request, value)
         }
-        Err(@sqlite.Collision) =>
-          match self.database.read("site_dispatch", key) {
-            Ok(value) => self.existing(request, value)
-            Err(issue) => Err(Physical(issue))
-          }
-        Err(issue) => Err(Physical(issue))
+        Err(@sqlite.NotFound) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.insert("site_dispatch", key, body) {
+        Ok(0L) => ()
+        Ok(_) | Err(@sqlite.Collision) => {
+          ignore(self.database.rollback())
+          return Err(StateCollision)
+        }
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match self.database.commit() {
+        Ok(_) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      match @remote.commit_dispatch_acceptance(admission, true) {
+        Ok(value) => Ok(value)
+        Err(issue) => Err(Protocol(issue))
       }
     }
     Err(issue) => Err(Physical(issue))
@@ -364,40 +419,40 @@ pub fn Journal::restart(
   if self.closed {
     return Err(Closed)
   }
-  match self.recover_all() {
+  match self.begin_mutation(true) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  match self.recover_all() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
   }
   let restart = match
     @remote.prepare_site_generation_restart(self.control, replacement) {
     Ok(value) => value
-    Err(issue) => return Err(Protocol(issue))
-  }
-  let current_binding = match expected_site_binding(self.control) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Protocol(issue))
+    }
   }
   let next_binding = match @remote.site_restart_next_binding_json(restart) {
     Ok(value) => @utf8.encode(value)
-    Err(issue) => return Err(Protocol(issue))
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Protocol(issue))
+    }
   }
   let metadata = match self.database.read("site_metadata", "binding") {
-    Ok(value) if value.body == current_binding => value
-    Ok(_) => return Err(StateCollision)
-    Err(issue) => return Err(Physical(issue))
-  }
-  match self.database.begin_immediate() {
-    Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
   }
   let mut physical_issue : NativeRemoteJournalIssue? = None
-  let locked_metadata = self.database.read("site_metadata", "binding")
-  match locked_metadata {
-    Ok(value) if value.revision == metadata.revision &&
-      value.body == current_binding => ()
-    Ok(_) => physical_issue = Some(StateCollision)
-    Err(issue) => physical_issue = Some(Physical(issue))
-  }
   let count = @remote.site_restart_transition_count(restart)
   for index = 0; index < count; index = index + 1 {
     if physical_issue is Some(_) {
@@ -488,6 +543,13 @@ pub fn Journal::commit_transition(
     Err(issue) => return Err(Protocol(issue))
   }
   let encoded = @utf8.encode(body)
+  match
+    self.begin_mutation(
+      @remote.dispatch_transition_requires_current_site(transition),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let durable = match
     self.database.compare_exchange(
       "site_dispatch",
@@ -500,12 +562,26 @@ pub fn Journal::commit_transition(
       match self.database.read("site_dispatch", key) {
         Ok(value) =>
           value.revision == expected.to_int64() + 1L && value.body == encoded
-        Err(issue) => return Err(Physical(issue))
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
       }
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
   }
   if !durable {
+    ignore(self.database.rollback())
     return Err(StateCollision)
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
   }
   match @remote.commit_dispatch_transition(transition, true) {
     Ok(_) => Ok(())
@@ -546,9 +622,9 @@ pub fn Journal::commit_evidence_transition(
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))
   }
-  match self.database.begin_immediate() {
+  match self.begin_mutation(true) {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(issue)
   }
   let mut failure : NativeRemoteJournalIssue? = None
   let mut already_committed = false

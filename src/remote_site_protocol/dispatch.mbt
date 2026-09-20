@@ -2361,6 +2361,17 @@ pub fn dispatch_transition_projection(
 }
 
 ///|
+/// Whether this transition exercises execution authority for the current Site
+/// generation. Cleanup-only transitions remain available for historical
+/// generations so a restart cannot strand physical responsibility.
+pub fn dispatch_transition_requires_current_site(
+  transition : DispatchTransition,
+) -> Bool {
+  transition.expected_execution != transition.next_execution ||
+  transition.expected_evidence != transition.next_evidence
+}
+
+///|
 pub fn dispatch_transition_journal_key(
   transition : DispatchTransition,
 ) -> Array[String] {

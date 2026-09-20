@@ -51,6 +51,7 @@ fn journal_issue_code(issue : @journal.NativeRemoteJournalIssue) -> String {
     @journal.Closed => "closed"
     @journal.Physical(_) => "physical"
     @journal.Protocol(_) => "protocol"
+    @journal.StaleSiteBinding => "stale-site-binding"
     @journal.StateCollision => "state-collision"
   }
 }

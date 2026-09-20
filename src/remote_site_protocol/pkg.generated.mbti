@@ -133,6 +133,8 @@ pub fn dispatch_transition_projection(DispatchTransition) -> Array[String]
 
 pub fn dispatch_transition_request_identity(DispatchTransition) -> String
 
+pub fn dispatch_transition_requires_current_site(DispatchTransition) -> Bool
+
 pub fn durable_coordinator_dispatch_record_attempt_identity(DurableCoordinatorDispatchRecord) -> Result[String, DispatchIssue]
 
 pub fn durable_coordinator_dispatch_record_evidence(DurableCoordinatorDispatchRecord) -> RemoteExecutionEvidence?
