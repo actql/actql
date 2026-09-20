@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 28/39 entries have kernels and managed completion, 27/39 reach the standard Host, and 23/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 28/39 entries have resource and three-target kernel evidence | Implement and register the remaining 11 entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 18/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 19/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections and equality, bounded Events transforms, and normalized, grafted, scored, or pooled Vectors projections; 22/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 28/39, standard Host 27/39,
-consumer lifetime 23/39, cancellation 18/39, and publication 22/39. These are
+consumer lifetime 23/39, cancellation 19/39, and publication 22/39. These are
 layer counts, not operation completion: 17 entries are `complete` and 22 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -283,9 +283,11 @@ Relation row without depending on Graph enumeration order. The portable
 standard Host carries the result through two consumers, independent release,
 formal Named Result publication, retrieval, and final ledger reclamation on
 JS, Wasm, and native. The real Node Host publication path and generated
-Workers fixture are current at `738d19da`. The operation remains partial until
-independent unequal-cardinality and unequal-payload fixtures plus environment
-cancellation, stop, and cleanup evidence are recorded.
+Workers fixture are current at `738d19da`. An environment timer now delivers
+cancellation after both Graph operands are constructed; the bounded equality
+kernel observes stop, reports it separately from cleanup, and returns the
+ledger to zero at `092cc87b`. The operation remains partial until independent
+unequal-cardinality and unequal-payload fixtures are recorded.
 
 Node identity-list matching now resolves every checked
 identity through the admitted immutable Graph index before output, sorts by
