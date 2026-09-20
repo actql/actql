@@ -4,6 +4,7 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_join_shape" @join,
+  "actql/actql/relation_join" @asof,
   "actql/actql/relation_append" @append,
   "actql/actql/relation_set" @set,
   "actql/actql/relation_nest" @nest,

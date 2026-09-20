@@ -24,6 +24,7 @@ pub fn prepare_fragment_pipeline(
     | WindowStep(_)
     | JoinStep(_)
     | IntervalJoinStep(_)
+    | AsOfJoinStep(_)
     | CrossJoinStep(_)
     | AppendStep(_)
     | SetStep(_)

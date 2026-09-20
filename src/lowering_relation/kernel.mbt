@@ -303,6 +303,7 @@ fn prepare_kernel_measured(
     | RowWindow(_)
     | InnerJoin(_)
     | IntervalJoinRows(_)
+    | AsOfJoinRows(_)
     | CrossJoinRows(_)
     | AppendRows(_)
     | SetRows(_)

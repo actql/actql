@@ -437,6 +437,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.WindowStep(_)
       | @lower.JoinStep(_)
       | @lower.IntervalJoinStep(_)
+      | @lower.AsOfJoinStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_)
