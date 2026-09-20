@@ -361,6 +361,10 @@ pub fn strategy_fixture_sga_sized_create(String, String, String, String, String,
 
 pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_tea_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
+
+pub fn strategy_fixture_tea_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_two_resources_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]

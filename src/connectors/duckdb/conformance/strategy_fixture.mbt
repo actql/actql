@@ -84,6 +84,34 @@ pub fn strategy_fixture_sga_create(
 }
 
 ///|
+#export_name("strategyFixtureTeaCreate")
+pub fn strategy_fixture_tea_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    tea=true,
+  )
+}
+
+///|
 #export_name("strategyFixtureVecaCreate")
 pub fn strategy_fixture_veca_create(
   environment_json : String,
@@ -217,6 +245,7 @@ fn strategy_fixture_create_impl(
   join : Bool,
   multiple_resources? : Bool = false,
   sga? : Bool = false,
+  tea? : Bool = false,
   veca? : Bool = false,
   ordered_json? : String? = None,
   components? : Bool = false,
@@ -230,6 +259,7 @@ fn strategy_fixture_create_impl(
       source_override=Some(program_json),
       join~,
       sga~,
+      tea~,
       veca~,
       components~,
       components_rows~,

@@ -1985,49 +1985,143 @@ async function exerciseStrategyGraph(
     resultAliases: 2,
     step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
     fields: ['node', 'degree'],
+  }, {
+    name: 'session',
+    family: 'tea',
+    rows: 40,
+    advanceQuantum: 1,
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'session_start_ms',
+      'session_end_ms',
+      'session_id',
+    ],
   }];
   for (const cancellationCase of graphCancellationCases) {
-    const graphCancellationProgram = structuredClone(graphProgramBase);
-    graphCancellationProgram.stages[1].steps[0].values.rows =
-      Array.from({length: cancellationCase.rows}, (_, index) => ({
-        id: index + 1,
-        src: index + 1,
-        dst: (index + 1) % cancellationCase.rows + 1,
-        node_name: `node-${index + 1}`,
-        weight: index + 1,
-      }));
-    graphCancellationProgram.stages[2].steps.splice(
-      1,
-      1,
-      ...(cancellationCase.steps ?? [cancellationCase.step]),
-    );
+    const graphCancellationProgram = cancellationCase.family === 'tea'
+      ? {
+        version: 'actql/0.1',
+        id: 'p',
+        params: {minimum: {type: 'number', nullable: false}},
+        stages: [{
+          id: 'a',
+          inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+          steps: [
+            {filter: 'id > $minimum', as: 'filtered'},
+            {select: ['id'], as: 'captured'},
+          ],
+          results: {r: {from: 'captured', fields: ['id']}},
+        }, {
+          id: 'values',
+          inputs: {},
+          steps: [{
+            values: {
+              schema: {
+                event_id: {type: 'number', nullable: false},
+                occurred_at: {type: 'number', nullable: false},
+                payload: {type: 'string', nullable: false},
+              },
+              rows: Array.from(
+                {length: cancellationCase.rows},
+                (_, index) => ({
+                  event_id: index + 1,
+                  occurred_at: index + 1,
+                  payload: `partition-${index % 2}`,
+                }),
+              ),
+            },
+            as: 'out',
+          }],
+          results: {
+            r: {
+              from: 'out',
+              fields: ['event_id', 'occurred_at', 'payload'],
+            },
+          },
+        }, {
+          id: 'events',
+          inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+          steps: [{
+            from: 'rows',
+            to_events: {id: 'event_id', time: 'occurred_at'},
+          }, {
+            session: {by: ['payload'], gap: 10},
+          }, {
+            events: true,
+            as: 'out',
+          }],
+          results: {
+            r: {from: 'out', fields: cancellationCase.fields},
+          },
+        }, {
+          id: 'consumer_a',
+          inputs: {x: {result: {stage: 'events', result: 'r'}}},
+          steps: [{select: cancellationCase.fields, as: 'out'}],
+          results: {
+            r: {from: 'out', fields: cancellationCase.fields},
+          },
+        }, {
+          id: 'consumer_b',
+          inputs: {x: {result: {stage: 'events', result: 'r'}}},
+          steps: [{select: ['session_id', 'event_id'], as: 'out'}],
+          results: {
+            r: {from: 'out', fields: ['session_id', 'event_id']},
+          },
+        }],
+        results: {published: {from: {stage: 'events', result: 'r'}}},
+      }
+      : structuredClone(graphProgramBase);
+    if (cancellationCase.family !== 'tea') {
+      graphCancellationProgram.stages[1].steps[0].values.rows =
+        Array.from({length: cancellationCase.rows}, (_, index) => ({
+          id: index + 1,
+          src: index + 1,
+          dst: (index + 1) % cancellationCase.rows + 1,
+          node_name: `node-${index + 1}`,
+          weight: index + 1,
+        }));
+      graphCancellationProgram.stages[2].steps.splice(
+        1,
+        1,
+        ...(cancellationCase.steps ?? [cancellationCase.step]),
+      );
+    }
     const graphFields = cancellationCase.fields;
-    graphCancellationProgram.stages[2].results.r.fields = graphFields;
-    graphCancellationProgram.stages[3].steps[0].select = graphFields;
-    graphCancellationProgram.stages[3].results.r.fields = graphFields;
-    const graphSecondFields = graphFields.slice(1);
-    graphCancellationProgram.stages[4].steps[0].select =
-      graphSecondFields;
-    graphCancellationProgram.stages[4].results.r.fields =
-      graphSecondFields;
-    graphCancellationProgram.stages[5].steps[0].select =
-      [graphFields[0]];
-    graphCancellationProgram.stages[5].results.r.fields =
-      [graphFields[0]];
+    if (cancellationCase.family !== 'tea') {
+      graphCancellationProgram.stages[2].results.r.fields = graphFields;
+      graphCancellationProgram.stages[3].steps[0].select = graphFields;
+      graphCancellationProgram.stages[3].results.r.fields = graphFields;
+      const graphSecondFields = graphFields.slice(1);
+      graphCancellationProgram.stages[4].steps[0].select =
+        graphSecondFields;
+      graphCancellationProgram.stages[4].results.r.fields =
+        graphSecondFields;
+      graphCancellationProgram.stages[5].steps[0].select =
+        [graphFields[0]];
+      graphCancellationProgram.stages[5].results.r.fields =
+        [graphFields[0]];
+    }
     if (cancellationCase.resultAliases === 2) {
       graphCancellationProgram.results = {
         first: {from: {stage: 'graph', result: 'r'}},
         second: {from: {stage: 'graph', result: 'r'}},
       };
     }
-    const createCancellationFixture =
-      cancellationCase.name === 'components-strong'
+    const createCancellationFixture = cancellationCase.family === 'tea'
+      ? fixture.strategyFixtureTeaCreate
+      : cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : fixture.strategyFixtureSgaSizedCreate;
     const cancellationFixture = createCancellationFixture(
-      ...sgaEnvironmentArguments(args),
+      ...(cancellationCase.family === 'tea'
+        ? args
+        : sgaEnvironmentArguments(args)),
       JSON.stringify(graphCancellationProgram),
-      BigInt(cancellationCase.rows),
+      ...(cancellationCase.family === 'tea'
+        ? []
+        : [BigInt(cancellationCase.rows)]),
     );
     const cancellationCapture = await runNativeHostQuery(
       grant,
@@ -2057,7 +2151,9 @@ async function exerciseStrategyGraph(
         ),
         true,
       );
-      const setup = fixture.strategyFixtureSgaSubset(cancellationFixture);
+      const setup = cancellationCase.family === 'tea'
+        ? fixture.strategyFixtureTeaSubset(cancellationFixture)
+        : fixture.strategyFixtureSgaSubset(cancellationFixture);
       assert.equal(
         hostRuntime.strategyHostConfigureManagedIdentity(
           setup,
