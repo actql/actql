@@ -187,6 +187,20 @@ test "Site status alone cannot authorize Coordinator completion" {
   ).unwrap()
   commit_coordinator_dispatch_transition(admitted, true).unwrap()
   assert_true(coordinator_completion_evidence_available(record))
+  assert_true(
+    coordinator_managed_output_matches(
+      record, request, evidence, subject, measurement,
+    ),
+  )
+  assert_false(
+    coordinator_managed_output_matches(
+      record,
+      coordinator_request("dispatch-foreign", 2),
+      evidence,
+      subject,
+      measurement,
+    ),
+  )
 }
 
 ///|

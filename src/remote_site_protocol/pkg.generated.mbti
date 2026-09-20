@@ -79,6 +79,8 @@ pub fn coordinator_dispatch_transition_journal_key(CoordinatorDispatchTransition
 
 pub fn coordinator_dispatch_transition_projection(CoordinatorDispatchTransition) -> Array[String]
 
+pub fn coordinator_managed_output_matches(CoordinatorDispatchIntentRecord, DispatchRequest, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
+
 pub fn create_coordinator_dispatch_journal(String) -> Result[CoordinatorDispatchJournal, DispatchIssue]
 
 pub fn create_remote_runtime_custody() -> RemoteRuntimeCustody

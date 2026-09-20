@@ -1,9 +1,10 @@
 ///|
-/// Host-private material proof paired with the admitted remote evidence. The
-/// payload remains opaque to common code. Its installed verifier must bind it
-/// to the exact generation, holding evidence and physical manifest supplied by
-/// the checked remote subject.
+/// Host-private material proof paired with the Coordinator's durable remote
+/// observation. The payload remains opaque to common code. Its installed
+/// verifier must bind it to the exact generation, holding evidence and
+/// physical manifest supplied by the checked remote subject.
 pub(all) struct RemoteManagedCompletionProof[P] {
+  coordinator : @remote.CoordinatorDispatchIntentRecord
   output : RemoteManagedOutputProof
   material : P
 }
@@ -12,6 +13,7 @@ pub(all) struct RemoteManagedCompletionProof[P] {
 pub(all) enum RemoteManagedCompletionIssue {
   Closed
   ForeignProfile
+  UncommittedCoordinatorEvidence
   UnverifiedMaterial
   Values(@execution.ManagedVerifiedOutputIssue)
   Retention(@execution.ManagedOutputRetentionIssue)
@@ -199,6 +201,18 @@ pub fn[P, T] finish_remote_managed_completion(
     return Err(Closed)
   }
   port.open = false
+  if !@remote.coordinator_managed_output_matches(
+      proof.coordinator,
+      port.request,
+      proof.output.evidence,
+      proof.output.subject,
+      proof.output.measurement,
+    ) {
+    cancel_remote_managed_output_verifier(port.values) |> ignore
+    @execution.cancel_managed_output_retention_port(port.retention) |> ignore
+    @execution.cancel_managed_completion_port(port.completion) |> ignore
+    return Err(UncommittedCoordinatorEvidence)
+  }
   let receipt = match
     finish_remote_managed_output_verifier(port.values, proof.output) {
     Ok(value) => value

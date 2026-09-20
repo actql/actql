@@ -594,6 +594,29 @@ pub fn coordinator_completion_evidence_available(
 }
 
 ///|
+/// Check that one complete managed-output observation is the exact durable
+/// fact accepted by this Coordinator intent. Site evidence remains necessary,
+/// but cannot reach common completion until the Coordinator has committed the
+/// corresponding observation for the same dispatch.
+pub fn coordinator_managed_output_matches(
+  record : CoordinatorDispatchIntentRecord,
+  request : DispatchRequest,
+  evidence : RemoteExecutionEvidence,
+  subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
+) -> Bool {
+  coordinator_dispatch_intent_matches_request(record, request) &&
+  coordinator_completion_evidence_available(record) &&
+  record.accepted_evidence_cid == remote_execution_evidence_cid(evidence) &&
+  record.accepted_subject_cid == remote_managed_output_subject_cid(subject) &&
+  record.accepted_measurement_cid ==
+  remote_managed_output_measurement_cid(measurement) &&
+  remote_execution_evidence_matches_dispatch(evidence, request) &&
+  remote_managed_output_subject_matches_evidence(subject, evidence, request) &&
+  remote_managed_output_subject_matches_measurement(subject, measurement)
+}
+
+///|
 pub fn coordinator_dispatch_record_state_codes(
   record : CoordinatorDispatchIntentRecord,
 ) -> Array[String] {

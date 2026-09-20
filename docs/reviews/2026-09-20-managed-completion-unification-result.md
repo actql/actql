@@ -7,6 +7,12 @@ Implementation base: `7a9bc32f` on
 
 Verified implementation head: `84abc691`.
 
+The branch subsequently hardened the shared remote boundary so a durable
+Coordinator observation is required in addition to Site evidence. That change
+does not alter the Local handoff status below. Its focused JS, Wasm, and native
+integration suites each pass 402/402 tests; the retained-boundary and remote
+runtime suites pass 239/239 and 84/84 respectively.
+
 The earlier report used the pre-rebase object names `98865fcf` and
 `8a9102f4`. The history rewrite changed commit identities without changing
 the implementation tree. This report records the corresponding commits in
@@ -49,7 +55,14 @@ The following Engine product paths use the common output commit:
 - DuckDB Node and native execution;
 - DuckDB resident relation reuse;
 - generic materializing `compute_author` execution;
-- existing typed managed execution and remote managed evidence.
+- existing typed managed execution and the shared remote evidence boundary.
+
+The remote boundary now requires a durable Coordinator observation of the
+exact evidence, subject, and measurement identities before it can invoke the
+common task commit. Raw Site evidence cannot complete a task. The configured
+native Remote Site product runner still has to supply the recovered material
+handle and this Coordinator fact; the integration fixture is not presented as
+that product runner.
 
 DuckDB standard Hosts opt into lifecycle-only completion. The low-level DuckDB
 preparation default remains a deliberate public compatibility mode, but it

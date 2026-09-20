@@ -48,6 +48,13 @@ rejected. Persisting Coordinator intent does not assert Site acceptance,
 execution, evidence, or completion; those facts advance through their owning
 boundaries and are reconciled separately.
 
+Common managed completion requires the Coordinator journal to contain the
+exact durable managed-output observation. The admitted evidence, subject, and
+measurement identities must match the remote dispatch and the current material
+handle before the ordinary Host task commit can run. Site-issued evidence on
+its own cannot commit a DAG output, even when its signature and physical
+subject are otherwise valid.
+
 ## Dispatch identity and durable admission
 
 A remote dispatch separates four identities:

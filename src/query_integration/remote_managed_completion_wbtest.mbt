@@ -60,7 +60,10 @@ fn remote_completion_request() -> @remote.DispatchRequest {
 fn remote_completion_proof(
   request : @remote.DispatchRequest,
   profile_cid : String,
-) -> @remote_completion.RemoteManagedOutputProof {
+) -> (
+  @remote.CoordinatorDispatchIntentRecord,
+  @remote_completion.RemoteManagedOutputProof,
+) {
   let measurement = @remote.prepare_remote_managed_output_measurement(
     2,
     0,
@@ -142,7 +145,27 @@ fn remote_completion_proof(
   let evidence = @remote.issue_remote_managed_output_evidence(
     issuer, record, subject,
   ).unwrap()
-  { evidence, subject, measurement, }
+  let coordinator = @remote.create_coordinator_dispatch_journal("coordinator-a").unwrap()
+  let (_, coordinator_record) = @remote.commit_coordinator_dispatch_intent(
+    @remote.prepare_coordinator_dispatch_intent(coordinator, request).unwrap(),
+    true,
+  ).unwrap()
+  @remote.commit_coordinator_dispatch_transition(
+    @remote.prepare_coordinator_managed_output_observation(
+      coordinator_record,
+      @remote.dispatch_record_revision(record),
+      3,
+      2,
+      1,
+      true,
+      false,
+      evidence,
+      subject,
+      measurement,
+    ).unwrap(),
+    true,
+  ).unwrap()
+  (coordinator_record, { evidence, subject, measurement, })
 }
 
 ///|
@@ -274,8 +297,10 @@ test "remote proof creates one exact common managed completion" {
   assert_false(
     @remote_completion.bind_remote_managed_completion_attempt(port, attempt),
   )
+  let (coordinator, output) = remote_completion_proof(request, profile_cid)
   let completed = @remote_completion.finish_remote_managed_completion(port, {
-    output: remote_completion_proof(request, profile_cid),
+    coordinator,
+    output,
     material: "opaque-handle-a",
   }).unwrap()
   assert_true(checked_physical.val)
@@ -320,14 +345,59 @@ test "foreign remote material cannot create a common completion" {
     10000,
     fn(_ : String, _, _, _, _) -> (String, () -> Bool)? { None },
   ).unwrap()
+  let (coordinator, output) = remote_completion_proof(request, profile_cid)
   assert_true(
     @remote_completion.finish_remote_managed_completion(port, {
-      output: remote_completion_proof(request, profile_cid),
+      coordinator,
+      output,
       material: "foreign-handle",
     })
     is Err(UnverifiedMaterial),
   )
   assert_false(@remote_completion.cancel_remote_managed_completion_port(port))
+}
+
+///|
+test "Site evidence without Coordinator commit cannot complete a task" {
+  let owner = remote_completion_owner()
+  let request = remote_completion_request()
+  let profile = @execution.selected_managed_execution_profile()
+  let profile_cid = @execution.managed_execution_profile_cid(profile)
+  let material_checked = Ref(false)
+  let port = @remote_completion.prepare_remote_managed_completion_port(
+    remote_completion_values(owner),
+    request,
+    {
+      managed_profile_cid: profile_cid,
+      result_schema_cid: remote_completion_cid("5"),
+      logical_view_cid: remote_completion_cid("6"),
+      representation_codec_cid: remote_completion_cid("7"),
+    },
+    profile,
+    task_test_completion(owner),
+    @pipeline.Step(1),
+    1000,
+    10000,
+    fn(_ : String, _, _, _, _) -> (String, () -> Bool)? {
+      material_checked.val = true
+      Some(("unexpected", fn() { true }))
+    },
+  ).unwrap()
+  let (_, output) = remote_completion_proof(request, profile_cid)
+  let coordinator = @remote.create_coordinator_dispatch_journal("coordinator-a").unwrap()
+  let (_, uncommitted) = @remote.commit_coordinator_dispatch_intent(
+    @remote.prepare_coordinator_dispatch_intent(coordinator, request).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(
+    @remote_completion.finish_remote_managed_completion(port, {
+      coordinator: uncommitted,
+      output,
+      material: "opaque-handle-a",
+    })
+    is Err(UncommittedCoordinatorEvidence),
+  )
+  assert_false(material_checked.val)
 }
 
 ///|
@@ -370,14 +440,12 @@ test "remote completion commits only its selected task and registration" {
     @remote_completion.bind_remote_managed_completion_task(port, run, execution),
   )
   @strategy.settle_task_execution(run, execution, true).unwrap()
+  let (coordinator, output) = remote_completion_proof(request, profile_cid)
   let completed = @remote_completion.finish_remote_managed_task_completion(
     port,
     run,
     execution,
-    {
-      output: remote_completion_proof(request, profile_cid),
-      material: "opaque-handle-a",
-    },
+    { coordinator, output, material: "opaque-handle-a", },
   ).unwrap()
   assert_true(@strategy.captured_task_completed(run, 1))
   assert_true(

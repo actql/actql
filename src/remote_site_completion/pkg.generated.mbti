@@ -34,6 +34,7 @@ pub fn prepare_remote_managed_output_verifier(@execution_relation.ManagedOutputV
 pub(all) enum RemoteManagedCompletionIssue {
   Closed
   ForeignProfile
+  UncommittedCoordinatorEvidence
   UnverifiedMaterial
   Values(@execution_relation.ManagedVerifiedOutputIssue)
   Retention(@execution_relation.ManagedOutputRetentionIssue)
@@ -43,6 +44,7 @@ pub(all) enum RemoteManagedCompletionIssue {
 type RemoteManagedCompletionPort[P, T]
 
 pub(all) struct RemoteManagedCompletionProof[P] {
+  coordinator : @remote_site_protocol.CoordinatorDispatchIntentRecord
   output : RemoteManagedOutputProof
   material : P
 }

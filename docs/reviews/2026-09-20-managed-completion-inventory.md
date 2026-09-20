@@ -30,7 +30,7 @@ workstream.
 | Reference asynchronous execution | Legacy prepared execution and ordinary completion | In-memory reference output under common holding | Ordinary reads | Migrate after Local using the same materialized managed adapter |
 | Reference managed execution | Managed completion | Typed retained reference material | Typed managed reads and optional logical identity | Keep on the common managed boundary |
 | `compute_author` | Starts and completes `PreparedExecution` | Uses the selected implementation's reservation and holding | Common Host checks completion immediately before commit | Change its channel to the unified prepared execution contract |
-| Remote completion port | Managed completion only | Site-owned output plus Coordinator-owned common holding | Exact dispatch, issuer, attempt, obligations, and current holding | Keep the typed evidence path and enter the same output-slot authority |
+| Remote completion port | Managed completion only | Site-owned output plus Coordinator-owned common holding | Exact dispatch, durable Coordinator observation, issuer, attempt, obligations, and current holding | Keep the typed evidence path and enter the same output-slot authority |
 | Managed Site Transfer | Requires a live managed completion reference | Independent destination reservation and holding; source holding is not re-reserved | Exact source occurrence; no task completion authority | Read the unified output slot and preserve independent transfer lifecycle |
 | Named Result publication | Consumes admitted task output through the standard Host | Publication holding remains separate from task completion | Named Result identity and publication commit remain separate | No new publication path; consume the same committed task output |
 
@@ -50,6 +50,12 @@ marks the task done, clears completed inputs and advances the graph generation.
 Synchronous Local, Local materializing, reference, DuckDB Node/native,
 `compute_author`, managed execution and remote managed evidence converge on
 that mutation.
+
+Remote evidence additionally requires the Coordinator's durable observation
+of the exact evidence, subject, and measurement identities. Site evidence by
+itself cannot reach the common task commit. Connecting the configured native
+Remote Site executor and its recovered material handle to this boundary is a
+remaining product-orchestration task, not another completion authority.
 
 The common completion boundary already verifies:
 
