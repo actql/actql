@@ -25,6 +25,7 @@ fn query_checked_program_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
+  local_carrier_graph_variant? : String = "projection",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -94,7 +95,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_carrier_graph_chain {
-    local_carrier_graph_program()
+    local_carrier_graph_program(variant=local_carrier_graph_variant)
   } else {
     text
   }

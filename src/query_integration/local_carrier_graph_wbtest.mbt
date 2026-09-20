@@ -76,7 +76,7 @@ fn carrier_graph_open_endpoint_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
-fn local_carrier_graph_program() -> String {
+fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -86,6 +86,12 @@ fn local_carrier_graph_program() -> String {
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
+  let projection = if variant == "match_nodes" {
+    "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
+    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else {
+    "\"node_rows\":true,\"as\":\"out\""
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -106,7 +112,8 @@ fn local_carrier_graph_program() -> String {
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
   "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
-  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  projection +
+  "}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
   "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
@@ -811,8 +818,11 @@ test "registered Graph provider executes node identity match for two consumers" 
 }
 
 ///|
-test "standard Host runs bounded Graph bridge with two consumers" {
-  let (run, issuer) = captured_graph_fixture(local_carrier_graph_chain=true)
+fn run_standard_host_graph_relation_path(variant : String) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant=variant,
+  )
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
@@ -953,4 +963,10 @@ test "standard Host runs bounded Graph bridge with two consumers" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host runs bounded Graph relation paths with two consumers" {
+  run_standard_host_graph_relation_path("projection")
+  run_standard_host_graph_relation_path("match_nodes")
 }
