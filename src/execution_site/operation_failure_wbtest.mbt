@@ -70,3 +70,57 @@ test "retained Site holding follows physical close and cleanup" {
     RetainedSiteHoldingInvalid,
   )
 }
+
+///|
+test "retained Site progress shares close and releases each holding" {
+  let close = begin_retained_site_close_progress()
+  let first = begin_retained_site_holding_progress(close).unwrap()
+  let second = begin_retained_site_holding_progress(close).unwrap()
+  assert_eq(
+    prepare_retained_site_close_progress_step(close),
+    RetainedSiteCloseStart,
+  )
+  assert_eq(
+    prepare_retained_site_holding_progress_step(first),
+    RetainedSiteStartClose,
+  )
+  assert_true(record_retained_site_close_started(close))
+  assert_eq(
+    prepare_retained_site_close_progress_step(close),
+    RetainedSiteCloseAwaitPhysical,
+  )
+  assert_true(begin_retained_site_holding_progress(close) is None)
+  assert_eq(
+    prepare_retained_site_holding_progress_step(first),
+    RetainedSiteAwaitClose,
+  )
+  assert_true(record_retained_site_close_failed(close))
+  assert_eq(
+    prepare_retained_site_close_progress_step(close),
+    RetainedSiteCloseAwaitCleanup,
+  )
+  assert_eq(
+    prepare_retained_site_holding_progress_step(first),
+    RetainedSiteAwaitCleanup,
+  )
+  assert_true(record_retained_site_cleanup_authority(close))
+  assert_true(record_retained_site_cleanup_stopped(close))
+  assert_eq(
+    prepare_retained_site_close_progress_step(close),
+    RetainedSiteCloseFinished,
+  )
+  assert_true(record_retained_site_holding_released(first))
+  assert_eq(
+    prepare_retained_site_holding_progress_step(first),
+    RetainedSiteHoldingFinished,
+  )
+  assert_eq(
+    prepare_retained_site_holding_progress_step(second),
+    RetainedSiteReleaseHolding,
+  )
+  assert_true(record_retained_site_holding_released(second))
+  assert_eq(
+    prepare_retained_site_holding_progress_step(second),
+    RetainedSiteHoldingFinished,
+  )
+}

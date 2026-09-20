@@ -2751,20 +2751,84 @@ pub fn strategy_site_failed_operation_action(
 }
 
 ///|
+#export_name("strategySiteBeginRetainedCloseProgress")
+pub fn strategy_site_begin_retained_close_progress() -> @site.RetainedSiteCloseProgress {
+  @site.begin_retained_site_close_progress()
+}
+
+///|
+#export_name("strategySiteBeginRetainedHoldingProgress")
+pub fn strategy_site_begin_retained_holding_progress(
+  close : @site.RetainedSiteCloseProgress,
+) -> @site.RetainedSiteHoldingProgress? {
+  @site.begin_retained_site_holding_progress(close)
+}
+
+///|
+#export_name("strategySiteRecordRetainedCloseStarted")
+pub fn strategy_site_record_retained_close_started(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_close_started(progress)
+}
+
+///|
+#export_name("strategySiteRecordRetainedCloseSucceeded")
+pub fn strategy_site_record_retained_close_succeeded(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_close_succeeded(progress)
+}
+
+///|
+#export_name("strategySiteRecordRetainedCloseFailed")
+pub fn strategy_site_record_retained_close_failed(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_close_failed(progress)
+}
+
+///|
+#export_name("strategySiteRecordRetainedCleanupAuthority")
+pub fn strategy_site_record_retained_cleanup_authority(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_cleanup_authority(progress)
+}
+
+///|
+#export_name("strategySiteRecordRetainedCleanupStopped")
+pub fn strategy_site_record_retained_cleanup_stopped(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_cleanup_stopped(progress)
+}
+
+///|
+#export_name("strategySiteRecordRetainedHoldingReleased")
+pub fn strategy_site_record_retained_holding_released(
+  progress : @site.RetainedSiteHoldingProgress,
+) -> Bool {
+  @site.record_retained_site_holding_released(progress)
+}
+
+///|
 #export_name("strategySiteRetainedHoldingAction")
 pub fn strategy_site_retained_holding_action(
-  close_started : Bool,
-  close_succeeded : Bool,
-  close_failed : Bool,
-  cleanup_authority : Bool,
-  cleanup_stopped : Bool,
-  holding_released : Bool,
+  progress : @site.RetainedSiteHoldingProgress,
 ) -> Int {
   @site.retained_site_holding_action_code(
-    @site.prepare_retained_site_holding_step(
-      close_started, close_succeeded, close_failed, cleanup_authority, cleanup_stopped,
-      holding_released,
-    ),
+    @site.prepare_retained_site_holding_progress_step(progress),
+  )
+}
+
+///|
+#export_name("strategySiteRetainedCloseAction")
+pub fn strategy_site_retained_close_action(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Int {
+  @site.retained_site_close_action_code(
+    @site.prepare_retained_site_close_progress_step(progress),
   )
 }
 
@@ -8741,20 +8805,84 @@ pub fn async_strategy_site_failed_operation_action(
 }
 
 ///|
+#export_name("asyncStrategySiteBeginRetainedCloseProgress")
+pub fn async_strategy_site_begin_retained_close_progress() -> @site.RetainedSiteCloseProgress {
+  @site.begin_retained_site_close_progress()
+}
+
+///|
+#export_name("asyncStrategySiteBeginRetainedHoldingProgress")
+pub fn async_strategy_site_begin_retained_holding_progress(
+  close : @site.RetainedSiteCloseProgress,
+) -> @site.RetainedSiteHoldingProgress? {
+  @site.begin_retained_site_holding_progress(close)
+}
+
+///|
+#export_name("asyncStrategySiteRecordRetainedCloseStarted")
+pub fn async_strategy_site_record_retained_close_started(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_close_started(progress)
+}
+
+///|
+#export_name("asyncStrategySiteRecordRetainedCloseSucceeded")
+pub fn async_strategy_site_record_retained_close_succeeded(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_close_succeeded(progress)
+}
+
+///|
+#export_name("asyncStrategySiteRecordRetainedCloseFailed")
+pub fn async_strategy_site_record_retained_close_failed(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_close_failed(progress)
+}
+
+///|
+#export_name("asyncStrategySiteRecordRetainedCleanupAuthority")
+pub fn async_strategy_site_record_retained_cleanup_authority(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_cleanup_authority(progress)
+}
+
+///|
+#export_name("asyncStrategySiteRecordRetainedCleanupStopped")
+pub fn async_strategy_site_record_retained_cleanup_stopped(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Bool {
+  @site.record_retained_site_cleanup_stopped(progress)
+}
+
+///|
+#export_name("asyncStrategySiteRecordRetainedHoldingReleased")
+pub fn async_strategy_site_record_retained_holding_released(
+  progress : @site.RetainedSiteHoldingProgress,
+) -> Bool {
+  @site.record_retained_site_holding_released(progress)
+}
+
+///|
 #export_name("asyncStrategySiteRetainedHoldingAction")
 pub fn async_strategy_site_retained_holding_action(
-  close_started : Bool,
-  close_succeeded : Bool,
-  close_failed : Bool,
-  cleanup_authority : Bool,
-  cleanup_stopped : Bool,
-  holding_released : Bool,
+  progress : @site.RetainedSiteHoldingProgress,
 ) -> Int {
   @site.retained_site_holding_action_code(
-    @site.prepare_retained_site_holding_step(
-      close_started, close_succeeded, close_failed, cleanup_authority, cleanup_stopped,
-      holding_released,
-    ),
+    @site.prepare_retained_site_holding_progress_step(progress),
+  )
+}
+
+///|
+#export_name("asyncStrategySiteRetainedCloseAction")
+pub fn async_strategy_site_retained_close_action(
+  progress : @site.RetainedSiteCloseProgress,
+) -> Int {
+  @site.retained_site_close_action_code(
+    @site.prepare_retained_site_close_progress_step(progress),
   )
 }
 

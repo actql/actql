@@ -243,24 +243,74 @@ export function createExecutionSiteControlFixture() {
       if (progress.cleanupRequired && !progress.cleanupStopped) return 0;
       return 1;
     },
-    retainedHoldingAction(
-      closeStarted,
-      closeSucceeded,
-      closeFailed,
-      cleanupAuthority,
-      cleanupStopped,
-      holdingReleased,
-    ) {
-      if ((closeSucceeded && closeFailed) ||
-          (cleanupStopped && !cleanupAuthority) ||
-          ((closeSucceeded || closeFailed || cleanupAuthority) &&
-            !closeStarted) ||
-          (holdingReleased && !closeStarted)) return 5;
-      if (holdingReleased) return 4;
-      if (!closeStarted) return 0;
-      if (closeSucceeded ||
-          (closeFailed && cleanupAuthority && cleanupStopped)) return 3;
-      if (closeFailed) return 2;
+    beginRetainedClose() {
+      return {
+        closeStarted: false,
+        closeSucceeded: false,
+        closeFailed: false,
+        cleanupAuthority: false,
+        cleanupStopped: false,
+      };
+    },
+    beginRetainedHolding(close) {
+      return close.closeStarted ? undefined : {close, holdingReleased: false};
+    },
+    recordRetainedCloseStarted(progress) {
+      if (progress.closeStarted) return false;
+      progress.closeStarted = true;
+      return true;
+    },
+    recordRetainedCloseSucceeded(progress) {
+      if (!progress.closeStarted || progress.closeFailed) return false;
+      progress.closeSucceeded = true;
+      return true;
+    },
+    recordRetainedCloseFailed(progress) {
+      if (!progress.closeStarted || progress.closeSucceeded) return false;
+      progress.closeFailed = true;
+      return true;
+    },
+    recordRetainedCleanupAuthority(progress) {
+      if (!progress.closeStarted || !progress.closeFailed) return false;
+      progress.cleanupAuthority = true;
+      return true;
+    },
+    recordRetainedCleanupStopped(progress) {
+      if (!progress.cleanupAuthority) return false;
+      progress.cleanupStopped = true;
+      return true;
+    },
+    recordRetainedHoldingReleased(progress) {
+      if (progress.holdingReleased) return true;
+      if (this.retainedHoldingAction(progress) !== 3) return false;
+      progress.holdingReleased = true;
+      return true;
+    },
+    retainedCloseAction(progress) {
+      if ((progress.closeSucceeded && progress.closeFailed) ||
+          (progress.cleanupStopped && !progress.cleanupAuthority) ||
+          ((progress.closeSucceeded || progress.closeFailed ||
+            progress.cleanupAuthority) && !progress.closeStarted)) return 4;
+      if (!progress.closeStarted) return 0;
+      if (progress.closeSucceeded ||
+          (progress.closeFailed && progress.cleanupAuthority &&
+            progress.cleanupStopped)) return 3;
+      if (progress.closeFailed) return 2;
+      return 1;
+    },
+    retainedHoldingAction(progress) {
+      const {close} = progress;
+      if ((close.closeSucceeded && close.closeFailed) ||
+          (close.cleanupStopped && !close.cleanupAuthority) ||
+          ((close.closeSucceeded || close.closeFailed ||
+            close.cleanupAuthority) && !close.closeStarted) ||
+          (progress.holdingReleased && !close.closeStarted)) return 5;
+      if (progress.holdingReleased) return 4;
+      if (!close.closeStarted) return 0;
+      if (close.closeSucceeded ||
+          (close.closeFailed && close.cleanupAuthority &&
+            close.cleanupStopped)) return 3;
+      if (close.closeFailed) return 2;
       return 1;
     },
     beginHostCleanup() {

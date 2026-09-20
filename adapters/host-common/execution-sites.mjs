@@ -9,6 +9,8 @@ const operations = new WeakMap();
 const transferOperations = new WeakMap();
 const holdings = new WeakMap();
 const cleanupResponsibilities = new WeakMap();
+const retainedCloseProgresses = new WeakMap();
+const retainedHoldingProgresses = new WeakMap();
 
 const fail = (code, details) => {
   const error = Object.assign(new Error(code), {code});
@@ -37,11 +39,21 @@ const controlMethods = [
   'retainTransferHolding', 'retainHolding', 'releaseHolding',
   'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
   'selectCandidate', 'planCandidate', 'managedCandidateFallback',
-  'failedOperationAction',
-  'retainedHoldingAction',
-  'hostCleanupAction',
+  'beginFailedOperation', 'recordFailedOperationStop',
+  'recordFailedOperationSettlement', 'failedOperationAction',
+  'beginRetainedClose', 'beginRetainedHolding',
+  'recordRetainedCloseStarted', 'recordRetainedCloseSucceeded',
+  'recordRetainedCloseFailed', 'recordRetainedCleanupAuthority',
+  'recordRetainedCleanupStopped', 'recordRetainedHoldingReleased',
+  'retainedCloseAction', 'retainedHoldingAction',
+  'beginHostCleanup', 'recordHostCleanupRetry',
+  'recordHostCleanupClosesAwaited', 'hostCleanupAction',
   'hostCleanupPending',
-  'hostTaskRunOutcome',
+  'hostTaskRunOutcome', 'beginHostTaskSuccess',
+  'recordHostTaskSiteCompletion', 'recordHostTaskCommonCompletion',
+  'recordHostTaskOutputRetained',
+  'recordHostTaskSiteOperationSettled', 'recordHostTaskManagedBinding',
+  'hostTaskSiteOperationSettled',
   'hostTaskSuccessAction',
 ];
 
@@ -553,29 +565,93 @@ export function recordFailedExecutionSiteOperationSettlement(
   }
 }
 
-export function retainedExecutionSiteHoldingAction(
-  operation,
-  closeStarted,
-  closeSucceeded,
-  closeFailed,
-  cleanupAuthority,
-  cleanupStopped,
-  holdingReleased,
-) {
-  const state = operations.get(operation) ??
+export function beginRetainedExecutionSiteClose(authority) {
+  const state = operations.get(authority) ?? installations.get(authority) ??
+    fail('ForeignExecutionSiteCloseAuthority');
+  const progress = state.control.beginRetainedClose();
+  if (progress === undefined || progress === null) {
+    fail('InvalidExecutionSiteHoldingProgress');
+  }
+  const owner = Object.freeze({});
+  retainedCloseProgresses.set(owner, {control: state.control, progress});
+  return owner;
+}
+
+export function beginRetainedExecutionSiteHolding(closeOwner, operation) {
+  const close = retainedCloseProgresses.get(closeOwner) ??
+    fail('ForeignExecutionSiteCloseProgress');
+  const operationState = operations.get(operation) ??
     fail('ForeignExecutionSiteOperation');
-  const action = state.control.retainedHoldingAction(
-    closeStarted,
-    closeSucceeded,
-    closeFailed,
-    cleanupAuthority,
-    cleanupStopped,
-    holdingReleased,
-  );
+  if (operationState.control !== close.control) {
+    fail('ForeignExecutionSiteControl');
+  }
+  const progress = close.control.beginRetainedHolding(close.progress);
+  if (progress === undefined || progress === null) {
+    fail('InvalidExecutionSiteHoldingProgress');
+  }
+  const owner = Object.freeze({});
+  retainedHoldingProgresses.set(owner, {closeOwner, control: close.control,
+    progress});
+  return owner;
+}
+
+function retainedClose(closeOwner) {
+  return retainedCloseProgresses.get(closeOwner) ??
+    fail('ForeignExecutionSiteCloseProgress');
+}
+
+function recordRetainedClose(closeOwner, method) {
+  const state = retainedClose(closeOwner);
+  if (state.control[method](state.progress) !== true) {
+    fail('InvalidExecutionSiteHoldingProgress');
+  }
+}
+
+export function recordRetainedExecutionSiteCloseStarted(closeOwner) {
+  recordRetainedClose(closeOwner, 'recordRetainedCloseStarted');
+}
+
+export function recordRetainedExecutionSiteCloseSucceeded(closeOwner) {
+  recordRetainedClose(closeOwner, 'recordRetainedCloseSucceeded');
+}
+
+export function recordRetainedExecutionSiteCloseFailed(closeOwner) {
+  recordRetainedClose(closeOwner, 'recordRetainedCloseFailed');
+}
+
+export function recordRetainedExecutionSiteCleanupAuthority(closeOwner) {
+  recordRetainedClose(closeOwner, 'recordRetainedCleanupAuthority');
+}
+
+export function recordRetainedExecutionSiteCleanupStopped(closeOwner) {
+  recordRetainedClose(closeOwner, 'recordRetainedCleanupStopped');
+}
+
+export function retainedExecutionSiteHoldingAction(holdingOwner) {
+  const state = retainedHoldingProgresses.get(holdingOwner) ??
+    fail('ForeignExecutionSiteHoldingProgress');
+  const action = state.control.retainedHoldingAction(state.progress);
   if (!Number.isSafeInteger(action) || action < 0 || action > 5) {
     fail('InvalidExecutionSiteHoldingAction');
   }
   return action;
+}
+
+export function retainedExecutionSiteCloseAction(closeOwner) {
+  const state = retainedClose(closeOwner);
+  const action = state.control.retainedCloseAction(state.progress);
+  if (!Number.isSafeInteger(action) || action < 0 || action > 4) {
+    fail('InvalidExecutionSiteCloseAction');
+  }
+  return action;
+}
+
+export function recordRetainedExecutionSiteHoldingReleased(holdingOwner) {
+  const state = retainedHoldingProgresses.get(holdingOwner) ??
+    fail('ForeignExecutionSiteHoldingProgress');
+  if (state.control.recordRetainedHoldingReleased(state.progress) !== true) {
+    fail('InvalidExecutionSiteHoldingProgress');
+  }
 }
 
 export function executionSiteHostCleanupAction(

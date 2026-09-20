@@ -5,6 +5,8 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   beginFailedExecutionSiteOperation,
   beginExecutionSiteHostCleanup,
   beginExecutionSiteHostTaskSuccess,
+  beginRetainedExecutionSiteClose,
+  beginRetainedExecutionSiteHolding,
   executionSiteCandidate,
   executionSiteDescription, executionSiteHostCleanupAction,
   executionSiteHostCleanupPending, executionSiteHostTaskRunOutcome,
@@ -23,6 +25,13 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   recordExecutionSiteHostTaskSiteOperationSettled,
   recordFailedExecutionSiteOperationSettlement,
   recordFailedExecutionSiteOperationStop,
+  recordRetainedExecutionSiteCleanupAuthority,
+  recordRetainedExecutionSiteCleanupStopped,
+  recordRetainedExecutionSiteCloseFailed,
+  recordRetainedExecutionSiteCloseStarted,
+  recordRetainedExecutionSiteCloseSucceeded,
+  recordRetainedExecutionSiteHoldingReleased,
+  retainedExecutionSiteCloseAction,
   retainedExecutionSiteHoldingAction,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
@@ -72,94 +81,92 @@ function ownedStrategyFailure(reason, fallbackCode) {
 // the Site holding only after an explicit underlying recovery handle confirms
 // physical reclamation.
 function retainSiteResult(operation, result, retainedBytes) {
+  const closeProgress = beginRetainedExecutionSiteClose(operation);
+  const holdingProgress = beginRetainedExecutionSiteHolding(
+    closeProgress,
+    operation,
+  );
   const holding = retainExecutionSiteOperationHolding(
     operation, result?.material ?? result, retainedBytes,
   );
-  let released = false;
-  let closeStarted = false;
-  let closeSucceeded = false;
-  let closeFailed = false;
   let closeResult;
   let closeFailure;
   let cleanupTracked = false;
   const release = () => {
-    if (released) return;
     releaseExecutionSiteHolding(holding);
-    released = true;
+    recordRetainedExecutionSiteHoldingReleased(holdingProgress);
   };
-  const progress = (cleanupAuthority = false, cleanupStopped = false) => {
-    const action = retainedExecutionSiteHoldingAction(
-      operation,
-      closeStarted,
-      closeSucceeded,
-      closeFailed,
-      cleanupAuthority,
-      cleanupStopped,
-      released,
-    );
-    if (action === 3) release();
+  const progress = () => {
+    let action = retainedExecutionSiteHoldingAction(holdingProgress);
+    if (action === 3) {
+      release();
+      action = retainedExecutionSiteHoldingAction(holdingProgress);
+    }
     if (action === 5) {
       throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
     }
     return action;
   };
   return Object.freeze({
-    status: () => Object.freeze({released}),
+    status: () => Object.freeze({released: progress() === 4}),
     close() {
-      if (released || closeStarted) return closeResult;
-      if (progress() !== 0) {
+      const action = progress();
+      if (action === 4 || action === 1 || action === 2) return closeResult;
+      if (action !== 0) {
         throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
       }
-      closeStarted = true;
+      recordRetainedExecutionSiteCloseStarted(closeProgress);
       try {
         closeResult = typeof result?.close === 'function'
           ? result.close() : undefined;
       }
       catch (reason) {
         closeFailure = reason;
-        closeFailed = true;
+        recordRetainedExecutionSiteCloseFailed(closeProgress);
         progress();
         throw reason;
       }
       if (closeResult != null && typeof closeResult.then === 'function') {
         closeResult = Promise.resolve(closeResult).then(
           value => {
-            closeSucceeded = true;
+            recordRetainedExecutionSiteCloseSucceeded(closeProgress);
             progress();
             return value;
           },
           reason => {
             closeFailure = reason;
-            closeFailed = true;
+            recordRetainedExecutionSiteCloseFailed(closeProgress);
             progress();
             throw reason;
           },
         );
       } else {
-        closeSucceeded = true;
+        recordRetainedExecutionSiteCloseSucceeded(closeProgress);
         progress();
       }
       return closeResult;
     },
     afterFailure(reason, remember) {
-      if (cleanupTracked || released || reason !== closeFailure) return;
+      if (cleanupTracked || progress() === 4 || reason !== closeFailure) return;
       const upstream = failureMember(reason, 'cleanupHandle');
       if (failureMember(reason, 'cleanupPending') !== true ||
           !upstream || typeof failureMember(upstream, 'status') !== 'function') {
         return;
       }
+      recordRetainedExecutionSiteCleanupAuthority(closeProgress);
       cleanupTracked = true;
       const state = () => {
         try {
           const value = upstream.status();
-          progress(true, value?.pending === false);
+          if (value?.pending === false) {
+            recordRetainedExecutionSiteCleanupStopped(closeProgress);
+          }
           return Object.freeze({
-            pending: !released,
+            pending: progress() !== 4,
             errors: Object.freeze(Array.isArray(value?.errors)
               ? [...value.errors] : []),
           });
         } catch (error) {
-          progress(true, false);
           return Object.freeze({pending: true, errors: Object.freeze([error])});
         }
       };
@@ -178,27 +185,17 @@ function retainSiteResult(operation, result, retainedBytes) {
 // Core-owned synchronous outputs have no connector close callback. Keep their
 // Site holdings through the exact common output lifetime and release them only
 // after the Core close succeeds or its explicit cleanup handle confirms it.
-function coreOutputSiteOwner(core, setup) {
+function coreOutputSiteOwner(core, setup, siteInstallation) {
   const retained = new Map();
-  let closeStarted = false;
-  let closeSucceeded = false;
-  let closeFailed = false;
+  const closeProgress = beginRetainedExecutionSiteClose(siteInstallation);
   let closeFailure;
   let cleanupTracked = false;
-  const progress = (cleanupAuthority = false, cleanupStopped = false) => {
-    for (const [holding, owner] of retained) {
-      const action = retainedExecutionSiteHoldingAction(
-        owner.operation,
-        closeStarted,
-        closeSucceeded,
-        closeFailed,
-        cleanupAuthority,
-        cleanupStopped,
-        owner.released,
-      );
+  const progress = () => {
+    for (const [holding, holdingProgress] of retained) {
+      const action = retainedExecutionSiteHoldingAction(holdingProgress);
       if (action === 3) {
         releaseExecutionSiteHolding(holding);
-        owner.released = true;
+        recordRetainedExecutionSiteHoldingReleased(holdingProgress);
         retained.delete(holding);
       }
       if (action === 5) {
@@ -208,26 +205,35 @@ function coreOutputSiteOwner(core, setup) {
   };
   return Object.freeze({
     retain(operation, value, retainedBytes) {
-      if (closeStarted) {
-        throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
-      }
       const holding = retainExecutionSiteOperationHolding(
         operation, value, retainedBytes,
       );
-      retained.set(holding, {operation, released: false});
+      try {
+        retained.set(holding, beginRetainedExecutionSiteHolding(
+          closeProgress,
+          operation,
+        ));
+      } catch (error) {
+        releaseExecutionSiteHolding(holding);
+        throw error;
+      }
     },
     close() {
-      if (closeStarted) return;
+      const action = retainedExecutionSiteCloseAction(closeProgress);
+      if (action === 1 || action === 2 || action === 3) return;
+      if (action !== 0) {
+        throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
+      }
       progress();
-      closeStarted = true;
+      recordRetainedExecutionSiteCloseStarted(closeProgress);
       try { core.closeOutputs(setup); }
       catch (reason) {
         closeFailure = reason;
-        closeFailed = true;
+        recordRetainedExecutionSiteCloseFailed(closeProgress);
         progress();
         throw reason;
       }
-      closeSucceeded = true;
+      recordRetainedExecutionSiteCloseSucceeded(closeProgress);
       progress();
     },
     afterFailure(reason, remember) {
@@ -237,18 +243,21 @@ function coreOutputSiteOwner(core, setup) {
           !upstream || typeof failureMember(upstream, 'status') !== 'function') {
         return;
       }
+      recordRetainedExecutionSiteCleanupAuthority(closeProgress);
       cleanupTracked = true;
       const state = () => {
         try {
           const value = upstream.status();
-          progress(true, value?.pending === false);
+          if (value?.pending === false) {
+            recordRetainedExecutionSiteCleanupStopped(closeProgress);
+          }
+          progress();
           return Object.freeze({
             pending: retained.size !== 0,
             errors: Object.freeze(Array.isArray(value?.errors)
               ? [...value.errors] : []),
           });
         } catch (error) {
-          progress(true, false);
           return Object.freeze({pending: true, errors: Object.freeze([error])});
         }
       };
@@ -374,7 +383,7 @@ export async function runInstalledStrategy(
   const transfers = createManagedSiteTransferCoordinator(
     setup, core, siteInstallation,
   );
-  const coreSiteOutputs = coreOutputSiteOwner(core, setup);
+  const coreSiteOutputs = coreOutputSiteOwner(core, setup, siteInstallation);
   // A contribution that explicitly reports unconfirmed cleanup without a
   // usable status authority cannot release its Site operation. There is no
   // safe retry to invent, but the reservation and teardown responsibility

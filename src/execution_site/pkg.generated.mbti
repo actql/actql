@@ -8,6 +8,10 @@ import {
 // Values
 pub fn begin_failed_site_operation_progress(Bool, Bool) -> FailedSiteOperationProgress
 
+pub fn begin_retained_site_close_progress() -> RetainedSiteCloseProgress
+
+pub fn begin_retained_site_holding_progress(RetainedSiteCloseProgress) -> RetainedSiteHoldingProgress?
+
 pub fn begin_site_teardown(ExecutionSite) -> Unit
 
 pub fn classify_managed_candidate_fallback(Int, Array[Int]) -> ManagedCandidateFallbackResult
@@ -24,11 +28,27 @@ pub fn prepare_failed_site_operation_progress_step(FailedSiteOperationProgress) 
 
 pub fn prepare_failed_site_operation_step(Bool, Bool, Bool) -> FailedSiteOperationAction
 
+pub fn prepare_retained_site_close_progress_step(RetainedSiteCloseProgress) -> RetainedSiteCloseAction
+
+pub fn prepare_retained_site_holding_progress_step(RetainedSiteHoldingProgress) -> RetainedSiteHoldingAction
+
 pub fn prepare_retained_site_holding_step(Bool, Bool, Bool, Bool, Bool, Bool) -> RetainedSiteHoldingAction
 
 pub fn record_failed_site_operation_settlement(FailedSiteOperationProgress) -> Bool
 
 pub fn record_failed_site_operation_stop(FailedSiteOperationProgress) -> Bool
+
+pub fn record_retained_site_cleanup_authority(RetainedSiteCloseProgress) -> Bool
+
+pub fn record_retained_site_cleanup_stopped(RetainedSiteCloseProgress) -> Bool
+
+pub fn record_retained_site_close_failed(RetainedSiteCloseProgress) -> Bool
+
+pub fn record_retained_site_close_started(RetainedSiteCloseProgress) -> Bool
+
+pub fn record_retained_site_close_succeeded(RetainedSiteCloseProgress) -> Bool
+
+pub fn record_retained_site_holding_released(RetainedSiteHoldingProgress) -> Bool
 
 pub fn release_site_cleanup(SiteCleanup) -> Bool
 
@@ -41,6 +61,8 @@ pub fn retain_site_holding(ExecutionSite, Int64) -> SiteHolding?
 pub fn retain_site_operation_holding(SiteOperation, Int64) -> SiteHolding?
 
 pub fn retain_site_transfer_holding(SiteTransfer, Int64) -> SiteHolding?
+
+pub fn retained_site_close_action_code(RetainedSiteCloseAction) -> Int
 
 pub fn retained_site_holding_action_code(RetainedSiteHoldingAction) -> Int
 
@@ -101,6 +123,16 @@ pub(all) enum ManagedCandidateFallbackResult {
   ManagedCandidateFallbackInvalid
 } derive(Eq, @debug.Debug)
 
+pub(all) enum RetainedSiteCloseAction {
+  RetainedSiteCloseStart
+  RetainedSiteCloseAwaitPhysical
+  RetainedSiteCloseAwaitCleanup
+  RetainedSiteCloseFinished
+  RetainedSiteCloseInvalid
+} derive(Eq, @debug.Debug)
+
+type RetainedSiteCloseProgress
+
 pub(all) enum RetainedSiteHoldingAction {
   RetainedSiteStartClose
   RetainedSiteAwaitClose
@@ -109,6 +141,8 @@ pub(all) enum RetainedSiteHoldingAction {
   RetainedSiteHoldingFinished
   RetainedSiteHoldingInvalid
 } derive(Eq, @debug.Debug)
+
+type RetainedSiteHoldingProgress
 
 pub(all) enum SiteCandidatePlanResult {
   SiteCandidateAccepted(Int64)

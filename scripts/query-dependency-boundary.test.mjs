@@ -182,6 +182,9 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
   assert.match(strategy, /recordExecutionSiteHostCleanupRetry\(/);
   assert.match(strategy, /beginFailedExecutionSiteOperation\(/);
   assert.match(strategy, /recordFailedExecutionSiteOperationSettlement\(/);
+  assert.match(strategy, /beginRetainedExecutionSiteClose\(/);
+  assert.match(strategy, /recordRetainedExecutionSiteCloseSucceeded\(/);
+  assert.match(strategy, /recordRetainedExecutionSiteHoldingReleased\(/);
   assert.doesNotMatch(strategy, /let siteCompletionChecked\s*=/);
   assert.doesNotMatch(strategy, /let commonCompletionChecked\s*=/);
   assert.doesNotMatch(strategy, /let outputRetained\s*=/);
@@ -190,6 +193,20 @@ test('product Site lifecycle has one portable MoonBit authority', () => {
   assert.doesNotMatch(strategy, /let closesAwaited\s*=/);
   assert.doesNotMatch(strategy, /let finalRetryDone\s*=/);
   assert.doesNotMatch(strategy, /let operationSettled\s*=/);
+  const retainedResult = strategy.slice(
+    strategy.indexOf('function retainSiteResult'),
+    strategy.indexOf('function coreOutputSiteOwner'),
+  );
+  const coreOutputs = strategy.slice(
+    strategy.indexOf('function coreOutputSiteOwner'),
+    strategy.indexOf('export async function runInstalledStrategy'),
+  );
+  for (const owner of [retainedResult, coreOutputs]) {
+    assert.doesNotMatch(owner, /let released\s*=/);
+    assert.doesNotMatch(owner, /let closeStarted\s*=/);
+    assert.doesNotMatch(owner, /let closeSucceeded\s*=/);
+    assert.doesNotMatch(owner, /let closeFailed\s*=/);
+  }
   assert.deepEqual(imports('execution_site'), []);
 });
 

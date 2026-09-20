@@ -75,6 +75,21 @@ function siteControl(moon) {
     recordFailedOperationSettlement:
       moon.strategySiteRecordFailedOperationSettlement,
     failedOperationAction: moon.strategySiteFailedOperationAction,
+    beginRetainedClose: moon.strategySiteBeginRetainedCloseProgress,
+    beginRetainedHolding: moon.strategySiteBeginRetainedHoldingProgress,
+    recordRetainedCloseStarted:
+      moon.strategySiteRecordRetainedCloseStarted,
+    recordRetainedCloseSucceeded:
+      moon.strategySiteRecordRetainedCloseSucceeded,
+    recordRetainedCloseFailed:
+      moon.strategySiteRecordRetainedCloseFailed,
+    recordRetainedCleanupAuthority:
+      moon.strategySiteRecordRetainedCleanupAuthority,
+    recordRetainedCleanupStopped:
+      moon.strategySiteRecordRetainedCleanupStopped,
+    recordRetainedHoldingReleased:
+      moon.strategySiteRecordRetainedHoldingReleased,
+    retainedCloseAction: moon.strategySiteRetainedCloseAction,
     retainedHoldingAction: moon.strategySiteRetainedHoldingAction,
     beginHostCleanup: moon.strategyHostBeginCleanupProgress,
     recordHostCleanupRetry: moon.strategyHostRecordCleanupRetry,

@@ -869,6 +869,10 @@ pub fn async_strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
 pub fn async_strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
 
+pub fn async_strategy_site_begin_retained_close_progress() -> @execution_site.RetainedSiteCloseProgress
+
+pub fn async_strategy_site_begin_retained_holding_progress(@execution_site.RetainedSiteCloseProgress) -> @execution_site.RetainedSiteHoldingProgress?
+
 pub fn async_strategy_site_begin_teardown(@execution_site.ExecutionSite) -> Unit
 
 pub fn async_strategy_site_binding_current(@execution_site.ExecutionSite, Int, String) -> Bool
@@ -889,6 +893,18 @@ pub fn async_strategy_site_record_failed_operation_settlement(@execution_site.Fa
 
 pub fn async_strategy_site_record_failed_operation_stop(@execution_site.FailedSiteOperationProgress) -> Bool
 
+pub fn async_strategy_site_record_retained_cleanup_authority(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn async_strategy_site_record_retained_cleanup_stopped(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn async_strategy_site_record_retained_close_failed(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn async_strategy_site_record_retained_close_started(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn async_strategy_site_record_retained_close_succeeded(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn async_strategy_site_record_retained_holding_released(@execution_site.RetainedSiteHoldingProgress) -> Bool
+
 pub fn async_strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool
 
 pub fn async_strategy_site_release_holding(@execution_site.SiteHolding) -> Bool
@@ -901,7 +917,9 @@ pub fn async_strategy_site_retain_operation_holding(@execution_site.SiteOperatio
 
 pub fn async_strategy_site_retain_transfer_holding(@execution_site.SiteTransfer, Int64) -> @execution_site.SiteHolding?
 
-pub fn async_strategy_site_retained_holding_action(Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn async_strategy_site_retained_close_action(@execution_site.RetainedSiteCloseProgress) -> Int
+
+pub fn async_strategy_site_retained_holding_action(@execution_site.RetainedSiteHoldingProgress) -> Int
 
 pub fn async_strategy_site_revoke(@execution_site.ExecutionSite) -> Unit
 
@@ -1827,6 +1845,10 @@ pub fn strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
 pub fn strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
 
+pub fn strategy_site_begin_retained_close_progress() -> @execution_site.RetainedSiteCloseProgress
+
+pub fn strategy_site_begin_retained_holding_progress(@execution_site.RetainedSiteCloseProgress) -> @execution_site.RetainedSiteHoldingProgress?
+
 pub fn strategy_site_begin_teardown(@execution_site.ExecutionSite) -> Unit
 
 pub fn strategy_site_binding_current(@execution_site.ExecutionSite, Int, String) -> Bool
@@ -1847,6 +1869,18 @@ pub fn strategy_site_record_failed_operation_settlement(@execution_site.FailedSi
 
 pub fn strategy_site_record_failed_operation_stop(@execution_site.FailedSiteOperationProgress) -> Bool
 
+pub fn strategy_site_record_retained_cleanup_authority(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn strategy_site_record_retained_cleanup_stopped(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn strategy_site_record_retained_close_failed(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn strategy_site_record_retained_close_started(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn strategy_site_record_retained_close_succeeded(@execution_site.RetainedSiteCloseProgress) -> Bool
+
+pub fn strategy_site_record_retained_holding_released(@execution_site.RetainedSiteHoldingProgress) -> Bool
+
 pub fn strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool
 
 pub fn strategy_site_release_holding(@execution_site.SiteHolding) -> Bool
@@ -1859,7 +1893,9 @@ pub fn strategy_site_retain_operation_holding(@execution_site.SiteOperation, Int
 
 pub fn strategy_site_retain_transfer_holding(@execution_site.SiteTransfer, Int64) -> @execution_site.SiteHolding?
 
-pub fn strategy_site_retained_holding_action(Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+pub fn strategy_site_retained_close_action(@execution_site.RetainedSiteCloseProgress) -> Int
+
+pub fn strategy_site_retained_holding_action(@execution_site.RetainedSiteHoldingProgress) -> Int
 
 pub fn strategy_site_revoke(@execution_site.ExecutionSite) -> Unit
 
