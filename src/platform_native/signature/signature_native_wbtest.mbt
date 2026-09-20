@@ -1,6 +1,8 @@
 ///|
 test "native Ed25519 verification uses the configured crypto library" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap()
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(path) else {
+    return
+  }
   let library = load_library(path).unwrap()
   let public_key = "-----BEGIN PUBLIC KEY-----\n" +
     "MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n" +
