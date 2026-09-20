@@ -98,6 +98,20 @@ typedef struct {
   bool capacity_exceeded;
 } actql_native_http_client;
 
+static bool actql_same_file_generation(
+  const struct stat *left,
+  const struct stat *right
+) {
+  if (left->st_dev != right->st_dev ||
+      left->st_ino != right->st_ino ||
+      left->st_mode != right->st_mode ||
+      left->st_size != right->st_size) {
+    return false;
+  }
+  return left->st_mtime == right->st_mtime &&
+    left->st_ctime == right->st_ctime;
+}
+
 static void actql_replace_error(char **target, const char *message) {
   free(*target);
   *target = NULL;
@@ -512,8 +526,8 @@ int32_t actql_native_http_client_get_bearer_file(
   struct stat opened_secret;
   bool secret_valid = fstat(descriptor, &opened_secret) == 0 &&
     S_ISREG(opened_secret.st_mode) &&
-    opened_secret.st_dev == expected_secret.st_dev &&
-    opened_secret.st_ino == expected_secret.st_ino;
+    actql_same_file_generation(&expected_secret, &opened_secret) &&
+    (opened_secret.st_mode & 077) == 0;
   while (secret_length <= ACTQL_MAX_BEARER_BYTES) {
     ssize_t count = read(
       descriptor,
@@ -531,7 +545,40 @@ int32_t actql_native_http_client_get_bearer_file(
       break;
     }
   }
-  if (close(descriptor) != 0) secret_valid = false;
+  unsigned char verified_secret[ACTQL_MAX_BEARER_BYTES + 1];
+  size_t verified_length = 0;
+  if (secret_valid && lseek(descriptor, 0, SEEK_SET) < 0) {
+    secret_valid = false;
+  }
+  while (secret_valid && verified_length <= ACTQL_MAX_BEARER_BYTES) {
+    ssize_t count = read(
+      descriptor,
+      verified_secret + verified_length,
+      sizeof(verified_secret) - verified_length
+    );
+    if (count < 0) {
+      secret_valid = false;
+      break;
+    }
+    if (count == 0) break;
+    verified_length += (size_t)count;
+    if (verified_length > ACTQL_MAX_BEARER_BYTES) {
+      secret_valid = false;
+      break;
+    }
+  }
+  if (secret_valid &&
+      (verified_length != secret_length ||
+       memcmp(secret, verified_secret, secret_length) != 0)) {
+    secret_valid = false;
+  }
+  memset(verified_secret, 0, sizeof(verified_secret));
+  struct stat completed_secret;
+  if (fstat(descriptor, &completed_secret) != 0 ||
+      !actql_same_file_generation(&opened_secret, &completed_secret) ||
+      close(descriptor) != 0) {
+    secret_valid = false;
+  }
   while (secret_length > 0 &&
          (secret[secret_length - 1] == '\n' ||
           secret[secret_length - 1] == '\r')) {

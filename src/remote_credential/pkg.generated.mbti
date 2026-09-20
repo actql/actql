@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn admit_credential_use_json(RemoteCredentialGrant, String, String) -> Result[RemoteCredentialUse, RemoteCredentialIssue]
+
 pub fn admit_grant_json(String, String) -> Result[RemoteCredentialGrant, RemoteCredentialIssue]
 
 pub fn authorize_credential_use(RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[Unit, RemoteCredentialIssue]

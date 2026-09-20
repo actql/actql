@@ -220,6 +220,7 @@ try {
         ? '/usr/lib/libsqlite3.dylib'
         : 'libsqlite3.so.0'),
     ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
+    ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
   };
   await writeFile(
     testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
@@ -229,6 +230,7 @@ try {
   for (const packagePath of [
     'src/platform_native/http_client',
     'src/platform_native/remote_client',
+    'src/platform_native/credential_resource',
   ]) {
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),

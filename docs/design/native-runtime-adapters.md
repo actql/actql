@@ -277,6 +277,16 @@ Host planning responsibilities. The client does not retry, select another
 Site, infer native stop from HTTP cancellation, or turn a response into common
 task completion.
 
+The native credential resource service composes the portable credential grant
+and use contracts with a durable SQLite ordinal claim before external I/O. An
+exact use retry never issues a second request, a process restart does not reset
+the use ceiling, and an expired or foreign scope is rejected before consuming
+a claim. The physical HTTPS adapter reads one exact owner-only secret file,
+checks its generation and contents across the read, applies the bearer header
+internally, and keeps redirects disabled. Secret bytes never cross into
+MoonBit or Connector code. The configured operation fixes the exact origin and
+path; a grant does not expose a generic authenticated HTTP client.
+
 An outbound-only native Site uses the same HTTPS adapter to poll an admitted
 Coordinator endpoint. The poll envelope carries the exact canonical dispatch
 request and its CID, but grants no execution authority by itself. MoonBit

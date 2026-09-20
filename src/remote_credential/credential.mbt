@@ -496,6 +496,65 @@ pub fn credential_use_json(
 }
 
 ///|
+pub fn admit_credential_use_json(
+  grant : RemoteCredentialGrant,
+  body : String,
+  claimed_use_cid : String,
+) -> Result[RemoteCredentialUse, RemoteCredentialIssue] {
+  try {
+    let bytes = @utf8.encode(body)
+    let node = match
+      @source.parse_json_bytes(bytes, {
+        max_input_bytes: 4096,
+        max_nodes: 12,
+        max_depth: 2,
+      }) {
+      Ok(value) => value
+      Err(_) => raise RemoteCredentialDecodeStop
+    }
+    let cursor = credential_decoded(
+      @decode.admit(node, {
+        max_nodes: 12,
+        max_depth: 2,
+        max_string_bytes: 4096,
+        max_total_string_bytes: 4096,
+      }),
+    )
+    let object = credential_decoded(
+      @decode.closed_object(cursor, [
+        "grant_cid", "use_id", "use_ordinal", "version",
+      ]),
+    )
+    if credential_text(object, "version") != "actql-remote-credential-use/0.1" ||
+      credential_text(object, "grant_cid") != grant.grant_cid {
+      return Err(CredentialUseCollision)
+    }
+    let ordinal = credential_int(object, "use_ordinal")
+    if ordinal <= 0 || ordinal > grant.max_uses {
+      return Err(CredentialUseCollision)
+    }
+    let pending : RemoteCredentialUse = {
+      grant,
+      use_id: credential_text(object, "use_id"),
+      use_ordinal: ordinal,
+      use_cid: "pending",
+    }
+    let identity = match use_identity(pending) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let admitted = { ..pending, use_cid: identity, }
+    if identity != claimed_use_cid || credential_use_json(admitted) != Ok(body) {
+      Err(CredentialUseCollision)
+    } else {
+      Ok(admitted)
+    }
+  } catch {
+    RemoteCredentialDecodeStop => Err(InvalidCredentialGrant)
+  }
+}
+
+///|
 pub fn authorize_credential_use(
   credential_use : RemoteCredentialUse,
   trusted_now_ms : Int64,

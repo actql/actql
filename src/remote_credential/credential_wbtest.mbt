@@ -73,6 +73,17 @@ test "credential use binds exact scope expiry revocation and ordinal" {
     credential_cid("c"),
   ).unwrap()
   assert_eq(credential_use_projection(first)[3], "1")
+  let use_body = credential_use_json(first).unwrap()
+  assert_eq(
+    credential_use_cid(
+      admit_credential_use_json(grant, use_body, credential_use_cid(first)).unwrap(),
+    ),
+    credential_use_cid(first),
+  )
+  assert_true(
+    admit_credential_use_json(grant, use_body + " ", credential_use_cid(first))
+    is Err(CredentialUseCollision),
+  )
   assert_eq(
     authorize_credential_use(
       first,

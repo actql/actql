@@ -1,0 +1,77 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/credential_resource"
+
+import {
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_credential",
+}
+
+// Values
+pub fn call_native_credential_resource(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, Int64, NativeCredentialScope) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
+
+pub fn install_native_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
+
+pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct NativeCredentialAuthorization {
+  stage : String
+  grant_cid : String
+  use_cid : String?
+  scope : NativeCredentialScope
+}
+
+pub(all) struct NativeCredentialOperation {
+  resource_origin : String
+  operation : String
+  path : String
+  secret_path : String
+}
+
+pub(all) enum NativeCredentialResourceIssue {
+  InvalidConfiguration
+  AccessDenied
+  UseAlreadyClaimed
+  ResourceRejected(Int)
+  Credential(@remote_credential.RemoteCredentialIssue)
+  Journal(@sqlite.NativeSqliteIssue)
+  Transport(@http_client.NativeHttpIssue)
+  TerminalRecordFailed(String, @sqlite.NativeSqliteIssue)
+}
+
+type NativeCredentialResourceService
+
+pub(all) struct NativeCredentialResponse {
+  use_cid : String
+  status : Int
+  body : Bytes
+}
+
+pub(all) struct NativeCredentialScope {
+  principal : String
+  tenant : String
+  environment : String
+  site_key : String
+  site_generation : Int
+  runtime_bundle_cid : String
+  connector_registration : String
+  connector_revision : String
+  resource_origin : String
+  operation : String
+  run_invocation_cid : String
+  task_attempt : Int
+  dispatch_request_cid : String
+}
+
+pub(all) struct NativeCredentialUseStatus {
+  use_cid : String
+  outcome : String
+  status : Int?
+}
+
+// Type aliases
+
+// Traits
