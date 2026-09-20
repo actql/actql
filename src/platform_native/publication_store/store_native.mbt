@@ -415,6 +415,14 @@ fn reclaim_record_internal(
       }
     }
   }
+  // A prior reclaim attempt can unlink the last visible name and then fail
+  // while synchronizing the directory. Absence on retry is not durable proof
+  // of deletion, so confirm the directory before releasing capacity or
+  // persisting Reclaimed even when no generation name remains.
+  match filesystem(store.root.sync_directory()) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match
     database(
       store.database.release_capacity(

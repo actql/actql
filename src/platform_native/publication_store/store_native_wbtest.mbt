@@ -304,6 +304,36 @@ test "native publication retains failed writer cleanup for Store retry" {
 }
 
 ///|
+test "native publication retries directory sync after payload unlink" {
+  guard native_payload_fixture("reclaim-sync", 64L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let request = native_payload_request(
+    authority,
+    "reclaim-sync-" + @env.now().to_string(),
+    32L,
+  )
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"payload").unwrap()
+  let info = writer.seal().unwrap()
+  test_fail_root_sync(store.root, 2)
+  assert_true(
+    store.reclaim_payload(info.material_generation_cid)
+    is Err(Filesystem(@filesystem.Cleanup(_))),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  assert_true(
+    store.reclaim_payload(info.material_generation_cid)
+    is Err(Filesystem(@filesystem.Cleanup(_))),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  assert_true(store.reclaim_payload(info.material_generation_cid) is Ok(_))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "native publication delivers JSON JSONL and CSV without Node" {
   guard native_payload_fixture("delivery", 1024L) is Some((store, authority, _)) else {
     return
