@@ -33,11 +33,11 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `standard_host` | 34/39 |
 | `consumer_lifetime` | 34/39 |
 | `resources` | 34/39 |
-| `cancellation` | 31/39 |
+| `cancellation` | 32/39 |
 | `publication` | 33/39 |
 | `three_targets` | 34/39 |
-| complete operations | 25/39 |
-| open operations | 14/39 |
+| complete operations | 26/39 |
+| open operations | 13/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -710,17 +710,18 @@ all three targets and are ordered by their typed semantic identity before
 closed-open session assignment. Session identity construction now advances
 one scalar part per bounded phase, checks complete UTF-8 prefixes and
 separators before retention, and reclaims partial buffers after cancellation.
-Interval join now
-has typed canonical lowering for all
+Interval join has typed canonical lowering for all
 four join kinds, both temporal modes and time domains, repeated equality keys,
 projections, and resolved output guards. Interval and as-of joins execute
 through resource-bounded evaluators and the standard Host, reach two
 downstream consumers, and reclaim their retained output on all three targets.
-Their publication is established, but the common managed Relation fallback
-still drains each complete join inside one `advance` call. Environment
-cancellation therefore cannot be delivered while pair or candidate search is
-running. Both joins remain partial until their outer Relation execution is
-resumable. Sequence
+Their publication is established. Interval join now loads temporal values,
+searches pairs, constructs rows, and completes output through one bounded
+managed session. The Node Host delivers timer cancellation during pair search,
+observes stop, keeps partial output private, and completes cleanup. This closes
+interval join. As-of join still drains its candidate search in one `advance`
+call and remains partial until its outer Relation execution is resumable.
+Sequence
 matching now has typed
 lowering and a portable bounded Relation kernel. It validates semantic event
 identity, orders by grouping keys and `(time,id)`, evaluates each demanded
@@ -1091,6 +1092,16 @@ independently, and returns the ledger to zero. The affected execution,
 physical-strategy, Local connector, and query-integration suites pass 1,079
 tests on each of JS, Wasm, and native. Publication and bounded-step
 cancellation remain open, so interval join remains partial.
+
+At `c59c3352`, interval clock loading, key comparison, pair search, row
+construction, and completion run through one resumable managed session. Exact
+input bindings remain attached to the completed output. The registered TEA
+provider reaches the existing standard Host two-consumer, publication, and
+final-reclamation path. Focused and full affected suites pass 1,173 tests on
+each of JS, Wasm, and native. The compiled Node Host also delivers a real timer
+cancellation during a 40-by-40 pair search, observes stop before cleanup, keeps
+partial output unpublished, and returns all reservations. This closes interval
+join; it does not claim the separate as-of or sequence paths are resumable.
 
 At `47ea7883`, as-of join reaches one typed canonical `TEA.join.asof`
 occurrence without rediscovering frontend syntax. The prepared step retains

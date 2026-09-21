@@ -1538,8 +1538,7 @@
       "output": "relation",
       "canonical": ["TEA.join.interval"],
       "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
-      "status": "partial",
-      "blocker": "The common managed Relation fallback drains the complete interval join synchronously inside one advance call, so the Node Host cannot deliver cancellation while pair search is running.",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -1551,12 +1550,15 @@
         "consumer_lifetime",
         "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/interval_join_test.mbt",
         "src/execution_relation/interval_join_rows_wbtest.mbt",
-        "src/query_integration/local_managed_interval_join_wbtest.mbt"
+        "src/execution_relation/bounded_interval_join_wbtest.mbt",
+        "src/query_integration/local_managed_interval_join_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1566,6 +1568,17 @@
           "sha": "4cf40d94",
           "evidence": [
             "src/query_integration/local_managed_interval_join_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_pair_search_and_environment_cancellation",
+          "layers": ["managed", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c59c3352",
+          "evidence": [
+            "src/execution_relation/bounded_interval_join_wbtest.mbt",
+            "src/query_integration/local_managed_interval_join_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2745,6 +2758,24 @@
         {
           "name": "portable publication and retained consumers",
           "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host timer cancellation and cleanup",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "interval_join",
+      "sha": "c59c3352",
+      "suites": [
+        {
+          "name": "portable bounded join and managed lifetime",
+          "path": "src/query_integration/local_managed_interval_join_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
         },
