@@ -28,14 +28,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `contract` | 39/39 |
 | `checker` | 39/39 |
 | `lowering` | 39/39 |
-| `kernel` | 36/39 |
-| `managed` | 36/39 |
-| `standard_host` | 36/39 |
-| `consumer_lifetime` | 36/39 |
-| `resources` | 36/39 |
-| `cancellation` | 36/39 |
-| `publication` | 35/39 |
-| `three_targets` | 36/39 |
+| `kernel` | 37/39 |
+| `managed` | 37/39 |
+| `standard_host` | 37/39 |
+| `consumer_lifetime` | 37/39 |
+| `resources` | 37/39 |
+| `cancellation` | 37/39 |
+| `publication` | 36/39 |
+| `three_targets` | 37/39 |
 | complete operations | 30/39 |
 | open operations | 9/39 |
 <!-- local-family-coverage-summary:end -->
