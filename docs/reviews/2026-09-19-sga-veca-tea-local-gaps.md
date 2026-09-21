@@ -929,9 +929,14 @@ final ledger reclamation on JS, Wasm, and native. A Node timer also delivers
 cancellation during endpoint derivation and verifies stop before cleanup.
 
 The Graph-producing Bridge remains partial because a completed Graph is not
-yet carried across a physical task boundary to overlapping direct Graph and
-formal Bridge consumers. Graph publication is not invented while the formal
-publication contract remains Relation-valued.
+yet scheduled through the product standard Host across a physical task
+boundary. Commits `5d1163dd` and `da4ec645` close the underlying managed
+provider boundary: standalone construction returns an owner-bound Graph
+material, exact views feed overlapping graft and Graph-to-Relation consumers,
+one consumer can finish or cancel without revoking the other, and final
+reclamation occurs once. The remaining work is common Host task selection and
+custody, not another Graph storage or wire format. Graph publication is not
+invented while the formal publication contract remains Relation-valued.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

@@ -1630,6 +1630,25 @@
             "src/duckdb_conformance/components_capacity_fixture.mbt",
             "src/duckdb_conformance/strategy_fixture.mbt"
           ]
+        },
+        {
+          "scope": "managed_graph_material_and_exact_consumers",
+          "layers": [
+            "kernel",
+            "managed",
+            "consumer_lifetime",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "da4ec645",
+          "evidence": [
+            "src/managed_graph_runtime/output.mbt",
+            "src/local_bridge/graph.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
