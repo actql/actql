@@ -203,6 +203,17 @@ test "managed Graph completion supports two exact downstream consumers" {
     Ok(0),
   )
   assert_eq(@lifecycle.producer_view_edge_endpoints(view, 0), Ok((0, 1)))
+  assert_eq(@lifecycle.producer_view_node_index(view, number(2.0)), Ok(Some(1)))
+  assert_eq(@lifecycle.producer_view_node_index(view, number(3.0)), Ok(None))
+  assert_eq(
+    @lifecycle.producer_view_edge_index(
+      view,
+      number(1.0),
+      number(2.0),
+      Some(text("knows", nullable=true)),
+    ),
+    Ok(Some(0)),
+  )
   assert_eq(
     @value.compare_key_values(
       @lifecycle.producer_view_edge_property(view, 0, 0).unwrap(),

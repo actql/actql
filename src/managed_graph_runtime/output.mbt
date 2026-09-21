@@ -399,9 +399,21 @@ pub fn producer_read_view(
     @carrier.field_count(@carrier.graph_edge_properties(graph)),
     node => @storage.node_identity(storage, node),
     (node, property) => @storage.node_property(storage, node, property),
+    identity => {
+      match @storage.node_index(storage, identity) {
+        Ok(index) => Some(index)
+        Err(_) => None
+      }
+    },
     edge => @storage.edge_endpoints(storage, edge),
     edge => @storage.edge_label(storage, edge),
     (edge, property) => @storage.edge_property(storage, edge, property),
+    (source, target, label) => {
+      match @storage.edge_index(storage, source, target, label) {
+        Ok(index) => Some(index)
+        Err(_) => None
+      }
+    },
   ).map_err(issue => {
     Lifecycle(
       match issue {

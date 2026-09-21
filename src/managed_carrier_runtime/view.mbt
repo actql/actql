@@ -11,9 +11,11 @@ struct ProducerView {
   edge_properties : Int
   node_identity : (Int) -> @value.CheckedValue?
   node_property : (Int, Int) -> @value.CheckedValue?
+  node_index : (@value.CheckedValue) -> Int??
   edge_endpoints : (Int) -> (Int, Int)?
   edge_label : (Int) -> @value.CheckedValue??
   edge_property : (Int, Int) -> @value.CheckedValue?
+  edge_index : (@value.CheckedValue, @value.CheckedValue, @value.CheckedValue?) -> Int??
   record_fields : (Int) -> Int?
   record_field : (Int, Int) -> (@schema.FieldName, @value.CheckedValue)?
 }
@@ -46,9 +48,11 @@ pub fn prepare_graph_producer_view(
   edge_properties : Int,
   node_identity : (Int) -> @value.CheckedValue?,
   node_property : (Int, Int) -> @value.CheckedValue?,
+  node_index : (@value.CheckedValue) -> Int??,
   edge_endpoints : (Int) -> (Int, Int)?,
   edge_label : (Int) -> @value.CheckedValue??,
   edge_property : (Int, Int) -> @value.CheckedValue?,
+  edge_index : (@value.CheckedValue, @value.CheckedValue, @value.CheckedValue?) -> Int??,
 ) -> Result[ProducerView, ViewIssue] {
   if producer_reference_kind(read) != @carrier.GraphKind {
     return Err(WrongCarrier)
@@ -69,9 +73,11 @@ pub fn prepare_graph_producer_view(
     edge_properties,
     node_identity,
     node_property,
+    node_index,
     edge_endpoints,
     edge_label,
     edge_property,
+    edge_index,
     record_fields: _ => None,
     record_field: (_, _) => None,
   })
@@ -104,9 +110,11 @@ pub fn prepare_record_producer_view(
     edge_properties: 0,
     node_identity: _ => None,
     node_property: (_, _) => None,
+    node_index: _ => None,
     edge_endpoints: _ => None,
     edge_label: _ => None,
     edge_property: (_, _) => None,
+    edge_index: (_, _, _) => None,
     record_fields,
     record_field,
   })
@@ -205,6 +213,23 @@ pub fn producer_view_node_property(
 }
 
 ///|
+pub fn producer_view_node_index(
+  value : ProducerView,
+  identity : @value.CheckedValue,
+) -> Result[Int?, ViewIssue] {
+  if !producer_view_live(value) {
+    return Err(Unavailable)
+  }
+  if value.kind != @carrier.GraphKind {
+    return Err(WrongCarrier)
+  }
+  match (value.node_index)(identity) {
+    Some(index) => Ok(index)
+    None => Err(InvalidRecord)
+  }
+}
+
+///|
 pub fn producer_view_edge_endpoints(
   value : ProducerView,
   edge : Int,
@@ -265,6 +290,25 @@ pub fn producer_view_edge_property(
   match (value.edge_property)(edge, property) {
     Some(value) => Ok(value)
     None => Err(InvalidField)
+  }
+}
+
+///|
+pub fn producer_view_edge_index(
+  value : ProducerView,
+  source : @value.CheckedValue,
+  target : @value.CheckedValue,
+  label : @value.CheckedValue?,
+) -> Result[Int?, ViewIssue] {
+  if !producer_view_live(value) {
+    return Err(Unavailable)
+  }
+  if value.kind != @carrier.GraphKind {
+    return Err(WrongCarrier)
+  }
+  match (value.edge_index)(source, target, label) {
+    Some(index) => Ok(index)
+    None => Err(InvalidRecord)
   }
 }
 

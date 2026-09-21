@@ -61,7 +61,7 @@ pub fn material_storage_bytes(Material) -> Int64?
 
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
-pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> (Int, Int)?, (Int) -> @value_admission.CheckedValue??, (Int, Int) -> @value_admission.CheckedValue?) -> Result[ProducerView, ViewIssue]
+pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int) -> (Int, Int)?, (Int) -> @value_admission.CheckedValue??, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Int??) -> Result[ProducerView, ViewIssue]
 
 pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> ProducerView?, () -> Bool) -> Result[Material, Issue]
 
@@ -105,6 +105,8 @@ pub fn producer_view_edge_count(ProducerView) -> Int?
 
 pub fn producer_view_edge_endpoints(ProducerView, Int) -> Result[(Int, Int), ViewIssue]
 
+pub fn producer_view_edge_index(ProducerView, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Result[Int?, ViewIssue]
+
 pub fn producer_view_edge_label(ProducerView, Int) -> Result[@value_admission.CheckedValue?, ViewIssue]
 
 pub fn producer_view_edge_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
@@ -116,6 +118,8 @@ pub fn producer_view_matches_read(ProducerView, ProducerReadReference) -> Bool
 pub fn producer_view_node_count(ProducerView) -> Int?
 
 pub fn producer_view_node_identity(ProducerView, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_node_index(ProducerView, @value_admission.CheckedValue) -> Result[Int?, ViewIssue]
 
 pub fn producer_view_node_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
 
