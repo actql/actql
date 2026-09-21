@@ -18,7 +18,7 @@ pub(all) enum TraverseIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Start the homogeneous, literal-singleton, node-emitting traversal kernel.
+/// Start the homogeneous, literal-ID, node-emitting traversal kernel.
 /// Other checked traversal forms remain unsupported until their exact typed
 /// selector, hop, and path contracts are implemented.
 pub fn start_traverse(
@@ -41,8 +41,7 @@ pub fn start_traverse(
     @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
-    @lower.graph_traverse_start_id_count(prepared) == 1 &&
-    @lower.graph_traverse_start_id_at(prepared, 0) is Some(start) &&
+    @lower.graph_traverse_start_id_count(prepared) > 0 &&
     @lower.graph_traverse_start_predicate(prepared) is None &&
     @lower.graph_traverse_start_relation_field(prepared) is None &&
     @lower.graph_traverse_hop_count(prepared) == 1 &&
@@ -68,7 +67,7 @@ pub fn start_traverse(
     input,
     source,
     @lower.graph_traverse_output_schema(prepared),
-    start,
+    TraversalReachStarts(prepared),
     direction,
     edge_filter,
     minimum.to_int(),

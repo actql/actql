@@ -78,8 +78,7 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   @lower.graph_traverse_bounds(value) is Some((minimum, maximum)) &&
   minimum <= 2147483647L &&
   maximum <= 2147483647L &&
-  @lower.graph_traverse_start_id_count(value) == 1 &&
-  @lower.graph_traverse_start_id_at(value, 0) is Some(_) &&
+  @lower.graph_traverse_start_id_count(value) > 0 &&
   @lower.graph_traverse_start_predicate(value) is None &&
   @lower.graph_traverse_start_relation_field(value) is None &&
   @lower.graph_traverse_hop_count(value) == 1 &&

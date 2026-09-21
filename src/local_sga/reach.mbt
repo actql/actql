@@ -1,5 +1,8 @@
 ///|
 priv enum ReachPhase {
+  InitializeStartSelection
+  ResolveStarts
+  CollectStarts
   InitializeNodes
   ScanDegrees
   ScanDegreeTypes
@@ -7,7 +10,13 @@ priv enum ReachPhase {
   InitializeEdges
   FillEdges
   FillEdgeTypes
-  FindStart
+  PrepareStartSort
+  PrepareStartMerge
+  StartMerge
+  CompareStartMerge
+  CopyStartPass
+  StartNext
+  ResetDepth
   PopNode
   ScanOutgoing
   ScanIncoming
@@ -23,6 +32,12 @@ priv enum ReachPhase {
 }
 
 ///|
+priv enum ReachStarts {
+  SingleReachStart(@value.CheckedValue)
+  TraversalReachStarts(@lower.PreparedGraphTraverse)
+}
+
+///|
 priv enum ReachEdgeFilter {
   AllReachEdges
   TraversalReachEdgeTypes(@lower.PreparedGraphTraverse, Int)
@@ -33,7 +48,7 @@ priv struct ReachState {
   input : @graph.ProducerRead
   source : @storage.Storage
   schema : @schema.Schema
-  start : @value.CheckedValue
+  starts : ReachStarts
   direction : @graph_type.Direction
   edge_filter : ReachEdgeFilter
   minimum_depth : Int
@@ -47,6 +62,8 @@ priv struct ReachState {
   mut phase : ReachPhase
   mut index : Int
   mut current_node : Int
+  mut current_start_node : Int
+  mut start_node_index : Int
   mut neighbor_index : Int
   mut edge_type_index : Int
   mut row_index : Int
@@ -63,6 +80,9 @@ priv struct ReachState {
   queue : Array[Int]
   selected : Array[Int]
   scratch : Array[Int?]
+  start_selected : Array[Bool]
+  start_nodes : Array[Int]
+  start_scratch : Array[Int?]
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -99,6 +119,7 @@ pub(all) enum ReachIssue {
   ReachOutputLimit
   ReachWorkspaceLimit
   ReachKeyOrder(@value.KeyOrderIssue)
+  ReachGraph(@storage.Issue)
   ReachOutput(@execution.CaptureIssue)
   ReachCompletion(@execution.TrustedOutputIssue)
   ReachExecutionIssue(@bounded.Issue)
@@ -124,7 +145,7 @@ fn checked_reach_multiply(left : Int, right : Int) -> Int? {
 
 ///|
 fn reach_workspace(nodes : Int, edges : Int, width : Int) -> Int? {
-  guard checked_reach_multiply(nodes, 10) is Some(node_slots) &&
+  guard checked_reach_multiply(nodes, 13) is Some(node_slots) &&
     checked_reach_multiply(edges, 2) is Some(edge_slots) &&
     checked_reach_add(node_slots, 2) is Some(node_slots) &&
     checked_reach_add(node_slots, edge_slots) is Some(graph_slots) &&
@@ -132,6 +153,24 @@ fn reach_workspace(nodes : Int, edges : Int, width : Int) -> Int? {
     return None
   }
   Some(total)
+}
+
+///|
+fn reach_start_count(state : ReachState) -> Int {
+  match state.starts {
+    SingleReachStart(_) => 1
+    TraversalReachStarts(prepared) =>
+      @lower.graph_traverse_start_id_count(prepared)
+  }
+}
+
+///|
+fn reach_start_at(state : ReachState, index : Int) -> @value.CheckedValue? {
+  match state.starts {
+    SingleReachStart(value) => if index == 0 { Some(value) } else { None }
+    TraversalReachStarts(prepared) =>
+      @lower.graph_traverse_start_id_at(prepared, index)
+  }
 }
 
 ///|
@@ -179,6 +218,45 @@ fn emit_reach_merge(state : ReachState, take_left : Bool) -> Unit {
     state.phase = PrepareMerge
   } else {
     state.phase = Merge
+  }
+}
+
+///|
+fn prepare_start_merge(state : ReachState) -> Unit {
+  state.middle = capped_reach_run_end(
+    state.run_start,
+    state.width,
+    state.start_nodes.length(),
+  )
+  state.run_end = capped_reach_run_end(
+    state.middle,
+    state.width,
+    state.start_nodes.length(),
+  )
+  state.left_index = state.run_start
+  state.right_index = state.middle
+  state.merge_index = state.run_start
+  state.phase = StartMerge
+}
+
+///|
+fn emit_start_merge(state : ReachState, take_left : Bool) -> Unit {
+  let node = if take_left {
+    let node = state.start_nodes[state.left_index]
+    state.left_index += 1
+    node
+  } else {
+    let node = state.start_nodes[state.right_index]
+    state.right_index += 1
+    node
+  }
+  state.start_scratch[state.merge_index] = Some(node)
+  state.merge_index += 1
+  if state.merge_index >= state.run_end {
+    state.run_start = state.run_end
+    state.phase = PrepareStartMerge
+  } else {
+    state.phase = StartMerge
   }
 }
 
@@ -250,11 +328,13 @@ fn checked_reach_value(
   field : @schema.Field,
 ) -> @value.CheckedValue? {
   if field.name == @schema.Unqualified("start_id") {
-    return @value.recheck_runtime_value(
-      state.start.value,
-      field.contract,
-      state.value_limits,
-    )
+    return @storage.node_identity(state.source, state.current_start_node).bind(value => {
+      @value.recheck_runtime_value(
+        value.value,
+        field.contract,
+        state.value_limits,
+      )
+    })
   }
   if field.name == @schema.Unqualified("depth") {
     return @value.checked_number_value(
@@ -287,6 +367,45 @@ fn reach_step(
       return @bounded.Failed(ReachInputUnavailable, progress, used)
     }
     match state.phase {
+      InitializeStartSelection =>
+        if state.index < @storage.node_count(state.source) {
+          state.start_selected.push(false)
+          state.index += 1
+          used += 1
+        } else {
+          state.index = 0
+          state.phase = ResolveStarts
+        }
+      ResolveStarts =>
+        if state.index < reach_start_count(state) {
+          guard reach_start_at(state, state.index) is Some(start) else {
+            return @bounded.Failed(InvalidReachKernel, progress, used)
+          }
+          used += 1
+          match @storage.node_index(state.source, start) {
+            Err(issue) =>
+              return @bounded.Failed(ReachGraph(issue), progress, used)
+            Ok(None) =>
+              return @bounded.Failed(ReachStartMissing, progress, used)
+            Ok(Some(node)) => state.start_selected[node] = true
+          }
+          state.index += 1
+        } else {
+          state.index = 0
+          state.phase = CollectStarts
+        }
+      CollectStarts =>
+        if state.index < state.start_selected.length() {
+          if state.start_selected[state.index] {
+            state.start_nodes.push(state.index)
+            state.start_scratch.push(None)
+          }
+          state.index += 1
+          used += 1
+        } else {
+          state.index = 0
+          state.phase = InitializeNodes
+        }
       InitializeNodes =>
         if state.index < @storage.node_count(state.source) {
           state.out_degree.push(0)
@@ -397,7 +516,8 @@ fn reach_step(
           }
         } else {
           state.index = 0
-          state.phase = FindStart
+          state.width = 1
+          state.phase = PrepareStartSort
         }
       FillEdgeTypes => {
         guard @storage.edge_endpoints(state.source, state.index)
@@ -426,30 +546,85 @@ fn reach_step(
           state.phase = FillEdges
         }
       }
-      FindStart =>
-        if state.index < @storage.node_count(state.source) {
-          used += 1
-          guard @storage.node_identity(state.source, state.index)
-            is Some(identity) else {
-            return @bounded.Failed(ReachInputUnavailable, progress, used)
-          }
-          match @value.compare_key_values(identity, state.start) {
-            Err(issue) =>
-              return @bounded.Failed(ReachKeyOrder(issue), progress, used)
-            Ok(0) => {
-              state.depth[state.index] = 0
-              state.queue.push(state.index)
-              if state.minimum_depth == 0 {
-                state.selected.push(state.index)
-                state.scratch.push(None)
-              }
-              state.index = 0
-              state.phase = PopNode
-            }
-            Ok(_) => state.index += 1
-          }
+      PrepareStartSort =>
+        if state.width >= state.start_nodes.length() {
+          state.start_node_index = 0
+          state.phase = StartNext
         } else {
-          return @bounded.Failed(ReachStartMissing, progress, used)
+          state.run_start = 0
+          state.phase = PrepareStartMerge
+        }
+      PrepareStartMerge =>
+        if state.run_start >= state.start_nodes.length() {
+          state.copy_index = 0
+          state.phase = CopyStartPass
+        } else {
+          prepare_start_merge(state)
+        }
+      StartMerge => {
+        if state.left_index >= state.middle {
+          emit_start_merge(state, false)
+        } else if state.right_index >= state.run_end {
+          emit_start_merge(state, true)
+        } else {
+          state.phase = CompareStartMerge
+        }
+        used += 1
+      }
+      CompareStartMerge => {
+        used += 1
+        match
+          compare_reach_nodes(
+            state,
+            state.start_nodes[state.left_index],
+            state.start_nodes[state.right_index],
+          ) {
+          Ok(order) => emit_start_merge(state, order <= 0)
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      CopyStartPass =>
+        if state.copy_index < state.start_nodes.length() {
+          guard state.start_scratch[state.copy_index] is Some(node) else {
+            return @bounded.Failed(InvalidReachKernel, progress, used)
+          }
+          state.start_nodes[state.copy_index] = node
+          state.start_scratch[state.copy_index] = None
+          state.copy_index += 1
+          used += 1
+        } else {
+          state.width = if state.width > state.start_nodes.length() / 2 {
+            state.start_nodes.length()
+          } else {
+            state.width * 2
+          }
+          state.phase = PrepareStartSort
+        }
+      StartNext =>
+        if state.start_node_index >= state.start_nodes.length() {
+          state.phase = Finish
+        } else {
+          state.current_start_node = state.start_nodes[state.start_node_index]
+          state.index = 0
+          state.queue.clear()
+          state.selected.clear()
+          state.scratch.clear()
+          state.phase = ResetDepth
+        }
+      ResetDepth =>
+        if state.index < state.depth.length() {
+          state.depth[state.index] = -1
+          state.index += 1
+          used += 1
+        } else {
+          state.depth[state.current_start_node] = 0
+          state.queue.push(state.current_start_node)
+          if state.minimum_depth == 0 {
+            state.selected.push(state.current_start_node)
+            state.scratch.push(None)
+          }
+          state.index = 0
+          state.phase = PopNode
         }
       PopNode =>
         if state.index >= state.queue.length() {
@@ -553,7 +728,8 @@ fn reach_step(
         }
       SelectRow =>
         if state.row_index >= state.selected.length() {
-          state.phase = Finish
+          state.start_node_index += 1
+          state.phase = StartNext
         } else {
           state.current_node = state.selected[state.row_index]
           state.row_index += 1
@@ -633,6 +809,9 @@ fn cleanup_reach_state(state : ReachState) -> Bool {
   state.queue.clear()
   state.selected.clear()
   state.scratch.clear()
+  state.start_selected.clear()
+  state.start_nodes.clear()
+  state.start_scratch.clear()
   state.values = []
   true
 }
@@ -646,7 +825,7 @@ fn start_reach_state(
   input : @graph.ProducerRead,
   source : @storage.Storage,
   schema : @schema.Schema,
-  start : @value.CheckedValue,
+  starts : ReachStarts,
   direction : @graph_type.Direction,
   edge_filter : ReachEdgeFilter,
   minimum_depth : Int,
@@ -668,9 +847,15 @@ fn start_reach_state(
   }
   let nodes = @storage.node_count(source)
   let edges = @storage.edge_count(source)
+  let start_count = match starts {
+    SingleReachStart(_) => 1
+    TraversalReachStarts(prepared) =>
+      @lower.graph_traverse_start_id_count(prepared)
+  }
   guard minimum_depth >= 0 &&
     max_depth >= minimum_depth &&
     max_rows >= 0 &&
+    start_count > 0 &&
     nodes <= max_rows else {
     return Err(ReachOutputLimit)
   }
@@ -711,7 +896,7 @@ fn start_reach_state(
     input,
     source,
     schema,
-    start,
+    starts,
     direction,
     edge_filter,
     minimum_depth,
@@ -726,9 +911,11 @@ fn start_reach_state(
     live,
     accepted,
     port,
-    phase: InitializeNodes,
+    phase: InitializeStartSelection,
     index: 0,
     current_node: -1,
+    current_start_node: -1,
+    start_node_index: 0,
     neighbor_index: 0,
     edge_type_index: 0,
     row_index: 0,
@@ -745,6 +932,9 @@ fn start_reach_state(
     queue: [],
     selected: [],
     scratch: [],
+    start_selected: [],
+    start_nodes: [],
+    start_scratch: [],
     width: 1,
     run_start: 0,
     middle: 0,
@@ -802,7 +992,7 @@ pub fn start_reach(
     input,
     source,
     @lower.graph_reach_output_schema(prepared),
-    @lower.graph_reach_start(prepared),
+    SingleReachStart(@lower.graph_reach_start(prepared)),
     @lower.graph_reach_direction(prepared),
     AllReachEdges,
     0,

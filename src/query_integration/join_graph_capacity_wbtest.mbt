@@ -293,6 +293,7 @@ fn traversal_capacity_material(
   stage : String,
   operation : String,
   step? : Int = 1,
+  output_rows? : Int64 = 2L,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -320,7 +321,7 @@ fn traversal_capacity_material(
     )
     let output = query_capacity_proof(
       "actql.bound.traverse-nodes",
-      2L,
+      output_rows,
       "{\"op\":\"source\"}",
       inputs=[@wire.cid(@wire.program_proof_witness(graph))],
       step~,

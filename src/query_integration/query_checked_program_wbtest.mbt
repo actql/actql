@@ -481,7 +481,18 @@ fn query_checked_program_fixture(
     [traversal_capacity_material(environment, "graph", "reach")]
   } else if local_carrier_graph_chain &&
     local_carrier_graph_variant.has_prefix("traverse_") {
-    [traversal_capacity_material(environment, "graph", "traverse")]
+    [
+      traversal_capacity_material(
+        environment,
+        "graph",
+        "traverse",
+        output_rows=if local_carrier_graph_variant == "traverse_ids" {
+          4L
+        } else {
+          2L
+        },
+      ),
+    ]
   } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {

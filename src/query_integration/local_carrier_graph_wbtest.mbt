@@ -200,7 +200,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
   } else if variant.has_prefix("traverse_") {
-    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+    (if variant == "traverse_ids" { "2,1,2" } else { "1" }) +
+    "]}," +
     "\"direction\":\"" +
     (if variant == "traverse_in" {
       "in"
@@ -1101,6 +1103,7 @@ fn carrier_graph_traverse_owner(
   minimum : Int,
   maximum : Int,
   emission? : String = "nodes",
+  starts? : String = "1",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -1108,7 +1111,9 @@ fn carrier_graph_traverse_owner(
       "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
       "\"source\":\"src\",\"target\":\"dst\"," +
       "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
-      "\"from\":\"graph\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+      "\"from\":\"graph\",\"traverse\":{\"start\":{\"ids\":[" +
+      starts +
+      "]}," +
       "\"direction\":\"out\",\"min_hops\":" +
       minimum.to_string() +
       ",\"max_hops\":" +
@@ -2408,6 +2413,120 @@ test "homogeneous traversal enforces minimum depth and cancellation" {
 }
 
 ///|
+test "homogeneous traversal sorts and deduplicates literal starts" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(source_owner, 1, 2, starts="2,1,2")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    65,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 4)
+  let rows = []
+  for row in 0..<4 {
+    rows.push(
+      @execution.completed_output_row_wire(output, row, 1000, 100, 10).unwrap(),
+    )
+  }
+  assert_eq(rows, [
+    "{\"depth\":1,\"node_id\":2,\"start_id\":1}", "{\"depth\":2,\"node_id\":3,\"start_id\":1}",
+    "{\"depth\":1,\"node_id\":1,\"start_id\":2}", "{\"depth\":1,\"node_id\":3,\"start_id\":2}",
+  ])
+  assert_true(
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      64,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkspaceLimit)),
+  )
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "homogeneous traversal rejects a missing literal start atomically" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(source_owner, 1, 2, starts="1,9")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    65,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    finish_traverse(execution)
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachStartMissing)),
+  )
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "Graph provider rejects unsupported traversal before execution" {
   let source_owner = carrier_graph_components_source_owner()
   let owner = carrier_graph_traverse_owner(source_owner, 1, 2, emission="paths")
@@ -3616,6 +3735,8 @@ fn run_standard_host_graph_relation_path(
     0
   } else if variant == "graph_bounds" {
     4
+  } else if variant == "traverse_ids" {
+    2
   } else if variant.has_prefix("traverse_") ||
     variant == "subtract" ||
     variant.has_prefix("subgraph_") {
@@ -3676,9 +3797,16 @@ fn run_standard_host_graph_relation_path(
     variant == "traverse_types_miss" {
     ()
   } else if variant.has_prefix("traverse_") {
-    assert_true(graph_rows[0].contains("\"start_id\":1"))
-    assert_true(graph_rows[0].contains("\"node_id\":2"))
-    assert_true(graph_rows[0].contains("\"depth\":1"))
+    if variant == "traverse_ids" {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"node_id\":2"))
+      assert_true(graph_rows[1].contains("\"start_id\":2"))
+      assert_true(graph_rows[1].contains("\"node_id\":1"))
+    } else {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"node_id\":2"))
+      assert_true(graph_rows[0].contains("\"depth\":1"))
+    }
   } else if variant == "match_nodes_predicate" {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
@@ -3835,6 +3963,11 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
 ///|
 test "standard Host traverses a Graph for two consumers" {
   run_standard_host_graph_relation_path("traverse_out", publication=true)
+}
+
+///|
+test "standard Host traverses sorted unique literal starts" {
+  run_standard_host_graph_relation_path("traverse_ids")
 }
 
 ///|
