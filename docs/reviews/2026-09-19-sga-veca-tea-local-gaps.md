@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 31/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 33/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 26/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 27/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 30/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
-33/39, consumer lifetime 31/39, cancellation 26/39, and publication 30/39. These are
+33/39, consumer lifetime 31/39, cancellation 27/39, and publication 30/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -455,14 +455,18 @@ partial output private under cancellation. Duplicate selector identities do
 not duplicate nodes. At `87909cdf`, the registered provider carries this
 Graph result through the formal node-rows Bridge, two overlapping downstream
 Relation consumers, Named Result publication and retrieval, and final
-reclamation on JS, Wasm, and native. At `01e5e342`, that selected generation
+reclamation on JS, Wasm, and native. At `0c359fda`, that selected generation
 also remains live across a same-Carrier normalization consumer and the formal
 Bridge consumer; the derived Graph is reclaimed independently. Relation and
-predicate selectors, a nonliteral authored edge predicate, and environment
-cancellation delivery remain open, so `subgraph` remains partial. At
-`f4a7d91d`, explicit literal true and false edge predicates are distinguished;
+predicate selectors and a nonliteral authored edge predicate remain open, so
+`subgraph` remains partial. At
+`0a769228`, explicit literal true and false edge predicates are distinguished;
 the false branch preserves selected nodes while publishing an empty formal
-edge Relation on all three portable targets.
+edge Relation on all three portable targets. At `bf716212`, the real Node
+standard Host delivers timer cancellation after Graph construction enters the
+bounded subgraph kernel, observes stop independently from cleanup, and returns
+all ledger holdings and reservations to zero. The generated Workers fixture is
+current and all 24 Workers tests pass.
 
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
