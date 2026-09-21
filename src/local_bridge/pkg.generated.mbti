@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_runtime",
   "actql/actql/managed_graph_storage",
   "actql/actql/managed_record_runtime",
@@ -54,6 +55,8 @@ pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.Comp
 pub fn start_graph_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
 pub fn start_graph_to_rows_from_carrier_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphRowsExecution, GraphBridgeIssue]
+
+pub fn start_graph_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
 pub fn start_rows_to_events(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToEventsExecution, EventsBridgeIssue]
 

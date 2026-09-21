@@ -38,6 +38,13 @@ pub fn carrier_projection_output_carrier(
 }
 
 ///|
+pub fn carrier_projection_input_carrier(
+  value : PreparedCarrierProjection,
+) -> @carrier.Carrier {
+  @projection.input(value.checked)
+}
+
+///|
 fn emit_carrier_projection_node(
   prepared : PreparedCarrierProjection,
   out : @encode.Writer,

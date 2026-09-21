@@ -452,6 +452,94 @@ fn carrier_graph_owner(
 }
 
 ///|
+fn carrier_graph_material_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graph_projection_owner(
+  source : @lower.BoundPrepared,
+  projection : String,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor("[{\"from\":\"g\",\"" + projection + "\":true}]"),
+    [
+      (
+        "g",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_match_owner(
   source : @lower.BoundPrepared,
   ids : String,
@@ -2696,6 +2784,142 @@ test "registered Graph provider grafts exact Carrier inputs into rows" {
   )
   assert_true(@carrier_runtime.material_available(left_material))
   assert_true(@carrier_runtime.material_available(right_material))
+}
+
+///|
+test "registered Graph material crosses tasks to Graph and Bridge consumers" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let graph_owner = carrier_graph_material_owner(source_owner)
+  let graph_generated = task_test_generated(graph_owner)
+  let external = @execution.prepare_producer_read(
+    graph_owner,
+    @execution.bind_completed_input(graph_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let limits = carrier_graph_storage_limits()
+  let graph_provider = @local_sga_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      graph_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(
+    @local_connector.managed_provider_accepts(graph_provider, graph_generated),
+  )
+  let graph_execution = @local_connector.start_managed_provider(
+    graph_provider,
+    graph_generated,
+    [external],
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  while material is None {
+    match
+      @local_connector.advance_managed_provider(graph_execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) => material = Some(value)
+      @local_connector.Complete(_, ..) => fail("Graph producer returned rows")
+      @local_connector.Failed(_, ..) => fail("Graph producer failed")
+      @local_connector.Stopped(..) => fail("Graph producer stopped")
+    }
+  }
+  assert_true(
+    @local_connector.cleanup_managed_provider(graph_execution).unwrap_or(false),
+  )
+  let material = material.unwrap()
+  assert_eq(
+    @carrier_runtime.material_kind(material),
+    @carrier_contract.GraphKind,
+  )
+
+  let graph_consumer = carrier_graft_owner(graph_owner, graph_owner)
+  let bridge_consumer = carrier_graph_projection_owner(graph_owner, "edge_rows")
+  let graph_first = @carrier_runtime.material_prepare_view(
+    material, graph_consumer, 0, graph_owner,
+  ).unwrap()
+  let graph_second = @carrier_runtime.material_prepare_view(
+    material, graph_consumer, 1, graph_owner,
+  ).unwrap()
+  let bridge_input = @carrier_runtime.material_prepare_view(
+    material, bridge_consumer, 0, graph_owner,
+  ).unwrap()
+  let graph_consumer_generated = task_test_generated(graph_consumer)
+  let bridge_consumer_generated = task_test_generated(bridge_consumer)
+  let graph_consumer_provider = @local_sga_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      graph_consumer_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let bridge_consumer_provider = @local_sga_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      bridge_consumer_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let graph_run = @local_connector.start_managed_provider_with_inputs(
+    graph_consumer_provider,
+    graph_consumer_generated,
+    [
+      @local_connector.managed_provider_carrier_input(graph_first),
+      @local_connector.managed_provider_carrier_input(graph_second),
+    ],
+    10,
+    1000,
+  ).unwrap()
+  let bridge_run = @local_connector.start_managed_provider_with_inputs(
+    bridge_consumer_provider,
+    bridge_consumer_generated,
+    [@local_connector.managed_provider_carrier_input(bridge_input)],
+    10,
+    1000,
+  ).unwrap()
+  let mut graph_rows = None
+  while graph_rows is None {
+    match @local_connector.advance_managed_provider(graph_run, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => graph_rows = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("Graph consumer returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("Graph consumer failed")
+      @local_connector.Stopped(..) => fail("Graph consumer stopped")
+    }
+  }
+  assert_true(
+    @local_connector.cleanup_managed_provider(graph_run).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(material))
+  let mut bridge_rows = None
+  while bridge_rows is None {
+    match @local_connector.advance_managed_provider(bridge_run, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => bridge_rows = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("Graph Bridge returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("Graph Bridge failed")
+      @local_connector.Stopped(..) => fail("Graph Bridge stopped")
+    }
+  }
+  assert_eq(@execution.completed_row_count(graph_rows.unwrap()), 2)
+  assert_eq(@execution.completed_row_count(bridge_rows.unwrap()), 2)
+  assert_true(
+    @local_connector.cleanup_managed_provider(bridge_run).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+  assert_false(@carrier_runtime.material_available(material))
 }
 
 ///|

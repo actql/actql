@@ -125,6 +125,8 @@ pub fn bound_preparation(BoundPrepared) -> Prepared
 
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
 
+pub fn carrier_projection_input_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier
+
 pub fn carrier_projection_operation(PreparedCarrierProjection) -> @carrier_projection.Operation
 
 pub fn carrier_projection_output_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier

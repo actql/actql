@@ -103,7 +103,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let count = @lower.sequence_count(
     @execution.generated_prepared_sequence(sequence),
   )
-  if count < 2 || count > 4 {
+  if count < 1 || count > 4 {
     return false
   }
   let direct_graft = match
@@ -119,6 +119,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return false
     }
     match (current, step) {
+      (0, @lower.GraphConstructionStep(_)) if count == 1 =>
+        @lower.operation(node) == "BRIDGE.rows.to_graph"
       (current, @lower.GraphConstructionStep(_)) if !direct_graft &&
         current < count - 1 => @lower.operation(node) == "BRIDGE.rows.to_graph"
       (0, @lower.GraphStructuralStep(_)) if direct_graft =>
@@ -353,6 +355,29 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@bridge.Complete(output, progress~, work~)) => {
+            if value.construction_steps == 1 &&
+              @lower.sequence_count(value.sequence) == 1 {
+              guard delta(progress, value.stage_progress)
+                is Some(progress_delta) &&
+                delta(work, value.stage_work) is Some(work_delta) else {
+                @graph.discard_completed(output) |> ignore
+                return fail_execution(value)
+              }
+              let material = match @graph.completed_material(output) {
+                Ok(value) => value
+                Err(_) => {
+                  @graph.discard_completed(output) |> ignore
+                  return fail_execution(value)
+                }
+              }
+              value.terminal = true
+              value.phase = Terminal
+              return Ok(
+                @local.managed_provider_carrier_complete(
+                  material, progress_delta, work_delta,
+                ),
+              )
+            }
             guard continue_poll(value, progress, work) is Some(poll) else {
               return fail_execution(value)
             }
@@ -591,7 +616,13 @@ fn advance_execution(
           Some(@lower.GraphRelationStep(_)) => true
           _ => false
         }
-        let input = if relation_step {
+        let direct_view = if value.graph is None &&
+          value.carrier_inputs.length() == 1 {
+          Some(value.carrier_inputs[0])
+        } else {
+          None
+        }
+        let input = if relation_step || direct_view is Some(_) {
           None
         } else {
           guard value.graph is Some(output) else {
@@ -615,8 +646,26 @@ fn advance_execution(
         let started = match
           @lower.sequence_step(value.sequence, value.projection_step) {
           Some(@lower.CarrierProjectionStep(_)) => {
-            guard input is Some(input) else { return fail_execution(value) }
-            let started = if value.carrier_inputs.is_empty() {
+            let started = if direct_view is Some(view) {
+              @bridge.start_graph_view_to_rows(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+              )
+            } else if value.carrier_inputs.is_empty() {
+              guard input is Some(input) else { return fail_execution(value) }
               @bridge.start_graph_to_rows(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -636,6 +685,7 @@ fn advance_execution(
                 value.inputs,
               )
             } else {
+              guard input is Some(input) else { return fail_execution(value) }
               @bridge.start_graph_to_rows_from_carrier_inputs(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -1219,8 +1269,20 @@ pub fn provider(
         Some(@lower.GraphStructuralStep(_)) => true
         _ => false
       }
+      let direct_projection = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          0,
+        ) {
+        Some(@lower.CarrierProjectionStep(_)) => true
+        _ => false
+      }
       if (direct_graft && (relations.length() != 0 || carriers.length() != 2)) ||
-        (!direct_graft && carriers.length() != 0) {
+        (
+          direct_projection &&
+          (relations.length() != 0 || carriers.length() != 1)
+        ) ||
+        (!direct_graft && !direct_projection && carriers.length() != 0) {
         return Err(@connector.Execution(@execution.InputSet))
       }
       let construction_steps = if direct_graft {
@@ -1257,6 +1319,8 @@ pub fn provider(
         kernel_step: construction_steps,
         phase: if direct_graft {
           StartKernel
+        } else if direct_projection {
+          StartProjection
         } else {
           StartConstruction
         },

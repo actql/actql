@@ -67,9 +67,14 @@ priv enum GraphRowsPhase {
 }
 
 ///|
+priv enum GraphRowsSource {
+  Stored(@graph.ProducerRead, @graph_storage.Storage)
+  Viewed(@lifecycle.ProducerView)
+}
+
+///|
 priv struct GraphRowsState {
-  input : @graph.ProducerRead
-  source : @graph_storage.Storage
+  source : GraphRowsSource
   graph : @carrier.Graph
   operation : @projection.Operation
   schema : @schema.Schema
@@ -691,6 +696,109 @@ fn graph_property_index(
 }
 
 ///|
+fn graph_rows_source_available(source : GraphRowsSource) -> Bool {
+  match source {
+    Stored(input, _) => @graph.producer_read_available(input)
+    Viewed(view) =>
+      @lifecycle.producer_view_node_count(view) is Some(_) &&
+      @lifecycle.producer_view_edge_count(view) is Some(_)
+  }
+}
+
+///|
+fn graph_rows_node_count(source : GraphRowsSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@graph_storage.node_count(storage))
+    Viewed(view) => @lifecycle.producer_view_node_count(view)
+  }
+}
+
+///|
+fn graph_rows_edge_count(source : GraphRowsSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@graph_storage.edge_count(storage))
+    Viewed(view) => @lifecycle.producer_view_edge_count(view)
+  }
+}
+
+///|
+fn graph_rows_node_identity(
+  source : GraphRowsSource,
+  node : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(_, storage) => @graph_storage.node_identity(storage, node)
+    Viewed(view) =>
+      match @lifecycle.producer_view_node_identity(view, node) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn graph_rows_node_property(
+  source : GraphRowsSource,
+  node : Int,
+  property : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(_, storage) => @graph_storage.node_property(storage, node, property)
+    Viewed(view) =>
+      match @lifecycle.producer_view_node_property(view, node, property) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn graph_rows_edge_endpoints(
+  source : GraphRowsSource,
+  edge : Int,
+) -> (Int, Int)? {
+  match source {
+    Stored(_, storage) => @graph_storage.edge_endpoints(storage, edge)
+    Viewed(view) =>
+      match @lifecycle.producer_view_edge_endpoints(view, edge) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn graph_rows_edge_label(
+  source : GraphRowsSource,
+  edge : Int,
+) -> @value.CheckedValue?? {
+  match source {
+    Stored(_, storage) => @graph_storage.edge_label(storage, edge)
+    Viewed(view) =>
+      match @lifecycle.producer_view_edge_label(view, edge) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn graph_rows_edge_property(
+  source : GraphRowsSource,
+  edge : Int,
+  property : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(_, storage) => @graph_storage.edge_property(storage, edge, property)
+    Viewed(view) =>
+      match @lifecycle.producer_view_edge_property(view, edge, property) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
 fn graph_node_field(
   state : GraphRowsState,
   expected : @schema.Field,
@@ -698,7 +806,7 @@ fn graph_node_field(
   let (node_alias, _, _, _) = graph_role_names(state.graph)
   let source = if expected.name == @schema.Unqualified("id") ||
     node_alias == Some(expected.name) {
-    @graph_storage.node_identity(state.source, state.record)
+    graph_rows_node_identity(state.source, state.record)
   } else {
     match
       graph_property_index(
@@ -706,7 +814,7 @@ fn graph_node_field(
         expected.name,
       ) {
       Some(property) =>
-        @graph_storage.node_property(state.source, state.record, property)
+        graph_rows_node_property(state.source, state.record, property)
       None => None
     }
   }
@@ -726,7 +834,7 @@ fn graph_edge_field(
   state : GraphRowsState,
   expected : @schema.Field,
 ) -> @value.CheckedValue? {
-  guard @graph_storage.edge_endpoints(state.source, state.record)
+  guard graph_rows_edge_endpoints(state.source, state.record)
     is Some((source, target)) else {
     return None
   }
@@ -735,13 +843,13 @@ fn graph_edge_field(
   )
   let value = if expected.name == @schema.Unqualified("src") ||
     source_alias == Some(expected.name) {
-    @graph_storage.node_identity(state.source, source)
+    graph_rows_node_identity(state.source, source)
   } else if expected.name == @schema.Unqualified("dst") ||
     target_alias == Some(expected.name) {
-    @graph_storage.node_identity(state.source, target)
+    graph_rows_node_identity(state.source, target)
   } else if expected.name == @schema.Unqualified("rel") ||
     label_alias == Some(expected.name) {
-    return match @graph_storage.edge_label(state.source, state.record) {
+    return match graph_rows_edge_label(state.source, state.record) {
       Some(Some(label)) =>
         @value.recheck_runtime_value(
           label.value,
@@ -758,7 +866,7 @@ fn graph_edge_field(
         expected.name,
       ) {
       Some(property) =>
-        @graph_storage.edge_property(state.source, state.record, property)
+        graph_rows_edge_property(state.source, state.record, property)
       None => None
     }
   }
@@ -776,9 +884,9 @@ fn graph_edge_field(
 ///|
 fn graph_row_count(state : GraphRowsState) -> Int {
   if state.operation == @projection.NodeRows {
-    @graph_storage.node_count(state.source)
+    graph_rows_node_count(state.source).unwrap_or(0)
   } else {
-    @graph_storage.edge_count(state.source)
+    graph_rows_edge_count(state.source).unwrap_or(0)
   }
 }
 
@@ -794,7 +902,7 @@ fn graph_rows_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !graph_rows_source_available(state.source) {
       return @bounded.Failed(GraphInputUnavailable, progress, used)
     }
     match state.phase {
@@ -948,8 +1056,7 @@ fn start_graph_to_rows_common(
     }
   }
   let state : GraphRowsState = {
-    input,
-    source,
+    source: Stored(input, source),
     graph,
     operation,
     schema,
@@ -1039,6 +1146,112 @@ pub fn start_graph_to_rows_from_carrier_inputs(
     max_name_bytes,
     None,
   )
+}
+
+///|
+pub fn start_graph_view_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[GraphRowsExecution, GraphBridgeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.CarrierProjectionStep(projection)) &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lower.carrier_projection_input_carrier(projection)
+    is @carrier.GraphValue(graph) &&
+    @lower.preparation_schema_at(
+      @lower.bound_preparation(owner),
+      @pipeline.Step(step),
+    )
+    is Some(schema) else {
+    return Err(InvalidGraphKernel)
+  }
+  let operation = @lower.carrier_projection_operation(projection)
+  if operation != @projection.NodeRows && operation != @projection.EdgeRows {
+    return Err(InvalidGraphKernel)
+  }
+  let width = @schema.field_count(schema)
+  if max_workspace_slots < 0 ||
+    width > max_workspace_slots ||
+    width == 2147483647 {
+    return Err(GraphWorkspaceLimit)
+  }
+  let output = match
+    @execution.prepare_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      max_rows,
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(GraphRelationOutput(issue))
+  }
+  let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
+  let live = Ref(true)
+  let accepted = Ref(false)
+  let port = match
+    @execution.prepare_trusted_output_port(
+      preparation,
+      @pipeline.Step(step),
+      max_entries,
+      max_name_bytes,
+      fn(_) { if live.val { rows.val } else { None } },
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.cancel_admitted_output(output) |> ignore
+      return Err(GraphCompletion(issue))
+    }
+  }
+  let state : GraphRowsState = {
+    source: Viewed(input),
+    graph,
+    operation,
+    schema,
+    value_limits: {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_text_bytes: limits.max_text_bytes,
+    },
+    output: Some(output),
+    rows,
+    live,
+    accepted,
+    port,
+    phase: BeginRecord,
+    record: 0,
+    column: 0,
+    values: [],
+  }
+  let (session, token) = @bounded.start(
+    control,
+    state,
+    graph_rows_step,
+    cleanup_graph_rows_state,
+    _output => {
+      state.live.val = false
+      true
+    },
+  )
+  Ok({ session, token: Some(token), accepted, })
 }
 
 ///|
