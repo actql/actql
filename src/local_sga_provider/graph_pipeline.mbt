@@ -173,6 +173,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
       (current, @lower.GraphStructuralStep(_)) if current < count - 1 =>
         @lower.operation(node) == "SGA.graft"
+      (current, @lower.GraphUnionStep(union)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.union_structural" &&
+        !@lower.graph_union_has_property_strategies(union)
       (current, @lower.CarrierProjectionStep(projection)) if current ==
         count - 1 =>
         (
@@ -490,9 +493,23 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
-          Some(@lower.GraphStructuralStep(_)) => {
+          Some(@lower.GraphStructuralStep(_))
+          | Some(@lower.GraphUnionStep(_)) => {
             let reads = []
-            for index, output in value.graphs {
+            guard @lower.node_at(
+                @lower.bound_preparation(
+                  @execution.generated_sequence_owner(value.generated),
+                ),
+                value.kernel_step,
+              )
+              is Some(node) else {
+              return fail_execution(value)
+            }
+            for index in 0..<@lower.node_input_count(node) {
+              guard @lower.node_input_step(node, index) is Some(producer) &&
+                value.graphs.get(producer) is Some(output) else {
+                return fail_execution(value)
+              }
               match
                 @graph.prepare_step_read(
                   @execution.generated_sequence_owner(value.generated),

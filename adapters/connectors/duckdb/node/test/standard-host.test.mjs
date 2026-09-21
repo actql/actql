@@ -1686,6 +1686,29 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'union',
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g',
+      union_graphs: {with: ['right_graph', 'g', 'right_graph']},
+      as: 'united',
+    }, {
+      from: 'united', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  }, {
     name: 'graphs-equal',
     steps: [{
       graph: {
@@ -2554,6 +2577,27 @@ async function exerciseStrategyGraph(
       from: 'g', graft_graph: {with: 'right_graph'}, as: 'grafted',
     }, {
       from: 'grafted', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'union',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 160,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g',
+      union_graphs: {with: ['right_graph', 'g', 'right_graph']},
+      as: 'united',
+    }, {
+      from: 'united', node_rows: true, as: 'out',
     }],
     fields: ['id', 'node_name'],
   }, {

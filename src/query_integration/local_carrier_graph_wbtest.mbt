@@ -196,6 +196,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "union" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"union_graphs\":{" +
+    "\"with\":[\"right_graph\",\"g\",\"right_graph\"]}," +
+    "\"as\":\"united\"},{\"from\":\"united\"," +
+    "\"node_rows\":true,\"as\":\"out\""
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
       ""
@@ -3604,4 +3613,9 @@ test "Graph equality retains a property comparison across bounded resumes" {
 ///|
 test "standard Host grafts two Graphs before the Relation bridge" {
   run_standard_host_graph_relation_path("graft", publication=true)
+}
+
+///|
+test "standard Host unions a repeated Graph list before the Relation bridge" {
+  run_standard_host_graph_relation_path("union", publication=true)
 }

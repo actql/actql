@@ -51,6 +51,14 @@ pub fn node_input_count(node : PreparedNode) -> Int {
 }
 
 ///|
+pub fn node_input_step(node : PreparedNode, index : Int) -> Int? {
+  match node_input_target(node, index) {
+    Some(@pipeline.Step(step)) => Some(step)
+    _ => None
+  }
+}
+
+///|
 pub fn node_output_schema(node : PreparedNode) -> @schema.Schema {
   node.output_schema.unwrap()
 }

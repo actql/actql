@@ -367,6 +367,10 @@ pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
 
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
 
+pub fn graph_union_has_property_strategies(PreparedGraphUnion) -> Bool
+
+pub fn graph_union_input_count(PreparedGraphUnion) -> Int
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?
@@ -592,6 +596,8 @@ pub fn node_count(Prepared) -> Int
 pub fn node_id(PreparedNode) -> String
 
 pub fn node_input_count(PreparedNode) -> Int
+
+pub fn node_input_step(PreparedNode, Int) -> Int?
 
 pub fn node_input_target(PreparedNode, Int) -> @pipeline_typing.Target?
 
