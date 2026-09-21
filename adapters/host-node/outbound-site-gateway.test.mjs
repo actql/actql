@@ -944,3 +944,54 @@ test('outbound cancellation cannot admit work before dispatch', async t => {
   assert.equal((await survivor).dispatchRequestCid, control.identity(request));
   assert.equal(gateway.pending(), 0);
 });
+
+test('outbound poll waits for work admitted during the idle window', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'outbound-idle-poll-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const certificates_ = await certificates(root);
+  const gateway = await startHttpsOutboundSiteGateway({
+    key: certificates_.serverKey,
+    cert: certificates_.serverCertificate,
+    ca: certificates_.ca,
+    siteAuthorities: new Map([[
+      certificates_.siteFingerprint,
+      {siteKey: 'site-a', siteGeneration: 1},
+    ]]),
+    control,
+    idlePollMilliseconds: 1000,
+  });
+  t.after(() => gateway.close());
+  const path = '/v1/sites/site-a/generations/1/outbound';
+  const siteMaterial = {
+    ca: certificates_.ca,
+    cert: certificates_.siteCertificate,
+    key: certificates_.siteKey,
+  };
+  let pollFinished = false;
+  const poll = post(gateway.origin, `${path}/poll`, siteMaterial).then(value => {
+    pollFinished = true;
+    return value;
+  });
+  await new Promise(resolve => setTimeout(resolve, 25));
+  assert.equal(pollFinished, false);
+  const request = dispatch();
+  const dispatched = gateway.dispatch({
+    dispatch: request,
+    inputBindingBody: '{}',
+  });
+  const dispatchedRejection = dispatched.catch(error => error);
+  const response = await poll;
+  assert.equal(response.status, 200);
+  const envelope = control.admitPollDispatch(response.body);
+  assert.equal(
+    control.identity(control.pollDispatchRequest(envelope)),
+    control.identity(request),
+  );
+  const closed = gateway.close();
+  assert.equal(
+    (await dispatchedRejection).message,
+    'OutboundSiteGatewayClosed',
+  );
+  await closed;
+});

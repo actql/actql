@@ -68,6 +68,7 @@ export async function startHttpsOutboundSiteGateway({
   control,
   maxRequestBytes = 65_536,
   maxPendingDispatches = 1024,
+  idlePollMilliseconds = 1000,
 } = {}) {
   if (!text(host) || !Number.isSafeInteger(port) || port < 0 ||
       key === undefined || cert === undefined || ca === undefined ||
@@ -88,7 +89,9 @@ export async function startHttpsOutboundSiteGateway({
       typeof control.admitResponseJson !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0 ||
       !Number.isSafeInteger(maxPendingDispatches) ||
-      maxPendingDispatches <= 0) {
+      maxPendingDispatches <= 0 ||
+      !Number.isSafeInteger(idlePollMilliseconds) ||
+      idlePollMilliseconds < 1 || idlePollMilliseconds > 60_000) {
     fail('InvalidOutboundSiteGatewayConfiguration');
   }
   const bindings = new Map();
@@ -102,6 +105,7 @@ export async function startHttpsOutboundSiteGateway({
     fingerprints.set(fingerprint, binding);
   }
   const pending = new Map();
+  const pollWaiters = new Map();
   let sequence = 0;
   let admissionClosed = false;
   let listenerClosed = false;
@@ -114,6 +118,32 @@ export async function startHttpsOutboundSiteGateway({
     if (binding === undefined) fail('OutboundSiteBindingUnavailable');
     return binding;
   };
+  const wakePolls = binding => {
+    const key = bindingKey(binding.siteKey, binding.siteGeneration);
+    const waiters = pollWaiters.get(key);
+    if (waiters === undefined) return;
+    pollWaiters.delete(key);
+    for (const finish of waiters) finish();
+  };
+  const waitForPoll = binding => new Promise(resolve => {
+    const key = bindingKey(binding.siteKey, binding.siteGeneration);
+    let waiters = pollWaiters.get(key);
+    if (waiters === undefined) {
+      waiters = new Set();
+      pollWaiters.set(key, waiters);
+    }
+    let timer;
+    const finish = () => {
+      clearTimeout(timer);
+      waiters.delete(finish);
+      if (waiters.size === 0 && pollWaiters.get(key) === waiters) {
+        pollWaiters.delete(key);
+      }
+      resolve();
+    };
+    waiters.add(finish);
+    timer = setTimeout(finish, idlePollMilliseconds);
+  });
   const entryFor = (
     dispatch,
     operation,
@@ -199,6 +229,7 @@ export async function startHttpsOutboundSiteGateway({
       waiters: new Set(),
     };
     pending.set(key, entry);
+    wakePolls(siteBinding);
     return entry;
   };
   const waitFor = (
@@ -281,7 +312,11 @@ export async function startHttpsOutboundSiteGateway({
           replyJson(response, 400, {error: 'invalid_request'});
           return;
         }
-        const entry = nextEntry(binding);
+        let entry = nextEntry(binding);
+        if (entry === undefined && !admissionClosed) {
+          await waitForPoll(binding);
+          entry = nextEntry(binding);
+        }
         if (entry === undefined) {
           response.writeHead(204, {'cache-control': 'no-store'});
           response.end();
@@ -511,6 +546,7 @@ export async function startHttpsOutboundSiteGateway({
     async close() {
       if (listenerClosed && admissionClosed) return false;
       admissionClosed = true;
+      for (const binding of bindings.values()) wakePolls(binding);
       if (closeInFlight !== undefined) return await closeInFlight;
       const attempt = (async () => {
         if (!listenerClosed) {
