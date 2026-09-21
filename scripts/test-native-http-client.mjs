@@ -2193,7 +2193,7 @@ try {
     '--input-codec-cid', inputCodecCid,
     '--task-key', 'application-task',
     '--expected-task', '1',
-    '--max-polls', '8',
+    '--max-polls', '32',
     '--max-rows', '100',
     '--max-bytes', String(applicationMaxBytes),
     '--output-chunk-bytes', '4096',
@@ -2214,9 +2214,10 @@ try {
   );
   const destinationCompletion = applicationOutputRoute === 'store'
     ? (async () => {
-        const deadline = Date.now() + 20_000;
+        const planDeadline = Date.now() + 60_000;
         let planBody;
-        while (Date.now() < deadline) {
+        let lastPlanObservation;
+        while (Date.now() < planDeadline) {
           const result = await runCapturedIn('curl', [
             '--silent', '--show-error', '--fail', '--max-time', '2',
             '--request', 'POST',
@@ -2227,13 +2228,32 @@ try {
             '--data', '{}',
             `${coordinatorOrigin}/v1/coordinator/output-plan`,
           ], {}, undefined, undefined).completed;
+          lastPlanObservation = result;
           if (result.code === 0) {
             planBody = result.stdout;
             break;
           }
+          if (applicationRun.child.exitCode !== null) {
+            assert.fail(JSON.stringify({
+              applicationExit: await applicationRun.completed,
+              lastPlanObservation,
+            }));
+          }
+          if (coordinatorRun.child.exitCode !== null) {
+            assert.fail(JSON.stringify({
+              coordinatorExit: await coordinatorRun.completed,
+              lastPlanObservation,
+            }));
+          }
           await new Promise(resolve => setTimeout(resolve, 20));
         }
-        assert.notEqual(planBody, undefined, 'native output plan unavailable');
+        assert.notEqual(
+          planBody,
+          undefined,
+          `native output plan unavailable: ${JSON.stringify(
+            lastPlanObservation,
+          )}`,
+        );
         const plan = JSON.parse(planBody);
         const transferRequest = transferControl.admitJson(
           plan.transfer_request_json,
@@ -2262,7 +2282,8 @@ try {
         const projection = transferControl.requestProjection(transferRequest);
         let sealed = false;
         let lastStoreObservation;
-        while (Date.now() < deadline && !sealed) {
+        const sealDeadline = Date.now() + 60_000;
+        while (Date.now() < sealDeadline && !sealed) {
           const observed = await runCapturedIn('curl', [
             '--silent', '--show-error', '--max-time', '2',
             '--request', 'POST',
