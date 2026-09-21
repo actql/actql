@@ -679,8 +679,33 @@
       "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_union_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_union_test.mbt",
+        "src/local_sga/graft.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "no_merge_ordered_finite_list",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5dd60e2d",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "SGA",
