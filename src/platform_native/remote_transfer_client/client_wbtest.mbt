@@ -171,6 +171,71 @@ test "native direct destination owns exact durable generations" {
 }
 
 ///|
+test "native Transfer Store owns a sealed object across restart" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(store_root) else {
+    return
+  }
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let journal_path = sqlite_root + "/native-transfer-store-object.sqlite"
+  let journal = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let root = @filesystem.open_root(store_root).unwrap()
+  let chunks = [b"store-object-alpha", b"store-object-beta"]
+  let request = native_transfer_request(chunks, @transfer.TransferStore)
+  let admitted = admit_durable_store_object(journal, request, 1024L, 8L).unwrap()
+  assert_eq(
+    @transfer.store_upload_progress(admitted),
+    @transfer.StoreUploadCopying,
+  )
+  assert_eq(durable_store_object_next_chunk(journal, root, request).unwrap(), 0)
+  assert_true(
+    write_durable_store_object_chunk(journal, root, request, 0, b"altered")
+    is Err(SourceMismatch),
+  )
+  write_durable_store_object_chunk(journal, root, request, 0, chunks[0])
+  |> ignore
+  assert_eq(durable_store_object_next_chunk(journal, root, request).unwrap(), 1)
+  assert_true(seal_durable_store_object(journal, root, request) is Err(_))
+  write_durable_store_object_chunk(journal, root, request, 1, chunks[1])
+  |> ignore
+  let sealed_record = seal_durable_store_object(journal, root, request).unwrap()
+  assert_eq(
+    @transfer.store_upload_progress(sealed_record),
+    @transfer.StoreUploadSealed,
+  )
+  assert_eq(
+    read_durable_store_object_chunk(journal, root, request, 0, 1024).unwrap(),
+    chunks[0],
+  )
+  assert_true(journal.close())
+  let reopened = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let restored = admit_durable_store_object(reopened, request, 1024L, 8L).unwrap()
+  assert_eq(
+    @transfer.store_upload_progress(restored),
+    @transfer.StoreUploadSealed,
+  )
+  assert_eq(
+    durable_store_object_next_chunk(reopened, root, request).unwrap(),
+    2,
+  )
+  assert_eq(
+    read_durable_store_object_chunk(reopened, root, request, 1, 1024).unwrap(),
+    chunks[1],
+  )
+  assert_true(reopened.close())
+}
+
+///|
 test "native direct client sends admitted chunks over mTLS" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
     return

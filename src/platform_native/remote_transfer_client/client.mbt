@@ -1081,6 +1081,271 @@ fn destination_material_generation(
 }
 
 ///|
+let native_store_object_use_id = "native-transfer-store-object"
+
+///|
+/// Durably admits one Store-route upload while keeping its physical holding
+/// independent from every destination download use.
+pub fn admit_durable_store_object(
+  journal : @journal.Journal,
+  request : @transfer.RemoteTransferRequest,
+  max_store_bytes : Int64,
+  max_store_objects : Int64,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "store" {
+    return Err(InvalidRequest)
+  }
+  match journal.accept(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  match
+    journal.reserve_destination_holding(
+      request, max_store_bytes, max_store_objects,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  let mut record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  match @transfer.store_upload_progress(record) {
+    @transfer.StoreUploadStart => {
+      let transition = match @transfer.prepare_start(record) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
+      match journal.commit_transition(transition) {
+        Ok(_) => ()
+        Err(issue) => return Err(Durable(issue))
+      }
+      record = match journal.require(request) {
+        Ok(value) => value
+        Err(issue) => return Err(Durable(issue))
+      }
+    }
+    @transfer.StoreUploadCopying
+    | @transfer.StoreUploadSealed
+    | @transfer.StoreUploadCommitted => ()
+    @transfer.StoreUploadReconciliationRequired =>
+      return Err(ReconciliationRequired)
+  }
+  Ok(record)
+}
+
+///|
+/// Returns the first Store upload chunk whose exact generation is not sealed.
+pub fn durable_store_object_next_chunk(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[Int, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "store" {
+    return Err(InvalidRequest)
+  }
+  let cids = @transfer.request_chunk_cids(request)
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  if cids.length() != lengths.length() {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  for index, expected_cid in cids {
+    let allocation = match
+      journal.inspect_destination_allocation_if_present(
+        request, native_store_object_use_id, index,
+      ) {
+      Ok(Some(value)) => value
+      Ok(None) => return Ok(index)
+      Err(issue) => return Err(Durable(issue))
+    }
+    let generation = match @journal.destination_allocation_phase(allocation) {
+      @journal.DestinationAllocationSealed(value)
+      | @journal.DestinationAllocationReused(value) => value
+      _ => return Ok(index)
+    }
+    match
+      verify_destination_object(
+        root,
+        @journal.destination_allocation_final_name(allocation),
+        generation,
+        expected_cid,
+        lengths[index],
+      ) {
+      Ok(true) => ()
+      Ok(false) => return Err(ReconciliationRequired)
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(cids.length())
+}
+
+///|
+/// Stores one exact Store upload chunk without changing a destination use.
+pub fn write_durable_store_object_chunk(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  index : Int,
+  body : Bytes,
+) -> Result[@filesystem.NativeFileGeneration, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "store" || index < 0 {
+    return Err(InvalidRequest)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  if @transfer.store_upload_progress(record) != @transfer.StoreUploadCopying {
+    return Err(ReconciliationRequired)
+  }
+  let cids = @transfer.request_chunk_cids(request)
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  if index >= cids.length() || cids.length() != lengths.length() {
+    return Err(InvalidRequest)
+  }
+  prepare_destination_chunk_with_loader(
+    journal,
+    root,
+    request,
+    native_store_object_use_id,
+    index,
+    cids[index],
+    lengths[index],
+    () => Ok(body),
+  )
+}
+
+///|
+/// Seals the Store object after all exact chunks are durable. Destination
+/// completion remains a separate later transition.
+pub fn seal_durable_store_object(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "store" {
+    return Err(InvalidRequest)
+  }
+  let next = match durable_store_object_next_chunk(journal, root, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if next != @transfer.request_chunk_cids(request).length() {
+    return Err(ReconciliationRequired)
+  }
+  match root.sync_directory() {
+    Ok(_) => ()
+    Err(issue) => return Err(Destination(issue))
+  }
+  let mut record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  if @transfer.store_upload_progress(record) == @transfer.StoreUploadCopying {
+    let transition = match
+      @transfer.prepare_source_settled(record, true, true) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match journal.commit_transition(transition) {
+      Ok(_) => ()
+      Err(issue) => return Err(Durable(issue))
+    }
+    record = match journal.require(request) {
+      Ok(value) => value
+      Err(issue) => return Err(Durable(issue))
+    }
+  }
+  match @transfer.store_upload_progress(record) {
+    @transfer.StoreUploadSealed | @transfer.StoreUploadCommitted => Ok(record)
+    _ => Err(ReconciliationRequired)
+  }
+}
+
+///|
+/// Reads and revalidates one sealed Store object chunk as one bounded frame.
+pub fn read_durable_store_object_chunk(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  index : Int,
+  max_bytes : Int,
+) -> Result[Bytes, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "store" ||
+    index < 0 ||
+    max_bytes < 1 ||
+    max_bytes > 1048576 {
+    return Err(InvalidRequest)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  match @transfer.store_upload_progress(record) {
+    @transfer.StoreUploadSealed | @transfer.StoreUploadCommitted => ()
+    _ => return Err(ReconciliationRequired)
+  }
+  let cids = @transfer.request_chunk_cids(request)
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  if index >= cids.length() ||
+    cids.length() != lengths.length() ||
+    lengths[index] > max_bytes.to_int64() {
+    return Err(InvalidRequest)
+  }
+  let allocation = match
+    journal.inspect_destination_allocation(
+      request, native_store_object_use_id, index,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  let generation = match @journal.destination_allocation_phase(allocation) {
+    @journal.DestinationAllocationSealed(value)
+    | @journal.DestinationAllocationReused(value) => value
+    _ => return Err(ReconciliationRequired)
+  }
+  let name = @journal.destination_allocation_final_name(allocation)
+  let reader = match root.open_reader(name, generation) {
+    Ok(value) => value
+    Err(issue) => return Err(Destination(issue))
+  }
+  let output : Array[Byte] = []
+  while true {
+    let frame = match reader.next(max_bytes) {
+      Ok(value) => value
+      Err(issue) => {
+        ignore(reader.close())
+        return Err(Destination(issue))
+      }
+    }
+    for byte in frame.bytes {
+      output.push(byte)
+    }
+    if frame.eof {
+      break
+    }
+  }
+  match reader.finish() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(reader.close())
+      return Err(Destination(issue))
+    }
+  }
+  match reader.close() {
+    Ok(_) => ()
+    Err(issue) => return Err(Destination(issue))
+  }
+  let body = Bytes::from_array(output)
+  if body.length().to_int64() != lengths[index] ||
+    "sha256:" + @sha.hex(body) != cids[index] {
+    Err(SourceMismatch)
+  } else {
+    Ok(body)
+  }
+}
+
+///|
 /// Durably admits one direct destination before accepting any chunk bytes.
 /// The journal owns the destination reservation across process restarts.
 pub fn admit_durable_direct_destination(

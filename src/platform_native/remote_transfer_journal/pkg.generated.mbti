@@ -39,6 +39,7 @@ pub fn Journal::destination_capacity_usage(Self) -> Result[@sqlite.NativeCapacit
 pub fn Journal::finish_destination_allocation_reclaim(Self, NativeRemoteDestinationAllocation) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
 pub fn Journal::finish_destination_material_reclaim(Self, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, Bool) -> Result[Bool, NativeRemoteTransferJournalIssue]
 pub fn Journal::inspect_destination_allocation(Self, @remote_transfer.RemoteTransferRequest, String, Int) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
+pub fn Journal::inspect_destination_allocation_if_present(Self, @remote_transfer.RemoteTransferRequest, String, Int) -> Result[NativeRemoteDestinationAllocation?, NativeRemoteTransferJournalIssue]
 pub fn Journal::inspect_destination_receipt(Self, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferDestinationReceipt?, NativeRemoteTransferJournalIssue]
 pub fn Journal::prepare_destination_allocation(Self, @remote_transfer.RemoteTransferRequest, String, Int, String, String) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
 pub fn Journal::record_destination_allocation_owned(Self, NativeRemoteDestinationAllocation, @filesystem.NativeFileOwnership) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
