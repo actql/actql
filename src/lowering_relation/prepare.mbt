@@ -336,9 +336,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
-    GraphConstruction(nodes=Some(_), checked~, ..) =>
-      Some(GraphConstructionValue(checked))
-    GraphConstruction(nodes=None, ..) | TextRank(..) => None
+    GraphConstruction(checked~, ..) => Some(GraphConstructionValue(checked))
+    TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
       match @event.options(value) {
@@ -515,7 +514,15 @@ pub fn prepare(
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
-      GraphConstructionValue(_) => ("graph", 2)
+      GraphConstructionValue(checked) =>
+        (
+          "graph",
+          if @graph.construction_nodes_name(checked) is Some(_) {
+            2
+          } else {
+            1
+          },
+        )
       VectorValue(value) =>
         (
           match @vector.operation(value) {
@@ -569,7 +576,12 @@ pub fn prepare(
       _ => None
     }
     let graph_construction_expansion = match payload {
-      GraphConstructionValue(_) => Some(prepare_graph_construction_expansion())
+      GraphConstructionValue(checked) =>
+        Some(
+          prepare_graph_construction_expansion(
+            @graph.construction_nodes_name(checked) is Some(_),
+          ),
+        )
       _ => None
     }
     if nest_expansion is Some(expansion) {

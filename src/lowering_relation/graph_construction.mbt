@@ -3,6 +3,7 @@
 struct PreparedGraphConstruction {
   step : Int
   node : PreparedNode
+  declared_nodes : Bool
   graph : @carrier.Graph
   names : @carrier.GraphRowNames
   node_projection : Array[@schema.FieldName]
@@ -25,31 +26,67 @@ fn graph_construction_generated_role_id(step : Int, role : String) -> String {
 }
 
 ///|
-fn prepare_graph_construction_expansion() -> Array[
-  PreparedGraphConstructionExpansionNode,
-] {
-  [
-    { role: "nodes", operation: "REL.select", inputs: 1, source_node: false, },
-    { role: "edges", operation: "REL.select", inputs: 1, source_node: false, },
-    {
-      role: "source_closed",
-      operation: "REL.join",
-      inputs: 2,
-      source_node: false,
-    },
-    {
-      role: "target_closed",
-      operation: "REL.join",
-      inputs: 2,
-      source_node: false,
-    },
-    {
-      role: "",
-      operation: "BRIDGE.rows.to_graph",
-      inputs: 2,
-      source_node: true,
-    },
-  ]
+fn prepare_graph_construction_expansion(
+  declared_nodes : Bool,
+) -> Array[PreparedGraphConstructionExpansionNode] {
+  if declared_nodes {
+    [
+      { role: "nodes", operation: "REL.select", inputs: 1, source_node: false, },
+      { role: "edges", operation: "REL.select", inputs: 1, source_node: false, },
+      {
+        role: "source_closed",
+        operation: "REL.join",
+        inputs: 2,
+        source_node: false,
+      },
+      {
+        role: "target_closed",
+        operation: "REL.join",
+        inputs: 2,
+        source_node: false,
+      },
+      {
+        role: "",
+        operation: "BRIDGE.rows.to_graph",
+        inputs: 2,
+        source_node: true,
+      },
+    ]
+  } else {
+    [
+      {
+        role: "source_nodes",
+        operation: "REL.select",
+        inputs: 1,
+        source_node: false,
+      },
+      {
+        role: "target_nodes",
+        operation: "REL.select",
+        inputs: 1,
+        source_node: false,
+      },
+      {
+        role: "all_nodes",
+        operation: "REL.unionAll",
+        inputs: 2,
+        source_node: false,
+      },
+      {
+        role: "nodes",
+        operation: "REL.distinct",
+        inputs: 1,
+        source_node: false,
+      },
+      { role: "edges", operation: "REL.select", inputs: 1, source_node: false, },
+      {
+        role: "",
+        operation: "BRIDGE.rows.to_graph",
+        inputs: 2,
+        source_node: true,
+      },
+    ]
+  }
 }
 
 ///|
@@ -91,11 +128,14 @@ fn prepare_graph_construction_node(
   max_work~ : Int,
 ) -> Result[(PreparedGraphConstruction, Int, Int, Int), GraphConstructionIssue] {
   guard node.payload is GraphConstructionValue(checked) &&
-    node.inputs.length() == 2 &&
     @graph.construction_output(checked) is @carrier.GraphValue(graph) &&
     @carrier.graph_names(graph) is Some(names) &&
-    node.graph_construction_expansion is Some(expansion) &&
-    expansion == prepare_graph_construction_expansion() else {
+    node.graph_construction_expansion is Some(expansion) else {
+    return Err(InvalidGraphConstruction)
+  }
+  let declared_nodes = @graph.construction_nodes_name(checked) is Some(_)
+  if node.inputs.length() != (if declared_nodes { 2 } else { 1 }) ||
+    expansion != prepare_graph_construction_expansion(declared_nodes) {
     return Err(InvalidGraphConstruction)
   }
   let (identity, source, target, label) = @carrier.graph_row_fields(names)
@@ -137,7 +177,16 @@ fn prepare_graph_construction_node(
   }
   Ok(
     (
-      { step, node, graph, names, node_projection, edge_projection, expansion, },
+      {
+        step,
+        node,
+        declared_nodes,
+        graph,
+        names,
+        node_projection,
+        edge_projection,
+        expansion,
+      },
       projection_count,
       used_names,
       projection_count,
@@ -150,6 +199,13 @@ pub fn graph_construction_output_carrier(
   value : PreparedGraphConstruction,
 ) -> @carrier.Carrier {
   @carrier.graph_carrier(value.graph)
+}
+
+///|
+pub fn graph_construction_derives_nodes(
+  value : PreparedGraphConstruction,
+) -> Bool {
+  !value.declared_nodes
 }
 
 ///|
@@ -283,6 +339,20 @@ fn emit_graph_projection_column(
 }
 
 ///|
+fn emit_graph_renamed_column(
+  out : @encode.Writer,
+  from : @schema.FieldName,
+  to : @schema.FieldName,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(out)
+  @encode.key(out, "from")
+  @encode.string_value(out, @schema.reference_name(from))
+  @encode.key(out, "to")
+  @encode.string_value(out, @schema.reference_name(to))
+  @encode.end_object(out)
+}
+
+///|
 fn emit_graph_join_column(
   out : @encode.Writer,
   side : String,
@@ -353,6 +423,99 @@ fn emit_graph_construction_node(
     prepared.step,
     "target_closed",
   )
+  if !prepared.declared_nodes {
+    let source_nodes = graph_construction_generated_role_id(
+      prepared.step,
+      "source_nodes",
+    )
+    let target_nodes = graph_construction_generated_role_id(
+      prepared.step,
+      "target_nodes",
+    )
+    let all_nodes = graph_construction_generated_role_id(
+      prepared.step,
+      "all_nodes",
+    )
+    begin_graph_construction_node(
+      out,
+      source_nodes,
+      [prepared.node.inputs[0]],
+      "REL.select",
+    )
+    @encode.key(out, "columns")
+    @encode.begin_array(out)
+    emit_graph_renamed_column(out, source, node)
+    @encode.end_array(out)
+    end_graph_construction_node(out)
+
+    begin_graph_construction_node(
+      out,
+      target_nodes,
+      [prepared.node.inputs[0]],
+      "REL.select",
+    )
+    @encode.key(out, "columns")
+    @encode.begin_array(out)
+    emit_graph_renamed_column(out, target, node)
+    @encode.end_array(out)
+    end_graph_construction_node(out)
+
+    begin_graph_construction_node(
+      out,
+      all_nodes,
+      [source_nodes, target_nodes],
+      "REL.unionAll",
+    )
+    end_graph_construction_node(out)
+    begin_graph_construction_node(out, nodes, [all_nodes], "REL.distinct")
+    end_graph_construction_node(out)
+
+    begin_graph_construction_node(
+      out,
+      edges,
+      [prepared.node.inputs[0]],
+      "REL.select",
+    )
+    @encode.key(out, "columns")
+    @encode.begin_array(out)
+    for field in prepared.edge_projection {
+      emit_graph_projection_column(out, field)
+    }
+    @encode.end_array(out)
+    end_graph_construction_node(out)
+
+    begin_graph_construction_node(
+      out,
+      prepared.node.id,
+      [nodes, edges],
+      operation(prepared.node),
+    )
+    @encode.key(out, "edge")
+    @encode.begin_object(out)
+    @encode.key(out, "label")
+    match label {
+      Some(name) => emit_graph_field(name, out)
+      None => @encode.null_value(out)
+    }
+    @encode.key(out, "properties")
+    emit_graph_properties(@carrier.graph_edge_properties(prepared.graph), out)
+    @encode.key(out, "source")
+    emit_graph_field(source, out)
+    @encode.key(out, "target")
+    emit_graph_field(target, out)
+    @encode.end_object(out)
+    @encode.key(out, "mode")
+    @encode.string_value(out, "derived_endpoints")
+    @encode.key(out, "node")
+    @encode.begin_object(out)
+    @encode.key(out, "identity")
+    emit_graph_field(node, out)
+    @encode.key(out, "properties")
+    emit_graph_properties(@carrier.graph_node_properties(prepared.graph), out)
+    @encode.end_object(out)
+    end_graph_construction_node(out)
+    return
+  }
   begin_graph_construction_node(
     out,
     nodes,

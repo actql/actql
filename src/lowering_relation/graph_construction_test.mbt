@@ -52,6 +52,39 @@ fn explicit_graph_construction_checked() -> @pipeline.CheckedPipeline {
 }
 
 ///|
+fn concise_graph_construction_checked() -> @pipeline.CheckedPipeline {
+  @pipeline.check_carriers(
+    cursor(
+      "[{\"from\":\"rows\",\"graph\":{\"source\":\"src_id\"," +
+      "\"target\":\"dst_id\"},\"as\":\"g\"}]",
+    ),
+    [("rows", graph_construction_rows())],
+    None,
+    Some(cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+}
+
+///|
+fn concise_graph_construction_sequence() -> @lowering_relation.PreparedSequence {
+  let checked = concise_graph_construction_checked()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+}
+
+///|
 fn self_loop_graph_construction_checked() -> @pipeline.CheckedPipeline {
   @pipeline.check_carriers(
     cursor(
@@ -205,6 +238,88 @@ test "explicit Graph construction accounts for its finite expansion" {
       },
     ] {
     assert_true(@lowering_relation.prepare_sequence(owner, limited) is Err(_))
+  }
+}
+
+///|
+test "concise Graph construction derives endpoint nodes canonically" {
+  let sequence = concise_graph_construction_sequence()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.GraphConstructionStep(graph)) else {
+    fail("expected concise Graph construction")
+  }
+  assert_true(@lowering_relation.graph_construction_derives_nodes(graph))
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 0),
+    Some(6),
+  )
+  let expected = [
+    ("graph_source_nodes_0", "REL.select"),
+    ("graph_target_nodes_0", "REL.select"),
+    ("graph_all_nodes_0", "REL.unionAll"),
+    ("graph_nodes_0", "REL.distinct"),
+    ("graph_edges_0", "REL.select"),
+    ("graph_0", "BRIDGE.rows.to_graph"),
+  ]
+  for index, item in expected {
+    assert_eq(
+      @lowering_relation.sequence_canonical_node_at(sequence, 0, index).map(occurrence => {
+        (occurrence.id, occurrence.operation)
+      }),
+      Some(item),
+    )
+  }
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "[{\"id\":\"graph_source_nodes_0\",\"in\":[\"input_0\"]," +
+    "\"op\":\"REL.select\",\"params\":{\"columns\":[{" +
+    "\"from\":\"src_id\",\"to\":\"node_id\"}]}},{" +
+    "\"id\":\"graph_target_nodes_0\",\"in\":[\"input_0\"]," +
+    "\"op\":\"REL.select\",\"params\":{\"columns\":[{" +
+    "\"from\":\"dst_id\",\"to\":\"node_id\"}]}},{" +
+    "\"id\":\"graph_all_nodes_0\",\"in\":[" +
+    "\"graph_source_nodes_0\",\"graph_target_nodes_0\"]," +
+    "\"op\":\"REL.unionAll\",\"params\":{}},{" +
+    "\"id\":\"graph_nodes_0\",\"in\":[\"graph_all_nodes_0\"]," +
+    "\"op\":\"REL.distinct\",\"params\":{}},{" +
+    "\"id\":\"graph_edges_0\",\"in\":[\"input_0\"]," +
+    "\"op\":\"REL.select\",\"params\":{\"columns\":[{" +
+    "\"from\":\"src_id\",\"to\":\"src_id\"},{" +
+    "\"from\":\"dst_id\",\"to\":\"dst_id\"},{" +
+    "\"from\":\"id\",\"to\":\"id\"},{" +
+    "\"from\":\"weight\",\"to\":\"weight\"}]}},{" +
+    "\"id\":\"graph_0\",\"in\":[\"graph_nodes_0\"," +
+    "\"graph_edges_0\"],\"op\":\"BRIDGE.rows.to_graph\"," +
+    "\"params\":{\"edge\":{\"label\":null," +
+    "\"properties\":[\"id\",\"weight\"]," +
+    "\"source\":\"src_id\",\"target\":\"dst_id\"}," +
+    "\"mode\":\"derived_endpoints\",\"node\":{" +
+    "\"identity\":\"node_id\",\"properties\":[]}}}]",
+  )
+}
+
+///|
+test "concise Graph construction accounts for its finite expansion" {
+  let checked = concise_graph_construction_checked()
+  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
+  let usage = @lowering_relation.usage(prepared)
+  let exact : @lowering_relation.Limits = {
+    max_nodes: usage.nodes,
+    max_references: usage.references,
+    max_work: usage.work,
+    max_identifier_bytes: usage.identifier_bytes,
+  }
+  assert_true(@lowering_relation.prepare(checked, exact) is Ok(_))
+  for
+    limited in [
+      { ..exact, max_nodes: exact.max_nodes - 1, },
+      { ..exact, max_references: exact.max_references - 1, },
+      { ..exact, max_work: exact.max_work - 1, },
+      { ..exact, max_identifier_bytes: exact.max_identifier_bytes - 1, },
+    ] {
+    assert_true(@lowering_relation.prepare(checked, limited) is Err(_))
   }
 }
 

@@ -279,6 +279,8 @@ pub fn graph_basic_kind(PreparedGraphBasic) -> GraphBasicKind
 
 pub fn graph_basic_output_schema(PreparedGraphBasic) -> @relation_schema.Schema
 
+pub fn graph_construction_derives_nodes(PreparedGraphConstruction) -> Bool
+
 pub fn graph_construction_edge_label(PreparedGraphConstruction) -> @relation_schema.FieldName?
 
 pub fn graph_construction_edge_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
