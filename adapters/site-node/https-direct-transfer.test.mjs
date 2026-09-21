@@ -141,7 +141,10 @@ async function startReceiver(material, destinationStore, journal, authorize) {
     cert: material.destinationCertificate,
     ca: material.ca,
     sourceAuthorities: new Map([
-      [material.sourceFingerprint, 'source-a'],
+      [material.sourceFingerprint, Object.freeze({
+        siteKey: 'source-a',
+        siteGeneration: 1,
+      })],
     ]),
     destinationSiteKey: 'destination-b',
     destinationSiteGeneration: 2,

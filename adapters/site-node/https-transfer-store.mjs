@@ -7,6 +7,17 @@ const fail = (code, cause, details = {}) => {
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
 
+function siteBinding(value) {
+  if (value === null || typeof value !== 'object' ||
+      !text(value.siteKey) || !count(value.siteGeneration)) {
+    fail('InvalidTransferObjectStoreConfiguration');
+  }
+  return Object.freeze({
+    siteKey: value.siteKey,
+    siteGeneration: value.siteGeneration,
+  });
+}
+
 function reply(response, status, body) {
   const bytes = Buffer.from(JSON.stringify(body), 'utf8');
   response.writeHead(status, {
@@ -232,11 +243,11 @@ export async function startHttpsTransferObjectStore({
 
   const peerFor = request => {
     const certificate = request.socket.getPeerCertificate();
-    const siteKey = peerAuthorities.get(certificate.fingerprint256);
-    if (!request.socket.authorized || !text(siteKey)) {
+    const configured = peerAuthorities.get(certificate.fingerprint256);
+    if (!request.socket.authorized || configured === undefined) {
       fail('RemoteTransferUnauthorized');
     }
-    return Object.freeze({siteKey});
+    return siteBinding(configured);
   };
   const admit = async (request, peer, phase, useId) => {
     if (admissionClosed || request.headers['content-type'] !==
@@ -259,7 +270,13 @@ export async function startHttpsTransferObjectStore({
     const projection = control.requestProjection(admitted);
     if (projection[1] !== 'store') fail('InvalidRemoteTransferRoute');
     const expectedSite = phase === 'upload' ? projection[2] : projection[4];
-    if (peer.siteKey !== expectedSite) fail('RemoteTransferUnauthorized');
+    const expectedGeneration = Number(
+      phase === 'upload' ? projection[3] : projection[5],
+    );
+    if (peer.siteKey !== expectedSite ||
+        peer.siteGeneration !== expectedGeneration) {
+      fail('RemoteTransferUnauthorized');
+    }
     const entry = {request: admitted, useId};
     await authorizeUse(entry, authorize, control, clock, `${phase}:admit`, peer);
     return Object.freeze({admitted, projection, claimedRequestCid});
@@ -280,7 +297,10 @@ export async function startHttpsTransferObjectStore({
     );
     downloads.set(`${projection[1]}\n${projection[2]}`, {
       request: recovered.request,
-      peer: Object.freeze({siteKey: projection[3]}),
+      peer: Object.freeze({
+        siteKey: projection[3],
+        siteGeneration: Number(projection[4]),
+      }),
       useId: projection[2],
       holding,
       storeUse: recovered.storeUse,
@@ -445,7 +465,8 @@ export async function startHttpsTransferObjectStore({
           return;
         }
         const entry = uploads.get(requestCid);
-        if (entry === undefined || entry.peer.siteKey !== peer.siteKey) {
+        if (entry === undefined || entry.peer.siteKey !== peer.siteKey ||
+            entry.peer.siteGeneration !== peer.siteGeneration) {
           fail('RemoteTransferUnavailable');
         }
         if (request.method === 'PUT' && parts.length === 6 &&
@@ -540,7 +561,8 @@ export async function startHttpsTransferObjectStore({
       if (operation === 'downloads' && parts.length >= 6) {
         const useId = decodeURIComponent(parts[4]);
         const entry = downloads.get(`${requestCid}\n${useId}`);
-        if (entry === undefined || entry.peer.siteKey !== peer.siteKey) {
+        if (entry === undefined || entry.peer.siteKey !== peer.siteKey ||
+            entry.peer.siteGeneration !== peer.siteGeneration) {
           fail('RemoteTransferUnavailable');
         }
         if (request.method === 'GET' && parts.length === 7 &&

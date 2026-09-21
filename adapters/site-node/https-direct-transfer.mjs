@@ -8,6 +8,17 @@ const fail = (code, cause, details = {}) => {
 const text = value => typeof value === 'string' && value.length > 0;
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 
+function siteBinding(value) {
+  if (value === null || typeof value !== 'object' ||
+      !text(value.siteKey) || !integer(value.siteGeneration)) {
+    fail('InvalidDirectTransferReceiverConfiguration');
+  }
+  return Object.freeze({
+    siteKey: value.siteKey,
+    siteGeneration: value.siteGeneration,
+  });
+}
+
 function reply(response, status, body) {
   const bytes = Buffer.from(JSON.stringify(body), 'utf8');
   response.writeHead(status, {
@@ -176,15 +187,20 @@ export async function startHttpsDirectTransferReceiver({
   const stateReply = entry => control.replyJson(entry.record);
   const peerFor = request => {
     const certificate = request.socket.getPeerCertificate();
-    const sourceSite = sourceAuthorities.get(certificate.fingerprint256);
-    if (!request.socket.authorized || !text(sourceSite)) {
+    const source = sourceAuthorities.get(certificate.fingerprint256);
+    if (!request.socket.authorized || source === undefined) {
       fail('RemoteTransferUnauthorized');
     }
-    return Object.freeze({sourceSite});
+    const binding = siteBinding(source);
+    return Object.freeze({
+      sourceSite: binding.siteKey,
+      sourceSiteGeneration: binding.siteGeneration,
+    });
   };
   const entryFor = (requestCid, peer) => {
     const entry = entries.get(requestCid);
-    if (entry === undefined || entry.sourceSite !== peer.sourceSite) {
+    if (entry === undefined || entry.sourceSite !== peer.sourceSite ||
+        entry.sourceSiteGeneration !== peer.sourceSiteGeneration) {
       fail('RemoteTransferUnavailable');
     }
     return entry;
@@ -253,6 +269,7 @@ export async function startHttpsDirectTransferReceiver({
         );
         const projection = control.requestProjection(admitted);
         if (projection[1] !== 'direct' || projection[2] !== peer.sourceSite ||
+            Number(projection[3]) !== peer.sourceSiteGeneration ||
             projection[4] !== destinationSiteKey ||
             Number(projection[5]) !== destinationSiteGeneration) {
           fail('RemoteTransferUnauthorized');
@@ -276,6 +293,7 @@ export async function startHttpsDirectTransferReceiver({
           request: accepted.request,
           record: accepted.record,
           sourceSite: peer.sourceSite,
+          sourceSiteGeneration: peer.sourceSiteGeneration,
           chunks: control.chunks(accepted.request),
           writers: [],
           bodies: [],
@@ -482,7 +500,10 @@ export async function startHttpsDirectTransferReceiver({
       }
       const entry = entries.get(requestCid);
       if (entry === undefined) fail('RemoteTransferUnavailable');
-      const peer = Object.freeze({sourceSite: entry.sourceSite});
+      const peer = Object.freeze({
+        sourceSite: entry.sourceSite,
+        sourceSiteGeneration: entry.sourceSiteGeneration,
+      });
       await authorizeUse(
         entry, authorize, control, clock, 'consume', peer,
       );

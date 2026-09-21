@@ -211,8 +211,14 @@ async function fixture(t, {destinationCapacityBytes} = {}) {
     cert: material.storeCertificate,
     ca: material.ca,
     peerAuthorities: new Map([
-      [material.sourceFingerprint, 'source-a'],
-      [material.destinationFingerprint, 'destination-b'],
+      [material.sourceFingerprint, Object.freeze({
+        siteKey: 'source-a',
+        siteGeneration: 1,
+      })],
+      [material.destinationFingerprint, Object.freeze({
+        siteKey: 'destination-b',
+        siteGeneration: 2,
+      })],
     ]),
     control,
     store: transferStore,
