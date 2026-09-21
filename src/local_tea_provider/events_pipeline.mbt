@@ -72,6 +72,10 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       (0, @lower.EventStep(_)) =>
         @lower.operation(node) == "BRIDGE.rows.to_events" ||
         (count == 1 && @lower.operation(node) == "TEA.window.session_assign")
+      (0, @lower.CarrierProjectionStep(projection)) if count == 1 =>
+        @lower.operation(node) == "BRIDGE.events.to_rows" &&
+        @lower.carrier_projection_operation(projection) ==
+        @carrier_projection.Events
       (1, @lower.EventStep(_)) =>
         @lower.operation(node) == "TEA.watermark.label" ||
         @lower.operation(node) == "TEA.dedupe" ||
@@ -562,42 +566,67 @@ fn advance_execution(
           return fail_execution(value)
         }
       StartProjection => {
-        guard value.watermarked is Some(output) else {
-          return fail_execution(value)
-        }
         guard value.projection_step is Some(projection_step) else {
           return fail_execution(value)
         }
-        let input = match
-          @records.prepare_step_read(
-            @execution.generated_sequence_owner(value.generated),
-            projection_step,
-            0,
-            output,
-          ) {
-          Ok(read) => read
-          Err(_) => return fail_execution(value)
-        }
-        let started = match
-          @bridge.start_events_to_rows(
-            value.control,
-            @execution.generated_completion_preparation(value.generated),
-            value.sequence,
-            projection_step,
-            input,
-            value.max_rows,
-            {
-              max_nodes: value.limits.max_value_nodes,
-              max_text_bytes: value.max_value_bytes,
-              max_depth: value.limits.max_value_depth,
-              max_work: value.limits.max_work,
-            },
-            value.limits.max_workspace_slots,
-            value.max_value_bytes,
-            value.inputs,
-          ) {
-          Ok(execution) => execution
-          Err(_) => return fail_execution(value)
+        let started = match value.carrier_input {
+          Some(view) =>
+            match
+              @bridge.start_events_view_to_rows(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.max_value_bytes,
+              ) {
+              Ok(execution) => execution
+              Err(_) => return fail_execution(value)
+            }
+          None => {
+            guard value.watermarked is Some(output) else {
+              return fail_execution(value)
+            }
+            let input = match
+              @records.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                projection_step,
+                0,
+                output,
+              ) {
+              Ok(read) => read
+              Err(_) => return fail_execution(value)
+            }
+            match
+              @bridge.start_events_to_rows(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                projection_step,
+                input,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.max_value_bytes,
+                value.inputs,
+              ) {
+              Ok(execution) => execution
+              Err(_) => return fail_execution(value)
+            }
+          }
         }
         value.projection = Some(started)
         value.phase = Projection
@@ -766,6 +795,12 @@ pub fn provider(
         1 &&
         @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
         @lower.operation(node) == "TEA.window.session_assign"
+      let direct_projection = @lower.sequence_count(
+          @execution.generated_prepared_sequence(sequence),
+        ) ==
+        1 &&
+        @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
+        @lower.operation(node) == "BRIDGE.events.to_rows"
       let direct_relation = direct_session &&
         @lower.preparation_input_carrier(@lower.bound_preparation(owner), 0)
         is Some(input_carrier) &&
@@ -787,7 +822,7 @@ pub fn provider(
         if relations.length() != 1 || carrier_input is Some(_) {
           return Err(@connector.InvalidLimits)
         }
-      } else if direct_session {
+      } else if direct_session || direct_projection {
         if relations.length() != 0 || carrier_input is None {
           return Err(@connector.InvalidLimits)
         }
@@ -806,7 +841,9 @@ pub fn provider(
         } else {
           1
         },
-        projection_step: if direct_session {
+        projection_step: if direct_projection {
+          Some(0)
+        } else if direct_session {
           None
         } else if @lower.sequence_count(
             @execution.generated_prepared_sequence(sequence),
@@ -821,7 +858,9 @@ pub fn provider(
         storage_bytes,
         max_rows,
         max_value_bytes,
-        phase: if direct_session {
+        phase: if direct_projection {
+          StartProjection
+        } else if direct_session {
           StartWatermark
         } else {
           StartRows

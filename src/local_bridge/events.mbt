@@ -45,10 +45,16 @@ priv enum EventsToRowsPhase {
 }
 
 ///|
+priv enum EventsToRowsSource {
+  Stored(@storage.Storage)
+  Viewed(@lifecycle.ProducerView)
+}
+
+///|
 priv struct EventsToRowsState {
   available : () -> Bool
   mut owned : @records.Completed?
-  source : @storage.Storage
+  source : EventsToRowsSource
   mut output : @execution.AdmittedOutput?
   rows : Ref[@execution.AdmittedOutputRows?]
   live : Ref[Bool]
@@ -60,6 +66,42 @@ priv struct EventsToRowsState {
   mut column : Int
   mut candidate : Int
   mut values : Array[@value.CheckedValue]
+}
+
+///|
+fn events_source_record_count(source : EventsToRowsSource) -> Int? {
+  match source {
+    Stored(storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @lifecycle.producer_view_record_count(view)
+  }
+}
+
+///|
+fn events_source_field_count(source : EventsToRowsSource, record : Int) -> Int? {
+  match source {
+    Stored(storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn events_source_field(
+  source : EventsToRowsSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -316,7 +358,8 @@ fn events_to_rows_step(
     }
     match state.phase {
       BeginRecord =>
-        if state.record < @storage.record_count(state.source) {
+        if events_source_record_count(state.source) is Some(count) &&
+          state.record < count {
           state.column = 0
           state.candidate = 0
           state.values = []
@@ -327,18 +370,13 @@ fn events_to_rows_step(
       FindField =>
         if state.column < @schema.field_count(state.schema) {
           guard @schema.field_at(state.schema, state.column) is Some(expected) &&
-            @storage.record_field_count(state.source, state.record)
-            is Some(width) else {
+            events_source_field_count(state.source, state.record) is Some(width) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
           if state.candidate >= width {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
-          guard @storage.record_field_at(
-              state.source,
-              state.record,
-              state.candidate,
-            )
+          guard events_source_field(state.source, state.record, state.candidate)
             is Some((name, checked)) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
@@ -419,7 +457,7 @@ fn start_storage_to_rows(
   preparation : @execution.CompletionPreparation,
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
-  source : @storage.Storage,
+  source : EventsToRowsSource,
   available : () -> Bool,
   owned : @records.Completed?,
   schema : @schema.Schema,
@@ -427,7 +465,7 @@ fn start_storage_to_rows(
   limits : @execution.ValueLimits,
   max_entries : Int,
   max_name_bytes : Int,
-  inputs : Array[@execution.ProducerRead],
+  inputs : Array[@execution.ProducerRead]?,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let output = match
     @execution.prepare_admitted_output(owner, target, max_rows, limits) {
@@ -444,7 +482,7 @@ fn start_storage_to_rows(
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
+      inputs?,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -519,7 +557,7 @@ fn start_records_to_rows(
     preparation,
     owner,
     @pipeline.Step(step),
-    source,
+    Stored(source),
     fn() { @records.producer_read_available(input) },
     None,
     schema,
@@ -527,7 +565,7 @@ fn start_records_to_rows(
     limits,
     max_entries,
     max_name_bytes,
-    inputs,
+    Some(inputs),
   )
 }
 
@@ -567,7 +605,7 @@ pub fn start_completed_relation_to_rows(
     preparation,
     owner,
     @pipeline.Step(step),
-    source,
+    Stored(source),
     fn() { @records.completed_available(input) },
     Some(input),
     schema,
@@ -575,7 +613,58 @@ pub fn start_completed_relation_to_rows(
     limits,
     max_entries,
     max_name_bytes,
-    inputs,
+    Some(inputs),
+  )
+}
+
+///|
+pub fn start_events_view_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.CarrierProjectionStep(projection)) &&
+    @lower.carrier_projection_operation(projection) == @projection.Events &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_kind(input) == @carrier.EventsKind &&
+    @lower.preparation_schema_at(
+      @lower.bound_preparation(owner),
+      @pipeline.Step(step),
+    )
+    is Some(schema) else {
+    return Err(InvalidKernel)
+  }
+  start_storage_to_rows(
+    control,
+    preparation,
+    owner,
+    @pipeline.Step(step),
+    Viewed(input),
+    fn() { @lifecycle.producer_view_record_count(input) is Some(_) },
+    None,
+    schema,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    None,
   )
 }
 
