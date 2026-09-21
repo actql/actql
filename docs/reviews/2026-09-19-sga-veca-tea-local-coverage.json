@@ -894,7 +894,7 @@
       "output": "graph",
       "canonical": ["SGA.union_structural"],
       "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
-      "status": "complete",
+      "status": "partial",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -991,7 +991,7 @@
       "output": "graph",
       "canonical": ["SGA.diff_structural"],
       "variants": ["node removal", "edge removal", "property laws", "no-op"],
-      "status": "complete",
+      "status": "partial",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -2742,54 +2742,6 @@
         {
           "name": "portable Graph graft and retained consumers",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
-          "result": "passed"
-        },
-        {
-          "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
-          "targets": ["js"],
-          "result": "passed"
-        }
-      ]
-    },
-    {
-      "operation": "union_graphs",
-      "sha": "385be7a3870acfc5ba7670a3e4ddbeca1ecb384a",
-      "suites": [
-        {
-          "name": "portable structural laws and retained consumers",
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
-          "result": "passed"
-        },
-        {
-          "name": "bounded structural kernel resources",
-          "path": "src/local_sga/graft_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
-          "result": "passed"
-        },
-        {
-          "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
-          "targets": ["js"],
-          "result": "passed"
-        }
-      ]
-    },
-    {
-      "operation": "subtract_graphs",
-      "sha": "385be7a3870acfc5ba7670a3e4ddbeca1ecb384a",
-      "suites": [
-        {
-          "name": "portable structural laws and retained consumers",
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
-          "result": "passed"
-        },
-        {
-          "name": "bounded structural kernel resources",
-          "path": "src/local_sga/graft_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
         },
