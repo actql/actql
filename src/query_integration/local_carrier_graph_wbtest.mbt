@@ -363,20 +363,31 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "union" || variant == "union_singleton" {
+  } else if variant == "union" ||
+    variant == "union_singleton" ||
+    variant == "union_numeric" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"union_graphs\":{\"with\":" +
-    (if variant == "union_singleton" {
+    (if variant == "union_singleton" || variant == "union_numeric" {
       "\"right_graph\""
     } else {
       "[\"right_graph\",\"g\",\"right_graph\"]"
     }) +
+    (if variant == "union_numeric" {
+      ",\"merge\":{\"edge_properties\":{\"weight\":" + "\"number_sum\"}}"
+    } else {
+      ""
+    }) +
     "}," +
     "\"as\":\"united\"},{\"from\":\"united\"," +
-    "\"node_rows\":true,\"as\":\"out\""
+    (if variant == "union_numeric" {
+      "\"edge_rows\":true,\"as\":\"out\""
+    } else {
+      "\"node_rows\":true,\"as\":\"out\""
+    })
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
     "\"fields\":" +
@@ -441,6 +452,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
     "\"src\",\"dst\",\"weight\""
@@ -464,6 +476,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
     "\"weight\",\"src\""
@@ -3452,6 +3465,63 @@ fn carrier_graft_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn carrier_numeric_graph_contract() -> @carrier_contract.Carrier {
+  let number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  let node = @carrier_contract.rows(
+    [(@schema.Unqualified("score"), Some(number))],
+    field_set=@carrier_contract.Closed,
+    max_fields=1,
+    max_name_bytes=5,
+  ).unwrap()
+  let edge = @carrier_contract.rows(
+    [],
+    field_set=@carrier_contract.Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  @carrier_contract.graph(
+    number,
+    node,
+    edge,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_numeric_graph_owner() -> @lower.BoundPrepared {
+  let checked = @pipeline.check_carriers(
+    input_cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
+    [("g", carrier_numeric_graph_contract())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graft_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
@@ -3619,6 +3689,62 @@ fn carrier_union_merge_owner(
 }
 
 ///|
+fn carrier_numeric_union_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"union_graphs\":{" +
+      "\"with\":\"right\",\"merge\":{" +
+      "\"node_properties\":{\"score\":\"number_sum\"}}}," +
+      "\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":true}]",
+    ),
+    [
+      (
+        "left",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(left)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "right",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(right)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graft_graph(
   owner : @lower.BoundPrepared,
   identity : Double,
@@ -3644,6 +3770,32 @@ fn carrier_graft_graph(
     output,
     @admitted.checked_number_value(identity, number).unwrap(),
     [@admitted.checked_text_value(name, text).unwrap()],
+  ).unwrap()
+  @graphs.finish_output(output).unwrap()
+}
+
+///|
+fn carrier_numeric_graph(
+  owner : @lower.BoundPrepared,
+  identity : Double,
+  score : Double,
+) -> @graphs.Completed {
+  let output = @graphs.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @graph_storage.DeclaredNodes,
+    carrier_graph_storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  let number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  @graphs.append_node(
+    output,
+    @admitted.checked_number_value(identity, number).unwrap(),
+    [@admitted.checked_number_value(score, number).unwrap()],
   ).unwrap()
   @graphs.finish_output(output).unwrap()
 }
@@ -3779,6 +3931,61 @@ test "registered Graph provider admits explicit exact union properties" {
     ).unwrap(),
   )
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
+}
+
+///|
+test "registered Graph provider merges numeric Carrier properties" {
+  let left_owner = carrier_numeric_graph_owner()
+  let right_owner = carrier_numeric_graph_owner()
+  let owner = carrier_numeric_union_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let left = carrier_numeric_graph(left_owner, 1.0, 2.0)
+  let right = carrier_numeric_graph(right_owner, 1.0, 4.0)
+  let left_material = @graphs.completed_material(left).unwrap()
+  let right_material = @graphs.completed_material(right).unwrap()
+  let inputs = [
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+  ]
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    inputs.map(@local_connector.managed_provider_carrier_input),
+    10,
+    1000,
+  ).unwrap()
+  let mut completed = None
+  while completed is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(output, ..) => completed = Some(output)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("numeric union projection returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("numeric union provider failed")
+      @local_connector.Stopped(..) => fail("numeric union provider stopped")
+    }
+  }
+  let output = completed.unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Number(6.0)))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(left_material))
+  assert_true(@carrier_runtime.material_available(right_material))
 }
 
 ///|
@@ -4026,7 +4233,9 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:581c1ad7ac48237df5c669e328275ed013a700f7308143a32557810117210089"
   } else if variant == "graph_bounds" {
     "sha256:17d576d1679a19ebaa39babfe25c6922f65888c29781f7ea73b3f2af674b13c7"
-  } else if variant == "match_edges" || variant == "edge_projection" {
+  } else if variant == "match_edges" ||
+    variant == "edge_projection" ||
+    variant == "union_numeric" {
     "sha256:c60b5715592edabcbe32bd818f14c8d413b3717806662aa06c9e4eae57420932"
   } else if variant == "match_edges_predicate" {
     "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
@@ -4274,9 +4483,22 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"id\":2"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
-  } else if variant == "match_edges" || variant == "edge_projection" {
+  } else if variant == "match_edges" ||
+    variant == "edge_projection" ||
+    variant == "union_numeric" {
     assert_true(graph_rows[0].contains("\"src\":1"))
-    assert_true(graph_rows[1].contains("\"weight\":20"))
+    assert_true(
+      graph_rows[1].contains(
+        if variant == "union_numeric" {
+          "\"weight\":40"
+        } else {
+          "\"weight\":20"
+        },
+      ),
+    )
+    if variant == "union_numeric" {
+      assert_true(graph_rows[0].contains("\"weight\":20"))
+    }
   } else if variant == "match_edges_predicate" {
     assert_true(graph_rows[0].contains("\"src\":2"))
     assert_true(graph_rows[0].contains("\"weight\":20"))
@@ -4600,6 +4822,7 @@ test "standard Host grafts two Graphs before the Relation bridge" {
 test "standard Host unions a repeated Graph list before the Relation bridge" {
   run_standard_host_graph_relation_path("union", publication=true)
   run_standard_host_graph_relation_path("union_singleton")
+  run_standard_host_graph_relation_path("union_numeric")
 }
 
 ///|
