@@ -428,6 +428,12 @@ and JS, Wasm, and native execution. Multiple edge types, edge and node
 predicates, selector relations and predicates, repeated starts, hop patterns,
 and path output remain open.
 
+At `e528eda0`, an explicitly empty edge type list is preserved as a filter
+that admits no edges; it is not collapsed into the omitted, unrestricted
+form. The same standard Host fixture verifies the empty result on all three
+portable targets. More than one authored edge type remains open because its
+comparison loop must stay bounded and interruptible.
+
 At `4a72ee83`, the real Node standard Host delivers cancellation while the
 bounded homogeneous traversal is active. The fixture supplies the authored
 traversal proof instead of reusing reach evidence, observes kernel stop, and
