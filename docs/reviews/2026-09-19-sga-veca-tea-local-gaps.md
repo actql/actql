@@ -585,8 +585,10 @@ Relation computations, independent release, and final ledger reclamation on
 JS, Wasm, and native. Maximum and weighted-sum now authenticate owner-bound
 score declarations through the registered provider and cover stable candidate
 ties on all three targets. They still need product standard Host,
-two-consumer, publication, and cancellation evidence. Negative RRF boundaries
-remain open, so ranking merge remains partial.
+two-consumer, publication, and cancellation evidence. The registered provider
+now rejects duplicate candidates and noncontiguous RRF ranks while preserving
+both completed inputs through cleanup. Ranking merge remains partial because
+the scored policies have not reached the product standard Host lifecycle.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -961,6 +963,12 @@ fixtures check grouped scores, fresh ranks, and stable candidate ordering for
 score ties. The query-integration suite passes 428 tests on each of JS, Wasm,
 and native. Product standard Host scheduling, downstream lifetime,
 publication, environment cancellation, and negative RRF execution remain open.
+
+At `bf85b1b4`, duplicate candidates and noncontiguous positions are exercised
+through the registered RRF provider rather than only through checker or helper
+tests. Both failures preserve the completed inputs, stop the provider, and
+finish cleanup on JS, Wasm, and native. Negative RRF execution is closed; this
+does not add product standard Host lifecycle evidence for the scored policies.
 
 At `a9174bee`, interval join reaches one typed canonical
 `TEA.join.interval` occurrence without rediscovering frontend syntax. The
