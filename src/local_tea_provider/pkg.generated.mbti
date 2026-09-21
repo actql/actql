@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn asof_join_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+
 pub fn interval_join_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
 
 pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider

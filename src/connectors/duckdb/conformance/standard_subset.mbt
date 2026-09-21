@@ -166,6 +166,10 @@ pub fn strategy_fixture_tea_subset(
     if @local_connector.managed_provider_accepts(interval, sequence) {
       providers.push(interval)
     }
+    let asof = @local_tea_provider.asof_join_provider(storage, capacity)
+    if @local_connector.managed_provider_accepts(asof, sequence) {
+      providers.push(asof)
+    }
   }
   if providers.is_empty() {
     abort("TEA fixture providers rejected every generated sequence")

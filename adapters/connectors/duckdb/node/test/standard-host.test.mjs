@@ -2938,6 +2938,15 @@ async function exerciseStrategyGraph(
     completedTasks: [1, 2],
     fields: ['left_value', 'right_value'],
   }, {
+    name: 'asof-join',
+    family: 'asof',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['left_value', 'right_value'],
+  }, {
     name: 'rows-to-vectors-bridge',
     family: 'veca',
     operation: 'bridge',
@@ -3037,7 +3046,8 @@ async function exerciseStrategyGraph(
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series' ||
-      cancellationCase.family === 'interval';
+      cancellationCase.family === 'interval' ||
+      cancellationCase.family === 'asof';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
     const unsizedGraph = cancellationCase.name === 'graphs-equal';
@@ -3057,7 +3067,8 @@ async function exerciseStrategyGraph(
               },
             }
             : {session: {by: ['payload'], gap: 10}};
-    const graphCancellationProgram = cancellationCase.family === 'interval'
+    const graphCancellationProgram = cancellationCase.family === 'interval' ||
+      cancellationCase.family === 'asof'
       ? {
         version: 'actql/0.1',
         id: 'p',
@@ -3077,21 +3088,35 @@ async function exerciseStrategyGraph(
             values: {
               schema: side === 'left'
                 ? {
+                  id: {type: 'number', nullable: false},
                   key: {type: 'number', nullable: false},
                   time: {type: 'number', nullable: false},
                   value: {type: 'number', nullable: false},
                 }
                 : {
+                  id: {type: 'number', nullable: false},
                   key: {type: 'number', nullable: false},
-                  start: {type: 'number', nullable: false},
-                  end: {type: 'number', nullable: false},
+                  ...(cancellationCase.family === 'interval'
+                    ? {
+                      start: {type: 'number', nullable: false},
+                      end: {type: 'number', nullable: false},
+                    }
+                    : {time: {type: 'number', nullable: false}}),
                   value: {type: 'number', nullable: false},
                 },
               rows: Array.from(
                 {length: cancellationCase.rows},
                 (_, index) => side === 'left'
-                  ? {key: index, time: index, value: index}
-                  : {key: index, start: index, end: index + 1, value: index},
+                  ? {id: index, key: index, time: index, value: index}
+                  : cancellationCase.family === 'interval'
+                    ? {
+                      id: index,
+                      key: index,
+                      start: index,
+                      end: index + 1,
+                      value: index,
+                    }
+                    : {id: index, key: index, time: index, value: index},
               ),
             },
             as: 'out',
@@ -3100,8 +3125,10 @@ async function exerciseStrategyGraph(
             r: {
               from: 'out',
               fields: side === 'left'
-                ? ['key', 'time', 'value']
-                : ['key', 'start', 'end', 'value'],
+                ? ['id', 'key', 'time', 'value']
+                : cancellationCase.family === 'interval'
+                  ? ['id', 'key', 'start', 'end', 'value']
+                  : ['id', 'key', 'time', 'value'],
             },
           },
         })), {
@@ -3112,19 +3139,39 @@ async function exerciseStrategyGraph(
           },
           steps: [{
             from: 'l',
-            interval_join: {
-              with: 'r',
-              kind: 'inner',
-              mode: 'point_in_interval',
-              on: [{left: 'key', right: 'key'}],
-              left: {time: 'time'},
-              right: {start: 'start', end: 'end'},
-              select: {
-                left_value: 'left.value',
-                right_value: 'right.value',
-              },
-              max_output_rows: cancellationCase.rows,
-            },
+            ...(cancellationCase.family === 'interval'
+              ? {
+                interval_join: {
+                  with: 'r',
+                  kind: 'inner',
+                  mode: 'point_in_interval',
+                  on: [{left: 'key', right: 'key'}],
+                  left: {time: 'time'},
+                  right: {start: 'start', end: 'end'},
+                  select: {
+                    left_value: 'left.value',
+                    right_value: 'right.value',
+                  },
+                  max_output_rows: cancellationCase.rows,
+                },
+              }
+              : {
+                asof_join: {
+                  with: 'r',
+                  kind: 'inner',
+                  by: [{left: 'key', right: 'key'}],
+                  left_id: 'id',
+                  left_time: 'time',
+                  right_time: 'time',
+                  direction: 'backward',
+                  tolerance: cancellationCase.rows,
+                  right_tie_break: ['id'],
+                  select: {
+                    left_value: 'left.value',
+                    right_value: 'right.value',
+                  },
+                },
+              }),
             as: 'out',
           }],
           results: {r: {from: 'out', fields: cancellationCase.fields}},

@@ -40,7 +40,7 @@ async function withManifest(t, change) {
 test("local family coverage accepts the tracked normative gaps", () => {
   const result = run(manifestPath);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /39 normative entries, 25 complete, 14 open/u);
+  assert.match(result.stdout, /39 normative entries, 26 complete, 13 open/u);
 });
 
 test("local family coverage rejects an omitted normative operation", async t => {
@@ -102,7 +102,7 @@ test("local family coverage rejects a stale generated summary", async t => {
         "docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md",
       ),
       "utf8",
-    )).replace("| complete operations | 25/39 |", "| complete operations | 24/39 |"),
+    )).replace("| complete operations | 26/39 |", "| complete operations | 25/39 |"),
   );
   const result = run(target, gaps);
   assert.notEqual(result.status, 0);

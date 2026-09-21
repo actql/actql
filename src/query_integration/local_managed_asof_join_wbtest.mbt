@@ -28,14 +28,25 @@ test "standard Host runs bounded as-of join for two consumers" {
   assert_eq(@strategy.captured_task_asof_search_at(run, 3, 0), Some((0, 3L)))
   let registry = search_registry()
   let limits = dispatch_test_limits()
+  let generated = dispatch_test_generated(run)
+  let asof_capacity = @execution.generated_sequence_capacity(
+    generated[2],
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  let asof_provider = @local_tea_provider.asof_join_provider(
+    carrier_events_storage_limits(),
+    asof_capacity,
+  )
   let installed = @local_driver.prepare_local_dispatch_module(
     @host_driver.open_dispatch_driver(run),
     registry,
     @connector.capability_registration_at(registry, 0).unwrap(),
-    dispatch_test_generated(run),
+    generated,
     limits.local_execution,
     limits.guards,
     limits.candidate_work,
+    managed_providers=[asof_provider],
   ).unwrap()
   @local_driver.configure_local_retained_inputs(
     installed,
