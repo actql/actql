@@ -306,7 +306,12 @@ nonempty identity sets are resolved before search, deduplicated, and sorted by
 semantic identity. Their Cartesian endpoint pairs run through one bounded
 managed session. Missing identities fail before search; exact workspace
 admission, two overlapping consumers, formal publication, and JS, Wasm, and
-native execution are covered. Relation- and predicate-selected endpoints,
+native execution are covered. At `c23d7db5`, Relation-backed source and target
+selectors retain their distinct ordered input edges even when both positions
+refer to the same material. Repeated rows resolve to one canonical endpoint.
+Checked node predicates use bounded expression execution over typed Graph
+bindings. Both forms reach the standard Host, formal publication, two
+overlapping consumers, final reclamation, and all three portable targets.
 `nearest_per_source`, `nearest_pair`, and weighted costs remain open, so
 `shortest_path` remains partial.
 Union and mean preserve their ordered finite input lists,
