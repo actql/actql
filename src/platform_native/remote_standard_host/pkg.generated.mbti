@@ -3,12 +3,18 @@ package "actql/actql/platform_native/remote_standard_host"
 
 import {
   "actql/actql/connectors/duckdb/host_native",
+  "actql/actql/execution_site",
+  "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/remote_site_protocol",
   "actql/actql/run_publication_host",
 }
 
 // Values
-pub fn install_native_remote_standard_task_executor(String, String, String, Int, () -> Result[@host_native.NativeStandardStrategyRun, String], NativeRemoteStandardTaskLimits) -> Result[@remote_runtime.NativeRemoteTaskExecutor, NativeRemoteStandardHostIssue]
+pub fn install_native_remote_standard_task_executor(String, String, String, Int, () -> Result[@host_native.NativeStandardStrategyRun, String], NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
+
+pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteStandardHostIssue]
 
 // Errors
 
@@ -17,6 +23,8 @@ pub(all) enum NativeRemoteStandardHostIssue {
   InvalidConfiguration
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
 }
+
+type NativeRemoteStandardTaskExecutor
 
 pub(all) struct NativeRemoteStandardTaskLimits {
   output_export : @run_publication_host.PublicationOutputExportLimits

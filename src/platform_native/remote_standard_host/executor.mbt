@@ -16,6 +16,14 @@ pub(all) enum NativeRemoteStandardHostIssue {
 }
 
 ///|
+/// One exact standard-Host task prepared for installation in a native Site
+/// component. The runtime executor stays opaque so application composition
+/// cannot replace the checked Local or DuckDB completion boundary.
+struct NativeRemoteStandardTaskExecutor {
+  executor : @runtime.NativeRemoteTaskExecutor
+}
+
+///|
 priv struct NativeRemoteStandardOutputOwner {
   output_export : @publication_host.PublicationOutputExport
   run : @native_host.NativeStandardStrategyRun
@@ -392,7 +400,7 @@ pub fn install_native_remote_standard_task_executor(
   expected_task : Int,
   open_run : () -> Result[@native_host.NativeStandardStrategyRun, String],
   limits : NativeRemoteStandardTaskLimits,
-) -> Result[@runtime.NativeRemoteTaskExecutor, NativeRemoteStandardHostIssue] {
+) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue] {
   if expected_input_binding_cid.is_empty() ||
     expected_task < 0 ||
     limits.max_manifest_bytes < 1 ||
@@ -408,5 +416,40 @@ pub fn install_native_remote_standard_task_executor(
       expected_input_binding_cid, expected_task, open_run, limits, request, binding,
       budget,
     )
-  }).map_err(issue => Runtime(issue))
+  })
+  .map(executor => { executor, })
+  .map_err(issue => Runtime(issue))
+}
+
+///|
+/// Open the standard native Remote Site runtime from one verified active
+/// component and an exact registry of checked Local or DuckDB tasks. This is
+/// the product composition boundary used by a statically linked Site
+/// component; callers cannot install an unrelated physical executor through
+/// this API.
+pub fn open_native_remote_standard_site_runtime(
+  site : @site.ExecutionSite,
+  active_runtime : @bundle.NativeActiveRuntimeBinding,
+  operation_capability_cid : String,
+  issuer_capability_cid : String,
+  tasks : Array[NativeRemoteStandardTaskExecutor],
+  journal : @journal.Journal,
+  bundles : @bundle.NativeRuntimeBundleStore,
+  budgets : Array[@remote.RemoteDispatchBudget],
+) -> Result[@runtime.NativeRemoteRuntime, NativeRemoteStandardHostIssue] {
+  if tasks.is_empty() || budgets.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  let executors = tasks.map(task => task.executor)
+  let registration = match
+    @runtime.install_native_remote_runtime_registry_registration(
+      site, active_runtime, operation_capability_cid, issuer_capability_cid, executors,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Runtime(issue))
+  }
+  @runtime.open_native_remote_runtime(journal, bundles, [registration], budgets).map_err(issue => {
+      Runtime(issue)
+    },
+  )
 }

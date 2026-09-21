@@ -816,21 +816,18 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   let issuer_capability = native_publication_cid(
     "remote-standard-issuer-capability",
   )
-  let registration = @native_remote_runtime.install_native_remote_runtime_registry_registration(
+  let local_budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
+  let duckdb_budget = @remote.prepare_remote_dispatch_budget(
+    1048576L, 134217728L,
+  ).unwrap()
+  let runtime = @native_remote_standard.open_native_remote_standard_site_runtime(
     site,
     active_runtime,
     operation_capability,
     issuer_capability,
     [local_executor, duckdb_executor, foreign_executor],
-  ).unwrap()
-  let local_budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
-  let duckdb_budget = @remote.prepare_remote_dispatch_budget(
-    1048576L, 134217728L,
-  ).unwrap()
-  let runtime = @native_remote_runtime.open_native_remote_runtime(
     journal,
     bundles,
-    [registration],
     [local_budget, duckdb_budget],
   ).unwrap()
   let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
