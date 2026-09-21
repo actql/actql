@@ -140,6 +140,55 @@ fn executable_merge_plans(plans : Array[StructuralMergePlan]) -> Bool {
 }
 
 ///|
+fn checked_noninterruptible_add(current : Int, count : Int, unit : Int) -> Int? {
+  if current < 0 ||
+    count < 0 ||
+    unit < 0 ||
+    (count > 0 && unit > (2147483647 - current) / count) {
+    None
+  } else {
+    Some(current + count * unit)
+  }
+}
+
+///|
+fn graft_noninterruptible_value_nodes(
+  plans : Array[StructuralMergePlan],
+  limits : @storage.Limits,
+) -> Int? {
+  if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 8) / 8 {
+    return None
+  }
+  let ordinary = limits.max_value_nodes * 4 + 1
+  let set = limits.max_value_nodes * 8 + 8
+  let mut node_bound = 0
+  let mut edge_bound = 0
+  for plan in plans {
+    for strategy in plan.nodes {
+      let unit = match strategy {
+        Some(@graph_type.SetUnion | @graph_type.SetDifference) => set
+        _ => ordinary
+      }
+      guard checked_noninterruptible_add(node_bound, 1, unit) is Some(next) else {
+        return None
+      }
+      node_bound = next
+    }
+    for strategy in plan.edges {
+      let unit = match strategy {
+        Some(@graph_type.SetUnion | @graph_type.SetDifference) => set
+        _ => ordinary
+      }
+      guard checked_noninterruptible_add(edge_bound, 1, unit) is Some(next) else {
+        return None
+      }
+      edge_bound = next
+    }
+  }
+  Some(Int::max(ordinary, Int::max(node_bound, edge_bound)))
+}
+
+///|
 fn graft_source(state : GraftState) -> GraftSource? {
   state.sources.get(state.input_index)
 }
@@ -1416,7 +1465,8 @@ pub fn start_graft(
     @storage.carrier(first) is @carrier.GraphValue(contract) else {
     return Err(GraftInputUnavailable)
   }
-  if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
+  guard graft_noninterruptible_value_nodes(plans, limits)
+    is Some(max_noninterruptible_value_nodes) else {
     return Err(InvalidGraftLimits)
   }
   let output = match
@@ -1454,11 +1504,7 @@ pub fn start_graft(
   let (session, token) = @bounded.start(
     control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
   )
-  Ok({
-    session,
-    token: Some(token),
-    max_noninterruptible_value_nodes: limits.max_value_nodes * 4 + 1,
-  })
+  Ok({ session, token: Some(token), max_noninterruptible_value_nodes, })
 }
 
 ///|
@@ -1509,7 +1555,8 @@ pub fn start_graft_views(
       )
     _ => (false, false)
   }
-  if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
+  guard graft_noninterruptible_value_nodes(plans, limits)
+    is Some(max_noninterruptible_value_nodes) else {
     return Err(InvalidGraftLimits)
   }
   let output = match
@@ -1547,11 +1594,7 @@ pub fn start_graft_views(
   let (session, token) = @bounded.start(
     control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
   )
-  Ok({
-    session,
-    token: Some(token),
-    max_noninterruptible_value_nodes: limits.max_value_nodes * 4 + 1,
-  })
+  Ok({ session, token: Some(token), max_noninterruptible_value_nodes, })
 }
 
 ///|

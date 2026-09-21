@@ -1314,6 +1314,7 @@ test "finite structural mean folds in authored input order" {
     4096L,
     fn() { true },
   ).unwrap()
+  assert_eq(graft_max_noninterruptible_value_nodes(execution), 802)
   guard advance_graft(execution, 6).unwrap()
     is GraftComplete(output, progress=3L, work=3L) else {
     fail("finite numeric fold did not complete")
@@ -1396,6 +1397,7 @@ test "structural folds canonicalize typed set strategies" {
       4096L,
       fn() { true },
     ).unwrap()
+    assert_eq(graft_max_noninterruptible_value_nodes(execution), 808)
     guard advance_graft(execution, 4).unwrap()
       is GraftComplete(output, progress=2L, work=2L) else {
       fail("set structural fold did not complete")
@@ -1445,6 +1447,19 @@ test "structural folds canonicalize typed set strategies" {
     is GraftFailed(GraftWorkspaceLimit, progress=0L, work=0L),
   )
   assert_eq(cleanup_graft(one_short), Ok(true))
+
+  assert_true(
+    start_graft(
+      @bounded.control(),
+      sequence(bounded_owner),
+      0,
+      graft_inputs(bounded_owner, left_owner, right_owner, left, right),
+      { ..storage_limits(), max_value_nodes: 268435456, },
+      4096L,
+      fn() { true },
+    )
+    is Err(InvalidGraftLimits),
+  )
 
   let nullable_left_owner = set_graph_owner(nullable=true)
   let nullable_right_owner = set_graph_owner(nullable=true)
