@@ -85,6 +85,7 @@ import {
   "actql/actql/local_tea",
   "actql/actql/local_tea_provider",
   "actql/actql/local_veca_provider",
+  "actql/actql/vector_typing" @vector,
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @record_storage,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
