@@ -173,3 +173,112 @@ test "destination request fixes one durable Store use before capacity" {
   )
   assert_true(reopened.close())
 }
+
+///|
+test "committed destination readers durably block reclaim" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/destination-readers-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let request = journal_request(@transfer.TransferStore)
+  let first = open_journal(
+    library,
+    database_path,
+    262144L,
+    1,
+    4096,
+    5L,
+    max_destination_readers=2L,
+  ).unwrap()
+  let second = open_journal(
+    library,
+    database_path,
+    262144L,
+    1,
+    4096,
+    5L,
+    max_destination_readers=2L,
+  ).unwrap()
+  let (_, record) = first.accept(request).unwrap()
+  first.commit_transition(@transfer.prepare_start(record).unwrap()).unwrap()
+  first
+  .commit_transition(
+    @transfer.prepare_source_settled(record, true, true).unwrap(),
+  )
+  .unwrap()
+  first
+  .commit_transition(@transfer.prepare_destination_commit(record).unwrap())
+  .unwrap()
+  let receipt = @transfer.prepare_destination_receipt(
+    request, "destination-material-a",
+  ).unwrap()
+  first.commit_destination_receipt(receipt, request).unwrap() |> ignore
+  assert_true(first.reserve_destination_holding(request, 5L, 1L).unwrap())
+  match first.acquire_destination_reader(request, receipt, "reader-a") {
+    Ok(value) => assert_true(value)
+    Err(UnsupportedTarget) => fail("destination reader target unsupported")
+    Err(Closed) => fail("destination reader journal closed")
+    Err(Physical(_)) => fail("destination reader physical failure")
+    Err(Protocol(_)) => fail("destination reader protocol failure")
+    Err(StateCollision) => fail("destination reader state collision")
+    Err(RecoveryRequired) => fail("destination reader requires recovery")
+    Err(MaterialInUse) => fail("destination reader unexpectedly in use")
+  }
+  assert_false(
+    second.acquire_destination_reader(request, receipt, "reader-a").unwrap(),
+  )
+  assert_true(
+    second.begin_destination_material_reclaim(request, receipt)
+    is Err(MaterialInUse),
+  )
+  assert_true(
+    second.release_destination_reader(request, receipt, "reader-a").unwrap(),
+  )
+  assert_false(
+    first.release_destination_reader(request, receipt, "reader-a").unwrap(),
+  )
+  assert_true(
+    first.begin_destination_material_reclaim(request, receipt).unwrap(),
+  )
+  assert_false(
+    second.begin_destination_material_reclaim(request, receipt).unwrap(),
+  )
+  assert_true(
+    first.acquire_destination_reader(request, receipt, "reader-b")
+    is Err(RecoveryRequired),
+  )
+  assert_true(
+    first.finish_destination_material_reclaim(request, receipt, false)
+    is Err(RecoveryRequired),
+  )
+  assert_true(
+    first.finish_destination_material_reclaim(request, receipt, true).unwrap(),
+  )
+  assert_false(
+    second.finish_destination_material_reclaim(request, receipt, true).unwrap(),
+  )
+  assert_eq(first.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(first.close())
+  assert_true(second.close())
+  let reopened = open_journal(
+    library,
+    database_path,
+    262144L,
+    1,
+    4096,
+    5L,
+    max_destination_readers=2L,
+  ).unwrap()
+  assert_true(
+    reopened.acquire_destination_reader(request, receipt, "reader-c")
+    is Err(RecoveryRequired),
+  )
+  assert_true(reopened.close())
+}

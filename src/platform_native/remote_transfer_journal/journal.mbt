@@ -6,7 +6,15 @@ pub(all) enum NativeRemoteTransferJournalIssue {
   Protocol(@transfer.RemoteTransferIssue)
   StateCollision
   RecoveryRequired
+  MaterialInUse
 }
+
+///|
+pub(all) enum NativeRemoteDestinationMaterialPhase {
+  DestinationMaterialActive
+  DestinationMaterialReclaiming
+  DestinationMaterialReleased
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum NativeRemoteDestinationAllocationPhase {

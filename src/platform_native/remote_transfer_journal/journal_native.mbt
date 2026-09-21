@@ -4,7 +4,82 @@ struct Journal {
   max_chunks : Int
   max_manifest_bytes : Int
   max_referenced_bytes : Int64
+  max_destination_readers : Int64
   mut closed : Bool
+}
+
+///|
+fn destination_reader_key(
+  request : @transfer.RemoteTransferRequest,
+  reader_id : String,
+) -> Result[String, NativeRemoteTransferJournalIssue] {
+  let store_use = match @transfer.prepare_store_use(request, reader_id) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  Ok(@transfer.request_cid(request) + ":" + @transfer.store_use_cid(store_use))
+}
+
+///|
+fn destination_reader_body(
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+  active : Bool,
+) -> Bytes {
+  let state = if active { "active" } else { "released" }
+  @utf8.encode(
+    "1\n" +
+    @transfer.request_cid(request) +
+    "\n" +
+    @transfer.destination_receipt_cid(receipt) +
+    "\n" +
+    reader_id +
+    "\n" +
+    state,
+  )
+}
+
+///|
+fn destination_reader_matches(
+  body : Bytes,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+  active : Bool,
+) -> Bool {
+  body == destination_reader_body(request, receipt, reader_id, active)
+}
+
+///|
+fn destination_material_body(
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  phase : NativeRemoteDestinationMaterialPhase,
+) -> Bytes {
+  let code = match phase {
+    DestinationMaterialActive => "active"
+    DestinationMaterialReclaiming => "reclaiming"
+    DestinationMaterialReleased => "released"
+  }
+  @utf8.encode("1\n" + @transfer.destination_receipt_cid(receipt) + "\n" + code)
+}
+
+///|
+fn parse_destination_material(
+  value : @sqlite.NativeJournalValue,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> NativeRemoteDestinationMaterialPhase? {
+  if value.body == destination_material_body(receipt, DestinationMaterialActive) {
+    Some(DestinationMaterialActive)
+  } else if value.body ==
+    destination_material_body(receipt, DestinationMaterialReclaiming) {
+    Some(DestinationMaterialReclaiming)
+  } else if value.body ==
+    destination_material_body(receipt, DestinationMaterialReleased) {
+    Some(DestinationMaterialReleased)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -236,11 +311,13 @@ pub fn open_journal(
   max_chunks : Int,
   max_manifest_bytes : Int,
   max_referenced_bytes : Int64,
+  max_destination_readers? : Int64 = 1024L,
 ) -> Result[Journal, NativeRemoteTransferJournalIssue] {
   if max_record_bytes < 0L ||
     max_chunks < 0 ||
     max_manifest_bytes < 0 ||
-    max_referenced_bytes < 0L {
+    max_referenced_bytes < 0L ||
+    max_destination_readers < 1L {
     return Err(Protocol(@transfer.InvalidTransfer))
   }
   match library.open_database(path, max_record_bytes) {
@@ -250,6 +327,7 @@ pub fn open_journal(
         max_chunks,
         max_manifest_bytes,
         max_referenced_bytes,
+        max_destination_readers,
         closed: false,
       })
     Err(issue) => Err(Physical(issue))
@@ -709,6 +787,27 @@ pub fn Journal::prepare_destination_allocation(
 }
 
 ///|
+/// Read one existing destination allocation without creating an intent.
+pub fn Journal::inspect_destination_allocation(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match destination_allocation_key(request, use_id, index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("remote_transfer_destination_allocation", key) {
+    Ok(value) => parse_destination_allocation(key, value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn Journal::record_destination_allocation_owned(
   self : Journal,
   current : NativeRemoteDestinationAllocation,
@@ -899,6 +998,494 @@ pub fn Journal::inspect_destination_receipt(
         Err(StateCollision)
       }
     Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+fn Journal::require_committed_destination(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Result[String, NativeRemoteTransferJournalIssue] {
+  let key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let stored = match
+    self.database.read("remote_transfer_destination_receipt", key) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let admitted = match admit_stored_receipt(stored.body, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if @transfer.destination_receipt_cid(admitted) !=
+    @transfer.destination_receipt_cid(receipt) {
+    return Err(StateCollision)
+  }
+  let transfer = match self.database.read("remote_transfer", key) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let record = match self.existing(request, transfer) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let state = @transfer.record_projection(record)
+  if state[1] != 2 || state[3] != 1 || state[8] != 1 {
+    return Err(RecoveryRequired)
+  }
+  Ok(key)
+}
+
+///|
+fn Journal::ensure_destination_material_active(
+  self : Journal,
+  key : String,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  match self.database.read("remote_transfer_destination_material", key) {
+    Ok(value) =>
+      match parse_destination_material(value, receipt) {
+        Some(DestinationMaterialActive) => Ok(())
+        Some(_) => Err(RecoveryRequired)
+        None => Err(StateCollision)
+      }
+    Err(@sqlite.NotFound) =>
+      match
+        self.database.insert(
+          "remote_transfer_destination_material",
+          key,
+          destination_material_body(receipt, DestinationMaterialActive),
+        ) {
+        Ok(0L) => Ok(())
+        Ok(_) | Err(@sqlite.Collision) => Err(StateCollision)
+        Err(issue) => Err(Physical(issue))
+      }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+fn Journal::active_destination_reader_exists(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  let prefix = @transfer.request_cid(request) + ":"
+  let mut cursor = prefix
+  while true {
+    let entry = match
+      self.database.scan_after("remote_transfer_destination_reader", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => return Ok(false)
+      Err(issue) => return Err(Physical(issue))
+    }
+    cursor = entry.key
+    if !entry.key.has_prefix(prefix) {
+      return Ok(false)
+    }
+    let body = @utf8.decode(entry.body) catch {
+      _ => return Err(StateCollision)
+    }
+    let fields = body.split("\n").to_array()
+    if fields.length() != 5 ||
+      fields[0] != "1" ||
+      fields[1] != @transfer.request_cid(request) ||
+      (fields[4] != "active" && fields[4] != "released") {
+      return Err(StateCollision)
+    }
+    if fields[4] == "active" {
+      return Ok(true)
+    }
+  } nobreak {
+    Ok(false)
+  }
+}
+
+///|
+/// Atomically pins one committed destination material for an exact consumer
+/// occurrence. The pin is independent from the Transfer's physical holding.
+pub fn Journal::acquire_destination_reader(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let reader_key = match destination_reader_key(request, reader_id) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // The bounded claim helper owns its own SQLite transaction. Establish and
+  // validate the active material first, commit that preflight, claim the
+  // occurrence, and then revalidate under the reader CAS transaction below.
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let preflight_key = match
+    self.require_committed_destination(request, receipt) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  match self.ensure_destination_material_active(preflight_key, receipt) {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  let claim_scope = "remote_transfer_reader_" + @transfer.request_cid(request)
+  match
+    self.database.claim_ordinal(
+      claim_scope,
+      reader_key,
+      self.max_destination_readers,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let material_key = match
+    self.require_committed_destination(request, receipt) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  match self.ensure_destination_material_active(material_key, receipt) {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  let body = destination_reader_body(request, receipt, reader_id, true)
+  let acquired = match
+    self.database.read("remote_transfer_destination_reader", reader_key) {
+    Ok(value) => {
+      if value.revision != 0L || value.body != body {
+        ignore(self.database.rollback())
+        return Err(StateCollision)
+      }
+      false
+    }
+    Err(@sqlite.NotFound) =>
+      match
+        self.database.insert(
+          "remote_transfer_destination_reader", reader_key, body,
+        ) {
+        Ok(0L) => true
+        Ok(_) | Err(@sqlite.Collision) => {
+          ignore(self.database.rollback())
+          return Err(StateCollision)
+        }
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(acquired)
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+pub fn Journal::release_destination_reader(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let reader_key = match destination_reader_key(request, reader_id) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let value = match
+    self.database.read("remote_transfer_destination_reader", reader_key) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  let active = destination_reader_matches(
+    value.body,
+    request,
+    receipt,
+    reader_id,
+    true,
+  )
+  let released = destination_reader_matches(
+    value.body,
+    request,
+    receipt,
+    reader_id,
+    false,
+  )
+  if !active && !released {
+    ignore(self.database.rollback())
+    return Err(StateCollision)
+  }
+  if released {
+    ignore(self.database.rollback())
+    return Ok(false)
+  }
+  let next = destination_reader_body(request, receipt, reader_id, false)
+  match
+    self.database.compare_exchange(
+      "remote_transfer_destination_reader",
+      reader_key,
+      value.revision,
+      next,
+    ) {
+    Ok(revision) if revision == value.revision + 1L => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(true)
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+pub fn Journal::begin_destination_material_reclaim(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let key = match self.require_committed_destination(request, receipt) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  let value = match
+    self.database.read("remote_transfer_destination_material", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => {
+      match self.ensure_destination_material_active(key, receipt) {
+        Ok(_) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(issue)
+        }
+      }
+      match self.database.read("remote_transfer_destination_material", key) {
+        Ok(value) => value
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match parse_destination_material(value, receipt) {
+    Some(DestinationMaterialReclaiming) => {
+      ignore(self.database.rollback())
+      return Ok(false)
+    }
+    Some(DestinationMaterialReleased) => {
+      ignore(self.database.rollback())
+      return Err(RecoveryRequired)
+    }
+    Some(DestinationMaterialActive) => ()
+    None => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+  }
+  match self.active_destination_reader_exists(request) {
+    Ok(true) => {
+      ignore(self.database.rollback())
+      return Err(MaterialInUse)
+    }
+    Ok(false) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  let body = destination_material_body(receipt, DestinationMaterialReclaiming)
+  match
+    self.database.compare_exchange(
+      "remote_transfer_destination_material",
+      key,
+      value.revision,
+      body,
+    ) {
+    Ok(revision) if revision == value.revision + 1L => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(true)
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+pub fn Journal::finish_destination_material_reclaim(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  physical_reclaimed : Bool,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if !physical_reclaimed {
+    return Err(RecoveryRequired)
+  }
+  let key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match self.active_destination_reader_exists(request) {
+    Ok(true) => {
+      ignore(self.database.rollback())
+      return Err(MaterialInUse)
+    }
+    Ok(false) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  let value = match
+    self.database.read("remote_transfer_destination_material", key) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  let transitioned = match parse_destination_material(value, receipt) {
+    Some(DestinationMaterialReleased) => false
+    Some(DestinationMaterialReclaiming) => true
+    Some(DestinationMaterialActive) => {
+      ignore(self.database.rollback())
+      return Err(RecoveryRequired)
+    }
+    None => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+  }
+  if transitioned {
+    let body = destination_material_body(receipt, DestinationMaterialReleased)
+    match
+      self.database.compare_exchange(
+        "remote_transfer_destination_material",
+        key,
+        value.revision,
+        body,
+      ) {
+      Ok(revision) if revision == value.revision + 1L => ()
+      Ok(_) | Err(@sqlite.Collision) => {
+        ignore(self.database.rollback())
+        return Err(StateCollision)
+      }
+      Err(issue) => {
+        ignore(self.database.rollback())
+        return Err(Physical(issue))
+      }
+    }
+    match self.database.commit() {
+      Ok(_) => ()
+      Err(issue) => {
+        ignore(self.database.rollback())
+        return Err(Physical(issue))
+      }
+    }
+  } else {
+    ignore(self.database.rollback())
+  }
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  let mut bytes = 0L
+  for length in lengths {
+    if length < 0L || bytes > 9223372036854775807L - length {
+      return Err(Protocol(@transfer.InvalidTransfer))
+    }
+    bytes += length
+  }
+  match
+    self.database.release_capacity(
+      "remote_transfer_destination",
+      @transfer.request_cid(request),
+      bytes,
+      lengths.length().to_int64(),
+    ) {
+    Ok(_) => Ok(transitioned)
     Err(issue) => Err(Physical(issue))
   }
 }

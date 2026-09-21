@@ -9,12 +9,14 @@ pub fn open_journal(
   max_chunks : Int,
   max_manifest_bytes : Int,
   max_referenced_bytes : Int64,
+  max_destination_readers? : Int64 = 1024L,
 ) -> Result[Journal, NativeRemoteTransferJournalIssue] {
   ignore(path)
   ignore(max_record_bytes)
   ignore(max_chunks)
   ignore(max_manifest_bytes)
   ignore(max_referenced_bytes)
+  ignore(max_destination_readers)
   Err(UnsupportedTarget)
 }
 
@@ -123,6 +125,19 @@ pub fn Journal::prepare_destination_allocation(
 }
 
 ///|
+pub fn Journal::inspect_destination_allocation(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(use_id)
+  ignore(index)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::record_destination_allocation_owned(
   _self : Journal,
   current : NativeRemoteDestinationAllocation,
@@ -205,6 +220,56 @@ pub fn Journal::inspect_destination_receipt(
   NativeRemoteTransferJournalIssue,
 ] {
   ignore(request)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::acquire_destination_reader(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(receipt)
+  ignore(reader_id)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::release_destination_reader(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(receipt)
+  ignore(reader_id)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::begin_destination_material_reclaim(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(receipt)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::finish_destination_material_reclaim(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  physical_reclaimed : Bool,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(receipt)
+  ignore(physical_reclaimed)
   Err(UnsupportedTarget)
 }
 
