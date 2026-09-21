@@ -36,8 +36,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `cancellation` | 37/39 |
 | `publication` | 36/39 |
 | `three_targets` | 37/39 |
-| complete operations | 30/39 |
-| open operations | 9/39 |
+| complete operations | 31/39 |
+| open operations | 8/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -318,7 +318,15 @@ ties after hop count, and retained best-path storage is admitted before
 allocation. Empty predicate selections complete with zero rows and zero
 physical output capacity. Exact workspace rejection, bounded execution,
 standard Host consumers, formal publication, and all three portable targets
-are covered. Weighted costs remain open, so `shortest_path` remains partial.
+are covered. At `d4f7b63b`, weighted execution validates every admitted edge
+before search and enumerates simple paths within the authored hop bound. It
+folds costs in path order, keeps overrange internal and absorbing, and selects
+by cost, hops, then canonical node and edge identity. Selected overrange paths
+fail atomically, while a nonselected overrange candidate does not fail a finite
+selection. Equal-cost paths, all selection policies, zero-hop paths, exact
+workspace admission, cancellation, standard Host consumers, formal
+publication, and JS, Wasm, and native execution are covered. `shortest_path`
+is complete for the fixed inventory.
 Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,

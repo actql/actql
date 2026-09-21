@@ -552,7 +552,7 @@
       "output": "relation",
       "canonical": ["SGA.shortest_path"],
       "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -655,8 +655,8 @@
           "src/query_integration/query_checked_program_wbtest.mbt"
         ]
       },
-      {
-        "scope": "unweighted_nearest_selection_and_empty_endpoints",
+        {
+          "scope": "unweighted_nearest_selection_and_empty_endpoints",
         "layers": [
           "kernel",
           "managed",
@@ -677,9 +677,33 @@
           "src/local_sga/shortest.mbt",
           "src/local_sga_provider/graph_pipeline.mbt",
           "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "src/query_integration/query_checked_program_wbtest.mbt"
-        ]
-      }
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "weighted_cost_selection_and_overrange",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "sha": "d4f7b63b",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
       ]
     },
     {
@@ -3313,6 +3337,18 @@
           "name": "standard Host publication and cancellation",
           "path": "adapters/duckdb-node/test/standard-host.test.mjs",
           "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "shortest_path",
+      "sha": "d4f7b63b",
+      "suites": [
+        {
+          "name": "portable weighted paths, publication, and cancellation",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
           "result": "passed"
         }
       ]
