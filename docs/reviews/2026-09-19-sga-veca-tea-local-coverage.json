@@ -1557,6 +1557,7 @@
         "standard_host",
         "consumer_lifetime",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
@@ -1564,7 +1565,8 @@
         "src/lowering_relation/graph_construction_test.mbt",
         "src/local_bridge/graph.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1592,6 +1594,41 @@
           "evidence": [
             "src/lowering_relation/graph_construction.mbt",
             "src/lowering_relation/graph_construction_test.mbt"
+          ]
+        },
+        {
+          "scope": "concise_and_split_graph_construction",
+          "layers": [
+            "lowering",
+            "kernel",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d8928e40",
+          "evidence": [
+            "src/lowering_relation/graph_construction.mbt",
+            "src/lowering_relation/graph_construction_test.mbt",
+            "src/local_bridge/graph.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "concise_graph_environment_cancellation",
+          "layers": [
+            "cancellation",
+            "stop_confirmation",
+            "reclamation"
+          ],
+          "targets": ["node"],
+          "sha": "088770c3",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/duckdb_conformance/components_capacity_fixture.mbt",
+            "src/duckdb_conformance/strategy_fixture.mbt"
           ]
         }
       ]

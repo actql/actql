@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 30/39 entries have kernels and managed completion, 29/39 reach the standard Host, and 25/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 30/39 entries have resource and three-target kernel evidence | Implement and register the remaining nine entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 22/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 23/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, bounded Events transforms, normalized, grafted, scored, pooled, or nearest Vectors projections, and RRF output; 26/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 30/39, standard Host 29/39,
-consumer lifetime 25/39, cancellation 22/39, and publication 26/39. These are
+consumer lifetime 25/39, cancellation 23/39, and publication 26/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -916,9 +916,22 @@ computations, independent release, Graph reclamation before Relation use, and
 a zeroed final ledger. All five Graph fixtures pass on JS, Wasm, and native.
 The explicit construction fixture excludes an edge whose target is absent,
 retains present endpoints and repeated logical roles, and agrees across JS,
-Wasm, and native. Concise endpoint-derived construction, collision failures,
-formal publication, and environment cancellation delivery remain open, so all
-three Graph Bridge entries remain partial.
+Wasm, and native.
+
+Commits `245a147d`, `d8928e40`, and `088770c3` close the concise construction
+branch. One typed Relation input now lowers to a finite expansion that derives
+the node set from source and target endpoints before the canonical Graph
+Bridge occurrence. The bounded Local runtime preserves implicit edge
+properties, exact input binding, workspace admission, and cleanup. Standard
+Host fixtures cover concise input, distinct explicit node and edge inputs,
+the pre-existing repeated-input form, two downstream Relation consumers, and
+final ledger reclamation on JS, Wasm, and native. A Node timer also delivers
+cancellation during endpoint derivation and verifies stop before cleanup.
+
+The Graph-producing Bridge remains partial because a completed Graph is not
+yet carried across a physical task boundary to overlapping direct Graph and
+formal Bridge consumers. Graph publication is not invented while the formal
+publication contract remains Relation-valued.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
