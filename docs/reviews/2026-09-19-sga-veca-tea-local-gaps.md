@@ -490,8 +490,11 @@ selector rows still resolve to canonical unique Graph identities at runtime.
 Three-target tests cover two consumers and final cleanup, and the real Node
 Host smoke passes. At `a4392c06`, the distinct authored `hops` source form with
 one predicate-free hop executes through the bounded kernel and the same Host,
-consumer, and cleanup path on all portable targets. Multi-hop patterns, hop
-predicates, and path output remain open, so `traverse` remains partial.
+consumer, and cleanup path on all portable targets. At `7e4c2f06`, one-hop
+patterns evaluate typed edge and reached-node predicates in authored order.
+Edge-only, node-only, combined, and empty selections run as bounded expression
+steps without exposing partial output. Multi-hop patterns and path output remain
+open, so `traverse` remains partial.
 
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
