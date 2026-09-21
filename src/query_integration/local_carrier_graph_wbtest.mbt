@@ -187,9 +187,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
-  } else if variant == "traverse_out" {
+  } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
-    "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+    "\"direction\":\"" +
+    (if variant == "traverse_in" {
+      "in"
+    } else if variant == "traverse_both" {
+      "both"
+    } else {
+      "out"
+    }) +
+    "\",\"min_hops\":1,\"max_hops\":2," +
     "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -3306,7 +3314,7 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
-  } else if variant == "traverse_out" {
+  } else if variant.has_prefix("traverse_") {
     "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
     variant == "graphs_nullable_equal" ||
@@ -3480,7 +3488,7 @@ fn run_standard_host_graph_relation_path(
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "graph_bounds" {
     4
-  } else if variant == "traverse_out" || variant == "subtract" {
+  } else if variant.has_prefix("traverse_") || variant == "subtract" {
     1
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
@@ -3685,6 +3693,16 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
 ///|
 test "standard Host traverses a Graph for two consumers" {
   run_standard_host_graph_relation_path("traverse_out", publication=true)
+}
+
+///|
+test "standard Host preserves inbound Graph traversal" {
+  run_standard_host_graph_relation_path("traverse_in", publication=true)
+}
+
+///|
+test "standard Host preserves bidirectional Graph traversal" {
+  run_standard_host_graph_relation_path("traverse_both", publication=true)
 }
 
 ///|
