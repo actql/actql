@@ -879,34 +879,21 @@ fn[T : RelationRows] evaluate_row_body_impl(
         guard scope is Some(s) else {
           return Err(MissingOrderedResourceContext)
         }
-        let values : Array[Value] = []
-        for slot = 0; slot < bindings.length(); slot = slot + 1 {
-          match charge_logical_work(s.budget, 1L) {
-            Ok(_) => ()
-            Err(e) => return Err(LogicalRows(e))
+        let execution = start_ordered_bindings_execution(
+          bindings, snapshot, control, workspace, s, row_index,
+        )
+        let mut completed : (Array[Value], Array[ExpressionRootLease])? = None
+        while completed is None {
+          match advance_ordered_bindings_execution(execution) {
+            Ok(OrderedBindingsContinue) => ()
+            Ok(OrderedBindingsComplete(values, roots)) =>
+              completed = Some((values, roots))
+            Err(issue) => return Err(issue)
           }
-          if !reserve_slots(workspace, 2) {
-            return Err(RowLimit)
-          }
-          let evaluated = match
-            evaluate_expression_retained(
-              bindings[slot].1,
-              snapshot,
-              values,
-              control,
-              workspace,
-              logical_work=Some(s.budget),
-            ) {
-            Ok(v) => v
-            Err(e) => return Err(Evaluation(row_index, slot, e))
-          }
-          guard evaluated.root is Some(root) else { return Err(InvalidRows) }
-          let lease = match register_scope_root(s, root) {
-            Ok(r) => r
-            Err(e) => return Err(LogicalRows(e))
-          }
-          slot_roots.push(lease)
-          values.push(evaluated.value)
+        }
+        let (values, roots) = completed.unwrap()
+        for root in roots {
+          slot_roots.push(root)
         }
         let by_name : Map[String, Int] = Map([])
         for i = 0; i < bindings.length(); i = i + 1 {
