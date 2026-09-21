@@ -50,6 +50,54 @@ test "credential grant has a canonical identity without secret material" {
 }
 
 ///|
+test "credential signature envelope has one canonical MoonBit preimage" {
+  let grant = credential_grant()
+  let signature = "A".repeat(86)
+  let envelope = prepare_credential_signature_envelope(
+    grant, "credential-key-a", signature,
+  ).unwrap()
+  let projection = credential_signature_envelope_projection(envelope)
+  assert_eq(projection, [
+    "actql-remote-credential-grant-signature/0.1",
+    "credential-key-a",
+    credential_grant_cid(grant),
+    credential_grant_json(grant).unwrap(),
+    signature,
+    "credential-authority-a",
+  ])
+  assert_eq(
+    credential_grant_signature_preimage(grant).unwrap(),
+    @utf8.encode(
+      "actql-remote-credential-grant-signature/0.1\u{0000}" +
+      credential_grant_cid(grant) +
+      "\u{0000}" +
+      credential_grant_json(grant).unwrap(),
+    ),
+  )
+  let admitted = admit_credential_signature_envelope(
+    projection[0],
+    projection[1],
+    projection[2],
+    projection[3],
+    projection[4],
+  ).unwrap()
+  assert_eq(
+    credential_grant_cid(credential_signature_envelope_grant(admitted)),
+    credential_grant_cid(grant),
+  )
+  assert_true(
+    admit_credential_signature_envelope(
+      "actql-remote-credential-grant-signature/0.2",
+      projection[1],
+      projection[2],
+      projection[3],
+      projection[4],
+    )
+    is Err(InvalidCredentialSignature),
+  )
+}
+
+///|
 test "credential use binds exact scope expiry revocation and ordinal" {
   let grant = credential_grant()
   let first = prepare_credential_use(

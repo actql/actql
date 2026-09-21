@@ -1,6 +1,7 @@
 ///|
 pub(all) enum RemoteCredentialIssue {
   InvalidCredentialGrant
+  InvalidCredentialSignature
   CredentialGrantIdentityMismatch
   CredentialGrantInactive
   CredentialUseCollision
@@ -30,6 +31,16 @@ struct RemoteCredentialGrant {
 }
 
 ///|
+/// A transport-neutral signature envelope for one canonical credential
+/// grant. Trust-store selection and cryptographic verification remain
+/// separate from admission of this bounded body.
+struct RemoteCredentialSignatureEnvelope {
+  grant : RemoteCredentialGrant
+  key_id : String
+  signature : String
+}
+
+///|
 /// One durable use occurrence consumes its ordinal before external I/O.
 struct RemoteCredentialUse {
   grant : RemoteCredentialGrant
@@ -50,6 +61,24 @@ fn valid_cid(value : String) -> Bool {
     }
   }
   true
+}
+
+///|
+fn valid_signature(value : String) -> Bool {
+  if value.length() != 86 {
+    return false
+  }
+  for character in value.iter() {
+    if !((character >= 'a' && character <= 'z') ||
+      (character >= 'A' && character <= 'Z') ||
+      (character >= '0' && character <= '9') ||
+      character == '-' ||
+      character == '_') {
+      return false
+    }
+  }
+  let terminal = value[value.length() - 1]
+  terminal == 'A' || terminal == 'Q' || terminal == 'g' || terminal == 'w'
 }
 
 ///|
@@ -379,6 +408,78 @@ pub fn credential_grant_projection(
     grant.expires_unix_ms.to_string(),
     grant.max_uses.to_string(),
   ]
+}
+
+///|
+pub fn credential_grant_signature_preimage(
+  grant : RemoteCredentialGrant,
+) -> Result[Bytes, RemoteCredentialIssue] {
+  let body = match credential_grant_json(grant) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    @utf8.encode(
+      "actql-remote-credential-grant-signature/0.1\u{0000}" +
+      grant.grant_cid +
+      "\u{0000}" +
+      body,
+    ),
+  )
+}
+
+///|
+pub fn prepare_credential_signature_envelope(
+  grant : RemoteCredentialGrant,
+  key_id : String,
+  signature : String,
+) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue] {
+  if !bounded_text(key_id, 512) || !valid_signature(signature) {
+    return Err(InvalidCredentialSignature)
+  }
+  match credential_grant_signature_preimage(grant) {
+    Ok(_) => Ok({ grant, key_id, signature, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn admit_credential_signature_envelope(
+  version : String,
+  key_id : String,
+  grant_cid : String,
+  body : String,
+  signature : String,
+) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue] {
+  if version != "actql-remote-credential-grant-signature/0.1" {
+    return Err(InvalidCredentialSignature)
+  }
+  let grant = match admit_grant_json(body, grant_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  prepare_credential_signature_envelope(grant, key_id, signature)
+}
+
+///|
+pub fn credential_signature_envelope_projection(
+  envelope : RemoteCredentialSignatureEnvelope,
+) -> Array[String] {
+  [
+    "actql-remote-credential-grant-signature/0.1",
+    envelope.key_id,
+    envelope.grant.grant_cid,
+    credential_grant_json(envelope.grant).unwrap(),
+    envelope.signature,
+    envelope.grant.issuer_authority,
+  ]
+}
+
+///|
+pub fn credential_signature_envelope_grant(
+  envelope : RemoteCredentialSignatureEnvelope,
+) -> RemoteCredentialGrant {
+  envelope.grant
 }
 
 ///|

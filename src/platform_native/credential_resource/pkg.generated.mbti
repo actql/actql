@@ -3,11 +3,14 @@ package "actql/actql/platform_native/credential_resource"
 
 import {
   "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_credential",
 }
 
 // Values
+pub fn admit_signed_native_credential_grant(@signature.Library, @remote_credential.RemoteCredentialSignatureEnvelope, Array[NativeCredentialAuthority]) -> Result[@remote_credential.RemoteCredentialGrant, NativeCredentialResourceIssue]
+
 pub fn call_native_credential_resource(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, Int64, NativeCredentialScope) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
 
 pub fn install_native_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
@@ -17,6 +20,13 @@ pub fn query_native_credential_use(NativeCredentialResourceService, @remote_cred
 // Errors
 
 // Types and methods
+pub(all) struct NativeCredentialAuthority {
+  issuer_authority : String
+  key_id : String
+  public_key_pem : String
+  admit_new_grants : Bool
+}
+
 pub(all) struct NativeCredentialAuthorization {
   stage : String
   grant_cid : String
@@ -37,6 +47,7 @@ pub(all) enum NativeCredentialResourceIssue {
   UseAlreadyClaimed
   ResourceRejected(Int)
   Credential(@remote_credential.RemoteCredentialIssue)
+  Signature(@signature.NativeSignatureIssue)
   Journal(@sqlite.NativeSqliteIssue)
   Transport(@http_client.NativeHttpIssue)
   TerminalRecordFailed(String, @sqlite.NativeSqliteIssue)

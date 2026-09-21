@@ -5293,6 +5293,65 @@ pub fn strategy_remote_credential_grant_projection(
 }
 
 ///|
+#export_name("strategyRemoteCredentialSignaturePreimage")
+pub fn strategy_remote_credential_signature_preimage(
+  grant : @credential.RemoteCredentialGrant,
+) -> Bytes raise NodeHostFailure {
+  match @credential.credential_grant_signature_preimage(grant) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopePrepare")
+pub fn strategy_remote_credential_signature_envelope_prepare(
+  grant : @credential.RemoteCredentialGrant,
+  key_id : String,
+  signature : String,
+) -> @credential.RemoteCredentialSignatureEnvelope raise NodeHostFailure {
+  match
+    @credential.prepare_credential_signature_envelope(grant, key_id, signature) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopeAdmit")
+pub fn strategy_remote_credential_signature_envelope_admit(
+  version : String,
+  key_id : String,
+  grant_cid : String,
+  body : String,
+  signature : String,
+) -> @credential.RemoteCredentialSignatureEnvelope raise NodeHostFailure {
+  match
+    @credential.admit_credential_signature_envelope(
+      version, key_id, grant_cid, body, signature,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopeProjection")
+pub fn strategy_remote_credential_signature_envelope_projection(
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+) -> Array[String] {
+  @credential.credential_signature_envelope_projection(envelope)
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopeGrant")
+pub fn strategy_remote_credential_signature_envelope_grant(
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+) -> @credential.RemoteCredentialGrant {
+  @credential.credential_signature_envelope_grant(envelope)
+}
+
+///|
 #export_name("strategyRemoteCredentialUsePrepare")
 pub fn strategy_remote_credential_use_prepare(
   grant : @credential.RemoteCredentialGrant,

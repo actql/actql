@@ -1305,6 +1305,29 @@ function remoteCredentialControl(moon) {
       moon.strategyRemoteCredentialGrantAdmitJson(body, claimedGrantCid),
     ),
     projection: moon.strategyRemoteCredentialGrantProjection,
+    signaturePreimage: grant => checked(
+      moon.strategyRemoteCredentialSignaturePreimage(grant),
+    ),
+    prepareSignatureEnvelope: (grant, keyId, signature) => checked(
+      moon.strategyRemoteCredentialSignatureEnvelopePrepare(
+        grant,
+        keyId,
+        signature,
+      ),
+    ),
+    admitSignatureEnvelope: envelope => checked(
+      moon.strategyRemoteCredentialSignatureEnvelopeAdmit(
+        envelope.version,
+        envelope.keyId,
+        envelope.grantCid,
+        envelope.body,
+        envelope.signature,
+      ),
+    ),
+    signatureEnvelopeProjection:
+      moon.strategyRemoteCredentialSignatureEnvelopeProjection,
+    signatureEnvelopeGrant:
+      moon.strategyRemoteCredentialSignatureEnvelopeGrant,
     prepareUse(grant, request) {
       if (request === null || typeof request !== 'object') {
         throw new TypeError('Invalid Remote Credential use');

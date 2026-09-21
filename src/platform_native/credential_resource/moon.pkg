@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/remote_credential" @credential,
   "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/encoding/utf8",
 }

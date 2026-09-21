@@ -28,6 +28,8 @@ import {openSqliteCoordinatorDispatchJournal} from
   '../adapters/host-node/sqlite-coordinator-journal.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
+import {signRemoteCredentialGrant} from
+  '../adapters/site-node/remote-credential-signature.mjs';
 import {uploadHttpsTransferObject} from
   '../adapters/site-node/https-transfer-store.mjs';
 import {canonical, hash as canonicalHash} from
@@ -903,9 +905,38 @@ try {
   )).href);
   const portableRuntime = runtimeCore(moonModule);
   const runtimeControl = portableRuntime.remoteBundleControl;
+  const credentialControl = portableRuntime.remoteCredentialControl;
   remoteSiteControl = portableRuntime.remoteSiteControl;
   const transferControl = portableRuntime.remoteTransferControl;
   const runtimeKeys = generateKeyPairSync('ed25519');
+  const credentialKeys = generateKeyPairSync('ed25519');
+  const credentialGrant = credentialControl.prepare({
+    issuerAuthority: 'credential-authority-a',
+    principal: 'principal-a',
+    tenant: 'tenant-a',
+    environment: 'test',
+    siteKey: 'site-a',
+    siteGeneration: 2,
+    runtimeBundleCid: `sha256:${'a'.repeat(64)}`,
+    connectorRegistration: 'http-source',
+    connectorRevision: 'http-source/1',
+    resourceOrigin: nativeHttpOrigin,
+    operation: 'records:read',
+    runInvocationCid: `sha256:${'b'.repeat(64)}`,
+    taskAttempt: 3,
+    dispatchRequestCid: `sha256:${'c'.repeat(64)}`,
+    expiresUnixMilliseconds: 2000000000000n,
+    maxUses: 1,
+  });
+  const credentialEnvelope = signRemoteCredentialGrant(
+    credentialGrant,
+    credentialControl,
+    {keyId: 'credential-key-a', privateKey: credentialKeys.privateKey},
+  );
+  const credentialPublicKey = credentialKeys.publicKey.export({
+    type: 'spki',
+    format: 'pem',
+  });
   const runtimeComponent = Buffer.from('native-runtime');
   const runtimeManifest = runtimeControl.prepare({
     issuerAuthority: 'bundle-authority-a',
@@ -1020,6 +1051,7 @@ try {
         testEnvironment.ACTQL_TEST_NATIVE_HTTP_LIBRARY,
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
         testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+      ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
       ACTQL_TEST_NATIVE_HTTP_URL: testEnvironment.ACTQL_TEST_NATIVE_HTTP_URL,
       ACTQL_TEST_NATIVE_HTTP_CA: testEnvironment.ACTQL_TEST_NATIVE_HTTP_CA,
       ACTQL_TEST_NATIVE_HTTP_CERT:
@@ -1027,6 +1059,11 @@ try {
       ACTQL_TEST_NATIVE_HTTP_KEY: testEnvironment.ACTQL_TEST_NATIVE_HTTP_KEY,
       ACTQL_TEST_NATIVE_HTTP_SECRET:
         testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
+      ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_BODY: credentialEnvelope.body,
+      ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_CID: credentialEnvelope.grantCid,
+      ACTQL_TEST_NATIVE_CREDENTIAL_KEY_ID: credentialEnvelope.keyId,
+      ACTQL_TEST_NATIVE_CREDENTIAL_SIGNATURE: credentialEnvelope.signature,
+      ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY: credentialPublicKey,
       ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL:
         join(root, 'credential-site.sqlite'),
     };

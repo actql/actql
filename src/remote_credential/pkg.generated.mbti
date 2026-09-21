@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn admit_credential_signature_envelope(String, String, String, String, String) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue]
+
 pub fn admit_credential_use_json(RemoteCredentialGrant, String, String) -> Result[RemoteCredentialUse, RemoteCredentialIssue]
 
 pub fn admit_grant_json(String, String) -> Result[RemoteCredentialGrant, RemoteCredentialIssue]
@@ -18,11 +20,19 @@ pub fn credential_grant_json(RemoteCredentialGrant) -> Result[String, RemoteCred
 
 pub fn credential_grant_projection(RemoteCredentialGrant) -> Array[String]
 
+pub fn credential_grant_signature_preimage(RemoteCredentialGrant) -> Result[Bytes, RemoteCredentialIssue]
+
+pub fn credential_signature_envelope_grant(RemoteCredentialSignatureEnvelope) -> RemoteCredentialGrant
+
+pub fn credential_signature_envelope_projection(RemoteCredentialSignatureEnvelope) -> Array[String]
+
 pub fn credential_use_cid(RemoteCredentialUse) -> String
 
 pub fn credential_use_json(RemoteCredentialUse) -> Result[String, RemoteCredentialIssue]
 
 pub fn credential_use_projection(RemoteCredentialUse) -> Array[String]
+
+pub fn prepare_credential_signature_envelope(RemoteCredentialGrant, String, String) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue]
 
 pub fn prepare_credential_use(RemoteCredentialGrant, String, Int64, Int, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[RemoteCredentialUse, RemoteCredentialIssue]
 
@@ -35,10 +45,13 @@ type RemoteCredentialGrant
 
 pub(all) enum RemoteCredentialIssue {
   InvalidCredentialGrant
+  InvalidCredentialSignature
   CredentialGrantIdentityMismatch
   CredentialGrantInactive
   CredentialUseCollision
 } derive(Eq, @debug.Debug)
+
+type RemoteCredentialSignatureEnvelope
 
 type RemoteCredentialUse
 

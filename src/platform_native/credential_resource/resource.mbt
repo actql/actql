@@ -5,9 +5,18 @@ pub(all) enum NativeCredentialResourceIssue {
   UseAlreadyClaimed
   ResourceRejected(Int)
   Credential(@credential.RemoteCredentialIssue)
+  Signature(@signature.NativeSignatureIssue)
   Journal(@sqlite.NativeSqliteIssue)
   Transport(@http.NativeHttpIssue)
   TerminalRecordFailed(String, @sqlite.NativeSqliteIssue)
+}
+
+///|
+pub(all) struct NativeCredentialAuthority {
+  issuer_authority : String
+  key_id : String
+  public_key_pem : String
+  admit_new_grants : Bool
 }
 
 ///|
@@ -94,6 +103,44 @@ fn valid_operation(value : NativeCredentialOperation) -> Bool {
   !value.secret_path.is_empty() &&
   value.secret_path.length() <= 4096 &&
   !value.secret_path.contains("\u{0}")
+}
+
+///|
+pub fn admit_signed_native_credential_grant(
+  library : @signature.Library,
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+  authorities : Array[NativeCredentialAuthority],
+) -> Result[@credential.RemoteCredentialGrant, NativeCredentialResourceIssue] {
+  let projection = @credential.credential_signature_envelope_projection(
+    envelope,
+  )
+  if projection.length() != 6 {
+    return Err(Credential(@credential.InvalidCredentialSignature))
+  }
+  let mut public_key = None
+  for authority in authorities {
+    if authority.admit_new_grants &&
+      authority.issuer_authority == projection[5] &&
+      authority.key_id == projection[1] {
+      if public_key is Some(_) {
+        return Err(Credential(@credential.InvalidCredentialSignature))
+      }
+      public_key = Some(authority.public_key_pem)
+    }
+  }
+  guard public_key is Some(key) else {
+    return Err(Credential(@credential.InvalidCredentialSignature))
+  }
+  let grant = @credential.credential_signature_envelope_grant(envelope)
+  let preimage = match @credential.credential_grant_signature_preimage(grant) {
+    Ok(value) => value
+    Err(issue) => return Err(Credential(issue))
+  }
+  match library.verify_ed25519(key, preimage, projection[4]) {
+    Ok(true) => Ok(grant)
+    Ok(false) => Err(Credential(@credential.InvalidCredentialSignature))
+    Err(issue) => Err(Signature(issue))
+  }
 }
 
 ///|

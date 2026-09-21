@@ -23,38 +23,24 @@ fn credential_test_scope(origin : String) -> NativeCredentialScope {
 }
 
 ///|
-fn credential_test_grant(
-  scope : NativeCredentialScope,
-) -> @credential.RemoteCredentialGrant {
-  @credential.prepare_grant(
-    "credential-authority-a",
-    scope.principal,
-    scope.tenant,
-    scope.environment,
-    scope.site_key,
-    scope.site_generation,
-    scope.runtime_bundle_cid,
-    scope.connector_registration,
-    scope.connector_revision,
-    scope.resource_origin,
-    scope.operation,
-    scope.run_invocation_cid,
-    scope.task_attempt,
-    scope.dispatch_request_cid,
-    2000000000000L,
-    1,
-  ).unwrap()
-}
-
-///|
 test "native credential resource consumes one durable scoped use" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(http_path) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(sqlite_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(crypto_path) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL") is Some(origin) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_SECRET") is Some(secret) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_BODY")
+    is Some(grant_body) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_CID")
+    is Some(grant_cid) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CREDENTIAL_KEY_ID") is Some(key_id) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CREDENTIAL_SIGNATURE")
+    is Some(signature) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY")
+    is Some(public_key) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL")
     is Some(journal_path) else {
     return
@@ -81,7 +67,40 @@ test "native credential resource consumes one durable scoped use" {
     },
   ).unwrap()
   let scope = credential_test_scope(origin)
-  let grant = credential_test_grant(scope)
+  let envelope = @credential.admit_credential_signature_envelope(
+    "actql-remote-credential-grant-signature/0.1", key_id, grant_cid, grant_body,
+    signature,
+  ).unwrap()
+  let signature_library = @signature.load_library(crypto_path).unwrap()
+  let grant = admit_signed_native_credential_grant(
+    signature_library,
+    envelope,
+    [
+      {
+        issuer_authority: "credential-authority-a",
+        key_id,
+        public_key_pem: public_key,
+        admit_new_grants: true,
+      },
+    ],
+  ).unwrap()
+  let altered_signature = (if signature.has_prefix("A") { "B" } else { "A" }) +
+    signature.unsafe_substring(start=1, end=signature.length())
+  let altered_envelope = @credential.admit_credential_signature_envelope(
+    "actql-remote-credential-grant-signature/0.1", key_id, grant_cid, grant_body,
+    altered_signature,
+  ).unwrap()
+  assert_true(
+    admit_signed_native_credential_grant(signature_library, altered_envelope, [
+      {
+        issuer_authority: "credential-authority-a",
+        key_id,
+        public_key_pem: public_key,
+        admit_new_grants: true,
+      },
+    ])
+    is Err(Credential(@credential.InvalidCredentialSignature)),
+  )
   let response = call_native_credential_resource(
     service, grant, "use-a", 1999999999999L, scope,
   ).unwrap()

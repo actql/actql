@@ -546,6 +546,16 @@ pub fn strategy_remote_credential_grant_prepare(String, String, String, String, 
 
 pub fn strategy_remote_credential_grant_projection(@remote_credential.RemoteCredentialGrant) -> Array[String]
 
+pub fn strategy_remote_credential_signature_envelope_admit(String, String, String, String, String) -> @remote_credential.RemoteCredentialSignatureEnvelope raise NodeHostFailure
+
+pub fn strategy_remote_credential_signature_envelope_grant(@remote_credential.RemoteCredentialSignatureEnvelope) -> @remote_credential.RemoteCredentialGrant
+
+pub fn strategy_remote_credential_signature_envelope_prepare(@remote_credential.RemoteCredentialGrant, String, String) -> @remote_credential.RemoteCredentialSignatureEnvelope raise NodeHostFailure
+
+pub fn strategy_remote_credential_signature_envelope_projection(@remote_credential.RemoteCredentialSignatureEnvelope) -> Array[String]
+
+pub fn strategy_remote_credential_signature_preimage(@remote_credential.RemoteCredentialGrant) -> Bytes raise NodeHostFailure
+
 pub fn strategy_remote_credential_use_authorize(@remote_credential.RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_credential_use_identity(@remote_credential.RemoteCredentialUse) -> String
