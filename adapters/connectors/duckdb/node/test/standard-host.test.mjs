@@ -2810,6 +2810,17 @@ async function exerciseStrategyGraph(
     managedStarts: 3,
     completedTasks: [1, 2],
     fields: ['q', 'id', 'score', 'rank'],
+  }, {
+    name: 'vector-nearest',
+    family: 'veca',
+    operation: 'nearest',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -3013,6 +3024,73 @@ async function exerciseStrategyGraph(
             }))],
             results: {published: {from: {stage: 'fusion', result: 'r'}}},
           }
+          : vecaFamily && cancellationCase.operation === 'nearest'
+            ? {
+              version: 'actql/0.1',
+              id: 'p',
+              params: {minimum: {type: 'number', nullable: false}},
+              stages: [{
+                id: 'a',
+                inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+                steps: [
+                  {filter: 'id > $minimum', as: 'filtered'},
+                  {select: ['id'], as: 'captured'},
+                ],
+                results: {r: {from: 'captured', fields: ['id']}},
+              }, ...['candidates', 'queries'].map(id => ({
+                id,
+                inputs: {},
+                steps: [{
+                  values: {
+                    schema: {
+                      id: {type: 'number', nullable: false},
+                      embedding: {
+                        type: 'vector', dimensions: 2, nullable: false,
+                      },
+                    },
+                    rows: Array.from(
+                      {
+                        length: id === 'queries'
+                          ? 1
+                          : cancellationCase.rows,
+                      },
+                      (_, index) => ({
+                        id: index + 1,
+                        embedding: [index + 1, index + 2],
+                      }),
+                    ),
+                  },
+                  as: 'out',
+                }],
+                results: {r: {from: 'out', fields: ['id', 'embedding']}},
+              })), {
+                id: 'nearest',
+                inputs: {
+                  candidates: {result: {stage: 'candidates', result: 'r'}},
+                  queries: {result: {stage: 'queries', result: 'r'}},
+                },
+                steps: [{
+                  from: 'candidates',
+                  nearest: {
+                    queries: 'queries',
+                    candidate_id: 'id',
+                    candidate_vector: 'embedding',
+                    query_id: 'id',
+                    query_vector: 'embedding',
+                    metric: 'dot',
+                    k: cancellationCase.rows,
+                  },
+                  as: 'out',
+                }],
+                results: {r: {from: 'out', fields: cancellationCase.fields}},
+              }, ...['a', 'b'].map(id => ({
+                id: `consumer_${id}`,
+                inputs: {x: {result: {stage: 'nearest', result: 'r'}}},
+                steps: [{select: cancellationCase.fields, as: 'out'}],
+                results: {r: {from: 'out', fields: cancellationCase.fields}},
+              }))],
+              results: {published: {from: {stage: 'nearest', result: 'r'}}},
+            }
           : vecaFamily
           ? {
             version: 'actql/0.1',
@@ -3365,8 +3443,11 @@ async function exerciseStrategyGraph(
       assert.equal(
         sawOperationWork,
         true,
-        JSON.stringify(advanceObservations, (_, value) =>
-          typeof value === 'bigint' ? value.toString() : value),
+        JSON.stringify({
+          advanceObservations,
+          status: cancellationExecution.status,
+          failure: cancellationExecution.failure?.message,
+        }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
       );
       assert.equal(graphCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(cancellationDeliveredAt), true);
