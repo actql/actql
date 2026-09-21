@@ -280,6 +280,15 @@ Traverse retains homogeneous and patterned hops, selector form, predicates,
 emission mode, bounds, and the resolved output guard.
 Shortest path retains scalar and selected endpoints, repeated selector input
 positions, selection policy, direction, bounds, labels, weight, and guard.
+At `757705ba`, the scalar, unweighted `each_pair` path executes as a bounded
+kernel through the standard Host. The portable tests cover exact managed Graph
+input binding, pre-allocation workspace rejection, cancellation observation,
+cleanup, two overlapping Relation consumers, and final reclamation on JS,
+Wasm, and native. The capacity fixture now includes the exact shortest-path
+program candidate instead of relying only on the Host ceiling. Selected
+endpoints, `nearest_per_source`, `nearest_pair`, edge-type filtering, weighted
+costs, and canonical equal-cost tie resolution remain open, so
+`shortest_path` remains partial.
 Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,

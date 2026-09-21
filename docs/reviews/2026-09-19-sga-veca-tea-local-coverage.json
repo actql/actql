@@ -555,7 +555,21 @@
       "status": "partial",
       "owner": "local-sga",
       "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_shortest_test.mbt"]
+      "layer_evidence": ["src/lowering_relation/graph_shortest_test.mbt"],
+      "implementation_evidence": [
+        {
+          "scope": "scalar_unweighted_each_pair_vertical_slice",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "757705ba",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "SGA",
