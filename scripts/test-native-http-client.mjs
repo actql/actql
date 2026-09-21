@@ -1070,15 +1070,21 @@ try {
       assert.equal(standardGateway.pending(), 0);
     }
   }
+  execFileSync(moon, [
+    'build', '--target', 'native', 'src/cmd/native_remote_credential',
+  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
+  const credentialExecutable = join(
+    new URL('../', import.meta.url).pathname,
+    '_build/native/debug/build/cmd/native_remote_credential/' +
+      'native_remote_credential.exe',
+  );
+  const credentialHelp = execFileSync(
+    credentialExecutable,
+    ['--help'],
+    {encoding: 'utf8'},
+  );
+  assert.doesNotMatch(credentialHelp, /trusted-now/u);
   if (nativeSiteNamespace !== undefined) {
-    execFileSync(moon, [
-      'build', '--target', 'native', 'src/cmd/native_remote_credential',
-    ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
-    const credentialExecutable = join(
-      new URL('../', import.meta.url).pathname,
-      '_build/native/debug/build/cmd/native_remote_credential/' +
-        'native_remote_credential.exe',
-    );
     const credentialArguments = [
       '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
       '--crypto-library', cryptoLibrary,
