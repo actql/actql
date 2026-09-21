@@ -100,6 +100,90 @@ fn load_text(
 }
 
 ///|
+fn runtime_issue_message(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
+  match issue {
+    @runtime.Closed => "remote runtime is closed"
+    @runtime.InvalidConfiguration => "remote runtime configuration is invalid"
+    @runtime.RegistrationCollision => "remote runtime registration collided"
+    @runtime.RuntimeUnsupported => "remote runtime is unsupported"
+    @runtime.BudgetUnsupported => "remote runtime budget is unsupported"
+    @runtime.SiteUnavailable => "remote runtime Site is unavailable"
+    @runtime.CapacityRejected => "remote runtime capacity rejected"
+    @runtime.AcceptanceUnconfirmed => "remote runtime acceptance is unconfirmed"
+    @runtime.DispatchAlreadyStarted => "remote runtime dispatch already started"
+    @runtime.OperationRejected => "remote runtime operation was rejected"
+    @runtime.HoldingRejected => "remote runtime holding was rejected"
+    @runtime.SettlementRejected => "remote runtime settlement was rejected"
+    @runtime.CustodyRejected => "remote runtime custody was rejected"
+    @runtime.OutputRejected => "remote runtime output was rejected"
+    @runtime.OutputReaderUnavailable => "remote output reader is unavailable"
+    @runtime.OutputReaderClosed => "remote output reader is closed"
+    @runtime.OutputReaderIncomplete => "remote output reader is incomplete"
+    @runtime.OutputReaderChunkExceeded =>
+      "remote output reader chunk limit was exceeded"
+    @runtime.OutputReaderPhysical(message) =>
+      "remote output reader failed: " + message
+    @runtime.Physical(message) => "remote runtime failed: " + message
+    @runtime.CleanupPending(message) =>
+      "remote runtime cleanup remains pending: " + message
+    @runtime.Protocol(_) => "remote runtime protocol rejected"
+    @runtime.Journal(_) => "remote runtime journal failed"
+    @runtime.Bundle(_) => "remote runtime bundle failed"
+  }
+}
+
+///|
+fn application_issue_message(
+  issue : @application.NativeRemoteApplicationSiteIssue,
+) -> String {
+  match issue {
+    @application.Distribution(
+      @remote_standard.Component(@remote_standard.Runtime(runtime_issue))
+    ) => runtime_issue_message(runtime_issue)
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(@agent.Runtime(runtime_issue))
+      )
+    ) => runtime_issue_message(runtime_issue)
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(@agent.RuntimeObserved(runtime_issue, _))
+      )
+    ) => runtime_issue_message(runtime_issue)
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(
+          @agent.RuntimeObservationUnknown(runtime_issue, _)
+        )
+      )
+    ) => runtime_issue_message(runtime_issue)
+    @application.Distribution(
+      @remote_standard.Component(@remote_standard.Host(_))
+    ) => "remote standard Host failed"
+    @application.Distribution(
+      @remote_standard.Component(@remote_standard.Journal(_))
+    ) => "remote Site journal failed"
+    @application.Distribution(
+      @remote_standard.Component(@remote_standard.Transfer(_))
+    ) => "remote Transfer failed"
+    @application.Distribution(
+      @remote_standard.Component(@remote_standard.TransferSend(_))
+    ) => "remote Transfer send failed"
+    @application.Distribution(@remote_standard.Bundle(_)) =>
+      "remote runtime bundle failed"
+    @application.Distribution(@remote_standard.JournalClose) =>
+      "remote Site journal close failed"
+    @application.Distribution(@remote_standard.ClientClose) =>
+      "remote Site client close failed"
+    @application.OutputCleanupPending =>
+      "remote application output cleanup remains pending"
+    @application.TransferJournalClose =>
+      "remote application Transfer journal close failed"
+    _ => "remote application poll failed"
+  }
+}
+
+///|
 fn poll_outcome_json(
   outcome : @application.NativeRemoteApplicationSite,
   publication_store : @publication_store.Store,
@@ -177,7 +261,7 @@ fn poll_outcome_json(
         revision.to_string() +
         "}",
       )
-    Err(_) => Err("remote application poll failed")
+    Err(issue) => Err(application_issue_message(issue))
   }
 }
 

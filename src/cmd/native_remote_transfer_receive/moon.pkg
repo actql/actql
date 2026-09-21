@@ -1,0 +1,17 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/platform_native/bounded_files",
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_standard_host" @remote_standard,
+  "actql/actql/platform_native/remote_transfer_client" @client,
+  "actql/actql/platform_native/remote_transfer_journal" @journal,
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_transfer" @transfer,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+}

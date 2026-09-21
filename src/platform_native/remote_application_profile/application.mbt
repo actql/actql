@@ -276,6 +276,24 @@ pub fn load_native_remote_application(
 }
 
 ///|
+/// Projects the exact checked Program identity used by remote dispatch
+/// admission. This does not expose or reimplement Program canonicalization in
+/// an environment adapter.
+pub fn native_remote_application_program_definition_cid(
+  app : @application.Application,
+) -> String {
+  @strategy.graph_program_definition_cid(@application.application_graph(app))
+}
+
+///|
+/// Projects the checked task count for configuration and diagnostics.
+pub fn native_remote_application_task_count(
+  app : @application.Application,
+) -> Int {
+  @strategy.graph_task_count(@application.application_graph(app))
+}
+
+///|
 /// Opens one fresh application occurrence from an already verified physical
 /// input source. Program checking and strategy construction are reused from
 /// the portable application builder; this native package adds no parser,

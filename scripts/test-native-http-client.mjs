@@ -8,14 +8,31 @@ import {
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:https';
-import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
+import {createRemoteSiteCoordinator} from
+  '../adapters/host-node/remote-site-coordinator.mjs';
+import {openSqliteCoordinatorDispatchJournal} from
+  '../adapters/host-node/sqlite-coordinator-journal.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
+import {uploadHttpsTransferObject} from
+  '../adapters/site-node/https-transfer-store.mjs';
+import {canonical, hash as canonicalHash} from
+  '../adapters/connectors/duckdb/node/test/typed-catalog.mjs';
+import {pinnedEngineContracts} from
+  '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
 
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
@@ -103,6 +120,7 @@ let nativeTransferChunks = 0;
 let nativeTransferManifest = [];
 let nativeTransferCommitted = false;
 let nativeTransferCommitReplyLost = false;
+let nativeTransferInjectLostReply = true;
 let nativeStoreTransferCid;
 let nativeStoreTransferChunks = 0;
 let nativeStoreTransferSealed = false;
@@ -487,7 +505,8 @@ try {
           nativeTransferChunks === nativeTransferManifest.length &&
           body === '') {
         nativeTransferCommitted = true;
-        if (nativeTransferManifest.length === 1 &&
+        if (nativeTransferInjectLostReply &&
+            nativeTransferManifest.length === 1 &&
             nativeTransferChunks === 1 && !nativeTransferCommitReplyLost) {
           nativeTransferCommitReplyLost = true;
           request.socket.destroy();
@@ -941,6 +960,487 @@ try {
   });
   assert.equal(applicationVersion.code, 0, applicationVersion.stderr);
   assert.match(applicationVersion.stdout, /0\.1/);
+
+  const repositoryRoot = new URL('../', import.meta.url).pathname;
+  const runCaptured = (executable_, arguments_, environment = {}) => {
+    const child = spawn(executable_, arguments_, {
+      cwd: repositoryRoot,
+      env: {PATH: '/usr/bin:/bin', LANG: 'C', ...environment},
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on('data', chunk => stdout.push(chunk));
+    child.stderr.on('data', chunk => stderr.push(chunk));
+    return Object.freeze({
+      child,
+      completed: (async () => {
+        const [code, signal] = await once(child, 'exit');
+        return Object.freeze({
+          code,
+          signal,
+          stdout: Buffer.concat(stdout).toString('utf8'),
+          stderr: Buffer.concat(stderr).toString('utf8'),
+        });
+      })(),
+    });
+  };
+
+  execFileSync(moon, [
+    'build', '--target', 'native',
+    'src/cmd/native_remote_transfer_receive',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  execFileSync(moon, [
+    'build', '--target', 'native',
+    'src/cmd/native_remote_application_inspect',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  const transferReceiver = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_remote_transfer_receive/' +
+      'native_remote_transfer_receive.exe',
+  );
+  const applicationInspector = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_remote_application_inspect/' +
+      'native_remote_application_inspect.exe',
+  );
+  const applicationRoot = join(root, 'remote-application');
+  const applicationTransferRoot = join(root, 'remote-application-transfer');
+  const applicationPublicationRoot =
+    join(root, 'remote-application-publication');
+  const applicationCoordinatorRoot =
+    join(root, 'remote-application-coordinator');
+  await Promise.all([
+    mkdir(applicationRoot),
+    mkdir(applicationTransferRoot),
+    mkdir(applicationPublicationRoot),
+    mkdir(applicationCoordinatorRoot),
+  ]);
+
+  const catalogs = await readFile(join(
+    repositoryRoot,
+    'src/query_integration/query_amount_catalog_wbtest.mbt',
+  ), 'utf8');
+  const catalog = catalogs
+    .slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
+    .match(
+      /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/,
+    );
+  assert(catalog);
+  const environment = JSON.parse(JSON.parse(catalog[1]));
+  Object.assign(environment.host_policy_profile.capacity, {
+    max_analytic_frame_memberships: 10000,
+    max_analytic_input_wire_bytes: 10000,
+    max_analytic_output_wire_bytes: 10000,
+    max_analytic_partition_wire_bytes: 10000,
+  });
+  const {
+    evidence_bundle_cid: ignoredEnvironmentCid,
+    ...environmentBody
+  } = environment;
+  void ignoredEnvironmentCid;
+  environment.evidence_bundle_cid = canonicalHash(environmentBody);
+  const [registry, values, fragment] = await pinnedEngineContracts(
+    repositoryRoot,
+  );
+  const applicationFiles = new Map([
+    ['program.json', await readFile(join(
+      repositoryRoot,
+      'adapters/connectors/duckdb/node/examples/program.json',
+    ), 'utf8')],
+    ['environment.json', canonical(environment)],
+    ['environment.cid', environment.evidence_bundle_cid],
+    ['parameters.json', '{"minimum":1}'],
+    ['registry.json', registry],
+    ['values.json', values],
+    ['fragment.json', fragment],
+    ['query.json', await readFile(join(
+      repositoryRoot,
+      'spec/contracts/actql-query-acquisition.json',
+    ), 'utf8')],
+    ['evidence.json', await readFile(join(
+      repositoryRoot,
+      'spec/contracts/actql-query-process-evidence.json',
+    ), 'utf8')],
+    ['two-receipt.json', await readFile(join(
+      repositoryRoot,
+      'spec/contracts/actql-query-two-receipt.json',
+    ), 'utf8')],
+    ['runtime-public.pem',
+      testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY],
+  ]);
+  await Promise.all([...applicationFiles].map(([name, body_]) =>
+    writeFile(join(applicationRoot, name), body_)));
+
+  const inspectedRun = runCaptured(applicationInspector, [
+    '--application-root', applicationRoot,
+  ]);
+  const inspected = await inspectedRun.completed;
+  assert.equal(inspected.code, 0, inspected.stderr);
+  const applicationContract = JSON.parse(inspected.stdout);
+  assert.equal(applicationContract.task_count, 4);
+
+  nativeStoreTransferCid = undefined;
+  nativeStoreTransferChunks = 0;
+  nativeStoreTransferSealed = false;
+  nativeStoreTransferManifest = [];
+  nativeStoreTransferBodies.length = 0;
+  nativeStoreUses.clear();
+  const transferControl = portableRuntime.remoteTransferControl;
+  const inputChunks = [Buffer.from('{"id":3}'), Buffer.from('{"id":2}')];
+  const physicalCid = value => `sha256:${createHash('sha256')
+    .update(value).digest('hex')}`;
+  const inputSchemaCid = `sha256:${'1'.repeat(64)}`;
+  const inputViewCid = `sha256:${'2'.repeat(64)}`;
+  const inputCodecCid = `sha256:${'3'.repeat(64)}`;
+  const inputTransfer = transferControl.prepare({
+    coordinatorAuthority: 'native-application-coordinator',
+    transferAttemptId: 'native-application-input-transfer',
+    route: 'store',
+    sourceSite: 'native-application-source',
+    sourceSiteGeneration: 1,
+    destinationSite: 'native-standard-transfer-site',
+    destinationSiteGeneration: 1,
+    sourceMaterialGeneration: 'native-application-input-material',
+    physicalManifest: {
+      version: 'actql-managed-physical-manifest/0.1',
+      schemaContractCid: inputSchemaCid,
+      viewContractCid: inputViewCid,
+      codecContractCid: inputCodecCid,
+      rowCount: 2,
+      chunks: inputChunks.map(bytes => ({
+        cid: physicalCid(bytes),
+        byteLength: BigInt(bytes.byteLength),
+        rowCount: 1,
+      })),
+    },
+    limits: {
+      maxChunks: 8,
+      maxManifestBytes: 4096,
+      maxReferencedBytes: 1048576n,
+    },
+    capacityBytes: 1048576n,
+    expiresAtMilliseconds: 4102444800000n,
+    sourceGrantCid: physicalCid('native-application-input-source-grant'),
+    destinationGrantCid:
+      physicalCid('native-application-input-destination-grant'),
+    routeCapabilityCid:
+      physicalCid('native-application-input-store-route'),
+  });
+  const inputSources = inputChunks.map(bytes => Object.freeze({
+    cid: physicalCid(bytes),
+    bytes: bytes.byteLength,
+    async consume(emit) { await emit(bytes); },
+  }));
+  await uploadHttpsTransferObject({
+    origin: `https://127.0.0.1:${address.port}`,
+    ca: await readFile(join(root, 'ca.crt')),
+    cert: await readFile(join(root, 'client.crt')),
+    key: await readFile(join(root, 'client.key')),
+    control: transferControl,
+    request: inputTransfer,
+    sourceBodies: inputSources,
+  });
+  const transferRequestRoot = join(root, 'remote-application-input-request');
+  await mkdir(transferRequestRoot);
+  await Promise.all([
+    writeFile(
+      join(transferRequestRoot, 'request.json'),
+      transferControl.requestJson(inputTransfer),
+    ),
+    writeFile(
+      join(transferRequestRoot, 'manifest.json'),
+      transferControl.manifestJson(inputTransfer),
+    ),
+  ]);
+  const applicationTransferJournal =
+    join(root, 'remote-application-transfer.sqlite3');
+  const inputUseId = 'native-application-input-use';
+  const receiveArguments = [
+    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+    '--http-library', library,
+    '--journal', applicationTransferJournal,
+    '--root', applicationTransferRoot,
+    '--origin', `https://127.0.0.1:${address.port}`,
+    '--ca', join(root, 'ca.crt'),
+    '--cert', join(root, 'client.crt'),
+    '--key', join(root, 'client.key'),
+    '--request-root', transferRequestRoot,
+    '--request-cid', transferControl.identity(inputTransfer),
+    '--manifest-cid', transferControl.requestProjection(inputTransfer)[7],
+    '--use-id', inputUseId,
+    '--max-chunks', '8',
+    '--max-manifest-bytes', '4096',
+    '--max-bytes', '1048576',
+  ];
+  const receivedRun = runCaptured(transferReceiver, receiveArguments);
+  const received = await receivedRun.completed;
+  assert.equal(received.code, 0, received.stderr);
+  const inputBindingBody = received.stdout.trim();
+  const inputBinding = remoteSiteControl.prepareInputBinding(inputBindingBody);
+
+  const operationCapabilityCid =
+    physicalCid('native-application-operation-capability');
+  const issuerCapabilityCid =
+    physicalCid('native-application-issuer-capability');
+  const applicationMaxBytes = 268435456n;
+  const budget = remoteSiteControl.prepareBudget({
+    retainedBytes: applicationMaxBytes,
+    executionBytes: applicationMaxBytes,
+  });
+  const dispatch = remoteSiteControl.prepare({
+    coordinatorAuthority: 'native-application-coordinator',
+    runDefinitionCid: applicationContract.program_definition_cid,
+    taskKey: 'application-task',
+    taskAttempt: 1,
+    dispatchId: 'native-application-dispatch',
+    siteKey: 'native-standard-transfer-site',
+    siteGeneration: 1,
+    runtimeBundleCid: runtimeEnvelope.runtimeBundleCid,
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
+    inputBindingCid: remoteSiteControl.inputBindingIdentity(inputBinding),
+    obligationsCid: physicalCid('native-application-obligations'),
+    budgetCid: remoteSiteControl.budgetIdentity(budget),
+    evidenceIssuerCapabilityCid: issuerCapabilityCid,
+    grantCid: operationCapabilityCid,
+  });
+  const coordinatorStore = openSqliteCoordinatorDispatchJournal(
+    applicationCoordinatorRoot,
+    {coordinatorAuthority: 'native-application-coordinator'},
+  );
+  const coordinatorJournal = remoteSiteControl.createCoordinatorJournal(
+    'native-application-coordinator',
+  );
+  const coordinator = createRemoteSiteCoordinator({
+    control: remoteSiteControl,
+    transferControl,
+    journal: coordinatorJournal,
+    store: coordinatorStore,
+    send: options => standardGateway.dispatch(options),
+    query: options => standardGateway.query(options),
+    cancel: async () => { throw new Error('unused application cancellation'); },
+    release: options => standardGateway.release(options),
+    output: options => standardGateway.output(options),
+  });
+  const dispatchCompletion = coordinator.dispatch({
+    dispatch,
+    inputBindingBody,
+  });
+  nativeTransferInjectLostReply = false;
+  const duckdbLibrary = join(
+    repositoryRoot,
+    `adapters/connectors/duckdb/node/node_modules/@duckdb/` +
+      `node-bindings-${process.platform}-${process.arch}/` +
+      (process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
+  );
+  assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
+  const publicationAuthorityCid =
+    physicalCid('native-application-publication-store');
+  const applicationRun = runCaptured(applicationExecutable, [
+    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+    '--crypto-library', cryptoLibrary,
+    '--http-library', library,
+    '--duckdb-library', duckdbLibrary,
+    '--application-root', applicationRoot,
+    '--transfer-root', applicationTransferRoot,
+    '--publication-root', applicationPublicationRoot,
+    '--publication-authority-cid', publicationAuthorityCid,
+    '--runtime-root', transferStandardRoot,
+    '--transfer-journal', applicationTransferJournal,
+    '--dispatch-journal', join(root, 'remote-application-dispatch.sqlite3'),
+    '--database-path', join(root, 'remote-application.duckdb'),
+    '--site-key', 'native-standard-transfer-site',
+    '--site-generation', '1',
+    '--target-triple', targetTriple,
+    '--component-cid', physicalCid(runtimeComponent),
+    '--process-hold-id', 'runtime-process:native-application',
+    '--bundle-issuer', 'bundle-authority-a',
+    '--bundle-key-id', 'key-a',
+    '--bundle-public-key-root', applicationRoot,
+    '--bundle-public-key-file', 'runtime-public.pem',
+    '--ca', join(root, 'ca.crt'),
+    '--cert', join(root, 'client.crt'),
+    '--key', join(root, 'client.key'),
+    '--poll-url', standardGateway.origin +
+      '/v1/sites/native-standard-transfer-site/generations/1/outbound/poll',
+    '--observation-url', standardGateway.origin +
+      '/v1/sites/native-standard-transfer-site/generations/1/' +
+      'outbound/observations',
+    '--operation-capability-cid', operationCapabilityCid,
+    '--issuer-capability-cid', issuerCapabilityCid,
+    '--input-schema-cid', inputSchemaCid,
+    '--input-view-cid', inputViewCid,
+    '--input-codec-cid', inputCodecCid,
+    '--task-key', 'application-task',
+    '--expected-task', '1',
+    '--max-polls', '8',
+    '--max-rows', '100',
+    '--max-bytes', String(applicationMaxBytes),
+    '--output-chunk-bytes', '4096',
+  ]);
+  const firstApplicationOutcome = await Promise.race([
+    dispatchCompletion.then(value => ({kind: 'dispatch', value})),
+    applicationRun.completed.then(value => ({kind: 'application', value})),
+  ]);
+  assert.equal(
+    firstApplicationOutcome.kind,
+    'dispatch',
+    firstApplicationOutcome.kind === 'application'
+      ? JSON.stringify(firstApplicationOutcome.value)
+      : undefined,
+  );
+  const dispatched = firstApplicationOutcome.value;
+  if (dispatched.subject === undefined) {
+    const failedApplication = await applicationRun.completed;
+    assert.fail(JSON.stringify({
+      dispatched,
+      application: failedApplication,
+    }));
+  }
+  assert.equal(
+    coordinator.completionEvidenceAvailable({dispatch}),
+    true,
+    JSON.stringify({
+      state: dispatched.state,
+      evidenceCid: dispatched.evidenceCid,
+      subjectCid: dispatched.subjectCid,
+      measurementCid: dispatched.measurementCid,
+    }),
+  );
+  const subject = remoteSiteControl.managedOutputSubjectProjection(
+    dispatched.subject,
+  );
+  assert.equal(subject[0], remoteSiteControl.identity(dispatch));
+  assert.equal(subject[9], '1');
+  const expectedOutput = Buffer.from('[{"id":3}]');
+  assert.equal(subject[10], String(expectedOutput.byteLength));
+  const outputTransfer = transferControl.prepare({
+    coordinatorAuthority: 'native-application-coordinator',
+    transferAttemptId: 'native-application-output-transfer',
+    route: 'direct',
+    sourceSite: 'native-standard-transfer-site',
+    sourceSiteGeneration: 1,
+    destinationSite: 'native-destination',
+    destinationSiteGeneration: 3,
+    sourceMaterialGeneration: subject[1],
+    physicalManifest: {
+      version: 'actql-managed-physical-manifest/0.1',
+      schemaContractCid: subject[4],
+      viewContractCid: subject[5],
+      codecContractCid: subject[6],
+      rowCount: 1,
+      chunks: [{
+        cid: physicalCid(expectedOutput),
+        byteLength: BigInt(expectedOutput.byteLength),
+        rowCount: 1,
+      }],
+    },
+    limits: {
+      maxChunks: 8,
+      maxManifestBytes: 4096,
+      maxReferencedBytes: 1048576n,
+    },
+    capacityBytes: 1048576n,
+    expiresAtMilliseconds: 4102444800000n,
+    sourceGrantCid: physicalCid('native-application-output-source-grant'),
+    destinationGrantCid:
+      physicalCid('native-application-output-destination-grant'),
+    routeCapabilityCid:
+      physicalCid('native-application-output-direct-route'),
+  });
+  const resultDefinitionCid =
+    physicalCid('native-application-result-definition');
+  const orderingEvidenceCid =
+    physicalCid('native-application-ordering-evidence');
+  const payloadRequest = remoteSiteControl.preparePublicationPayload({
+    storeAuthorityCid: publicationAuthorityCid,
+    publicationAttemptCid:
+      physicalCid('native-application-publication-attempt'),
+    materialGenerationCid: subject[1],
+    resultDefinitionCid,
+    logicalRelationCid: subject[5],
+    resultSchemaCid: subject[4],
+    orderingEvidenceCid,
+    durableCodecCid: subject[6],
+    maxBytes: BigInt(subject[10]),
+    rowCount: BigInt(subject[9]),
+  });
+  const outputIntent = remoteSiteControl.prepareOutputIntent(dispatch, {
+    storeAuthorityCid: publicationAuthorityCid,
+    publicationAttemptCid:
+      physicalCid('native-application-publication-attempt'),
+    resultDefinitionCid,
+    orderingEvidenceCid,
+    coordinatorAuthority: 'native-application-coordinator',
+    transferAttemptId: 'native-application-output-transfer',
+    transferRoute: 'direct',
+    destinationSite: 'native-destination',
+    destinationSiteGeneration: 3,
+    transferMaxBytes: 1048576n,
+    transferExpiresAtMilliseconds: 4102444800000n,
+    sourceGrantCid: physicalCid('native-application-output-source-grant'),
+    destinationGrantCid:
+      physicalCid('native-application-output-destination-grant'),
+    routeCapabilityCid:
+      physicalCid('native-application-output-direct-route'),
+    transferOrigin: `https://127.0.0.1:${address.port}`,
+  });
+  const outputResult = await coordinator.output({
+    dispatch,
+    intent: outputIntent,
+    payloadRequest,
+    transferRequest: outputTransfer,
+  });
+  assert.equal(outputResult.transferRequestCid,
+    transferControl.identity(outputTransfer));
+  const released = await coordinator.release({dispatch});
+  assert.equal(released.state[2], 2);
+  const applicationExit = await applicationRun.completed;
+  assert.equal(applicationExit.code, 0, applicationExit.stderr);
+  const applicationEvents = applicationExit.stdout.trim().split('\n')
+    .filter(Boolean).map(line => JSON.parse(line));
+  assert.deepEqual(
+    applicationEvents.map(event => event.kind),
+    ['dispatch', 'output', 'released', 'idle'],
+  );
+  assert.equal(standardGateway.pending(), 0);
+  coordinatorStore.close();
+
+  const reopenedStore = openSqliteCoordinatorDispatchJournal(
+    applicationCoordinatorRoot,
+    {coordinatorAuthority: 'native-application-coordinator'},
+  );
+  const reopenedCoordinator = createRemoteSiteCoordinator({
+    control: remoteSiteControl,
+    transferControl,
+    journal: remoteSiteControl.createCoordinatorJournal(
+      'native-application-coordinator',
+    ),
+    store: reopenedStore,
+    output: async () => {
+      assert.fail('durable output recovery repeated physical transport');
+    },
+  });
+  assert.equal(reopenedCoordinator.recoveredOutputs.length, 1);
+  const recoveredOutput = await reopenedCoordinator.output({
+    dispatch,
+    intent: outputIntent,
+    payloadRequest,
+    transferRequest: outputTransfer,
+  });
+  assert.deepEqual(recoveredOutput, outputResult);
+  reopenedStore.close();
+
+  const reclaimedRun = runCaptured(transferReceiver, [
+    ...receiveArguments,
+    '--mode', 'reclaim',
+  ]);
+  const reclaimed = await reclaimedRun.completed;
+  assert.equal(reclaimed.code, 0, reclaimed.stderr);
+  assert.deepEqual(JSON.parse(reclaimed.stdout), {reclaimed: true});
+  assert.deepEqual(await readdir(applicationTransferRoot), []);
 } finally {
   releaseStalePoll?.();
   if (standardGateway !== undefined) {

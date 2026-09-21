@@ -1,0 +1,9 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/platform_native/remote_application_profile" @application,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+}
