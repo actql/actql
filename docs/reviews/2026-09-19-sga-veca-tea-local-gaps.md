@@ -318,7 +318,7 @@ ties after hop count, and retained best-path storage is admitted before
 allocation. Empty predicate selections complete with zero rows and zero
 physical output capacity. Exact workspace rejection, bounded execution,
 standard Host consumers, formal publication, and all three portable targets
-are covered. At `188193ad`, weighted execution validates every admitted edge
+are covered. At `5060af20`, weighted execution validates every admitted edge
 before search and enumerates simple paths within the authored hop bound. It
 folds costs in path order, keeps overrange internal and absorbing, and selects
 by cost, hops, then canonical node and edge identity. Selected overrange paths

@@ -697,7 +697,7 @@
             "wasm",
             "native"
           ],
-          "sha": "188193ad",
+          "sha": "5060af20",
           "evidence": [
             "src/local_sga/shortest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -3343,7 +3343,7 @@
     },
     {
       "operation": "shortest_path",
-      "sha": "188193ad",
+      "sha": "5060af20",
       "suites": [
         {
           "name": "portable weighted paths, publication, and cancellation",
