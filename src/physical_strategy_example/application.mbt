@@ -9,8 +9,7 @@ struct Application {
 
 ///|
 // The Node transport and selected offer must use the same admission envelope.
-#export_name("applicationComputeTransferCapacity")
-pub fn application_compute_transfer_capacity(app : Application) -> Int64 {
+fn core_application_compute_transfer_capacity(app : Application) -> Int64 {
   app.data.map(profile_compute_transfer_capacity).unwrap_or(100000L)
 }
 
@@ -39,8 +38,7 @@ fn cursor(text : String) -> @decode.Cursor {
 ///|
 // Preparation occurs before DB authorization or any execution resources.
 // These limits and selected external claims belong to this bounded example only.
-#export_name("prepareApplication")
-pub fn prepare_application(
+fn core_prepare_application(
   program_json : String,
   environment_json : String,
   environment_cid : String,
@@ -72,8 +70,7 @@ pub fn prepare_application(
 }
 
 ///|
-#export_name("prepareApplicationWithData")
-pub fn prepare_application_with_data(
+fn core_prepare_application_with_data(
   program_json : String,
   environment_json : String,
   environment_cid : String,
@@ -305,28 +302,24 @@ fn prepare_application_internal(
 }
 
 ///|
-#export_name("applicationAcquisition")
-pub fn application_acquisition(
+fn core_application_acquisition(
   app : Application,
 ) -> @acquisition_host.NativeHostConfiguration {
   app.acquisition
 }
 
 ///|
-#export_name("applicationGraph")
-pub fn application_graph(app : Application) -> @strategy.CheckedDAG {
+fn core_application_graph(app : Application) -> @strategy.CheckedDAG {
   app.graph
 }
 
 ///|
-#export_name("applicationComputeCount")
-pub fn application_compute_count(app : Application) -> Int {
+fn core_application_compute_count(app : Application) -> Int {
   app.generated.length()
 }
 
 ///|
-#export_name("applicationTaskReference")
-pub fn application_task_reference(
+fn core_application_task_reference(
   app : Application,
   task : Int,
 ) -> @strategy.CheckedTaskReference raise {
@@ -337,16 +330,14 @@ pub fn application_task_reference(
 }
 
 ///|
-#export_name("applicationTaskIdentity")
-pub fn application_task_identity(
+fn core_application_task_identity(
   reference : @strategy.CheckedTaskReference,
 ) -> @strategy.CheckedTaskIdentity {
   @strategy.checked_task_identity(reference)
 }
 
 ///|
-#export_name("applicationTaskOutputMatches")
-pub fn application_task_output_matches(
+fn core_application_task_output_matches(
   reference : @strategy.CheckedTaskReference,
   output : @execution.CompletedOutput,
 ) -> Bool {
@@ -356,8 +347,7 @@ pub fn application_task_output_matches(
 ///|
 /// Content-only revalidation for the installed fresh-reader example. This
 /// projection neither runs the Local evaluator nor recreates task completion.
-#export_name("applicationTaskContentRead")
-pub fn application_task_content_read(
+fn core_application_task_content_read(
   app : Application,
   task : Int,
   descriptor : @execution.RetainedCompletionDescriptor,
@@ -393,8 +383,7 @@ pub fn application_task_content_read(
 }
 
 ///|
-#export_name("applicationTaskCompletionPreparation")
-pub fn application_task_completion_preparation(
+fn core_application_task_completion_preparation(
   app : Application,
   task : Int,
 ) -> @execution.CompletionPreparation raise {
@@ -406,8 +395,7 @@ pub fn application_task_completion_preparation(
 
 ///|
 /// Bind a checked port only. This does not start or resume the consumer task.
-#export_name("applicationBindReadmittedOutput")
-pub fn application_bind_readmitted_output(
+fn core_application_bind_readmitted_output(
   app : Application,
   producer : Int,
   consumer : Int,
@@ -444,8 +432,7 @@ pub fn application_bind_readmitted_output(
 
 ///|
 // Bounded diagnostic hashing, not a transferable completion or publication grant.
-#export_name("applicationOutputCid")
-pub fn application_output_cid(
+fn core_application_output_cid(
   run : @strategy.CapturedDAG,
   task : Int,
 ) -> String? {
@@ -459,8 +446,7 @@ pub fn application_output_cid(
 }
 
 ///|
-#export_name("applicationProfileOutputCid")
-pub fn application_profile_output_cid(
+fn core_application_profile_output_cid(
   app : Application,
   run : @strategy.CapturedDAG,
   task : Int,
@@ -494,8 +480,7 @@ fn output_cid_with_limits(
 }
 
 ///|
-#export_name("applicationLedger")
-pub fn application_ledger() -> @resources.Ledger {
+fn core_application_ledger() -> @resources.Ledger {
   @resources.create_ledger({
     planning_work: 100000,
     attempts: 10,
@@ -507,8 +492,7 @@ pub fn application_ledger() -> @resources.Ledger {
 }
 
 ///|
-#export_name("applicationBoundedLedger")
-pub fn application_bounded_ledger(
+fn core_application_bounded_ledger(
   limits : @resources.LedgerLimits,
 ) -> @resources.Ledger raise {
   match @resources.create_ledger(limits) {
@@ -518,24 +502,21 @@ pub fn application_bounded_ledger(
 }
 
 ///|
-#export_name("applicationLedgerLimits")
-pub fn application_ledger_limits(
+fn core_application_ledger_limits(
   ledger : @resources.Ledger,
 ) -> @resources.LedgerLimits {
   @resources.ledger_limits(ledger)
 }
 
 ///|
-#export_name("applicationLedgerUsage")
-pub fn application_ledger_usage(
+fn core_application_ledger_usage(
   ledger : @resources.Ledger,
 ) -> @resources.LedgerUsage {
   @resources.ledger_usage(ledger)
 }
 
 ///|
-#export_name("applicationDispatch")
-pub fn application_dispatch(
+fn core_application_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
@@ -545,8 +526,7 @@ pub fn application_dispatch(
 }
 
 ///|
-#export_name("applicationRetainedDispatch")
-pub fn application_retained_dispatch(
+fn core_application_retained_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
@@ -564,8 +544,7 @@ pub fn application_retained_dispatch(
 }
 
 ///|
-#export_name("applicationManagedDispatch")
-pub fn application_managed_dispatch(
+fn core_application_managed_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
@@ -584,8 +563,7 @@ pub fn application_managed_dispatch(
 }
 
 ///|
-#export_name("applicationMaterializingDispatch")
-pub fn application_materializing_dispatch(
+fn core_application_materializing_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
@@ -605,8 +583,7 @@ pub fn application_materializing_dispatch(
 }
 
 ///|
-#export_name("applicationRetainedLocalDispatch")
-pub fn application_retained_local_dispatch(
+fn core_application_retained_local_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,

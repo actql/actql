@@ -1,5 +1,5 @@
 // Runnable application example, not a test fixture or formal Program runner.
-supported_targets = "js"
+supported_targets = "+js+wasm+native"
 
 pkgtype(kind: "foreign_library")
 

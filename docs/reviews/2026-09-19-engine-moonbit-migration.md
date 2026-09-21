@@ -35,6 +35,12 @@ the input state machine. The generated Node product bridge now exposes that
 opaque factory, session, captured source, release owner, and cleanup owner.
 The Node adapter awaits the selected environment execution as a physical
 operation and returns failed release to the same MoonBit cleanup owner.
+The bounded physical-strategy application builder now links and runs its
+independent tests on JavaScript, Wasm, and native. Its JavaScript export names
+are target-specific wrappers over the portable product functions rather than
+the only callable implementation. This makes the existing Program checking,
+graph construction, and Local or DuckDB selection reusable by a native Site
+application without adding a second parser or planning implementation.
 Installing exact configured task factories in the complete Site executable
 remains an open product-composition step. The live Node bundle boundary and
 the native durable-Store route now install opaque factories directly; neither
