@@ -471,6 +471,20 @@ native tests continue to cover the same kernel boundary. This closes the
 environment-cancellation layer for the implemented variant; the classified
 selector, patterned-hop, and path-output variants remain open.
 
+At `20a3d337`, homogeneous traversal reads a checked Relation-backed start
+selector through its exact ordered input edge and selected field. Typed cells
+are resolved through the managed Graph identity index, repeated identities
+are deduplicated, and start nodes retain canonical semantic order. Direct
+managed tests cover the binding, input evidence, and output order on JS,
+Wasm, and native. At `b066dad6`, the same bounded start-selection state
+machine evaluates a checked node predicate with shared typed Graph bindings.
+Binding and expression work use the existing workspace and logical-work
+limits, and no partial traversal output is exposed on evaluation failure.
+Direct tests select a node through a typed property predicate on all three
+targets. Standard Host evidence admission for the two selector forms,
+patterned hops, hop predicates, and path output remain open, so `traverse`
+remains partial.
+
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
 node once, retains only edges whose two endpoints were selected, and keeps

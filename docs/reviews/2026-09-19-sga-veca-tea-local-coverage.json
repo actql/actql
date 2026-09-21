@@ -394,6 +394,30 @@
             "src/duckdb_conformance/strategy_fixture.mbt",
             "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
+        },
+        {
+          "scope": "relation_backed_start_selection",
+          "layers": ["kernel", "managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "20a3d337",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "typed_predicate_start_selection",
+          "layers": ["kernel", "managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b066dad6",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
