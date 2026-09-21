@@ -421,6 +421,13 @@ outbound fixture. Direction is no longer an untested formal branch. Selector
 relations and predicates, repeated starts, typed or predicate-constrained
 hops, hop patterns, and path output remain open.
 
+At `77cb1ff2`, the bounded traversal kernel accepts one authored edge type.
+The standard Host fixtures distinguish a matching label from an existing but
+nonmatching label, and retain two consumers, publication, resource admission,
+and JS, Wasm, and native execution. Multiple edge types, edge and node
+predicates, selector relations and predicates, repeated starts, hop patterns,
+and path output remain open.
+
 At `4a72ee83`, the real Node standard Host delivers cancellation while the
 bounded homogeneous traversal is active. The fixture supplies the authored
 traversal proof instead of reusing reach evidence, observes kernel stop, and
