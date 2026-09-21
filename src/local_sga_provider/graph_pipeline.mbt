@@ -98,6 +98,50 @@ fn fail_execution(
 }
 
 ///|
+fn direct_structural_input_count(
+  sequence : @execution.GeneratedSequence,
+) -> Int? {
+  match
+    @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
+    Some(@lower.GraphStructuralStep(_)) => Some(2)
+    Some(@lower.GraphUnionStep(union)) =>
+      if @lower.graph_union_has_property_strategies(union) {
+        None
+      } else {
+        Some(@lower.graph_union_input_count(union))
+      }
+    _ => None
+  }
+}
+
+///|
+fn direct_structural_views(
+  value : Execution,
+) -> Array[@lifecycle.ProducerView]? {
+  guard direct_structural_input_count(value.generated) is Some(count) else {
+    return None
+  }
+  let views = []
+  for edge in 0..<count {
+    let mut matched = None
+    for view in value.carrier_inputs {
+      if @lifecycle.producer_read_reference_matches_operation_input(
+          @lifecycle.producer_view_read_reference(view),
+          @execution.generated_sequence_owner(value.generated),
+          0,
+          edge,
+        ) {
+        matched = Some(view)
+        break
+      }
+    }
+    guard matched is Some(view) else { return None }
+    views.push(view)
+  }
+  Some(views)
+}
+
+///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
   let count = @lower.sequence_count(
@@ -106,11 +150,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   if count < 1 || count > 4 {
     return false
   }
-  let direct_graft = match
-    @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
-    Some(@lower.GraphStructuralStep(_)) => true
-    _ => false
-  }
+  let direct_structural = direct_structural_input_count(sequence) is Some(_)
   let index = Ref(0)
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
     let current = index.val
@@ -121,10 +161,13 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     match (current, step) {
       (0, @lower.GraphConstructionStep(_)) if count == 1 =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
-      (current, @lower.GraphConstructionStep(_)) if !direct_graft &&
+      (current, @lower.GraphConstructionStep(_)) if !direct_structural &&
         current < count - 1 => @lower.operation(node) == "BRIDGE.rows.to_graph"
-      (0, @lower.GraphStructuralStep(_)) if direct_graft =>
+      (0, @lower.GraphStructuralStep(_)) if direct_structural =>
         @lower.operation(node) == "SGA.graft"
+      (0, @lower.GraphUnionStep(union)) if direct_structural =>
+        @lower.operation(node) == "SGA.union_structural" &&
+        !@lower.graph_union_has_property_strategies(union)
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
@@ -428,13 +471,17 @@ fn advance_execution(
         }
         let started = match
           @lower.sequence_step(value.sequence, value.kernel_step) {
-          Some(@lower.GraphStructuralStep(_)) if value.kernel_step == 0 =>
+          Some(@lower.GraphStructuralStep(_))
+          | Some(@lower.GraphUnionStep(_)) if value.kernel_step == 0 => {
+            guard direct_structural_views(value) is Some(inputs) else {
+              return fail_execution(value)
+            }
             match
               @sga.start_graft_views(
                 value.control,
                 value.sequence,
                 value.kernel_step,
-                value.carrier_inputs,
+                inputs,
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
@@ -442,6 +489,7 @@ fn advance_execution(
               Ok(execution) => Graft(execution)
               Err(_) => return fail_execution(value)
             }
+          }
           Some(@lower.GraphStructuralStep(_)) => {
             let reads = []
             for index, output in value.graphs {
@@ -1261,14 +1309,7 @@ pub fn provider(
           @local.CarrierInput(value) => carriers.push(value)
         }
       }
-      let direct_graft = match
-        @lower.sequence_step(
-          @execution.generated_prepared_sequence(sequence),
-          0,
-        ) {
-        Some(@lower.GraphStructuralStep(_)) => true
-        _ => false
-      }
+      let direct_structural = direct_structural_input_count(sequence) is Some(_)
       let direct_projection = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1277,15 +1318,26 @@ pub fn provider(
         Some(@lower.CarrierProjectionStep(_)) => true
         _ => false
       }
-      if (direct_graft && (relations.length() != 0 || carriers.length() != 2)) ||
+      if (
+          direct_structural &&
+          (
+            relations.length() != 0 ||
+            carriers.length() !=
+            @lower.preparation_input_count(
+              @lower.bound_preparation(
+                @execution.generated_sequence_owner(sequence),
+              ),
+            )
+          )
+        ) ||
         (
           direct_projection &&
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
-        (!direct_graft && !direct_projection && carriers.length() != 0) {
+        (!direct_structural && !direct_projection && carriers.length() != 0) {
         return Err(@connector.Execution(@execution.InputSet))
       }
-      let construction_steps = if direct_graft {
+      let construction_steps = if direct_structural {
         0
       } else {
         let mut count = 0
@@ -1317,7 +1369,7 @@ pub fn provider(
         1,
         construction_steps,
         kernel_step: construction_steps,
-        phase: if direct_graft {
+        phase: if direct_structural {
           StartKernel
         } else if direct_projection {
           StartProjection

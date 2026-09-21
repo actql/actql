@@ -2698,6 +2698,118 @@ fn carrier_graft_owner(
 }
 
 ///|
+fn carrier_union_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"union_graphs\":{" +
+      "\"with\":[\"right\",\"left\",\"right\"]}," +
+      "\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":true," +
+      "\"as\":\"out\"}]",
+    ),
+    [
+      (
+        "left",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(left)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "right",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(right)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_union_merge_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"union_graphs\":{" +
+      "\"with\":\"right\",\"merge\":{" +
+      "\"node_properties\":{\"name\":\"exact_equal\"}}}," +
+      "\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":true}]",
+    ),
+    [
+      (
+        "left",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(left)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "right",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(right)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graft_graph(
   owner : @lower.BoundPrepared,
   identity : Double,
@@ -2778,6 +2890,136 @@ test "registered Graph provider grafts exact Carrier inputs into rows" {
   assert_eq(@execution.completed_row_count(output), 2)
   assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("left")))
   assert_true(@execution.completed_cell(output, 1, 1) is Some(Text("right")))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(left_material))
+  assert_true(@carrier_runtime.material_available(right_material))
+}
+
+///|
+test "registered Graph provider unions an ordered repeated Carrier list" {
+  let left_owner = carrier_graft_source_owner()
+  let right_owner = carrier_graft_source_owner()
+  let owner = carrier_union_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let left = carrier_graft_graph(left_owner, 1.0, "left")
+  let right = carrier_graft_graph(right_owner, 2.0, "right")
+  let left_material = @graphs.completed_material(left).unwrap()
+  let right_material = @graphs.completed_material(right).unwrap()
+  let inputs = [
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+  ]
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    inputs.map(@local_connector.managed_provider_carrier_input),
+    10,
+    1000,
+  ).unwrap()
+  let mut completed = None
+  while completed is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(output, ..) => completed = Some(output)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("union projection returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("union provider failed")
+      @local_connector.Stopped(..) => fail("union provider stopped")
+    }
+  }
+  let output = completed.unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("left")))
+  assert_true(@execution.completed_cell(output, 1, 1) is Some(Text("right")))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(left_material))
+  assert_true(@carrier_runtime.material_available(right_material))
+}
+
+///|
+test "registered Graph provider rejects unsupported union property laws" {
+  let left_owner = carrier_graft_source_owner()
+  let right_owner = carrier_graft_source_owner()
+  let owner = carrier_union_merge_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_false(@local_connector.managed_provider_accepts(provider, generated))
+}
+
+///|
+test "Graph union rejects conflicting repeated identities atomically" {
+  let left_owner = carrier_graft_source_owner()
+  let right_owner = carrier_graft_source_owner()
+  let owner = carrier_union_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let left = carrier_graft_graph(left_owner, 1.0, "left")
+  let right = carrier_graft_graph(right_owner, 1.0, "different")
+  let left_material = @graphs.completed_material(left).unwrap()
+  let right_material = @graphs.completed_material(right).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(
+        @carrier_runtime.material_prepare_view(
+          left_material, owner, 0, left_owner,
+        ).unwrap(),
+      ),
+      @local_connector.managed_provider_carrier_input(
+        @carrier_runtime.material_prepare_view(
+          right_material, owner, 1, right_owner,
+        ).unwrap(),
+      ),
+    ],
+    10,
+    1000,
+  ).unwrap()
+  let mut failed = false
+  while !failed {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.Failed(_, ..) => failed = true
+      @local_connector.Complete(_, ..)
+      | @local_connector.CarrierComplete(_, ..) =>
+        fail("conflicting union completed")
+      @local_connector.Stopped(..) => fail("conflicting union stopped")
+    }
+  }
   assert_true(@local_connector.managed_provider_stopped(execution))
   assert_true(
     @local_connector.cleanup_managed_provider(execution).unwrap_or(false),

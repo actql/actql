@@ -7,6 +7,25 @@ struct PreparedGraphUnion {
 }
 
 ///|
+pub fn graph_union_input_count(value : PreparedGraphUnion) -> Int {
+  1 + @graph.union_count(value.checked)
+}
+
+///|
+pub fn graph_union_has_property_strategies(value : PreparedGraphUnion) -> Bool {
+  for index in 0..<@graph.union_count(value.checked) {
+    guard @graph.union_fold_at(value.checked, index) is Some(fold) else {
+      return true
+    }
+    if @graph.structural_strategy_count(fold, @schema.Left) > 0 ||
+      @graph.structural_strategy_count(fold, @schema.Right) > 0 {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn prepare_graph_union_node(
   node : PreparedNode,
 ) -> Result[PreparedGraphUnion, SequenceIssue] {

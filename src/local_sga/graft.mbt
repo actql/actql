@@ -47,6 +47,31 @@ pub(all) enum GraftIssue {
 } derive(Eq, Debug)
 
 ///|
+fn valid_graft_step(
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input_count : Int,
+) -> Bool {
+  guard input_count >= 2 &&
+    @lower.node_at(
+      @lower.bound_preparation(@lower.sequence_owner(sequence)),
+      step,
+    )
+    is Some(node) else {
+    return false
+  }
+  match @lower.sequence_step(sequence, step) {
+    Some(@lower.GraphStructuralStep(_)) =>
+      @lower.operation(node) == "SGA.graft" && input_count == 2
+    Some(@lower.GraphUnionStep(union)) =>
+      @lower.operation(node) == "SGA.union_structural" &&
+      @lower.graph_union_input_count(union) == input_count &&
+      !@lower.graph_union_has_property_strategies(union)
+    _ => false
+  }
+}
+
+///|
 fn graft_source(state : GraftState) -> GraftSource? {
   state.sources.get(state.input_index)
 }
@@ -227,11 +252,7 @@ pub fn start_graft(
   available : () -> Bool,
 ) -> Result[GraftExecution, GraftIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphStructuralStep(_)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "SGA.graft" &&
-    inputs.length() == 2 else {
+  guard valid_graft_step(sequence, step, inputs.length()) else {
     return Err(InvalidGraftKernel)
   }
   let sources = []
@@ -293,11 +314,7 @@ pub fn start_graft_views(
   available : () -> Bool,
 ) -> Result[GraftExecution, GraftIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphStructuralStep(_)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "SGA.graft" &&
-    inputs.length() == 2 else {
+  guard valid_graft_step(sequence, step, inputs.length()) else {
     return Err(InvalidGraftKernel)
   }
   let sources = []
