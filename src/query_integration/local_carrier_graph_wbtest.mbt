@@ -253,6 +253,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
     "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_relation_selector" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
+    "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
   } else if variant == "subgraph_edge_predicate" {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
     "\"edges\":\"weight > 10\"},\"as\":\"selected\"},{" +
@@ -426,6 +430,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
+  let selector_stage = if variant == "subgraph_relation_selector" {
+    "{\"id\":\"selector_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
+    "\"nullable\":false}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+    "\"fields\":[\"key\"]}}},"
+  } else {
+    ""
+  }
   let graph_inputs = if subtract {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
@@ -437,6 +450,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_suffix("unequal") {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if variant == "subgraph_relation_selector" {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"selected\":{\"result\":{\"stage\":\"selector_values\"," +
     "\"result\":\"r\"}}"
   } else {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
@@ -465,6 +482,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }) +
   "]}}}," +
   other_stage +
+  selector_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
   graph_inputs +
   "},\"steps\":[{" +
@@ -3380,6 +3398,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:d2889f6d3b43fe20f75149d13eb0585918c94cf3a5b0520f5f9e1525b0846f3d"
   } else if variant == "subgraph_node_predicate" {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
+  } else if variant == "subgraph_relation_selector" {
+    "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "subgraph_edge_predicate" {
     "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
   } else if variant == "degree_both" {
@@ -3408,7 +3428,8 @@ fn run_standard_host_graph_relation_path(
     managed_publication=publication,
     ledger_limits=if variant.has_suffix("unequal") ||
       variant == "split_projection" ||
-      variant.has_prefix("subtract") {
+      variant.has_prefix("subtract") ||
+      variant == "subgraph_relation_selector" {
       Some({
         planning_work: 20000,
         attempts: 20,
@@ -3433,7 +3454,8 @@ fn run_standard_host_graph_relation_path(
   let sequences = dispatch_test_generated(run)
   let graph_task = if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
-    variant.has_prefix("subtract") {
+    variant.has_prefix("subtract") ||
+    variant == "subgraph_relation_selector" {
     3
   } else {
     2
@@ -3515,7 +3537,27 @@ fn run_standard_host_graph_relation_path(
     [values_rows]
   }
   let other_cleanup : Ref[(() -> Unit)?] = Ref(None)
-  if variant.has_suffix("unequal") ||
+  if variant == "subgraph_relation_selector" {
+    let selector_live = Ref(true)
+    let (selector_ops, selector) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [],
+      [],
+      2,
+      selector_live,
+      obligations?=graph_publication_obligations(run, publication),
+    )
+    graph_inputs.push(selector)
+    graph_input_rows.push(local_managed_test_rows(selector_ops))
+    other_cleanup.val = Some(fn() {
+      selector_live.val = false
+      @strategy.close_captured_task_output(run, 2)
+      (selector_ops.close)()
+      (selector_ops.cleanup_refresh)() |> ignore
+    })
+  } else if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
     variant.has_prefix("subtract") {
     let other_live = Ref(true)
@@ -3810,6 +3852,14 @@ test "standard Host selects a literal Graph subgraph" {
   )
   run_standard_host_graph_relation_path(
     "subgraph_edge_predicate",
+    publication=true,
+  )
+}
+
+///|
+test "standard Host selects a Graph subgraph from a Relation" {
+  run_standard_host_graph_relation_path(
+    "subgraph_relation_selector",
     publication=true,
   )
 }
