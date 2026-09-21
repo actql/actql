@@ -177,6 +177,15 @@ fn nearest_publication_cid(variant : String) -> String {
 }
 
 ///|
+fn ranking_publication_cid(variant : String) -> String {
+  if variant == "ranking_rrf_repeated" {
+    "sha256:c899349a78ca0ef0bfea1d49f419358d615bd190ec9509e5f95d50d48514a14c"
+  } else {
+    "sha256:1cc59701e6c8d10ddf972c511d5f8f643bac488916a95f656f2d0c6f9f7c925a"
+  }
+}
+
+///|
 fn local_vector_ranking_program(variant : String) -> String {
   let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
   let repeated = variant == "ranking_rrf_repeated"
@@ -951,6 +960,7 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
+    managed_publication=true,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 10,
@@ -959,6 +969,11 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
       retained_bytes: 64000000L,
       execution_bytes: 134217728L,
     }),
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -1018,6 +1033,7 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
   ).unwrap()
 
   let left_live = Ref(true)
+  let left_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (left_ops, left) = run_local_managed_test_task(
     installed,
     run,
@@ -1026,9 +1042,11 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
     [],
     1,
     left_live,
+    obligations=left_obligations,
   )
   let left_rows = local_managed_test_rows(left_ops)
   let right_live = Ref(true)
+  let right_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (right_ops, right) = run_local_managed_test_task(
     installed,
     run,
@@ -1037,9 +1055,11 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
     [],
     2,
     right_live,
+    obligations=right_obligations,
   )
   let right_rows = local_managed_test_rows(right_ops)
   let fusion_live = Ref(true)
+  let fusion_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (fusion_ops, fusion) = run_local_managed_test_task(
     installed,
     run,
@@ -1048,18 +1068,38 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
     [left_rows, right_rows],
     3,
     fusion_live,
+    obligations=fusion_obligations,
   )
   let fused_rows = local_managed_test_rows(fusion_ops)
-  assert_eq(fused_rows.length(), 3)
-  assert_true(fused_rows[0].contains("\"id\":1"))
-  assert_true(fused_rows[0].contains("\"q\":1"))
-  assert_true(fused_rows[0].contains("\"rank\":1"))
-  if variant == "ranking_rrf" || variant == "ranking_rrf_repeated" {
-    assert_true(fused_rows[1].contains("\"id\":3"))
+  let expected = if variant == "ranking_rrf_repeated" {
+    [
+      "{\"id\":1,\"q\":1,\"rank\":1,\"score\":1.5}", "{\"id\":3,\"q\":1,\"rank\":2,\"score\":1.5}",
+      "{\"id\":1,\"q\":2,\"rank\":1,\"score\":2}",
+    ]
   } else {
-    assert_true(fused_rows[1].contains("\"id\":2"))
+    [
+      "{\"id\":1,\"q\":1,\"rank\":1,\"score\":0.8333333333333333}", "{\"id\":3,\"q\":1,\"rank\":2,\"score\":0.5}",
+      "{\"id\":1,\"q\":2,\"rank\":1,\"score\":1}",
+    ]
   }
-  assert_true(fused_rows[2].contains("\"q\":2"))
+  assert_eq(fused_rows, expected)
+  let published = @execution.managed_obligations_identities(fusion_obligations).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    },
+  )
+  assert_eq(published.length(), 1)
+  match
+    @execution.managed_completed_identity_requirement_status(
+      fusion,
+      published[0],
+    ) {
+    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
+      assert_eq(cid, ranking_publication_cid(variant))
+    }
+    _ => fail("ranking output did not establish publication identity")
+  }
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(

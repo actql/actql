@@ -2740,6 +2740,17 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     constructionProgress: 80,
     fields: ['group', 'embedding', 'member_count'],
+  }, {
+    name: 'vector-ranking-rrf',
+    family: 'veca',
+    operation: 'ranking',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['q', 'id', 'score', 'rank'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -2879,7 +2890,71 @@ async function exerciseStrategyGraph(
           }],
           results: {published: {from: {stage: 'series', result: 'r'}}},
         }
-        : vecaFamily
+        : vecaFamily && cancellationCase.operation === 'ranking'
+          ? {
+            version: 'actql/0.1',
+            id: 'p',
+            params: {minimum: {type: 'number', nullable: false}},
+            stages: [{
+              id: 'a',
+              inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+              steps: [
+                {filter: 'id > $minimum', as: 'filtered'},
+                {select: ['id'], as: 'captured'},
+              ],
+              results: {r: {from: 'captured', fields: ['id']}},
+            }, ...['left', 'right'].map(id => ({
+              id,
+              inputs: {},
+              steps: [{
+                values: {
+                  schema: {
+                    q: {type: 'number', nullable: false},
+                    id: {type: 'number', nullable: false},
+                    rank: {type: 'number', nullable: false},
+                  },
+                  rows: Array.from(
+                    {length: cancellationCase.rows},
+                    (_, index) => ({q: 1, id: index + 1, rank: index + 1}),
+                  ),
+                },
+                as: 'out',
+              }],
+              results: {r: {from: 'out', fields: ['q', 'id', 'rank']}},
+            })), {
+              id: 'fusion',
+              inputs: {
+                left: {result: {stage: 'left', result: 'r'}},
+                right: {result: {stage: 'right', result: 'r'}},
+              },
+              steps: [{
+                from: 'left',
+                merge_rankings: {
+                  with: ['right'],
+                  by: ['q'],
+                  candidate: 'id',
+                  rank: 'rank',
+                  score_policy: {
+                    rrf: {
+                      rank_constant: 1,
+                      weights: [1, 1],
+                      rank_window: cancellationCase.rows,
+                    },
+                  },
+                  k: cancellationCase.rows,
+                },
+                as: 'out',
+              }],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
+            }, ...['a', 'b'].map(id => ({
+              id: `consumer_${id}`,
+              inputs: {x: {result: {stage: 'fusion', result: 'r'}}},
+              steps: [{select: cancellationCase.fields, as: 'out'}],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
+            }))],
+            results: {published: {from: {stage: 'fusion', result: 'r'}}},
+          }
+          : vecaFamily
           ? {
             version: 'actql/0.1',
             id: 'p',
@@ -3155,7 +3230,14 @@ async function exerciseStrategyGraph(
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
                   advanceObservations.push({start, observation});
-                  if (observation?.complete === false &&
+                  if (!cancellationCase.cancelDuringFinalization &&
+                      cancellationCase.cancelOnManagedStart === start &&
+                      observation?.complete === false &&
+                      observation.work > 0n && !cancellationScheduled) {
+                    sawOperationWork = true;
+                    cancellationScheduled = true;
+                    setTimeout(() => graphCancellation.abort(), 0);
+                  } else if (observation?.complete === false &&
                       !constructionComplete) {
                     constructionProgress += observation.progress;
                     constructionComplete = constructionProgress ===
@@ -3198,7 +3280,8 @@ async function exerciseStrategyGraph(
       );
       assert.equal(
         managedStarts,
-        cancellationCase.family === 'time-series' ? 1 : 2,
+        cancellationCase.managedStarts ??
+          (cancellationCase.family === 'time-series' ? 1 : 2),
       );
       assert.equal(
         constructionProgress,
@@ -3240,7 +3323,8 @@ async function exerciseStrategyGraph(
       assert.equal(cancellationExecution.failure?.name, 'AbortError');
       assert.deepEqual(
         cancellationExecution.completed.map(value => value.task),
-        cancellationCase.family === 'time-series' ? [] : [1],
+        cancellationCase.completedTasks ??
+          (cancellationCase.family === 'time-series' ? [] : [1]),
       );
     } finally {
       cancellationCapture.close();

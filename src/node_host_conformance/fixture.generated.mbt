@@ -25,6 +25,7 @@ fn captured_graph_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
+  local_carrier_graph_variant? : String = "projection",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -41,15 +42,20 @@ fn captured_graph_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
+  local_values_interval_chain? : Bool = false,
+  local_values_asof_chain? : Bool = false,
+  local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
+  managed_publication? : Bool = false,
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
   ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
+  parameter_json? : String = "{\"minimum\":1}",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -76,6 +82,7 @@ fn captured_graph_fixture(
     local_carrier_events_chain~,
     local_carrier_events_variant~,
     local_carrier_graph_chain~,
+    local_carrier_graph_variant~,
     local_time_series_chain~,
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
@@ -92,11 +99,16 @@ fn captured_graph_fixture(
     local_values_join_chain~,
     local_values_join_kind~,
     local_values_join_imported_full~,
+    local_values_interval_chain~,
+    local_values_asof_chain~,
+    local_values_sequence_chain~,
     local_values_nest_chain~,
     local_values_unary_chain~,
     local_select_qualified_chain~,
     join_steps~,
+    managed_publication~,
     compute_filter~,
+    parameter_json~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)
@@ -155,6 +167,141 @@ fn checked_expression_profile_admission(
 }
 
 ///|
+/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
+fn components_capacity_material(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  step? : Int = 1,
+  rows? : Int64 = 2L,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let input = query_capacity_proof(
+    "actql.bound.values",
+    rows,
+    "{\"op\":\"source\"}",
+    step=0,
+  )
+  let input_cid = @wire.cid(@wire.program_proof_witness(input))
+  let graph = query_capacity_proof(
+    "actql.bound.graph-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[input_cid],
+    step=0,
+    unit="nodes",
+  )
+  let graph_cid = @wire.cid(@wire.program_proof_witness(graph))
+  let nodes = query_capacity_proof(
+    "actql.bound.components-input-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[graph_cid],
+    step~,
+    unit="nodes",
+  )
+  let output = query_capacity_proof(
+    "actql.bound.components-nodes",
+    rows,
+    "{\"op\":\"source\"}",
+    inputs=[graph_cid],
+    step~,
+  )
+  let host = @host.create(
+    @capacity_policy.ceiling(policy, "max_graph_output_rows").unwrap(),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, },
+  ).unwrap()
+  let writer = @encode.writer(10000, 1000, 30)
+  @host.emit(host, writer)
+  let host_wire = @wire.admit(
+    @utf8.encode(@encode.finish(writer)),
+    @host.cid(host),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, },
+  ).unwrap()
+  let proof_wires = [
+    @wire.program_proof_witness(input),
+    @wire.program_proof_witness(graph),
+    @wire.program_proof_witness(nodes),
+    @wire.program_proof_witness(output),
+  ]
+  let artifacts : Array[(Bytes, String)] = []
+  for
+    (unit, suffix, candidates) in [
+      ("nodes", ":nodes", [proof_wires[2]]),
+      ("rows", "", [proof_wires[3], host_wire]),
+    ] {
+    candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    let texts = candidates.map(candidate => {
+      let writer = @encode.writer(10000, 1000, 30)
+      @wire.emit(candidate, writer)
+      @encode.finish(writer)
+    })
+    let mut maximum = @wire.value(candidates[0])
+    for candidate in candidates {
+      maximum = Int64::min(maximum, @wire.value(candidate))
+    }
+    let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
+      texts.join(",") +
+      "],\"effective_max\":" +
+      maximum.to_string() +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"components:checked-step:" +
+      step.to_string() +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    artifacts.push(
+      (
+        @utf8.encode(
+          body.replace(
+            old="\"subject_ref\":",
+            new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+          ),
+        ),
+        cid,
+      ),
+    )
+  }
+  let witnesses = proof_wires.copy()
+  witnesses.push(host_wire)
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    mixed,
+    [input, graph, nodes, output],
+    { max_witnesses: 20, max_references: 100, },
+  ).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 20,
+    max_bytes: 20000,
+    max_nodes: 2000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage,
+    sources,
+    uses: [
+      @context.Components(
+        step~,
+        nodes=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
+  }
+}
+
+///|
 /// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
 fn compute_test_limits() -> @execution.SequenceExecutionLimits {
   { rows: run_limits(), max_work: 100000, max_frames: 100, }
@@ -188,6 +335,17 @@ fn input_cursor(text : String) -> @decode.Cursor {
       max_total_string_bytes: 10000,
     },
   ).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn is_graph_equality_variant(variant : String) -> Bool {
+  variant == "graphs_equal" ||
+  variant == "graphs_equal_reverse" ||
+  variant == "graphs_equal_self" ||
+  variant == "graphs_nullable_equal" ||
+  variant == "graphs_nullable_null_equal" ||
+  variant.has_suffix("unequal")
 }
 
 ///|
@@ -282,8 +440,20 @@ fn join_graph_capacity_material(
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
+  let window = variant == "window_fixed" ||
+    variant == "window_sliding" ||
+    variant == "window_parameter"
+  let session = variant.has_prefix("session")
+  let session_global = variant == "session_global"
+  let session_parameter = variant == "session_parameter"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
+  } else if window {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
+    "\"window_start_ms\",\"window_end_ms\"]"
+  } else if session {
+    "[\"event_id\",\"occurred_at\",\"payload\"," +
+    "\"session_start_ms\",\"session_end_ms\",\"session_id\"]"
   } else {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
     "\"watermark_ms\",\"late\",\"watermark_decision\"]"
@@ -293,6 +463,14 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if session_global {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"b\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
+  } else if session {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else {
     "[{\"event_id\":1,\"occurred_at\":3,\"payload\":\"first\"}," +
     "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
@@ -302,16 +480,39 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
+  } else if variant == "window_fixed" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
+  } else if variant == "window_sliding" {
+    "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
+  } else if variant == "window_parameter" {
+    "{\"window_events\":{\"kind\":\"fixed\",\"size\":{" +
+    "\"$param\":\"window_size\"}}}"
+  } else if session {
+    "{\"session\":{\"by\":" +
+    (if session_global { "[]" } else { "[\"payload\"]" }) +
+    ",\"gap\":" +
+    (if session_parameter { "{\"$param\":\"minimum\"}" } else { "10" }) +
+    "}}"
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
   let second_fields = if dedupe {
     "[\"payload\",\"event_id\"]"
+  } else if window {
+    "[\"payload\",\"window_start_ms\",\"event_id\"]"
+  } else if session {
+    "[\"payload\",\"session_id\",\"event_id\"]"
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
+  (if variant == "window_parameter" {
+    ",\"window_size\":{\"type\":\"number\",\"nullable\":false}"
+  } else {
+    ""
+  }) +
+  "}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
   "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
@@ -394,16 +595,183 @@ fn local_carrier_graph_environment(
 
 ///|
 /// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
-fn local_carrier_graph_program() -> String {
+fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
-    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+    "\"node_name\":{\"type\":\"string\",\"nullable\":" +
+    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+    "}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":" +
+    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+    "}}"
+  let first_name = if variant == "graphs_nullable_null_equal" {
+    "null"
+  } else if variant == "graphs_nullable_equal" {
+    "\"x\""
+  } else {
+    "\"first\""
+  }
   let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
-    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"node_name\":" +
+    first_name +
+    ",\"weight\":" +
+    (if variant == "graphs_nullable_null_equal" { "null" } else { "10" }) +
+    "},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
+  let graph_equality = is_graph_equality_variant(variant)
+  let projection = if variant == "match_nodes" {
+    "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
+    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_nodes_literal" {
+    "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
+    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
+  } else if variant == "match_nodes_predicate" {
+    "\"from\":\"g\",\"match_nodes\":{\"where\":" +
+    "\"node_name = 'second'\",\"fields\":[\"id\",\"node_name\"]}," +
+    "\"as\":\"out\""
+  } else if variant == "match_edges" || variant == "edge_projection" {
+    "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
+    "\"weight\"]},\"as\":\"out\""
+  } else if variant == "match_edges_predicate" {
+    "\"from\":\"g\",\"match_edges\":{\"where\":\"weight > 10\"," +
+    "\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"out\""
+  } else if variant == "graph_bounds" {
+    "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
+    "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
+  } else if variant == "degree_in" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"in\"}," + "\"as\":\"out\""
+  } else if variant == "degree_out" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"out\"}," + "\"as\":\"out\""
+  } else if variant == "degree_both" {
+    "\"from\":\"g\",\"degree\":{\"direction\":\"both\"}," + "\"as\":\"out\""
+  } else if variant == "components_weak" {
+    "\"from\":\"g\",\"components\":{\"kind\":\"weak\"}," + "\"as\":\"out\""
+  } else if variant == "components_strong" {
+    "\"from\":\"g\",\"components\":{\"kind\":\"strong\"}," + "\"as\":\"out\""
+  } else if variant == "reach_out" {
+    "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
+    "\"max_depth\":2},\"as\":\"out\""
+  } else if variant == "traverse_out" {
+    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+    "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+    "\"emit\":\"nodes\"},\"as\":\"out\""
+  } else if variant == "normalize_shared" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"normalize_graph\":true," +
+    "\"as\":\"same_carrier\"},{" +
+    "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "normalize" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "graft" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
+    "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if graph_equality {
+    let right = if variant == "graphs_equal_self" {
+      ""
+    } else {
+      "\"graph\":{\"nodes\":{\"from\":" +
+      (if variant == "graphs_payload_unequal" {
+        "\"other\""
+      } else {
+        "\"rows\""
+      }) +
+      ",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+      (if variant.has_suffix("unequal") { "\"other\"" } else { "\"rows\"" }) +
+      "," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{"
+    }
+    let left_name = if variant == "graphs_equal_reverse" {
+      "right_graph"
+    } else {
+      "g"
+    }
+    let right_name = if variant == "graphs_equal_reverse" ||
+      variant == "graphs_equal_self" {
+      "g"
+    } else {
+      "right_graph"
+    }
+    right +
+    "\"from\":\"" +
+    left_name +
+    "\",\"graphs_equal\":{\"with\":\"" +
+    right_name +
+    "\"},\"as\":\"out\""
+  } else if variant == "edge_projection" {
+    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
+  } else {
+    "\"node_rows\":true,\"as\":\"out\""
+  }
+  let result_fields = if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" {
+    "\"src\",\"dst\",\"weight\""
+  } else if variant == "graph_bounds" {
+    "\"kind\",\"node_id\",\"actual\",\"max\""
+  } else if variant.has_prefix("degree_") {
+    "\"node\",\"degree\""
+  } else if variant.has_prefix("components_") {
+    "\"node_id\",\"component_id\",\"component_size\""
+  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
+    "\"start_id\",\"node_id\",\"depth\""
+  } else if graph_equality {
+    "\"equal\""
+  } else {
+    "\"id\",\"node_name\""
+  }
+  let first_fields = result_fields
+  let second_fields = if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" {
+    "\"weight\",\"src\""
+  } else if variant == "graph_bounds" {
+    "\"kind\",\"node_id\""
+  } else if variant.has_prefix("degree_") {
+    "\"degree\""
+  } else if variant.has_prefix("components_") {
+    "\"component_id\",\"component_size\""
+  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
+    "\"node_id\",\"depth\""
+  } else if graph_equality {
+    "\"equal\""
+  } else {
+    "\"node_name\""
+  }
+  let other_stage = if variant.has_suffix("unequal") {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
+    (if variant == "graphs_payload_unequal" {
+      "[{\"id\":1,\"src\":1,\"dst\":2," +
+      "\"node_name\":\"different\",\"weight\":10},{\"id\":2," +
+      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+      "\"weight\":20}]"
+    } else {
+      "[]"
+    }) +
+    "}," +
+    "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+    "\"fields\":[\"id\",\"src\",\"dst\",\"node_name\"," +
+    "\"weight\"]}}},"
+  } else {
+    ""
+  }
+  let graph_inputs = if variant.has_suffix("unequal") {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -418,22 +786,35 @@ fn local_carrier_graph_program() -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{\"id\":\"graph\"," +
-  "\"inputs\":{\"rows\":{\"result\":{\"stage\":\"values\"," +
-  "\"result\":\"r\"}}},\"steps\":[{\"graph\":{\"nodes\":{" +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}}," +
+  other_stage +
+  "{\"id\":\"graph\",\"inputs\":{" +
+  graph_inputs +
+  "},\"steps\":[{\"graph\":{\"nodes\":{" +
   "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
   "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
   "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
-  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  projection +
+  "}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[" +
+  result_fields +
+  "]}}},{" +
   "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}],\"results\":{" +
-  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"select\":[" +
+  first_fields +
+  "],\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[" +
+  first_fields +
+  "]}}},{" +
   "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"node_name\"],\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"node_name\"]}}}],\"results\":{" +
+  "\"select\":[" +
+  second_fields +
+  "],\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[" +
+  second_fields +
+  "]}}}],\"results\":{" +
   "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
@@ -458,20 +839,30 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
-  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let pooled = variant == "pool" ||
+    variant == "pool_normalize" ||
+    variant == "pool_shared" ||
+    relation_pool
+  let scored = variant == "score_shared" || variant == "score_parameter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
+  } else if scored {
+    "[\"id\",\"embedding\",\"score\"]"
   } else {
     "[\"id\",\"embedding\"]"
   }
   let second_fields = if pooled {
     "[\"member_count\",\"embedding\",\"group\"]"
+  } else if scored {
+    "[\"score\",\"embedding\",\"id\"]"
   } else {
     "[\"embedding\",\"id\"]"
   }
   let kernel = if variant == "score" {
     "{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}"
+  } else if variant == "score_parameter" {
+    "{\"score_vectors\":{\"query\":{\"$param\":\"q\"}," + "\"metric\":\"dot\"}}"
   } else if variant == "pool" {
     "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}"
   } else if variant == "pool_normalize" {
@@ -506,8 +897,16 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   } else {
     kernel
   }
+  let parameters = if variant == "score_parameter" {
+    "{\"minimum\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"q\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}," +
+    "\"length\":2}}"
+  } else {
+    "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  parameters +
+  "," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
   "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
@@ -532,9 +931,35 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   "}}},{\"id\":\"vectors\",\"inputs\":{" +
   "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}}," +
   "\"steps\":[" +
-  vector_prefix +
-  relation_vector +
-  ",{\"vectors\":true,\"as\":\"out\"}]," +
+  (if variant == "normalize_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"normalize_vectors\":true,\"as\":\"normalized\"}," +
+    "{\"from\":\"normalized\",\"score_vectors\":{" +
+    "\"query\":[1,0],\"metric\":\"dot\"}," +
+    "\"as\":\"same_carrier\"},{\"from\":\"normalized\"," +
+    "\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "score_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"score_vectors\":{\"query\":[0,1],\"metric\":\"dot\"}," +
+    "\"as\":\"scored\"},{\"from\":\"scored\"," +
+    "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
+    "{\"from\":\"scored\",\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "pool_shared" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}," +
+    "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
+    "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
+    "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
+  } else {
+    vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
+  }) +
+  "]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   result_fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -1020,6 +1445,14 @@ fn local_values_append_program(variant : String) -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_asof_join_wbtest.mbt
+fn local_values_asof_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"clock":{"type":"number","nullable":false}},"rows":[{"id":1,"key":1,"clock":100}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"clock":{"type":"number","nullable":false},"priority":{"type":"number","nullable":true},"value":{"type":"number","nullable":false}},"rows":[{"id":11,"key":1,"clock":90,"priority":5,"value":100},{"id":11,"key":1,"clock":90,"priority":5,"value":200},{"id":11,"key":1,"clock":100,"priority":0,"value":300}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","priority","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","asof_join":{"with":"r","kind":"inner","by":[{"left":"key","right":"key"}],"left_id":"id","left_time":"clock","right_time":"clock","direction":"backward","tolerance":10,"right_tie_break":["priority"],"select":{"id":"left.id","value":"right.value"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["value","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["value","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_values_group_program(variant : String) -> String {
   let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
@@ -1189,6 +1622,14 @@ fn local_values_group_program(variant : String) -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_interval_join_wbtest.mbt
+fn local_values_interval_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"number","nullable":true},"time":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"time":2,"value":10},{"key":2,"time":7,"value":11},{"key":null,"time":1,"value":12}]},"as":"out"}],"results":{"r":{"from":"out","fields":["key","time","value"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"number","nullable":true},"start":{"type":"number","nullable":false},"end":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"key":1,"start":0,"end":3,"value":20},{"key":1,"start":2,"end":4,"value":21},{"key":2,"start":8,"end":9,"value":22},{"key":null,"start":0,"end":3,"value":23}]},"as":"out"}],"results":{"r":{"from":"out","fields":["key","start","end","value"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","interval_join":{"with":"r","kind":"inner","mode":"point_in_interval","on":[{"left":"key","right":"key"}],"left":{"time":"time"},"right":{"start":"start","end":"end"},"select":{"left_value":"left.value","right_value":"right.value"},"max_output_rows":12},"as":"out"}],"results":{"r":{"from":"out","fields":["left_value","right_value"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["right_value","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 /// Fixture owner: query_integration/local_managed_lag_wbtest.mbt
 fn local_values_lag_program(variant : String) -> String {
   let offset = match variant {
@@ -1240,6 +1681,14 @@ fn local_values_lag_program(variant : String) -> String {
 fn local_values_nest_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"parents","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true}},"rows":[{"id":1,"key":1},{"id":2,"key":1},{"id":3,"key":null},{"id":4,"key":2}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key"]}}},{"id":"children","inputs":{},"steps":[{"values":{"schema":{"child_id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"value":{"type":"number","nullable":true}},"rows":[{"child_id":2,"key":1,"value":null},{"child_id":1,"key":1,"value":10},{"child_id":3,"key":null,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["child_id","key","value"]}}},{"id":"nested","inputs":{"parents":{"result":{"stage":"parents","result":"r"}},"children":{"result":{"stage":"children","result":"r"}}},"steps":[{"from":"parents","nest":{"with":"children","on":[{"left":"key","right":"key"}],"into":"items","fields":[{"amount":"value"}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["id","key","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["items","id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["items","id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_sequence_wbtest.mbt
+fn local_values_sequence_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"events","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":false},"clock":{"type":"number","nullable":false},"value":{"type":"number","nullable":false}},"rows":[{"id":3,"key":1,"clock":3,"value":2},{"id":1,"key":1,"clock":1,"value":1},{"id":4,"key":2,"clock":4,"value":2},{"id":2,"key":1,"clock":2,"value":2},{"id":5,"key":2,"clock":3,"value":1}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","clock","value"]}}},{"id":"matched","inputs":{"x":{"result":{"stage":"events","result":"r"}}},"steps":[{"from":"x","sequence":{"by":["key"],"id":"id","time":"clock","pattern":[{"as":"start","where":"value = 1"},{"as":"end","where":"value = 2"}],"within":10,"overlap":"allow","contiguity":"subsequence"},"as":"out"}],"results":{"r":{"from":"out","fields":["end_id","end_time_ms","key","match_end_ms","match_start_ms","start_id","start_time_ms"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"matched","result":"r"}}},"steps":[{"select":["key","start_id","end_id"],"as":"out"}],"results":{"r":{"from":"out","fields":["key","start_id","end_id"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"matched","result":"r"}}},"steps":[{"select":["end_id","start_id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["end_id","start_id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
 }
 
@@ -1950,6 +2399,7 @@ fn query_capacity_proof(
   derivation : String,
   inputs? : Array[String] = [],
   step? : Int = 0,
+  unit? : String = "rows",
 ) -> @wire.ProgramProofClaim {
   let proof_inputs = inputs.copy()
   proof_inputs.sort()
@@ -1961,7 +2411,9 @@ fn query_capacity_proof(
     law +
     "\",\"semantic_ref\":\"" +
     semantic_ref +
-    "\",\"unit\":\"rows\",\"value\":" +
+    "\",\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(proof_body))
@@ -1987,7 +2439,9 @@ fn query_capacity_proof(
     proof_cid +
     "\",\"semantic_ref\":\"" +
     semantic_ref +
-    "\"},\"unit\":\"rows\",\"value\":" +
+    "\"},\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-witness/0.1\""
   let witness_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + "}"))
@@ -2078,7 +2532,10 @@ fn query_catalog_from_wire(
 
 ///|
 /// Fixture owner: query_integration/query_checked_limits_wbtest.mbt
-fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
+fn query_checked_limits(
+  stage_count : Int,
+  parameter_count? : Int = 1,
+) -> @program_check.CompileLimits {
   {
     work: 100000000,
     artifacts: { bytes: 10000000, nodes: 1000000, depth: 100, },
@@ -2086,7 +2543,7 @@ fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
       stages: stage_count,
       steps: stage_count,
       results: stage_count,
-      parameters: 1,
+      parameters: parameter_count,
       bindings: 100,
       slots: 1000,
       references: 1000,
@@ -2136,6 +2593,7 @@ fn query_checked_program_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
+  local_carrier_graph_variant? : String = "projection",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -2152,10 +2610,14 @@ fn query_checked_program_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_join_imported_full? : Bool = false,
+  local_values_interval_chain? : Bool = false,
+  local_values_asof_chain? : Bool = false,
+  local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
+  managed_publication? : Bool = false,
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
@@ -2201,12 +2663,27 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_carrier_graph_chain {
-    local_carrier_graph_program()
+    local_carrier_graph_program(variant=local_carrier_graph_variant)
   } else {
     text
   }
   let text = if local_time_series_chain {
     local_time_series_program()
+  } else {
+    text
+  }
+  let text = if local_values_interval_chain {
+    local_values_interval_program()
+  } else {
+    text
+  }
+  let text = if local_values_asof_chain {
+    local_values_asof_program()
+  } else {
+    text
+  }
+  let text = if local_values_sequence_chain {
+    local_values_sequence_program()
   } else {
     text
   }
@@ -2235,20 +2712,27 @@ fn query_checked_program_fixture(
   let text = if local_values_managed_variant != "" {
     let rows = if local_values_managed_variant == "empty" {
       "[]"
+    } else if local_values_managed_variant == "thirty_one" {
+      "[" +
+      Array::makei(31, index => "{\"id\":" + index.to_string() + "}").join(",") +
+      "]"
     } else {
       "[{\"items\":{\"literal\":[{\"name\":\"a\",\"score\":1},{\"name\":\"b\",\"score\":2}]},\"meta\":{\"literal\":{\"active\":true}}}]"
     }
-    let schema = if local_values_managed_variant == "empty" {
+    let schema = if local_values_managed_variant == "empty" ||
+      local_values_managed_variant == "thirty_one" {
       "{\"id\":{\"type\":\"number\",\"nullable\":false}}"
     } else {
       "{\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"name\":{\"type\":\"string\",\"nullable\":false},\"score\":{\"type\":\"number\",\"nullable\":false}}}},\"meta\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"active\":{\"type\":\"boolean\",\"nullable\":false}}}}"
     }
-    let fields = if local_values_managed_variant == "empty" {
+    let fields = if local_values_managed_variant == "empty" ||
+      local_values_managed_variant == "thirty_one" {
       "[\"id\"]"
     } else {
       "[\"items\",\"meta\"]"
     }
-    let reversed = if local_values_managed_variant == "empty" {
+    let reversed = if local_values_managed_variant == "empty" ||
+      local_values_managed_variant == "thirty_one" {
       fields
     } else {
       "[\"meta\",\"items\"]"
@@ -2465,6 +2949,39 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = if managed_publication {
+    text.replace(
+      old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
+      new=if local_carrier_graph_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"graph\",\"result\":\"r\"}}}}"
+      } else if local_carrier_events_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"events\",\"result\":\"r\"}}}}"
+      } else if local_carrier_vectors_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        (if local_carrier_vectors_variant.has_prefix("nearest") {
+          "\"nearest\""
+        } else if local_carrier_vectors_variant.has_prefix("ranking") {
+          "\"fusion\""
+        } else {
+          "\"vectors\""
+        }) +
+        ",\"result\":\"r\"}}}}"
+      } else if local_time_series_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"series\",\"result\":\"r\"}}}}"
+      } else if local_values_interval_chain || local_values_asof_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"joined\",\"result\":\"r\"}}}}"
+      } else {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"compute_b\",\"result\":\"r\"}}}}"
+      },
+    )
+  } else {
+    text
+  }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let text = text.replace(old="id > 2", new=compute_filter)
   let input_limits : @syntax.Limits = {
@@ -2509,7 +3026,16 @@ fn query_checked_program_fixture(
   } else {
     environment
   }
-  let evidence = if dag_join {
+  let evidence = if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("components_") {
+    [components_capacity_material(environment, "graph")]
+  } else if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("reach_") {
+    [traversal_capacity_material(environment, "graph", "reach")]
+  } else if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("traverse_") {
+    [traversal_capacity_material(environment, "graph", "traverse")]
+  } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
     let left = query_capacity_proof(
@@ -2583,6 +3109,72 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
+  } else if local_values_sequence_chain {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      5L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    [sequence_capacity_material(environment, input)]
+  } else if local_values_interval_chain || local_values_asof_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      if local_values_asof_chain {
+        1L
+      } else {
+        3L
+      },
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      if local_values_asof_chain {
+        3L
+      } else {
+        4L
+      },
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let joined = query_capacity_proof(
+      if local_values_asof_chain {
+        "actql.bound.asof-left"
+      } else {
+        "actql.bound.join-output"
+      },
+      if local_values_asof_chain {
+        1L
+      } else {
+        12L
+      },
+      if local_values_asof_chain {
+        "{\"input\":\"" +
+        @wire.cid(@wire.program_proof_witness(left)) +
+        "\",\"op\":\"preserve\"}"
+      } else {
+        "{\"op\":\"source\"}"
+      },
+      inputs=if local_values_asof_chain {
+        [@wire.cid(@wire.program_proof_witness(left))]
+      } else {
+        [
+          @wire.cid(@wire.program_proof_witness(left)),
+          @wire.cid(@wire.program_proof_witness(right)),
+        ]
+      },
+      step=0,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "joined",
+        steps=[0],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
   } else if local_values_join_chain {
     let same_stage_full = local_values_join_kind == "full" &&
       !local_values_join_imported_full
@@ -2647,7 +3239,11 @@ fn query_checked_program_fixture(
         {
           rela: true,
           sga: local_carrier_graph_chain,
-          tea: local_carrier_events_chain || local_time_series_chain,
+          tea: local_carrier_events_chain ||
+          local_time_series_chain ||
+          local_values_interval_chain ||
+          local_values_asof_chain ||
+          local_values_sequence_chain,
           calendar: false,
           text_rank: false,
         },
@@ -2685,6 +3281,12 @@ fn query_checked_program_fixture(
             20
           } else {
             10
+          },
+          parameter_count=if local_carrier_vectors_variant == "score_parameter" ||
+            local_carrier_events_variant == "window_parameter" {
+            2
+          } else {
+            1
           },
         ),
       },
@@ -2958,6 +3560,108 @@ fn run_limits() -> @execution.SequenceRunLimits {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_sequence_wbtest.mbt
+fn sequence_capacity_material(
+  environment : @environment.WireEnvironment,
+  input_proof : @wire.ProgramProofClaim,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let witnesses = []
+  let artifacts = []
+  let mut output_host_cid = ""
+  for
+    (field, unit, suffix) in [
+      ("max_temporal_matches_per_key", "matches_per_key", "matches-per-key"),
+      ("max_temporal_output_rows", "rows", "output"),
+    ] {
+    let host = @host.create(@capacity_policy.ceiling(policy, field).unwrap(), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    let writer = @encode.writer(10000, 1000, 30)
+    @host.emit(host, writer)
+    let host_text = @encode.finish(writer)
+    let host_wire = @wire.admit(@utf8.encode(host_text), @host.cid(host), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    witnesses.push(host_wire)
+    if suffix == "output" {
+      output_host_cid = @wire.cid(host_wire)
+    }
+    let candidates = [host_text]
+    let effective = @wire.value(host_wire)
+    let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
+      candidates.join(",") +
+      "],\"effective_max\":" +
+      effective.to_string() +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:0:" +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    artifacts.push(
+      (
+        @utf8.encode(
+          body.replace(
+            old="\"subject_ref\":",
+            new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+          ),
+        ),
+        cid,
+      ),
+    )
+  }
+  let output_proof = query_capacity_proof(
+    "actql.bound.sequence-output",
+    @wire.value(witnesses[1]),
+    "{\"op\":\"source\"}",
+    inputs=[output_host_cid],
+    step=0,
+  )
+  witnesses.push(@wire.program_proof_witness(input_proof))
+  witnesses.push(@wire.program_proof_witness(output_proof))
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    mixed,
+    [input_proof, output_proof],
+    { max_witnesses: 10, max_references: 20, },
+  ).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 10,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage: "matched",
+    sources,
+    uses: [
+      Sequence(
+        step=0,
+        matches=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
+  }
+}
+
+///|
 /// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
 fn sequence_fragment_context(
   sequence : @lower.PreparedSequence,
@@ -3100,4 +3804,136 @@ fn test_fragment_contract() -> @execution.FragmentContract raise {
     registered_fragment(),
     registry_limits(),
   ).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
+fn traversal_capacity_material(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  operation : String,
+  step? : Int = 1,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let witnesses : Array[@wire.WireWitness] = []
+  let proofs : Array[@wire.ProgramProofClaim] = []
+  if operation == "traverse" {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let graph = query_capacity_proof(
+      "actql.bound.graph-nodes",
+      2L,
+      "{\"op\":\"source\"}",
+      inputs=[@wire.cid(@wire.program_proof_witness(input))],
+      step=0,
+      unit="nodes",
+    )
+    let output = query_capacity_proof(
+      "actql.bound.traverse-nodes",
+      2L,
+      "{\"op\":\"source\"}",
+      inputs=[@wire.cid(@wire.program_proof_witness(graph))],
+      step~,
+    )
+    proofs.push(input)
+    proofs.push(graph)
+    proofs.push(output)
+    for proof in proofs {
+      witnesses.push(@wire.program_proof_witness(proof))
+    }
+  }
+  let artifacts : Array[(Bytes, String)] = []
+  for
+    (field, unit, suffix) in [
+      ("max_graph_paths", "paths", ":paths"),
+      ("max_graph_output_rows", "rows", ""),
+    ] {
+    let host = @host.create(@capacity_policy.ceiling(policy, field).unwrap(), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    let writer = @encode.writer(10000, 1000, 30)
+    @host.emit(host, writer)
+    let text = @encode.finish(writer)
+    let wire = @wire.admit(@utf8.encode(text), @host.cid(host), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    witnesses.push(wire)
+    let candidates = [wire]
+    if operation == "traverse" && unit == "rows" {
+      candidates.push(@wire.program_proof_witness(proofs[2]))
+      candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    }
+    let texts = candidates.map(candidate => {
+      let writer = @encode.writer(10000, 1000, 30)
+      @wire.emit(candidate, writer)
+      @encode.finish(writer)
+    })
+    let mut effective = @wire.value(candidates[0])
+    for candidate in candidates {
+      effective = Int64::min(effective, @wire.value(candidate))
+    }
+    let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\"," +
+      "\"candidates\":[" +
+      texts.join(",") +
+      "],\"effective_max\":" +
+      effective.to_string() +
+      ",\"enforcement\":\"engine_atomic\""
+    let tail = ",\"subject_ref\":\"" +
+      operation +
+      ":checked-step:" +
+      step.to_string() +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + tail))
+    artifacts.push(
+      (
+        @utf8.encode(prefix + ",\"resolved_limit_cid\":\"" + cid + "\"" + tail),
+        cid,
+      ),
+    )
+  }
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
+    max_witnesses: 20,
+    max_references: 100,
+  }).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 20,
+    max_bytes: 20000,
+    max_nodes: 2000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage,
+    sources,
+    uses: [
+      @context.Traversal(
+        step~,
+        paths=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
+  }
 }

@@ -653,6 +653,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
+  } else if variant == "traverse_out" {
+    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+    "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+    "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"normalize_graph\":true," +
@@ -717,7 +721,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant.has_prefix("reach_") {
+  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
   } else if graph_equality {
     "\"equal\""
@@ -734,7 +738,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
-  } else if variant.has_prefix("reach_") {
+  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
   } else if graph_equality {
     "\"equal\""
@@ -3027,7 +3031,10 @@ fn query_checked_program_fixture(
     [components_capacity_material(environment, "graph")]
   } else if local_carrier_graph_chain &&
     local_carrier_graph_variant.has_prefix("reach_") {
-    [reach_capacity_material(environment, "graph")]
+    [traversal_capacity_material(environment, "graph", "reach")]
+  } else if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("traverse_") {
+    [traversal_capacity_material(environment, "graph", "traverse")]
   } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
@@ -3462,91 +3469,6 @@ fn query_retention_limits() -> @mock.MockRetentionLimits {
 }
 
 ///|
-/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
-fn reach_capacity_material(
-  environment : @environment.WireEnvironment,
-  stage : String,
-  step? : Int = 1,
-) -> @context.StageCapacityInput raise {
-  let policy = @environment.capacity_policy(
-    @environment.read_capacity(environment, {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    }).unwrap(),
-  )
-  let witnesses : Array[@wire.WireWitness] = []
-  let artifacts : Array[(Bytes, String)] = []
-  for
-    (field, unit, suffix) in [
-      ("max_graph_paths", "paths", ":paths"),
-      ("max_graph_output_rows", "rows", ""),
-    ] {
-    let host = @host.create(@capacity_policy.ceiling(policy, field).unwrap(), {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    }).unwrap()
-    let writer = @encode.writer(10000, 1000, 30)
-    @host.emit(host, writer)
-    let text = @encode.finish(writer)
-    let wire = @wire.admit(@utf8.encode(text), @host.cid(host), {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    }).unwrap()
-    witnesses.push(wire)
-    let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\"," +
-      "\"candidates\":[" +
-      text +
-      "],\"effective_max\":" +
-      @wire.value(wire).to_string() +
-      ",\"enforcement\":\"engine_atomic\""
-    let tail = ",\"subject_ref\":\"reach:checked-step:" +
-      step.to_string() +
-      suffix +
-      "\",\"unit\":\"" +
-      unit +
-      "\",\"version\":\"actql-resolved-limit/0.1\"}"
-    let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + tail))
-    artifacts.push(
-      (
-        @utf8.encode(prefix + ",\"resolved_limit_cid\":\"" + cid + "\"" + tail),
-        cid,
-      ),
-    )
-  }
-  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
-    max_entities: 10,
-    max_references: 20,
-    max_bytes: 10000,
-    max_nodes: 1000,
-    max_depth: 30,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
-    max_witnesses: 20,
-    max_references: 100,
-  }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [policy], {
-    max_entries: 20,
-    max_bytes: 20000,
-    max_nodes: 2000,
-    max_depth: 30,
-  }).unwrap()
-  {
-    stage,
-    sources,
-    uses: [
-      @context.Traversal(
-        step~,
-        paths=@wire.mixed_limit_at(mixed, 0).unwrap(),
-        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
-      ),
-    ],
-  }
-}
-
-///|
 /// Fixture owner: query_integration/pinned_engine_contracts_wbtest.mbt
 fn registered_body() -> @identity.CanonicalValue raise {
   @identity.from_json(
@@ -3882,4 +3804,136 @@ fn test_fragment_contract() -> @execution.FragmentContract raise {
     registered_fragment(),
     registry_limits(),
   ).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
+fn traversal_capacity_material(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  operation : String,
+  step? : Int = 1,
+) -> @context.StageCapacityInput raise {
+  let policy = @environment.capacity_policy(
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap(),
+  )
+  let witnesses : Array[@wire.WireWitness] = []
+  let proofs : Array[@wire.ProgramProofClaim] = []
+  if operation == "traverse" {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let graph = query_capacity_proof(
+      "actql.bound.graph-nodes",
+      2L,
+      "{\"op\":\"source\"}",
+      inputs=[@wire.cid(@wire.program_proof_witness(input))],
+      step=0,
+      unit="nodes",
+    )
+    let output = query_capacity_proof(
+      "actql.bound.traverse-nodes",
+      2L,
+      "{\"op\":\"source\"}",
+      inputs=[@wire.cid(@wire.program_proof_witness(graph))],
+      step~,
+    )
+    proofs.push(input)
+    proofs.push(graph)
+    proofs.push(output)
+    for proof in proofs {
+      witnesses.push(@wire.program_proof_witness(proof))
+    }
+  }
+  let artifacts : Array[(Bytes, String)] = []
+  for
+    (field, unit, suffix) in [
+      ("max_graph_paths", "paths", ":paths"),
+      ("max_graph_output_rows", "rows", ""),
+    ] {
+    let host = @host.create(@capacity_policy.ceiling(policy, field).unwrap(), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    let writer = @encode.writer(10000, 1000, 30)
+    @host.emit(host, writer)
+    let text = @encode.finish(writer)
+    let wire = @wire.admit(@utf8.encode(text), @host.cid(host), {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 30,
+    }).unwrap()
+    witnesses.push(wire)
+    let candidates = [wire]
+    if operation == "traverse" && unit == "rows" {
+      candidates.push(@wire.program_proof_witness(proofs[2]))
+      candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    }
+    let texts = candidates.map(candidate => {
+      let writer = @encode.writer(10000, 1000, 30)
+      @wire.emit(candidate, writer)
+      @encode.finish(writer)
+    })
+    let mut effective = @wire.value(candidates[0])
+    for candidate in candidates {
+      effective = Int64::min(effective, @wire.value(candidate))
+    }
+    let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\"," +
+      "\"candidates\":[" +
+      texts.join(",") +
+      "],\"effective_max\":" +
+      effective.to_string() +
+      ",\"enforcement\":\"engine_atomic\""
+    let tail = ",\"subject_ref\":\"" +
+      operation +
+      ":checked-step:" +
+      step.to_string() +
+      suffix +
+      "\",\"unit\":\"" +
+      unit +
+      "\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + tail))
+    artifacts.push(
+      (
+        @utf8.encode(prefix + ",\"resolved_limit_cid\":\"" + cid + "\"" + tail),
+        cid,
+      ),
+    )
+  }
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
+    max_witnesses: 20,
+    max_references: 100,
+  }).unwrap()
+  let sources = @host.bind_claim_sources(claims, [policy], {
+    max_entries: 20,
+    max_bytes: 20000,
+    max_nodes: 2000,
+    max_depth: 30,
+  }).unwrap()
+  {
+    stage,
+    sources,
+    uses: [
+      @context.Traversal(
+        step~,
+        paths=@wire.mixed_limit_at(mixed, 0).unwrap(),
+        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
+      ),
+    ],
+  }
 }
