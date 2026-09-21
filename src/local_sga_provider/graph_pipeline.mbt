@@ -213,6 +213,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.diff_structural"
       (current, @lower.GraphUnionStep(_)) if current < count - 1 =>
         @lower.operation(node) == "SGA.union_structural"
+      (current, @lower.GraphMeanStep(_)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.mean_structural"
       (current, @lower.CarrierProjectionStep(projection)) if current ==
         count - 1 =>
         (
@@ -598,6 +600,53 @@ fn advance_execution(
                 fn() { true },
               ) {
               Ok(execution) => Graft(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
+          Some(@lower.GraphMeanStep(_)) => {
+            let views = []
+            guard @lower.node_at(
+                @lower.bound_preparation(
+                  @execution.generated_sequence_owner(value.generated),
+                ),
+                value.kernel_step,
+              )
+              is Some(node) &&
+              mean_exact_bits(value.limits) is Some(exact_bits) else {
+              return fail_execution(value)
+            }
+            for index in 0..<@lower.node_input_count(node) {
+              guard @lower.node_input_step(node, index) is Some(producer) &&
+                value.graphs.get(producer) is Some(output) else {
+                return fail_execution(value)
+              }
+              let read = match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.kernel_step,
+                  index,
+                  output,
+                ) {
+                Ok(read) => read
+                Err(_) => return fail_execution(value)
+              }
+              match @graph.producer_read_view(read) {
+                Ok(view) => views.push(view)
+                Err(_) => return fail_execution(value)
+              }
+            }
+            match
+              @sga.start_mean_views(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                views,
+                value.limits,
+                value.storage_bytes,
+                exact_bits,
+                fn() { true },
+              ) {
+              Ok(execution) => Mean(execution)
               Err(_) => return fail_execution(value)
             }
           }

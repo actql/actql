@@ -372,6 +372,19 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "mean" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"mean_graphs\":{\"with\":[\"right_graph\",\"g\"," +
+    "\"right_graph\"],\"weights\":[1,2,3]," +
+    "\"support\":{\"nodes\":1,\"edges\":1}," +
+    "\"properties\":{\"nodes\":{\"node_name\":\"exact_equal\"}," +
+    "\"edges\":{\"weight\":{\"mean\":{" +
+    "\"missing\":\"exclude\",\"nulls\":\"fail\"}}}}}," +
+    "\"as\":\"averaged\"},{\"from\":\"averaged\"," +
+    "\"node_rows\":true,\"as\":\"out\""
   } else if variant == "union" ||
     variant == "union_singleton" ||
     variant == "union_numeric" ||
@@ -5009,6 +5022,11 @@ test "standard Host unions a repeated Graph list before the Relation bridge" {
   run_standard_host_graph_relation_path("union_singleton")
   run_standard_host_graph_relation_path("union_numeric")
   run_standard_host_graph_relation_path("union_set")
+}
+
+///|
+test "standard Host averages a repeated Graph list before projection" {
+  run_standard_host_graph_relation_path("mean", publication=true)
 }
 
 ///|
