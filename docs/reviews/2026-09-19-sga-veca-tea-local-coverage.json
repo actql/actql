@@ -1008,6 +1008,15 @@
             "src/local_tea_provider/events_pipeline.mbt",
             "src/query_integration/local_carrier_events_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "equal_time_semantic_identity_order",
+          "layers": ["standard_host", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "4ef9c6be",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
         }
       ]
     },

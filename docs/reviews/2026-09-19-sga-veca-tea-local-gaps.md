@@ -501,7 +501,9 @@ and the other consumer and source remain available until their own final
 reclamation. The same provider path passes on JS, Wasm, and native. The Node
 standard Host still needs to carry that Carrier completion across a physical
 task boundary into the exact session input, so session assignment remains
-partial. Session identity construction
+partial. At `4ef9c6be`, equal-time events reach the standard Host on all three
+targets and are ordered by their typed semantic identity before closed-open
+session assignment. Session identity construction
 now advances one scalar
 part per bounded phase, checks complete UTF-8 prefixes and separators before
 retention, and reclaims partial buffers after cancellation. Interval join now
