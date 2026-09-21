@@ -66,6 +66,17 @@ pub fn Journal::require_store_use(
 }
 
 ///|
+pub fn Journal::bind_destination_use(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(use_id)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::reserve_destination_holding(
   _self : Journal,
   request : @transfer.RemoteTransferRequest,

@@ -137,3 +137,39 @@ test "native Store use journal restores exact download progress" {
   )
   reopened.close() |> ignore
 }
+
+///|
+test "destination request fixes one durable Store use before capacity" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/destination-use-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let request = journal_request(@transfer.TransferStore)
+  let first = open_journal(library, database_path, 262144L, 1, 4096, 5L).unwrap()
+  let second = open_journal(library, database_path, 262144L, 1, 4096, 5L).unwrap()
+  ignore(first.accept(request).unwrap())
+  assert_true(first.bind_destination_use(request, "use-a").unwrap())
+  assert_false(second.bind_destination_use(request, "use-a").unwrap())
+  assert_true(
+    second.bind_destination_use(request, "use-b") is Err(StateCollision),
+  )
+  assert_true(first.reserve_destination_holding(request, 5L, 1L).unwrap())
+  assert_eq(second.destination_capacity_usage().unwrap().reserved_bytes, 5L)
+  assert_true(second.release_destination_holding(request).unwrap())
+  assert_eq(first.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(first.close())
+  assert_true(second.close())
+  let reopened = open_journal(library, database_path, 262144L, 1, 4096, 5L).unwrap()
+  assert_false(reopened.bind_destination_use(request, "use-a").unwrap())
+  assert_true(
+    reopened.bind_destination_use(request, "use-b") is Err(StateCollision),
+  )
+  assert_true(reopened.close())
+}

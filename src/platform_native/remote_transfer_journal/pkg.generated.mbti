@@ -28,6 +28,7 @@ type Journal
 pub fn Journal::accept(Self, @remote_transfer.RemoteTransferRequest) -> Result[(NativeRemoteTransferAdmission, @remote_transfer.RemoteTransferRecord), NativeRemoteTransferJournalIssue]
 pub fn Journal::accept_store_use(Self, @remote_transfer.RemoteTransferRequest, String) -> Result[(NativeRemoteTransferAdmission, @remote_transfer.RemoteTransferStoreUseRecord), NativeRemoteTransferJournalIssue]
 pub fn Journal::begin_destination_allocation_reclaim(Self, NativeRemoteDestinationAllocation) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue]
+pub fn Journal::bind_destination_use(Self, @remote_transfer.RemoteTransferRequest, String) -> Result[Bool, NativeRemoteTransferJournalIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_destination_receipt(Self, @remote_transfer.RemoteTransferDestinationReceipt, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferDestinationReceipt, NativeRemoteTransferJournalIssue]
 pub fn Journal::commit_store_use_transition(Self, @remote_transfer.RemoteTransferStoreUseTransition) -> Result[Unit, NativeRemoteTransferJournalIssue]

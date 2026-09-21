@@ -505,6 +505,82 @@ pub fn Journal::require_store_use(
 }
 
 ///|
+/// Durably bind one destination request to its single admitted Store use.
+/// The binding is fixed before destination capacity or physical I/O starts.
+pub fn Journal::bind_destination_use(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+) -> Result[Bool, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match @transfer.prepare_store_use(request, use_id) {
+    Ok(_) => ()
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let request_key = match @transfer.request_journal_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let body = @utf8.encode(use_id)
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match self.database.read("remote_transfer", request_key) {
+    Ok(value) =>
+      match self.existing(request, value) {
+        Ok(_) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(issue)
+        }
+      }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  let newly_bound = match
+    self.database.read("remote_transfer_destination_use", request_key) {
+    Ok(value) => {
+      if value.revision != 0L || value.body != body {
+        ignore(self.database.rollback())
+        return Err(StateCollision)
+      }
+      false
+    }
+    Err(@sqlite.NotFound) =>
+      match
+        self.database.insert(
+          "remote_transfer_destination_use", request_key, body,
+        ) {
+        Ok(0L) => true
+        Ok(_) | Err(@sqlite.Collision) => {
+          ignore(self.database.rollback())
+          return Err(StateCollision)
+        }
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(newly_bound)
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
 pub fn Journal::reserve_destination_holding(
   self : Journal,
   request : @transfer.RemoteTransferRequest,

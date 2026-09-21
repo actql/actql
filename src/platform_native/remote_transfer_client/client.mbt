@@ -1073,6 +1073,10 @@ pub fn receive_durable_store_transfer(
     Ok(value) => value
     Err(issue) => return Err(Durable(issue))
   }
+  match journal.bind_destination_use(request, use_id) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
   let mut record = accepted
   let mut progress = @transfer.store_upload_progress(record)
   if progress == @transfer.StoreUploadReconciliationRequired {
@@ -1266,6 +1270,10 @@ pub fn cancel_durable_store_transfer(
     use_id.length() > 256 ||
     @transfer.request_projection(request)[1] != "store" {
     return Err(InvalidRequest)
+  }
+  match journal.bind_destination_use(request, use_id) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
   }
   let mut record = match journal.require(request) {
     Ok(value) => value
