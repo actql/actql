@@ -301,7 +301,12 @@ three portable targets; the matching case also establishes and retrieves its
 formal publication identity. At `8023b17d`, incoming, outgoing, bidirectional,
 and source-equals-target zero-hop paths reach the standard Host and overlapping
 consumers on all three portable targets. The incoming case also establishes
-and retrieves its formal publication identity. Selected endpoints,
+and retrieves its formal publication identity. At `43b173aa`, explicit
+nonempty identity sets are resolved before search, deduplicated, and sorted by
+semantic identity. Their Cartesian endpoint pairs run through one bounded
+managed session. Missing identities fail before search; exact workspace
+admission, two overlapping consumers, formal publication, and JS, Wasm, and
+native execution are covered. Relation- and predicate-selected endpoints,
 `nearest_per_source`, `nearest_pair`, and weighted costs remain open, so
 `shortest_path` remains partial.
 Union and mean preserve their ordered finite input lists,
