@@ -36,8 +36,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `cancellation` | 34/39 |
 | `publication` | 33/39 |
 | `three_targets` | 34/39 |
-| complete operations | 27/39 |
-| open operations | 12/39 |
+| complete operations | 29/39 |
+| open operations | 10/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -326,11 +326,15 @@ publication, and final reclamation. The Node environment delivers cancellation
 during the bounded union and confirms stop before cleanup returns the ledger to
 zero. The finite-list kernel also rejects one node below the required output
 capacity and completes at the exact node limit while retaining all four input
-occurrences in logical accounting. Remaining property merge laws are open, so
-`union_graphs` remains partial. Explicit `exact_equal` now uses the same
+occurrences in logical accounting. Explicit `exact_equal` uses the same
 bounded fold and rejects a conflicting shared identity atomically at
-`c282a9f0`. Numeric and canonical-set strategies remain ineligible before
-execution.
+`c282a9f0`. At `385be7a3`, numeric strategies preserve authored fold order,
+and canonical set union produces complete-value order without duplicates.
+The maximum non-interruptible value traversal includes every field and fold,
+rejects arithmetic overflow before output allocation, and is checked on all
+three targets. The numeric and set paths also run through the standard Host,
+overlapping consumers, publication, cancellation, and final reclaim. This
+closes `union_graphs`.
 
 At `1b7dbec3`, `subtract_graphs` executes the property-free structural
 variant over two immutable internal Graph generations. The bounded kernel
@@ -339,11 +343,8 @@ removed, observes cancellation between records, and admits output capacity
 before construction. The portable standard Host carries the result through
 the formal Graph-to-Relation Bridge, two overlapping Relation consumers,
 Named Result publication and retrieval, and final reclamation on JS, Wasm,
-and native. Direct Carrier inputs and authored property strategies remain
-ineligible before execution. Edge-only behavior with retained endpoints and
-the numeric and canonical-set property laws therefore remain open, so
-`subtract_graphs` remains partial. This slice does not claim environment-level
-cancellation delivery for subtraction.
+and native. Direct Carrier inputs preserve the same exact operation-edge
+bindings as managed storage inputs.
 
 At `9c0cf275`, an explicit `exact_equal` map retains shared subtraction
 entities instead of treating the strategy as a removal instruction. The
@@ -354,10 +355,12 @@ Property-bearing entity kinds without a complete executable map are rejected
 before output allocation. The portable kernel tests pass on JS, Wasm, and
 native. At `00063427`, the exact-equality path also runs through the standard
 Host, two overlapping consumers, Named Result publication and retrieval, and
-final reclamation on all three targets. Numeric and canonical-set strategies
-remain open. At `053005b9`, the real Node Host also delivers cancellation
-during the bounded exact-equality kernel, observes stop separately from
-cleanup, and returns all ledger holdings and reservations to zero.
+final reclamation on all three targets. At `385be7a3`, numeric and canonical
+set difference retain explicitly mapped shared entities, keep right-only
+entities out, and admit temporary set indexes before allocation. At
+`053005b9`, the real Node Host also delivers cancellation during the bounded
+kernel, observes stop separately from cleanup, and returns all ledger holdings
+and reservations to zero. This closes `subtract_graphs`.
 
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The
