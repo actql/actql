@@ -15,14 +15,14 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 31/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 33/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 27/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 28/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 30/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
-33/39, consumer lifetime 31/39, cancellation 27/39, and publication 30/39. These are
-layer counts, not operation completion: 19 entries are `complete` and 20 remain
+33/39, consumer lifetime 31/39, cancellation 28/39, and publication 30/39. These are
+layer counts, not operation completion: 20 entries are `complete` and 19 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -478,9 +478,12 @@ reclamation on JS, Wasm, and native. At `e48f65f6`, the same kernel admits the
 exact Relation selector edge, deduplicates repeated identities, and rejects
 any selected identity absent from the graph. At `d80944d1`, that form reaches
 the standard Host, formal Bridge, two downstream consumers, publication, and
-final reclamation on all three targets. All selector forms now execute;
-`subgraph` remains partial until cancellation delivery covers the predicate
-evaluation and Relation scan paths rather than only the literal selector.
+final reclamation on all three targets. At `38923228`, the real Node standard
+Host delivers timer cancellation while the node predicate, edge predicate,
+and Relation selector paths are active. Each path confirms stop separately
+from retryable cleanup and returns all holdings and reservations to zero. The
+regenerated Workers fixture passes all 24 Workers tests. This closes every
+classified `subgraph` layer.
 
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
