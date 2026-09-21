@@ -206,6 +206,46 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(
 }
 
 ///|
+/// Open a manifest-preserving reader from an exact durable dispatch
+/// observation. This is the source boundary for an independent Transfer; it
+/// grants no destination authority by itself.
+pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(
+  self : NativeRemoteStandardSiteComponent,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputManifestReader,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if completion.dispatch_request_cid !=
+    @remote.dispatch_request_identity(request) {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard @journal.recovered_site_dispatch_subject(observed) is Some(subject) else {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  if !@remote.remote_managed_output_subject_matches_dispatch(subject, request) ||
+    @remote.remote_managed_output_subject_cid(subject) != completion.subject_cid {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let projection = @remote.remote_managed_output_subject_projection(subject)
+  if projection.length() < 2 {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  self.runtime
+  .open_output_manifest_reader(request, projection[1], max_chunk_bytes)
+  .map_err(issue => Runtime(issue))
+}
+
+///|
 /// Stops new admission and closes the common runtime. Physical adapter owners
 /// remain with application composition and may be closed only after this
 /// method confirms that all runtime custody has ended.
@@ -274,6 +314,25 @@ pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(
   }
   self.component
   .open_observed_output_reader(request, completion, max_chunk_bytes)
+  .map_err(issue => Component(issue))
+}
+
+///|
+/// Open the exact manifest-preserving source owned by this distribution.
+pub fn NativeRemoteStandardSiteDistribution::open_observed_output_manifest_reader(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputManifestReader,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .open_observed_output_manifest_reader(request, completion, max_chunk_bytes)
   .map_err(issue => Component(issue))
 }
 

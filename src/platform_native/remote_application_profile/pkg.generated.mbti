@@ -77,6 +77,7 @@ pub(all) enum NativeRemoteApplicationRunIssue {
 
 type NativeRemoteApplicationSite
 pub fn NativeRemoteApplicationSite::close(Self) -> Result[Bool, NativeRemoteApplicationSiteIssue]
+pub fn NativeRemoteApplicationSite::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteApplicationSiteIssue]
 

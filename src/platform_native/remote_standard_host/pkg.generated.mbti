@@ -154,6 +154,7 @@ type NativeRemoteStandardRunOwner
 
 type NativeRemoteStandardSiteComponent
 pub fn NativeRemoteStandardSiteComponent::close(Self) -> Result[Bool, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteComponentIssue]
@@ -168,6 +169,7 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
 
 type NativeRemoteStandardSiteDistribution
 pub fn NativeRemoteStandardSiteDistribution::close(Self) -> Result[Bool, NativeRemoteStandardSiteDistributionIssue]
+pub fn NativeRemoteStandardSiteDistribution::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteDistributionIssue]

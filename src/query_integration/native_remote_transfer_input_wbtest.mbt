@@ -930,6 +930,26 @@ test "standard Local reads the exact committed Transfer destination" {
   let output_reader = component
     .open_observed_output_reader(observed_dispatch, observed_completion, 7)
     .unwrap()
+  let manifest_reader = component
+    .open_observed_output_manifest_reader(
+      observed_dispatch, observed_completion, 1048576,
+    )
+    .unwrap()
+  let manifest = manifest_reader.physical_manifest().unwrap()
+  assert_eq(manifest.row_count, 1)
+  assert_eq(manifest.chunks.length(), 1)
+  assert_eq(
+    manifest_reader.material_generation().unwrap(),
+    @remote.remote_managed_output_subject_projection(
+      @native_remote_journal.recovered_site_dispatch_subject(
+        remote_journal.observation(observed_dispatch).unwrap(),
+      ).unwrap(),
+    )[1],
+  )
+  let manifest_chunk = manifest_reader.next().unwrap().unwrap()
+  assert_eq(manifest_chunk.index, 0)
+  assert_eq(@utf8.decode_lossy(manifest_chunk.bytes), "[{\"id\":3}]")
+  assert_true(manifest_reader.next().unwrap() is None)
   let output_bytes : Array[Byte] = []
   while true {
     let chunk = output_reader.next().unwrap()
@@ -952,6 +972,7 @@ test "standard Local reads the exact committed Transfer destination" {
     fail("live output reader did not retain Site shutdown ownership")
   }
   assert_true(output_reader.finish().unwrap())
+  assert_true(manifest_reader.finish().unwrap())
   let release_operation = @remote.remote_poll_release_json(dispatch).unwrap()
   let release_queued = client
     .post_json(

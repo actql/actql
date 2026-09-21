@@ -300,6 +300,18 @@ priv struct NativeRemoteStandardReaderState {
 }
 
 ///|
+/// Bounded replay preserving the physical manifest chunks established by the
+/// first traversal. One row is held for lookahead so only the final row chunk
+/// receives the canonical array tail.
+priv struct NativeRemoteStandardManifestReaderState {
+  replay : @publication_host.PublicationOutputReplay
+  mut pending : String?
+  mut next_index : Int
+  mut replay_finished : Bool
+  mut closed : Bool
+}
+
+///|
 fn remote_standard_failure(
   bound : NativeRemoteStandardBoundRun,
   code : String,
@@ -463,6 +475,94 @@ fn NativeRemoteStandardOutputOwner::open_reader(
 }
 
 ///|
+fn native_remote_standard_manifest_reader_next(
+  state : NativeRemoteStandardManifestReaderState,
+  index : Int,
+) -> Result[Bytes, String] {
+  if state.closed || state.replay_finished || index != state.next_index {
+    return Err("invalid-manifest-reader-state")
+  }
+  if state.pending is None {
+    match state.replay.next() {
+      Err(_) => return Err("output-replay-read")
+      Ok(Some(text)) => state.pending = Some(text)
+      Ok(None) =>
+        match state.replay.finish() {
+          Err(_) => return Err("output-replay-finish")
+          Ok(tail) => {
+            state.replay_finished = true
+            state.next_index += 1
+            return Ok(@utf8.encode(tail))
+          }
+        }
+    }
+  }
+  guard state.pending is Some(current) else {
+    return Err("output-replay-state")
+  }
+  match state.replay.next() {
+    Err(_) => Err("output-replay-read")
+    Ok(Some(next)) => {
+      state.pending = Some(next)
+      state.next_index += 1
+      Ok(@utf8.encode(current))
+    }
+    Ok(None) =>
+      match state.replay.finish() {
+        Err(_) => Err("output-replay-finish")
+        Ok(tail) => {
+          state.pending = None
+          state.replay_finished = true
+          state.next_index += 1
+          Ok(@utf8.encode(current + tail))
+        }
+      }
+  }
+}
+
+///|
+fn NativeRemoteStandardOutputOwner::open_manifest_reader(
+  self : NativeRemoteStandardOutputOwner,
+) -> Result[@runtime.NativeRemotePhysicalManifestReader, String] {
+  if self.released || self.export_cancelled {
+    return Err("output-released")
+  }
+  let replay = match self.output_export.replay() {
+    Ok(value) => value
+    Err(_) => return Err("output-replay-open")
+  }
+  let state : NativeRemoteStandardManifestReaderState = {
+    replay,
+    pending: None,
+    next_index: 0,
+    replay_finished: false,
+    closed: false,
+  }
+  Ok(
+    @runtime.prepare_native_remote_physical_manifest_reader(
+      index => native_remote_standard_manifest_reader_next(state, index),
+      () => {
+        if state.closed {
+          Ok(())
+        } else if !state.replay_finished || state.pending is Some(_) {
+          Err("output-manifest-reader-incomplete")
+        } else {
+          state.closed = true
+          Ok(())
+        }
+      },
+      () => {
+        if !state.closed && !state.replay_finished {
+          state.replay.cancel()
+        }
+        state.closed = true
+        Ok(())
+      },
+    ),
+  )
+}
+
+///|
 fn execute_native_remote_standard_task(
   expected_task : Int,
   resolve_run : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> Result[
@@ -506,9 +606,25 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => return remote_standard_failure(bound, "output-export-prepare")
   }
+  let chunk_cids : Array[String] = []
+  let chunk_byte_lengths : Array[Int64] = []
+  let chunk_row_counts : Array[Int] = []
+  let mut pending_chunk : String? = None
   while true {
     match output_export.next() {
-      Ok(Some(_)) => continue
+      Ok(Some(text)) => {
+        match pending_chunk {
+          Some(previous) => {
+            let bytes = @utf8.encode(previous)
+            chunk_cids.push("sha256:" + @sha.hex(bytes))
+            chunk_byte_lengths.push(bytes.length().to_int64())
+            chunk_row_counts.push(1)
+          }
+          None => ()
+        }
+        pending_chunk = Some(text)
+        continue
+      }
       Ok(None) => break
       Err(_) => {
         output_export.cancel()
@@ -516,13 +632,21 @@ fn execute_native_remote_standard_task(
       }
     }
   }
-  match output_export.finish() {
-    Ok(_) => ()
+  let tail = match output_export.finish() {
+    Ok(value) => value
     Err(_) => {
       output_export.cancel()
       return remote_standard_failure(bound, "output-export-finish")
     }
   }
+  let final_chunk = match pending_chunk {
+    Some(previous) => (previous + tail, 1)
+    None => (tail, 0)
+  }
+  let final_bytes = @utf8.encode(final_chunk.0)
+  chunk_cids.push("sha256:" + @sha.hex(final_bytes))
+  chunk_byte_lengths.push(final_bytes.length().to_int64())
+  chunk_row_counts.push(final_chunk.1)
   let content_cid = match output_export.content_cid() {
     Ok(value) => value
     Err(_) => {
@@ -536,6 +660,18 @@ fn execute_native_remote_standard_task(
       output_export.cancel()
       return remote_standard_failure(bound, "output-content-size")
     }
+  }
+  let mut physical_bytes = 0L
+  for length in chunk_byte_lengths {
+    if length < 0L || length > 1048576L {
+      output_export.cancel()
+      return remote_standard_failure(bound, "output-manifest-chunk")
+    }
+    physical_bytes += length
+  }
+  if physical_bytes != content_bytes.to_int64() {
+    output_export.cancel()
+    return remote_standard_failure(bound, "output-manifest-size")
   }
   let row_count = match output_export.row_count() {
     Ok(value) => value
@@ -605,10 +741,10 @@ fn execute_native_remote_standard_task(
       logical_view_cid,
       codec_cid,
       row_count,
-      [content_cid],
-      [retained_bytes],
-      [row_count],
-      1,
+      chunk_cids,
+      chunk_byte_lengths,
+      chunk_row_counts,
+      Int::max(row_count, 1),
       limits.max_manifest_bytes,
       limits.max_retained_bytes,
     ) {
@@ -648,6 +784,7 @@ fn execute_native_remote_standard_task(
         measurement,
       },
       () => owner.open_reader(),
+      () => owner.open_manifest_reader(),
       () => owner.release(),
     ) {
     Ok(value) => value
@@ -677,7 +814,9 @@ fn install_native_remote_standard_task_executor(
 ) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue] {
   if expected_task < 0 ||
     limits.max_manifest_bytes < 1 ||
-    limits.max_retained_bytes < 0L {
+    limits.max_retained_bytes < 0L ||
+    limits.output_export.max_batch_bytes < 1 ||
+    limits.output_export.max_batch_bytes > 1048575 {
     return Err(InvalidConfiguration)
   }
   @runtime.install_native_remote_task_executor(run_definition_cid, task_key, (

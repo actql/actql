@@ -459,6 +459,27 @@ pub fn NativeRemoteApplicationSite::open_observed_output_reader(
 }
 
 ///|
+/// Open the exact physical manifest source for an independent output
+/// Transfer. The application owner keeps all Site and runtime custody alive
+/// until this reader is finished or physically closed.
+pub fn NativeRemoteApplicationSite::open_observed_output_manifest_reader(
+  self : NativeRemoteApplicationSite,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputManifestReader,
+  NativeRemoteApplicationSiteIssue,
+] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .open_observed_output_manifest_reader(request, completion, max_chunk_bytes)
+  .map_err(issue => Distribution(issue))
+}
+
+///|
 /// Closes every process owner in authority order. A failed close is retryable
 /// on this same value and never advances to the transferred-input journal
 /// while the standard runtime still owns work.

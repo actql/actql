@@ -215,6 +215,23 @@ test "native remote runtime owns success failure and cleanup progression" {
           )
         },
         () => {
+          let emitted = [false]
+          Ok(
+            @runtime.prepare_native_remote_physical_manifest_reader(
+              index => {
+                if index != 0 || emitted[0] {
+                  Err("invalid-manifest-read")
+                } else {
+                  emitted[0] = true
+                  Ok(physical_bytes)
+                }
+              },
+              () => if emitted[0] { Ok(()) } else { Err("incomplete") },
+              () => Ok(()),
+            ),
+          )
+        },
+        () => {
           released[0] += 1
           output_release_attempts[0] += 1
           output_release_attempts[0] > 1
@@ -410,6 +427,24 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_true(chunk.eof)
   assert_true(reader.finish().unwrap())
   assert_false(reader.finish().unwrap())
+  assert_true(
+    runtime.open_output_manifest_reader(first, "native-material-a", 0)
+    is Err(@runtime.OutputReaderUnavailable),
+  )
+  let manifest_reader = runtime
+    .open_output_manifest_reader(first, "native-material-a", 1)
+    .unwrap()
+  assert_eq(manifest_reader.material_generation().unwrap(), "native-material-a")
+  let retained_manifest = manifest_reader.physical_manifest().unwrap()
+  assert_eq(retained_manifest.row_count, 1)
+  assert_eq(retained_manifest.referenced_bytes, 1L)
+  assert_false(runtime.release(first).unwrap())
+  let manifest_chunk = manifest_reader.next().unwrap().unwrap()
+  assert_eq(manifest_chunk.index, 0)
+  assert_eq(manifest_chunk.bytes, b"x")
+  assert_true(manifest_reader.next().unwrap() is None)
+  assert_true(manifest_reader.finish().unwrap())
+  assert_false(manifest_reader.finish().unwrap())
   oversized_reads[0] = true
   let cancelled_reader = runtime
     .open_output_reader(first, "native-material-a", 1)

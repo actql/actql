@@ -76,6 +76,7 @@ test "remote output admits the exact physical manifest contract" {
   let admitted = prepare_native_remote_output(
     output_facts(schema, view, codec, manifest),
     () => Err("unused"),
+    () => Err("unused"),
     () => true,
   )
   assert_true(admitted is Ok(NativeRemoteOutputReady(_)))
@@ -86,6 +87,7 @@ test "remote output admits the exact physical manifest contract" {
     prepare_native_remote_output(
       output_facts(foreign_schema, view, codec, manifest),
       () => Err("unused"),
+      () => Err("unused"),
       () => true,
     )
     is Err(OutputRejected),
@@ -93,6 +95,7 @@ test "remote output admits the exact physical manifest contract" {
   assert_true(
     prepare_native_remote_output(
       { ..output_facts(schema, view, codec, manifest), retained_bytes: 2L, },
+      () => Err("unused"),
       () => Err("unused"),
       () => true,
     )

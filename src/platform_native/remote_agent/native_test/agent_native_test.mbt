@@ -172,6 +172,23 @@ test "outbound agent observes durable acceptance before one execution" {
             ),
           )
         },
+        () => {
+          let emitted = [false]
+          Ok(
+            @runtime.prepare_native_remote_physical_manifest_reader(
+              index => {
+                if index != 0 || emitted[0] {
+                  Err("invalid-manifest-read")
+                } else {
+                  emitted[0] = true
+                  Ok(b"x")
+                }
+              },
+              () => if emitted[0] { Ok(()) } else { Err("incomplete") },
+              () => Ok(()),
+            ),
+          )
+        },
         () => true,
       ).unwrap()
     },

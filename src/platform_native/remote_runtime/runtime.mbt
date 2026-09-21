@@ -21,6 +21,10 @@ pub(all) struct NativeRemoteOutputFacts {
 struct NativeRemoteOutput {
   facts : NativeRemoteOutputFacts
   open_reader : () -> Result[NativeRemotePhysicalReader, String]
+  open_manifest_reader : () -> Result[
+    NativeRemotePhysicalManifestReader,
+    String,
+  ]
   release : () -> Bool
 }
 
@@ -42,12 +46,41 @@ struct NativeRemotePhysicalReader {
 }
 
 ///|
+/// Environment-owned access preserving exact physical manifest boundaries.
+/// The common runtime verifies every returned chunk before it can be used by
+/// a Transfer. The physical implementation only performs and reports I/O.
+struct NativeRemotePhysicalManifestReader {
+  next : (Int) -> Result[Bytes, String]
+  finish : () -> Result[Unit, String]
+  close : () -> Result[Unit, String]
+}
+
+///|
 /// One common-owned read pin for an exact retained remote output.
 struct NativeRemoteOutputReader {
   owner : NativeRemoteRuntimeOwner
   physical : NativeRemotePhysicalReader
   max_chunk_bytes : Int
   mut eof : Bool
+  mut closed : Bool
+}
+
+///|
+/// One verified physical manifest chunk from an exact retained output.
+pub(all) struct NativeRemoteOutputManifestChunk {
+  index : Int
+  bytes : Bytes
+}
+
+///|
+/// A common-owned manifest reader pin. Unlike the general consumer reader,
+/// this reader preserves physical chunk boundaries needed by Transfer.
+struct NativeRemoteOutputManifestReader {
+  owner : NativeRemoteRuntimeOwner
+  physical : NativeRemotePhysicalManifestReader
+  manifest : @manifest.PhysicalManifest
+  max_chunk_bytes : Int
+  mut index : Int
   mut closed : Bool
 }
 
@@ -201,6 +234,10 @@ fn readmit_native_remote_output_manifest(
 pub fn prepare_native_remote_output(
   facts : NativeRemoteOutputFacts,
   open_reader : () -> Result[NativeRemotePhysicalReader, String],
+  open_manifest_reader : () -> Result[
+    NativeRemotePhysicalManifestReader,
+    String,
+  ],
   release : () -> Bool,
 ) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue] {
   let manifest = facts.physical_manifest
@@ -237,6 +274,7 @@ pub fn prepare_native_remote_output(
         NativeRemoteOutputReady({
           facts: { ..facts, physical_manifest: admitted_manifest, },
           open_reader,
+          open_manifest_reader,
           release,
         }),
       )
@@ -252,6 +290,18 @@ pub fn prepare_native_remote_physical_reader(
   finish : () -> Result[Unit, String],
   close : () -> Result[Unit, String],
 ) -> NativeRemotePhysicalReader {
+  { next, finish, close, }
+}
+
+///|
+/// Wrap environment-owned physical manifest access for common verification.
+/// The callback must return the complete chunk at the requested index; it may
+/// not reinterpret the manifest or choose a different chunking scheme.
+pub fn prepare_native_remote_physical_manifest_reader(
+  next : (Int) -> Result[Bytes, String],
+  finish : () -> Result[Unit, String],
+  close : () -> Result[Unit, String],
+) -> NativeRemotePhysicalManifestReader {
   { next, finish, close, }
 }
 
@@ -1434,6 +1484,150 @@ pub fn NativeRemoteRuntime::open_output_reader(
   }
   owner.active_readers += 1
   Ok({ owner, physical, max_chunk_bytes, eof: false, closed: false, })
+}
+
+///|
+/// Open a manifest-preserving reader for an explicit Transfer occurrence.
+/// Every admitted physical chunk must fit the caller's bounded buffer; this
+/// operation never combines chunks or materializes the complete Result.
+pub fn NativeRemoteRuntime::open_output_manifest_reader(
+  self : NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+  material_generation : String,
+  max_chunk_bytes : Int,
+) -> Result[NativeRemoteOutputManifestReader, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if max_chunk_bytes <= 0 || max_chunk_bytes > 1048576 {
+    return Err(OutputReaderUnavailable)
+  }
+  let identity = @remote.dispatch_request_identity(request)
+  guard self.owners.get(identity) is Some(owner) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if !@remote.dispatch_record_matches_request(owner.record, request) ||
+    !@site.site_available(owner.registration.site) {
+    return Err(OutputReaderUnavailable)
+  }
+  guard owner.output is Some(output) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if output.facts.material_generation != material_generation ||
+    !@remote.remote_runtime_custody_output_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_output_released(owner.custody) ||
+    !@remote.remote_runtime_custody_holding_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_holding_released(owner.custody) {
+    return Err(OutputReaderUnavailable)
+  }
+  guard readmit_native_remote_output_manifest(output.facts.physical_manifest)
+    is Some(manifest) else {
+    return Err(OutputRejected)
+  }
+  for chunk in manifest.chunks {
+    if chunk.byte_length > max_chunk_bytes.to_int64() {
+      return Err(OutputReaderChunkExceeded)
+    }
+  }
+  match native_remote_runtime_completion(owner) {
+    Ok(_) => ()
+    Err(_) => return Err(OutputReaderUnavailable)
+  }
+  let physical = match (output.open_manifest_reader)() {
+    Ok(value) => value
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  owner.active_readers += 1
+  Ok({ owner, physical, manifest, max_chunk_bytes, index: 0, closed: false, })
+}
+
+///|
+/// Read and verify one complete physical manifest chunk in manifest order.
+pub fn NativeRemoteOutputManifestReader::next(
+  self : NativeRemoteOutputManifestReader,
+) -> Result[NativeRemoteOutputManifestChunk?, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(OutputReaderClosed)
+  }
+  if self.index == self.manifest.chunks.length() {
+    return Ok(None)
+  }
+  let index = self.index
+  let expected = self.manifest.chunks[index]
+  let bytes = match (self.physical.next)(index) {
+    Ok(value) => value
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  if bytes.length() > self.max_chunk_bytes ||
+    bytes.length().to_int64() != expected.byte_length ||
+    "sha256:" + @sha.hex(bytes) != expected.cid {
+    return Err(OutputRejected)
+  }
+  self.index += 1
+  Ok(Some({ index, bytes, }))
+}
+
+///|
+/// Confirm that every manifest chunk was consumed and release the reader pin.
+pub fn NativeRemoteOutputManifestReader::finish(
+  self : NativeRemoteOutputManifestReader,
+) -> Result[Bool, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Ok(false)
+  }
+  if self.index != self.manifest.chunks.length() {
+    return Err(OutputReaderIncomplete)
+  }
+  match (self.physical.finish)() {
+    Ok(_) => ()
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  self.owner.active_readers -= 1
+  self.closed = true
+  Ok(true)
+}
+
+///|
+/// Abort manifest access and release the pin only after physical stop.
+pub fn NativeRemoteOutputManifestReader::close(
+  self : NativeRemoteOutputManifestReader,
+) -> Result[Bool, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Ok(false)
+  }
+  match (self.physical.close)() {
+    Ok(_) => ()
+    Err(issue) => return Err(OutputReaderPhysical(issue))
+  }
+  self.owner.active_readers -= 1
+  self.closed = true
+  Ok(true)
+}
+
+///|
+pub fn NativeRemoteOutputManifestReader::physical_manifest(
+  self : NativeRemoteOutputManifestReader,
+) -> Result[@manifest.PhysicalManifest, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(OutputReaderClosed)
+  }
+  match readmit_native_remote_output_manifest(self.manifest) {
+    Some(value) => Ok(value)
+    None => Err(OutputRejected)
+  }
+}
+
+///|
+pub fn NativeRemoteOutputManifestReader::material_generation(
+  self : NativeRemoteOutputManifestReader,
+) -> Result[String, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(OutputReaderClosed)
+  }
+  guard self.owner.output is Some(output) else {
+    return Err(OutputReaderUnavailable)
+  }
+  Ok(output.facts.material_generation)
 }
 
 ///|
