@@ -14,6 +14,7 @@ priv enum Phase {
 priv enum GraphExecution {
   Normalize(@sga.NormalizeExecution)
   Graft(@sga.GraftExecution)
+  Subgraph(@sga.SubgraphExecution)
 }
 
 ///|
@@ -187,6 +188,10 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
+      (current, @lower.GraphSubgraphStep(subgraph)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.subgraph" &&
+        @lower.graph_subgraph_literal_id_count(subgraph) is Some(_) &&
+        !@lower.graph_subgraph_has_edge_predicate(subgraph)
       (current, @lower.GraphStructuralStep(structural)) if current < count - 1 =>
         @lower.operation(node) == "SGA.graft" ||
         (
@@ -588,6 +593,34 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.GraphSubgraphStep(_)) => {
+            guard value.graph is Some(output) else {
+              return fail_execution(value)
+            }
+            let input = match
+              @graph.prepare_step_read(
+                @execution.generated_sequence_owner(value.generated),
+                value.kernel_step,
+                0,
+                output,
+              ) {
+              Ok(read) => read
+              Err(_) => return fail_execution(value)
+            }
+            match
+              @sga.start_subgraph(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => Subgraph(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           _ => return fail_execution(value)
         }
         value.kernel = Some(started)
@@ -618,6 +651,18 @@ fn advance_execution(
               Ok(@sga.GraftFailed(_, progress~, work~)) =>
                 Ok((2, None, progress, work))
               Ok(@sga.GraftStopped(_, progress~, work~)) =>
+                Ok((3, None, progress, work))
+              Err(_) => Err(())
+            }
+          Subgraph(execution) =>
+            match @sga.advance_subgraph(execution, quantum) {
+              Ok(@sga.SubgraphContinue(progress~, work~)) =>
+                Ok((0, None, progress, work))
+              Ok(@sga.SubgraphComplete(output, progress~, work~)) =>
+                Ok((1, Some(output), progress, work))
+              Ok(@sga.SubgraphFailed(_, progress~, work~)) =>
+                Ok((2, None, progress, work))
+              Ok(@sga.SubgraphStopped(_, progress~, work~)) =>
                 Ok((3, None, progress, work))
               Err(_) => Err(())
             }
@@ -669,6 +714,12 @@ fn advance_execution(
             }
           Graft(execution) =>
             match @sga.cleanup_graft(execution) {
+              Ok(true) => 1
+              Ok(false) => 0
+              Err(_) => -1
+            }
+          Subgraph(execution) =>
+            match @sga.cleanup_subgraph(execution) {
               Ok(true) => 1
               Ok(false) => 0
               Err(_) => -1
@@ -1268,6 +1319,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      Subgraph(execution) =>
+        match @sga.cleanup_subgraph(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -1305,6 +1361,7 @@ fn cleanup_execution(
   let kernel_pending = match value.kernel {
     Some(Normalize(active)) => @sga.normalize_cleanup_pending(active)
     Some(Graft(active)) => @sga.graft_cleanup_pending(active)
+    Some(Subgraph(active)) => @sga.subgraph_cleanup_pending(active)
     None => false
   }
   if failed {
