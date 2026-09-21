@@ -8,6 +8,8 @@ import {
 // Values
 pub fn admit_durable_publication_payload_record(Bytes) -> Result[DurablePublicationPayloadRecord, PublicationPayloadIssue]
 
+pub fn admit_publication_payload_request_json(String, String) -> Result[PublicationPayloadRequest, PublicationPayloadIssue]
+
 pub fn commit_publication_payload_transition(PublicationPayloadTransition, Bool) -> Result[PublicationPayloadRecord, PublicationPayloadIssue]
 
 pub fn durable_publication_payload_record_material_identity(DurablePublicationPayloadRecord) -> String
@@ -61,6 +63,8 @@ pub fn publication_payload_request_attempt(PublicationPayloadRequest) -> String
 pub fn publication_payload_request_codec(PublicationPayloadRequest) -> String
 
 pub fn publication_payload_request_identity(PublicationPayloadRequest) -> String
+
+pub fn publication_payload_request_json(PublicationPayloadRequest) -> Result[String, PublicationPayloadIssue]
 
 pub fn publication_payload_request_logical_relation(PublicationPayloadRequest) -> String
 

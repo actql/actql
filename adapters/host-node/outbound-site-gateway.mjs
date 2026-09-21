@@ -288,6 +288,8 @@ export async function startHttpsOutboundSiteGateway({
           matched.transferRequest,
         );
         settle(matched, 'resolve', Object.freeze({
+          result: admitted,
+          resultWire: body,
           resultCid: projection[0],
           payloadRequestCid: projection[1],
           payloadDigest: projection[2],

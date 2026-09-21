@@ -139,6 +139,88 @@ function dispatch(overrides = {}) {
   });
 }
 
+function retainedOutputFixture(request, suffix = 'durable') {
+  const intentConfiguration = {
+    storeAuthorityCid: cid('5'),
+    publicationAttemptCid: cid('6'),
+    resultDefinitionCid: cid('7'),
+    orderingEvidenceCid: cid('8'),
+    coordinatorAuthority: 'coordinator-a',
+    transferAttemptId: `transfer-${suffix}`,
+    transferRoute: 'direct',
+    destinationSite: 'site-b',
+    destinationSiteGeneration: 2,
+    transferMaxBytes: 1024n,
+    transferExpiresAtMilliseconds: 2_000_000_000_000n,
+    sourceGrantCid: cid('9'),
+    destinationGrantCid: cid('c'),
+    routeCapabilityCid: cid('d'),
+    transferOrigin: 'https://transfer.example.invalid/output',
+  };
+  const intent = control.prepareOutputIntent(request, intentConfiguration);
+  const materialGeneration = cid('e');
+  const physicalManifest = {
+    version: 'actql-managed-physical-manifest/0.1',
+    schemaContractCid: cid('1'),
+    viewContractCid: cid('2'),
+    codecContractCid: cid('3'),
+    rowCount: 2,
+    chunks: [{cid: cid('a'), byteLength: 12n, rowCount: 2}],
+  };
+  const payloadRequest = control.preparePublicationPayload({
+    storeAuthorityCid: intentConfiguration.storeAuthorityCid,
+    publicationAttemptCid: intentConfiguration.publicationAttemptCid,
+    materialGenerationCid: materialGeneration,
+    resultDefinitionCid: intentConfiguration.resultDefinitionCid,
+    logicalRelationCid: physicalManifest.viewContractCid,
+    resultSchemaCid: physicalManifest.schemaContractCid,
+    orderingEvidenceCid: intentConfiguration.orderingEvidenceCid,
+    durableCodecCid: physicalManifest.codecContractCid,
+    maxBytes: 12n,
+    rowCount: 2n,
+  });
+  const transferRequest = transferControl.prepare({
+    coordinatorAuthority: 'coordinator-a',
+    transferAttemptId: intentConfiguration.transferAttemptId,
+    route: 'direct',
+    sourceSite: 'site-a',
+    sourceSiteGeneration: 1,
+    destinationSite: 'site-b',
+    destinationSiteGeneration: 2,
+    sourceMaterialGeneration: materialGeneration,
+    physicalManifest,
+    limits: {
+      maxChunks: 4,
+      maxManifestBytes: 4096,
+      maxReferencedBytes: 12n,
+    },
+    capacityBytes: 1024n,
+    expiresAtMilliseconds: 2_000_000_000_000n,
+    sourceGrantCid: cid('9'),
+    destinationGrantCid: cid('c'),
+    routeCapabilityCid: cid('d'),
+  });
+  let transferRecord = transferControl.open(transferRequest);
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareStart(transferRecord),
+    true,
+  );
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareSourceSettled(transferRecord, true, false),
+    true,
+  );
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareDestinationCommit(transferRecord),
+    true,
+  );
+  return Object.freeze({
+    intent,
+    payloadRequest,
+    transferRequest,
+    transferRecord,
+  });
+}
+
 test('outbound gateway admits one exact retained-output result', async t => {
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch, 'outbound-output-'));
@@ -574,6 +656,104 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       key: certificates_.foreignKey,
     });
     assert.equal(foreign.status, 404);
+  });
+
+test('Coordinator restores a committed output without repeating transport',
+  async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'outbound-output-journal-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const certificates_ = await certificates(root);
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: certificates_.serverKey,
+      cert: certificates_.serverCertificate,
+      ca: certificates_.ca,
+      siteAuthorities: new Map([[
+        certificates_.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1},
+      ]]),
+      control,
+    });
+    t.after(() => gateway.close());
+    const storeRoot = join(root, 'coordinator');
+    const store = openSqliteCoordinatorDispatchJournal(storeRoot, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    const request = dispatch({dispatchId: 'dispatch-output-journal'});
+    const fixture = retainedOutputFixture(request, 'journal');
+    const coordinator = createRemoteSiteCoordinator({
+      control,
+      transferControl,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store,
+      send: async () => Object.freeze({
+        revision: 0,
+        state: [0, 0, 0, 0, 0],
+      }),
+      output: gateway.output,
+    });
+    await coordinator.dispatch({dispatch: request});
+    const outputRequest = {
+      dispatch: request,
+      intent: fixture.intent,
+      payloadRequest: fixture.payloadRequest,
+      transferRequest: fixture.transferRequest,
+    };
+    const completion = coordinator.output(outputRequest);
+    const concurrentRetry = coordinator.output(outputRequest);
+    const path = '/v1/sites/site-a/generations/1/outbound';
+    const siteMaterial = {
+      ca: certificates_.ca,
+      cert: certificates_.siteCertificate,
+      key: certificates_.siteKey,
+    };
+    const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
+    const output = control.admitPollOutput(polled.body);
+    const result = control.prepareOutputResult(
+      output,
+      fixture.payloadRequest,
+      cid('f'),
+      fixture.transferRecord,
+    );
+    const observed = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.outputResultJson(result),
+    );
+    assert.equal(observed.status, 200);
+    const [first, retried] = await Promise.all([
+      completion,
+      concurrentRetry,
+    ]);
+    assert.deepEqual(retried, first);
+    assert.equal(first.resultCid, control.outputResultIdentity(result));
+    store.close();
+
+    const reopenedStore = openSqliteCoordinatorDispatchJournal(storeRoot, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    t.after(() => reopenedStore.close());
+    let repeated = false;
+    const reopened = createRemoteSiteCoordinator({
+      control,
+      transferControl,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store: reopenedStore,
+      output: async () => {
+        repeated = true;
+        throw new Error('output transport must not repeat');
+      },
+    });
+    assert.equal(reopened.recoveredOutputs.length, 1);
+    const restored = await reopened.output({
+      dispatch: request,
+      intent: fixture.intent,
+      payloadRequest: fixture.payloadRequest,
+      transferRequest: fixture.transferRequest,
+    });
+    assert.deepEqual(restored, first);
+    assert.equal(repeated, false);
   });
 
 test('outbound cancellation cannot admit work before dispatch', async t => {

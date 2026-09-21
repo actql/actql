@@ -14,23 +14,17 @@ struct RemoteOutputResult {
 }
 
 ///|
-fn output_result_inputs_valid(
+fn output_expected_inputs_valid(
   output : RemotePollOutput,
   payload_request : @payload.PublicationPayloadRequest,
-  payload_physical_digest : String,
-  transfer_record : @transfer.RemoteTransferRecord,
+  transfer_request : @transfer.RemoteTransferRequest,
 ) -> Bool {
   let request = output.request
   let intent = output.intent
   let intent_projection = remote_output_intent_projection(intent)
-  let transfer_projection = @transfer.request_projection(
-    @transfer.record_request(transfer_record),
-  )
-  let transfer_occurrence = @transfer.request_journal_key(
-    @transfer.record_request(transfer_record),
-  )
+  let transfer_projection = @transfer.request_projection(transfer_request)
+  let transfer_occurrence = @transfer.request_journal_key(transfer_request)
   remote_output_intent_matches_dispatch(intent, request) &&
-  valid_cid(payload_physical_digest) &&
   @payload.publication_payload_request_store_authority(payload_request) ==
   intent_projection.store_authority_cid &&
   @payload.publication_payload_request_attempt(payload_request) ==
@@ -62,7 +56,22 @@ fn output_result_inputs_valid(
     intent_projection.destination_site_key,
     intent_projection.destination_site_generation.to_string(),
     intent_projection.transfer_attempt,
-  ] &&
+  ]
+}
+
+///|
+fn output_result_inputs_valid(
+  output : RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  payload_physical_digest : String,
+  transfer_record : @transfer.RemoteTransferRecord,
+) -> Bool {
+  valid_cid(payload_physical_digest) &&
+  output_expected_inputs_valid(
+    output,
+    payload_request,
+    @transfer.record_request(transfer_record),
+  ) &&
   @transfer.record_is_destination_committed(transfer_record)
 }
 

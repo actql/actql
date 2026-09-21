@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -11,7 +12,10 @@ import {openSqliteCoordinatorDispatchJournal} from
 import {createRemoteSiteCoordinator} from './remote-site-coordinator.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
-const control = runtimeCore(moon).remoteSiteControl;
+const runtime = runtimeCore(moon);
+const control = runtime.remoteSiteControl;
+const transferControl = runtime.remoteTransferControl;
+const scratch = fileURLToPath(new URL('../../../actql-test-runs/', import.meta.url));
 const request = dispatchId => control.prepare({
   coordinatorAuthority: 'coordinator-a',
   runDefinitionCid: cid('0'),
@@ -30,6 +34,91 @@ const request = dispatchId => control.prepare({
   evidenceIssuerCapabilityCid: cid('b'),
   grantCid: cid('4'),
 });
+
+function outputFixture(dispatch) {
+  const configuration = {
+    storeAuthorityCid: cid('5'),
+    publicationAttemptCid: cid('6'),
+    resultDefinitionCid: cid('7'),
+    orderingEvidenceCid: cid('8'),
+    coordinatorAuthority: 'coordinator-a',
+    transferAttemptId: 'transfer-coordinator-output',
+    transferRoute: 'direct',
+    destinationSite: 'site-b',
+    destinationSiteGeneration: 2,
+    transferMaxBytes: 1024n,
+    transferExpiresAtMilliseconds: 2_000_000_000_000n,
+    sourceGrantCid: cid('9'),
+    destinationGrantCid: cid('c'),
+    routeCapabilityCid: cid('d'),
+    transferOrigin: 'https://transfer.example.invalid/output',
+  };
+  const intent = control.prepareOutputIntent(dispatch, configuration);
+  const manifest = {
+    version: 'actql-managed-physical-manifest/0.1',
+    schemaContractCid: cid('1'),
+    viewContractCid: cid('2'),
+    codecContractCid: cid('3'),
+    rowCount: 2,
+    chunks: [{cid: cid('a'), byteLength: 12n, rowCount: 2}],
+  };
+  const payloadRequest = control.preparePublicationPayload({
+    storeAuthorityCid: configuration.storeAuthorityCid,
+    publicationAttemptCid: configuration.publicationAttemptCid,
+    materialGenerationCid: cid('e'),
+    resultDefinitionCid: configuration.resultDefinitionCid,
+    logicalRelationCid: manifest.viewContractCid,
+    resultSchemaCid: manifest.schemaContractCid,
+    orderingEvidenceCid: configuration.orderingEvidenceCid,
+    durableCodecCid: manifest.codecContractCid,
+    maxBytes: 12n,
+    rowCount: 2n,
+  });
+  const transferRequest = transferControl.prepare({
+    coordinatorAuthority: 'coordinator-a',
+    transferAttemptId: configuration.transferAttemptId,
+    route: 'direct',
+    sourceSite: 'site-a',
+    sourceSiteGeneration: 1,
+    destinationSite: 'site-b',
+    destinationSiteGeneration: 2,
+    sourceMaterialGeneration: cid('e'),
+    physicalManifest: manifest,
+    limits: {
+      maxChunks: 4,
+      maxManifestBytes: 4096,
+      maxReferencedBytes: 12n,
+    },
+    capacityBytes: 1024n,
+    expiresAtMilliseconds: 2_000_000_000_000n,
+    sourceGrantCid: cid('9'),
+    destinationGrantCid: cid('c'),
+    routeCapabilityCid: cid('d'),
+  });
+  let transferRecord = transferControl.open(transferRequest);
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareStart(transferRecord),
+    true,
+  );
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareSourceSettled(transferRecord, true, false),
+    true,
+  );
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareDestinationCommit(transferRecord),
+    true,
+  );
+  const output = control.admitPollOutput(
+    control.pollOutputJson(dispatch, intent),
+  );
+  const result = control.prepareOutputResult(
+    output,
+    payloadRequest,
+    cid('f'),
+    transferRecord,
+  );
+  return Object.freeze({intent, payloadRequest, transferRequest, result});
+}
 
 test('Coordinator makes exact intent durable before transport starts',
   async t => {
@@ -168,3 +257,64 @@ test('Site status cannot replace evidence or rewrite one Site revision',
       2, 1, 7, 3, 2, 0, true, false, '', '', '',
     ]);
   });
+
+test('Coordinator retries one durable unknown output after restart', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-output-unknown-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const dispatch = request('dispatch-output-unknown');
+  const fixture = outputFixture(dispatch);
+  const firstStore = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  const first = createRemoteSiteCoordinator({
+    control,
+    transferControl,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    store: firstStore,
+    send: async () => Object.freeze({
+      revision: 0,
+      state: [0, 0, 0, 0, 0],
+    }),
+    output: async () => {
+      throw Object.assign(new Error('OutputResponseLost'), {
+        code: 'OutputResponseLost',
+      });
+    },
+  });
+  await first.dispatch({dispatch});
+  await assert.rejects(
+    first.output({dispatch, ...fixture}),
+    {code: 'OutputResponseLost'},
+  );
+  firstStore.close();
+
+  const reopenedStore = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  t.after(() => reopenedStore.close());
+  let retries = 0;
+  const reopened = createRemoteSiteCoordinator({
+    control,
+    transferControl,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    store: reopenedStore,
+    output: async () => {
+      retries++;
+      return Object.freeze({result: fixture.result});
+    },
+  });
+  assert.equal(reopened.recoveredOutputs.length, 1);
+  assert.deepEqual(
+    control.coordinatorOutputRecordStatus(
+      reopened.recoveredOutputs[0].record,
+    ),
+    ['1', '1', ''],
+  );
+  const completed = await reopened.output({dispatch, ...fixture});
+  assert.equal(completed.resultCid, control.outputResultIdentity(fixture.result));
+  assert.equal(retries, 1);
+  const replayed = await reopened.output({dispatch, ...fixture});
+  assert.deepEqual(replayed, completed);
+  assert.equal(retries, 1);
+});

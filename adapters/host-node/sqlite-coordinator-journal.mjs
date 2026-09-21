@@ -46,11 +46,22 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   maxDispatches = 100_000,
   maxRequestBytes = 65_536,
   maxEvidenceBytes = 65_536,
+  maxOutputOperations = 100_000,
+  maxOutputBytes = 1_048_576,
+  maxTransferChunks = 65_536,
+  maxTransferManifestBytes = 16_777_216,
+  maxTransferReferencedBytes = Number.MAX_SAFE_INTEGER,
 } = {}) {
   if (!text(root) || !text(coordinatorAuthority) || !count(maxDispatches) ||
       maxDispatches === 0 || !count(maxRequestBytes) ||
       maxRequestBytes === 0 || !count(maxEvidenceBytes) ||
-      maxEvidenceBytes === 0) {
+      maxEvidenceBytes === 0 || !count(maxOutputOperations) ||
+      maxOutputOperations === 0 || !count(maxOutputBytes) ||
+      maxOutputBytes === 0 || !count(maxTransferChunks) ||
+      maxTransferChunks === 0 || !count(maxTransferManifestBytes) ||
+      maxTransferManifestBytes === 0 ||
+      !count(maxTransferReferencedBytes) ||
+      maxTransferReferencedBytes === 0) {
     fail('InvalidCoordinatorJournalConfiguration');
   }
   mkdirSync(root, {recursive: true, mode: 0o700});
@@ -109,6 +120,45 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         ),
         UNIQUE (dispatch_request_cid)
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS output_operations (
+        coordinator_authority TEXT NOT NULL,
+        site_key TEXT NOT NULL,
+        site_generation INTEGER NOT NULL,
+        dispatch_id TEXT NOT NULL,
+        dispatch_request_cid TEXT NOT NULL,
+        result_definition_cid TEXT NOT NULL,
+        output_intent_cid TEXT NOT NULL,
+        output_json TEXT NOT NULL,
+        payload_request_cid TEXT NOT NULL,
+        payload_request_json TEXT NOT NULL,
+        transfer_request_cid TEXT NOT NULL,
+        transfer_request_json TEXT NOT NULL,
+        transfer_manifest_cid TEXT NOT NULL,
+        transfer_manifest_json TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
+        progress_state INTEGER NOT NULL DEFAULT 0,
+        result_cid TEXT NOT NULL DEFAULT '',
+        result_json TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (
+          coordinator_authority,
+          site_key,
+          site_generation,
+          dispatch_id,
+          result_definition_cid
+        ),
+        UNIQUE (output_intent_cid),
+        FOREIGN KEY (
+          coordinator_authority,
+          site_key,
+          site_generation,
+          dispatch_id
+        ) REFERENCES dispatch_intents (
+          coordinator_authority,
+          site_key,
+          site_generation,
+          dispatch_id
+        )
+      ) STRICT;
     `);
     transaction(database, () => {
       const version = database.prepare(
@@ -118,7 +168,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         const insert = database.prepare(
           'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
         );
-        insert.run('schema_version', 'actql-remote-coordinator-journal/0.4');
+        insert.run('schema_version', 'actql-remote-coordinator-journal/0.5');
         insert.run('coordinator_authority', coordinatorAuthority);
       } else if (version.value ===
           'actql-remote-coordinator-journal/0.1') {
@@ -154,7 +204,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         `);
         database.prepare(
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.4', 'schema_version');
+        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
       } else if (version.value ===
           'actql-remote-coordinator-journal/0.2') {
         database.exec(`
@@ -169,7 +219,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         `);
         database.prepare(
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.4', 'schema_version');
+        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
       } else if (version.value ===
           'actql-remote-coordinator-journal/0.3') {
         const unverifiable = database.prepare(`
@@ -187,9 +237,14 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         `);
         database.prepare(
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.4', 'schema_version');
-      } else if (version.value !==
+        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
+      } else if (version.value ===
           'actql-remote-coordinator-journal/0.4') {
+        database.prepare(
+          'UPDATE journal_metadata SET value = ? WHERE key = ?',
+        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
+      } else if (version.value !==
+          'actql-remote-coordinator-journal/0.5') {
         fail('UnsupportedCoordinatorJournalVersion');
       }
       const authority = database.prepare(
@@ -265,6 +320,50 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       AND accepted_evidence_cid = ? AND accepted_evidence_json = ?
       AND accepted_subject_cid = ? AND accepted_subject_json = ?
       AND accepted_measurement_cid = ? AND accepted_measurement_json = ?
+  `);
+  const selectOutput = database.prepare(`
+    SELECT dispatch_request_cid, output_intent_cid, output_json,
+      payload_request_cid, payload_request_json, transfer_request_cid,
+      transfer_request_json, transfer_manifest_cid,
+      transfer_manifest_json, revision, progress_state, result_cid,
+      result_json
+    FROM output_operations
+    WHERE coordinator_authority = ? AND site_key = ?
+      AND site_generation = ? AND dispatch_id = ?
+      AND result_definition_cid = ?
+  `);
+  const selectAllOutputs = database.prepare(`
+    SELECT coordinator_authority, site_key, site_generation, dispatch_id,
+      dispatch_request_cid, result_definition_cid, output_intent_cid,
+      output_json, payload_request_cid, payload_request_json,
+      transfer_request_cid, transfer_request_json, transfer_manifest_cid,
+      transfer_manifest_json, revision, progress_state, result_cid,
+      result_json
+    FROM output_operations
+    ORDER BY coordinator_authority, site_key, site_generation, dispatch_id,
+      result_definition_cid
+  `);
+  const countOutputs = database.prepare(
+    'SELECT COUNT(*) AS count FROM output_operations',
+  );
+  const insertOutput = database.prepare(`
+    INSERT INTO output_operations (
+      coordinator_authority, site_key, site_generation, dispatch_id,
+      dispatch_request_cid, result_definition_cid, output_intent_cid,
+      output_json, payload_request_cid, payload_request_json,
+      transfer_request_cid, transfer_request_json, transfer_manifest_cid,
+      transfer_manifest_json, revision, progress_state, result_cid,
+      result_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', '')
+  `);
+  const updateOutput = database.prepare(`
+    UPDATE output_operations SET revision = ?, progress_state = ?,
+      result_cid = ?, result_json = ?
+    WHERE coordinator_authority = ? AND site_key = ?
+      AND site_generation = ? AND dispatch_id = ?
+      AND result_definition_cid = ? AND output_intent_cid = ?
+      AND revision = ? AND progress_state = ? AND result_cid = ?
+      AND result_json = ?
   `);
 
   const ensureOpen = () => {
@@ -535,6 +634,209 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     });
   };
 
+  const outputRowState = row => Object.freeze([
+    row.revision,
+    row.progress_state,
+    row.result_cid,
+  ]);
+  const parseOutputTransition = value => {
+    if (!Array.isArray(value) || value.length !== 6 ||
+        value.some(item => typeof item !== 'string')) {
+      fail('InvalidCoordinatorOutputTransition');
+    }
+    const parseInteger = item => {
+      if (!/^(0|[1-9][0-9]*)$/.test(item)) {
+        fail('InvalidCoordinatorOutputTransition');
+      }
+      const parsed = Number(item);
+      if (!count(parsed)) fail('InvalidCoordinatorOutputTransition');
+      return parsed;
+    };
+    return Object.freeze({
+      expected: Object.freeze([
+        parseInteger(value[0]),
+        parseInteger(value[1]),
+        value[2],
+      ]),
+      next: Object.freeze([
+        parseInteger(value[3]),
+        parseInteger(value[4]),
+        value[5],
+      ]),
+    });
+  };
+  const checkedOutputKey = (value, code) => {
+    if (!Array.isArray(value) || value.length !== 7 ||
+        value.some(item => !text(item)) ||
+        value[0] !== coordinatorAuthority) {
+      fail(code);
+    }
+    const generation = Number(value[2]);
+    if (!count(generation)) fail(code);
+    return Object.freeze({value, generation});
+  };
+  const outputWire = (
+    admission,
+    payloadRequest,
+    transferRequest,
+    control,
+    transferControl,
+  ) => {
+    if (control === null || typeof control !== 'object' ||
+        typeof control.coordinatorOutputAdmissionKey !== 'function' ||
+        typeof control.coordinatorOutputAdmissionJson !== 'function' ||
+        typeof control.outputExpectedIdentity !== 'function' ||
+        typeof control.publicationPayloadJson !== 'function' ||
+        transferControl === null || typeof transferControl !== 'object' ||
+        typeof transferControl.identity !== 'function' ||
+        typeof transferControl.requestJson !== 'function' ||
+        typeof transferControl.manifestJson !== 'function' ||
+        typeof transferControl.requestProjection !== 'function') {
+      fail('MissingRemoteCoordinatorOutputControl');
+    }
+    const key = checkedOutputKey(
+      control.coordinatorOutputAdmissionKey(admission),
+      'InvalidCoordinatorOutputIntent',
+    );
+    const outputJson = control.coordinatorOutputAdmissionJson(admission);
+    const expected = control.outputExpectedIdentity(
+      payloadRequest,
+      transferRequest,
+    );
+    const payloadJson = control.publicationPayloadJson(payloadRequest);
+    const transferJson = transferControl.requestJson(transferRequest);
+    const manifestJson = transferControl.manifestJson(transferRequest);
+    const transferProjection = transferControl.requestProjection(
+      transferRequest,
+    );
+    if (!Array.isArray(expected) || expected.length !== 2 ||
+        expected.some(value => !text(value)) ||
+        expected[1] !== transferControl.identity(transferRequest) ||
+        !Array.isArray(transferProjection) ||
+        transferProjection.length !== 13 ||
+        !text(transferProjection[7]) ||
+        [outputJson, payloadJson, transferJson, manifestJson].some(
+          value => !text(value),
+        ) || Buffer.byteLength(outputJson, 'utf8') > maxOutputBytes ||
+        Buffer.byteLength(payloadJson, 'utf8') > maxOutputBytes ||
+        Buffer.byteLength(transferJson, 'utf8') > maxOutputBytes ||
+        Buffer.byteLength(manifestJson, 'utf8') >
+          maxTransferManifestBytes) {
+      fail('InvalidCoordinatorOutputIntent');
+    }
+    return Object.freeze({
+      key,
+      outputJson,
+      payloadCid: expected[0],
+      payloadJson,
+      transferCid: expected[1],
+      transferJson,
+      manifestCid: transferProjection[7],
+      manifestJson,
+    });
+  };
+  const installOutput = wire => transaction(
+    database,
+    () => {
+      const key = wire.key.value;
+      const existing = selectOutput.get(
+        key[0], key[1], wire.key.generation, key[3], key[5],
+      );
+      if (existing !== undefined) {
+        if (existing.dispatch_request_cid !== key[4] ||
+            existing.output_intent_cid !== key[6] ||
+            existing.output_json !== wire.outputJson ||
+            existing.payload_request_cid !== wire.payloadCid ||
+            existing.payload_request_json !== wire.payloadJson ||
+            existing.transfer_request_cid !== wire.transferCid ||
+            existing.transfer_request_json !== wire.transferJson ||
+            existing.transfer_manifest_cid !== wire.manifestCid ||
+            existing.transfer_manifest_json !== wire.manifestJson) {
+          fail('CoordinatorOutputCollision');
+        }
+      } else {
+        const total = Number(countOutputs.get().count);
+        if (!count(total) || total >= maxOutputOperations) {
+          fail('CoordinatorJournalCapacityExceeded');
+        }
+        insertOutput.run(
+          key[0], key[1], wire.key.generation, key[3], key[4], key[5],
+          key[6], wire.outputJson, wire.payloadCid, wire.payloadJson,
+          wire.transferCid, wire.transferJson, wire.manifestCid,
+          wire.manifestJson,
+        );
+      }
+      return existing === undefined;
+    },
+  );
+  const advanceOutput = (transition, result, record, control) => {
+    ensureOpen();
+    if (control === null || typeof control !== 'object' ||
+        typeof control.coordinatorOutputTransitionKey !== 'function' ||
+        typeof control.coordinatorOutputTransitionProjection !== 'function' ||
+        typeof control.commitCoordinatorOutputTransition !== 'function' ||
+        typeof control.coordinatorOutputRecordRevision !== 'function') {
+      fail('MissingRemoteCoordinatorOutputControl');
+    }
+    const key = checkedOutputKey(
+      control.coordinatorOutputTransitionKey(transition),
+      'InvalidCoordinatorOutputTransition',
+    );
+    const states = parseOutputTransition(
+      control.coordinatorOutputTransitionProjection(transition),
+    );
+    if (control.coordinatorOutputRecordRevision(record) !==
+        states.expected[0]) {
+      fail('CoordinatorOutputStateCollision');
+    }
+    let resultJson = '';
+    if (result !== undefined) {
+      if (typeof control.outputResultIdentity !== 'function' ||
+          typeof control.outputResultJson !== 'function' ||
+          control.outputResultIdentity(result) !== states.next[2]) {
+        fail('CoordinatorOutputResultMismatch');
+      }
+      resultJson = control.outputResultJson(result);
+      if (!text(resultJson) ||
+          Buffer.byteLength(resultJson, 'utf8') > maxOutputBytes) {
+        fail('InvalidCoordinatorOutputResult');
+      }
+    } else if (states.next[2] !== '') {
+      fail('CoordinatorOutputResultMissing');
+    }
+    transaction(database, () => {
+      const values = key.value;
+      const found = selectOutput.get(
+        values[0], values[1], key.generation, values[3], values[5],
+      );
+      if (found === undefined || found.output_intent_cid !== values[6]) {
+        fail('CoordinatorOutputRecordMissing');
+      }
+      const current = outputRowState(found);
+      if (sameState(current, states.next)) {
+        if (found.result_json !== resultJson) {
+          fail('CoordinatorOutputStateCollision');
+        }
+        return;
+      }
+      if (!sameState(current, states.expected)) {
+        fail('CoordinatorOutputStateCollision');
+      }
+      const changed = updateOutput.run(
+        states.next[0], states.next[1], states.next[2], resultJson,
+        values[0], values[1], key.generation, values[3], values[5],
+        values[6], states.expected[0], states.expected[1],
+        states.expected[2], found.result_json,
+      );
+      if (changed.changes !== 1) fail('CoordinatorOutputStateCollision');
+    });
+    control.commitCoordinatorOutputTransition(transition, true);
+    if (control.coordinatorOutputRecordRevision(record) !== states.next[0]) {
+      fail('CoordinatorJournalControlDiverged');
+    }
+    return record;
+  };
+
   return Object.freeze({
     path,
     recoverJournal(journal, control) {
@@ -642,6 +944,101 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       }
       return Object.freeze(recovered);
     },
+    recoverOutputs(journal, control, transferControl) {
+      ensureOpen();
+      if (control === null || typeof control !== 'object' ||
+          typeof control.admitPollOutput !== 'function' ||
+          typeof control.admitPublicationPayloadJson !== 'function' ||
+          typeof control.prepareCoordinatorOutput !== 'function' ||
+          typeof control.commitCoordinatorOutput !== 'function' ||
+          typeof control.restoreCoordinatorOutputRecord !== 'function' ||
+          transferControl === null || typeof transferControl !== 'object' ||
+          typeof transferControl.admitJson !== 'function') {
+        fail('MissingRemoteCoordinatorOutputControl');
+      }
+      const recovered = [];
+      for (const row of selectAllOutputs.all()) {
+        try {
+          if (!text(row.output_json) || !text(row.output_intent_cid) ||
+              !text(row.payload_request_json) ||
+              !text(row.payload_request_cid) ||
+              !text(row.transfer_request_json) ||
+              !text(row.transfer_request_cid) ||
+              !text(row.transfer_manifest_json) ||
+              !text(row.transfer_manifest_cid) ||
+              Buffer.byteLength(row.output_json, 'utf8') > maxOutputBytes ||
+              Buffer.byteLength(row.payload_request_json, 'utf8') >
+                maxOutputBytes ||
+              Buffer.byteLength(row.transfer_request_json, 'utf8') >
+                maxOutputBytes ||
+              Buffer.byteLength(row.transfer_manifest_json, 'utf8') >
+                maxTransferManifestBytes || !count(row.revision) ||
+              !count(row.progress_state) ||
+              typeof row.result_cid !== 'string' ||
+              typeof row.result_json !== 'string') {
+            fail('InvalidCoordinatorOutputRecord');
+          }
+          const output = control.admitPollOutput(row.output_json);
+          const payloadRequest = control.admitPublicationPayloadJson(
+            row.payload_request_json,
+            row.payload_request_cid,
+          );
+          const transferRequest = transferControl.admitJson(
+            row.transfer_request_json,
+            row.transfer_manifest_json,
+            row.transfer_request_cid,
+            row.transfer_manifest_cid,
+            {
+              maxChunks: maxTransferChunks,
+              maxManifestBytes: maxTransferManifestBytes,
+              maxReferencedBytes: maxTransferReferencedBytes,
+            },
+          );
+          const admission = control.prepareCoordinatorOutput(
+            journal,
+            output,
+            payloadRequest,
+            transferRequest,
+          );
+          const key = checkedOutputKey(
+            control.coordinatorOutputAdmissionKey(admission),
+            'InvalidCoordinatorOutputRecord',
+          ).value;
+          if (key[0] !== row.coordinator_authority ||
+              key[1] !== row.site_key ||
+              Number(key[2]) !== row.site_generation ||
+              key[3] !== row.dispatch_id ||
+              key[4] !== row.dispatch_request_cid ||
+              key[5] !== row.result_definition_cid ||
+              key[6] !== row.output_intent_cid) {
+            fail('InvalidCoordinatorOutputRecord');
+          }
+          const record = control.commitCoordinatorOutput(admission, true);
+          control.restoreCoordinatorOutputRecord(
+            record,
+            row.revision,
+            row.progress_state,
+            row.result_json,
+          );
+          const status = control.coordinatorOutputRecordStatus(record);
+          if (!Array.isArray(status) || status.length !== 3 ||
+              Number(status[0]) !== row.revision ||
+              Number(status[1]) !== row.progress_state ||
+              status[2] !== row.result_cid) {
+            fail('InvalidCoordinatorOutputRecord');
+          }
+          recovered.push(Object.freeze({
+            output,
+            payloadRequest,
+            transferRequest,
+            record,
+          }));
+        } catch (error) {
+          fail('InvalidCoordinatorOutputRecord', error);
+        }
+      }
+      return Object.freeze(recovered);
+    },
     accept(admission, request, control) {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
@@ -660,6 +1057,69 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         fail('CoordinatorJournalControlDiverged');
       }
       return record;
+    },
+    acceptOutput(
+      admission,
+      payloadRequest,
+      transferRequest,
+      control,
+      transferControl,
+    ) {
+      ensureOpen();
+      if (typeof control?.commitCoordinatorOutput !== 'function' ||
+          typeof control?.coordinatorOutputRecordKey !== 'function') {
+        fail('MissingRemoteCoordinatorOutputControl');
+      }
+      const wire = outputWire(
+        admission,
+        payloadRequest,
+        transferRequest,
+        control,
+        transferControl,
+      );
+      installOutput(wire);
+      const record = control.commitCoordinatorOutput(admission, true);
+      const recordKey = control.coordinatorOutputRecordKey(record);
+      if (!Array.isArray(recordKey) ||
+          !sameState(recordKey, wire.key.value)) {
+        fail('CoordinatorJournalControlDiverged');
+      }
+      return record;
+    },
+    advanceOutputUnknown(transition, record, control) {
+      return advanceOutput(transition, undefined, record, control);
+    },
+    advanceOutputSuccess(transition, result, record, control) {
+      return advanceOutput(transition, result, record, control);
+    },
+    inspectOutput(outputRecord, control) {
+      ensureOpen();
+      if (typeof control?.coordinatorOutputRecordKey !== 'function') {
+        fail('MissingRemoteCoordinatorOutputControl');
+      }
+      const key = checkedOutputKey(
+        control.coordinatorOutputRecordKey(outputRecord),
+        'InvalidCoordinatorOutputRecord',
+      );
+      const row = selectOutput.get(
+        key.value[0], key.value[1], key.generation, key.value[3],
+        key.value[5],
+      );
+      if (row === undefined || row.output_intent_cid !== key.value[6]) {
+        return undefined;
+      }
+      return Object.freeze({
+        revision: row.revision,
+        progress: row.progress_state,
+        resultCid: row.result_cid || undefined,
+        resultJson: row.result_json || undefined,
+      });
+    },
+    hasOutputOperations() {
+      ensureOpen();
+      const total = Number(countOutputs.get().count);
+      if (!count(total)) fail('InvalidCoordinatorJournalState');
+      return total !== 0;
     },
     advance(transition, record, control) {
       return advanceTransition(

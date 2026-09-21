@@ -482,6 +482,38 @@ pub fn strategy_remote_coordinator_intent_restore(@remote_site_protocol.Coordina
 
 pub fn strategy_remote_coordinator_journal_create(String) -> @remote_site_protocol.CoordinatorDispatchJournal raise NodeHostFailure
 
+pub fn strategy_remote_coordinator_output_admission_json(@remote_site_protocol.CoordinatorOutputAdmission) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_admission_key(@remote_site_protocol.CoordinatorOutputAdmission) -> Array[String]
+
+pub fn strategy_remote_coordinator_output_commit(@remote_site_protocol.CoordinatorOutputAdmission, Bool) -> @remote_site_protocol.CoordinatorOutputRecord raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_is_new(@remote_site_protocol.CoordinatorOutputAdmission) -> Bool
+
+pub fn strategy_remote_coordinator_output_prepare(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.CoordinatorOutputAdmission raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_prepare_success(@remote_site_protocol.CoordinatorOutputRecord, @remote_site_protocol.RemoteOutputResult) -> @remote_site_protocol.CoordinatorOutputTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_prepare_unknown(@remote_site_protocol.CoordinatorOutputRecord) -> @remote_site_protocol.CoordinatorOutputTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_record_key(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]
+
+pub fn strategy_remote_coordinator_output_record_restore(@remote_site_protocol.CoordinatorOutputRecord, Int, Int, String) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_record_result_json(@remote_site_protocol.CoordinatorOutputRecord) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_record_result_projection(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_record_revision(@remote_site_protocol.CoordinatorOutputRecord) -> Int
+
+pub fn strategy_remote_coordinator_output_record_status(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]
+
+pub fn strategy_remote_coordinator_output_transition_commit(@remote_site_protocol.CoordinatorOutputTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_output_transition_key(@remote_site_protocol.CoordinatorOutputTransition) -> Array[String]
+
+pub fn strategy_remote_coordinator_output_transition_projection(@remote_site_protocol.CoordinatorOutputTransition) -> Array[String]
+
 pub fn strategy_remote_coordinator_prepare_managed_output_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_prepare_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence?, @remote_site_protocol.RemoteManagedOutputSubject?, @remote_site_protocol.RemoteManagedOutputMeasurement?) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
@@ -630,6 +662,8 @@ pub fn strategy_remote_output_intent_prepare(@remote_site_protocol.DispatchReque
 
 pub fn strategy_remote_output_result_admit(String, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
 
+pub fn strategy_remote_output_result_identity(@remote_site_protocol.RemoteOutputResult) -> String
+
 pub fn strategy_remote_output_result_json(@remote_site_protocol.RemoteOutputResult) -> String raise NodeHostFailure
 
 pub fn strategy_remote_output_result_prepare(@remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
@@ -689,6 +723,10 @@ pub fn strategy_remote_prepare_retained(@remote_site_protocol.DispatchRecord, St
 pub fn strategy_remote_prepare_settled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_prepare_unknown(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_publication_payload_admit_json(String, String) -> @publication_payload.PublicationPayloadRequest raise NodeHostFailure
+
+pub fn strategy_remote_publication_payload_json(@publication_payload.PublicationPayloadRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_publication_payload_prepare(String, String, String, String, String, String, String, String, Int64, Int64) -> @publication_payload.PublicationPayloadRequest raise NodeHostFailure
 

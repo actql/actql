@@ -242,6 +242,32 @@ pub fn publication_payload_request_identity(
 }
 
 ///|
+/// Return the canonical request body used by durable publication and remote
+/// output journals. The body carries no Store authority beyond the admitted
+/// request itself.
+pub fn publication_payload_request_json(
+  request : PublicationPayloadRequest,
+) -> Result[String, PublicationPayloadIssue] {
+  match
+    emit_payload_request(
+      request.store_authority_cid,
+      request.publication_attempt_cid,
+      request.material_generation_cid,
+      request.result_definition_cid,
+      request.logical_relation_cid,
+      request.result_schema_cid,
+      request.ordering_evidence_cid,
+      request.durable_codec_cid,
+      request.max_bytes,
+      request.row_count,
+    ) {
+    Ok((body, identity)) if body == request.body &&
+      identity == request.request_cid => Ok(body)
+    _ => Err(IdentityMismatch)
+  }
+}
+
+///|
 pub fn publication_payload_material_identity(
   request : PublicationPayloadRequest,
 ) -> String {
@@ -771,6 +797,24 @@ fn admit_request_json(
     raise PayloadStop
   }
   request
+}
+
+///|
+/// Re-admit one exact canonical request. Durable callers must preserve both
+/// the canonical body and its separately stored identity.
+pub fn admit_publication_payload_request_json(
+  body : String,
+  claimed_request_cid : String,
+) -> Result[PublicationPayloadRequest, PublicationPayloadIssue] {
+  try {
+    let request = admit_request_json(body)
+    if request.request_cid != claimed_request_cid {
+      raise PayloadStop
+    }
+    Ok(request)
+  } catch {
+    PayloadStop => Err(InvalidRequest)
+  }
 }
 
 ///|

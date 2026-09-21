@@ -66,9 +66,14 @@ Compute.
 The observed generation, physical manifest, logical view, schema, codec, and
 source Site generation cannot be replaced by the executable adapter. The Site
 now posts one canonical output result, and the Coordinator gateway re-admits
-its exact payload and Transfer bindings before resolving the operation. A
-durable Coordinator output journal and the separated-process product E2E
-before release remain open. The live Node
+its exact payload and Transfer bindings before resolving the operation. The
+Coordinator now durably installs that exact output intent before transport,
+records an uncertain response without authorizing source release, and commits
+the re-admitted result through a MoonBit-owned transition. SQLite restores the
+canonical payload and Transfer requests after restart; an unknown operation
+may retry only that occurrence, while an already committed result returns
+without repeating transport or Compute. The separated-process product E2E
+before release remains open. The live Node
 bundle boundary and the native durable-Store route now install opaque
 factories directly; neither
 accepts a replacement input state machine from application composition. The

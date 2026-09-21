@@ -55,6 +55,10 @@ pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bo
 
 pub fn commit_coordinator_dispatch_transition(CoordinatorDispatchTransition, Bool) -> Result[Unit, DispatchIssue]
 
+pub fn commit_coordinator_output_intent(CoordinatorOutputAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorOutputRecord), DispatchIssue]
+
+pub fn commit_coordinator_output_transition(CoordinatorOutputTransition, Bool) -> Result[CoordinatorOutputRecord, DispatchIssue]
+
 pub fn commit_dispatch_acceptance(DispatchAdmission, Bool) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
 
 pub fn commit_dispatch_transition(DispatchTransition, Bool) -> Result[Unit, DispatchIssue]
@@ -88,6 +92,26 @@ pub fn coordinator_dispatch_transition_journal_key(CoordinatorDispatchTransition
 pub fn coordinator_dispatch_transition_projection(CoordinatorDispatchTransition) -> Array[String]
 
 pub fn coordinator_managed_output_matches(CoordinatorDispatchIntentRecord, DispatchRequest, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
+
+pub fn coordinator_output_admission_json(CoordinatorOutputAdmission) -> Result[String, DispatchIssue]
+
+pub fn coordinator_output_admission_key(CoordinatorOutputAdmission) -> Array[String]
+
+pub fn coordinator_output_intent_kind(CoordinatorOutputAdmission) -> DispatchAcceptance
+
+pub fn coordinator_output_record_key(CoordinatorOutputRecord) -> Array[String]
+
+pub fn coordinator_output_record_result_json(CoordinatorOutputRecord) -> Result[String, DispatchIssue]
+
+pub fn coordinator_output_record_result_projection(CoordinatorOutputRecord) -> Result[Array[String], DispatchIssue]
+
+pub fn coordinator_output_record_revision(CoordinatorOutputRecord) -> Int
+
+pub fn coordinator_output_record_status(CoordinatorOutputRecord) -> Array[String]
+
+pub fn coordinator_output_transition_key(CoordinatorOutputTransition) -> Array[String]
+
+pub fn coordinator_output_transition_projection(CoordinatorOutputTransition) -> Array[String]
 
 pub fn create_coordinator_dispatch_journal(String) -> Result[CoordinatorDispatchJournal, DispatchIssue]
 
@@ -200,6 +224,12 @@ pub fn prepare_coordinator_managed_output_observation(CoordinatorDispatchIntentR
 pub fn prepare_coordinator_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence?, RemoteManagedOutputSubject?, RemoteManagedOutputMeasurement?) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
 pub fn prepare_coordinator_outcome_unknown(CoordinatorDispatchIntentRecord) -> Result[CoordinatorDispatchTransition, DispatchIssue]
+
+pub fn prepare_coordinator_output_intent(CoordinatorDispatchJournal, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[CoordinatorOutputAdmission, DispatchIssue]
+
+pub fn prepare_coordinator_output_success(CoordinatorOutputRecord, RemoteOutputResult) -> Result[CoordinatorOutputTransition, DispatchIssue]
+
+pub fn prepare_coordinator_output_unknown(CoordinatorOutputRecord) -> Result[CoordinatorOutputTransition, DispatchIssue]
 
 pub fn prepare_coordinator_response_observation(CoordinatorDispatchIntentRecord, RemoteDispatchResponse) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
@@ -423,6 +453,8 @@ pub fn restore_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchR
 
 pub fn restore_coordinator_dispatch_record(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
+pub fn restore_coordinator_output_record(CoordinatorOutputRecord, Int, Int, String) -> Result[CoordinatorOutputRecord, DispatchIssue]
+
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
 pub fn restore_durable_coordinator_dispatch_record(CoordinatorDispatchJournal, DurableCoordinatorDispatchRecord) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
@@ -463,6 +495,18 @@ pub(all) enum CoordinatorDispatchProgress {
 } derive(Eq, @debug.Debug)
 
 type CoordinatorDispatchTransition
+
+type CoordinatorOutputAdmission
+
+pub(all) enum CoordinatorOutputProgress {
+  CoordinatorOutputIntentDurable
+  CoordinatorOutputUnknown
+  CoordinatorOutputSucceeded
+} derive(Eq, @debug.Debug)
+
+type CoordinatorOutputRecord
+
+type CoordinatorOutputTransition
 
 pub(all) enum DispatchAcceptance {
   NewDispatch

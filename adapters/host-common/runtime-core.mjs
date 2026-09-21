@@ -235,6 +235,15 @@ function remoteSiteControl(moon) {
         int64(configuration.rowCount, 'row count'),
       ));
     },
+    publicationPayloadJson: value => checked(
+      moon.strategyRemotePublicationPayloadJson(value),
+    ),
+    admitPublicationPayloadJson: (body, claimedRequestCid) => checked(
+      moon.strategyRemotePublicationPayloadAdmitJson(
+        body,
+        claimedRequestCid,
+      ),
+    ),
     pollOutputJson: (request, intent) => checked(
       moon.strategyRemotePollOutputJson(request, intent),
     ),
@@ -266,6 +275,7 @@ function remoteSiteControl(moon) {
     outputResultJson: result => checked(
       moon.strategyRemoteOutputResultJson(result),
     ),
+    outputResultIdentity: moon.strategyRemoteOutputResultIdentity,
     outputResultProjection: (result, transferRequest) => checked(
       moon.strategyRemoteOutputResultProjection(result, transferRequest),
     ),
@@ -380,6 +390,66 @@ function remoteSiteControl(moon) {
     },
     coordinatorCompletionEvidenceAvailable:
       moon.strategyRemoteCoordinatorCompletionEvidenceAvailable,
+    prepareCoordinatorOutput: (
+      journal,
+      output,
+      payloadRequest,
+      transferRequest,
+    ) => checked(moon.strategyRemoteCoordinatorOutputPrepare(
+      journal,
+      output,
+      payloadRequest,
+      transferRequest,
+    )),
+    coordinatorOutputIsNew:
+      moon.strategyRemoteCoordinatorOutputIsNew,
+    coordinatorOutputAdmissionKey:
+      moon.strategyRemoteCoordinatorOutputAdmissionKey,
+    coordinatorOutputAdmissionJson: admission => checked(
+      moon.strategyRemoteCoordinatorOutputAdmissionJson(admission),
+    ),
+    commitCoordinatorOutput: (admission, durable) => checked(
+      moon.strategyRemoteCoordinatorOutputCommit(admission, durable),
+    ),
+    prepareCoordinatorOutputUnknown: record => checked(
+      moon.strategyRemoteCoordinatorOutputPrepareUnknown(record),
+    ),
+    prepareCoordinatorOutputSuccess: (record, result) => checked(
+      moon.strategyRemoteCoordinatorOutputPrepareSuccess(record, result),
+    ),
+    coordinatorOutputTransitionKey:
+      moon.strategyRemoteCoordinatorOutputTransitionKey,
+    coordinatorOutputTransitionProjection:
+      moon.strategyRemoteCoordinatorOutputTransitionProjection,
+    commitCoordinatorOutputTransition: (transition, durable) => checked(
+      moon.strategyRemoteCoordinatorOutputTransitionCommit(
+        transition,
+        durable,
+      ),
+    ),
+    coordinatorOutputRecordKey:
+      moon.strategyRemoteCoordinatorOutputRecordKey,
+    coordinatorOutputRecordStatus:
+      moon.strategyRemoteCoordinatorOutputRecordStatus,
+    coordinatorOutputRecordRevision:
+      moon.strategyRemoteCoordinatorOutputRecordRevision,
+    coordinatorOutputRecordResultJson: record => checked(
+      moon.strategyRemoteCoordinatorOutputRecordResultJson(record),
+    ),
+    coordinatorOutputRecordResultProjection: record => checked(
+      moon.strategyRemoteCoordinatorOutputRecordResultProjection(record),
+    ),
+    restoreCoordinatorOutputRecord: (
+      record,
+      revision,
+      progress,
+      resultJson,
+    ) => checked(moon.strategyRemoteCoordinatorOutputRecordRestore(
+      record,
+      revision,
+      progress,
+      resultJson,
+    )),
     createJournal: value => checked(moon.strategyRemoteJournalCreate(value)),
     prepareAdmission: (journal, request) => checked(
       moon.strategyRemoteAdmissionPrepare(journal, request),

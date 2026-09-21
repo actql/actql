@@ -5,6 +5,7 @@ struct CoordinatorDispatchJournal {
   authority : String
   dispatches : Map[String, CoordinatorDispatchIntentRecord]
   attempts : Map[String, String]
+  outputs : Map[String, CoordinatorOutputRecord]
 }
 
 ///|
@@ -69,7 +70,7 @@ pub fn create_coordinator_dispatch_journal(
   if authority.is_empty() {
     return Err(InvalidJournal)
   }
-  Ok({ authority, dispatches: Map([]), attempts: Map([]), })
+  Ok({ authority, dispatches: Map([]), attempts: Map([]), outputs: Map([]), })
 }
 
 ///|
