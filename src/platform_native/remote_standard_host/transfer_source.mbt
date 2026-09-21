@@ -92,6 +92,7 @@ struct NativeRemoteStandardDirectSourceFactory {
 struct NativeRemoteStandardDirectSourceSession {
   input : NativeRemoteStandardTransferInput?
   mut admission : NativeRemoteStandardPhysicalAdmission?
+  mut source : NativeRemoteStandardTransferSource?
   mut failure : NativeRemoteStandardInputFailure?
   mut terminal : Bool
 }
@@ -122,6 +123,7 @@ struct NativeRemoteStandardDirectRunSession {
 priv struct NativeRemoteTransferSourceToken {
   physical : NativeRemoteStandardPhysicalSource
   mut active : Bool
+  mut released : Bool
 }
 
 ///|
@@ -341,7 +343,11 @@ pub fn prepare_native_remote_standard_physical_admission(
   NativeRemoteStandardInputFailure,
 ] {
   let request = input.request
-  let token : NativeRemoteTransferSourceToken = { physical, active: true, }
+  let token : NativeRemoteTransferSourceToken = {
+    physical,
+    active: true,
+    released: false,
+  }
   if limits.max_rows < 0 ||
     limits.max_wire_bytes < 0 ||
     limits.max_read_bytes <= 0 ||
@@ -891,11 +897,18 @@ pub fn NativeRemoteStandardDirectSourceFactory::start_session(
       {
         input: Some(input),
         admission: Some(admission),
+        source: None,
         failure: None,
         terminal: false,
       }
     Err(failure) =>
-      { input: None, admission: None, failure: Some(failure), terminal: true, }
+      {
+        input: None,
+        admission: None,
+        source: None,
+        failure: Some(failure),
+        terminal: true,
+      }
   }
 }
 
@@ -965,7 +978,10 @@ pub fn NativeRemoteStandardDirectSourceSession::finish(
   self.admission = None
   self.terminal = true
   match finish_native_remote_standard_physical_admission(admission) {
-    Ok(source) => Ok(source)
+    Ok(source) => {
+      self.source = Some(source)
+      Ok(source)
+    }
     Err(failure) => {
       self.failure = Some(failure)
       Err(failure)
@@ -991,7 +1007,18 @@ pub fn NativeRemoteStandardDirectSourceSession::cancel(
           self.terminal = true
           failure
         }
-        None => transfer_source_failure(None, Physical("cancelled"))
+        None =>
+          match self.source {
+            Some(source) => {
+              let failure = prepare_native_remote_standard_input_failure(
+                "standard-source-release",
+                () => finish_native_remote_standard_transfer_source(source),
+              ).unwrap()
+              self.failure = Some(failure)
+              failure
+            }
+            None => transfer_source_failure(None, Physical("cancelled"))
+          }
       }
   }
 }
@@ -1271,7 +1298,15 @@ pub fn finish_native_remote_standard_transfer_source(
   owner : NativeRemoteStandardTransferSource,
 ) -> Bool {
   owner.token.active = false
-  (owner.token.physical.release)()
+  if owner.token.released {
+    return true
+  }
+  if (owner.token.physical.release)() {
+    owner.token.released = true
+    true
+  } else {
+    false
+  }
 }
 
 ///|

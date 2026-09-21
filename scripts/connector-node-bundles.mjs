@@ -70,6 +70,12 @@ const dependencies = new Map([
   ['actql/actql/remote_credential', 'credential'],
   ['actql/actql/remote_bundle', 'bundle'],
   ['actql/actql/physical_manifest', 'manifest'],
+  ['actql/actql/execution_query', 'query'],
+  ['actql/actql/pipeline_check_context', 'context'],
+  [
+    'actql/actql/platform_native/remote_standard_host',
+    'remote_standard',
+  ],
 ]);
 const type = value => {
   if (!dependencies.has(value.package)) dependencies.set(value.package, `binding${dependencies.size}`);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createRemoteStandardDirectExecution,
+  createRemoteStandardSourceSessionControl,
   prepareInstalledRemoteStandardDirectRegistration,
 } from
   './remote-standard-direct-execution.mjs';
@@ -160,6 +161,153 @@ test('MoonBit-owned failed input cleanup remains retryable', async () => {
     'retry-cleanup',
   ]);
 });
+
+test('portable source session executes only after verified capture',
+  async () => {
+    const events = [];
+    const factory = Object.freeze({kind: 'factory'});
+    const session = Object.freeze({kind: 'session'});
+    const source = Object.freeze({kind: 'source'});
+    const captured = Object.freeze({kind: 'captured'});
+    const output = Object.freeze({kind: 'output'});
+    const failure = Object.freeze({kind: 'failure'});
+    const portable = Object.freeze({
+      requestCid(value, binding) {
+        assert.equal(value, factory);
+        assert.equal(binding.kind, 'binding');
+        events.push('request');
+        return 'request-a';
+      },
+      start(value, dispatch, binding, claim, available, release) {
+        assert.equal(value, factory);
+        assert.equal(dispatch.kind, 'dispatch');
+        assert.equal(binding.kind, 'binding');
+        assert.equal(claim.kind, 'claim');
+        assert.equal(available(), true);
+        assert.equal(typeof release, 'function');
+        events.push('start');
+        return session;
+      },
+      authorize(value, claim) {
+        assert.equal(value, session);
+        assert.equal(claim.kind, 'claim');
+        return true;
+      },
+      feed(value, index, bytes) {
+        assert.equal(value, session);
+        assert.equal(index, 0);
+        assert.equal(bytes.toString(), 'row');
+        events.push('feed');
+        return true;
+      },
+      finish(value) {
+        assert.equal(value, session);
+        events.push('verify');
+        return source;
+      },
+      captured(value) {
+        assert.equal(value, source);
+        events.push('capture');
+        return captured;
+      },
+      release(value) {
+        assert.equal(value, source);
+        events.push('release');
+        return true;
+      },
+      cancel: () => failure,
+      failureCode: () => 'standard-source-release',
+      failureCleanupPending: () => false,
+      retryFailureCleanup: () => true,
+    });
+    const control = createRemoteStandardSourceSessionControl({
+      portable,
+      factory,
+      async executeCaptured(value) {
+        assert.equal(value, captured);
+        events.push('execute');
+        return output;
+      },
+    });
+    assert.equal(control.requestCid(
+      Object.freeze({kind: 'dispatch'}),
+      Object.freeze({kind: 'binding'}),
+    ), 'request-a');
+    const value = control.prepare(
+      Object.freeze({kind: 'dispatch'}),
+      Object.freeze({kind: 'binding'}),
+      Object.freeze({kind: 'claim'}),
+      () => true,
+      () => true,
+    );
+    assert.equal(control.authorize(value, Object.freeze({kind: 'claim'})), true);
+    assert.equal(control.feed(value, 0, Buffer.from('row')), true);
+    assert.equal(await control.finish(value), output);
+    assert.deepEqual(events, [
+      'request',
+      'start',
+      'feed',
+      'verify',
+      'capture',
+      'execute',
+      'release',
+    ]);
+  });
+
+test('failed asynchronous execution retains the MoonBit source owner',
+  async () => {
+    const source = Object.freeze({kind: 'source'});
+    const session = Object.freeze({kind: 'session'});
+    const failure = Object.freeze({kind: 'failure'});
+    let pending = true;
+    let releases = 0;
+    const control = createRemoteStandardSourceSessionControl({
+      factory: Object.freeze({kind: 'factory'}),
+      portable: Object.freeze({
+        requestCid: () => 'request-a',
+        start: () => session,
+        authorize: () => true,
+        feed: () => true,
+        finish: () => source,
+        captured: () => Object.freeze({kind: 'captured'}),
+        release() {
+          releases++;
+          if (releases === 1) return false;
+          pending = false;
+          return true;
+        },
+        cancel(value) {
+          assert.equal(value, session);
+          return failure;
+        },
+        failureCode: () => 'standard-source-release',
+        failureCleanupPending: () => pending,
+        retryFailureCleanup() {
+          releases++;
+          pending = false;
+          return true;
+        },
+      }),
+      executeCaptured: async () => Object.freeze({kind: 'output'}),
+    });
+    const receiver = Object.freeze({
+      claim: () => Object.freeze({kind: 'claim'}),
+      async consume(requestCid, authorize, accept) {
+        const claim = Object.freeze({kind: 'claim'});
+        assert.equal(requestCid, 'request-a');
+        assert.equal(await authorize(claim), true);
+        await accept(0, Buffer.from('row'));
+      },
+    });
+    const execute = createRemoteStandardDirectExecution({receiver, control});
+    const result = await execute({
+      dispatch: Object.freeze({kind: 'dispatch'}),
+      inputBinding: Object.freeze({kind: 'binding'}),
+    }).catch(error => error);
+    assert.equal(result.code, 'standard-source-release');
+    assert.equal(result.cleanupPending, false);
+    assert.equal(releases, 2);
+  });
 
 test('verified active bundle supplies the exact session factory', async () => {
   const setup = fixture();

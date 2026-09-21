@@ -14,6 +14,7 @@ const tuplePair = value => Array.isArray(value)
 const siteControls = new WeakMap();
 const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
+const remoteStandardSourceControls = new WeakMap();
 const remoteCredentialControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
@@ -999,6 +1000,75 @@ function remoteTransferControl(moon) {
     },
   });
   remoteTransferControls.set(moon, control);
+  return control;
+}
+
+function remoteStandardSourceControl(moon) {
+  let control = remoteStandardSourceControls.get(moon);
+  if (control !== undefined) return control;
+  control = Object.freeze({
+    register(configuration) {
+      if (configuration === null || typeof configuration !== 'object') {
+        throw new TypeError('Invalid remote standard source configuration');
+      }
+      const binding = configuration.bindingLimits;
+      const source = configuration.sourceLimits;
+      const values = source?.values;
+      const wire = source?.wire;
+      return moon.strategyRemoteStandardSourceFactoryRegister(
+        configuration.schemaContractCid,
+        configuration.viewContractCid,
+        configuration.codecContractCid,
+        configuration.sequence,
+        configuration.program,
+        binding?.maxBindingBytes,
+        binding?.maxChunks,
+        binding?.maxManifestBytes,
+        binding?.maxReferencedBytes,
+        source?.maxRows,
+        source?.maxWireBytes,
+        source?.maxReadBytes,
+        source?.maxEntries,
+        source?.maxNameBytes,
+        values?.maxNodes,
+        values?.maxTextBytes,
+        values?.maxDepth,
+        values?.maxWork,
+        wire?.maxBytes,
+        wire?.maxNodes,
+        wire?.maxDepth,
+        wire?.maxTextBytes,
+      );
+    },
+    requestCid: moon.strategyRemoteStandardSourceFactoryRequestCid,
+    start: (factory, dispatch, binding, claim, available, release) =>
+      moon.strategyRemoteStandardSourceSessionStart(
+        factory,
+        dispatch,
+        binding,
+        claim.request,
+        claim.destinationReceipt,
+        available,
+        release,
+      ),
+    authorize: (session, claim) =>
+      moon.strategyRemoteStandardSourceSessionAuthorizes(
+        session,
+        claim.request,
+        claim.destinationReceipt,
+      ),
+    feed: moon.strategyRemoteStandardSourceSessionFeed,
+    finish: moon.strategyRemoteStandardSourceSessionFinish,
+    cancel: moon.strategyRemoteStandardSourceSessionCancel,
+    captured: moon.strategyRemoteStandardSourceCaptured,
+    release: moon.strategyRemoteStandardSourceRelease,
+    failureCode: moon.strategyRemoteStandardInputFailureCode,
+    failureCleanupPending:
+      moon.strategyRemoteStandardInputFailureCleanupPending,
+    retryFailureCleanup:
+      moon.strategyRemoteStandardInputFailureCleanupRetry,
+  });
+  remoteStandardSourceControls.set(moon, control);
   return control;
 }
 
@@ -2346,6 +2416,7 @@ export function runtimeCore(moon) {
     siteControl: siteControl(moon),
     remoteSiteControl: remoteSiteControl(moon),
     remoteTransferControl: remoteTransferControl(moon),
+    remoteStandardSourceControl: remoteStandardSourceControl(moon),
     remoteCredentialControl: remoteCredentialControl(moon),
     remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,

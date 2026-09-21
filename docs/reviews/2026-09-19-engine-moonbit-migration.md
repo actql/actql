@@ -31,9 +31,12 @@ also monotonic state on the MoonBit failure owner, so repeated adapter retries
 cannot release the physical input twice. A Run-independent source factory now
 ends at the same verified captured-source boundary, allowing an asynchronous
 Host to execute after verification without duplicating the native Run type or
-the input state machine. The Node adapter awaits that environment execution as
-a physical operation. Generating and installing exact task factories in the
-complete Site executable remains an open product-composition step.
+the input state machine. The generated Node product bridge now exposes that
+opaque factory, session, captured source, release owner, and cleanup owner.
+The Node adapter awaits the selected environment execution as a physical
+operation and returns failed release to the same MoonBit cleanup owner.
+Installing exact configured task factories in the complete Site executable
+remains an open product-composition step.
 
 The JavaScript retained-row parser is not a product authority after this
 change. Its tests stay as independent physical fixtures; they are not used to

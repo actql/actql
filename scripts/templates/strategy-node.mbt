@@ -6494,3 +6494,184 @@ pub fn strategy_remote_transfer_record_restore(
     Err(issue) => raise RemoteTransfer(issue)
   }
 }
+
+///|
+/// Register one direct-input verifier without selecting a Node execution
+/// implementation. All input semantics and limits are fixed by MoonBit.
+#export_name("strategyRemoteStandardSourceFactoryRegister")
+pub fn strategy_remote_standard_source_factory_register(
+  schema_contract_cid : String,
+  view_contract_cid : String,
+  codec_contract_cid : String,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  max_binding_bytes : Int,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_read_bytes : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_row_bytes : Int,
+  max_row_nodes : Int,
+  max_row_depth : Int,
+  max_row_text_bytes : Int,
+) -> @remote_standard.NativeRemoteStandardDirectSourceFactory raise NodeHostFailure {
+  let codec = match
+    @remote_standard.register_native_remote_standard_row_codec(
+      schema_contract_cid, view_contract_cid, codec_contract_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @remote_standard.register_native_remote_standard_direct_source_factory(
+      codec,
+      sequence,
+      program,
+      {
+        max_binding_bytes,
+        max_chunks,
+        max_manifest_bytes,
+        max_referenced_bytes,
+      },
+      {
+        max_rows,
+        max_wire_bytes,
+        max_read_bytes,
+        max_entries,
+        max_name_bytes,
+        values: {
+          max_nodes: max_value_nodes,
+          max_text_bytes: max_value_text_bytes,
+          max_depth: max_value_depth,
+          max_work: max_value_work,
+        },
+        wire: {
+          max_bytes: max_row_bytes,
+          max_nodes: max_row_nodes,
+          max_depth: max_row_depth,
+          max_text_bytes: max_row_text_bytes,
+        },
+      },
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemoteStandardSourceFactoryRequestCid")
+pub fn strategy_remote_standard_source_factory_request_cid(
+  factory : @remote_standard.NativeRemoteStandardDirectSourceFactory,
+  binding : @remote.RemoteInputBinding,
+) -> String raise NodeHostFailure {
+  match
+    @remote_standard.native_remote_standard_direct_source_factory_request_cid(
+      factory, binding,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemoteStandardSourceSessionStart")
+pub fn strategy_remote_standard_source_session_start(
+  factory : @remote_standard.NativeRemoteStandardDirectSourceFactory,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  claimed_request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  available : () -> Bool,
+  release : () -> Bool,
+) -> @remote_standard.NativeRemoteStandardDirectSourceSession {
+  factory.start_session(
+    request, binding, claimed_request, receipt, available, release,
+  )
+}
+
+///|
+#export_name("strategyRemoteStandardSourceSessionAuthorizes")
+pub fn strategy_remote_standard_source_session_authorizes(
+  session : @remote_standard.NativeRemoteStandardDirectSourceSession,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Bool {
+  session.authorizes(request, receipt)
+}
+
+///|
+#export_name("strategyRemoteStandardSourceSessionFeed")
+pub fn strategy_remote_standard_source_session_feed(
+  session : @remote_standard.NativeRemoteStandardDirectSourceSession,
+  index : Int,
+  bytes : Bytes,
+) -> Bool {
+  session.feed(index, bytes)
+}
+
+///|
+#export_name("strategyRemoteStandardSourceSessionFinish")
+pub fn strategy_remote_standard_source_session_finish(
+  session : @remote_standard.NativeRemoteStandardDirectSourceSession,
+) -> @remote_standard.NativeRemoteStandardTransferSource? {
+  match session.finish() {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("strategyRemoteStandardSourceSessionCancel")
+pub fn strategy_remote_standard_source_session_cancel(
+  session : @remote_standard.NativeRemoteStandardDirectSourceSession,
+) -> @remote_standard.NativeRemoteStandardInputFailure {
+  session.cancel()
+}
+
+///|
+#export_name("strategyRemoteStandardSourceCaptured")
+pub fn strategy_remote_standard_source_captured(
+  source : @remote_standard.NativeRemoteStandardTransferSource,
+) -> @query.CapturedInputSource {
+  @remote_standard.native_remote_standard_transfer_captured_source(source)
+}
+
+///|
+#export_name("strategyRemoteStandardSourceRelease")
+pub fn strategy_remote_standard_source_release(
+  source : @remote_standard.NativeRemoteStandardTransferSource,
+) -> Bool {
+  @remote_standard.finish_native_remote_standard_transfer_source(source)
+}
+
+///|
+#export_name("strategyRemoteStandardInputFailureCode")
+pub fn strategy_remote_standard_input_failure_code(
+  failure : @remote_standard.NativeRemoteStandardInputFailure,
+) -> String {
+  @remote_standard.native_remote_standard_input_failure_code(failure)
+}
+
+///|
+#export_name("strategyRemoteStandardInputFailureCleanupPending")
+pub fn strategy_remote_standard_input_failure_cleanup_pending(
+  failure : @remote_standard.NativeRemoteStandardInputFailure,
+) -> Bool {
+  @remote_standard.native_remote_standard_input_failure_cleanup_pending(failure)
+}
+
+///|
+#export_name("strategyRemoteStandardInputFailureCleanupRetry")
+pub fn strategy_remote_standard_input_failure_cleanup_retry(
+  failure : @remote_standard.NativeRemoteStandardInputFailure,
+) -> Bool {
+  @remote_standard.retry_native_remote_standard_input_failure_cleanup(failure)
+}

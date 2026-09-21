@@ -44,6 +44,65 @@ function failureEnvelope(primary, failure, control) {
 }
 
 /**
+ * Adapt the generated MoonBit direct-source control to the asynchronous
+ * execution hook owned by one verified runtime component. MoonBit keeps the
+ * input admission and release owner; the hook only executes the captured
+ * source after verification has completed.
+ */
+export function createRemoteStandardSourceSessionControl({
+  portable,
+  factory,
+  executeCaptured,
+} = {}) {
+  if (portable === null || typeof portable !== 'object' ||
+      typeof portable.requestCid !== 'function' ||
+      typeof portable.start !== 'function' ||
+      typeof portable.authorize !== 'function' ||
+      typeof portable.feed !== 'function' ||
+      typeof portable.finish !== 'function' ||
+      typeof portable.cancel !== 'function' ||
+      typeof portable.captured !== 'function' ||
+      typeof portable.release !== 'function' ||
+      typeof portable.failureCode !== 'function' ||
+      typeof portable.failureCleanupPending !== 'function' ||
+      typeof portable.retryFailureCleanup !== 'function' ||
+      factory === undefined || typeof executeCaptured !== 'function') {
+    fail('InvalidRemoteStandardSourceSessionControl');
+  }
+  return Object.freeze({
+    requestCid(_dispatch, binding) {
+      return portable.requestCid(factory, binding);
+    },
+    prepare(dispatch, binding, claim, available, release) {
+      return portable.start(
+        factory,
+        dispatch,
+        binding,
+        claim,
+        available,
+        release,
+      );
+    },
+    authorize: portable.authorize,
+    feed: portable.feed,
+    async finish(session) {
+      const source = portable.finish(session);
+      if (source === undefined) fail('RemoteStandardInputRejected');
+      const captured = portable.captured(source);
+      const output = await executeCaptured(captured);
+      if (portable.release(source) !== true) {
+        fail('RemoteStandardInputReleasePending');
+      }
+      return output;
+    },
+    cancel: portable.cancel,
+    failureCode: portable.failureCode,
+    failureCleanupPending: portable.failureCleanupPending,
+    retryFailureCleanup: portable.retryFailureCleanup,
+  });
+}
+
+/**
  * Connect a retained direct-Transfer receiver to a registered MoonBit task
  * session. JavaScript owns only asynchronous physical streaming. The supplied
  * control owns binding admission, framing, row verification, Run creation,

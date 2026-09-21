@@ -411,6 +411,68 @@ test "incremental direct destination uses common standard input verifier" {
   assert_eq(source_releases[0], 1)
   assert_false(source_available[0])
 
+  let delayed_source_available = [true]
+  let delayed_source_releases = [0]
+  let delayed_source_session = source_factory.start_session(
+    dispatch,
+    binding,
+    request,
+    receipt,
+    () => delayed_source_available[0],
+    () => {
+      delayed_source_releases[0] += 1
+      if delayed_source_releases[0] == 1 {
+        false
+      } else {
+        delayed_source_available[0] = false
+        true
+      }
+    },
+  )
+  for index, chunk in chunks {
+    let mut offset = 0
+    while offset < chunk.length() {
+      let count = Int::min(3, chunk.length() - offset)
+      assert_true(
+        delayed_source_session.feed(
+          index,
+          Bytes::from_array(Array::makei(count, unit => chunk[offset + unit])),
+        ),
+      )
+      offset += count
+    }
+  }
+  let delayed_source = delayed_source_session.finish().unwrap()
+  assert_false(
+    @native_remote_standard.finish_native_remote_standard_transfer_source(
+      delayed_source,
+    ),
+  )
+  let delayed_source_failure = delayed_source_session.cancel()
+  assert_eq(
+    @native_remote_standard.native_remote_standard_input_failure_code(
+      delayed_source_failure,
+    ),
+    "standard-source-release",
+  )
+  assert_true(
+    @native_remote_standard.native_remote_standard_input_failure_cleanup_pending(
+      delayed_source_failure,
+    ),
+  )
+  assert_true(
+    @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
+      delayed_source_failure,
+    ),
+  )
+  assert_false(
+    @native_remote_standard.native_remote_standard_input_failure_cleanup_pending(
+      delayed_source_failure,
+    ),
+  )
+  assert_eq(delayed_source_releases[0], 2)
+  assert_false(delayed_source_available[0])
+
   let rejected_available = [true]
   let rejected_releases = [0]
   let rejected_session = direct_factory.start_session(

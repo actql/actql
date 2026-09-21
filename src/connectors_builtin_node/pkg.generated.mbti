@@ -5,11 +5,14 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors_builtin",
   "actql/actql/encode_core",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
   "actql/actql/physical_strategy",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/platform_native/remote_standard_host",
   "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
@@ -749,6 +752,30 @@ pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeSt
 pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_runtime_success_action(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteRuntimeCustody) -> Int raise NodeHostFailure
+
+pub fn strategy_remote_standard_input_failure_cleanup_pending(@remote_standard_host.NativeRemoteStandardInputFailure) -> Bool
+
+pub fn strategy_remote_standard_input_failure_cleanup_retry(@remote_standard_host.NativeRemoteStandardInputFailure) -> Bool
+
+pub fn strategy_remote_standard_input_failure_code(@remote_standard_host.NativeRemoteStandardInputFailure) -> String
+
+pub fn strategy_remote_standard_source_captured(@remote_standard_host.NativeRemoteStandardTransferSource) -> @execution_query.CapturedInputSource
+
+pub fn strategy_remote_standard_source_factory_register(String, String, String, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, Int, Int, Int, Int64, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @remote_standard_host.NativeRemoteStandardDirectSourceFactory raise NodeHostFailure
+
+pub fn strategy_remote_standard_source_factory_request_cid(@remote_standard_host.NativeRemoteStandardDirectSourceFactory, @remote_site_protocol.RemoteInputBinding) -> String raise NodeHostFailure
+
+pub fn strategy_remote_standard_source_release(@remote_standard_host.NativeRemoteStandardTransferSource) -> Bool
+
+pub fn strategy_remote_standard_source_session_authorizes(@remote_standard_host.NativeRemoteStandardDirectSourceSession, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Bool
+
+pub fn strategy_remote_standard_source_session_cancel(@remote_standard_host.NativeRemoteStandardDirectSourceSession) -> @remote_standard_host.NativeRemoteStandardInputFailure
+
+pub fn strategy_remote_standard_source_session_feed(@remote_standard_host.NativeRemoteStandardDirectSourceSession, Int, Bytes) -> Bool
+
+pub fn strategy_remote_standard_source_session_finish(@remote_standard_host.NativeRemoteStandardDirectSourceSession) -> @remote_standard_host.NativeRemoteStandardTransferSource?
+
+pub fn strategy_remote_standard_source_session_start(@remote_standard_host.NativeRemoteStandardDirectSourceFactory, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool) -> @remote_standard_host.NativeRemoteStandardDirectSourceSession
 
 pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
 
