@@ -389,6 +389,9 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestInvalidWeight
+  ShortestCostOverrange
+  ShortestPredicate(@execution_relation.EvalIssueKind)
   ShortestKeyOrder(@value_admission.KeyOrderIssue)
   ShortestStorage(@managed_graph_storage.Issue)
   ShortestOutput(@execution_relation.CaptureIssue)

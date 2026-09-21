@@ -26,10 +26,17 @@ priv enum ShortestPhase {
   PrepareSortMerge
   MergeEdges
   CopySortedEdges
+  ValidateWeight
   PreparePair
   ResetSearch
   StartSearch
   ScanNeighbor
+  ExploreWeightedPath
+  CompareWeightedNodes
+  CompareWeightedEdges
+  CopyWeightedBest
+  BacktrackWeightedPath
+  FinishWeightedPair
   PreparePath
   ReconstructPath
   ReverseNodes
@@ -94,6 +101,16 @@ priv struct ShortestState {
   mut best_path : Bool
   mut best_source_node : Int
   mut best_target_node : Int
+  weight_property : Int?
+  mut path_cost : Double
+  mut path_overrange : Bool
+  mut pair_best : Bool
+  mut pair_best_cost : Double
+  mut pair_best_overrange : Bool
+  mut best_path_cost : Double
+  mut best_path_overrange : Bool
+  mut weighted_copy_at : Int
+  mut weighted_compare_at : Int
   degree : Array[Int]
   start : Array[Int]
   cursor : Array[Int]
@@ -116,8 +133,15 @@ priv struct ShortestState {
   predecessor : Array[Int]
   predecessor_edge : Array[Int]
   queue : Array[Int]
+  edge_weight : Array[Double]
+  visited : Array[Bool]
+  path_next : Array[Int]
+  path_costs : Array[Double]
+  path_overranges : Array[Bool]
   mut path_nodes : Array[Int]
   mut path_edges : Array[Int]
+  mut pair_best_nodes : Array[Int]
+  mut pair_best_edges : Array[Int]
   mut best_path_nodes : Array[Int]
   mut best_path_edges : Array[Int]
   mut emitted_rows : Int64
@@ -152,6 +176,8 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestInvalidWeight
+  ShortestCostOverrange
   ShortestPredicate(@execution.EvalIssueKind)
   ShortestKeyOrder(@value.KeyOrderIssue)
   ShortestStorage(@storage.Issue)
@@ -184,6 +210,7 @@ fn shortest_workspace(
   edges : Int,
   both : Bool,
   retain_best_path : Bool,
+  weighted : Bool,
 ) -> Int? {
   let directed_edges = if both {
     checked_shortest_multiply(edges, 2)
@@ -191,8 +218,10 @@ fn shortest_workspace(
     Some(edges)
   }
   guard directed_edges is Some(directed_edges) &&
-    checked_shortest_multiply(nodes, 14) is Some(node_slots) &&
-    checked_shortest_multiply(directed_edges, 4) is Some(edge_slots) &&
+    checked_shortest_multiply(nodes, if weighted { 19 } else { 14 })
+    is Some(node_slots) &&
+    checked_shortest_multiply(directed_edges, if weighted { 6 } else { 4 })
+    is Some(edge_slots) &&
     checked_shortest_add(node_slots, edge_slots) is Some(base) &&
     checked_shortest_multiply(nodes, if retain_best_path { 2 } else { 0 })
     is Some(best_slots) &&
@@ -200,6 +229,20 @@ fn shortest_workspace(
     return None
   }
   Some(total)
+}
+
+///|
+fn shortest_weight_property(
+  graph : @carrier.Graph,
+  name : @schema.FieldName,
+) -> Int? {
+  let properties = @carrier.graph_edge_properties(graph)
+  for index in 0..<@carrier.field_count(properties) {
+    if @carrier.field_at(properties, index).unwrap().name == name {
+      return Some(index)
+    }
+  }
+  None
 }
 
 ///|
@@ -278,7 +321,14 @@ fn shortest_endpoint_selection(state : ShortestState) -> Array[Bool] {
 ///|
 fn shortest_retain_nearest_path(state : ShortestState) -> Unit {
   if !state.best_path ||
-    state.path_edges.length() < state.best_path_edges.length() {
+    shortest_cost_is_better(
+      state.path_cost,
+      state.path_overrange,
+      state.path_edges.length(),
+      state.best_path_cost,
+      state.best_path_overrange,
+      state.best_path_edges.length(),
+    ) {
     let previous_nodes = state.best_path_nodes
     let previous_edges = state.best_path_edges
     state.best_path_nodes = state.path_nodes
@@ -289,8 +339,28 @@ fn shortest_retain_nearest_path(state : ShortestState) -> Unit {
     state.path_edges.clear()
     state.best_source_node = state.source_node
     state.best_target_node = state.target_node
+    state.best_path_cost = state.path_cost
+    state.best_path_overrange = state.path_overrange
     state.best_path = true
   }
+}
+
+///|
+fn shortest_cost_is_better(
+  candidate : Double,
+  candidate_overrange : Bool,
+  candidate_hops : Int,
+  current : Double,
+  current_overrange : Bool,
+  current_hops : Int,
+) -> Bool {
+  if candidate_overrange != current_overrange {
+    return !candidate_overrange
+  }
+  if !candidate_overrange && candidate != current {
+    return candidate < current
+  }
+  candidate_hops < current_hops
 }
 
 ///|
@@ -308,11 +378,51 @@ fn shortest_prepare_nearest_output(state : ShortestState) -> Bool {
   state.best_path_edges.clear()
   state.source_node = state.best_source_node
   state.target_node = state.best_target_node
+  state.path_cost = state.best_path_cost
+  state.path_overrange = state.best_path_overrange
   state.best_path = false
   state.row_column = 0
   state.values = []
   state.phase = ReadField
   true
+}
+
+///|
+fn shortest_compare_edge_identities(
+  state : ShortestState,
+  left : Int,
+  right : Int,
+) -> Result[Int, ShortestIssue] {
+  guard @storage.edge_endpoints(state.source, left)
+    is Some((left_source, left_target)) &&
+    @storage.edge_endpoints(state.source, right)
+    is Some((right_source, right_target)) &&
+    @storage.node_identity(state.source, left_source) is Some(left_source_id) &&
+    @storage.node_identity(state.source, right_source) is Some(right_source_id) &&
+    @storage.node_identity(state.source, left_target) is Some(left_target_id) &&
+    @storage.node_identity(state.source, right_target) is Some(right_target_id) &&
+    @storage.edge_label(state.source, left) is Some(left_label) &&
+    @storage.edge_label(state.source, right) is Some(right_label) else {
+    return Err(ShortestInputUnavailable)
+  }
+  match shortest_compare_values(left_source_id, right_source_id) {
+    Err(issue) => Err(issue)
+    Ok(order) if order != 0 => Ok(order)
+    Ok(_) =>
+      match shortest_compare_values(left_target_id, right_target_id) {
+        Err(issue) => Err(issue)
+        Ok(order) if order != 0 => Ok(order)
+        Ok(_) => shortest_compare_optional_values(left_label, right_label)
+      }
+  }
+}
+
+///|
+fn shortest_begin_weighted_copy(state : ShortestState) -> Unit {
+  state.pair_best_nodes.clear()
+  state.pair_best_edges.clear()
+  state.weighted_copy_at = 0
+  state.phase = CopyWeightedBest
 }
 
 ///|
@@ -556,7 +666,13 @@ fn shortest_path_value(
           state.value_limits,
         )
       })
-    @schema.Unqualified("total_cost") | @schema.Unqualified("hop_count") =>
+    @schema.Unqualified("total_cost") =>
+      if state.path_overrange {
+        None
+      } else {
+        @value.checked_number_value(state.path_cost, field.contract)
+      }
+    @schema.Unqualified("hop_count") =>
       @value.checked_number_value(
         state.path_edges.length().to_double(),
         field.contract,
@@ -882,6 +998,9 @@ fn shortest_step(
           state.depth.push(-1)
           state.predecessor.push(-1)
           state.predecessor_edge.push(-1)
+          if state.weight_property is Some(_) {
+            state.visited.push(false)
+          }
           state.index += 1
           used += 1
         } else {
@@ -1028,9 +1147,14 @@ fn shortest_step(
         }
       PrepareSortNode =>
         if state.sort_node >= @storage.node_count(state.source) {
-          state.source_pair = 0
-          state.target_pair = 0
-          state.phase = PreparePair
+          if state.weight_property is Some(_) {
+            state.index = 0
+            state.phase = ValidateWeight
+          } else {
+            state.source_pair = 0
+            state.target_pair = 0
+            state.phase = PreparePair
+          }
         } else {
           let begin = state.start[state.sort_node]
           let end = state.start[state.sort_node + 1]
@@ -1112,6 +1236,27 @@ fn shortest_step(
           state.phase = PrepareSortMerge
         }
       }
+      ValidateWeight => {
+        guard state.weight_property is Some(property) else {
+          return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+        }
+        if state.index < @storage.edge_count(state.source) {
+          used += 1
+          guard @storage.edge_property(state.source, state.index, property)
+            is Some({ value: @value.Number(weight), .. }) &&
+            !weight.is_nan() &&
+            !weight.is_inf() &&
+            weight >= 0.0 else {
+            return @bounded.Failed(ShortestInvalidWeight, progress, used)
+          }
+          state.edge_weight.push(weight)
+          state.index += 1
+        } else {
+          state.source_pair = 0
+          state.target_pair = 0
+          state.phase = PreparePair
+        }
+      }
       PreparePair =>
         if state.source_pair >= state.source_nodes.length() {
           if state.selection == @graph_type.NearestPair &&
@@ -1136,6 +1281,16 @@ fn shortest_step(
           state.queue.clear()
           state.path_nodes.clear()
           state.path_edges.clear()
+          state.path_next.clear()
+          state.path_costs.clear()
+          state.path_overranges.clear()
+          state.pair_best_nodes.clear()
+          state.pair_best_edges.clear()
+          state.path_cost = 0.0
+          state.path_overrange = false
+          state.pair_best = false
+          state.pair_best_cost = 0.0
+          state.pair_best_overrange = false
           state.values = []
           state.neighbor_index = 0
           state.phase = ResetSearch
@@ -1152,11 +1307,22 @@ fn shortest_step(
           state.phase = StartSearch
         }
       StartSearch => {
-        state.depth[state.source_node] = 0
-        state.queue.push(state.source_node)
-        state.queue_index = 0
-        state.has_path = state.source_node == state.target_node
-        state.phase = if state.has_path { PreparePath } else { ScanNeighbor }
+        if state.weight_property is Some(_) {
+          state.path_nodes.push(state.source_node)
+          state.path_next.push(state.start[state.source_node])
+          state.path_costs.push(0.0)
+          state.path_overranges.push(false)
+          state.visited[state.source_node] = true
+          state.path_cost = 0.0
+          state.path_overrange = false
+          state.phase = ExploreWeightedPath
+        } else {
+          state.depth[state.source_node] = 0
+          state.queue.push(state.source_node)
+          state.queue_index = 0
+          state.has_path = state.source_node == state.target_node
+          state.phase = if state.has_path { PreparePath } else { ScanNeighbor }
+        }
         used += 1
       }
       ScanNeighbor =>
@@ -1186,6 +1352,169 @@ fn shortest_step(
           }
           used += 1
         }
+      ExploreWeightedPath => {
+        guard !state.path_nodes.is_empty() &&
+          state.path_nodes.last() is Some(current) &&
+          state.path_next.last() is Some(next_at) else {
+          return @bounded.Failed(ShortestInputUnavailable, progress, used)
+        }
+        if current == state.target_node {
+          if !state.pair_best ||
+            shortest_cost_is_better(
+              state.path_cost,
+              state.path_overrange,
+              state.path_edges.length(),
+              state.pair_best_cost,
+              state.pair_best_overrange,
+              state.pair_best_edges.length(),
+            ) {
+            shortest_begin_weighted_copy(state)
+          } else if state.path_overrange == state.pair_best_overrange &&
+            (state.path_overrange || state.path_cost == state.pair_best_cost) &&
+            state.path_edges.length() == state.pair_best_edges.length() {
+            state.weighted_compare_at = 0
+            state.phase = CompareWeightedNodes
+          } else {
+            state.phase = BacktrackWeightedPath
+          }
+        } else if state.path_edges.length() >= state.max_hops ||
+          next_at >= state.start[current + 1] {
+          state.phase = BacktrackWeightedPath
+        } else {
+          let depth = state.path_nodes.length() - 1
+          state.path_next[depth] = next_at + 1
+          let next = state.neighbor[next_at]
+          let edge = state.edge[next_at]
+          if next < 0 || edge < 0 || edge >= state.edge_weight.length() {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          if !state.visited[next] {
+            let overrange = state.path_overrange
+            let cost = if overrange {
+              state.path_cost
+            } else {
+              state.path_cost + state.edge_weight[edge]
+            }
+            let overrange = overrange || cost.is_inf()
+            state.visited[next] = true
+            state.path_nodes.push(next)
+            state.path_edges.push(edge)
+            state.path_next.push(state.start[next])
+            state.path_costs.push(
+              if overrange {
+                state.path_cost
+              } else {
+                cost
+              },
+            )
+            state.path_overranges.push(overrange)
+            state.path_cost = if overrange { state.path_cost } else { cost }
+            state.path_overrange = overrange
+          }
+          used += 1
+        }
+      }
+      CompareWeightedNodes =>
+        if state.weighted_compare_at >= state.path_nodes.length() {
+          state.weighted_compare_at = 0
+          state.phase = CompareWeightedEdges
+        } else {
+          let index = state.weighted_compare_at
+          guard state.pair_best_nodes.get(index) is Some(other) else {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          match shortest_compare_nodes(state, state.path_nodes[index], other) {
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+            Ok(order) if order < 0 => shortest_begin_weighted_copy(state)
+            Ok(order) if order > 0 => state.phase = BacktrackWeightedPath
+            Ok(_) => state.weighted_compare_at += 1
+          }
+          used += 1
+        }
+      CompareWeightedEdges =>
+        if state.weighted_compare_at >= state.path_edges.length() {
+          state.phase = BacktrackWeightedPath
+        } else {
+          let index = state.weighted_compare_at
+          guard state.pair_best_edges.get(index) is Some(other) else {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          match
+            shortest_compare_edge_identities(
+              state,
+              state.path_edges[index],
+              other,
+            ) {
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+            Ok(order) if order < 0 => shortest_begin_weighted_copy(state)
+            Ok(order) if order > 0 => state.phase = BacktrackWeightedPath
+            Ok(_) => state.weighted_compare_at += 1
+          }
+          used += 1
+        }
+      CopyWeightedBest =>
+        if state.weighted_copy_at < state.path_nodes.length() {
+          state.pair_best_nodes.push(state.path_nodes[state.weighted_copy_at])
+          state.weighted_copy_at += 1
+          used += 1
+        } else {
+          let edge_at = state.weighted_copy_at - state.path_nodes.length()
+          if edge_at < state.path_edges.length() {
+            state.pair_best_edges.push(state.path_edges[edge_at])
+            state.weighted_copy_at += 1
+            used += 1
+          } else {
+            state.pair_best = true
+            state.pair_best_cost = state.path_cost
+            state.pair_best_overrange = state.path_overrange
+            state.phase = BacktrackWeightedPath
+          }
+        }
+      BacktrackWeightedPath =>
+        if state.path_nodes.length() <= 1 {
+          state.visited[state.source_node] = false
+          state.phase = FinishWeightedPair
+        } else {
+          guard state.path_nodes.pop() is Some(node) else {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          state.visited[node] = false
+          ignore(state.path_edges.pop())
+          ignore(state.path_next.pop())
+          ignore(state.path_costs.pop())
+          ignore(state.path_overranges.pop())
+          guard state.path_costs.last() is Some(cost) &&
+            state.path_overranges.last() is Some(overrange) else {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          state.path_cost = cost
+          state.path_overrange = overrange
+          state.phase = ExploreWeightedPath
+          used += 1
+        }
+      FinishWeightedPair => {
+        if state.pair_best {
+          let nodes = state.path_nodes
+          let edges = state.path_edges
+          state.path_nodes = state.pair_best_nodes
+          state.path_edges = state.pair_best_edges
+          state.pair_best_nodes = nodes
+          state.pair_best_edges = edges
+          state.path_cost = state.pair_best_cost
+          state.path_overrange = state.pair_best_overrange
+          state.has_path = true
+          state.row_column = 0
+          state.phase = if state.selection == @graph_type.EachPair {
+            ReadField
+          } else {
+            SelectNearestPath
+          }
+        } else {
+          state.has_path = false
+          state.phase = FinishPair
+        }
+        used += 1
+      }
       PreparePath => {
         state.path_cursor = state.target_node
         state.path_nodes.push(state.target_node)
@@ -1232,11 +1561,15 @@ fn shortest_step(
           state.path_edges[opposite] = saved
           state.reverse_index += 1
           used += 1
-        } else if state.selection == @graph_type.EachPair {
-          state.row_column = 0
-          state.phase = ReadField
         } else {
-          state.phase = SelectNearestPath
+          state.path_cost = state.path_edges.length().to_double()
+          state.path_overrange = false
+          if state.selection == @graph_type.EachPair {
+            state.row_column = 0
+            state.phase = ReadField
+          } else {
+            state.phase = SelectNearestPath
+          }
         }
       }
       SelectNearestPath => {
@@ -1245,7 +1578,9 @@ fn shortest_step(
         used += 1
       }
       ReadField =>
-        if state.row_column < @schema.field_count(state.schema) {
+        if state.path_overrange {
+          return @bounded.Failed(ShortestCostOverrange, progress, used)
+        } else if state.row_column < @schema.field_count(state.schema) {
           guard @schema.field_at(state.schema, state.row_column) is Some(field) &&
             shortest_path_value(state, field) is Some(value) else {
             return @bounded.Failed(ShortestInputUnavailable, progress, used)
@@ -1345,8 +1680,15 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.predecessor.clear()
   state.predecessor_edge.clear()
   state.queue.clear()
+  state.edge_weight.clear()
+  state.visited.clear()
+  state.path_next.clear()
+  state.path_costs.clear()
+  state.path_overranges.clear()
   state.path_nodes.clear()
   state.path_edges.clear()
+  state.pair_best_nodes.clear()
+  state.pair_best_edges.clear()
   state.best_path_nodes.clear()
   state.best_path_edges.clear()
   state.values = []
@@ -1398,9 +1740,8 @@ fn prepare_shortest_endpoints(
 }
 
 ///|
-/// Start the bounded unweighted shortest-path kernel for scalar, literal,
-/// Relation-backed, or predicate-selected endpoints. Weighted paths are
-/// rejected before execution.
+/// Start the bounded shortest-path kernel for scalar, literal,
+/// Relation-backed, or predicate-selected endpoints.
 pub fn start_shortest(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -1423,7 +1764,6 @@ pub fn start_shortest(
     is Some(@lower.GraphShortestStep(prepared)) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) &&
-    @lower.graph_shortest_weight(prepared) is None &&
     @lower.graph_shortest_max_hops(prepared) is Some(max_hops) else {
     return Err(UnsupportedShortestKernel)
   }
@@ -1444,6 +1784,14 @@ pub fn start_shortest(
   guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
     return Err(ShortestInputUnavailable)
   }
+  let weight_property = match @lower.graph_shortest_weight(prepared) {
+    None => None
+    Some(name) =>
+      match shortest_weight_property(graph, name) {
+        Some(index) => Some(index)
+        None => return Err(UnsupportedShortestKernel)
+      }
+  }
   let predicate_fields = if sources is PredicateShortestEndpoints(_) ||
     targets is PredicateShortestEndpoints(_) {
     graph_node_predicate_binding_count(graph)
@@ -1456,6 +1804,7 @@ pub fn start_shortest(
       edges,
       direction == @graph_type.Both,
       selection != @graph_type.EachPair,
+      weight_property is Some(_),
     )
     is Some(workspace) &&
     predicate_fields <= max_workspace_slots - workspace else {
@@ -1540,6 +1889,16 @@ pub fn start_shortest(
     best_path: false,
     best_source_node: -1,
     best_target_node: -1,
+    weight_property,
+    path_cost: 0.0,
+    path_overrange: false,
+    pair_best: false,
+    pair_best_cost: 0.0,
+    pair_best_overrange: false,
+    best_path_cost: 0.0,
+    best_path_overrange: false,
+    weighted_copy_at: 0,
+    weighted_compare_at: 0,
     degree: [],
     start: [],
     cursor: [],
@@ -1562,8 +1921,15 @@ pub fn start_shortest(
     predecessor: [],
     predecessor_edge: [],
     queue: [],
+    edge_weight: [],
+    visited: [],
+    path_next: [],
+    path_costs: [],
+    path_overranges: [],
     path_nodes: [],
     path_edges: [],
+    pair_best_nodes: [],
+    pair_best_edges: [],
     best_path_nodes: [],
     best_path_edges: [],
     emitted_rows: 0L,

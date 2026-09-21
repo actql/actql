@@ -286,6 +286,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "out"
     }) +
     "\",\"max_hops\":2" +
+    (if variant == "shortest_weighted" { ",\"weight\":\"weight\"" } else { "" }) +
     (if variant == "shortest_type_empty" {
       ",\"edge_types\":[]"
     } else if variant == "shortest_types_match" {
@@ -1411,6 +1412,7 @@ fn carrier_graph_shortest_owner_with_endpoints(
   maximum : Int,
   labeled? : Bool = false,
   edge_types? : String = "",
+  weight? : String = "",
   selection? : String = "",
   max_output_rows? : Int = 1,
 ) -> @lower.BoundPrepared {
@@ -1431,6 +1433,7 @@ fn carrier_graph_shortest_owner_with_endpoints(
       ",\"direction\":\"out\",\"max_hops\":" +
       maximum.to_string() +
       edge_types +
+      weight +
       ",\"max_output_rows\":" +
       max_output_rows.to_string() +
       "}}]",
@@ -1478,6 +1481,7 @@ fn carrier_graph_shortest_owner(
   maximum : Int,
   labeled? : Bool = false,
   edge_types? : String = "",
+  weight? : String = "",
 ) -> @lower.BoundPrepared {
   carrier_graph_shortest_owner_with_endpoints(
     source,
@@ -1486,6 +1490,7 @@ fn carrier_graph_shortest_owner(
     maximum,
     labeled~,
     edge_types~,
+    weight~,
   )
 }
 
@@ -1822,6 +1827,90 @@ fn finish_shortest(
     }
   }
   Err(@local_sga.ShortestExecutionIssue(@bounded.Terminal))
+}
+
+///|
+fn weighted_shortest_result(
+  rows : String,
+  source_id : Int,
+  target_id : Int,
+  max_hops : Int,
+  workspace? : Int = 1000,
+) -> Result[@execution.CompletedOutput, @local_sga.ShortestIssue] raise {
+  weighted_shortest_endpoint_result(
+    rows,
+    source_id.to_string(),
+    target_id.to_string(),
+    max_hops,
+    workspace~,
+  )
+}
+
+///|
+fn weighted_shortest_endpoint_result(
+  rows : String,
+  source_endpoint : String,
+  target_endpoint : String,
+  max_hops : Int,
+  workspace? : Int = 1000,
+  selection? : String = "",
+  max_rows? : Int = 1,
+) -> Result[@execution.CompletedOutput, @local_sga.ShortestIssue] raise {
+  let source_owner = carrier_graph_source_owner_with_rows(rows)
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    source_endpoint,
+    target_endpoint,
+    max_hops,
+    weight=",\"weight\":\"weight\"",
+    selection~,
+    max_output_rows=max_rows,
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = match
+    @local_sga.start_shortest(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      max_rows,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      assert_true(@graphs.discard_completed(graph))
+      return Err(issue)
+    }
+  }
+  let result = finish_shortest(execution)
+  assert_eq(@local_sga.cleanup_shortest(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  result
 }
 
 ///|
@@ -3016,6 +3105,210 @@ test "scalar shortest path uses canonical identity ties" {
   )
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "weighted shortest path preserves cost hop and identity order" {
+  let cheaper = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +
+    "\"src\":1,\"dst\":3,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":3,\"dst\":2," +
+    "\"node_name\":\"three\",\"weight\":1}]"
+  let output = weighted_shortest_result(cheaper, 1, 2, 2).unwrap()
+  let row = @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap()
+  assert_true(
+    row.contains("\"total_cost\":2") &&
+    row.contains("\"node_ids\":[1,3,2]") &&
+    row.contains("\"hop_count\":2"),
+  )
+  let one_hop = weighted_shortest_result(cheaper, 1, 2, 1).unwrap()
+  let one_hop_row = @execution.completed_output_row_wire(
+    one_hop, 0, 1000, 100, 10,
+  ).unwrap()
+  assert_true(
+    one_hop_row.contains("\"total_cost\":10") &&
+    one_hop_row.contains("\"node_ids\":[1,2]") &&
+    one_hop_row.contains("\"hop_count\":1"),
+  )
+
+  let fewer_hops = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":2},{\"id\":2," +
+    "\"src\":1,\"dst\":3,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":3,\"dst\":2," +
+    "\"node_name\":\"three\",\"weight\":1}]"
+  let fewer = weighted_shortest_result(fewer_hops, 1, 2, 2).unwrap()
+  let fewer_row = @execution.completed_output_row_wire(fewer, 0, 1000, 100, 10).unwrap()
+  assert_true(
+    fewer_row.contains("\"total_cost\":2") &&
+    fewer_row.contains("\"node_ids\":[1,2]") &&
+    fewer_row.contains("\"hop_count\":1"),
+  )
+
+  let tied = "[{\"id\":1,\"src\":1,\"dst\":4," +
+    "\"node_name\":\"one\",\"weight\":1},{\"id\":4," +
+    "\"src\":4,\"dst\":3,\"node_name\":\"four\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"two\",\"weight\":1},{\"id\":3," +
+    "\"src\":2,\"dst\":3,\"node_name\":\"three\",\"weight\":1}]"
+  let canonical = weighted_shortest_result(tied, 1, 3, 2).unwrap()
+  let canonical_row = @execution.completed_output_row_wire(
+    canonical, 0, 1000, 100, 10,
+  ).unwrap()
+  assert_true(canonical_row.contains("\"node_ids\":[1,2,3]"))
+
+  let zero = weighted_shortest_result(cheaper, 1, 1, 2).unwrap()
+  let zero_row = @execution.completed_output_row_wire(zero, 0, 1000, 100, 10).unwrap()
+  assert_true(
+    zero_row.contains("\"total_cost\":0") &&
+    zero_row.contains("\"node_ids\":[1]") &&
+    zero_row.contains("\"hop_count\":0"),
+  )
+
+  let nearest_source = weighted_shortest_endpoint_result(
+    cheaper,
+    "{\"ids\":[1]}",
+    "{\"ids\":[2,3]}",
+    2,
+    selection=",\"selection\":\"nearest_per_source\"",
+  ).unwrap()
+  let nearest_source_row = @execution.completed_output_row_wire(
+    nearest_source, 0, 1000, 100, 10,
+  ).unwrap()
+  assert_true(
+    nearest_source_row.contains("\"target_id\":3") &&
+    nearest_source_row.contains("\"total_cost\":1"),
+  )
+  let nearest_pair = weighted_shortest_endpoint_result(
+    cheaper,
+    "{\"ids\":[1,3]}",
+    "{\"ids\":[2]}",
+    2,
+    selection=",\"selection\":\"nearest_pair\"",
+  ).unwrap()
+  let nearest_pair_row = @execution.completed_output_row_wire(
+    nearest_pair, 0, 1000, 100, 10,
+  ).unwrap()
+  assert_true(
+    nearest_pair_row.contains("\"source_id\":3") &&
+    nearest_pair_row.contains("\"total_cost\":1"),
+  )
+}
+
+///|
+test "weighted shortest path validates every edge and cost overrange" {
+  let invalid = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":1},{\"id\":2," +
+    "\"src\":2,\"dst\":2,\"node_name\":\"two\",\"weight\":-1}]"
+  assert_true(
+    weighted_shortest_result(invalid, 1, 2, 1)
+    is Err(@local_sga.ShortestInvalidWeight),
+  )
+
+  let overrange = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":1.7976931348623157e308}," +
+    "{\"id\":2,\"src\":2,\"dst\":3," +
+    "\"node_name\":\"two\",\"weight\":1.7976931348623157e308}," +
+    "{\"id\":3,\"src\":3,\"dst\":3," +
+    "\"node_name\":\"three\",\"weight\":0}]"
+  assert_true(
+    weighted_shortest_result(overrange, 1, 3, 2)
+    is Err(@local_sga.ShortestCostOverrange),
+  )
+  assert_true(
+    weighted_shortest_endpoint_result(
+      overrange,
+      "{\"ids\":[1]}",
+      "{\"ids\":[2,3]}",
+      2,
+      selection=",\"selection\":\"each_pair\"",
+      max_rows=2,
+    )
+    is Err(@local_sga.ShortestCostOverrange),
+  )
+
+  let finite_alternative = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":1.7976931348623157e308}," +
+    "{\"id\":2,\"src\":2,\"dst\":4," +
+    "\"node_name\":\"two\",\"weight\":1.7976931348623157e308}," +
+    "{\"id\":3,\"src\":1,\"dst\":3," +
+    "\"node_name\":\"three\",\"weight\":1},{\"id\":4," +
+    "\"src\":3,\"dst\":4,\"node_name\":\"four\",\"weight\":1}]"
+  let output = weighted_shortest_result(finite_alternative, 1, 4, 2).unwrap()
+  let row = @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap()
+  assert_true(
+    row.contains("\"total_cost\":2") && row.contains("\"node_ids\":[1,3,4]"),
+  )
+}
+
+///|
+test "weighted shortest path admits workspace before allocation" {
+  let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
+    "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +
+    "\"src\":1,\"dst\":3,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":3,\"dst\":2," +
+    "\"node_name\":\"three\",\"weight\":1}]"
+  assert_true(
+    weighted_shortest_result(rows, 1, 2, 2, workspace=74)
+    is Err(@local_sga.ShortestWorkspaceLimit),
+  )
+  assert_true(weighted_shortest_result(rows, 1, 2, 2, workspace=75) is Ok(_))
+
+  let source_owner = carrier_graph_source_owner_with_rows(rows)
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_shortest_owner(
+    source_owner,
+    1,
+    2,
+    2,
+    weight=",\"weight\":\"weight\"",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_shortest(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    75,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_shortest(cancelled, 1).unwrap()
+    is @local_sga.ShortestContinue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_shortest(cancelled, 1).unwrap()
+    is @local_sga.ShortestStopped(_, ..),
+  )
+  assert_true(@local_sga.shortest_cleanup_pending(cancelled))
+  assert_eq(@local_sga.cleanup_shortest(cancelled), Ok(true))
+  assert_false(@local_sga.shortest_cleanup_pending(cancelled))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -5037,6 +5330,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
   } else if variant == "shortest_predicate" ||
     variant == "shortest_nearest_per_source" {
     "sha256:9734654c29bb6c6adc042fa640e65d87f7bd2eec43261acc3d0ae56209d7fde1"
+  } else if variant == "shortest_weighted" {
+    "sha256:3cfb1e511489aff333aa50b95bcdf7ccc857315196ef6ba1857d48bc1a7dc823"
   } else if variant.has_prefix("shortest_") {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
   } else if variant.has_prefix("traverse_") {
@@ -5374,7 +5669,15 @@ fn run_standard_host_graph_relation_path(
       assert_true(graph_rows[0].contains("\"node_ids\":[1]"))
     } else {
       assert_true(graph_rows[0].contains("\"target_id\":2"))
-      assert_true(graph_rows[0].contains("\"total_cost\":1"))
+      assert_true(
+        graph_rows[0].contains(
+          if variant == "shortest_weighted" {
+            "\"total_cost\":10"
+          } else {
+            "\"total_cost\":1"
+          },
+        ),
+      )
       assert_true(graph_rows[0].contains("\"hop_count\":1"))
       assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
     }
@@ -5682,6 +5985,7 @@ test "standard Host averages a repeated Graph list before projection" {
 ///|
 test "standard Host runs a bounded scalar shortest path" {
   run_standard_host_graph_relation_path("shortest_scalar")
+  run_standard_host_graph_relation_path("shortest_weighted", publication=true)
   run_standard_host_graph_relation_path("shortest_in", publication=true)
   run_standard_host_graph_relation_path("shortest_both")
   run_standard_host_graph_relation_path("shortest_zero")
