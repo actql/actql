@@ -117,11 +117,12 @@ fn is_graph_equality_variant(variant : String) -> Bool {
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let concise = variant == "concise_projection"
   let split = variant == "split_projection"
-  let subtract = variant == "subtract"
+  let subtract = variant.has_prefix("subtract")
+  let subtract_exact = variant == "subtract_exact"
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    (if subtract {
+    (if subtract && !subtract_exact {
       "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
     } else {
       "\"node_name\":{\"type\":\"string\",\"nullable\":" +
@@ -138,7 +139,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"first\""
   }
-  let rows = if subtract {
+  let rows = if subtract && !subtract_exact {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
     "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
   } else {
@@ -222,10 +223,21 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node_rows\":true,\"as\":\"out\""
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
-    "\"fields\":[]},\"edges\":{\"from\":\"other\"," +
-    "\"source\":\"src\",\"target\":\"dst\",\"fields\":[]}}," +
+    "\"fields\":" +
+    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    "},\"edges\":{\"from\":\"other\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
+    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    "}}," +
     "\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"}," +
+    "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"" +
+    (if subtract_exact {
+      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
+      "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
+    } else {
+      ""
+    }) +
+    "}," +
     "\"as\":\"subtracted\"},{\"from\":\"subtracted\"," +
     "\"node_rows\":true,\"as\":\"out\""
   } else if graph_equality {
@@ -267,7 +279,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if subtract {
+  let result_fields = if subtract && !subtract_exact {
     "\"id\""
   } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
@@ -287,7 +299,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if subtract {
+  let second_fields = if subtract && !subtract_exact {
     "\"id\""
   } else if concise {
     "\"weight\",\"src\""
@@ -311,9 +323,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"values\":{\"schema\":" +
     schema +
     ",\"rows\":[{\"id\":2,\"src\":2,\"dst\":2," +
-    "\"marker\":0}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    (if subtract_exact {
+      "\"node_name\":\"second\",\"weight\":20"
+    } else {
+      "\"marker\":0"
+    }) +
+    "}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
     "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-    "\"marker\"]}}},"
+    (if subtract_exact { "\"node_name\",\"weight\"" } else { "\"marker\"" }) +
+    "]}}},"
   } else if split {
     "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
@@ -374,7 +392,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
   "\"src\",\"dst\"," +
-  (if subtract { "\"marker\"" } else { "\"node_name\",\"weight\"" }) +
+  (if subtract && !subtract_exact {
+    "\"marker\""
+  } else {
+    "\"node_name\",\"weight\""
+  }) +
   "]}}}," +
   other_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
@@ -385,8 +407,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"target\":\"dst\"},\"as\":\"g\"},{"
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\",\"fields\":[]}}," +
+    "\"fields\":" +
+    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    "},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
+    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    "}}," +
     "\"as\":\"g\"},{"
   } else {
     "\"graph\":{\"nodes\":{\"from\":" +
@@ -3264,7 +3290,9 @@ fn graph_publication_obligations(
 
 ///|
 fn graph_relation_publication_cid(variant : String) -> String {
-  if variant == "subtract" {
+  if variant == "subtract_exact" {
+    "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
+  } else if variant == "subtract" {
     "sha256:581c1ad7ac48237df5c669e328275ed013a700f7308143a32557810117210089"
   } else if variant == "graph_bounds" {
     "sha256:17d576d1679a19ebaa39babfe25c6922f65888c29781f7ea73b3f2af674b13c7"
@@ -3300,7 +3328,7 @@ fn run_standard_host_graph_relation_path(
     managed_publication=publication,
     ledger_limits=if variant.has_suffix("unequal") ||
       variant == "split_projection" ||
-      variant == "subtract" {
+      variant.has_prefix("subtract") {
       Some({
         planning_work: 20000,
         attempts: 20,
@@ -3325,7 +3353,7 @@ fn run_standard_host_graph_relation_path(
   let sequences = dispatch_test_generated(run)
   let graph_task = if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
-    variant == "subtract" {
+    variant.has_prefix("subtract") {
     3
   } else {
     2
@@ -3409,7 +3437,7 @@ fn run_standard_host_graph_relation_path(
   let other_cleanup : Ref[(() -> Unit)?] = Ref(None)
   if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
-    variant == "subtract" {
+    variant.has_prefix("subtract") {
     let other_live = Ref(true)
     let (other_ops, other) = run_local_managed_test_task(
       installed,
@@ -3465,6 +3493,10 @@ fn run_standard_host_graph_relation_path(
   assert_eq(graph_rows.length(), expected_rows)
   if variant == "subtract" {
     assert_true(graph_rows[0].contains("\"id\":1"))
+  } else if variant == "subtract_exact" {
+    assert_true(graph_rows[0].contains("\"id\":1"))
+    assert_true(graph_rows[1].contains("\"id\":2"))
+    assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
   } else if variant == "match_edges" || variant == "edge_projection" {
     assert_true(graph_rows[0].contains("\"src\":1"))
     assert_true(graph_rows[1].contains("\"weight\":20"))
@@ -3678,4 +3710,5 @@ test "standard Host unions a repeated Graph list before the Relation bridge" {
 ///|
 test "standard Host subtracts a property-free Graph before projection" {
   run_standard_host_graph_relation_path("subtract", publication=true)
+  run_standard_host_graph_relation_path("subtract_exact", publication=true)
 }
