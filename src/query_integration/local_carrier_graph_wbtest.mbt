@@ -2672,7 +2672,9 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
-  } else if variant == "graphs_equal" {
+  } else if variant == "graphs_equal" ||
+    variant == "graphs_nullable_equal" ||
+    variant == "graphs_nullable_null_equal" {
     "sha256:e9f87b3bf1a837c8ac5b37d1c231c25071935f3dc3c202b3ace9c4d55acddc37"
   } else {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
@@ -3002,6 +3004,15 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_nullable_null_equal")
   run_standard_host_graph_relation_path("graphs_unequal")
   run_standard_host_graph_relation_path("graphs_payload_unequal")
+}
+
+///|
+test "Graph equality retains a property comparison across bounded resumes" {
+  run_standard_host_graph_relation_path(
+    "graphs_nullable_equal",
+    publication=true,
+  )
+  run_standard_host_graph_relation_path("graphs_nullable_null_equal")
 }
 
 ///|

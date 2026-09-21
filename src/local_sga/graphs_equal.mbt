@@ -82,12 +82,18 @@ pub(all) enum GraphsEqualIssue {
 } derive(Eq, Debug)
 
 ///|
+priv enum CheckedValuesEqualPoll {
+  CheckedValuesContinue(Int)
+  CheckedValuesComplete(Bool, Int)
+}
+
+///|
 fn advance_checked_values_equal(
   state : GraphsEqualState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
   quantum : Int,
-) -> Result[(Bool, Bool, Int), GraphsEqualIssue] {
+) -> Result[CheckedValuesEqualPoll, GraphsEqualIssue] {
   let comparison = match state.comparison {
     Some(value) => value
     None =>
@@ -100,10 +106,10 @@ fn advance_checked_values_equal(
       }
   }
   match @value.advance_complete_equality(comparison, quantum) {
-    @value.EqualityContinue(work~) => Ok((false, false, work))
+    @value.EqualityContinue(work~) => Ok(CheckedValuesContinue(work))
     @value.EqualityComplete(equal~, work~) => {
       state.comparison = None
-      Ok((true, equal, work))
+      Ok(CheckedValuesComplete(equal, work))
     }
     @value.EqualityFailed(issue, work~) => {
       state.comparison = None
@@ -158,16 +164,16 @@ fn compare_equal_node_property(
   }
   match advance_checked_values_equal(state, left, right, quantum) {
     Err(issue) => Err(issue)
-    Ok((_, false, work)) => {
+    Ok(CheckedValuesContinue(work)) => Ok((false, work))
+    Ok(CheckedValuesComplete(false, work)) => {
       state.equal = false
       state.phase = Emit
       Ok((true, work))
     }
-    Ok((true, true, work)) => {
+    Ok(CheckedValuesComplete(true, work)) => {
       state.property += 1
       Ok((true, work))
     }
-    Ok((false, true, work)) => Ok((false, work))
   }
 }
 
@@ -220,16 +226,16 @@ fn compare_equal_edge_property(
   }
   match advance_checked_values_equal(state, left, right, quantum) {
     Err(issue) => Err(issue)
-    Ok((_, false, work)) => {
+    Ok(CheckedValuesContinue(work)) => Ok((false, work))
+    Ok(CheckedValuesComplete(false, work)) => {
       state.equal = false
       state.phase = Emit
       Ok((true, work))
     }
-    Ok((true, true, work)) => {
+    Ok(CheckedValuesComplete(true, work)) => {
       state.property += 1
       Ok((true, work))
     }
-    Ok((false, true, work)) => Ok((false, work))
   }
 }
 
