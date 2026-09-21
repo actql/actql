@@ -582,10 +582,11 @@ the rank window, folds contributions in occurrence order, and emits fresh
 contiguous ranks. The standard Host fixture covers two distinct inputs and one
 material repeated at two authored positions. Both reach two downstream
 Relation computations, independent release, and final ledger reclamation on
-JS, Wasm, and native. Maximum and weighted-sum still need runtime score-
-declaration authentication, tie-conflict fixtures, and standard Host evidence.
-Negative RRF boundaries remain open. Maximum and weighted-sum also lack the
-same runtime evidence, so ranking merge remains partial.
+JS, Wasm, and native. Maximum and weighted-sum now authenticate owner-bound
+score declarations through the registered provider and cover stable candidate
+ties on all three targets. They still need product standard Host,
+two-consumer, publication, and cancellation evidence. Negative RRF boundaries
+remain open, so ranking merge remains partial.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -950,9 +951,16 @@ authentication, their tie rules, negative RRF execution, or final Linux CI.
 Maximum and weighted-sum cannot use ordinary `values` score columns as an
 execution shortcut. Their inputs require matching captured score declarations;
 the author-visible Program boundary rejects otherwise identical numeric columns
-before planning. The remaining standard Host fixture must therefore supply
-owner-bound inputs carrying the formal score declarations. It must not infer
-score authority from a field name or weaken the checker to reach the kernel.
+before planning. It must not infer score authority from a field name or weaken
+the checker to reach the kernel.
+
+At `25aff2fd`, owner-bound producer pipelines carry matching declared score
+evidence into maximum and weighted-sum fusion. Exact retained Relation outputs
+bind to those producers and execute through the registered VecA provider. The
+fixtures check grouped scores, fresh ranks, and stable candidate ordering for
+score ties. The query-integration suite passes 428 tests on each of JS, Wasm,
+and native. Product standard Host scheduling, downstream lifetime,
+publication, environment cancellation, and negative RRF execution remain open.
 
 At `a9174bee`, interval join reaches one typed canonical
 `TEA.join.interval` occurrence without rediscovering frontend syntax. The
