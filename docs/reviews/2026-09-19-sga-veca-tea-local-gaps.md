@@ -458,8 +458,11 @@ Relation consumers, Named Result publication and retrieval, and final
 reclamation on JS, Wasm, and native. At `01e5e342`, that selected generation
 also remains live across a same-Carrier normalization consumer and the formal
 Bridge consumer; the derived Graph is reclaimed independently. Relation and
-predicate selectors, an authored edge predicate, and environment cancellation
-delivery remain open, so `subgraph` remains partial.
+predicate selectors, a nonliteral authored edge predicate, and environment
+cancellation delivery remain open, so `subgraph` remains partial. At
+`f4a7d91d`, explicit literal true and false edge predicates are distinguished;
+the false branch preserves selected nodes while publishing an empty formal
+edge Relation on all three portable targets.
 
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
