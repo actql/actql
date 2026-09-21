@@ -13,7 +13,7 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
   "actql/actql/value_contract" @contract,
-  "actql/actql/canonical_value" @canonical,
+  "actql/actql/bounded_value_set" @value_set,
 }
 
 import {

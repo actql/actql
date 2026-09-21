@@ -18,6 +18,22 @@ priv enum GraftSource {
 }
 
 ///|
+priv enum MergeValue[T] {
+  MergeReady(T)
+  MergePending
+  MergeStopped(@bounded.StopReason)
+  MergeFailed(GraftIssue)
+}
+
+///|
+fn[T] merge_result(value : Result[T, GraftIssue]) -> MergeValue[T] {
+  match value {
+    Ok(value) => MergeReady(value)
+    Err(issue) => MergeFailed(issue)
+  }
+}
+
+///|
 priv struct StructuralMergePlan {
   graph : @carrier.Graph
   nodes : Array[@graph_type.FieldStrategy?]
@@ -26,6 +42,7 @@ priv struct StructuralMergePlan {
 
 ///|
 priv struct GraftState {
+  set_control : @bounded.Control
   sources : Array[GraftSource]
   mode : StructuralMode
   merge_shared : Bool
@@ -40,6 +57,10 @@ priv struct GraftState {
   mut phase : GraftPhase
   mut record_index : Int
   max_workspace_slots : Int
+  mut set_execution : @value_set.Execution?
+  mut set_token : Int
+  mut set_cached_slots : Int
+  set_results : Map[Int, @value.CheckedValue]
 }
 
 ///|
@@ -47,6 +68,7 @@ struct GraftExecution {
   session : @bounded.Session[GraftState, @graph.Completed, GraftIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
+  max_noninterruptible_value_bytes : Int
 }
 
 ///|
@@ -66,6 +88,7 @@ pub(all) enum GraftIssue {
   GraftPropertyValue
   GraftWorkspaceLimit
   GraftValue(@value.CompleteEqualityIssue)
+  GraftSet(@value_set.Issue)
   GraftOutput(@graph.Issue)
   GraftExecutionIssue(@bounded.Issue)
 } derive(Eq, Debug)
@@ -186,6 +209,40 @@ fn graft_noninterruptible_value_nodes(
     }
   }
   Some(Int::max(ordinary, Int::max(node_bound, edge_bound)))
+}
+
+///|
+fn graft_noninterruptible_value_bytes(
+  plans : Array[StructuralMergePlan],
+  limits : @storage.Limits,
+) -> Int? {
+  guard limits.max_value_bytes >= 0 &&
+    limits.max_value_bytes <= 2147483647 / 6 &&
+    limits.max_value_nodes >= 0 &&
+    limits.max_value_nodes <= (2147483647 - 128) / 96 else {
+    return None
+  }
+  let text = limits.max_value_bytes * 6
+  let structure = limits.max_value_nodes * 96 + 128
+  if structure > 2147483647 - text {
+    return None
+  }
+  let unit = text + structure
+  let mut node_bound = 0
+  let mut edge_bound = 0
+  for plan in plans {
+    guard checked_noninterruptible_add(
+        node_bound, plan.nodes.length(), unit,
+      ) is Some(next_nodes) &&
+      checked_noninterruptible_add(
+        edge_bound, plan.edges.length(), unit,
+      ) is Some(next_edges) else {
+      return None
+    }
+    node_bound = next_nodes
+    edge_bound = next_edges
+  }
+  Some(Int::max(unit, Int::max(node_bound, edge_bound)))
 }
 
 ///|
@@ -376,121 +433,105 @@ fn merge_numeric_property(
 }
 
 ///|
-fn checked_set_members(
-  value : @value.CheckedValue,
-  item : @contract.Contract,
-  limits : @value.Limits,
-) -> Result[Array[@value.CheckedValue], GraftIssue] {
-  guard value.value is @value.Array(values) else {
-    return Err(GraftPropertyValue)
-  }
-  let out = []
-  for child in @value.elements(values) {
-    match @value.recheck_runtime_value(child, item, limits) {
-      Some(checked) => out.push(checked)
-      None => return Err(GraftPropertyValue)
-    }
-  }
-  Ok(out)
-}
-
-///|
-fn set_member_map(
-  values : Array[@value.CheckedValue],
-  limits : @value.Limits,
-) -> Result[Map[String, @value.CheckedValue], GraftIssue] {
-  let out : Map[String, @value.CheckedValue] = Map([])
-  for value in values {
-    let key = match @value.complete_order_key(value, limits) {
-      Ok(key) => key
-      Err(_) => return Err(GraftPropertyValue)
-    }
-    if !out.contains(key) {
-      out[key] = value
-    }
-  }
-  Ok(out)
-}
-
-///|
 fn merge_set_property(
+  state : GraftState,
+  token : Int,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
   strategy : @graph_type.FieldStrategy,
   contract : @contract.Contract,
-  limits : @value.Limits,
-  workspace_slots : Int,
-) -> Result[@value.CheckedValue, GraftIssue] {
-  guard contract.shape is @contract.Array(item, ..) else {
-    return Err(GraftPropertyValue)
+) -> MergeValue[@value.CheckedValue] {
+  if state.set_results.get(token) is Some(value) {
+    return MergeReady(value)
   }
-  guard left.value is @value.Array(left_input) &&
-    right.value is @value.Array(right_input) else {
-    return Err(GraftPropertyValue)
+  if state.set_execution is None {
+    let operation = if strategy == @graph_type.SetUnion {
+      @value_set.Union
+    } else if strategy == @graph_type.SetDifference {
+      @value_set.Difference
+    } else {
+      return MergeFailed(GraftPropertyValue)
+    }
+    state.set_execution = match
+      @value_set.start(
+        state.set_control,
+        operation,
+        left,
+        right,
+        contract,
+        state.value_limits,
+        merge_workspace_slots(state),
+      ) {
+      Ok(execution) => Some(execution)
+      Err(@value_set.WorkspaceLimit) => return MergeFailed(GraftWorkspaceLimit)
+      Err(@value_set.InvalidSet) => return MergeFailed(GraftPropertyValue)
+      Err(issue) => return MergeFailed(GraftSet(issue))
+    }
+    state.set_token = token
   }
-  let left_count = @value.element_count(left_input)
-  let right_count = @value.element_count(right_input)
-  if right_count > 2147483647 - left_count - 1 {
-    return Err(GraftWorkspaceLimit)
+  guard state.set_token == token && state.set_execution is Some(execution) else {
+    return MergeFailed(InvalidGraftKernel)
   }
-  let count = left_count + right_count
-  if count > (2147483647 - 8) / 8 || count * 8 + 8 > workspace_slots {
-    return Err(GraftWorkspaceLimit)
-  }
-  let left_values = match checked_set_members(left, item, limits) {
-    Ok(values) => values
-    Err(issue) => return Err(issue)
-  }
-  let right_values = match checked_set_members(right, item, limits) {
-    Ok(values) => values
-    Err(issue) => return Err(issue)
-  }
-  let left_set = match set_member_map(left_values, limits) {
-    Ok(values) => values
-    Err(issue) => return Err(issue)
-  }
-  let right_set = match set_member_map(right_values, limits) {
-    Ok(values) => values
-    Err(issue) => return Err(issue)
-  }
-  if strategy == @graph_type.SetUnion {
-    for key, value in right_set {
-      if !left_set.contains(key) {
-        left_set[key] = value
+  match @value_set.advance(execution, 1) {
+    Err(issue) => MergeFailed(GraftSet(issue))
+    Ok(@value_set.Continue(_)) => MergePending
+    Ok(@value_set.Complete(value, ..)) => {
+      let slots = @value_set.workspace_slots(execution)
+      if !@value_set.cleanup(execution).unwrap_or(false) {
+        return MergeFailed(InvalidGraftKernel)
       }
+      state.set_execution = None
+      if slots > state.max_workspace_slots - state.set_cached_slots {
+        return MergeFailed(GraftWorkspaceLimit)
+      }
+      state.set_cached_slots += slots
+      state.set_results[token] = value
+      MergePending
     }
-  } else if strategy == @graph_type.SetDifference {
-    for key, _ in right_set {
-      left_set.remove(key)
+    Ok(@value_set.Failed(issue, ..)) => {
+      @value_set.cleanup(execution) |> ignore
+      state.set_execution = None
+      MergeFailed(GraftSet(issue))
     }
-  } else {
-    return Err(GraftPropertyValue)
-  }
-  let keys = left_set.keys().collect()
-  keys.sort_by((left, right) => @canonical.compare_utf16(left, right))
-  let values = keys.map(key => left_set[key].value)
-  match
-    @value.recheck_runtime_value(@value.array_value(values), contract, limits) {
-    Some(checked) => Ok(checked)
-    None => Err(GraftPropertyValue)
+    Ok(@value_set.Stopped(reason, ..)) => {
+      @value_set.cleanup(execution) |> ignore
+      state.set_execution = None
+      MergeStopped(reason)
+    }
   }
 }
 
 ///|
+fn finish_merge_record(state : GraftState) -> Bool {
+  if state.set_execution is Some(_) {
+    return false
+  }
+  state.set_results.clear()
+  state.set_token = -1
+  state.set_cached_slots = 0
+  true
+}
+
+///|
 fn merge_property(
+  state : GraftState,
+  token : Int,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
   strategy : @graph_type.FieldStrategy?,
   contract : @contract.Contract,
   limits : @value.Limits,
-  workspace_slots : Int,
-) -> Result[@value.CheckedValue, GraftIssue] {
+) -> MergeValue[@value.CheckedValue] {
   match strategy {
     None | Some(@graph_type.ExactEqual) =>
       match complete_property_equal(left, right, limits) {
-        Ok(true) => checked_property_for_contract(left, contract, limits)
-        Ok(false) => Err(GraftPropertyConflict)
-        Err(issue) => Err(issue)
+        Ok(true) =>
+          match checked_property_for_contract(left, contract, limits) {
+            Ok(value) => MergeReady(value)
+            Err(issue) => MergeFailed(issue)
+          }
+        Ok(false) => MergeFailed(GraftPropertyConflict)
+        Err(issue) => MergeFailed(issue)
       }
     Some(
       @graph_type.NumberSum
@@ -498,15 +539,19 @@ fn merge_property(
       | @graph_type.NumberMin
       | @graph_type.NumberMax
     ) =>
-      merge_numeric_property(left, right, strategy.unwrap(), contract, limits)
+      match
+        merge_numeric_property(left, right, strategy.unwrap(), contract, limits) {
+        Ok(value) => MergeReady(value)
+        Err(issue) => MergeFailed(issue)
+      }
     Some(@graph_type.SetUnion | @graph_type.SetDifference) =>
       merge_set_property(
+        state,
+        token,
         left,
         right,
         strategy.unwrap(),
         contract,
-        limits,
-        workspace_slots,
       )
   }
 }
@@ -536,38 +581,47 @@ fn rebind_properties(
 
 ///|
 fn merge_properties(
+  state : GraftState,
+  tokens : Ref[Int],
   left : Array[@value.CheckedValue],
   right : Array[@value.CheckedValue],
   fields : @carrier.Knowledge,
   strategies : Array[@graph_type.FieldStrategy?],
   limits : @value.Limits,
-  workspace_slots : Int,
-) -> Result[Array[@value.CheckedValue], GraftIssue] {
+) -> MergeValue[Array[@value.CheckedValue]] {
   if left.length() != right.length() ||
     left.length() != @carrier.field_count(fields) ||
     strategies.length() != left.length() {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   let out = []
   for index in 0..<left.length() {
     guard @carrier.field_at(fields, index)
       is Some({ contract: Some(contract), .. }) else {
-      return Err(InvalidGraftKernel)
+      return MergeFailed(InvalidGraftKernel)
     }
+    let token = tokens.val
+    if token == 2147483647 {
+      return MergeFailed(InvalidGraftLimits)
+    }
+    tokens.val += 1
     match
       merge_property(
+        state,
+        token,
         left[index],
         right[index],
         strategies[index],
         contract,
         limits,
-        workspace_slots,
       ) {
-      Ok(checked) => out.push(checked)
-      Err(issue) => return Err(issue)
+      MergeReady(checked) => out.push(checked)
+      MergePending => return MergePending
+      MergeStopped(reason) => return MergeStopped(reason)
+      MergeFailed(issue) => return MergeFailed(issue)
     }
   }
-  Ok(out)
+  MergeReady(out)
 }
 
 ///|
@@ -584,7 +638,9 @@ fn advance_graft_source(state : GraftState) -> Unit {
 fn merge_workspace_slots(state : GraftState) -> Int {
   match state.output {
     Some(output) =>
-      state.max_workspace_slots - @graph.output_workspace_slots(output)
+      state.max_workspace_slots -
+      @graph.output_workspace_slots(output) -
+      state.set_cached_slots
     None => 0
   }
 }
@@ -757,17 +813,18 @@ fn prior_edge_exists(
 fn union_node_step(
   state : GraftState,
   source : GraftSource,
-) -> Result[Unit, GraftIssue] {
+) -> MergeValue[Unit] {
+  let tokens = Ref(0)
   guard state.output is Some(output) &&
     source_node_identity(source, state.record_index) is Some(identity) else {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   match prior_node_exists(state, state.input_index, identity) {
     Ok(true) => {
       let final_graph = state.plans[state.plans.length() - 1].graph
       guard node_properties_at(source, state.record_index, state.node_fields)
         is Some(actual) else {
-        return Err(GraftInputUnavailable)
+        return MergeFailed(GraftInputUnavailable)
       }
       let properties = match
         rebind_properties(
@@ -776,7 +833,7 @@ fn union_node_step(
           state.value_limits,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let checked_identity = match
         checked_property_for_contract(
@@ -785,18 +842,20 @@ fn union_node_step(
           state.value_limits,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
-      return @graph.observe_node(output, checked_identity, properties).map_err(issue => {
-        GraftOutput(issue)
-      })
+      return merge_result(
+        @graph.observe_node(output, checked_identity, properties).map_err(issue => {
+          GraftOutput(issue)
+        }),
+      )
     }
     Ok(false) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   guard node_properties_at(source, state.record_index, state.node_fields)
     is Some(initial) else {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   let mut properties = initial
   if state.input_index > 0 {
@@ -808,41 +867,44 @@ fn union_node_step(
         state.value_limits,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(issue) => return MergeFailed(issue)
     }
   }
   for input in (state.input_index + 1)..<state.sources.length() {
     guard state.sources.get(input) is Some(next) else {
-      return Err(InvalidGraftKernel)
+      return MergeFailed(InvalidGraftKernel)
     }
     let plan = state.plans[input - 1]
     let fields = @carrier.graph_node_properties(plan.graph)
     let matching = match source_node_index(next, identity) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(issue) => return MergeFailed(issue)
     }
     properties = match matching {
       Some(index) => {
         guard node_properties_at(next, index, state.node_fields) is Some(right) else {
-          return Err(GraftInputUnavailable)
+          return MergeFailed(GraftInputUnavailable)
         }
         match
           merge_properties(
+            state,
+            tokens,
             properties,
             right,
             fields,
             plan.nodes,
             state.value_limits,
-            merge_workspace_slots(state),
           ) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
+          MergeReady(value) => value
+          MergePending => return MergePending
+          MergeStopped(reason) => return MergeStopped(reason)
+          MergeFailed(issue) => return MergeFailed(issue)
         }
       }
       None =>
         match rebind_properties(properties, fields, state.value_limits) {
           Ok(value) => value
-          Err(issue) => return Err(issue)
+          Err(issue) => return MergeFailed(issue)
         }
     }
   }
@@ -854,22 +916,25 @@ fn union_node_step(
       state.value_limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
-  @graph.append_node(output, checked_identity, properties).map_err(issue => {
-    GraftOutput(issue)
-  })
+  merge_result(
+    @graph.append_node(output, checked_identity, properties).map_err(issue => {
+      GraftOutput(issue)
+    }),
+  )
 }
 
 ///|
 fn union_edge_step(
   state : GraftState,
   source : GraftSource,
-) -> Result[Unit, GraftIssue] {
+) -> MergeValue[Unit] {
+  let tokens = Ref(0)
   guard state.output is Some(output) &&
     source_edge_identity(source, state.record_index)
     is Some((source_id, target_id, label)) else {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   match
     prior_edge_exists(state, state.input_index, source_id, target_id, label) {
@@ -877,7 +942,7 @@ fn union_edge_step(
       let final_graph = state.plans[state.plans.length() - 1].graph
       guard edge_properties_at(source, state.record_index, state.edge_fields)
         is Some(actual) else {
-        return Err(GraftInputUnavailable)
+        return MergeFailed(GraftInputUnavailable)
       }
       let properties = match
         rebind_properties(
@@ -886,7 +951,7 @@ fn union_edge_step(
           state.value_limits,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let identity_contract = @carrier.graph_identity(final_graph)
       let checked_source = match
@@ -896,7 +961,7 @@ fn union_edge_step(
           state.value_limits,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let checked_target = match
         checked_property_for_contract(
@@ -905,7 +970,7 @@ fn union_edge_step(
           state.value_limits,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let checked_label = match
         (label, @carrier.graph_label_contract(final_graph)) {
@@ -914,20 +979,22 @@ fn union_edge_step(
           match
             checked_property_for_contract(value, contract, state.value_limits) {
             Ok(checked) => Some(checked)
-            Err(issue) => return Err(issue)
+            Err(issue) => return MergeFailed(issue)
           }
-        _ => return Err(GraftPropertyValue)
+        _ => return MergeFailed(GraftPropertyValue)
       }
-      return @graph.observe_edge(
-        output, checked_source, checked_target, checked_label, properties,
-      ).map_err(issue => GraftOutput(issue))
+      return merge_result(
+        @graph.observe_edge(
+          output, checked_source, checked_target, checked_label, properties,
+        ).map_err(issue => GraftOutput(issue)),
+      )
     }
     Ok(false) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   guard edge_properties_at(source, state.record_index, state.edge_fields)
     is Some(initial) else {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   let mut properties = initial
   if state.input_index > 0 {
@@ -939,41 +1006,44 @@ fn union_edge_step(
         state.value_limits,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(issue) => return MergeFailed(issue)
     }
   }
   for input in (state.input_index + 1)..<state.sources.length() {
     guard state.sources.get(input) is Some(next) else {
-      return Err(InvalidGraftKernel)
+      return MergeFailed(InvalidGraftKernel)
     }
     let plan = state.plans[input - 1]
     let fields = @carrier.graph_edge_properties(plan.graph)
     let matching = match source_edge_index(next, source_id, target_id, label) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(issue) => return MergeFailed(issue)
     }
     properties = match matching {
       Some(index) => {
         guard edge_properties_at(next, index, state.edge_fields) is Some(right) else {
-          return Err(GraftInputUnavailable)
+          return MergeFailed(GraftInputUnavailable)
         }
         match
           merge_properties(
+            state,
+            tokens,
             properties,
             right,
             fields,
             plan.edges,
             state.value_limits,
-            merge_workspace_slots(state),
           ) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
+          MergeReady(value) => value
+          MergePending => return MergePending
+          MergeStopped(reason) => return MergeStopped(reason)
+          MergeFailed(issue) => return MergeFailed(issue)
         }
       }
       None =>
         match rebind_properties(properties, fields, state.value_limits) {
           Ok(value) => value
-          Err(issue) => return Err(issue)
+          Err(issue) => return MergeFailed(issue)
         }
     }
   }
@@ -986,7 +1056,7 @@ fn union_edge_step(
       state.value_limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   let checked_target = match
     checked_property_for_contract(
@@ -995,7 +1065,7 @@ fn union_edge_step(
       state.value_limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   let checked_label = match
     (label, @carrier.graph_label_contract(final_graph)) {
@@ -1003,13 +1073,15 @@ fn union_edge_step(
     (Some(value), Some(contract)) =>
       match checked_property_for_contract(value, contract, state.value_limits) {
         Ok(checked) => Some(checked)
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
-    _ => return Err(GraftPropertyValue)
+    _ => return MergeFailed(GraftPropertyValue)
   }
-  @graph.append_edge(
-    output, checked_source, checked_target, checked_label, properties,
-  ).map_err(issue => GraftOutput(issue))
+  merge_result(
+    @graph.append_edge(
+      output, checked_source, checked_target, checked_label, properties,
+    ).map_err(issue => GraftOutput(issue)),
+  )
 }
 
 ///|
@@ -1017,38 +1089,43 @@ fn subtract_node_step(
   state : GraftState,
   left : GraftSource,
   right : GraftSource,
-) -> Result[Unit, GraftIssue] {
-  guard state.output is Some(output) else { return Err(GraftInputUnavailable) }
+) -> MergeValue[Unit] {
+  let tokens = Ref(0)
+  guard state.output is Some(output) else {
+    return MergeFailed(GraftInputUnavailable)
+  }
   if state.input_index != 0 {
-    return Ok(())
+    return MergeReady(())
   }
   guard state.plans.get(0) is Some(plan) &&
     source_node_identity(left, state.record_index) is Some(identity) &&
     node_properties_at(left, state.record_index, state.node_fields)
     is Some(left_values) else {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   let shared = match source_node_index(right, identity) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   let fields = @carrier.graph_node_properties(plan.graph)
   let properties = match shared {
-    None => rebind_properties(left_values, fields, state.value_limits)
+    None => merge_result(
+      rebind_properties(left_values, fields, state.value_limits),
+    )
     Some(index) => {
       guard node_properties_at(right, index, state.node_fields)
         is Some(right_values) else {
-        return Err(GraftInputUnavailable)
+        return MergeFailed(GraftInputUnavailable)
       }
       let observed_left = match
         rebind_properties(left_values, fields, state.value_limits) {
         Ok(values) => values
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let observed_right = match
         rebind_properties(right_values, fields, state.value_limits) {
         Ok(values) => values
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let strategies = if state.retain_shared_nodes {
         plan.nodes
@@ -1057,33 +1134,41 @@ fn subtract_node_step(
       }
       match
         merge_properties(
+          state,
+          tokens,
           left_values,
           right_values,
           fields,
           strategies,
           state.value_limits,
-          merge_workspace_slots(state),
         ) {
-        Ok(_) if !state.retain_shared_nodes => {
+        MergeReady(_) if !state.retain_shared_nodes => {
           match @graph.observe_node(output, identity, observed_left) {
             Ok(_) => ()
-            Err(issue) => return Err(GraftOutput(issue))
+            Err(issue) => return MergeFailed(GraftOutput(issue))
           }
-          return @graph.observe_node(output, identity, observed_right).map_err(issue => {
-            GraftOutput(issue)
-          })
+          return merge_result(
+            @graph.observe_node(output, identity, observed_right).map_err(issue => {
+              GraftOutput(issue)
+            }),
+          )
         }
-        Ok(merged) =>
+        MergeReady(merged) =>
           match @graph.observe_node(output, identity, observed_right) {
-            Ok(_) => Ok(merged)
-            Err(issue) => Err(GraftOutput(issue))
+            Ok(_) => MergeReady(merged)
+            Err(issue) => MergeFailed(GraftOutput(issue))
           }
-        Err(issue) => Err(issue)
+        MergePending => MergePending
+        MergeStopped(reason) => MergeStopped(reason)
+        MergeFailed(issue) => MergeFailed(issue)
       }
     }
   }
-  guard properties is Ok(properties) else {
-    return properties.map(_ => ()).map_err(issue => issue)
+  let properties = match properties {
+    MergeReady(properties) => properties
+    MergePending => return MergePending
+    MergeStopped(reason) => return MergeStopped(reason)
+    MergeFailed(issue) => return MergeFailed(issue)
   }
   let checked_identity = match
     checked_property_for_contract(
@@ -1092,11 +1177,13 @@ fn subtract_node_step(
       state.value_limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
-  @graph.append_node(output, checked_identity, properties).map_err(issue => {
-    GraftOutput(issue)
-  })
+  merge_result(
+    @graph.append_node(output, checked_identity, properties).map_err(issue => {
+      GraftOutput(issue)
+    }),
+  )
 }
 
 ///|
@@ -1104,39 +1191,44 @@ fn subtract_edge_step(
   state : GraftState,
   left : GraftSource,
   right : GraftSource,
-) -> Result[Unit, GraftIssue] {
-  guard state.output is Some(output) else { return Err(GraftInputUnavailable) }
+) -> MergeValue[Unit] {
+  let tokens = Ref(0)
+  guard state.output is Some(output) else {
+    return MergeFailed(GraftInputUnavailable)
+  }
   if state.input_index != 0 {
-    return Ok(())
+    return MergeReady(())
   }
   guard state.plans.get(0) is Some(plan) &&
     source_edge_identity(left, state.record_index)
     is Some((source_id, target_id, label)) &&
     edge_properties_at(left, state.record_index, state.edge_fields)
     is Some(left_values) else {
-    return Err(GraftInputUnavailable)
+    return MergeFailed(GraftInputUnavailable)
   }
   let shared = match source_edge_index(right, source_id, target_id, label) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   let fields = @carrier.graph_edge_properties(plan.graph)
   let properties = match shared {
-    None => rebind_properties(left_values, fields, state.value_limits)
+    None => merge_result(
+      rebind_properties(left_values, fields, state.value_limits),
+    )
     Some(index) => {
       guard edge_properties_at(right, index, state.edge_fields)
         is Some(right_values) else {
-        return Err(GraftInputUnavailable)
+        return MergeFailed(GraftInputUnavailable)
       }
       let observed_left = match
         rebind_properties(left_values, fields, state.value_limits) {
         Ok(values) => values
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let observed_right = match
         rebind_properties(right_values, fields, state.value_limits) {
         Ok(values) => values
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
       let strategies = if state.retain_shared_edges {
         plan.edges
@@ -1145,50 +1237,58 @@ fn subtract_edge_step(
       }
       match
         merge_properties(
+          state,
+          tokens,
           left_values,
           right_values,
           fields,
           strategies,
           state.value_limits,
-          merge_workspace_slots(state),
         ) {
-        Ok(_) if !state.retain_shared_edges => {
+        MergeReady(_) if !state.retain_shared_edges => {
           match
             @graph.observe_edge(
               output, source_id, target_id, label, observed_left,
             ) {
             Ok(_) => ()
-            Err(issue) => return Err(GraftOutput(issue))
+            Err(issue) => return MergeFailed(GraftOutput(issue))
           }
-          return @graph.observe_edge(
-            output, source_id, target_id, label, observed_right,
-          ).map_err(issue => GraftOutput(issue))
+          return merge_result(
+            @graph.observe_edge(
+              output, source_id, target_id, label, observed_right,
+            ).map_err(issue => GraftOutput(issue)),
+          )
         }
-        Ok(merged) =>
+        MergeReady(merged) =>
           match
             @graph.observe_edge(
               output, source_id, target_id, label, observed_right,
             ) {
-            Ok(_) => Ok(merged)
-            Err(issue) => Err(GraftOutput(issue))
+            Ok(_) => MergeReady(merged)
+            Err(issue) => MergeFailed(GraftOutput(issue))
           }
-        Err(issue) => Err(issue)
+        MergePending => MergePending
+        MergeStopped(reason) => MergeStopped(reason)
+        MergeFailed(issue) => MergeFailed(issue)
       }
     }
   }
-  guard properties is Ok(properties) else {
-    return properties.map(_ => ()).map_err(issue => issue)
+  let properties = match properties {
+    MergeReady(properties) => properties
+    MergePending => return MergePending
+    MergeStopped(reason) => return MergeStopped(reason)
+    MergeFailed(issue) => return MergeFailed(issue)
   }
   let source_present = match @graph.contains_declared_node(output, source_id) {
     Ok(value) => value
-    Err(issue) => return Err(GraftOutput(issue))
+    Err(issue) => return MergeFailed(GraftOutput(issue))
   }
   let target_present = match @graph.contains_declared_node(output, target_id) {
     Ok(value) => value
-    Err(issue) => return Err(GraftOutput(issue))
+    Err(issue) => return MergeFailed(GraftOutput(issue))
   }
   if !source_present || !target_present {
-    return Ok(())
+    return MergeReady(())
   }
   let identity_contract = @carrier.graph_identity(plan.graph)
   let checked_source = match
@@ -1198,7 +1298,7 @@ fn subtract_edge_step(
       state.value_limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   let checked_target = match
     checked_property_for_contract(
@@ -1207,20 +1307,22 @@ fn subtract_edge_step(
       state.value_limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return MergeFailed(issue)
   }
   let checked_label = match (label, @carrier.graph_label_contract(plan.graph)) {
     (None, None) => None
     (Some(value), Some(contract)) =>
       match checked_property_for_contract(value, contract, state.value_limits) {
         Ok(checked) => Some(checked)
-        Err(issue) => return Err(issue)
+        Err(issue) => return MergeFailed(issue)
       }
-    _ => return Err(GraftPropertyValue)
+    _ => return MergeFailed(GraftPropertyValue)
   }
-  @graph.append_edge(
-    output, checked_source, checked_target, checked_label, properties,
-  ).map_err(issue => GraftOutput(issue))
+  merge_result(
+    @graph.append_edge(
+      output, checked_source, checked_target, checked_label, properties,
+    ).map_err(issue => GraftOutput(issue)),
+  )
 }
 
 ///|
@@ -1260,24 +1362,44 @@ fn graft_step(
             let left = state.sources[0]
             let right = state.sources[1]
             match subtract_node_step(state, left, right) {
-              Ok(_) => {
+              MergeReady(_) => {
+                if !finish_merge_record(state) {
+                  return @bounded.Failed(
+                    InvalidGraftKernel, progress, used,
+                  )
+                }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              Err(issue) => return @bounded.Failed(issue, progress, used)
+              MergePending =>
+                return @bounded.Continue(progress + 1, used + 1)
+              MergeStopped(reason) =>
+                return @bounded.Stopped(reason, progress, used)
+              MergeFailed(issue) =>
+                return @bounded.Failed(issue, progress, used)
             }
           }
           if state.merge_shared {
             match union_node_step(state, source) {
-              Ok(_) => {
+              MergeReady(_) => {
+                if !finish_merge_record(state) {
+                  return @bounded.Failed(
+                    InvalidGraftKernel, progress, used,
+                  )
+                }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              Err(issue) => return @bounded.Failed(issue, progress, used)
+              MergePending =>
+                return @bounded.Continue(progress + 1, used + 1)
+              MergeStopped(reason) =>
+                return @bounded.Stopped(reason, progress, used)
+              MergeFailed(issue) =>
+                return @bounded.Failed(issue, progress, used)
             }
           }
           guard state.output is Some(output) else {
@@ -1336,24 +1458,44 @@ fn graft_step(
             let left = state.sources[0]
             let right = state.sources[1]
             match subtract_edge_step(state, left, right) {
-              Ok(_) => {
+              MergeReady(_) => {
+                if !finish_merge_record(state) {
+                  return @bounded.Failed(
+                    InvalidGraftKernel, progress, used,
+                  )
+                }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              Err(issue) => return @bounded.Failed(issue, progress, used)
+              MergePending =>
+                return @bounded.Continue(progress + 1, used + 1)
+              MergeStopped(reason) =>
+                return @bounded.Stopped(reason, progress, used)
+              MergeFailed(issue) =>
+                return @bounded.Failed(issue, progress, used)
             }
           }
           if state.merge_shared {
             match union_edge_step(state, source) {
-              Ok(_) => {
+              MergeReady(_) => {
+                if !finish_merge_record(state) {
+                  return @bounded.Failed(
+                    InvalidGraftKernel, progress, used,
+                  )
+                }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              Err(issue) => return @bounded.Failed(issue, progress, used)
+              MergePending =>
+                return @bounded.Continue(progress + 1, used + 1)
+              MergeStopped(reason) =>
+                return @bounded.Stopped(reason, progress, used)
+              MergeFailed(issue) =>
+                return @bounded.Failed(issue, progress, used)
             }
           }
           guard state.output is Some(output) else {
@@ -1414,6 +1556,19 @@ fn graft_step(
 
 ///|
 fn cleanup_graft_state(state : GraftState) -> Bool {
+  if state.set_execution is Some(execution) {
+    @bounded.request_cancel(state.set_control) |> ignore
+    match @value_set.advance(execution, 1) {
+      Ok(@value_set.Stopped(_)) => ()
+      _ => return false
+    }
+    match @value_set.cleanup(execution) {
+      Ok(_) => state.set_execution = None
+      Err(_) => return false
+    }
+  }
+  state.set_results.clear()
+  state.set_cached_slots = 0
   if state.output is Some(output) {
     @graph.cancel_output(output) |> ignore
     state.output = None
@@ -1469,6 +1624,10 @@ pub fn start_graft(
     is Some(max_noninterruptible_value_nodes) else {
     return Err(InvalidGraftLimits)
   }
+  guard graft_noninterruptible_value_bytes(plans, limits)
+    is Some(max_noninterruptible_value_bytes) else {
+    return Err(InvalidGraftLimits)
+  }
   let output = match
     @graph.prepare_output(
       owner,
@@ -1482,6 +1641,7 @@ pub fn start_graft(
     Err(issue) => return Err(GraftOutput(issue))
   }
   let state : GraftState = {
+    set_control: @bounded.control(),
     sources,
     mode,
     merge_shared: structural_merges_shared(sequence, step),
@@ -1500,11 +1660,20 @@ pub fn start_graft(
     phase: CopyNodes,
     record_index: 0,
     max_workspace_slots: limits.max_workspace_slots,
+    set_execution: None,
+    set_token: -1,
+    set_cached_slots: 0,
+    set_results: Map([]),
   }
   let (session, token) = @bounded.start(
     control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
   )
-  Ok({ session, token: Some(token), max_noninterruptible_value_nodes, })
+  Ok({
+    session,
+    token: Some(token),
+    max_noninterruptible_value_nodes,
+    max_noninterruptible_value_bytes,
+  })
 }
 
 ///|
@@ -1559,6 +1728,10 @@ pub fn start_graft_views(
     is Some(max_noninterruptible_value_nodes) else {
     return Err(InvalidGraftLimits)
   }
+  guard graft_noninterruptible_value_bytes(plans, limits)
+    is Some(max_noninterruptible_value_bytes) else {
+    return Err(InvalidGraftLimits)
+  }
   let output = match
     @graph.prepare_output(
       owner,
@@ -1572,6 +1745,7 @@ pub fn start_graft_views(
     Err(issue) => return Err(GraftOutput(issue))
   }
   let state : GraftState = {
+    set_control: @bounded.control(),
     sources,
     mode,
     merge_shared: structural_merges_shared(sequence, step),
@@ -1590,16 +1764,30 @@ pub fn start_graft_views(
     phase: CopyNodes,
     record_index: 0,
     max_workspace_slots: limits.max_workspace_slots,
+    set_execution: None,
+    set_token: -1,
+    set_cached_slots: 0,
+    set_results: Map([]),
   }
   let (session, token) = @bounded.start(
     control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
   )
-  Ok({ session, token: Some(token), max_noninterruptible_value_nodes, })
+  Ok({
+    session,
+    token: Some(token),
+    max_noninterruptible_value_nodes,
+    max_noninterruptible_value_bytes,
+  })
 }
 
 ///|
 pub fn graft_max_noninterruptible_value_nodes(value : GraftExecution) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+pub fn graft_max_noninterruptible_value_bytes(value : GraftExecution) -> Int {
+  value.max_noninterruptible_value_bytes
 }
 
 ///|

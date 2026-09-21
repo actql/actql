@@ -23,6 +23,8 @@ pub fn start(@bounded_execution.Control, Operation, @value_admission.CheckedValu
 
 pub fn stopped(Execution) -> Bool
 
+pub fn workspace_slots(Execution) -> Int
+
 // Errors
 
 // Types and methods

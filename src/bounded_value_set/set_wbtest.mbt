@@ -59,6 +59,7 @@ test "bounded set merge orders values and observes cancellation" {
     limits,
     64,
   ).unwrap()
+  assert_eq(workspace_slots(union), 64)
   let result = finish(union)
   guard result.value is @value.Array(values) else { fail("union array") }
   assert_eq(

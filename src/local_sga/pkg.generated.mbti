@@ -3,6 +3,7 @@ package "actql/actql/local_sga"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/bounded_value_set",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
@@ -64,6 +65,8 @@ pub fn components_max_noninterruptible_value_bytes(ComponentsExecution) -> Int
 pub fn components_max_noninterruptible_value_nodes(ComponentsExecution) -> Int
 
 pub fn graft_cleanup_pending(GraftExecution) -> Bool
+
+pub fn graft_max_noninterruptible_value_bytes(GraftExecution) -> Int
 
 pub fn graft_max_noninterruptible_value_nodes(GraftExecution) -> Int
 
@@ -184,6 +187,7 @@ pub(all) enum GraftIssue {
   GraftPropertyValue
   GraftWorkspaceLimit
   GraftValue(@value_admission.CompleteEqualityIssue)
+  GraftSet(@bounded_value_set.Issue)
   GraftOutput(@managed_graph_runtime.Issue)
   GraftExecutionIssue(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)

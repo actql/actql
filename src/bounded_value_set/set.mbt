@@ -51,6 +51,7 @@ pub(all) enum Issue {
 struct Execution {
   session : @bounded.Session[State, @value.CheckedValue, Issue]
   mut token : @bounded.Token?
+  workspace_slots : Int
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -323,6 +324,7 @@ pub fn start(
   Ok({
     session,
     token: Some(token),
+    workspace_slots: slots,
     max_noninterruptible_value_nodes: node_work,
     max_noninterruptible_value_bytes: order_bytes,
   })
@@ -367,6 +369,11 @@ pub fn cleanup_pending(value : Execution) -> Bool {
 ///|
 pub fn cleanup(value : Execution) -> Result[Bool, Issue] {
   @bounded.cleanup(value.session).map_err(issue => Execution(issue))
+}
+
+///|
+pub fn workspace_slots(value : Execution) -> Int {
+  value.workspace_slots
 }
 
 ///|

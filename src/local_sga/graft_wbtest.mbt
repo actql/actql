@@ -643,6 +643,19 @@ fn one_node_graph(
 }
 
 ///|
+fn finish_bounded_graft(execution : GraftExecution) -> @graph.Completed raise {
+  while true {
+    match advance_graft(execution, 1).unwrap() {
+      GraftContinue(work~, ..) => assert_true(work > 0L)
+      GraftComplete(output, ..) => return output
+      GraftFailed(_, ..) => fail("bounded graft failed")
+      GraftStopped(_, ..) => fail("bounded graft stopped")
+    }
+  }
+  abort("unreachable")
+}
+
+///|
 fn one_node_graph_with_availability(
   owner : @lower.BoundPrepared,
   identity : Double,
@@ -1398,10 +1411,8 @@ test "structural folds canonicalize typed set strategies" {
       fn() { true },
     ).unwrap()
     assert_eq(graft_max_noninterruptible_value_nodes(execution), 808)
-    guard advance_graft(execution, 4).unwrap()
-      is GraftComplete(output, progress=2L, work=2L) else {
-      fail("set structural fold did not complete")
-    }
+    assert_eq(graft_max_noninterruptible_value_bytes(execution), 15728)
+    let output = finish_bounded_graft(execution)
     let result = @graph.completed_storage(output).unwrap()
     guard @storage.node_property(result, 0, 0).unwrap().value
       is @value.Array(values) else {
@@ -1430,8 +1441,23 @@ test "structural folds canonicalize typed set strategies" {
     4096L,
     fn() { true },
   ).unwrap()
-  assert_true(advance_graft(exact, 4).unwrap() is GraftComplete(_))
+  ignore(finish_bounded_graft(exact))
   assert_eq(cleanup_graft(exact), Ok(true))
+
+  let cancel_control = @bounded.control()
+  let cancelled = start_graft(
+    cancel_control,
+    sequence(bounded_owner),
+    0,
+    graft_inputs(bounded_owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_workspace_slots: 64, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_graft(cancelled, 1).unwrap() is GraftContinue(_))
+  assert_true(@bounded.request_cancel(cancel_control))
+  assert_true(advance_graft(cancelled, 1).unwrap() is GraftStopped(_))
+  assert_eq(cleanup_graft(cancelled), Ok(true))
 
   let one_short = start_graft(
     @bounded.control(),
