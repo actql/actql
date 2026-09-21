@@ -68,7 +68,7 @@ struct NativeRemoteStandardPhysicalRunAdmission {
   input : NativeRemoteStandardTransferInput
   physical : NativeRemoteStandardPhysicalAdmission
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ]
   mut terminal : Bool
@@ -98,7 +98,7 @@ struct NativeRemoteStandardStoreRunFactory {
   binding_limits : NativeRemoteStandardTransferBindingLimits
   source_limits : NativeRemoteStandardTransferSourceLimits
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ]
 }
@@ -122,7 +122,7 @@ struct NativeRemoteStandardDirectSourceSession {
 struct NativeRemoteStandardDirectRunFactory {
   source : NativeRemoteStandardDirectSourceFactory
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ]
 }
@@ -585,11 +585,11 @@ fn bind_native_remote_standard_transfer_source_run(
   binding : @remote.RemoteInputBinding,
   source : NativeRemoteStandardTransferSource,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
-  let run = match
+  let compute = match
     open_run(native_remote_standard_transfer_captured_source(source)) {
     Ok(value) => value
     Err(_) =>
@@ -599,9 +599,11 @@ fn bind_native_remote_standard_transfer_source_run(
         cleanup_complete: false,
       })
   }
-  let owner = prepare_native_remote_standard_run_owner(run, () => {
-    finish_native_remote_standard_transfer_source(source)
-  })
+  let owner = prepare_native_remote_standard_captured_run_owner(
+    compute.run,
+    compute.finish_output_owner,
+    () => finish_native_remote_standard_transfer_source(source),
+  )
   match bind_native_remote_standard_run(request, binding, owner) {
     Ok(value) => Ok(value)
     Err(_) =>
@@ -626,7 +628,7 @@ pub fn prepare_native_remote_standard_physical_run_admission(
   program : @context.ProgramSourceIdentity,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[
@@ -765,7 +767,7 @@ pub fn prepare_native_remote_standard_direct_run_admission(
   binding_limits : NativeRemoteStandardTransferBindingLimits,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[
@@ -839,7 +841,7 @@ pub fn register_native_remote_standard_store_run_factory(
   binding_limits : NativeRemoteStandardTransferBindingLimits,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[NativeRemoteStandardStoreRunFactory, NativeRemoteStandardHostIssue] {
@@ -870,7 +872,7 @@ pub fn register_native_remote_standard_direct_run_factory(
   binding_limits : NativeRemoteStandardTransferBindingLimits,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue] {
@@ -1365,7 +1367,7 @@ pub fn resolve_native_remote_standard_physical_run(
   program : @context.ProgramSourceIdentity,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
@@ -1419,7 +1421,7 @@ pub fn resolve_native_remote_standard_transfer_run(
   binding_limits : NativeRemoteStandardTransferBindingLimits,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
+    NativeRemoteStandardComputeOwner,
     Unit,
   ],
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {

@@ -720,7 +720,6 @@ test "standard Local reads the exact committed Transfer destination" {
     262144L,
     journal_control,
   ).unwrap()
-  let captured_runs : Array[@strategy.CapturedDAG] = []
   let task_factory = @native_remote_standard.register_native_remote_standard_store_run_factory(
     destination_journal,
     root,
@@ -781,8 +780,24 @@ test "standard Local reads the exact committed Transfer destination" {
           100000L,
           1000000L,
         ).unwrap()
-        captured_runs.push(captured)
-        Ok(run)
+        Ok(
+          @native_remote_standard.prepare_native_remote_standard_compute_owner(
+            run,
+            () => {
+              for task = @strategy.graph_task_count(graph) - 1
+                  task > 0
+                  task = task - 1 {
+                @strategy.close_captured_task_output(captured, task)
+              }
+              let usage = @resources.ledger_usage(
+                @strategy.captured_dag_ledger(captured),
+              )
+              usage.reserved_execution_bytes == 0L &&
+              usage.reserved_retention_bytes == 0L &&
+              usage.held_bytes == 0L
+            },
+          ),
+        )
       } catch {
         _ => Err(())
       }
@@ -942,19 +957,9 @@ test "standard Local reads the exact committed Transfer destination" {
     fail("standard Transfer release was not observed over HTTPS")
   }
   assert_eq(released_identity, @remote.dispatch_request_identity(dispatch))
-  assert_eq(captured_runs.length(), 1)
   assert_true(component.close().unwrap())
   assert_true(component.poll() is Err(@native_remote_standard.Closed))
   assert_false(component.close().unwrap())
-  for captured in captured_runs {
-    for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
-      @strategy.close_captured_task_output(captured, task)
-    }
-    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
-    assert_eq(usage.reserved_execution_bytes, 0L)
-    assert_eq(usage.reserved_retention_bytes, 0L)
-    assert_eq(usage.held_bytes, 0L)
-  }
   let cleanup = @native_transfer.pin_durable_store_destination_material(
     destination_journal,
     root,

@@ -48,6 +48,16 @@ struct NativeRemoteStandardRunOwner {
 }
 
 ///|
+/// A fresh standard strategy Run and its captured output owner before a
+/// physical input scope has been attached. Store and direct input factories
+/// use this opaque value so application composition cannot lose Captured DAG
+/// cleanup when it hands the Run to the remote runtime.
+struct NativeRemoteStandardComputeOwner {
+  run : @native_host.NativeStandardStrategyRun
+  finish_output_owner : () -> Bool
+}
+
+///|
 /// Exact non-streaming input factory installed by one verified runtime
 /// component. It admits only the input binding fixed at registration and
 /// opens a fresh occurrence owner after that binding has been checked.
@@ -171,6 +181,14 @@ pub fn prepare_native_remote_standard_captured_run_owner(
     output_finished: false,
     input_finished: false,
   }
+}
+
+///|
+pub fn prepare_native_remote_standard_compute_owner(
+  run : @native_host.NativeStandardStrategyRun,
+  finish_output_owner : () -> Bool,
+) -> NativeRemoteStandardComputeOwner {
+  { run, finish_output_owner, }
 }
 
 ///|

@@ -73,13 +73,15 @@ pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @
 
 pub fn prepare_native_remote_standard_captured_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool, () -> Bool) -> NativeRemoteStandardRunOwner
 
-pub fn prepare_native_remote_standard_direct_run_admission(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
+pub fn prepare_native_remote_standard_compute_owner(@host_native.NativeStandardStrategyRun, () -> Bool) -> NativeRemoteStandardComputeOwner
+
+pub fn prepare_native_remote_standard_direct_run_admission(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
 
 pub fn prepare_native_remote_standard_input_failure(String, () -> Bool) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
 pub fn prepare_native_remote_standard_physical_admission(NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardPhysicalAdmission, NativeRemoteStandardInputFailure]
 
-pub fn prepare_native_remote_standard_physical_run_admission(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
+pub fn prepare_native_remote_standard_physical_run_admission(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
 
 pub fn prepare_native_remote_standard_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool) -> NativeRemoteStandardRunOwner
 
@@ -87,7 +89,7 @@ pub fn prepare_native_remote_standard_transfer_input(@remote_transfer.RemoteTran
 
 pub fn register_native_remote_standard_bound_run_factory(@remote_site_protocol.RemoteInputBinding, () -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardInputFailure]) -> NativeRemoteStandardBoundRunFactory
 
-pub fn register_native_remote_standard_direct_run_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue]
+pub fn register_native_remote_standard_direct_run_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue]
 
 pub fn register_native_remote_standard_direct_source_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardDirectSourceFactory, NativeRemoteStandardHostIssue]
 
@@ -95,13 +97,13 @@ pub fn register_native_remote_standard_physical_source(NativeRemoteStandardTrans
 
 pub fn register_native_remote_standard_row_codec(String, String, String) -> Result[NativeRemoteStandardRowCodec, NativeRemoteStandardTransferSourceIssue]
 
-pub fn register_native_remote_standard_store_run_factory(@remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardStoreRunFactory, NativeRemoteStandardHostIssue]
+pub fn register_native_remote_standard_store_run_factory(@remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardStoreRunFactory, NativeRemoteStandardHostIssue]
 
 pub fn reject_native_remote_standard_input(String) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
-pub fn resolve_native_remote_standard_physical_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
+pub fn resolve_native_remote_standard_physical_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
-pub fn resolve_native_remote_standard_transfer_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
+pub fn resolve_native_remote_standard_transfer_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
 pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardInputFailure) -> Bool
 
@@ -111,6 +113,8 @@ pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardIn
 type NativeRemoteStandardBoundRun
 
 type NativeRemoteStandardBoundRunFactory
+
+type NativeRemoteStandardComputeOwner
 
 type NativeRemoteStandardDirectRunFactory
 pub fn NativeRemoteStandardDirectRunFactory::prepare(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
