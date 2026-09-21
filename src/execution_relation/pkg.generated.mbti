@@ -44,6 +44,8 @@ pub fn advance_bounded_binding_rows(BoundedBindingRowsExecution, Int) -> Result[
 
 pub fn advance_bounded_interval_join(BoundedIntervalJoinExecution, Int) -> Result[BoundedIntervalJoinPoll, BoundedIntervalJoinIssue]
 
+pub fn advance_bounded_sequence_match(BoundedSequenceMatchExecution, Int) -> Result[BoundedSequenceMatchPoll, BoundedSequenceMatchIssue]
+
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
@@ -127,6 +129,8 @@ pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
 pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
 
 pub fn bounded_interval_join_cleanup_pending(BoundedIntervalJoinExecution) -> Bool
+
+pub fn bounded_sequence_match_cleanup_pending(BoundedSequenceMatchExecution) -> Bool
 
 pub fn cancel_admitted_input(AdmittedInput) -> Bool
 
@@ -229,6 +233,8 @@ pub fn cleanup_bounded_asof_join(BoundedAsOfJoinExecution) -> Result[Bool, Bound
 pub fn cleanup_bounded_binding_rows(BoundedBindingRowsExecution) -> Result[Bool, BoundedBindingRowsIssue]
 
 pub fn cleanup_bounded_interval_join(BoundedIntervalJoinExecution) -> Result[Bool, BoundedIntervalJoinIssue]
+
+pub fn cleanup_bounded_sequence_match(BoundedSequenceMatchExecution) -> Result[Bool, BoundedSequenceMatchIssue]
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
@@ -820,6 +826,8 @@ pub fn start_bounded_binding_rows(@bounded_execution.Control, GeneratedSequence,
 
 pub fn start_bounded_interval_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedIntervalJoinExecution, BoundedIntervalJoinIssue]
 
+pub fn start_bounded_sequence_match(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue]
+
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
@@ -962,6 +970,24 @@ pub enum BoundedIntervalJoinPoll {
   BoundedIntervalJoinComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
   BoundedIntervalJoinFailed(BoundedIntervalJoinIssue, progress~ : Int64, work~ : Int64)
   BoundedIntervalJoinStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type BoundedSequenceMatchExecution
+
+pub(all) enum BoundedSequenceMatchIssue {
+  InvalidExecution
+  Rows(RowIssue)
+  Predicate(EvalIssueKind)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedSequenceMatchPoll {
+  BoundedSequenceMatchContinue(progress~ : Int64, work~ : Int64)
+  BoundedSequenceMatchComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedSequenceMatchFailed(BoundedSequenceMatchIssue, progress~ : Int64, work~ : Int64)
+  BoundedSequenceMatchStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 pub(all) enum CaptureIssue {

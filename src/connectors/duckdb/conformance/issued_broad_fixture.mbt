@@ -27,6 +27,7 @@ fn issued_fixture_checked(
   traverse? : Bool = false,
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
+  sequence_match? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -55,7 +56,9 @@ fn issued_fixture_checked(
       max_members: 1000,
     },
   ).unwrap()
-  let evidence = if components {
+  let evidence = if sequence_match {
+    [sequence_fixture_capacity(environment, "matched")]
+  } else if components {
     [components_fixture_capacity(environment, "graph", rows=components_rows)]
   } else if reach {
     [reach_fixture_capacity(environment, "graph")]

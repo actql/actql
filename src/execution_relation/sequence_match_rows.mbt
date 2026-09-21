@@ -353,7 +353,7 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
                 }
                 let extended = prior.positions.copy()
                 extended.push(position)
-                let match_ = { positions: extended, }
+                let match_ : SequencePartial = { positions: extended, }
                 partials[pattern].push(match_)
                 if pattern == pattern_count - 1 {
                   if matches.length() - before == per_key_limit ||

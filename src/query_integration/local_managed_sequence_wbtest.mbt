@@ -127,14 +127,25 @@ test "standard Host runs bounded sequence matching for two consumers" {
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
+  let generated = dispatch_test_generated(run)
+  let sequence_capacity = @execution.generated_sequence_capacity(
+    generated[1],
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  let sequence_provider = @local_tea_provider.sequence_match_provider(
+    carrier_events_storage_limits(),
+    sequence_capacity,
+  )
   let installed = @local_driver.prepare_local_dispatch_module(
     @host_driver.open_dispatch_driver(run),
     registry,
     @connector.capability_registration_at(registry, 0).unwrap(),
-    dispatch_test_generated(run),
+    generated,
     limits.local_execution,
     limits.guards,
     limits.candidate_work,
+    managed_providers=[sequence_provider],
   ).unwrap()
   @local_driver.configure_local_retained_inputs(
     installed,

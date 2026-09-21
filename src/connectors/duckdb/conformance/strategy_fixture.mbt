@@ -113,6 +113,35 @@ pub fn strategy_fixture_tea_create(
 }
 
 ///|
+#export_name("strategyFixtureTeaSequenceCreate")
+pub fn strategy_fixture_tea_sequence_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    tea=true,
+    sequence_match=true,
+  )
+}
+
+///|
 #export_name("strategyFixtureVecaCreate")
 pub fn strategy_fixture_veca_create(
   environment_json : String,
@@ -409,6 +438,7 @@ fn strategy_fixture_create_impl(
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
   supplied_ranking_rows? : Int? = None,
+  sequence_match? : Bool = false,
 ) -> StrategyFixture {
   try {
     let program = issued_fixture_checked(
@@ -425,6 +455,7 @@ fn strategy_fixture_create_impl(
       traverse~,
       sga_rows~,
       sga_derived_rows~,
+      sequence_match~,
     )
     let native = issued_native_create_impl(
       environment_json,

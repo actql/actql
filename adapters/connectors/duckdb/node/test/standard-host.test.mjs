@@ -2923,6 +2923,22 @@ async function exerciseStrategyGraph(
       'session_id',
     ],
   }, {
+    name: 'sequence',
+    family: 'sequence',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 2,
+    fields: [
+      'end_id',
+      'end_time_ms',
+      'key',
+      'match_end_ms',
+      'match_start_ms',
+      'start_id',
+      'start_time_ms',
+    ],
+  }, {
     name: 'time-series',
     family: 'time-series',
     rows: 100,
@@ -3047,7 +3063,8 @@ async function exerciseStrategyGraph(
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series' ||
       cancellationCase.family === 'interval' ||
-      cancellationCase.family === 'asof';
+      cancellationCase.family === 'asof' ||
+      cancellationCase.family === 'sequence';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
     const unsizedGraph = cancellationCase.name === 'graphs-equal';
@@ -3183,6 +3200,72 @@ async function exerciseStrategyGraph(
         }))],
         results: {published: {from: {stage: 'joined', result: 'r'}}},
       }
+      : cancellationCase.family === 'sequence'
+        ? {
+          version: 'actql/0.1',
+          id: 'p',
+          params: {minimum: {type: 'number', nullable: false}},
+          stages: [{
+            id: 'a',
+            inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+            steps: [
+              {filter: 'id > $minimum', as: 'filtered'},
+              {select: ['id'], as: 'captured'},
+            ],
+            results: {r: {from: 'captured', fields: ['id']}},
+          }, {
+            id: 'events',
+            inputs: {},
+            steps: [{
+              values: {
+                schema: {
+                  id: {type: 'number', nullable: false},
+                  key: {type: 'number', nullable: false},
+                  clock: {type: 'number', nullable: false},
+                  value: {type: 'number', nullable: false},
+                },
+                rows: Array.from(
+                  {length: cancellationCase.rows},
+                  (_, index) => ({
+                    id: index + 1,
+                    key: index % 2,
+                    clock: index + 1,
+                    value: index % 2 + 1,
+                  }),
+                ),
+              },
+              as: 'out',
+            }],
+            results: {
+              r: {from: 'out', fields: ['id', 'key', 'clock', 'value']},
+            },
+          }, {
+            id: 'matched',
+            inputs: {x: {result: {stage: 'events', result: 'r'}}},
+            steps: [{
+              from: 'x',
+              sequence: {
+                by: ['key'],
+                id: 'id',
+                time: 'clock',
+                pattern: [{as: 'start', where: 'value = 1'}, {
+                  as: 'end', where: 'value = 2',
+                }],
+                within: cancellationCase.rows,
+                overlap: 'allow',
+                contiguity: 'subsequence',
+              },
+              as: 'out',
+            }],
+            results: {r: {from: 'out', fields: cancellationCase.fields}},
+          }, ...['a', 'b'].map(id => ({
+            id: `consumer_${id}`,
+            inputs: {x: {result: {stage: 'matched', result: 'r'}}},
+            steps: [{select: cancellationCase.fields, as: 'out'}],
+            results: {r: {from: 'out', fields: cancellationCase.fields}},
+          }))],
+          results: {published: {from: {stage: 'matched', result: 'r'}}},
+        }
       : cancellationCase.family === 'tea'
       ? {
         version: 'actql/0.1',
@@ -3767,6 +3850,8 @@ async function exerciseStrategyGraph(
     const createCancellationFixture = cancellationCase.scoredPolicy !==
         undefined
       ? fixture.strategyFixtureVecaScoredCreate
+      : cancellationCase.family === 'sequence'
+        ? fixture.strategyFixtureTeaSequenceCreate
       : teaFamily
       ? fixture.strategyFixtureTeaCreate
       : vecaFamily

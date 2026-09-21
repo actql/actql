@@ -14,6 +14,8 @@ pub fn interval_join_provider(@managed_record_storage.Limits, @execution_relatio
 
 pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
 
+pub fn sequence_match_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+
 pub fn time_series_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
 
 // Errors
