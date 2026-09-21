@@ -45,6 +45,8 @@ cleanup() {
     -o "$destination_host_interface" -p tcp \
     -d "$destination_site_ip" --dport "$transfer_port" \
     -j ACCEPT 2>/dev/null
+  sudo iptables -D FORWARD -m conntrack \
+    --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null
   sudo ip netns exec "$destination_namespace" iptables -D INPUT \
     -p tcp -s "$source_site_ip" --dport "$transfer_port" \
     -j ACCEPT 2>/dev/null
@@ -149,6 +151,8 @@ common_environment=(
 sudo iptables -I FORWARD 1 -i "$source_host_interface" \
   -o "$destination_host_interface" -p tcp \
   -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
+sudo iptables -I FORWARD 1 -m conntrack \
+  --ctstate ESTABLISHED,RELATED -j ACCEPT
 sudo ip netns exec "$destination_namespace" iptables -I INPUT 1 \
   -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
 env "${common_environment[@]}" \
@@ -158,6 +162,8 @@ env "${common_environment[@]}" \
 sudo iptables -D FORWARD -i "$source_host_interface" \
   -o "$destination_host_interface" -p tcp \
   -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
+sudo iptables -D FORWARD -m conntrack \
+  --ctstate ESTABLISHED,RELATED -j ACCEPT
 sudo ip netns exec "$destination_namespace" iptables -D INPUT \
   -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
 

@@ -1,7 +1,14 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #define CPPHTTPLIB_NO_EXCEPTIONS
 
+#include <cstring>
+
+// moonbit.h declares memcpy when no macro with that name exists. The C++
+// standard library has already declared it here with a platform-specific
+// exception specification, so prevent the fallback declaration.
+#define memcpy memcpy
 #include "moonbit.h"
+#undef memcpy
 #include "../../../vendor/cpp-httplib/0.56.0/httplib.h"
 
 #include <openssl/evp.h>
@@ -12,7 +19,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
-#include <cstring>
 #include <deque>
 #include <iomanip>
 #include <memory>

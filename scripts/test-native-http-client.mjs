@@ -1364,6 +1364,7 @@ try {
     child.stderr.on('data', chunk => stderr.push(chunk));
     return Object.freeze({
       child,
+      stderrSnapshot: () => Buffer.concat(stderr).toString('utf8'),
       completed: (async () => {
         const [code, signal] = await once(child, 'exit');
         return Object.freeze({
@@ -1462,6 +1463,7 @@ try {
         `${origin}/v1/ready`,
       ];
       const deadline = Date.now() + 10_000;
+      let lastProbeError = '';
       while (Date.now() < deadline) {
         if (operation.child.exitCode !== null) {
           const outcome = await operation.completed;
@@ -1488,9 +1490,13 @@ try {
             },
           };
         }
+        lastProbeError = probe.stderr;
         await new Promise(resolve => setTimeout(resolve, 20));
       }
-      throw new Error('native Direct Site did not accept mTLS traffic');
+      throw new Error(
+        'native Direct Site did not accept mTLS traffic: ' +
+          operation.stderrSnapshot() + lastProbeError,
+      );
     }
     if (configuration.mode === 'store') {
       assert.equal(destination, false);
