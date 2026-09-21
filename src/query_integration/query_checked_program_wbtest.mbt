@@ -29,6 +29,7 @@ fn query_checked_program_fixture(
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
+  local_supplied_ranking_chain? : Bool = false,
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
@@ -121,6 +122,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_carrier_vectors_chain {
     local_carrier_vectors_program(variant=local_carrier_vectors_variant)
+  } else {
+    text
+  }
+  let text = if local_supplied_ranking_chain {
+    local_supplied_ranking_program()
   } else {
     text
   }
@@ -442,6 +448,11 @@ fn query_checked_program_fixture(
             } else {
               query_program_catalog_fixture(
                 analytic=local_values_analytic_chain,
+                schema_snapshots=if local_supplied_ranking_chain {
+                  local_supplied_ranking_schema_snapshots()
+                } else {
+                  "[]"
+                },
               )
             },
           ),
@@ -669,7 +680,9 @@ fn query_checked_program_fixture(
         environment,
         {
           text_time: false,
-          veca: local_carrier_vectors_chain || local_vector_expression_chain,
+          veca: local_carrier_vectors_chain ||
+          local_vector_expression_chain ||
+          local_supplied_ranking_chain,
         },
         {
           rela: true,

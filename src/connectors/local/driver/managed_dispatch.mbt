@@ -142,11 +142,23 @@ pub fn[T] prepare_local_managed_dispatch(
   obligations : @execution.ManagedObligations,
   _output_file_bytes : Int64,
 ) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue] {
+  let available = []
+  let mut completed = 0
+  for producer in @strategy.captured_next_managed_producers(installed.run) {
+    if producer == -1 {
+      available.push(local_managed_supplied_relation_input())
+    } else if completed < outputs.length() {
+      available.push(local_managed_relation_output(outputs[completed]))
+      completed += 1
+    } else {
+      return Err(Configuration(InputUnavailable))
+    }
+  }
+  if completed != outputs.length() {
+    return Err(Configuration(InputUnavailable))
+  }
   prepare_local_managed_dispatch_with_outputs(
-    installed,
-    outputs.map(output => local_managed_relation_output(output)),
-    obligations,
-    _output_file_bytes,
+    installed, available, obligations, _output_file_bytes,
   )
 }
 

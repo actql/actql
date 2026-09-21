@@ -97,6 +97,7 @@ fn captured_graph_fixture(
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
+  local_supplied_ranking_chain? : Bool = false,
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
@@ -124,6 +125,7 @@ fn captured_graph_fixture(
   ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
+  supplied_local_rows? : Array[(Int, Int, Array[String])] = [],
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -154,6 +156,7 @@ fn captured_graph_fixture(
     local_time_series_chain~,
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
+    local_supplied_ranking_chain~,
     local_vector_expression_chain~,
     local_values_analytic_chain~,
     local_values_analytic_variant~,
@@ -222,7 +225,20 @@ fn captured_graph_fixture(
       execution_bytes: 134217728L,
     }),
   ).unwrap()
-  (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
+  let supplied = supplied_local_rows.map(entry => {
+    let (stage, input, rows) = entry
+    @execution.capture_input(
+      owners[stage],
+      input,
+      rows.map(input_cursor),
+      max_rows=100,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    ).unwrap()
+  })
+  (
+    @strategy.open_captured_dag(graph, source, ledger, supplied~).unwrap(),
+    issuer,
+  )
 }
 
 ///|

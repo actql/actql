@@ -1,4 +1,71 @@
 ///|
+fn local_supplied_ranking_schema() -> String {
+  "{\"additional_properties\":false,\"fields\":{" +
+  "\"id\":{\"nullable\":false,\"type\":\"number\"}," +
+  "\"q\":{\"nullable\":false,\"type\":\"number\"}," +
+  "\"score\":{\"nullable\":false,\"type\":\"number\"}}," +
+  "\"nullable\":false,\"type\":\"object\"}"
+}
+
+///|
+fn local_supplied_ranking_schema_snapshots() -> String {
+  let body = fn(source : String) {
+    "{\"output_carrier\":\"relation\",\"schema\":" +
+    local_supplied_ranking_schema() +
+    ",\"score_contracts\":{\"score\":{" +
+    "\"domain\":\"unit.v1\",\"normalization\":\"unit.v1\"," +
+    "\"range\":[0,1]}},\"source_ref\":\"" +
+    source +
+    "\",\"version\":\"actql-local-input-schema/0.1\"}"
+  }
+  "[" +
+  body("source:local/ranked/right") +
+  "," +
+  body("source:local/ranked/left") +
+  "]"
+}
+
+///|
+fn local_supplied_ranking_program() -> String {
+  let input = "{\"carrier\":\"relation\",\"schema\":{" +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"score\":{\"type\":\"number\",\"nullable\":false}}}"
+  "{\"version\":\"actql/0.1\",\"id\":\"supplied-ranking\"," +
+  "\"params\":{\"minimum\":{\"type\":\"number\"," +
+  "\"nullable\":false}},\"stages\":[{" +
+  "\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":" +
+  "\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"ranked\",\"inputs\":{\"left\":" +
+  input +
+  ",\"right\":" +
+  input +
+  "},\"from\":\"left\",\"steps\":[{\"merge_rankings\":{" +
+  "\"with\":\"right\",\"by\":[\"q\"]," +
+  "\"candidate\":\"id\",\"score\":\"score\",\"k\":2," +
+  "\"score_policy\":\"max\",\"score_contract\":{" +
+  "\"domain\":\"unit.v1\",\"normalization\":\"unit.v1\"," +
+  "\"range\":[0,1]}},\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"q\",\"id\",\"rank\",\"score\"]}}},{" +
+  "\"id\":\"consumer-a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"ranked\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"q\",\"id\",\"rank\",\"score\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"q\",\"id\",\"rank\",\"score\"]}}},{" +
+  "\"id\":\"consumer-b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"ranked\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"score\",\"id\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"score\",\"id\"]}}}],\"results\":{" +
+  "\"ranked\":{\"from\":{\"stage\":\"ranked\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   if variant == "ranking_max" ||
     variant == "ranking_weighted" ||
@@ -1903,6 +1970,171 @@ test "registered VecA provider preserves supplied score authority" {
       @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
     )
   }
+}
+
+///|
+test "standard Host executes supplied scored rankings through two consumers" {
+  let (run, issuer) = captured_graph_fixture(
+    local_supplied_ranking_chain=true,
+    supplied_local_rows=[
+      (
+        1,
+        0,
+        [
+          "{\"q\":1,\"id\":1,\"score\":0.75}", "{\"q\":1,\"id\":2,\"score\":0.5}",
+        ],
+      ),
+      (
+        1,
+        1,
+        ["{\"q\":1,\"id\":1,\"score\":0.5}", "{\"q\":1,\"id\":3,\"score\":0.5}"],
+      ),
+    ],
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  assert_eq(@strategy.next_captured_task(run), Some(1))
+  let ranked_live = Ref(true)
+  let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+  let (ranked_ops, ranked) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    ranked_live,
+    obligations~,
+  )
+  let ranked_rows = local_managed_test_rows(ranked_ops)
+  assert_eq(ranked_rows, [
+    "{\"id\":1,\"q\":1,\"rank\":1,\"score\":0.75}", "{\"id\":2,\"q\":1,\"rank\":2,\"score\":0.5}",
+  ])
+  let publication = @execution.managed_obligations_identities(obligations).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    },
+  )
+  assert_eq(publication.length(), 1)
+  assert_true(
+    @execution.managed_completed_identity_requirement_status(
+      ranked,
+      publication[0],
+    )
+    is Some(@execution.EstablishedSourceRetained(_, _)),
+  )
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [ranked],
+    [ranked_rows],
+    2,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [ranked],
+    [ranked_rows],
+    3,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops), [
+    "{\"q\":1,\"id\":1,\"rank\":1,\"score\":0.75}", "{\"q\":1,\"id\":2,\"rank\":2,\"score\":0.5}",
+  ])
+  assert_eq(local_managed_test_rows(second_ops), [
+    "{\"score\":0.75,\"id\":1}", "{\"score\":0.5,\"id\":2}",
+  ])
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (first_ops.close)()
+  assert_true((first_ops.cleanup_refresh)())
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(ranked))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (second_ops.close)()
+  assert_true((second_ops.cleanup_refresh)())
+  ranked_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (ranked_ops.close)()
+  assert_true((ranked_ops.cleanup_refresh)())
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|
