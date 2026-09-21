@@ -362,43 +362,19 @@ fn observe_trusted_clock(
   service : NativeCredentialResourceService,
 ) -> Result[Int64, NativeCredentialResourceIssue] {
   let observed = (service.clock)()
-  if observed < 0L {
-    return Err(TrustedClockRollback)
+  match
+    @trusted_clock.advance_lower_bound(
+      service.database,
+      "credential-clock-v1",
+      "host-lower-bound",
+      observed,
+    ) {
+    Ok(value) => Ok(value)
+    Err(@trusted_clock.Rollback) | Err(@trusted_clock.InvalidConfiguration) =>
+      Err(TrustedClockRollback)
+    Err(@trusted_clock.Physical(issue)) => Err(Journal(issue))
+    Err(@trusted_clock.Closed) => Err(Journal(@sqlite.DatabaseClosed))
   }
-  let scope = "credential-clock-v1"
-  let key = "host-lower-bound"
-  let body = @utf8.encode(observed.to_string())
-  for attempt = 0; attempt < 8; attempt = attempt + 1 {
-    match service.database.read(scope, key) {
-      Ok(existing) => {
-        let previous = match
-          parse_positive_int64(@utf8.decode_lossy(existing.body)) {
-          Some(value) => value
-          None => return Err(Journal(@sqlite.Collision))
-        }
-        if observed < previous {
-          return Err(TrustedClockRollback)
-        }
-        if observed == previous {
-          return Ok(observed)
-        }
-        match
-          service.database.compare_exchange(scope, key, existing.revision, body) {
-          Ok(_) => return Ok(observed)
-          Err(@sqlite.Collision) | Err(@sqlite.Busy) => continue
-          Err(issue) => return Err(Journal(issue))
-        }
-      }
-      Err(@sqlite.NotFound) =>
-        match service.database.insert(scope, key, body) {
-          Ok(_) => return Ok(observed)
-          Err(@sqlite.Collision) | Err(@sqlite.Busy) => continue
-          Err(issue) => return Err(Journal(issue))
-        }
-      Err(issue) => return Err(Journal(issue))
-    }
-  }
-  Err(Journal(@sqlite.Busy))
 }
 
 ///|

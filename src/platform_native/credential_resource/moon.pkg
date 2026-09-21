@@ -5,6 +5,7 @@ import {
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/trusted_clock",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
