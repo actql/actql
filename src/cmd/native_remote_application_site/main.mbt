@@ -184,6 +184,44 @@ fn application_issue_message(
 }
 
 ///|
+fn transfer_issue_message(
+  issue : @transfer_client.NativeRemoteTransferClientIssue,
+) -> String {
+  match issue {
+    @transfer_client.InvalidRequest => "invalid Transfer request"
+    @transfer_client.SourceMismatch => "Transfer source mismatch"
+    @transfer_client.Rejected(status) =>
+      "Transfer peer rejected the request with status " + status.to_string()
+    @transfer_client.Physical(@http.Transport(message)) =>
+      "Transfer transport failed: " + message
+    @transfer_client.Physical(_) => "Transfer transport failed"
+    @transfer_client.Durable(_) => "Transfer journal failed"
+    @transfer_client.Destination(_) => "Transfer destination failed"
+    @transfer_client.Protocol(_) => "Transfer protocol rejected"
+    @transfer_client.ReconciliationRequired =>
+      "Transfer reconciliation is required"
+    @transfer_client.Consumer(message) => "Transfer source failed: " + message
+  }
+}
+
+///|
+fn output_issue_message(
+  issue : @application.NativeRemoteApplicationOutputIssue,
+) -> String {
+  match issue {
+    @application.Transfer(
+      @application.Distribution(
+        @remote_standard.Component(@remote_standard.TransferSend(failure))
+      )
+    ) =>
+      transfer_issue_message(
+        @transfer_client.transfer_send_failure_issue(failure),
+      )
+    _ => "remote output operation failed"
+  }
+}
+
+///|
 fn poll_outcome_json(
   outcome : @application.NativeRemoteApplicationSite,
   publication_store : @publication_store.Store,
@@ -236,12 +274,11 @@ fn poll_outcome_json(
           )
         }
         Err(issue) => {
-          ignore(issue)
           ignore(outcome.retry_output_cleanup())
           if outcome.output_cleanup_pending() {
             Err("remote output cleanup remains pending")
           } else {
-            Err("remote output operation failed")
+            Err(output_issue_message(issue))
           }
         }
       }

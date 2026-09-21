@@ -15,6 +15,7 @@ import {
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_runtime" @runtime,
   "actql/actql/platform_native/remote_standard_host" @remote_standard,
+  "actql/actql/platform_native/remote_transfer_client" @transfer_client,
   "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/platform_native/runtime_bundle" @bundle,
   "actql/actql/platform_native/signature",
