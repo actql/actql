@@ -4,7 +4,11 @@
 /// separate common-Host decision.
 pub(all) enum NativeRemoteAgentOutcome {
   Idle
-  DispatchObserved(String, Int)
+  DispatchObserved(
+    @remote.DispatchRequest,
+    @runtime.NativeRemoteRuntimeCompletion,
+    Int
+  )
   QueryObserved(String, Int)
   QueryNotSeen(String)
   ReleaseObserved(String, Int)
@@ -134,7 +138,7 @@ pub fn advance_native_outbound_operation(
               if revision != completion.revision {
                 Err(ObservationMismatch)
               } else {
-                Ok(DispatchObserved(completion.dispatch_request_cid, revision))
+                Ok(DispatchObserved(request, completion, revision))
               }
             }
             Ok(None) => Err(ObservationMissing)

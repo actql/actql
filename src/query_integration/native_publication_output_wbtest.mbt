@@ -609,10 +609,23 @@ fn assert_native_remote_standard_output(
       acknowledge_acceptance,
       acknowledge_status,
     )
-    is Ok(@native_remote_agent.DispatchObserved(identity, _)) else {
+    is Ok(
+      @native_remote_agent.DispatchObserved(
+        observed_dispatch,
+        observed_completion,
+        _
+      )
+    ) else {
     fail("standard remote dispatch was not observed")
   }
-  assert_eq(identity, @remote.dispatch_request_identity(request))
+  assert_eq(
+    @remote.dispatch_request_identity(observed_dispatch),
+    @remote.dispatch_request_identity(request),
+  )
+  assert_eq(
+    observed_completion.dispatch_request_cid,
+    @remote.dispatch_request_identity(request),
+  )
   let observed = journal.observation(request).unwrap()
   let subject = @native_remote_journal.recovered_site_dispatch_subject(observed).unwrap()
   let material_generation = @remote.remote_managed_output_subject_projection(

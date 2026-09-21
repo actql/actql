@@ -277,10 +277,17 @@ test "outbound agent observes durable acceptance before one execution" {
       accept,
       report_status,
     )
-    is Ok(@agent.DispatchObserved(identity, revision)) else {
+    is Ok(@agent.DispatchObserved(observed_request, completion, revision)) else {
     fail("dispatch was not observed")
   }
-  assert_eq(identity, @remote.dispatch_request_identity(request))
+  assert_eq(
+    @remote.dispatch_request_identity(observed_request),
+    @remote.dispatch_request_identity(request),
+  )
+  assert_eq(
+    completion.dispatch_request_cid,
+    @remote.dispatch_request_identity(request),
+  )
   assert_true(revision > 0)
   assert_eq(executions[0], 1)
   assert_eq(status_attempts[0], 1)
@@ -290,7 +297,7 @@ test "outbound agent observes durable acceptance before one execution" {
       accept,
       report_status,
     )
-    is Ok(@agent.DispatchObserved(_, _)) else {
+    is Ok(@agent.DispatchObserved(_, _, _)) else {
     fail("exact resend was not reconciled")
   }
   assert_eq(executions[0], 1)

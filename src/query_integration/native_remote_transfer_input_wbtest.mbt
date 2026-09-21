@@ -872,7 +872,13 @@ test "standard Local reads the exact committed Transfer destination" {
   assert_eq(queued.status, 201)
   let occurrence = component.poll()
   guard occurrence
-    is Ok(@native_remote_agent.DispatchObserved(dispatch_identity, _)) else {
+    is Ok(
+      @native_remote_agent.DispatchObserved(
+        observed_dispatch,
+        observed_completion,
+        _
+      )
+    ) else {
     match occurrence {
       Err(
         @native_remote_standard.Component(
@@ -913,7 +919,14 @@ test "standard Local reads the exact committed Transfer destination" {
       _ => fail("standard Transfer dispatch was not observed over HTTPS")
     }
   }
-  assert_eq(dispatch_identity, @remote.dispatch_request_identity(dispatch))
+  assert_eq(
+    @remote.dispatch_request_identity(observed_dispatch),
+    @remote.dispatch_request_identity(dispatch),
+  )
+  assert_eq(
+    observed_completion.dispatch_request_cid,
+    @remote.dispatch_request_identity(dispatch),
+  )
   let observed = remote_journal.observation(dispatch).unwrap()
   let subject = @native_remote_journal.recovered_site_dispatch_subject(observed).unwrap()
   let material_generation = @remote.remote_managed_output_subject_projection(
