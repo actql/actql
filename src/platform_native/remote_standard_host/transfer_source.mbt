@@ -86,6 +86,24 @@ struct NativeRemoteStandardDirectSourceFactory {
 }
 
 ///|
+/// Exact durable-Store input factory installed by one verified runtime
+/// component. It fixes both the physical Store owner and every semantic input
+/// parameter before a dispatch can enter runtime admission.
+struct NativeRemoteStandardStoreRunFactory {
+  journal : @transfer_journal.Journal
+  root : @filesystem.Root
+  codec : NativeRemoteStandardRowCodec
+  sequence : @query.QuerySequence
+  program : @context.ProgramSourceIdentity
+  binding_limits : NativeRemoteStandardTransferBindingLimits
+  source_limits : NativeRemoteStandardTransferSourceLimits
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ]
+}
+
+///|
 /// One direct-input occurrence that establishes only the verified captured
 /// source. The environment chooses no schema, view, codec, framing, or cleanup
 /// transition while driving this session.
@@ -819,6 +837,40 @@ pub fn register_native_remote_standard_direct_source_factory(
 }
 
 ///|
+/// Registers one exact durable-Store task input factory. Registration does
+/// not pin a generation or open a Run; those physical operations occur only
+/// after the runtime admits an exact dispatch and input binding.
+pub fn register_native_remote_standard_store_run_factory(
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[NativeRemoteStandardStoreRunFactory, NativeRemoteStandardHostIssue] {
+  if !valid_native_remote_standard_direct_source_limits(
+      binding_limits, source_limits,
+    ) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    journal,
+    root,
+    codec,
+    sequence,
+    program,
+    binding_limits,
+    source_limits,
+    open_run,
+  })
+}
+
+///|
 /// Registers one exact checked task input factory. Registration is pure and
 /// performs no physical access, reservation, or Run construction.
 pub fn register_native_remote_standard_direct_run_factory(
@@ -1411,5 +1463,28 @@ pub fn resolve_native_remote_standard_transfer_run(
   }
   resolve_native_remote_standard_physical_run(
     request, binding, input, physical, codec, sequence, program, source_limits, open_run,
+  )
+}
+
+///|
+/// Resolves one admitted dispatch through the exact durable-Store factory.
+/// Application composition cannot replace the Store, codec, checked Program
+/// identity, bounds, or Run constructor selected for this task.
+pub fn NativeRemoteStandardStoreRunFactory::resolve(
+  self : NativeRemoteStandardStoreRunFactory,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  resolve_native_remote_standard_transfer_run(
+    request,
+    binding,
+    self.journal,
+    self.root,
+    self.codec,
+    self.sequence,
+    self.program,
+    self.binding_limits,
+    self.source_limits,
+    self.open_run,
   )
 }

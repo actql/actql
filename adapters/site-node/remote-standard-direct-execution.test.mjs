@@ -310,16 +310,66 @@ test('failed asynchronous execution retains the MoonBit source owner',
   });
 
 test('verified active bundle supplies the exact session factory', async () => {
-  const setup = fixture();
   const bundle = Object.freeze({component: 'verified-component'});
   const manifest = Object.freeze({runtimeBundleCid: 'bundle-a'});
+  const factory = Object.freeze({kind: 'factory'});
+  const session = Object.freeze({kind: 'session'});
+  const source = Object.freeze({kind: 'source'});
+  const captured = Object.freeze({kind: 'captured'});
+  const output = Object.freeze({kind: 'output'});
+  const claim = Object.freeze({kind: 'claim'});
+  const receiver = Object.freeze({
+    claim: () => claim,
+    async consume(requestCid, authorize, accept) {
+      assert.equal(requestCid, 'request-a');
+      assert.equal(authorize(claim), true);
+      await accept(0, Buffer.from('row'));
+    },
+  });
+  const portable = Object.freeze({
+    requestCid(value) {
+      assert.equal(value, factory);
+      return 'request-a';
+    },
+    start(value, dispatch, binding, current) {
+      assert.equal(value, factory);
+      assert.equal(dispatch.kind, 'dispatch');
+      assert.equal(binding.kind, 'binding');
+      assert.equal(current, claim);
+      return session;
+    },
+    authorize: (value, current) => value === session && current === claim,
+    feed(value, index, frame) {
+      assert.equal(value, session);
+      assert.equal(index, 0);
+      assert.equal(frame.toString(), 'row');
+      return true;
+    },
+    finish: value => value === session ? source : undefined,
+    captured(value) {
+      assert.equal(value, source);
+      return captured;
+    },
+    release: value => value === source,
+    cancel: () => Object.freeze({kind: 'failure'}),
+    failureCode: () => 'unexpected-source-failure',
+    failureCleanupPending: () => false,
+    retryFailureCleanup: () => true,
+  });
   let loads = 0;
   const registration = await prepareInstalledRemoteStandardDirectRegistration({
-    receiver: setup.receiver,
-    loadSessionControl(value) {
+    receiver,
+    portable,
+    loadSourceExecution(value) {
       assert.equal(value, bundle);
       loads++;
-      return setup.control;
+      return Object.freeze({
+        factory,
+        async executeCaptured(value) {
+          assert.equal(value, captured);
+          return output;
+        },
+      });
     },
     bundleStore: Object.freeze({
       active: () => Object.freeze({manifest}),
@@ -357,7 +407,7 @@ test('verified active bundle supplies the exact session factory', async () => {
   });
   assert.equal(loads, 1);
   assert.equal(await registration.execute({
-    dispatch: setup.dispatch,
-    inputBinding: setup.inputBinding,
-  }), setup.output);
+    dispatch: Object.freeze({kind: 'dispatch'}),
+    inputBinding: Object.freeze({kind: 'binding'}),
+  }), output);
 });

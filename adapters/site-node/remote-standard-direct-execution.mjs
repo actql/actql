@@ -188,17 +188,26 @@ export function createRemoteStandardDirectExecution({receiver, control} = {}) {
  */
 export async function prepareInstalledRemoteStandardDirectRegistration({
   receiver,
-  loadSessionControl,
+  portable,
+  loadSourceExecution,
   ...registration
 } = {}) {
-  if (typeof loadSessionControl !== 'function') {
-    fail('InvalidRemoteStandardSessionLoader');
+  if (typeof loadSourceExecution !== 'function') {
+    fail('InvalidRemoteStandardSourceLoader');
   }
   return await prepareInstalledRemoteRuntimeRegistration({
     ...registration,
-    load: async bundle => createRemoteStandardDirectExecution({
-      receiver,
-      control: await loadSessionControl(bundle),
-    }),
+    load: async bundle => {
+      const selected = await loadSourceExecution(bundle);
+      if (selected === null || typeof selected !== 'object') {
+        fail('InvalidRemoteStandardSourceExecution');
+      }
+      const control = createRemoteStandardSourceSessionControl({
+        portable,
+        factory: selected.factory,
+        executeCaptured: selected.executeCaptured,
+      });
+      return createRemoteStandardDirectExecution({receiver, control});
+    },
   });
 }

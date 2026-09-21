@@ -556,6 +556,26 @@ pub fn install_native_remote_standard_task_executor(
 }
 
 ///|
+/// Installs one exact durable-Store task factory into the remote runtime.
+/// Application composition supplies only the checked task identity and output
+/// limits; it cannot replace input verification or physical ownership.
+pub fn install_native_remote_standard_store_task_executor(
+  run_definition_cid : String,
+  task_key : String,
+  expected_task : Int,
+  factory : NativeRemoteStandardStoreRunFactory,
+  limits : NativeRemoteStandardTaskLimits,
+) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue] {
+  install_native_remote_standard_task_executor(
+    run_definition_cid,
+    task_key,
+    expected_task,
+    (request, binding) => factory.resolve(request, binding),
+    limits,
+  )
+}
+
+///|
 /// Open the standard native Remote Site runtime from one verified active
 /// component and an exact registry of checked Local or DuckDB tasks. This is
 /// the product composition boundary used by a statically linked Site

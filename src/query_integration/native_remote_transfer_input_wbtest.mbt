@@ -721,81 +721,78 @@ test "standard Local reads the exact committed Transfer destination" {
     journal_control,
   ).unwrap()
   let captured_runs : Array[@strategy.CapturedDAG] = []
-  let executor = @native_remote_standard.install_native_remote_standard_task_executor(
+  let task_factory = @native_remote_standard.register_native_remote_standard_store_run_factory(
+    destination_journal,
+    root,
+    codec,
+    sequence,
+    @program_check.source_identity(program),
+    {
+      max_binding_bytes: 131072,
+      max_chunks: 8,
+      max_manifest_bytes: 4096,
+      max_referenced_bytes: 1048576L,
+    },
+    {
+      max_rows: 10,
+      max_wire_bytes: 1000,
+      max_read_bytes: 4,
+      max_entries: 100,
+      max_name_bytes: 10000,
+      values: {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 10,
+        max_work: 200000,
+      },
+      wire: {
+        max_bytes: 100,
+        max_nodes: 20,
+        max_depth: 4,
+        max_text_bytes: 100,
+      },
+    },
+    captured_source => {
+      try {
+        let ledger = @resources.create_ledger({
+          planning_work: 10000,
+          attempts: 10,
+          holdings: 10,
+          transfer_bytes: 300000L,
+          retained_bytes: 32000000L,
+          execution_bytes: 134217728L,
+        }).unwrap()
+        let captured = @strategy.open_captured_dag(
+          graph, captured_source, ledger,
+        ).unwrap()
+        let registry = search_registry()
+        ignore(channel_test_selection(captured, registry))
+        let host = @dbhost.configure_strategy_dispatch(
+          captured,
+          registry,
+          @connector.capability_registration_at(registry, 0).unwrap(),
+          @connector.capability_registration_at(registry, 1).unwrap(),
+          dispatch_test_generated(captured),
+          dispatch_test_limits(),
+        ).unwrap()
+        let run = @native_host.open_native_standard_strategy_run(
+          host,
+          native_compute_import_limits(),
+          100000L,
+          1000000L,
+        ).unwrap()
+        captured_runs.push(captured)
+        Ok(run)
+      } catch {
+        _ => Err(())
+      }
+    },
+  ).unwrap()
+  let executor = @native_remote_standard.install_native_remote_standard_store_task_executor(
     @strategy.graph_program_definition_cid(graph),
     "task-1-transfer-local",
     1,
-    (dispatch, binding) => {
-      @native_remote_standard.resolve_native_remote_standard_transfer_run(
-        dispatch,
-        binding,
-        destination_journal,
-        root,
-        codec,
-        sequence,
-        @program_check.source_identity(program),
-        {
-          max_binding_bytes: 131072,
-          max_chunks: 8,
-          max_manifest_bytes: 4096,
-          max_referenced_bytes: 1048576L,
-        },
-        {
-          max_rows: 10,
-          max_wire_bytes: 1000,
-          max_read_bytes: 4,
-          max_entries: 100,
-          max_name_bytes: 10000,
-          values: {
-            max_nodes: 10000,
-            max_text_bytes: 100000,
-            max_depth: 10,
-            max_work: 200000,
-          },
-          wire: {
-            max_bytes: 100,
-            max_nodes: 20,
-            max_depth: 4,
-            max_text_bytes: 100,
-          },
-        },
-        captured_source => {
-          try {
-            let ledger = @resources.create_ledger({
-              planning_work: 10000,
-              attempts: 10,
-              holdings: 10,
-              transfer_bytes: 300000L,
-              retained_bytes: 32000000L,
-              execution_bytes: 134217728L,
-            }).unwrap()
-            let captured = @strategy.open_captured_dag(
-              graph, captured_source, ledger,
-            ).unwrap()
-            let registry = search_registry()
-            ignore(channel_test_selection(captured, registry))
-            let host = @dbhost.configure_strategy_dispatch(
-              captured,
-              registry,
-              @connector.capability_registration_at(registry, 0).unwrap(),
-              @connector.capability_registration_at(registry, 1).unwrap(),
-              dispatch_test_generated(captured),
-              dispatch_test_limits(),
-            ).unwrap()
-            let run = @native_host.open_native_standard_strategy_run(
-              host,
-              native_compute_import_limits(),
-              100000L,
-              1000000L,
-            ).unwrap()
-            captured_runs.push(captured)
-            Ok(run)
-          } catch {
-            _ => Err(())
-          }
-        },
-      )
-    },
+    task_factory,
     {
       output_export: native_publication_export_limits(),
       max_manifest_bytes: 65536,
