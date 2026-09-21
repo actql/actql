@@ -155,7 +155,14 @@ function transferRequest(values) {
   }));
 }
 
-async function fixture(t, {destinationCapacityBytes} = {}) {
+async function fixture(
+  t,
+  {
+    destinationCapacityBytes,
+    sourceSiteGeneration = 1,
+    destinationSiteGeneration = 2,
+  } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), 'actql-transfer-store-'));
   const sourceRoot = join(root, 'source');
   const transferRoot = join(root, 'transfer');
@@ -213,11 +220,11 @@ async function fixture(t, {destinationCapacityBytes} = {}) {
     peerAuthorities: new Map([
       [material.sourceFingerprint, Object.freeze({
         siteKey: 'source-a',
-        siteGeneration: 1,
+        siteGeneration: sourceSiteGeneration,
       })],
       [material.destinationFingerprint, Object.freeze({
         siteKey: 'destination-b',
-        siteGeneration: 2,
+        siteGeneration: destinationSiteGeneration,
       })],
     ]),
     control,
@@ -377,6 +384,58 @@ test('sealed Store object is reused without reading source again', async t => {
   );
   assert.equal(await setup.service.close(), true);
 });
+
+test('Transfer Store rejects an authenticated prior source generation',
+  async t => {
+    const setup = await fixture(t, {sourceSiteGeneration: 0});
+    const source = await retainedBody(setup.sourceStore, 'old-source');
+    const transfer = transferRequest(['old-source']);
+    await assert.rejects(uploadHttpsTransferObject({
+      origin: setup.service.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request: transfer,
+      sourceBodies: [source],
+    }), {code: 'RemoteTransferRejected'});
+    assert.equal(setup.useJournal.recover(control).length, 0);
+    source.close();
+    await setup.sourceStore.cleanup();
+    assert.equal(await setup.service.close(), true);
+  });
+
+test('Transfer Store rejects an authenticated prior destination generation',
+  async t => {
+    const setup = await fixture(t, {destinationSiteGeneration: 1});
+    const source = await retainedBody(setup.sourceStore, 'old-destination');
+    const transfer = transferRequest(['old-destination']);
+    await uploadHttpsTransferObject({
+      origin: setup.service.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request: transfer,
+      sourceBodies: [source],
+    });
+    await assert.rejects(receiveHttpsTransferObject({
+      origin: setup.service.origin,
+      ca: setup.material.ca,
+      cert: setup.material.destinationCertificate,
+      key: setup.material.destinationKey,
+      control,
+      request: transfer,
+      useId: 'old-destination',
+      journal: setup.journal,
+      destinationStore: setup.destinationStore,
+    }), {code: 'RemoteTransferRejected'});
+    assert.equal(setup.useJournal.recover(control).length, 0);
+    source.close();
+    await setup.sourceStore.cleanup();
+    await setup.transferStore.retirePhysicalHolding(control.identity(transfer));
+    assert.equal(await setup.service.close(), true);
+  });
 
 test('completed download use reconciles after Transfer Store restart',
   async t => {

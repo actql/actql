@@ -135,7 +135,13 @@ async function postCancel(setup, requestCid) {
   });
 }
 
-async function startReceiver(material, destinationStore, journal, authorize) {
+async function startReceiver(
+  material,
+  destinationStore,
+  journal,
+  authorize,
+  sourceSiteGeneration = 1,
+) {
   return await startHttpsDirectTransferReceiver({
     key: material.destinationKey,
     cert: material.destinationCertificate,
@@ -143,7 +149,7 @@ async function startReceiver(material, destinationStore, journal, authorize) {
     sourceAuthorities: new Map([
       [material.sourceFingerprint, Object.freeze({
         siteKey: 'source-a',
-        siteGeneration: 1,
+        siteGeneration: sourceSiteGeneration,
       })],
     ]),
     destinationSiteKey: 'destination-b',
@@ -162,7 +168,10 @@ async function startReceiver(material, destinationStore, journal, authorize) {
   });
 }
 
-async function fixture(t, {authorize, decorateJournal} = {}) {
+async function fixture(
+  t,
+  {authorize, decorateJournal, sourceSiteGeneration = 1} = {},
+) {
   const root = await mkdtemp(join(tmpdir(), 'actql-direct-transfer-'));
   const material = await certificates(root);
   const sourceStore = await createLocalRetainedStore({
@@ -193,6 +202,7 @@ async function fixture(t, {authorize, decorateJournal} = {}) {
     destinationStore,
     journal,
     authorize,
+    sourceSiteGeneration,
   );
   t.after(async () => {
     try { await receiver.close(); }
@@ -369,6 +379,33 @@ test('direct Transfer rejects a foreign authenticated client before use',
         ca: setup.material.ca,
         cert: setup.material.foreignCertificate,
         key: setup.material.foreignKey,
+        control,
+        request,
+        sourceBodies: [source],
+      }),
+      {code: 'RemoteTransferRejected'},
+    );
+    assert.equal(setup.destinationStore.status().reservedBytes, 0);
+    assert.equal(setup.journal.recover(control).length, 0);
+    source.close();
+    await setup.sourceStore.cleanup();
+    assert.equal(await setup.receiver.close(), true);
+  });
+
+test('direct Transfer rejects an authenticated prior Site generation',
+  async t => {
+    const setup = await fixture(t, {sourceSiteGeneration: 0});
+    const source = await body(setup.sourceStore, 'alpha');
+    const request = transferRequest(
+      ['alpha'],
+      BigInt(Date.now() + 60_000),
+    );
+    await assert.rejects(
+      sendHttpsDirectTransfer({
+        origin: setup.receiver.origin,
+        ca: setup.material.ca,
+        cert: setup.material.sourceCertificate,
+        key: setup.material.sourceKey,
         control,
         request,
         sourceBodies: [source],
