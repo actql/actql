@@ -12,17 +12,17 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 33/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 33/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; 35/39 entries have kernels and managed completion, 35/39 reach the standard Host, and 35/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 35/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 28/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph construction projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 32/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 33/39, standard Host
-33/39, consumer lifetime 33/39, cancellation 28/39, and publication 32/39. These are
-layer counts, not operation completion: 22 entries are `complete` and 17 remain
+kernel/managed/resources/three-target evidence 35/39, standard Host
+35/39, consumer lifetime 35/39, cancellation 30/39, and publication 34/39. These are
+layer counts, not operation completion: 24 entries are `complete` and 15 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -1147,6 +1147,26 @@ one consumer can finish or cancel without revoking the other, and final
 reclamation occurs once. The remaining work is common Host task selection and
 custody, not another Graph storage or wire format. Graph publication is not
 invented while the formal publication contract remains Relation-valued.
+
+Commits `ceaf836d`, `e965f84b`, and `05f70065` close the two VecA row
+expression entries. A shared bounded row evaluator retains exact input roots,
+advances snapshot or ordered bindings in admitted phases, and publishes no
+partial output on cancellation. The standard managed provider boundary now
+receives the selected execution limits instead of reconstructing them, and
+the VecA provider selects only binding kernels whose lowered roots contain a
+VecA expression. Compatibility starts retain zero ceilings and therefore
+cannot silently run a provider that requires the selected limits.
+
+Independent fixtures cover `vector_score` and `vector_concat` through
+quantum-one provider advances, exact output, cancellation, stop confirmation,
+and cleanup on JS, Wasm, and native. The portable standard Host runs values,
+score, and concatenation as separate physical tasks before two overlapping
+downstream computations and final reclamation. The Node standard Host
+publishes and retrieves the Relation result. A timer cancellation reaches the
+active expression provider through an environment yield, stops without a
+completion, and returns held and reserved bytes to zero. This closes both
+VecA expression entries without treating vector filters or assertions as
+supported by the binding-only provider.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
