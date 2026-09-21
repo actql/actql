@@ -10,4 +10,10 @@ import {
   "actql/actql/platform_native/remote_standard_host" @remote_standard,
   "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/execution_site" @site,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/platform_native/bounded_files",
 }

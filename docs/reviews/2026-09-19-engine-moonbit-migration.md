@@ -44,8 +44,11 @@ application without adding a second parser or planning implementation. A
 native application profile now opens that portable strategy dispatch from an
 exact captured input and transfers both the standard Run and Captured DAG
 cleanup owner into the remote runtime boundary.
-Installing exact configured task factories in the complete Site executable
-remains an open product-composition step. The live Node bundle boundary and
+The profile now loads a bounded immutable application definition through the
+native filesystem adapter, registers Store and direct factories from the
+portable checked input identity, and composes the exact Store task into the
+process-owned Site distribution. Installing that distribution in the complete
+Site executable remains open. The live Node bundle boundary and
 the native durable-Store route now install opaque factories directly; neither
 accepts a replacement input state machine from application composition. The
 native standard registry also accepts non-streaming Local and DuckDB Runs only

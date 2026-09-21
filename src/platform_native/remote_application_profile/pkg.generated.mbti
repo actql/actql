@@ -5,18 +5,28 @@ import {
   "actql/actql/connectors/duckdb/adapters/native",
   "actql/actql/connectors/duckdb/host_native",
   "actql/actql/execution_query",
+  "actql/actql/execution_site",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_example",
+  "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_standard_host",
   "actql/actql/platform_native/remote_transfer_journal",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/remote_site_protocol",
 }
 
 // Values
 pub fn bind_native_remote_application_run(NativeRemoteApplicationRun, () -> Bool) -> @remote_standard_host.NativeRemoteStandardRunOwner
 
+pub fn load_native_remote_application(String, NativeRemoteApplicationFiles, Int64, String, String) -> Result[@physical_strategy_example.Application, NativeRemoteApplicationLoadIssue]
+
 pub fn open_native_remote_application_run(@physical_strategy_example.Application, @execution_query.CapturedInputSource, @physical_resources.LedgerLimits, Int64, Bool, @host_native.NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String) -> Result[NativeRemoteApplicationRun, NativeRemoteApplicationRunIssue]
+
+pub fn open_native_remote_application_store_site_distribution(@physical_strategy_example.Application, @remote_transfer_journal.Journal, @filesystem.Root, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, NativeRemoteApplicationExecutionLimits, NativeRemoteApplicationTaskProfile, @execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget], @http_client.Client, String, String, library? : @native.Library?, database_path? : String) -> Result[@remote_standard_host.NativeRemoteStandardSiteDistribution, NativeRemoteApplicationSiteIssue]
 
 pub fn prepare_native_remote_application_compute_owner(NativeRemoteApplicationRun) -> @remote_standard_host.NativeRemoteStandardComputeOwner
 
@@ -36,6 +46,24 @@ pub(all) struct NativeRemoteApplicationExecutionLimits {
   execution_bytes : Int64
 }
 
+pub(all) struct NativeRemoteApplicationFiles {
+  program : String
+  environment : String
+  environment_cid : String
+  parameters : String
+  registry : String
+  values : String
+  fragment : String
+  query : String
+  evidence : String
+  two_receipt : String
+}
+
+pub(all) enum NativeRemoteApplicationLoadIssue {
+  File(String, @bounded_files.NativeBoundedTextIssue)
+  InvalidApplication
+}
+
 type NativeRemoteApplicationRun
 
 pub(all) enum NativeRemoteApplicationRunIssue {
@@ -43,6 +71,17 @@ pub(all) enum NativeRemoteApplicationRunIssue {
   Ledger(@physical_resources.LedgerIssue)
   Capture(@physical_strategy.RunIssue)
   Strategy(@host_native.NativeStandardStrategyRunIssue)
+}
+
+pub(all) enum NativeRemoteApplicationSiteIssue {
+  Host(@remote_standard_host.NativeRemoteStandardHostIssue)
+  Distribution(@remote_standard_host.NativeRemoteStandardSiteDistributionIssue)
+}
+
+pub(all) struct NativeRemoteApplicationTaskProfile {
+  task_key : String
+  expected_task : Int
+  output : @remote_standard_host.NativeRemoteStandardTaskLimits
 }
 
 // Type aliases

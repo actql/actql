@@ -32,6 +32,136 @@ pub(all) struct NativeRemoteApplicationExecutionLimits {
 }
 
 ///|
+/// Exact remote task identity and bounded output profile installed for one
+/// application task. This does not grant execution until the runtime admits a
+/// matching dispatch and active bundle binding.
+pub(all) struct NativeRemoteApplicationTaskProfile {
+  task_key : String
+  expected_task : Int
+  output : @remote_standard.NativeRemoteStandardTaskLimits
+}
+
+///|
+/// Composition failures keep task registration distinct from process-owned
+/// Site distribution failures.
+pub(all) enum NativeRemoteApplicationSiteIssue {
+  Host(@remote_standard.NativeRemoteStandardHostIssue)
+  Distribution(@remote_standard.NativeRemoteStandardSiteDistributionIssue)
+}
+
+///|
+/// Fixed filenames for one bounded application definition directory. Keeping
+/// names explicit lets packaging choose a layout without granting the runtime
+/// an unbounded directory scan.
+pub(all) struct NativeRemoteApplicationFiles {
+  program : String
+  environment : String
+  environment_cid : String
+  parameters : String
+  registry : String
+  values : String
+  fragment : String
+  query : String
+  evidence : String
+  two_receipt : String
+}
+
+///|
+/// A physical file read failure is kept distinct from rejection by the
+/// portable Program checker and application builder.
+pub(all) enum NativeRemoteApplicationLoadIssue {
+  File(String, @bounded_files.NativeBoundedTextIssue)
+  InvalidApplication
+}
+
+///|
+fn read_application_file(
+  root : String,
+  name : String,
+  max_bytes : Int64,
+  trim_newline : Bool,
+) -> Result[String, NativeRemoteApplicationLoadIssue] {
+  @bounded_files.read_bounded_text_file(root, name, max_bytes, trim_newline~).map_err(issue => {
+      File(name, issue)
+    },
+  )
+}
+
+///|
+/// Loads one immutable, bounded application definition and delegates all
+/// syntax, checking, planning, and Connector construction to the portable
+/// MoonBit application builder. File access is the only native concern here.
+pub fn load_native_remote_application(
+  root : String,
+  files : NativeRemoteApplicationFiles,
+  max_file_bytes : Int64,
+  database_schema : String,
+  table : String,
+) -> Result[@application.Application, NativeRemoteApplicationLoadIssue] {
+  if max_file_bytes <= 0L {
+    return Err(InvalidApplication)
+  }
+  let program = match
+    read_application_file(root, files.program, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let environment = match
+    read_application_file(root, files.environment, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let environment_cid = match
+    read_application_file(root, files.environment_cid, max_file_bytes, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let parameters = match
+    read_application_file(root, files.parameters, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let registry = match
+    read_application_file(root, files.registry, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let values = match
+    read_application_file(root, files.values, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let fragment = match
+    read_application_file(root, files.fragment, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let query = match
+    read_application_file(root, files.query, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let evidence = match
+    read_application_file(root, files.evidence, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let two_receipt = match
+    read_application_file(root, files.two_receipt, max_file_bytes, false) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    @application.prepare_application(
+      program, environment, environment_cid, parameters, registry, values, fragment,
+      query, evidence, two_receipt, database_schema, table,
+    ),
+  ) catch {
+    _ => Err(InvalidApplication)
+  }
+}
+
+///|
 /// Opens one fresh application occurrence from an already verified physical
 /// input source. Program checking and strategy construction are reused from
 /// the portable application builder; this native package adds no parser,
@@ -202,6 +332,79 @@ pub fn register_native_remote_application_direct_run_factory(
       }
     },
   )
+}
+
+///|
+/// Opens the complete process-owned Store-input Site distribution for one
+/// checked application task. Application code cannot replace the checked
+/// Program, input verifier, Connector progression, output evidence, or
+/// shutdown ordering after this product composition boundary returns.
+pub fn open_native_remote_application_store_site_distribution(
+  app : @application.Application,
+  transfer_journal : @transfer_journal.Journal,
+  transfer_root : @filesystem.Root,
+  codec : @remote_standard.NativeRemoteStandardRowCodec,
+  binding_limits : @remote_standard.NativeRemoteStandardTransferBindingLimits,
+  source_limits : @remote_standard.NativeRemoteStandardTransferSourceLimits,
+  execution : NativeRemoteApplicationExecutionLimits,
+  task : NativeRemoteApplicationTaskProfile,
+  site : @site.ExecutionSite,
+  active_runtime : @bundle.NativeActiveRuntimeBinding,
+  operation_capability_cid : String,
+  issuer_capability_cid : String,
+  journal : @journal.Journal,
+  bundles : @bundle.NativeRuntimeBundleStore,
+  budgets : Array[@remote.RemoteDispatchBudget],
+  client : @http.Client,
+  poll_url : String,
+  observation_url : String,
+  library? : @native_duckdb.Library? = None,
+  database_path? : String = "",
+) -> Result[
+  @remote_standard.NativeRemoteStandardSiteDistribution,
+  NativeRemoteApplicationSiteIssue,
+] {
+  let factory = match
+    register_native_remote_application_store_run_factory(
+      app,
+      transfer_journal,
+      transfer_root,
+      codec,
+      binding_limits,
+      source_limits,
+      execution,
+      library~,
+      database_path~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Host(issue))
+  }
+  let executor = match
+    @remote_standard.install_native_remote_standard_store_task_executor(
+      @strategy.graph_program_definition_cid(
+        @application.application_graph(app),
+      ),
+      task.task_key,
+      task.expected_task,
+      factory,
+      task.output,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Host(issue))
+  }
+  @remote_standard.open_native_remote_standard_site_distribution(
+    site,
+    active_runtime,
+    operation_capability_cid,
+    issuer_capability_cid,
+    [executor],
+    journal,
+    bundles,
+    budgets,
+    client,
+    poll_url,
+    observation_url,
+  ).map_err(issue => Distribution(issue))
 }
 
 ///|
