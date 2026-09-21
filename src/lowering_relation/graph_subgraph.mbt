@@ -7,6 +7,32 @@ struct PreparedGraphSubgraph {
 }
 
 ///|
+pub fn graph_subgraph_literal_id_count(value : PreparedGraphSubgraph) -> Int? {
+  let selector = @graph.subgraph_nodes(value.checked)
+  match @graph.selector_form(selector) {
+    @graph.ExplicitIds => Some(@graph.selector_id_count(selector))
+    _ => None
+  }
+}
+
+///|
+pub fn graph_subgraph_literal_id_at(
+  value : PreparedGraphSubgraph,
+  index : Int,
+) -> @value.CheckedValue? {
+  let selector = @graph.subgraph_nodes(value.checked)
+  guard @graph.selector_form(selector) is @graph.ExplicitIds else {
+    return None
+  }
+  @graph.selector_id_at(selector, index)
+}
+
+///|
+pub fn graph_subgraph_has_edge_predicate(value : PreparedGraphSubgraph) -> Bool {
+  value.edge_predicate is Some(_)
+}
+
+///|
 pub(all) enum GraphSubgraphIssue {
   InvalidGraphSubgraphLimits
   InvalidGraphSubgraphWiring
