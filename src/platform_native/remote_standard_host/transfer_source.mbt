@@ -59,6 +59,21 @@ struct NativeRemoteStandardPhysicalAdmission {
 }
 
 ///|
+/// Dispatch-bound incremental input session. An asynchronous adapter may feed
+/// physical frames, but it cannot replace the exact binding or open a Run
+/// before the common verifier has established the captured source.
+struct NativeRemoteStandardPhysicalRunAdmission {
+  request : @remote.DispatchRequest
+  binding : @remote.RemoteInputBinding
+  physical : NativeRemoteStandardPhysicalAdmission
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ]
+  mut terminal : Bool
+}
+
+///|
 priv struct NativeRemoteTransferSourceToken {
   physical : NativeRemoteStandardPhysicalSource
   mut active : Bool
@@ -495,6 +510,136 @@ pub fn cancel_native_remote_standard_physical_admission(
 }
 
 ///|
+fn bind_native_remote_standard_transfer_source_run(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  source : NativeRemoteStandardTransferSource,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  let run = match
+    open_run(native_remote_standard_transfer_captured_source(source)) {
+    Ok(value) => value
+    Err(_) =>
+      return Err({
+        code: "standard-run-open",
+        cleanup: () => finish_native_remote_standard_transfer_source(source),
+      })
+  }
+  match
+    bind_native_remote_standard_run(request, binding, run, () => {
+      finish_native_remote_standard_transfer_source(source)
+    }) {
+    Ok(value) => Ok(value)
+    Err(_) => {
+      let closed = [false]
+      Err({
+        code: "standard-run-binding",
+        cleanup: fn() {
+          if !closed[0] {
+            match @native_host.close_native_standard_strategy_run(run) {
+              Ok(true) => closed[0] = true
+              Ok(false) | Err(_) => return false
+            }
+          }
+          finish_native_remote_standard_transfer_source(source)
+        },
+      })
+    }
+  }
+}
+
+///|
+/// Starts one exact dispatch-bound incremental input session. Preparation
+/// performs no physical reads and opens no standard Run.
+pub fn prepare_native_remote_standard_physical_run_admission(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  input : NativeRemoteStandardTransferInput,
+  physical : NativeRemoteStandardPhysicalSource,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[
+  NativeRemoteStandardPhysicalRunAdmission,
+  NativeRemoteStandardInputFailure,
+] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
+    @remote.remote_input_binding_cid(input.binding) !=
+    @remote.remote_input_binding_cid(binding) {
+    return Err({ code: "foreign-input-binding", cleanup: physical.release, })
+  }
+  let admission = match
+    prepare_native_remote_standard_physical_admission(
+      input, physical, codec, sequence, program, source_limits,
+    ) {
+    Ok(value) => value
+    Err(failure) => return Err(failure)
+  }
+  Ok({ request, binding, physical: admission, open_run, terminal: false, })
+}
+
+///|
+/// Feeds one bounded frame into a dispatch-bound input session.
+pub fn feed_native_remote_standard_physical_run_admission(
+  admission : NativeRemoteStandardPhysicalRunAdmission,
+  index : Int,
+  bytes : Bytes,
+) -> Result[Unit, NativeRemoteStandardTransferSourceIssue] {
+  if admission.terminal {
+    return Err(InvalidProfile)
+  }
+  feed_native_remote_standard_physical_admission(
+    admission.physical,
+    index,
+    bytes,
+  )
+}
+
+///|
+/// Establishes the captured source, then and only then opens and binds the
+/// exact standard Run.
+pub fn finish_native_remote_standard_physical_run_admission(
+  admission : NativeRemoteStandardPhysicalRunAdmission,
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  if admission.terminal {
+    return Err(transfer_source_failure(None, InvalidProfile))
+  }
+  admission.terminal = true
+  let source = match
+    finish_native_remote_standard_physical_admission(admission.physical) {
+    Ok(value) => value
+    Err(failure) => return Err(failure)
+  }
+  bind_native_remote_standard_transfer_source_run(
+    admission.request,
+    admission.binding,
+    source,
+    admission.open_run,
+  )
+}
+
+///|
+/// Cancels one unfinished dispatch-bound input session. The returned failure
+/// retains the exact physical cleanup owner for common runtime retry.
+pub fn cancel_native_remote_standard_physical_run_admission(
+  admission : NativeRemoteStandardPhysicalRunAdmission,
+) -> NativeRemoteStandardInputFailure {
+  if admission.terminal {
+    return transfer_source_failure(None, Physical("cancelled"))
+  }
+  admission.terminal = true
+  cancel_transfer_source_admission(admission.physical, Physical("cancelled"))
+}
+
+///|
 /// Verifies and decodes one exact registered physical destination into a
 /// provisional output. Completion and capture are established only through
 /// the fixed provider verifiers below, after the full physical stream succeeds.
@@ -594,48 +739,38 @@ pub fn resolve_native_remote_standard_physical_run(
     Unit,
   ],
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
-  if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
-    @remote.remote_input_binding_cid(input.binding) !=
-    @remote.remote_input_binding_cid(binding) {
-    return Err({ code: "foreign-input-binding", cleanup: physical.release, })
-  }
-  let source = match
-    acquire_native_remote_standard_physical_source(
-      input, physical, codec, sequence, program, source_limits,
+  let admission = match
+    prepare_native_remote_standard_physical_run_admission(
+      request, binding, input, physical, codec, sequence, program, source_limits,
+      open_run,
     ) {
     Ok(value) => value
     Err(failure) => return Err(failure)
   }
-  let run = match
-    open_run(native_remote_standard_transfer_captured_source(source)) {
-    Ok(value) => value
-    Err(_) =>
-      return Err({
-        code: "standard-run-open",
-        cleanup: () => finish_native_remote_standard_transfer_source(source),
-      })
-  }
-  match
-    bind_native_remote_standard_run(request, binding, run, () => {
-      finish_native_remote_standard_transfer_source(source)
-    }) {
-    Ok(value) => Ok(value)
+  let streamed = (physical.stream)(source_limits.max_read_bytes, fn(
+    index,
+    bytes,
+  ) {
+    feed_native_remote_standard_physical_run_admission(admission, index, bytes).map_err(_ => {
+        "physical-admission"
+      },
+    )
+  })
+  match streamed {
+    Ok(_) => ()
     Err(_) => {
-      let closed = [false]
-      Err({
-        code: "standard-run-binding",
-        cleanup: fn() {
-          if !closed[0] {
-            match @native_host.close_native_standard_strategy_run(run) {
-              Ok(true) => closed[0] = true
-              Ok(false) | Err(_) => return false
-            }
-          }
-          finish_native_remote_standard_transfer_source(source)
+      let failure = cancel_native_remote_standard_physical_run_admission(
+        admission,
+      )
+      return Err({
+        code: native_remote_standard_input_failure_code(failure),
+        cleanup: () => {
+          retry_native_remote_standard_input_failure_cleanup(failure)
         },
       })
     }
   }
+  finish_native_remote_standard_physical_run_admission(admission)
 }
 
 ///|

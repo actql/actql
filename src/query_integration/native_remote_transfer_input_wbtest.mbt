@@ -200,6 +200,109 @@ test "incremental direct destination uses common standard input verifier" {
   )
   assert_eq(failed_releases[0], 1)
   assert_false(failed_available[0])
+
+  let run_available = [true]
+  let run_releases = [0]
+  let run_opens = [0]
+  let run_physical = @native_remote_standard.register_native_remote_standard_physical_source(
+    input,
+    () => run_available[0],
+    (_max_bytes, _emit) => Err("incremental-provider-only"),
+    () => {
+      run_releases[0] += 1
+      run_available[0] = false
+      true
+    },
+  )
+  let binding = @native_remote_standard.native_remote_standard_transfer_binding(
+    input,
+  )
+  let budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
+  let dispatch = @remote.prepare_dispatch_request(
+    "incremental-coordinator",
+    remote_transfer_input_cid("8"),
+    "incremental-task",
+    1,
+    "incremental-dispatch",
+    "native-destination",
+    3,
+    remote_transfer_input_cid("9"),
+    "local",
+    "local/1",
+    "strategy/1",
+    @remote.remote_input_binding_cid(binding),
+    remote_transfer_input_cid("a"),
+    @remote.remote_dispatch_budget_cid(budget),
+    remote_transfer_input_cid("b"),
+    remote_transfer_input_cid("c"),
+  ).unwrap()
+  let run_admission = @native_remote_standard.prepare_native_remote_standard_physical_run_admission(
+    dispatch,
+    binding,
+    input,
+    run_physical,
+    codec,
+    query_checked_sequence(program),
+    @program_check.source_identity(program),
+    {
+      max_rows: 10,
+      max_wire_bytes: 1000,
+      max_read_bytes: 3,
+      max_entries: 100,
+      max_name_bytes: 10000,
+      values: {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 10,
+        max_work: 200000,
+      },
+      wire: {
+        max_bytes: 100,
+        max_nodes: 20,
+        max_depth: 4,
+        max_text_bytes: 100,
+      },
+    },
+    _source => {
+      run_opens[0] += 1
+      Err(())
+    },
+  ).unwrap()
+  for index, chunk in chunks {
+    let mut offset = 0
+    while offset < chunk.length() {
+      let count = Int::min(3, chunk.length() - offset)
+      @native_remote_standard.feed_native_remote_standard_physical_run_admission(
+        run_admission,
+        index,
+        Bytes::from_array(Array::makei(count, unit => chunk[offset + unit])),
+      ).unwrap()
+      offset += count
+    }
+  }
+  assert_eq(run_opens[0], 0)
+  let run_failure = match
+    @native_remote_standard.finish_native_remote_standard_physical_run_admission(
+      run_admission,
+    ) {
+    Err(value) => value
+    Ok(_) => fail("incremental Run opened unexpectedly")
+  }
+  assert_eq(run_opens[0], 1)
+  assert_eq(
+    @native_remote_standard.native_remote_standard_input_failure_code(
+      run_failure,
+    ),
+    "standard-run-open",
+  )
+  assert_true(run_available[0])
+  assert_true(
+    @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
+      run_failure,
+    ),
+  )
+  assert_eq(run_releases[0], 1)
+  assert_false(run_available[0])
 }
 
 ///|

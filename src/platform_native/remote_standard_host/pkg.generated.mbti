@@ -29,9 +29,15 @@ pub fn bind_native_remote_standard_run(@remote_site_protocol.DispatchRequest, @r
 
 pub fn cancel_native_remote_standard_physical_admission(NativeRemoteStandardPhysicalAdmission) -> NativeRemoteStandardInputFailure
 
+pub fn cancel_native_remote_standard_physical_run_admission(NativeRemoteStandardPhysicalRunAdmission) -> NativeRemoteStandardInputFailure
+
 pub fn feed_native_remote_standard_physical_admission(NativeRemoteStandardPhysicalAdmission, Int, Bytes) -> Result[Unit, NativeRemoteStandardTransferSourceIssue]
 
+pub fn feed_native_remote_standard_physical_run_admission(NativeRemoteStandardPhysicalRunAdmission, Int, Bytes) -> Result[Unit, NativeRemoteStandardTransferSourceIssue]
+
 pub fn finish_native_remote_standard_physical_admission(NativeRemoteStandardPhysicalAdmission) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
+
+pub fn finish_native_remote_standard_physical_run_admission(NativeRemoteStandardPhysicalRunAdmission) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
 pub fn finish_native_remote_standard_transfer_source(NativeRemoteStandardTransferSource) -> Bool
 
@@ -54,6 +60,8 @@ pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @
 pub fn prepare_native_remote_standard_input_failure(String, () -> Bool) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
 pub fn prepare_native_remote_standard_physical_admission(NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardPhysicalAdmission, NativeRemoteStandardInputFailure]
+
+pub fn prepare_native_remote_standard_physical_run_admission(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
 
 pub fn prepare_native_remote_standard_transfer_input(@remote_transfer.RemoteTransferRequest, String, String, Int) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
 
@@ -82,6 +90,8 @@ pub(all) enum NativeRemoteStandardHostIssue {
 type NativeRemoteStandardInputFailure
 
 type NativeRemoteStandardPhysicalAdmission
+
+type NativeRemoteStandardPhysicalRunAdmission
 
 type NativeRemoteStandardPhysicalSource
 
