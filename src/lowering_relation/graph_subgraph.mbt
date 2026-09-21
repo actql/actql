@@ -33,6 +33,20 @@ pub fn graph_subgraph_has_edge_predicate(value : PreparedGraphSubgraph) -> Bool 
 }
 
 ///|
+pub fn graph_subgraph_node_predicate(
+  value : PreparedGraphSubgraph,
+) -> Expression? {
+  value.node_predicate
+}
+
+///|
+pub fn graph_subgraph_edge_predicate(
+  value : PreparedGraphSubgraph,
+) -> Expression? {
+  value.edge_predicate
+}
+
+///|
 pub fn graph_subgraph_literal_edge_predicate(
   value : PreparedGraphSubgraph,
 ) -> Bool? {

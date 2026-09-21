@@ -3,7 +3,11 @@ priv enum SubgraphPhase {
   InitializeSelection
   BeginNode
   CompareNodeIdentity
-  CopyEdges
+  PrepareNodePredicate
+  EvaluateNodePredicate
+  BeginEdge
+  PrepareEdgePredicate
+  EvaluateEdgePredicate
   FinishSubgraph
 }
 
@@ -11,16 +15,25 @@ priv enum SubgraphPhase {
 priv struct SubgraphState {
   input : @graph.ProducerRead
   source : @storage.Storage
+  graph : @carrier.Graph
   prepared : @lower.PreparedGraphSubgraph
   mut output : @graph.OutputBuilder?
   selected : Array[Bool]
   node_fields : Int
   edge_fields : Int
-  include_edges : Bool
+  node_predicate : @lower.Expression?
+  edge_predicate : @lower.Expression?
+  edge_literal : Bool?
+  value_limits : @value.Limits
+  predicate_workspace : Int
+  mut predicate_work_remaining : Int
+  predicate_input : Map[String, @execution.Value]
+  mut predicate_execution : @execution.PredicateExpressionExecution?
   mut phase : SubgraphPhase
   mut node : Int
   mut selector : Int
   mut edge : Int
+  mut predicate_field : Int
 }
 
 ///|
@@ -43,6 +56,7 @@ pub(all) enum SubgraphIssue {
   InvalidSubgraphKernel
   InvalidSubgraphLimits
   SubgraphInputUnavailable
+  SubgraphPredicate(@execution.EvalIssueKind)
   SubgraphKeyOrder(@value.KeyOrderIssue)
   SubgraphOutput(@graph.Issue)
   SubgraphExecutionIssue(@bounded.Issue)
@@ -75,6 +89,38 @@ fn copy_subgraph_edge(
 }
 
 ///|
+fn select_subgraph_node(
+  state : SubgraphState,
+  selected : Bool,
+) -> Result[Unit, SubgraphIssue] {
+  if selected {
+    match copy_subgraph_node(state, state.node) {
+      Ok(_) => state.selected[state.node] = true
+      Err(issue) => return Err(issue)
+    }
+  }
+  state.node += 1
+  state.phase = BeginNode
+  Ok(())
+}
+
+///|
+fn select_subgraph_edge(
+  state : SubgraphState,
+  selected : Bool,
+) -> Result[Unit, SubgraphIssue] {
+  if selected {
+    match copy_subgraph_edge(state, state.edge) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  state.edge += 1
+  state.phase = BeginEdge
+  Ok(())
+}
+
+///|
 fn subgraph_step(
   state : SubgraphState,
   quantum : Int,
@@ -100,11 +146,20 @@ fn subgraph_step(
         }
       BeginNode =>
         if state.node < @storage.node_count(state.source) {
-          state.selector = 0
-          state.phase = CompareNodeIdentity
+          match state.node_predicate {
+            Some(_) => {
+              state.predicate_field = 0
+              state.predicate_input.clear()
+              state.phase = PrepareNodePredicate
+            }
+            None => {
+              state.selector = 0
+              state.phase = CompareNodeIdentity
+            }
+          }
         } else {
           state.edge = 0
-          state.phase = CopyEdges
+          state.phase = BeginEdge
         }
       CompareNodeIdentity => {
         guard @lower.graph_subgraph_literal_id_count(state.prepared)
@@ -130,19 +185,84 @@ fn subgraph_step(
           Err(issue) =>
             return @bounded.Failed(SubgraphKeyOrder(issue), progress, used)
           Ok(0) =>
-            match copy_subgraph_node(state, state.node) {
-              Ok(_) => {
-                state.selected[state.node] = true
-                state.node += 1
-                state.phase = BeginNode
-                progress += 1
-              }
+            match select_subgraph_node(state, true) {
+              Ok(_) => progress += 1
               Err(issue) => return @bounded.Failed(issue, progress, used)
             }
           Ok(_) => ()
         }
       }
-      CopyEdges =>
+      PrepareNodePredicate =>
+        if state.predicate_field <
+          graph_node_predicate_binding_count(state.graph) {
+          used += 1
+          guard graph_node_predicate_binding(
+              state.graph,
+              state.source,
+              state.node,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(SubgraphInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.node_predicate is Some(predicate) else {
+            return @bounded.Failed(InvalidSubgraphKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                SubgraphPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateNodePredicate
+            }
+          }
+        }
+      EvaluateNodePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidSubgraphKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              SubgraphPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            match select_subgraph_node(state, selected) {
+              Ok(_) => if selected { progress += 1 }
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+        }
+      }
+      BeginEdge =>
         if state.edge < @storage.edge_count(state.source) {
           guard @storage.edge_endpoints(state.source, state.edge)
             is Some((source, target)) &&
@@ -150,17 +270,96 @@ fn subgraph_step(
             state.selected.get(target) is Some(target_selected) else {
             return @bounded.Failed(SubgraphInputUnavailable, progress, used)
           }
-          if state.include_edges && source_selected && target_selected {
-            match copy_subgraph_edge(state, state.edge) {
-              Ok(_) => progress += 1
-              Err(issue) => return @bounded.Failed(issue, progress, used)
-            }
-          }
-          state.edge += 1
           used += 1
+          if source_selected && target_selected {
+            match state.edge_literal {
+              Some(selected) =>
+                match select_subgraph_edge(state, selected) {
+                  Ok(_) => if selected { progress += 1 }
+                  Err(issue) => return @bounded.Failed(issue, progress, used)
+                }
+              None => {
+                state.predicate_field = 0
+                state.predicate_input.clear()
+                state.phase = PrepareEdgePredicate
+              }
+            }
+          } else {
+            state.edge += 1
+          }
         } else {
           state.phase = FinishSubgraph
         }
+      PrepareEdgePredicate =>
+        if state.predicate_field <
+          graph_edge_predicate_binding_count(state.graph) {
+          used += 1
+          guard graph_edge_predicate_binding(
+              state.graph,
+              state.source,
+              state.edge,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(SubgraphInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.edge_predicate is Some(predicate) else {
+            return @bounded.Failed(InvalidSubgraphKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                SubgraphPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateEdgePredicate
+            }
+          }
+        }
+      EvaluateEdgePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidSubgraphKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              SubgraphPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            match select_subgraph_edge(state, selected) {
+              Ok(_) => if selected { progress += 1 }
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+        }
+      }
       FinishSubgraph => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidSubgraphKernel, progress, used)
@@ -178,11 +377,16 @@ fn subgraph_step(
 
 ///|
 fn cleanup_subgraph_state(state : SubgraphState) -> Bool {
+  if state.predicate_execution is Some(execution) {
+    @execution.cancel_predicate_expression(execution) |> ignore
+    state.predicate_execution = None
+  }
   if state.output is Some(output) {
     @graph.cancel_output(output) |> ignore
     state.output = None
   }
   state.selected.clear()
+  state.predicate_input.clear()
   true
 }
 
@@ -199,9 +403,14 @@ pub fn start_subgraph(
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphSubgraphStep(prepared)) &&
-    @lower.graph_subgraph_literal_id_count(prepared) is Some(_) &&
-    @lower.graph_subgraph_literal_edge_predicate(prepared)
-    is Some(include_edges) &&
+    (
+      @lower.graph_subgraph_literal_id_count(prepared) is Some(_) ||
+      @lower.graph_subgraph_node_predicate(prepared) is Some(_)
+    ) &&
+    (
+      @lower.graph_subgraph_literal_edge_predicate(prepared) is Some(_) ||
+      @lower.graph_subgraph_edge_predicate(prepared) is Some(_)
+    ) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidSubgraphKernel)
   }
@@ -213,7 +422,27 @@ pub fn start_subgraph(
     return Err(InvalidSubgraphLimits)
   }
   let nodes = @storage.node_count(source)
-  if nodes > limits.max_workspace_slots {
+  let node_predicate = @lower.graph_subgraph_node_predicate(prepared)
+  let edge_literal = @lower.graph_subgraph_literal_edge_predicate(prepared)
+  let edge_predicate = if edge_literal is Some(_) {
+    None
+  } else {
+    @lower.graph_subgraph_edge_predicate(prepared)
+  }
+  let predicate_fields = Int::max(
+    if node_predicate is Some(_) {
+      graph_node_predicate_binding_count(contract)
+    } else {
+      0
+    },
+    if edge_predicate is Some(_) {
+      graph_edge_predicate_binding_count(contract)
+    } else {
+      0
+    },
+  )
+  if nodes > limits.max_workspace_slots ||
+    predicate_fields > limits.max_workspace_slots - nodes {
     return Err(InvalidSubgraphLimits)
   }
   let output = match
@@ -231,16 +460,29 @@ pub fn start_subgraph(
   let state : SubgraphState = {
     input,
     source,
+    graph: contract,
     prepared,
     output: Some(output),
     selected: [],
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
-    include_edges,
+    node_predicate,
+    edge_predicate,
+    edge_literal,
+    value_limits: {
+      max_nodes: limits.max_value_nodes,
+      max_depth: limits.max_value_depth,
+      max_text_bytes: limits.max_value_bytes,
+    },
+    predicate_workspace: limits.max_workspace_slots - nodes - predicate_fields,
+    predicate_work_remaining: limits.max_work,
+    predicate_input: Map([]),
+    predicate_execution: None,
     phase: InitializeSelection,
     node: 0,
     selector: 0,
     edge: 0,
+    predicate_field: 0,
   }
   let (session, token) = @bounded.start(
     control, state, subgraph_step, cleanup_subgraph_state, @graph.discard_completed,

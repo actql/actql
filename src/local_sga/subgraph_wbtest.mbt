@@ -37,6 +37,42 @@ fn subgraph_owner(
 }
 
 ///|
+fn subgraph_predicate_owner(
+  producer : @lower.BoundPrepared,
+  nodes : String,
+  edges : String,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor(
+        "[{\"subgraph\":{\"nodes\":" + nodes + ",\"edges\":\"" + edges + "\"}}]",
+      ),
+      [
+        (
+          "prior",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(producer)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(cursor("\"prior\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn subgraph_source_graph(
   owner : @lower.BoundPrepared,
   live : Ref[Bool],
@@ -179,4 +215,66 @@ test "subgraph preserves a literal false edge predicate" {
   }
   assert_eq(@storage.node_count(material), 2)
   assert_eq(@storage.edge_count(material), 0)
+}
+
+///|
+test "subgraph evaluates node and edge predicates" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let node_owner = subgraph_predicate_owner(
+    producer, "{\"where\":\"name = 'a' or name = 'b'\"}", "true",
+  )
+  let node_execution = start_subgraph(
+    @bounded.control(),
+    sequence(node_owner),
+    0,
+    @graph.prepare_producer_read(node_owner, 0, producer, source).unwrap(),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut node_output : @graph.Completed? = None
+  while node_output is None {
+    match advance_subgraph(node_execution, 1).unwrap() {
+      SubgraphContinue(_) => ()
+      SubgraphComplete(value, ..) => node_output = Some(value)
+      _ => fail("node predicate subgraph failed")
+    }
+  }
+  assert_eq(cleanup_subgraph(node_execution), Ok(true))
+  guard node_output is Some(node_completed) &&
+    @graph.completed_storage(node_completed) is Some(node_material) else {
+    fail("completed node predicate subgraph")
+  }
+  assert_eq(@storage.node_count(node_material), 2)
+  assert_eq(@storage.edge_count(node_material), 1)
+
+  let edge_owner = subgraph_predicate_owner(
+    producer, "{\"ids\":[1,2,3]}", "weight > 20",
+  )
+  let edge_execution = start_subgraph(
+    @bounded.control(),
+    sequence(edge_owner),
+    0,
+    @graph.prepare_producer_read(edge_owner, 0, producer, source).unwrap(),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut edge_output : @graph.Completed? = None
+  while edge_output is None {
+    match advance_subgraph(edge_execution, 1).unwrap() {
+      SubgraphContinue(_) => ()
+      SubgraphComplete(value, ..) => edge_output = Some(value)
+      _ => fail("edge predicate subgraph failed")
+    }
+  }
+  assert_eq(cleanup_subgraph(edge_execution), Ok(true))
+  guard edge_output is Some(edge_completed) &&
+    @graph.completed_storage(edge_completed) is Some(edge_material) else {
+    fail("completed edge predicate subgraph")
+  }
+  assert_eq(@storage.node_count(edge_material), 3)
+  assert_eq(@storage.edge_count(edge_material), 1)
+  assert_eq(@storage.edge_endpoints(edge_material, 0), Some((1, 2)))
 }
