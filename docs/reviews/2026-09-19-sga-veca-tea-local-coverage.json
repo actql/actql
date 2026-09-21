@@ -1314,7 +1314,7 @@
       "output": "graph",
       "canonical": ["SGA.mean_structural"],
       "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -1323,6 +1323,10 @@
         "kernel",
         "managed",
         "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
         "three_targets"
       ],
       "layer_evidence": [
@@ -1352,6 +1356,48 @@
             "src/local_sga/mean_wbtest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_canonical_order_and_workspace",
+          "layers": ["resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5ff6996a3ecfafebdd01d26d768e3a8392cb78b3",
+          "evidence": [
+            "src/local_sga/mean.mbt",
+            "src/local_sga/mean_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "policy_failure_conformance",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9a9956508f7c1b45eb193e33678eb1e696d7f466",
+          "evidence": ["src/local_sga/mean_wbtest.mbt"]
+        },
+        {
+          "scope": "standard_host_consumers_and_publication",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "39d718cae9297432576bc5f3e3b3b8cb5dd6ce49",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation", "resources"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "309d51113514806949bd81bc236b8d4c492a770b",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2825,6 +2871,30 @@
         {
           "name": "portable bounded structural set merge",
           "path": "src/local_sga/graft_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable Graph consumers and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "mean_graphs",
+      "sha": "9a9956508f7c1b45eb193e33678eb1e696d7f466",
+      "suites": [
+        {
+          "name": "portable exact bounded structural mean",
+          "path": "src/local_sga/mean_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
         },
