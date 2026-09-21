@@ -2898,6 +2898,23 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     fields: ['time'],
   }, {
+    name: 'rows-to-vectors-bridge',
+    family: 'veca',
+    operation: 'bridge',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 2,
+    fields: ['id', 'embedding'],
+  }, {
+    name: 'vectors-to-rows-bridge',
+    family: 'veca',
+    operation: 'bridge',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: ['id', 'embedding'],
+  }, {
     name: 'vector-normalize',
     family: 'veca',
     operation: 'normalize',
@@ -3260,7 +3277,15 @@ async function exerciseStrategyGraph(
             }, {
               id: 'vectors',
               inputs: {rows: {result: {stage: 'values', result: 'r'}}},
-              steps: cancellationCase.operation === 'score'
+              steps: cancellationCase.operation === 'bridge'
+                ? [{
+                  from: 'rows',
+                  to_vectors: {id: 'id', vector: 'embedding'},
+                  as: 'source',
+                }, {
+                  from: 'source', vectors: true, as: 'out',
+                }]
+                : cancellationCase.operation === 'score'
                 ? [{
                   from: 'rows',
                   to_vectors: {id: 'id', vector: 'embedding'},

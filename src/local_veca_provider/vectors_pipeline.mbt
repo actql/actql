@@ -300,7 +300,11 @@ fn advance_execution(
               return fail_execution(value)
             }
             value.transformed = Some(output)
-            value.phase = StartKernel
+            value.phase = if value.kernel_step == value.projection_step {
+              StartProjection
+            } else {
+              StartKernel
+            }
             if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
               return Ok(poll)
             }
@@ -853,7 +857,11 @@ pub fn provider(
       let count = @lower.sequence_count(
         @execution.generated_prepared_sequence(sequence),
       )
-      let relation_pool = count == 2
+      let first_operation = @lower.node_at(
+        @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
+        0,
+      ).map(node => @lower.operation(node))
+      let relation_pool = count == 2 && first_operation == Some("VEC.pool")
       let direct = count == 1
       let direct_operation = if direct {
         @lower.node_at(

@@ -135,6 +135,11 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "bridge_only" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
@@ -468,7 +473,8 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
-    managed_publication=variant == "normalize_shared" ||
+    managed_publication=variant == "bridge_only" ||
+      variant == "normalize_shared" ||
       variant == "score_shared" ||
       variant == "pool_shared",
     parameter_json=if variant == "score_parameter" {
@@ -477,7 +483,8 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
       "{\"minimum\":1}"
     },
   )
-  if variant == "normalize_shared" ||
+  if variant == "bridge_only" ||
+    variant == "normalize_shared" ||
     variant == "score_shared" ||
     variant == "pool_shared" {
     assert_true(
@@ -596,7 +603,30 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     ),
   )
   assert_true(vector_rows[0].contains("\"embedding\""))
-  if variant == "normalize_shared" {
+  if variant == "bridge_only" {
+    assert_eq(vector_rows, [
+      "{\"code\":\"😀\",\"embedding\":[3,4],\"group\":1,\"id\":1}", "{\"code\":\"é\",\"embedding\":[0,5],\"group\":1,\"id\":2}",
+    ])
+    let published = @execution.managed_obligations_identities(
+      vector_obligations,
+    ).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(published.length(), 1)
+    match
+      @execution.managed_completed_identity_requirement_status(
+        vectors,
+        published[0],
+      ) {
+      Some(@execution.EstablishedSourceRetained(contract, _)) =>
+        assert_eq(
+          contract,
+          @execution.logical_relation_canonical_contract_cid(),
+        )
+      _ => fail("bridge output did not establish publication identity")
+    }
+  } else if variant == "normalize_shared" {
     assert_eq(vector_rows, [
       "{\"code\":\"😀\",\"embedding\":[0.6000000238418579,0.800000011920929],\"group\":1,\"id\":1}",
       "{\"code\":\"é\",\"embedding\":[0,1],\"group\":1,\"id\":2}",
@@ -1161,6 +1191,11 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
 ///|
 test "standard Host runs bounded vector normalization provider" {
   run_standard_vectors_provider("normalize")
+}
+
+///|
+test "standard Host runs the vector bridge through two consumers" {
+  run_standard_vectors_provider("bridge_only")
 }
 
 ///|
