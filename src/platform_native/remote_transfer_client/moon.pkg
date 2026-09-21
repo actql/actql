@@ -15,3 +15,11 @@ import {
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/env",
 } for "wbtest"
+
+options(
+  "native-stub": [ "retry_wait_stub.c" ],
+  targets: {
+    "retry_wait_native.mbt": [ "native" ],
+    "retry_wait_unsupported.mbt": [ "not", "native" ],
+  },
+)

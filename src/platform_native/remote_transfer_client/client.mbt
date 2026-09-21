@@ -583,7 +583,7 @@ fn upload_store_transfer_from_source(
 }
 
 ///|
-fn await_store_destination_commit(
+fn await_store_destination_commit_once(
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
@@ -619,6 +619,28 @@ fn await_store_destination_commit(
   } else {
     Err(ReconciliationRequired)
   }
+}
+
+///|
+/// Reconcile a sealed Store upload without repeating source transfer. A
+/// transport failure leaves the exact request unknown, so bounded retries
+/// query only the destination-completion endpoint.
+fn await_store_destination_commit(
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let mut retries = 40
+  while true {
+    match await_store_destination_commit_once(client, origin, request) {
+      Err(Physical(_)) if retries > 0 => {
+        retries -= 1
+        physical_reconciliation_wait(50)
+      }
+      outcome => return outcome
+    }
+  }
+  abort("unreachable")
 }
 
 ///|
