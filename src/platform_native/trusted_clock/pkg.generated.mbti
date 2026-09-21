@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/trusted_clock"
+
+import {
+  "actql/actql/platform_native/sqlite",
+}
+
+// Values
+pub fn advance_lower_bound(@sqlite.Database, String, String, Int64) -> Result[Int64, NativeTrustedClockIssue]
+
+pub fn open(@sqlite.Library, String, String, String) -> Result[NativeTrustedClock, NativeTrustedClockIssue]
+
+// Errors
+
+// Types and methods
+pub struct NativeTrustedClock {
+  database : @sqlite.Database
+  scope : String
+  key : String
+  mut closed : Bool
+}
+pub fn NativeTrustedClock::close(Self) -> Bool
+pub fn NativeTrustedClock::observe(Self) -> Result[Int64, NativeTrustedClockIssue]
+
+pub(all) enum NativeTrustedClockIssue {
+  InvalidConfiguration
+  Rollback
+  Closed
+  Physical(@sqlite.NativeSqliteIssue)
+}
+
+// Type aliases
+
+// Traits
