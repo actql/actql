@@ -101,9 +101,135 @@ test "native credential resource consumes one durable scoped use" {
     ])
     is Err(Credential(@credential.InvalidCredentialSignature)),
   )
-  let response = call_native_credential_resource(
-    service, grant, "use-a", scope,
+  let expires_at = 2000000000000L
+  let clock_database = sqlite
+    .open_database(journal_path + ".clock", 65536L)
+    .unwrap()
+  let clock_client = http
+    .create_client(ca, cert, key, 1024L, 2000, 5000)
+    .unwrap()
+  let mut clock_now = expires_at - 1L
+  let clock_service = install_native_credential_resource_service_with_clock(
+    clock_database,
+    clock_client,
+    [
+      {
+        resource_origin: origin,
+        operation: "records:read",
+        path: "/credential",
+        secret_path: secret,
+      },
+    ],
+    _ => true,
+    fn() { clock_now },
   ).unwrap()
+  ignore(
+    call_native_credential_resource(
+      clock_service, grant, "clock-before-restart", scope,
+    ).unwrap(),
+  )
+  ignore(clock_client.close())
+  clock_database.close()
+  clock_now = expires_at - 2L
+  let rollback_database = sqlite
+    .open_database(journal_path + ".clock", 65536L)
+    .unwrap()
+  let rollback_client = http
+    .create_client(ca, cert, key, 1024L, 2000, 5000)
+    .unwrap()
+  let rollback_service = install_native_credential_resource_service_with_clock(
+    rollback_database,
+    rollback_client,
+    [
+      {
+        resource_origin: origin,
+        operation: "records:read",
+        path: "/credential",
+        secret_path: secret,
+      },
+    ],
+    _ => true,
+    fn() { clock_now },
+  ).unwrap()
+  guard call_native_credential_resource(
+      rollback_service, grant, "clock-after-restart", scope,
+    )
+    is Err(TrustedClockRollback) else {
+    fail("credential clock rollback survived a process restart")
+  }
+  ignore(rollback_client.close())
+  rollback_database.close()
+  let expiry_database = sqlite
+    .open_database(journal_path + ".expiry", 65536L)
+    .unwrap()
+  let expiry_client = http
+    .create_client(ca, cert, key, 1024L, 2000, 5000)
+    .unwrap()
+  clock_now = expires_at - 1L
+  let expiry_service = install_native_credential_resource_service_with_clock(
+    expiry_database,
+    expiry_client,
+    [
+      {
+        resource_origin: origin,
+        operation: "records:read",
+        path: "/credential",
+        secret_path: secret,
+      },
+    ],
+    authorization => {
+      if authorization.stage == "claim" {
+        clock_now = expires_at
+      }
+      true
+    },
+    fn() { clock_now },
+  ).unwrap()
+  guard call_native_credential_resource(
+      expiry_service, grant, "expires-before-send", scope,
+    )
+    is Err(Credential(@credential.CredentialGrantInactive)) else {
+    fail("credential expiry during authorization started resource I/O")
+  }
+  let expired_status = query_native_credential_use(
+    expiry_service, grant, "expires-before-send", scope,
+  ).unwrap()
+  assert_eq(expired_status.outcome, "failed")
+  ignore(expiry_client.close())
+  expiry_database.close()
+  let exact_database = sqlite
+    .open_database(journal_path + ".exact-expiry", 65536L)
+    .unwrap()
+  let exact_client = http
+    .create_client(ca, cert, key, 1024L, 2000, 5000)
+    .unwrap()
+  let exact_service = install_native_credential_resource_service_with_clock(
+    exact_database,
+    exact_client,
+    [
+      {
+        resource_origin: origin,
+        operation: "records:read",
+        path: "/credential",
+        secret_path: secret,
+      },
+    ],
+    _ => true,
+    fn() { expires_at },
+  ).unwrap()
+  guard call_native_credential_resource(
+      exact_service, grant, "exact-expiry", scope,
+    )
+    is Err(Credential(@credential.CredentialGrantInactive)) else {
+    fail("credential grant remained active at its expiry instant")
+  }
+  guard query_native_credential_use(exact_service, grant, "exact-expiry", scope)
+    is Err(Journal(@sqlite.NotFound)) else {
+    fail("expired credential use was durably claimed")
+  }
+  ignore(exact_client.close())
+  exact_database.close()
+  let response = call_native_credential_resource(service, grant, "use-a", scope).unwrap()
   assert_eq(response.status, 200)
   assert_eq(response.body, b"{\"authorized\":true}")
   let status = query_native_credential_use(service, grant, "use-a", scope).unwrap()
@@ -112,21 +238,15 @@ test "native credential resource consumes one durable scoped use" {
   assert_eq(status.status, Some(200))
   assert_eq(stages, ["claim", "send", "query", "return"])
   revoke_native_credential_grant(service, grant).unwrap()
-  guard call_native_credential_resource(
-      service, grant, "revoked", scope,
-    )
+  guard call_native_credential_resource(service, grant, "revoked", scope)
     is Err(Credential(@credential.CredentialGrantInactive)) else {
     fail("revoked credential grant started another resource call")
   }
-  guard call_native_credential_resource(
-      service, grant, "use-a", scope,
-    )
+  guard call_native_credential_resource(service, grant, "use-a", scope)
     is Err(UseAlreadyClaimed) else {
     fail("exact credential retry started another resource call")
   }
-  guard call_native_credential_resource(
-      service, grant, "use-b", scope,
-    )
+  guard call_native_credential_resource(service, grant, "use-b", scope)
     is Err(Journal(@sqlite.CapacityExceeded)) else {
     fail("credential use ceiling was not durable")
   }
@@ -165,9 +285,7 @@ test "native credential resource consumes one durable scoped use" {
     fail("expired credential use was durably claimed")
   }
   let foreign : NativeCredentialScope = { ..scope, operation: "records:write", }
-  guard call_native_credential_resource(
-      service, grant, "foreign", foreign,
-    )
+  guard call_native_credential_resource(service, grant, "foreign", foreign)
     is Err(Credential(@credential.CredentialGrantInactive)) else {
     fail("foreign credential operation was accepted")
   }

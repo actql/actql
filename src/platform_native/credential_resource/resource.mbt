@@ -371,7 +371,8 @@ fn observe_trusted_clock(
   for attempt = 0; attempt < 8; attempt = attempt + 1 {
     match service.database.read(scope, key) {
       Ok(existing) => {
-        let previous = match parse_positive_int64(@utf8.decode_lossy(existing.body)) {
+        let previous = match
+          parse_positive_int64(@utf8.decode_lossy(existing.body)) {
           Some(value) => value
           None => return Err(Journal(@sqlite.Collision))
         }
@@ -381,12 +382,8 @@ fn observe_trusted_clock(
         if observed == previous {
           return Ok(observed)
         }
-        match service.database.compare_exchange(
-          scope,
-          key,
-          existing.revision,
-          body,
-        ) {
+        match
+          service.database.compare_exchange(scope, key, existing.revision, body) {
           Ok(_) => return Ok(observed)
           Err(@sqlite.Collision) | Err(@sqlite.Busy) => continue
           Err(issue) => return Err(Journal(issue))
@@ -489,7 +486,14 @@ pub fn call_native_credential_resource(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let authorized = send_time < expires_at && (service.authorize)({
+  if send_time >= expires_at {
+    match persist_outcome(service, grant_cid, use_id, "failed", None) {
+      Ok(_) => return Err(Credential(@credential.CredentialGrantInactive))
+      Err(Journal(issue)) => return Err(TerminalRecordFailed("failed", issue))
+      Err(issue) => return Err(issue)
+    }
+  }
+  let authorized = (service.authorize)({
       stage: "send",
       grant_cid,
       use_cid: Some(use_cid),

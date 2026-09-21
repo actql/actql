@@ -103,13 +103,20 @@ test "native HTTPS client verifies mTLS and bounds response bytes" {
     .unwrap()
   assert_eq(authorized.status, 200)
   assert_eq(authorized.body, b"{\"authorized\":true}")
+  guard client.get_bearer_file(url + "/credential", secret, 1L)
+    is Err(DeadlineExpired) else {
+    fail("expired credential deadline started an HTTPS request")
+  }
   assert_true(client.close())
   assert_true(!client.close())
   guard client.post_json(url + "/probe", b"{}") is Err(Closed) else {
     fail("closed HTTPS client accepted another request")
   }
-  guard client
-      .get_bearer_file(url + "/credential", secret, 9223372036854775807L)
+  guard client.get_bearer_file(
+      url + "/credential",
+      secret,
+      9223372036854775807L,
+    )
     is Err(Closed) else {
     fail("closed HTTPS client accepted a credential request")
   }

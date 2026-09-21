@@ -296,7 +296,8 @@ pub fn Client::get_bearer_file(
   if !url.has_prefix("https://") ||
     url.length() > 8192 ||
     url.contains("\u{0}") ||
-    !valid_path(secret_path) || expires_at_milliseconds < 1L {
+    !valid_path(secret_path) ||
+    expires_at_milliseconds < 1L {
     return Err(InvalidRequest)
   }
   let encoded_url = @utf8.encode(url)
