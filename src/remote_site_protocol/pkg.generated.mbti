@@ -3,6 +3,7 @@ package "actql/actql/remote_site_protocol"
 
 import {
   "actql/actql/execution_site",
+  "actql/actql/publication_payload",
   "actql/actql/remote_transfer",
   "moonbitlang/core/debug",
 }
@@ -37,6 +38,8 @@ pub fn admit_remote_managed_output_subject(String, String, String, String, Strin
 pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
 pub fn admit_remote_output_intent_json(String, String, DispatchRequest) -> Result[RemoteOutputIntent, DispatchIssue]
+
+pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputResult, DispatchIssue]
 
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
 
@@ -234,6 +237,8 @@ pub fn prepare_remote_managed_output_subject(String, String, String, String, Str
 
 pub fn prepare_remote_output_intent(DispatchRequest, RemoteOutputIntentProjection) -> Result[RemoteOutputIntent, DispatchIssue]
 
+pub fn prepare_remote_output_result(RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> Result[RemoteOutputResult, DispatchIssue]
+
 pub fn prepare_remote_runtime_cleanup(DispatchRecord, Bool, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
 
 pub fn prepare_remote_runtime_failure(DispatchRecord, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
@@ -325,6 +330,16 @@ pub fn remote_output_intent_json(RemoteOutputIntent) -> Result[String, DispatchI
 pub fn remote_output_intent_matches_dispatch(RemoteOutputIntent, DispatchRequest) -> Bool
 
 pub fn remote_output_intent_projection(RemoteOutputIntent) -> RemoteOutputIntentProjection
+
+pub fn remote_output_result_identity(RemoteOutputResult) -> String
+
+pub fn remote_output_result_json(RemoteOutputResult) -> Result[String, DispatchIssue]
+
+pub fn remote_output_result_payload_digest(RemoteOutputResult) -> String
+
+pub fn remote_output_result_projection(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[Array[String], DispatchIssue]
+
+pub fn remote_output_result_transfer_record(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, DispatchIssue]
 
 pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBinding
 
@@ -551,6 +566,8 @@ pub(all) struct RemoteOutputIntentProjection {
   route_capability_cid : String
   transfer_origin : String
 }
+
+type RemoteOutputResult
 
 type RemotePollDispatch
 

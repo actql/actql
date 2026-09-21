@@ -111,7 +111,11 @@ fn poll_outcome_json(
       let request = @remote.remote_poll_output_request(output)
       let intent = @remote.remote_poll_output_intent(output)
       match outcome.execute_output(output, publication_store, max_chunk_bytes) {
-        Ok(result) =>
+        Ok(result) => {
+          match outcome.acknowledge_output_result(result) {
+            Ok(_) => ()
+            Err(_) => return Err("remote output acknowledgement failed")
+          }
           Ok(
             "{\"kind\":\"output\",\"request_cid\":\"" +
             @remote.dispatch_request_identity(request) +
@@ -125,6 +129,7 @@ fn poll_outcome_json(
             @transfer.record_revision(result.transfer).to_string() +
             "}",
           )
+        }
         Err(issue) => {
           ignore(issue)
           ignore(outcome.retry_output_cleanup())

@@ -139,6 +139,11 @@ function remoteSiteControl(moon) {
     request.evidenceIssuerCapabilityCid,
     request.grantCid,
   ];
+  const int64 = (value, label) => {
+    if (typeof value === 'bigint' && value >= 0n) return value;
+    if (Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+    throw new TypeError(`Invalid remote output ${label}`);
+  };
   control = Object.freeze({
     prepare(request) {
       if (request === null || typeof request !== 'object') {
@@ -185,6 +190,90 @@ function remoteSiteControl(moon) {
     pollJson: (value, binding) => checked(
       moon.strategyRemotePollDispatchJson(value, binding),
     ),
+    prepareOutputIntent(request, configuration) {
+      if (configuration === null || typeof configuration !== 'object' ||
+          !Number.isSafeInteger(configuration.destinationSiteGeneration) ||
+          configuration.destinationSiteGeneration < 0) {
+        throw new TypeError('Invalid remote output intent');
+      }
+      const route = configuration.transferRoute === 'direct' ? 0
+        : configuration.transferRoute === 'store' ? 1 : -1;
+      return checked(moon.strategyRemoteOutputIntentPrepare(
+        request,
+        configuration.storeAuthorityCid,
+        configuration.publicationAttemptCid,
+        configuration.resultDefinitionCid,
+        configuration.orderingEvidenceCid,
+        configuration.coordinatorAuthority,
+        configuration.transferAttemptId,
+        route,
+        configuration.destinationSite,
+        configuration.destinationSiteGeneration,
+        int64(configuration.transferMaxBytes, 'capacity'),
+        int64(configuration.transferExpiresAtMilliseconds, 'expiry'),
+        configuration.sourceGrantCid,
+        configuration.destinationGrantCid,
+        configuration.routeCapabilityCid,
+        configuration.transferOrigin,
+      ));
+    },
+    outputIntentIdentity: moon.strategyRemoteOutputIntentIdentity,
+    preparePublicationPayload(configuration) {
+      if (configuration === null || typeof configuration !== 'object') {
+        throw new TypeError('Invalid remote publication payload');
+      }
+      return checked(moon.strategyRemotePublicationPayloadPrepare(
+        configuration.storeAuthorityCid,
+        configuration.publicationAttemptCid,
+        configuration.materialGenerationCid,
+        configuration.resultDefinitionCid,
+        configuration.logicalRelationCid,
+        configuration.resultSchemaCid,
+        configuration.orderingEvidenceCid,
+        configuration.durableCodecCid,
+        int64(configuration.maxBytes, 'publication capacity'),
+        int64(configuration.rowCount, 'row count'),
+      ));
+    },
+    pollOutputJson: (request, intent) => checked(
+      moon.strategyRemotePollOutputJson(request, intent),
+    ),
+    admitPollOutput: body => checked(
+      moon.strategyRemotePollOutputAdmit(body),
+    ),
+    admitOutputResult: (
+      body,
+      output,
+      payloadRequest,
+      transferRequest,
+    ) => checked(moon.strategyRemoteOutputResultAdmit(
+      body,
+      output,
+      payloadRequest,
+      transferRequest,
+    )),
+    prepareOutputResult: (
+      output,
+      payloadRequest,
+      payloadDigest,
+      transferRecord,
+    ) => checked(moon.strategyRemoteOutputResultPrepare(
+      output,
+      payloadRequest,
+      payloadDigest,
+      transferRecord,
+    )),
+    outputResultJson: result => checked(
+      moon.strategyRemoteOutputResultJson(result),
+    ),
+    outputResultProjection: (result, transferRequest) => checked(
+      moon.strategyRemoteOutputResultProjection(result, transferRequest),
+    ),
+    outputExpectedIdentity: (payloadRequest, transferRequest) =>
+      moon.strategyRemoteOutputExpectedIdentity(
+        payloadRequest,
+        transferRequest,
+      ),
     admitPollDispatch: body => checked(
       moon.strategyRemotePollDispatchAdmit(body),
     ),

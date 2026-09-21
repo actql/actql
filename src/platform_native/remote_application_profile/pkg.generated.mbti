@@ -97,6 +97,7 @@ pub(all) enum NativeRemoteApplicationOutputIssue {
   PayloadStore(@publication_store.NativePublicationStoreIssue)
   PayloadStream(@remote_standard_host.NativeRemoteStandardPayloadFailure)
   Transfer(NativeRemoteApplicationSiteIssue)
+  Protocol(@remote_site_protocol.DispatchIssue)
 }
 
 pub(all) struct NativeRemoteApplicationOutputPlan {
@@ -114,6 +115,7 @@ pub(all) enum NativeRemoteApplicationOutputPlanIssue {
 pub(all) struct NativeRemoteApplicationOutputResult {
   payload : @publication_store.NativePublicationPayloadInfo
   transfer : @remote_transfer.RemoteTransferRecord
+  observation : @remote_site_protocol.RemoteOutputResult
 }
 
 type NativeRemoteApplicationRun
@@ -126,6 +128,7 @@ pub(all) enum NativeRemoteApplicationRunIssue {
 }
 
 type NativeRemoteApplicationSite
+pub fn NativeRemoteApplicationSite::acknowledge_output_result(Self, NativeRemoteApplicationOutputResult) -> Result[Unit, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::close(Self) -> Result[Bool, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::execute_output(Self, @remote_site_protocol.RemotePollOutput, @publication_store.Store, Int) -> Result[NativeRemoteApplicationOutputResult, NativeRemoteApplicationOutputIssue]
 pub fn NativeRemoteApplicationSite::inspect_observed_output_facts(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_runtime.NativeRemoteOutputFacts, NativeRemoteApplicationSiteIssue]

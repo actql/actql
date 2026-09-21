@@ -77,6 +77,7 @@ pub(all) struct NativeRemoteApplicationOutputPlan {
 pub(all) struct NativeRemoteApplicationOutputResult {
   payload : @publication_store.NativePublicationPayloadInfo
   transfer : @transfer.RemoteTransferRecord
+  observation : @remote.RemoteOutputResult
 }
 
 ///|
@@ -97,6 +98,7 @@ pub(all) enum NativeRemoteApplicationOutputIssue {
   PayloadStore(@publication_store.NativePublicationStoreIssue)
   PayloadStream(@remote_standard.NativeRemoteStandardPayloadFailure)
   Transfer(NativeRemoteApplicationSiteIssue)
+  Protocol(@remote.DispatchIssue)
 }
 
 ///|
@@ -709,7 +711,19 @@ pub fn NativeRemoteApplicationSite::execute_output(
       )
   }
   match transfer {
-    Ok(value) => Ok({ payload, transfer: value, })
+    Ok(value) => {
+      let observation = match
+        @remote.prepare_remote_output_result(
+          output,
+          plan.payload,
+          payload.physical_digest,
+          value,
+        ) {
+        Ok(result) => result
+        Err(issue) => return Err(Protocol(issue))
+      }
+      Ok({ payload, transfer: value, observation, })
+    }
     Err(issue) => {
       let failure = NativeRemoteApplicationOutputIssue::Transfer(issue)
       if native_remote_application_output_cleanup_pending(failure) {
@@ -726,6 +740,22 @@ pub fn NativeRemoteApplicationSite::output_cleanup_pending(
 ) -> Bool {
   self.pending_output is Some(issue) &&
   native_remote_application_output_cleanup_pending(issue)
+}
+
+///|
+/// Post one canonical physical output result. This does not authorize source
+/// release; Coordinator admission and a later exact release operation remain
+/// separate.
+pub fn NativeRemoteApplicationSite::acknowledge_output_result(
+  self : NativeRemoteApplicationSite,
+  result : NativeRemoteApplicationOutputResult,
+) -> Result[Unit, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .acknowledge_output_result(result.observation)
+  .map_err(issue => Distribution(issue))
 }
 
 ///|

@@ -64,9 +64,11 @@ reconciles the retained completion, reuses an exact sealed publication payload
 on retry, and drives the selected durable Transfer route without rerunning
 Compute.
 The observed generation, physical manifest, logical view, schema, codec, and
-source Site generation cannot be replaced by the executable adapter. Durable
-output-result acknowledgement, Coordinator admission, and the separated-
-process product E2E before release remain open. The live Node
+source Site generation cannot be replaced by the executable adapter. The Site
+now posts one canonical output result, and the Coordinator gateway re-admits
+its exact payload and Transfer bindings before resolving the operation. A
+durable Coordinator output journal and the separated-process product E2E
+before release remain open. The live Node
 bundle boundary and the native durable-Store route now install opaque
 factories directly; neither
 accepts a replacement input state machine from application composition. The

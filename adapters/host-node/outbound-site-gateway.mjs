@@ -77,8 +77,13 @@ export async function startHttpsOutboundSiteGateway({
       typeof control.journalKey !== 'function' ||
       typeof control.prepareInputBinding !== 'function' ||
       typeof control.pollJson !== 'function' ||
+      typeof control.pollOutputJson !== 'function' ||
       typeof control.pollQueryJson !== 'function' ||
       typeof control.pollReleaseJson !== 'function' ||
+      typeof control.admitPollOutput !== 'function' ||
+      typeof control.admitOutputResult !== 'function' ||
+      typeof control.outputResultProjection !== 'function' ||
+      typeof control.outputExpectedIdentity !== 'function' ||
       typeof control.admitPollNotSeen !== 'function' ||
       typeof control.admitResponseJson !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0 ||
@@ -109,14 +114,33 @@ export async function startHttpsOutboundSiteGateway({
     if (binding === undefined) fail('OutboundSiteBindingUnavailable');
     return binding;
   };
-  const entryFor = (dispatch, operation, inputBindingBody) => {
+  const entryFor = (
+    dispatch,
+    operation,
+    inputBindingBody,
+    outputIntent,
+    payloadRequest,
+    transferRequest,
+  ) => {
     const identity = control.identity(dispatch);
     const key = `${operation}:${identity}`;
+    const outputEnvelope = operation === 'output'
+      ? control.pollOutputJson(dispatch, outputIntent)
+      : undefined;
+    const outputExpected = operation === 'output'
+      ? control.outputExpectedIdentity(payloadRequest, transferRequest)
+      : undefined;
     let entry = pending.get(key);
     if (entry !== undefined) {
       if (operation === 'dispatch' &&
           entry.inputBindingBody !== inputBindingBody) {
         fail('OutboundDispatchBindingCollision');
+      }
+      if (operation === 'output' &&
+          (entry.envelope !== outputEnvelope ||
+          entry.outputExpected[0] !== outputExpected[0] ||
+          entry.outputExpected[1] !== outputExpected[1])) {
+        fail('OutboundOutputBindingCollision');
       }
       return entry;
     }
@@ -133,6 +157,12 @@ export async function startHttpsOutboundSiteGateway({
       dispatch,
       identity,
       inputBindingBody,
+      output: operation === 'output'
+        ? control.admitPollOutput(outputEnvelope)
+        : undefined,
+      outputExpected,
+      payloadRequest,
+      transferRequest,
       key,
       operation,
       acceptanceObserved: false,
@@ -140,6 +170,8 @@ export async function startHttpsOutboundSiteGateway({
         ? control.pollQueryJson(dispatch)
         : operation === 'release'
           ? control.pollReleaseJson(dispatch)
+          : operation === 'output'
+            ? outputEnvelope
           : control.pollJson(dispatch, inputBinding),
       sequence: sequence++,
       waiters: new Set(),
@@ -147,9 +179,24 @@ export async function startHttpsOutboundSiteGateway({
     pending.set(key, entry);
     return entry;
   };
-  const waitFor = (dispatch, signal, operation, inputBindingBody) => {
+  const waitFor = (
+    dispatch,
+    signal,
+    operation,
+    inputBindingBody,
+    outputIntent,
+    payloadRequest,
+    transferRequest,
+  ) => {
     if (signal?.aborted) return Promise.reject(signal.reason);
-    const entry = entryFor(dispatch, operation, inputBindingBody);
+    const entry = entryFor(
+      dispatch,
+      operation,
+      inputBindingBody,
+      outputIntent,
+      payloadRequest,
+      transferRequest,
+    );
     return new Promise((resolve, reject) => {
       const waiter = {resolve, reject, signal, abort: undefined};
       if (signal !== undefined) {
@@ -221,7 +268,38 @@ export async function startHttpsOutboundSiteGateway({
       let matched;
       let statusReply = false;
       for (const entry of pending.values()) {
+        if (entry.binding !== binding || entry.operation !== 'output') {
+          continue;
+        }
+        try {
+          admitted = control.admitOutputResult(
+            body,
+            entry.output,
+            entry.payloadRequest,
+            entry.transferRequest,
+          );
+          matched = entry;
+          break;
+        } catch {}
+      }
+      if (matched !== undefined) {
+        const projection = control.outputResultProjection(
+          admitted,
+          matched.transferRequest,
+        );
+        settle(matched, 'resolve', Object.freeze({
+          resultCid: projection[0],
+          payloadRequestCid: projection[1],
+          payloadDigest: projection[2],
+          transferRequestCid: projection[3],
+          transferRevision: Number(projection[4]),
+        }));
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
+      for (const entry of pending.values()) {
         if (entry.binding !== binding) continue;
+        if (entry.operation === 'output') continue;
         try {
           statusReply = entry.operation === 'query' ||
             entry.operation === 'release' || entry.acceptanceObserved;
@@ -303,6 +381,27 @@ export async function startHttpsOutboundSiteGateway({
         fail('InvalidOutboundDispatch');
       }
       return waitFor(dispatch, signal, 'dispatch', inputBindingBody);
+    },
+    output({
+      dispatch,
+      intent,
+      payloadRequest,
+      transferRequest,
+      signal,
+    } = {}) {
+      if (dispatch === undefined || intent === undefined ||
+          payloadRequest === undefined || transferRequest === undefined) {
+        fail('InvalidOutboundOutput');
+      }
+      return waitFor(
+        dispatch,
+        signal,
+        'output',
+        undefined,
+        intent,
+        payloadRequest,
+        transferRequest,
+      );
     },
     query({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');

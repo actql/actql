@@ -66,6 +66,7 @@ const dependencies = new Map([
   ['actql/actql/encode_core', 'encode'],
   ['actql/actql/run_publication', 'publication'],
   ['actql/actql/run_publication_host', 'publication_host'],
+  ['actql/actql/publication_payload', 'payload'],
   ['actql/actql/execution_site', 'site'],
   ['actql/actql/remote_site_protocol', 'remote'],
   ['actql/actql/remote_credential', 'credential'],

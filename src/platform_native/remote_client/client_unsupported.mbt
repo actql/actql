@@ -64,3 +64,12 @@ pub fn acknowledge_status(
 ) -> Result[@remote.DispatchRecord?, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn acknowledge_output_result(
+  _client : @http.Client,
+  _url : String,
+  _result : @remote.RemoteOutputResult,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}

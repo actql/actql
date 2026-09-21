@@ -169,6 +169,7 @@ type NativeRemoteStandardRowCodec
 type NativeRemoteStandardRunOwner
 
 type NativeRemoteStandardSiteComponent
+pub fn NativeRemoteStandardSiteComponent::acknowledge_output_result(Self, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::close(Self) -> Result[Bool, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::inspect_observed_output_facts(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_runtime.NativeRemoteOutputFacts, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::observed_completion(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_runtime.NativeRemoteRuntimeCompletion, NativeRemoteStandardSiteComponentIssue]
@@ -191,6 +192,7 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
 }
 
 type NativeRemoteStandardSiteDistribution
+pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_result(Self, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::close(Self) -> Result[Bool, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::inspect_observed_output_facts(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_runtime.NativeRemoteOutputFacts, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::observed_completion(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_runtime.NativeRemoteRuntimeCompletion, NativeRemoteStandardSiteDistributionIssue]

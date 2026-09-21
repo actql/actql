@@ -13,6 +13,7 @@ import {
   "actql/actql/physical_strategy",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/publication_payload",
   "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
@@ -619,7 +620,21 @@ pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.R
 
 pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_remote_output_expected_identity(@publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Array[String]
+
 pub fn strategy_remote_output_holding_evidence_identity(@remote_site_protocol.DispatchRequest, String, Int64) -> String raise NodeHostFailure
+
+pub fn strategy_remote_output_intent_identity(@remote_site_protocol.RemoteOutputIntent) -> String
+
+pub fn strategy_remote_output_intent_prepare(@remote_site_protocol.DispatchRequest, String, String, String, String, String, String, Int, String, Int, Int64, Int64, String, String, String, String) -> @remote_site_protocol.RemoteOutputIntent raise NodeHostFailure
+
+pub fn strategy_remote_output_result_admit(String, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
+
+pub fn strategy_remote_output_result_json(@remote_site_protocol.RemoteOutputResult) -> String raise NodeHostFailure
+
+pub fn strategy_remote_output_result_prepare(@remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
+
+pub fn strategy_remote_output_result_projection(@remote_site_protocol.RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Array[String] raise NodeHostFailure
 
 pub fn strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise NodeHostFailure
 
@@ -632,6 +647,10 @@ pub fn strategy_remote_poll_dispatch_request(@remote_site_protocol.RemotePollDis
 pub fn strategy_remote_poll_not_seen_admit(String, @remote_site_protocol.DispatchRequest) -> Bool raise NodeHostFailure
 
 pub fn strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_output_admit(String) -> @remote_site_protocol.RemotePollOutput raise NodeHostFailure
+
+pub fn strategy_remote_poll_output_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteOutputIntent) -> String raise NodeHostFailure
 
 pub fn strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
@@ -670,6 +689,8 @@ pub fn strategy_remote_prepare_retained(@remote_site_protocol.DispatchRecord, St
 pub fn strategy_remote_prepare_settled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_prepare_unknown(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_publication_payload_prepare(String, String, String, String, String, String, String, String, Int64, Int64) -> @publication_payload.PublicationPayloadRequest raise NodeHostFailure
 
 pub fn strategy_remote_record_matches_dispatch(@remote_site_protocol.DispatchRecord, @remote_site_protocol.DispatchRequest) -> Bool
 

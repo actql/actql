@@ -722,6 +722,35 @@ pub fn NativeRemoteStandardSiteDistribution::poll(
 }
 
 ///|
+/// Acknowledge one canonical physical output result through the same
+/// authenticated control channel that delivered its exact output intent.
+pub fn NativeRemoteStandardSiteComponent::acknowledge_output_result(
+  self : NativeRemoteStandardSiteComponent,
+  result : @remote.RemoteOutputResult,
+) -> Result[Unit, NativeRemoteStandardSiteComponentIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  @client.acknowledge_output_result(self.client, self.observation_url, result).map_err(issue => {
+      Agent(@agent.Client(issue))
+    },
+  )
+}
+
+///|
+pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_result(
+  self : NativeRemoteStandardSiteDistribution,
+  result : @remote.RemoteOutputResult,
+) -> Result[Unit, NativeRemoteStandardSiteDistributionIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .acknowledge_output_result(result)
+  .map_err(issue => Component(issue))
+}
+
+///|
 /// Opens a bounded output reader from the process-owned component.
 pub fn NativeRemoteStandardSiteDistribution::open_output_reader(
   self : NativeRemoteStandardSiteDistribution,

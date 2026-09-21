@@ -95,6 +95,8 @@ pub fn record_is_destination_committed(RemoteTransferRecord) -> Bool
 
 pub fn record_projection(RemoteTransferRecord) -> Array[Int]
 
+pub fn record_request(RemoteTransferRecord) -> RemoteTransferRequest
+
 pub fn record_request_identity(RemoteTransferRecord) -> String
 
 pub fn record_revision(RemoteTransferRecord) -> Int

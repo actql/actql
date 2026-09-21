@@ -464,6 +464,12 @@ pub fn record_request_identity(record : RemoteTransferRecord) -> String {
 }
 
 ///|
+/// Return the exact immutable request owned by this durable Transfer record.
+pub fn record_request(record : RemoteTransferRecord) -> RemoteTransferRequest {
+  record.request
+}
+
+///|
 pub fn record_is_destination_committed(record : RemoteTransferRecord) -> Bool {
   record.attempt == TransferDestinationCommitted &&
   record.integrity == TransferIntegrityVerified &&

@@ -19,7 +19,8 @@ import {createRemoteSiteCoordinator} from './remote-site-coordinator.mjs';
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
 const control = runtime.remoteSiteControl;
-const scratch = fileURLToPath(new URL('../../../.codex-scratch/', import.meta.url));
+const transferControl = runtime.remoteTransferControl;
+const scratch = fileURLToPath(new URL('../../../actql-test-runs/', import.meta.url));
 
 function openssl(root, ...arguments_) {
   execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
@@ -137,6 +138,152 @@ function dispatch(overrides = {}) {
     ...overrides,
   });
 }
+
+test('outbound gateway admits one exact retained-output result', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'outbound-output-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const certificates_ = await certificates(root);
+  const gateway = await startHttpsOutboundSiteGateway({
+    key: certificates_.serverKey,
+    cert: certificates_.serverCertificate,
+    ca: certificates_.ca,
+    siteAuthorities: new Map([[
+      certificates_.siteFingerprint,
+      {siteKey: 'site-a', siteGeneration: 1},
+    ]]),
+    control,
+  });
+  t.after(() => gateway.close());
+  const request = dispatch({dispatchId: 'dispatch-output'});
+  const intentConfiguration = {
+    storeAuthorityCid: cid('5'),
+    publicationAttemptCid: cid('6'),
+    resultDefinitionCid: cid('7'),
+    orderingEvidenceCid: cid('8'),
+    coordinatorAuthority: 'coordinator-a',
+    transferAttemptId: 'transfer-output',
+    transferRoute: 'direct',
+    destinationSite: 'site-b',
+    destinationSiteGeneration: 2,
+    transferMaxBytes: 1024n,
+    transferExpiresAtMilliseconds: 2_000_000_000_000n,
+    sourceGrantCid: cid('9'),
+    destinationGrantCid: cid('c'),
+    routeCapabilityCid: cid('d'),
+    transferOrigin: 'https://transfer.example.invalid/output',
+  };
+  const intent = control.prepareOutputIntent(request, intentConfiguration);
+  const materialGeneration = cid('e');
+  const physicalManifest = {
+    version: 'actql-managed-physical-manifest/0.1',
+    schemaContractCid: cid('1'),
+    viewContractCid: cid('2'),
+    codecContractCid: cid('3'),
+    rowCount: 2,
+    chunks: [{cid: cid('a'), byteLength: 12n, rowCount: 2}],
+  };
+  const limits = {
+    maxChunks: 4,
+    maxManifestBytes: 4096,
+    maxReferencedBytes: 12n,
+  };
+  const payloadRequest = control.preparePublicationPayload({
+    storeAuthorityCid: intentConfiguration.storeAuthorityCid,
+    publicationAttemptCid: intentConfiguration.publicationAttemptCid,
+    materialGenerationCid: materialGeneration,
+    resultDefinitionCid: intentConfiguration.resultDefinitionCid,
+    logicalRelationCid: physicalManifest.viewContractCid,
+    resultSchemaCid: physicalManifest.schemaContractCid,
+    orderingEvidenceCid: intentConfiguration.orderingEvidenceCid,
+    durableCodecCid: physicalManifest.codecContractCid,
+    maxBytes: 12n,
+    rowCount: 2n,
+  });
+  const transferRequest = transferControl.prepare({
+    coordinatorAuthority: 'coordinator-a',
+    transferAttemptId: 'transfer-output',
+    route: 'direct',
+    sourceSite: 'site-a',
+    sourceSiteGeneration: 1,
+    destinationSite: 'site-b',
+    destinationSiteGeneration: 2,
+    sourceMaterialGeneration: materialGeneration,
+    physicalManifest,
+    limits,
+    capacityBytes: 1024n,
+    expiresAtMilliseconds: 2_000_000_000_000n,
+    sourceGrantCid: cid('9'),
+    destinationGrantCid: cid('c'),
+    routeCapabilityCid: cid('d'),
+  });
+  let transferRecord = transferControl.open(transferRequest);
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareStart(transferRecord),
+    true,
+  );
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareSourceSettled(transferRecord, true, false),
+    true,
+  );
+  transferRecord = transferControl.commitTransition(
+    transferControl.prepareDestinationCommit(transferRecord),
+    true,
+  );
+  const completion = gateway.output({
+    dispatch: request,
+    intent,
+    payloadRequest,
+    transferRequest,
+  });
+  const retry = gateway.output({
+    dispatch: request,
+    intent,
+    payloadRequest,
+    transferRequest,
+  });
+  assert.equal(gateway.pending(), 1);
+  const path = '/v1/sites/site-a/generations/1/outbound';
+  const siteMaterial = {
+    ca: certificates_.ca,
+    cert: certificates_.siteCertificate,
+    key: certificates_.siteKey,
+  };
+  const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
+  assert.equal(polled.status, 200);
+  const output = control.admitPollOutput(polled.body);
+  const payloadDigest = cid('f');
+  const outputResult = control.prepareOutputResult(
+    output,
+    payloadRequest,
+    payloadDigest,
+    transferRecord,
+  );
+  const altered = await post(
+    gateway.origin,
+    `${path}/observations`,
+    siteMaterial,
+    control.outputResultJson(outputResult).replace(
+      transferControl.identity(transferRequest),
+      cid('0'),
+    ),
+  );
+  assert.equal(altered.status, 404);
+  assert.equal(gateway.pending(), 1);
+  const observed = await post(
+    gateway.origin,
+    `${path}/observations`,
+    siteMaterial,
+    control.outputResultJson(outputResult),
+  );
+  assert.equal(observed.status, 200);
+  const [first, second] = await Promise.all([completion, retry]);
+  assert.deepEqual(first, second);
+  assert.equal(first.payloadDigest, payloadDigest);
+  assert.equal(first.transferRequestCid, transferControl.identity(transferRequest));
+  assert.equal(first.transferRevision, 3);
+  assert.equal(gateway.pending(), 0);
+});
 
 test('outbound gateway durably dispatches without an inbound Site listener',
   async t => {

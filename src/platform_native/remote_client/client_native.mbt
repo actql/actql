@@ -216,3 +216,23 @@ pub fn acknowledge_status(
     Err(issue) => Err(Http(issue))
   }
 }
+
+///|
+/// Post one canonical retained-output result. The physical payload and
+/// Transfer records are already durable; a lost response is reconciled by
+/// repeating the exact output operation rather than rerunning Compute.
+pub fn acknowledge_output_result(
+  client : @http.Client,
+  url : String,
+  result : @remote.RemoteOutputResult,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  let body = match @remote.remote_output_result_json(result) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match client.post_json(url, body) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
