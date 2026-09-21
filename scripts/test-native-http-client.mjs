@@ -8,7 +8,7 @@ import {
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:https';
-import {isIP} from 'node:net';
+import {createServer as createNetServer, isIP} from 'node:net';
 import {
   mkdtemp,
   mkdir,
@@ -57,7 +57,7 @@ const nativeDestinationUser =
   process.env.ACTQL_TEST_NATIVE_DESTINATION_USER;
 const nativeDestinationHost =
   process.env.ACTQL_TEST_NATIVE_DESTINATION_HOST ?? '127.0.0.1';
-const nativeTransferPort = Number.parseInt(
+const configuredNativeTransferPort = Number.parseInt(
   process.env.ACTQL_TEST_NATIVE_TRANSFER_PORT ?? '0',
   10,
 );
@@ -73,10 +73,27 @@ if (nativeDestinationNamespace !== undefined &&
   throw new Error('destination namespace requires a source Site namespace');
 }
 if (isIP(nativeDestinationHost) === 0 ||
-    !Number.isInteger(nativeTransferPort) ||
-    nativeTransferPort < 0 || nativeTransferPort > 65_535) {
+    !Number.isInteger(configuredNativeTransferPort) ||
+    configuredNativeTransferPort < 0 || configuredNativeTransferPort > 65_535) {
   throw new Error('invalid native destination Transfer endpoint');
 }
+const allocateNativeTransferPort = async () => {
+  const probe = createNetServer();
+  probe.listen(0, nativeDestinationHost);
+  await once(probe, 'listening');
+  const address = probe.address();
+  if (address === null || typeof address === 'string') {
+    probe.close();
+    throw new Error('native Transfer port probe has no TCP address');
+  }
+  const port = address.port;
+  probe.close();
+  await once(probe, 'close');
+  return port;
+};
+const nativeTransferPort = configuredNativeTransferPort === 0
+  ? await allocateNativeTransferPort()
+  : configuredNativeTransferPort;
 const applicationOutputRoute =
   process.env.ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE ?? 'direct';
 if (!['direct', 'store'].includes(applicationOutputRoute)) {
@@ -1398,6 +1415,86 @@ try {
     configuration,
     {destination = false} = {},
   ) => {
+    if (configuration.mode === 'direct') {
+      assert.equal(destination, true);
+      const sourceFingerprint = new X509Certificate(
+        await readFile(configuration.sourceAuthority.certificatePath),
+      ).fingerprint256;
+      const adminFingerprint = new X509Certificate(
+        await readFile(join(root, 'destination-client.crt')),
+      ).fingerprint256;
+      const operation = runCapturedAtDestination(
+        nativeDirectTransferSite,
+        [
+          '--host', configuration.host,
+          '--port', configuration.port.toString(),
+          '--cert', configuration.certificatePath,
+          '--key', configuration.keyPath,
+          '--ca', configuration.caPath,
+          '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+          '--journal', `${configuration.journalPath}.sqlite3`,
+          '--clock-journal', `${configuration.journalPath}-clock.sqlite3`,
+          '--root', configuration.root,
+          '--source-site', configuration.sourceAuthority.siteKey,
+          '--source-generation',
+          configuration.sourceAuthority.siteGeneration.toString(),
+          '--source-fingerprint', sourceFingerprint,
+          '--destination-site', configuration.destinationSiteKey,
+          '--destination-generation',
+          configuration.destinationSiteGeneration.toString(),
+          '--source-grant-cid', configuration.sourceGrantCid,
+          '--destination-grant-cid', configuration.destinationGrantCid,
+          '--route-capability-cid', configuration.routeCapabilityCid,
+          '--admin-fingerprint', adminFingerprint,
+          '--max-request-bytes', configuration.maxControlBytes.toString(),
+          '--max-response-bytes', configuration.maxControlBytes.toString(),
+          '--max-pending', '32',
+          '--max-entries', configuration.maxObjects.toString(),
+          '--max-chunks', configuration.maxChunks.toString(),
+          '--max-manifest-bytes', configuration.maxManifestBytes.toString(),
+          '--max-bytes', configuration.maxBytes.toString(),
+          '--max-objects', configuration.maxObjects.toString(),
+        ],
+      );
+      const origin = `https://${configuration.host}:${configuration.port}`;
+      const probeArguments = [
+        '--silent', '--show-error', '--max-time', '1',
+        '--cert', join(root, 'client.crt'),
+        '--key', join(root, 'client.key'),
+        '--cacert', join(root, 'ca.crt'),
+        `${origin}/v1/ready`,
+      ];
+      const deadline = Date.now() + 10_000;
+      while (Date.now() < deadline) {
+        if (operation.child.exitCode !== null) {
+          const outcome = await operation.completed;
+          throw new Error(
+            `native Direct Site exited: ${JSON.stringify(outcome)}`,
+          );
+        }
+        const probe = await runCaptured('curl', probeArguments).completed;
+        if (probe.code === 0) {
+          return {
+            operation,
+            origin,
+            stopping: undefined,
+            shutdown: async () => {
+              const stopped = await runCaptured('curl', [
+                '--silent', '--show-error', '--fail', '--max-time', '5',
+                '--request', 'POST',
+                '--cert', join(root, 'destination-client.crt'),
+                '--key', join(root, 'destination-client.key'),
+                '--cacert', join(root, 'ca.crt'),
+                `${origin}/v1/admin/shutdown`,
+              ]).completed;
+              assert.equal(stopped.code, 0, stopped.stderr);
+            },
+          };
+        }
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      throw new Error('native Direct Site did not accept mTLS traffic');
+    }
     const configurationPath = join(
       root,
       `transfer-service-${configuration.mode}-${configuration.instance}.json`,
@@ -1416,7 +1513,11 @@ try {
     if (running === undefined) return;
     if (running.stopping === undefined) {
       running.stopping = (async () => {
-        running.operation.child.kill(signal);
+        if (running.shutdown !== undefined && signal !== 'SIGKILL') {
+          await running.shutdown();
+        } else {
+          running.operation.child.kill(signal);
+        }
         const outcome = await running.operation.completed;
         if (signal !== 'SIGKILL' && outcome.code !== 0) {
           throw new Error(
@@ -1568,6 +1669,10 @@ try {
     'build', '--target', 'native',
     'src/cmd/native_remote_application_inspect',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
+  execFileSync(moon, [
+    'build', '--target', 'native',
+    'src/cmd/native_direct_transfer_site',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
   const transferReceiver = join(
     repositoryRoot,
     '_build/native/debug/build/cmd/native_remote_transfer_receive/' +
@@ -1577,6 +1682,11 @@ try {
     repositoryRoot,
     '_build/native/debug/build/cmd/native_remote_application_inspect/' +
       'native_remote_application_inspect.exe',
+  );
+  const nativeDirectTransferSite = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_direct_transfer_site/' +
+      'native_direct_transfer_site.exe',
   );
 
   const catalogs = await readFile(join(
@@ -2013,6 +2123,11 @@ try {
     },
     destinationSiteKey: 'native-destination',
     destinationSiteGeneration: 3,
+    sourceGrantCid: physicalCid('native-application-output-source-grant'),
+    destinationGrantCid:
+      physicalCid('native-application-output-destination-grant'),
+    routeCapabilityCid:
+      physicalCid('native-application-output-direct-route'),
     maxControlBytes: 131072,
     maxManifestBytes: 4096,
     maxChunks: 8,
