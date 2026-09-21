@@ -1,0 +1,14 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/platform_native/bounded_files",
+  "actql/actql/platform_native/credential_resource" @resource,
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_credential" @credential,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+}

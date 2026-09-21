@@ -253,6 +253,47 @@ fn outcome_scope(grant_cid : String) -> String {
 }
 
 ///|
+fn revocation_scope() -> String {
+  "native-credential-revocation"
+}
+
+///|
+fn native_credential_grant_revoked(
+  service : NativeCredentialResourceService,
+  grant_cid : String,
+) -> Result[Bool, NativeCredentialResourceIssue] {
+  match service.database.read(revocation_scope(), grant_cid) {
+    Err(@sqlite.NotFound) => Ok(false)
+    Err(issue) => Err(Journal(issue))
+    Ok(value) =>
+      if value.body == @utf8.encode(grant_cid) {
+        Ok(true)
+      } else {
+        Err(Journal(@sqlite.Collision))
+      }
+  }
+}
+
+///|
+pub fn revoke_native_credential_grant(
+  service : NativeCredentialResourceService,
+  grant : @credential.RemoteCredentialGrant,
+) -> Result[Unit, NativeCredentialResourceIssue] {
+  let grant_cid = @credential.credential_grant_cid(grant)
+  let body = @utf8.encode(grant_cid)
+  match service.database.insert(revocation_scope(), grant_cid, body) {
+    Ok(_) => Ok(())
+    Err(@sqlite.Collision) =>
+      match service.database.read(revocation_scope(), grant_cid) {
+        Ok(existing) if existing.body == body => Ok(())
+        Ok(_) => Err(Journal(@sqlite.Collision))
+        Err(issue) => Err(Journal(issue))
+      }
+    Err(issue) => Err(Journal(issue))
+  }
+}
+
+///|
 fn persist_outcome(
   service : NativeCredentialResourceService,
   grant_cid : String,
@@ -305,7 +346,13 @@ pub fn call_native_credential_resource(
   trusted_now_ms : Int64,
   scope : NativeCredentialScope,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
-  guard operation_for(service, scope) is Some(operation) &&
+  let grant_cid = @credential.credential_grant_cid(grant)
+  let revoked = match native_credential_grant_revoked(service, grant_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard !revoked &&
+    operation_for(service, scope) is Some(operation) &&
     grant_matches_scope(grant, scope) is Some((max_uses, expires_at)) &&
     !use_id.is_empty() &&
     use_id.length() <= 256 &&
@@ -313,7 +360,6 @@ pub fn call_native_credential_resource(
     trusted_now_ms < expires_at else {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
-  let grant_cid = @credential.credential_grant_cid(grant)
   if !(service.authorize)({ stage: "claim", grant_cid, use_cid: None, scope, }) {
     return Err(AccessDenied)
   }
@@ -333,7 +379,7 @@ pub fn call_native_credential_resource(
       use_id,
       trusted_now_ms,
       ordinal - 1,
-      false,
+      revoked,
       scope.principal,
       scope.tenant,
       scope.environment,
@@ -379,7 +425,7 @@ pub fn call_native_credential_resource(
     @credential.authorize_credential_use(
       credential_use,
       trusted_now_ms,
-      false,
+      revoked,
       scope.principal,
       scope.tenant,
       scope.environment,

@@ -111,6 +111,13 @@ test "native credential resource consumes one durable scoped use" {
   assert_eq(status.outcome, "succeeded")
   assert_eq(status.status, Some(200))
   assert_eq(stages, ["claim", "send", "query", "return"])
+  revoke_native_credential_grant(service, grant).unwrap()
+  guard call_native_credential_resource(
+      service, grant, "revoked", 1999999999999L, scope,
+    )
+    is Err(Credential(@credential.CredentialGrantInactive)) else {
+    fail("revoked credential grant started another resource call")
+  }
   guard call_native_credential_resource(
       service, grant, "use-a", 1999999999999L, scope,
     )
@@ -187,10 +194,10 @@ test "native credential resource consumes one durable scoped use" {
   assert_eq(recovered.use_cid, response.use_cid)
   assert_eq(recovered.outcome, "succeeded")
   guard call_native_credential_resource(
-      reopened, grant, "use-a", 1999999999999L, scope,
+      reopened, grant, "restart-revoked", 1999999999999L, scope,
     )
-    is Err(UseAlreadyClaimed) else {
-    fail("restart authorized a second credential call")
+    is Err(Credential(@credential.CredentialGrantInactive)) else {
+    fail("restart lost durable credential revocation")
   }
   ignore(reopened_client.close())
   reopened_database.close()

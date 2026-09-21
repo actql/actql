@@ -17,6 +17,8 @@ pub fn install_native_credential_resource_service(@sqlite.Database, @http_client
 
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
+pub fn revoke_native_credential_grant(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant) -> Result[Unit, NativeCredentialResourceIssue]
+
 // Errors
 
 // Types and methods

@@ -937,6 +937,29 @@ try {
     type: 'spki',
     format: 'pem',
   });
+  const productCredentialGrant = credentialControl.prepare({
+    issuerAuthority: 'credential-authority-a',
+    principal: 'principal-a',
+    tenant: 'tenant-a',
+    environment: 'test',
+    siteKey: 'site-a',
+    siteGeneration: 2,
+    runtimeBundleCid: `sha256:${'a'.repeat(64)}`,
+    connectorRegistration: 'http-source',
+    connectorRevision: 'http-source/1',
+    resourceOrigin: nativeHttpOrigin,
+    operation: 'records:read',
+    runInvocationCid: `sha256:${'b'.repeat(64)}`,
+    taskAttempt: 3,
+    dispatchRequestCid: `sha256:${'c'.repeat(64)}`,
+    expiresUnixMilliseconds: 2000000000000n,
+    maxUses: 2,
+  });
+  const productCredentialEnvelope = signRemoteCredentialGrant(
+    productCredentialGrant,
+    credentialControl,
+    {keyId: 'credential-key-a', privateKey: credentialKeys.privateKey},
+  );
   const runtimeComponent = Buffer.from('native-runtime');
   const runtimeManifest = runtimeControl.prepare({
     issuerAuthority: 'bundle-authority-a',
@@ -1004,6 +1027,15 @@ try {
     'native-secret\n',
     {mode: 0o600},
   );
+  await writeFile(
+    join(root, 'credential-grant.json'),
+    productCredentialEnvelope.body,
+  );
+  await writeFile(
+    join(root, 'credential-grant.signature'),
+    productCredentialEnvelope.signature,
+  );
+  await writeFile(join(root, 'credential-authority.pem'), credentialPublicKey);
   for (const packagePath of [
     'src/platform_native/filesystem',
     'src/platform_native/sqlite',
@@ -1039,51 +1071,99 @@ try {
     }
   }
   if (nativeSiteNamespace !== undefined) {
-    const credentialTest = join(
+    execFileSync(moon, [
+      'build', '--target', 'native', 'src/cmd/native_remote_credential',
+    ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
+    const credentialExecutable = join(
       new URL('../', import.meta.url).pathname,
-      '_build/native/debug/test/platform_native/credential_resource/' +
-        'credential_resource.whitebox_test.exe',
+      '_build/native/debug/build/cmd/native_remote_credential/' +
+        'native_remote_credential.exe',
     );
-    const credentialEnvironment = {
-      PATH: '/usr/bin:/bin',
-      LANG: 'C',
-      ACTQL_TEST_NATIVE_HTTP_LIBRARY:
-        testEnvironment.ACTQL_TEST_NATIVE_HTTP_LIBRARY,
-      ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
-        testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-      ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
-      ACTQL_TEST_NATIVE_HTTP_URL: testEnvironment.ACTQL_TEST_NATIVE_HTTP_URL,
-      ACTQL_TEST_NATIVE_HTTP_CA: testEnvironment.ACTQL_TEST_NATIVE_HTTP_CA,
-      ACTQL_TEST_NATIVE_HTTP_CERT:
-        testEnvironment.ACTQL_TEST_NATIVE_HTTP_CERT,
-      ACTQL_TEST_NATIVE_HTTP_KEY: testEnvironment.ACTQL_TEST_NATIVE_HTTP_KEY,
-      ACTQL_TEST_NATIVE_HTTP_SECRET:
-        testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
-      ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_BODY: credentialEnvelope.body,
-      ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_CID: credentialEnvelope.grantCid,
-      ACTQL_TEST_NATIVE_CREDENTIAL_KEY_ID: credentialEnvelope.keyId,
-      ACTQL_TEST_NATIVE_CREDENTIAL_SIGNATURE: credentialEnvelope.signature,
-      ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY: credentialPublicKey,
-      ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL:
-        join(root, 'credential-site.sqlite'),
-    };
-    const credential = spawn('sudo', [
+    const credentialArguments = [
+      '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+      '--crypto-library', cryptoLibrary,
+      '--http-library', testEnvironment.ACTQL_TEST_NATIVE_HTTP_LIBRARY,
+      '--journal', join(root, 'credential-site.sqlite'),
+      '--input-root', root,
+      '--grant-body-file', 'credential-grant.json',
+      '--signature-file', 'credential-grant.signature',
+      '--public-key-file', 'credential-authority.pem',
+      '--grant-cid', productCredentialEnvelope.grantCid,
+      '--key-id', productCredentialEnvelope.keyId,
+      '--issuer-authority', 'credential-authority-a',
+      '--ca', testEnvironment.ACTQL_TEST_NATIVE_HTTP_CA,
+      '--cert', testEnvironment.ACTQL_TEST_NATIVE_HTTP_CERT,
+      '--key', testEnvironment.ACTQL_TEST_NATIVE_HTTP_KEY,
+      '--secret-file', testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
+      '--resource-origin', testEnvironment.ACTQL_TEST_NATIVE_HTTP_URL,
+      '--resource-path', '/credential',
+      '--operation', 'records:read',
+      '--principal', 'principal-a',
+      '--tenant', 'tenant-a',
+      '--environment', 'test',
+      '--site-key', 'site-a',
+      '--site-generation', '2',
+      '--runtime-bundle-cid', `sha256:${'a'.repeat(64)}`,
+      '--connector-registration', 'http-source',
+      '--connector-revision', 'http-source/1',
+      '--run-invocation-cid', `sha256:${'b'.repeat(64)}`,
+      '--task-attempt', '3',
+      '--dispatch-request-cid', `sha256:${'c'.repeat(64)}`,
+    ];
+    const runCredential = (operationArguments, useId = 'use-a') => spawn('sudo', [
       'ip', 'netns', 'exec', nativeSiteNamespace,
-      'sudo', `--user=${nativeSiteUser}`, 'env',
-      ...Object.entries(credentialEnvironment)
-        .map(([name, value]) => `${name}=${value}`),
-      credentialTest,
-      'resource_native_wbtest.mbt:0-1',
+      'sudo', `--user=${nativeSiteUser}`,
+      credentialExecutable,
+      ...credentialArguments,
+      '--use-id', useId,
+      ...operationArguments,
     ], {
       cwd: new URL('../', import.meta.url),
       env: process.env,
       stdio: 'inherit',
     });
+    const credential = runCredential([
+      'call', '--trusted-now-unix-ms', '1999999999999',
+    ]);
     const [code, signal] = await once(credential, 'exit');
     if (code !== 0) {
       throw new Error(
-        `namespaced native credential test failed: ${code ?? signal}`,
+        `namespaced native credential call failed: ${code ?? signal}`,
       );
+    }
+    const query = runCredential(['query']);
+    const [queryCode, querySignal] = await once(query, 'exit');
+    if (queryCode !== 0) {
+      throw new Error(
+        `namespaced native credential query failed: ${
+          queryCode ?? querySignal
+        }`,
+      );
+    }
+    const duplicate = runCredential([
+      'call', '--trusted-now-unix-ms', '1999999999999',
+    ]);
+    const [duplicateCode] = await once(duplicate, 'exit');
+    if (duplicateCode === 0) {
+      throw new Error('native credential retry repeated external I/O');
+    }
+    const revoke = runCredential([
+      'revoke', '--confirmation', 'revoke-signed-grant',
+    ]);
+    const [revokeCode, revokeSignal] = await once(revoke, 'exit');
+    if (revokeCode !== 0) {
+      throw new Error(
+        `namespaced native credential revocation failed: ${
+          revokeCode ?? revokeSignal
+        }`,
+      );
+    }
+    const revoked = runCredential([
+      'call', '--trusted-now-unix-ms', '1999999999999',
+    ], 'use-b');
+    const [revokedCode] = await once(revoked, 'exit');
+    if (revokedCode === 0) {
+      throw new Error('revoked native credential started external I/O');
     }
   }
   execFileSync(moon, [
