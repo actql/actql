@@ -86,7 +86,7 @@
         "src/lowering_relation/graph_basic_test.mbt",
         "src/local_sga/normalize_wbtest.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -107,7 +107,7 @@
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -138,7 +138,7 @@
         "src/lowering_relation/graph_match_test.mbt",
         "src/local_sga/match_nodes.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -195,7 +195,7 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/pipeline_typing/graph_test.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -227,7 +227,7 @@
         "src/local_sga/match_edges.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -255,7 +255,7 @@
           "targets": ["js", "wasm", "native"],
           "sha": "8f35730f",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         },
@@ -279,7 +279,7 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/pipeline_typing/graph_test.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -300,7 +300,7 @@
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
         "src/query_integration/join_graph_capacity_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -390,9 +390,9 @@
           "targets": ["js"],
           "sha": "4a72ee83",
           "evidence": [
-            "src/duckdb_conformance/reach_capacity_fixture.mbt",
-            "src/duckdb_conformance/strategy_fixture.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -432,7 +432,7 @@
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "src/query_integration/query_checked_program_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -449,7 +449,7 @@
             "src/query_integration/join_graph_capacity_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "src/query_integration/query_checked_program_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -468,7 +468,7 @@
             "src/local_sga/traverse.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -488,7 +488,7 @@
             "src/local_sga/traverse.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -513,7 +513,7 @@
             "src/local_sga/traverse.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -697,7 +697,7 @@
             "wasm",
             "native"
           ],
-          "sha": "d4f7b63b",
+          "sha": "188193ad",
           "evidence": [
             "src/local_sga/shortest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -734,7 +734,7 @@
         "src/query_integration/local_carrier_graph_wbtest.mbt",
         "src/query_integration/join_graph_capacity_wbtest.mbt",
         "src/query_integration/query_checked_program_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -743,9 +743,9 @@
           "targets": ["js", "wasm", "native"],
           "sha": "447d674b",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
-            "src/duckdb_conformance/components_capacity_fixture.mbt",
-            "src/duckdb_conformance/strategy_fixture.mbt"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
           ]
         },
         {
@@ -754,10 +754,10 @@
           "targets": ["js", "wasm", "native"],
           "sha": "bc7c89fa",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/connectors/local/driver/managed_dispatch.mbt",
-            "src/duckdb_conformance/components_capacity_fixture.mbt",
-            "src/duckdb_conformance/strategy_fixture.mbt"
+            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
           ]
         }
       ]
@@ -796,7 +796,7 @@
         "src/local_sga/reach.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -828,9 +828,9 @@
           "targets": ["js", "wasm", "native"],
           "sha": "f96153c8",
           "evidence": [
-            "src/duckdb_conformance/reach_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -889,7 +889,7 @@
           "targets": ["native"],
           "sha": "83dcc2d2",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         },
@@ -899,7 +899,7 @@
           "targets": ["js", "wasm", "native"],
           "sha": "7a7b822e",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "adapters/local-node/strategy-bundle.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
@@ -959,7 +959,7 @@
           "targets": ["native"],
           "sha": "83dcc2d2",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         },
@@ -969,7 +969,7 @@
           "targets": ["js", "wasm", "native"],
           "sha": "7a7b822e",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "adapters/local-node/strategy-bundle.test.mjs",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
@@ -1015,7 +1015,7 @@
         "src/local_sga/graft_wbtest.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1031,7 +1031,7 @@
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1107,7 +1107,7 @@
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1128,7 +1128,7 @@
             "src/local_sga/graft_wbtest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1142,7 +1142,7 @@
             "src/local_sga/graft.mbt",
             "src/local_sga/graft_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1229,7 +1229,7 @@
           "targets": ["js"],
           "sha": "053005b9",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1250,7 +1250,7 @@
             "src/local_sga/graft_wbtest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1264,7 +1264,7 @@
             "src/local_sga/graft.mbt",
             "src/local_sga/graft_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1327,7 +1327,7 @@
           "targets": ["js"],
           "sha": "bf716212",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/workers_conformance/fixture.generated.mbt"
           ]
         },
@@ -1363,7 +1363,7 @@
           "targets": ["js"],
           "sha": "38923228",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/workers_conformance/fixture.generated.mbt"
           ]
         }
@@ -1396,7 +1396,7 @@
         "src/local_sga/graphs_equal.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1416,7 +1416,7 @@
             "src/local_sga/graphs_equal.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1425,7 +1425,7 @@
           "targets": ["js", "wasm", "native"],
           "sha": "092cc87b",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1537,7 +1537,7 @@
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1546,7 +1546,7 @@
           "targets": ["js", "wasm", "native"],
           "sha": "309d51113514806949bd81bc236b8d4c492a770b",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1577,7 +1577,7 @@
         "src/lowering_relation/window_test.mbt",
         "src/local_tea/window_wbtest.mbt",
         "src/query_integration/local_carrier_events_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1591,7 +1591,7 @@
           "sha": "fa716474",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -1604,7 +1604,7 @@
           "targets": ["js"],
           "sha": "c000f109",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1636,7 +1636,7 @@
         "src/local_tea/watermark_wbtest.mbt",
         "src/query_integration/local_carrier_events_wbtest.mbt",
         "adapters/local-node/strategy-bundle.test.mjs",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1650,7 +1650,7 @@
           "sha": "fa716474",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1724,8 +1724,8 @@
           "targets": ["js-node"],
           "sha": "dbaebaa2",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
-            "src/duckdb_conformance/standard_subset.mbt"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/standard_subset.mbt"
           ]
         },
         {
@@ -1812,7 +1812,7 @@
         "src/lowering_relation/time_series_test.mbt",
         "src/value_admission/execution_values_wbtest.mbt",
         "src/query_integration/local_time_series_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1827,8 +1827,8 @@
           "sha": "78064895",
           "evidence": [
             "src/query_integration/local_time_series_wbtest.mbt",
-            "src/duckdb_conformance/standard_subset.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "src/connectors/duckdb/conformance/standard_subset.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1860,7 +1860,7 @@
         "src/execution_relation/interval_join_rows_wbtest.mbt",
         "src/execution_relation/bounded_interval_join_wbtest.mbt",
         "src/query_integration/local_managed_interval_join_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1880,7 +1880,7 @@
           "evidence": [
             "src/execution_relation/bounded_interval_join_wbtest.mbt",
             "src/query_integration/local_managed_interval_join_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1911,7 +1911,7 @@
         "src/lowering_relation/event_test.mbt",
         "src/local_tea/dedupe_wbtest.mbt",
         "src/query_integration/local_carrier_events_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1925,7 +1925,7 @@
           "sha": "fa716474",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -1957,7 +1957,7 @@
         "src/execution_relation/asof_join_rows_wbtest.mbt",
         "src/execution_relation/bounded_asof_join_wbtest.mbt",
         "src/query_integration/local_managed_asof_join_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1977,7 +1977,7 @@
           "evidence": [
             "src/execution_relation/bounded_asof_join_wbtest.mbt",
             "src/query_integration/local_managed_asof_join_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2009,7 +2009,7 @@
         "src/execution_relation/sequence_match_rows_wbtest.mbt",
         "src/execution_relation/bounded_sequence_match_wbtest.mbt",
         "src/query_integration/local_managed_sequence_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2038,9 +2038,9 @@
           "targets": ["js-node"],
           "sha": "1e2c48f6",
           "evidence": [
-            "src/duckdb_conformance/sequence_capacity_fixture.mbt",
-            "src/duckdb_conformance/standard_subset.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "src/connectors/duckdb/conformance/sequence_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/standard_subset.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2074,7 +2074,7 @@
         "src/vector_numeric/numeric_wbtest.mbt",
         "src/local_veca/normalize_wbtest.mbt",
         "src/query_integration/local_carrier_vectors_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2085,7 +2085,7 @@
           "evidence": [
             "src/local_veca_provider/vectors_pipeline.mbt",
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -2094,7 +2094,7 @@
           "targets": ["js"],
           "sha": "8a204939",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2129,7 +2129,7 @@
         "src/value_admission/key_order_wbtest.mbt",
         "src/local_veca/score_wbtest.mbt",
         "src/query_integration/local_carrier_vectors_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2140,7 +2140,7 @@
           "evidence": [
             "src/local_veca/score_wbtest.mbt",
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -2149,7 +2149,7 @@
           "targets": ["js"],
           "sha": "ca6abe4f",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2181,7 +2181,7 @@
         "src/local_veca/nearest.mbt",
         "src/local_veca_provider/vectors_pipeline.mbt",
         "src/query_integration/local_carrier_vectors_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "verified_slices": [
         {
@@ -2263,7 +2263,7 @@
           ],
           "sha": "456c2f27",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2295,7 +2295,7 @@
         "src/vector_numeric/numeric_wbtest.mbt",
         "src/local_veca/pool_wbtest.mbt",
         "src/query_integration/local_carrier_vectors_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2305,7 +2305,7 @@
           "sha": "9c751e9c",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -2314,7 +2314,7 @@
           "targets": ["js"],
           "sha": "9c751e9c",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2347,7 +2347,7 @@
         "src/local_veca/ranking_wbtest.mbt",
         "src/local_veca_provider/vectors_pipeline.mbt",
         "src/query_integration/local_carrier_vectors_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "verified_slices": [
         {
@@ -2426,7 +2426,7 @@
           "sha": "4ed328ba",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
             "src/workers_conformance/fixture.generated.mbt",
             "src/node_host_conformance/fixture.generated.mbt"
           ]
@@ -2441,8 +2441,8 @@
           "targets": ["node"],
           "sha": "580993ac",
           "evidence": [
-            "src/duckdb_conformance/strategy_fixture.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -2499,7 +2499,7 @@
         "src/local_bridge/graph.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2559,9 +2559,9 @@
           "targets": ["node"],
           "sha": "088770c3",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
-            "src/duckdb_conformance/components_capacity_fixture.mbt",
-            "src/duckdb_conformance/strategy_fixture.mbt"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
           ]
         },
         {
@@ -2598,7 +2598,7 @@
           "sha": "9940712f",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2629,7 +2629,7 @@
         "src/local_bridge/graph.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2639,7 +2639,7 @@
           "sha": "00113491",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2670,7 +2670,7 @@
         "src/local_bridge/graph.mbt",
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2680,7 +2680,7 @@
           "sha": "00113491",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2709,7 +2709,7 @@
       "layer_evidence": [
         "src/lowering_relation/event_test.mbt",
         "src/query_integration/local_carrier_events_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2729,7 +2729,7 @@
           "targets": ["js-node"],
           "sha": "15af5df1",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2758,7 +2758,7 @@
       ],
       "layer_evidence": [
         "src/query_integration/local_carrier_events_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2776,7 +2776,7 @@
           "targets": ["js-node"],
           "sha": "15af5df1",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         },
         {
@@ -2815,7 +2815,7 @@
       "layer_evidence": [
         "src/lowering_relation/vector_test.mbt",
         "src/query_integration/local_carrier_vectors_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2829,7 +2829,7 @@
           "sha": "eb01dc6f",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2875,7 +2875,7 @@
           "targets": ["js-node"],
           "sha": "eb01dc6f",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2908,7 +2908,7 @@
         "src/execution_relation/expression_wbtest.mbt",
         "src/vector_numeric/fixture.generated_wbtest.mbt",
         "src/query_integration/local_managed_values_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2917,8 +2917,8 @@
           "targets": ["native"],
           "sha": "f59e17eb",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
-            "src/duckdb_conformance/strategy_fixture.mbt"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
           ]
         },
         {
@@ -2931,7 +2931,7 @@
             "src/local_veca_provider/vectors_pipeline.mbt",
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
             "src/query_integration/local_managed_values_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2963,7 +2963,7 @@
         "src/lowering_relation/ordered_references_test.mbt",
         "src/execution_relation/expression_wbtest.mbt",
         "src/query_integration/local_managed_values_wbtest.mbt",
-        "adapters/duckdb-node/test/standard-host.test.mjs"
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -2972,8 +2972,8 @@
           "targets": ["native"],
           "sha": "f59e17eb",
           "evidence": [
-            "adapters/duckdb-node/test/standard-host.test.mjs",
-            "src/duckdb_conformance/strategy_fixture.mbt"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
           ]
         },
         {
@@ -2986,7 +2986,7 @@
             "src/local_veca_provider/vectors_pipeline.mbt",
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
             "src/query_integration/local_managed_values_wbtest.mbt",
-            "adapters/duckdb-node/test/standard-host.test.mjs"
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -3005,7 +3005,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3023,7 +3023,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3047,7 +3047,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3071,7 +3071,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3095,7 +3095,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3113,7 +3113,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3131,13 +3131,13 @@
         },
         {
           "name": "standard Host kernel cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         },
         {
           "name": "standard Host bounded observation page split",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3155,7 +3155,7 @@
         },
         {
           "name": "standard Host kernel cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3173,7 +3173,7 @@
         },
         {
           "name": "standard Host kernel cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3191,7 +3191,7 @@
         },
         {
           "name": "standard Host timer cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3209,7 +3209,7 @@
         },
         {
           "name": "standard Host timer cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3227,7 +3227,7 @@
         },
         {
           "name": "standard Host timer cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3245,7 +3245,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3263,7 +3263,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3281,7 +3281,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3299,7 +3299,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3317,7 +3317,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3335,7 +3335,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3343,7 +3343,7 @@
     },
     {
       "operation": "shortest_path",
-      "sha": "d4f7b63b",
+      "sha": "188193ad",
       "suites": [
         {
           "name": "portable weighted paths, publication, and cancellation",
@@ -3365,7 +3365,7 @@
         },
         {
           "name": "standard Host selector cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3383,7 +3383,7 @@
         },
         {
           "name": "standard Host graph cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3401,7 +3401,7 @@
         },
         {
           "name": "standard Host graph cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3419,7 +3419,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3437,7 +3437,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3455,7 +3455,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3473,7 +3473,7 @@
         },
         {
           "name": "standard Host policy cancellation and cleanup",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3491,7 +3491,7 @@
         },
         {
           "name": "standard Host Bridge cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3509,7 +3509,7 @@
         },
         {
           "name": "standard Host Bridge cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3527,7 +3527,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3551,7 +3551,7 @@
         },
         {
           "name": "standard Host publication and cancellation",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
         }
@@ -3569,7 +3569,7 @@
         },
         {
           "name": "standard Host publication and retrieval",
-          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["native"],
           "result": "passed"
         }

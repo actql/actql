@@ -790,9 +790,17 @@ export async function runInstalledStrategy(
             continue;
           }
           if (action === 7) {
-            const managedBindingValid = result.completed != null &&
-              result.material != null &&
-              core.managedMatches(setup, index, result.completed);
+            const relationOutput = result?.material != null;
+            const carrierOutput = result?.carrierMaterial != null;
+            const managedBindingValid = result?.completed != null &&
+              relationOutput !== carrierOutput &&
+              (carrierOutput
+                ? core.managedCarrierMatches?.(
+                  setup,
+                  index,
+                  result.completed,
+                ) === true
+                : core.managedMatches(setup, index, result.completed));
             recordExecutionSiteHostTaskManagedBinding(
               siteInstallation,
               successProgress,

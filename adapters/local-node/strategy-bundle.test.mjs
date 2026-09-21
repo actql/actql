@@ -253,8 +253,9 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       strategyHostReleasableManagedProducers: () => [],
       strategyModule_local_ManagedDuration: () => 1n,
       strategyModule_local_ManagedCapacity: () => [0n, 0n],
-      strategyModule_local_ManagedDispatch: () => ok(
+      strategyModule_local_ManagedCarrierDispatch: () => ok(
         localSupported ? {configuration: true} : undefined),
+      strategyModule_local_RelationOutput: value => value,
     }, setup, checked);
     let complete = false, selected, ran;
     const core = {
@@ -363,12 +364,13 @@ test('Local delegates zero-input and identity applicability to MoonBit', async (
       assert.equal(owner, setup);
       return [];
     },
-    strategyModule_local_ManagedDispatch: (owner, inputs, bytes) => {
+    strategyModule_local_ManagedCarrierDispatch: (owner, inputs, bytes) => {
       assert.equal(owner, setup);
       seen.push(inputs);
       assert.equal(bytes, 0n);
       return ok(configuration);
     },
+    strategyModule_local_RelationOutput: value => value,
     strategyModule_local_ManagedDuration: value => {
       assert.equal(value, configuration);
       return 1n;
@@ -448,6 +450,7 @@ test('bounded Local yields so cancellation reaches the active kernel',
       },
     };
     const entry = localStrategyContribution({
+      ...portableRuntime,
       strategyModule_local_Registration: () => registration,
       strategyHostRegistrationSelectionKey: () => 'local',
       strategyHostNextTask: () => 1,
@@ -455,7 +458,8 @@ test('bounded Local yields so cancellation reaches the active kernel',
       strategyHostManagedInputCount: () => 0,
       strategyHostManagedRequiresLogicalIdentity: () => ok(false),
       strategyHostReleasableManagedProducers: () => [],
-      strategyModule_local_ManagedDispatch: () => ok(configuration),
+      strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+      strategyModule_local_RelationOutput: value => value,
       strategyModule_local_ManagedDuration: () => 1n,
       strategyModule_local_ManagedCapacity: () => [0n, 0n],
       strategyModule_local_ManagedStart: () => ok(operations),
@@ -519,6 +523,7 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
     storage_bytes: 0,
   };
   const entry = localStrategyContribution({
+    ...portableRuntime,
     strategyModule_local_Registration: () => registration,
     strategyHostRegistrationSelectionKey: () => 'local',
     strategyHostNextTask: () => 1,
@@ -526,7 +531,8 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
     strategyHostManagedInputCount: () => 0,
     strategyHostManagedRequiresLogicalIdentity: () => ok(false),
     strategyHostReleasableManagedProducers: () => [],
-    strategyModule_local_ManagedDispatch: () => ok(configuration),
+    strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+    strategyModule_local_RelationOutput: value => value,
     strategyModule_local_ManagedDuration: () => 1n,
     strategyModule_local_ManagedCapacity: () => [0n, 0n],
     strategyModule_local_ManagedStart: () => ok(operations),
@@ -583,6 +589,7 @@ test('bounded Local validates terminal execution and finalization reports',
         storage_bytes: 0n,
       };
       const entry = localStrategyContribution({
+        ...portableRuntime,
         strategyModule_local_Registration: () => registration,
         strategyHostRegistrationSelectionKey: () => 'local-invalid-report',
         strategyHostNextTask: () => 1,
@@ -590,7 +597,8 @@ test('bounded Local validates terminal execution and finalization reports',
         strategyHostManagedInputCount: () => 0,
         strategyHostManagedRequiresLogicalIdentity: () => ok(false),
         strategyHostReleasableManagedProducers: () => [],
-        strategyModule_local_ManagedDispatch: () => ok(configuration),
+        strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+        strategyModule_local_RelationOutput: value => value,
         strategyModule_local_ManagedDuration: () => 1n,
         strategyModule_local_ManagedCapacity: () => [0n, 0n],
         strategyModule_local_ManagedStart: () => ok(operations),
@@ -728,7 +736,8 @@ test('standard Host runs Local with mixed memory and provider inputs',
         strategyHostManagedInputCount: () => 2,
         strategyHostManagedRequiresLogicalIdentity: () => ok(false),
         strategyHostReleasableManagedProducers: () => [1, 2],
-        strategyModule_local_ManagedDispatch: () => ok({}),
+        strategyModule_local_ManagedCarrierDispatch: () => ok({}),
+        strategyModule_local_RelationOutput: value => value,
         strategyModule_local_ManagedDuration: () => 0n,
         strategyModule_local_ManagedCapacity: () => [16n, 16n],
         strategyModule_local_ManagedStart: () => ok(operations),
@@ -803,6 +812,7 @@ test('standard Local dispatches a Carrier input to a Carrier output',
       close: () => { closed = true; },
     };
     const local = localStrategyContribution({
+      ...portableRuntime,
       strategyModule_local_Registration: () => registration,
       strategyHostRegistrationSelectionKey: () => 'local-carrier',
       strategyHostNextTask: () => 2,
@@ -900,6 +910,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     close: () => { outputClosed = true; },
   };
   const local = localStrategyContribution({
+    ...portableRuntime,
     strategyModule_local_Registration: () => localRegistration,
     strategyHostRegistrationSelectionKey: () => 'local-carrier',
     strategyHostNextTask: current,

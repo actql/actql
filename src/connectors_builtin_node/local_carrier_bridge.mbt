@@ -2,24 +2,24 @@
 #export_name("strategyModule_local_RelationOutput")
 pub fn local_managed_relation_output(
   output : @execution.ManagedCompletedOutput[Int],
-) -> @binding19.LocalManagedAvailableOutput[Int] {
-  @binding19.local_managed_relation_output(output)
+) -> @local_driver.LocalManagedAvailableOutput[Int] {
+  @local_driver.local_managed_relation_output(output)
 }
 
 ///|
 #export_name("strategyModule_local_CapturedRelationInput")
-pub fn local_managed_captured_relation_input() -> @binding19.LocalManagedAvailableOutput[
+pub fn local_managed_captured_relation_input() -> @local_driver.LocalManagedAvailableOutput[
   Int,
 ] {
-  @binding19.local_managed_captured_relation_input()
+  @local_driver.local_managed_captured_relation_input()
 }
 
 ///|
 #export_name("strategyModule_local_SuppliedRelationInput")
-pub fn local_managed_supplied_relation_input() -> @binding10.LocalManagedAvailableOutput[
+pub fn local_managed_supplied_relation_input() -> @local_driver.LocalManagedAvailableOutput[
   Int,
 ] {
-  @binding10.local_managed_supplied_relation_input()
+  @local_driver.local_managed_supplied_relation_input()
 }
 
 ///|
@@ -27,17 +27,17 @@ pub fn local_managed_supplied_relation_input() -> @binding10.LocalManagedAvailab
 pub fn local_managed_carrier_output(
   output : @execution.CarrierManagedCompletedOutput,
   material : @carrier_runtime.Material,
-) -> @binding19.LocalManagedAvailableOutput[Int] {
-  @binding19.local_managed_carrier_output(output, material)
+) -> @local_driver.LocalManagedAvailableOutput[Int] {
+  @local_driver.local_managed_carrier_output(output, material)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedCarrierDispatch")
 pub fn local_managed_carrier_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
-  completed : Array[@binding19.LocalManagedAvailableOutput[Int]],
+  completed : Array[@local_driver.LocalManagedAvailableOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding19.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @local_driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -64,7 +64,7 @@ pub fn local_managed_carrier_dispatch(
 ///|
 #export_name("strategyModule_local_ManagedUsesProvider")
 pub fn local_managed_uses_provider(
-  setup : @binding19.LocalManagedDispatchConfiguration[Int],
+  setup : @local_driver.LocalManagedDispatchConfiguration[Int],
 ) -> Bool {
-  @binding19.local_managed_dispatch_uses_provider(setup)
+  @local_driver.local_managed_dispatch_uses_provider(setup)
 }

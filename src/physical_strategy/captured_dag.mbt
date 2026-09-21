@@ -1391,8 +1391,9 @@ fn captured_mixed_managed_inputs_match(
       })
       .unwrap_or(false)
     let carrier_matches = carrier_managed_task_output_reference(
-      run, edge.producer,
-    )
+        run,
+        edge.producer,
+      )
       .map(reference => {
         @execution.managed_input_binding_matches_carrier_reference(
           input, reference,

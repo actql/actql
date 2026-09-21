@@ -630,8 +630,20 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let split = variant == "split_projection"
   let subtract = variant.has_prefix("subtract")
   let subtract_exact = variant == "subtract_exact"
-  let typed_traverse = variant.has_prefix("traverse_type")
-  let relation_selector = variant.has_prefix("subgraph_relation_selector")
+  let subtract_numeric = variant == "subtract_numeric"
+  let subtract_properties = subtract_exact || subtract_numeric
+  let union_set = variant == "union_set"
+  let typed_traverse = variant.has_prefix("traverse_type") ||
+    variant.has_prefix("shortest_type") ||
+    variant == "traverse_pattern_multi"
+  let subgraph_relation_selector = variant.has_prefix(
+    "subgraph_relation_selector",
+  )
+  let traverse_relation_selector = variant == "traverse_relation_selector"
+  let shortest_relation_selector = variant == "shortest_relation_selector"
+  let relation_selector = subgraph_relation_selector ||
+    traverse_relation_selector ||
+    shortest_relation_selector
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -640,7 +652,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       ""
     }) +
-    (if subtract && !subtract_exact {
+    (if union_set {
+      "\"tags\":{\"type\":\"array\",\"nullable\":false," +
+      "\"items\":{\"type\":\"string\",\"nullable\":true}," +
+      "\"max_items\":10}}"
+    } else if subtract && !subtract_properties {
       "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
     } else {
       "\"node_name\":{\"type\":\"string\",\"nullable\":" +
@@ -657,12 +673,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"first\""
   }
-  let rows = if typed_traverse {
+  let rows = if union_set {
+    "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
+  } else if typed_traverse {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"edge_type\":\"blocks\"," +
     "\"node_name\":\"second\",\"weight\":20}]"
-  } else if subtract && !subtract_exact {
+  } else if subtract && !subtract_properties {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
     "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
   } else {
@@ -710,33 +728,135 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
-  } else if variant.has_prefix("traverse_") {
-    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
-    "\"direction\":\"" +
-    (if variant == "traverse_in" {
+  } else if shortest_relation_selector {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"},\"target\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"},\"selection\":\"each_pair\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_predicate" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"where\":" +
+    "\"true\"},\"target\":{\"where\":\"node_name = 'second'\"}," +
+    "\"selection\":\"each_pair\",\"direction\":\"out\"," +
+    "\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_ids" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1,2]}," +
+    "\"target\":{\"ids\":[2,1]},\"selection\":\"each_pair\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_nearest_per_source" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1]}," +
+    "\"target\":{\"ids\":[2]},\"selection\":\"nearest_per_source\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_nearest_pair" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1]}," +
+    "\"target\":{\"ids\":[2,1]},\"selection\":\"nearest_pair\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant.has_prefix("shortest_") {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
+    "\"target\":" +
+    (if variant == "shortest_zero" { "1" } else { "2" }) +
+    ",\"direction\":\"" +
+    (if variant == "shortest_in" {
       "in"
-    } else if variant == "traverse_both" {
+    } else if variant == "shortest_both" {
       "both"
     } else {
       "out"
     }) +
-    "\"," +
-    (if typed_traverse {
-      if variant == "traverse_type_empty" {
-        "\"edge_types\":[],"
-      } else if variant.has_prefix("traverse_types_") {
-        "\"edge_types\":[\"missing\",\"" +
-        (if variant == "traverse_types_match" { "owns" } else { "other" }) +
-        "\"],"
-      } else {
-        "\"edge_types\":[\"" +
-        (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
-        "\"],"
-      }
+    "\",\"max_hops\":2" +
+    (if variant == "shortest_weighted" { ",\"weight\":\"weight\"" } else { "" }) +
+    (if variant == "shortest_type_empty" {
+      ",\"edge_types\":[]"
+    } else if variant == "shortest_types_match" {
+      ",\"edge_types\":[\"missing\",\"owns\"]"
+    } else if variant == "shortest_type_miss" {
+      ",\"edge_types\":[\"blocks\"]"
+    } else if variant == "shortest_type_match" {
+      ",\"edge_types\":[\"owns\"]"
     } else {
       ""
     }) +
-    "\"min_hops\":1,\"max_hops\":2," +
+    "}," +
+    "\"as\":\"out\""
+  } else if variant.has_prefix("traverse_") {
+    "\"from\":\"g\",\"traverse\":{\"start\":{" +
+    (if variant == "traverse_predicate" ||
+      variant == "traverse_pattern_all_predicates" {
+      "\"where\":" +
+      (if variant == "traverse_pattern_all_predicates" {
+        "\"node_name = 'second'\""
+      } else {
+        "\"true\""
+      })
+    } else if traverse_relation_selector {
+      "\"from\":\"selected\",\"id\":\"key\""
+    } else {
+      "\"ids\":[" +
+      (if variant == "traverse_ids" {
+        "2,1,2"
+      } else if variant.has_prefix("traverse_pattern_") &&
+        variant != "traverse_pattern_multi" &&
+        variant != "traverse_pattern_one" {
+        "2"
+      } else {
+        "1"
+      }) +
+      "]"
+    }) +
+    "}," +
+    (if variant.has_prefix("traverse_pattern_") {
+      if variant == "traverse_pattern_multi" {
+        "\"hops\":[{\"direction\":\"out\"," +
+        "\"edge_types\":[\"owns\"]," +
+        "\"node_where\":\"node_name = 'second'\"},{" +
+        "\"direction\":\"out\",\"edge_types\":[\"blocks\"]," +
+        "\"node_where\":\"node_name = 'first'\"}],"
+      } else {
+        "\"hops\":[{\"direction\":\"out\"" +
+        (if variant == "traverse_pattern_predicate" ||
+          variant == "traverse_pattern_all_predicates" ||
+          variant == "traverse_pattern_edge_predicate" {
+          ",\"edge_where\":\"weight > 10\""
+        } else if variant == "traverse_pattern_predicate_empty" {
+          ",\"edge_where\":\"weight > 100\""
+        } else {
+          ""
+        }) +
+        (if variant == "traverse_pattern_predicate" ||
+          variant == "traverse_pattern_all_predicates" ||
+          variant == "traverse_pattern_node_predicate" {
+          ",\"node_where\":\"node_name = 'first'\""
+        } else {
+          ""
+        }) +
+        "}],"
+      }
+    } else {
+      "\"direction\":\"" +
+      (if variant == "traverse_in" {
+        "in"
+      } else if variant == "traverse_both" {
+        "both"
+      } else {
+        "out"
+      }) +
+      "\"," +
+      (if typed_traverse {
+        if variant == "traverse_type_empty" {
+          "\"edge_types\":[],"
+        } else if variant.has_prefix("traverse_types_") {
+          "\"edge_types\":[\"missing\",\"" +
+          (if variant == "traverse_types_match" { "owns" } else { "other" }) +
+          "\"],"
+        } else {
+          "\"edge_types\":[\"" +
+          (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
+          "\"],"
+        }
+      } else {
+        ""
+      }) +
+      "\"min_hops\":1,\"max_hops\":2,"
+    }) +
     "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -765,7 +885,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
     "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
-  } else if relation_selector {
+  } else if subgraph_relation_selector {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
     "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
     "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
@@ -781,39 +901,81 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "union" || variant == "union_singleton" {
+  } else if variant == "mean" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"mean_graphs\":{\"with\":[\"right_graph\",\"g\"," +
+    "\"right_graph\"],\"weights\":[1,2,3]," +
+    "\"support\":{\"nodes\":1,\"edges\":1}," +
+    "\"properties\":{\"nodes\":{\"node_name\":\"exact_equal\"}," +
+    "\"edges\":{\"weight\":{\"mean\":{" +
+    "\"missing\":\"exclude\",\"nulls\":\"fail\"}}}}}," +
+    "\"as\":\"averaged\"},{\"from\":\"averaged\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "union" ||
+    variant == "union_singleton" ||
+    variant == "union_numeric" ||
+    union_set {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if union_set { "\"other\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":" +
+    (if union_set { "[\"tags\"]" } else { "[\"node_name\"]" }) +
+    "},\"edges\":{\"from\":" +
+    (if union_set { "\"other\"" } else { "\"rows\"" }) +
+    "," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":" +
+    (if union_set { "[]" } else { "[\"weight\"]" }) +
+    "}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"union_graphs\":{\"with\":" +
-    (if variant == "union_singleton" {
+    (if variant == "union_singleton" || variant == "union_numeric" || union_set {
       "\"right_graph\""
     } else {
       "[\"right_graph\",\"g\",\"right_graph\"]"
     }) +
+    (if variant == "union_numeric" {
+      ",\"merge\":{\"edge_properties\":{\"weight\":" + "\"number_sum\"}}"
+    } else if union_set {
+      ",\"merge\":{\"node_properties\":{\"tags\":\"set_union\"}}"
+    } else {
+      ""
+    }) +
     "}," +
     "\"as\":\"united\"},{\"from\":\"united\"," +
-    "\"node_rows\":true,\"as\":\"out\""
+    (if variant == "union_numeric" {
+      "\"edge_rows\":true,\"as\":\"out\""
+    } else {
+      "\"node_rows\":true,\"as\":\"out\""
+    })
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
     "\"fields\":" +
-    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"node_name\"]" } else { "[]" }) +
     "},\"edges\":{\"from\":\"other\"," +
     "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
-    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"weight\"]" } else { "[]" }) +
     "}}," +
     "\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"" +
     (if subtract_exact {
       ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
       "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
+    } else if subtract_numeric {
+      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
+      "\"edge_properties\":{\"weight\":\"number_sum\"}}"
     } else {
       ""
     }) +
     "}," +
     "\"as\":\"subtracted\"},{\"from\":\"subtracted\"," +
-    "\"node_rows\":true,\"as\":\"out\""
+    (if subtract_numeric {
+      "\"edge_rows\":true,\"as\":\"out\""
+    } else {
+      "\"node_rows\":true,\"as\":\"out\""
+    })
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
       ""
@@ -853,12 +1015,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if subtract && !subtract_exact {
+  let result_fields = if union_set {
+    "\"id\",\"tags\""
+  } else if subtract && !subtract_properties {
     "\"id\""
+  } else if subtract_numeric {
+    "\"src\",\"dst\",\"weight\""
   } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
     "\"src\",\"dst\",\"weight\""
@@ -868,6 +1035,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
+  } else if variant.has_prefix("shortest_") {
+    "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
+    "\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
   } else if graph_equality {
@@ -876,12 +1046,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if subtract && !subtract_exact {
+  let second_fields = if union_set {
+    "\"tags\""
+  } else if subtract && !subtract_properties {
     "\"id\""
+  } else if subtract_numeric {
+    "\"weight\",\"src\""
   } else if concise {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
     "\"weight\",\"src\""
@@ -891,6 +1066,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
+  } else if variant.has_prefix("shortest_") {
+    "\"source_id\",\"target_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
   } else if graph_equality {
@@ -898,19 +1075,36 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if subtract {
+  let other_stage = if subtract || union_set {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
-    ",\"rows\":[{\"id\":2,\"src\":2,\"dst\":2," +
-    (if subtract_exact {
-      "\"node_name\":\"second\",\"weight\":20"
+    ",\"rows\":" +
+    (if union_set {
+      "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"c\",null,\"b\"]}]"
+    } else if subtract_numeric {
+      "[{\"id\":1,\"src\":1,\"dst\":2," +
+      "\"node_name\":\"first\",\"weight\":1},{\"id\":2," +
+      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+      "\"weight\":5}]"
     } else {
-      "\"marker\":0"
+      "[{\"id\":2,\"src\":2,\"dst\":2," +
+      (if subtract_properties {
+        "\"node_name\":\"second\",\"weight\":20"
+      } else {
+        "\"marker\":0"
+      }) +
+      "}]"
     }) +
-    "}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "},\"as\":\"out\"}],\"results\":{\"r\":{" +
     "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-    (if subtract_exact { "\"node_name\",\"weight\"" } else { "\"marker\"" }) +
+    (if union_set {
+      "\"tags\""
+    } else if subtract_properties {
+      "\"node_name\",\"weight\""
+    } else {
+      "\"marker\""
+    }) +
     "]}}},"
   } else if split {
     "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
@@ -951,13 +1145,19 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       "false"
     }) +
-    "}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    "}},\"rows\":" +
+    (if traverse_relation_selector || shortest_relation_selector {
+      "[{\"key\":2},{\"key\":1},{\"key\":2}]"
+    } else {
+      "[{\"key\":2},{\"key\":2}]"
+    }) +
+    "}" +
     ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
     "\"fields\":[\"key\"]}}},"
   } else {
     ""
   }
-  let graph_inputs = if subtract {
+  let graph_inputs = if subtract || union_set {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
@@ -991,7 +1191,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
   "\"src\",\"dst\"," +
-  (if subtract && !subtract_exact {
+  (if union_set {
+    "\"tags\""
+  } else if subtract && !subtract_properties {
     "\"marker\""
   } else if typed_traverse {
     "\"edge_type\",\"node_name\",\"weight\""
@@ -1010,11 +1212,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":" +
-    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"node_name\"]" } else { "[]" }) +
     "},\"edges\":{\"from\":\"rows\"," +
     "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
-    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"weight\"]" } else { "[]" }) +
     "}}," +
+    "\"as\":\"g\"},{"
+  } else if union_set {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"tags\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":[]}}," +
     "\"as\":\"g\"},{"
   } else if typed_traverse {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
@@ -3369,7 +3576,54 @@ fn query_checked_program_fixture(
     [traversal_capacity_material(environment, "graph", "reach")]
   } else if local_carrier_graph_chain &&
     local_carrier_graph_variant.has_prefix("traverse_") {
-    [traversal_capacity_material(environment, "graph", "traverse")]
+    [
+      traversal_capacity_material(
+        environment,
+        "graph",
+        "traverse",
+        output_rows=if local_carrier_graph_variant == "traverse_ids" ||
+          local_carrier_graph_variant == "traverse_predicate" ||
+          local_carrier_graph_variant == "traverse_pattern_all_predicates" ||
+          local_carrier_graph_variant == "traverse_relation_selector" {
+          4L
+        } else {
+          2L
+        },
+        selector_rows=if local_carrier_graph_variant ==
+          "traverse_relation_selector" {
+          Some(3L)
+        } else {
+          None
+        },
+      ),
+    ]
+  } else if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("shortest_") {
+    [
+      traversal_capacity_material(
+        environment,
+        "graph",
+        "shortest_path",
+        output_rows=if local_carrier_graph_variant == "shortest_ids" {
+          6L
+        } else if local_carrier_graph_variant == "shortest_relation_selector" {
+          9L
+        } else if local_carrier_graph_variant == "shortest_predicate" {
+          4L
+        } else if local_carrier_graph_variant == "shortest_nearest_per_source" {
+          2L
+        } else {
+          1L
+        },
+        selector_rows=if local_carrier_graph_variant ==
+          "shortest_relation_selector" {
+          Some(3L)
+        } else {
+          None
+        },
+        predicate_selector=local_carrier_graph_variant == "shortest_predicate",
+      ),
+    ]
   } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {
@@ -4173,6 +4427,9 @@ fn traversal_capacity_material(
   stage : String,
   operation : String,
   step? : Int = 1,
+  output_rows? : Int64 = 2L,
+  selector_rows? : Int64? = None,
+  predicate_selector? : Bool = false,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -4198,15 +4455,71 @@ fn traversal_capacity_material(
       step=0,
       unit="nodes",
     )
-    let output = query_capacity_proof(
-      "actql.bound.traverse-nodes",
-      2L,
-      "{\"op\":\"source\"}",
-      inputs=[@wire.cid(@wire.program_proof_witness(graph))],
-      step~,
-    )
     proofs.push(input)
     proofs.push(graph)
+    let output_inputs = [@wire.cid(@wire.program_proof_witness(graph))]
+    if selector_rows is Some(rows) {
+      let selector = query_capacity_proof(
+        "actql.bound.values",
+        rows,
+        "{\"op\":\"source\"}",
+        step=0,
+      )
+      proofs.push(selector)
+      output_inputs.push(@wire.cid(@wire.program_proof_witness(selector)))
+    }
+    let output = query_capacity_proof(
+      "actql.bound.traverse-nodes",
+      output_rows,
+      "{\"op\":\"source\"}",
+      inputs=output_inputs,
+      step~,
+    )
+    proofs.push(output)
+    for proof in proofs {
+      witnesses.push(@wire.program_proof_witness(proof))
+    }
+  } else if operation == "shortest_path" {
+    let output_inputs : Array[String] = []
+    if predicate_selector {
+      let input = query_capacity_proof(
+        "actql.bound.values",
+        2L,
+        "{\"op\":\"source\"}",
+        step=0,
+      )
+      let graph = query_capacity_proof(
+        "actql.bound.graph-nodes",
+        2L,
+        "{\"op\":\"source\"}",
+        inputs=[@wire.cid(@wire.program_proof_witness(input))],
+        step=0,
+        unit="nodes",
+      )
+      proofs.push(input)
+      proofs.push(graph)
+      output_inputs.push(@wire.cid(@wire.program_proof_witness(graph)))
+    } else if selector_rows is Some(rows) {
+      let selector = query_capacity_proof(
+        "actql.bound.values",
+        rows,
+        "{\"op\":\"source\"}",
+        step=0,
+      )
+      proofs.push(selector)
+      let selector_cid = @wire.cid(@wire.program_proof_witness(selector))
+      // Source and target are distinct ordered input edges even when they
+      // select the same material.
+      output_inputs.push(selector_cid)
+      output_inputs.push(selector_cid)
+    }
+    let output = query_capacity_proof(
+      "actql.bound.shortest-path",
+      output_rows,
+      "{\"op\":\"source\"}",
+      inputs=output_inputs,
+      step~,
+    )
     proofs.push(output)
     for proof in proofs {
       witnesses.push(@wire.program_proof_witness(proof))
@@ -4233,8 +4546,9 @@ fn traversal_capacity_material(
     }).unwrap()
     witnesses.push(wire)
     let candidates = [wire]
-    if operation == "traverse" && unit == "rows" {
-      candidates.push(@wire.program_proof_witness(proofs[2]))
+    if (operation == "traverse" || operation == "shortest_path") &&
+      unit == "rows" {
+      candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
       candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
     }
     let texts = candidates.map(candidate => {
@@ -4269,8 +4583,8 @@ fn traversal_capacity_material(
     )
   }
   let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
-    max_entities: 10,
-    max_references: 20,
+    max_entities: 12,
+    max_references: 24,
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 30,

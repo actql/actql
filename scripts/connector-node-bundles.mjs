@@ -81,6 +81,12 @@ const dependencies = new Map([
     ],
   ] : []),
 ]);
+const hasLocalCarrierBridge = existsSync(
+  join(root, 'src', bridgePackage, 'local_carrier_bridge.mbt'),
+);
+if (hasLocalCarrierBridge) {
+  dependencies.set('actql/actql/connectors/local/driver', 'local_driver');
+}
 const type = value => {
   if (!dependencies.has(value.package)) dependencies.set(value.package, `binding${dependencies.size}`);
   return `@${dependencies.get(value.package)}.${value.type}`;
@@ -203,7 +209,7 @@ dependencies.set('actql/actql/remote_transfer', 'transfer');
 // runtime dependency after generated connector aliases so their stable names
 // continue to match that adapter. Other generated bridge packages do not gain
 // the dependency.
-if (existsSync(join(root, 'src', bridgePackage, 'local_carrier_bridge.mbt'))) {
+if (hasLocalCarrierBridge) {
   dependencies.set(
     'actql/actql/managed_carrier_runtime',
     'carrier_runtime',
