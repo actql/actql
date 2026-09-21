@@ -947,6 +947,13 @@ and dependency-free Node Host fixtures remain current, and their portable
 gates pass. This evidence does not cover maximum or weighted-sum runtime
 authentication, their tie rules, negative RRF execution, or final Linux CI.
 
+Maximum and weighted-sum cannot use ordinary `values` score columns as an
+execution shortcut. Their inputs require matching captured score declarations;
+the author-visible Program boundary rejects otherwise identical numeric columns
+before planning. The remaining standard Host fixture must therefore supply
+owner-bound inputs carrying the formal score declarations. It must not infer
+score authority from a field name or weaken the checker to reach the kernel.
+
 At `a9174bee`, interval join reaches one typed canonical
 `TEA.join.interval` occurrence without rediscovering frontend syntax. The
 lowering retains point and overlap operands, timestamp and safe-integer clock

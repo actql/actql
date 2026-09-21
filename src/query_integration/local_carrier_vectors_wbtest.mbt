@@ -1219,6 +1219,26 @@ test "standard Host runs RRF ranking fusion with two consumers" {
 }
 
 ///|
+test "scored ranking fusion rejects undeclared value columns" {
+  for variant in ["ranking_max", "ranking_weighted"] {
+    let rejected = try {
+      ignore(
+        query_checked_program_fixture(
+          local_carrier_vectors_chain=true,
+          local_carrier_vectors_variant=variant,
+          managed_publication=true,
+        ),
+      )
+      false
+    } catch {
+      @program_check.LocalConstructionFailure::Source(_) => true
+      _ => false
+    }
+    assert_true(rejected)
+  }
+}
+
+///|
 test "standard Host preserves repeated RRF input occurrences" {
   run_standard_ranking_provider("ranking_rrf_repeated")
 }
