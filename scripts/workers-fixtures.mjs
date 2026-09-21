@@ -53,6 +53,7 @@ const extra = [
   ['actql/actql/connector_sdk','connector'],
   ['actql/actql/run_publication','publication'],
   ['actql/actql/run_publication_host','publication_host'],
+  ['actql/actql/publication_payload','payload'],
   ['actql/actql/execution_site','site'],
   ['actql/actql/remote_site_protocol','remote'],
   ['actql/actql/physical_manifest','manifest'],

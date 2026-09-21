@@ -13,11 +13,12 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/publication_payload" @payload,
   "actql/actql/execution_site" @site,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/remote_credential" @credential,
   "actql/actql/remote_bundle" @bundle,
   "actql/actql/physical_manifest" @manifest,
-  "actql/actql/connectors/local/driver" @binding14,
+  "actql/actql/connectors/local/driver" @binding15,
   "actql/actql/remote_transfer" @transfer,
 }

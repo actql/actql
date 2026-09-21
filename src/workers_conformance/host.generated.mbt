@@ -3170,6 +3170,305 @@ pub fn strategy_remote_poll_dispatch_json(
 }
 
 ///|
+#export_name("strategyRemotePollOutputJson")
+pub fn strategy_remote_poll_output_json(
+  request : @remote.DispatchRequest,
+  intent : @remote.RemoteOutputIntent,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_output_json(request, intent) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePollOutputPlanJson")
+pub fn strategy_remote_poll_output_plan_json(
+  request : @remote.DispatchRequest,
+  intent : @remote.RemoteOutputIntent,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_output_plan_json(request, intent) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputIntentPrepare")
+pub fn strategy_remote_output_intent_prepare(
+  request : @remote.DispatchRequest,
+  store_authority_cid : String,
+  publication_attempt_cid : String,
+  result_definition_cid : String,
+  ordering_evidence_cid : String,
+  coordinator_authority : String,
+  transfer_attempt : String,
+  transfer_route : Int,
+  destination_site_key : String,
+  destination_site_generation : Int,
+  transfer_max_bytes : Int64,
+  transfer_expires_unix_ms : Int64,
+  source_grant_cid : String,
+  destination_grant_cid : String,
+  route_capability_cid : String,
+  transfer_origin : String,
+) -> @remote.RemoteOutputIntent raise NodeHostFailure {
+  let route = match transfer_route {
+    0 => @transfer.DirectStream
+    1 => @transfer.TransferStore
+    _ => raise InvalidCommand
+  }
+  match
+    @remote.prepare_remote_output_intent(request, {
+      store_authority_cid,
+      publication_attempt_cid,
+      result_definition_cid,
+      ordering_evidence_cid,
+      coordinator_authority,
+      transfer_attempt,
+      transfer_route: route,
+      destination_site_key,
+      destination_site_generation,
+      transfer_max_bytes,
+      transfer_expires_unix_ms,
+      source_grant_cid,
+      destination_grant_cid,
+      route_capability_cid,
+      transfer_origin,
+    }) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputIntentIdentity")
+pub fn strategy_remote_output_intent_identity(
+  intent : @remote.RemoteOutputIntent,
+) -> String {
+  @remote.remote_output_intent_identity(intent)
+}
+
+///|
+#export_name("strategyRemotePublicationPayloadPrepare")
+pub fn strategy_remote_publication_payload_prepare(
+  store_authority_cid : String,
+  publication_attempt_cid : String,
+  material_generation_cid : String,
+  result_definition_cid : String,
+  logical_relation_cid : String,
+  result_schema_cid : String,
+  ordering_evidence_cid : String,
+  durable_codec_cid : String,
+  max_bytes : Int64,
+  row_count : Int64,
+) -> @payload.PublicationPayloadRequest raise NodeHostFailure {
+  match
+    @payload.prepare_publication_payload_request(
+      store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid,
+      logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid,
+      max_bytes, row_count,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemotePublicationPayloadJson")
+pub fn strategy_remote_publication_payload_json(
+  request : @payload.PublicationPayloadRequest,
+) -> String raise NodeHostFailure {
+  match @payload.publication_payload_request_json(request) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemotePublicationPayloadAdmitJson")
+pub fn strategy_remote_publication_payload_admit_json(
+  body : String,
+  claimed_request_cid : String,
+) -> @payload.PublicationPayloadRequest raise NodeHostFailure {
+  match
+    @payload.admit_publication_payload_request_json(body, claimed_request_cid) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemotePollOutputAdmit")
+pub fn strategy_remote_poll_output_admit(
+  body : String,
+) -> @remote.RemotePollOutput raise NodeHostFailure {
+  match @remote.admit_remote_poll_output_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePollOutputPlanAdmit")
+pub fn strategy_remote_poll_output_plan_admit(
+  body : String,
+) -> @remote.RemotePollOutput raise NodeHostFailure {
+  match @remote.admit_remote_poll_output_plan_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanAdmit")
+pub fn strategy_remote_output_plan_admit(
+  body : String,
+  output : @remote.RemotePollOutput,
+  subject : @remote.RemoteManagedOutputSubject,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> @remote.RemoteOutputPlan raise NodeHostFailure {
+  match
+    @remote.admit_remote_output_plan_json(
+      body, output, subject, max_chunks, max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanPrepare")
+pub fn strategy_remote_output_plan_prepare(
+  output : @remote.RemotePollOutput,
+  subject : @remote.RemoteManagedOutputSubject,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.RemoteOutputPlan raise NodeHostFailure {
+  match
+    @remote.prepare_remote_output_plan(
+      output, subject, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanJson")
+pub fn strategy_remote_output_plan_json(
+  plan : @remote.RemoteOutputPlan,
+) -> String raise NodeHostFailure {
+  match @remote.remote_output_plan_json(plan) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanIdentity")
+pub fn strategy_remote_output_plan_identity(
+  plan : @remote.RemoteOutputPlan,
+) -> String {
+  @remote.remote_output_plan_identity(plan)
+}
+
+///|
+#export_name("strategyRemoteOutputPlanPayloadRequest")
+pub fn strategy_remote_output_plan_payload_request(
+  plan : @remote.RemoteOutputPlan,
+) -> @payload.PublicationPayloadRequest {
+  @remote.remote_output_plan_payload_request(plan)
+}
+
+///|
+#export_name("strategyRemoteOutputPlanTransferRequest")
+pub fn strategy_remote_output_plan_transfer_request(
+  plan : @remote.RemoteOutputPlan,
+) -> @transfer.RemoteTransferRequest {
+  @remote.remote_output_plan_transfer_request(plan)
+}
+
+///|
+#export_name("strategyRemoteOutputResultAdmit")
+pub fn strategy_remote_output_result_admit(
+  body : String,
+  output : @remote.RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.RemoteOutputResult raise NodeHostFailure {
+  match
+    @remote.admit_remote_output_result_json(
+      body, output, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputResultPrepare")
+pub fn strategy_remote_output_result_prepare(
+  output : @remote.RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  payload_physical_digest : String,
+  transfer_record : @transfer.RemoteTransferRecord,
+) -> @remote.RemoteOutputResult raise NodeHostFailure {
+  match
+    @remote.prepare_remote_output_result(
+      output, payload_request, payload_physical_digest, transfer_record,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputResultJson")
+pub fn strategy_remote_output_result_json(
+  result : @remote.RemoteOutputResult,
+) -> String raise NodeHostFailure {
+  match @remote.remote_output_result_json(result) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputResultIdentity")
+pub fn strategy_remote_output_result_identity(
+  result : @remote.RemoteOutputResult,
+) -> String {
+  @remote.remote_output_result_identity(result)
+}
+
+///|
+#export_name("strategyRemoteOutputResultProjection")
+pub fn strategy_remote_output_result_projection(
+  result : @remote.RemoteOutputResult,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> Array[String] raise NodeHostFailure {
+  match @remote.remote_output_result_projection(result, transfer_request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputExpectedIdentity")
+pub fn strategy_remote_output_expected_identity(
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> Array[String] {
+  [
+    @payload.publication_payload_request_identity(payload_request),
+    @transfer.request_cid(transfer_request),
+  ]
+}
+
+///|
 #export_name("strategyRemoteInputBindingPrepare")
 pub fn strategy_remote_input_binding_prepare(
   body : String,
@@ -3659,6 +3958,176 @@ pub fn strategy_remote_coordinator_record_restore(
     quarantined_capacity, evidence_cid, subject_cid, measurement_cid,
   )
   match result {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputPrepare")
+pub fn strategy_remote_coordinator_output_prepare(
+  journal : @remote.CoordinatorDispatchJournal,
+  output : @remote.RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.CoordinatorOutputAdmission raise NodeHostFailure {
+  match
+    @remote.prepare_coordinator_output_intent(
+      journal, output, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputIsNew")
+pub fn strategy_remote_coordinator_output_is_new(
+  admission : @remote.CoordinatorOutputAdmission,
+) -> Bool {
+  @remote.coordinator_output_intent_kind(admission) == @remote.NewDispatch
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputAdmissionKey")
+pub fn strategy_remote_coordinator_output_admission_key(
+  admission : @remote.CoordinatorOutputAdmission,
+) -> Array[String] {
+  @remote.coordinator_output_admission_key(admission)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputAdmissionJson")
+pub fn strategy_remote_coordinator_output_admission_json(
+  admission : @remote.CoordinatorOutputAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_output_admission_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputCommit")
+pub fn strategy_remote_coordinator_output_commit(
+  admission : @remote.CoordinatorOutputAdmission,
+  durable : Bool,
+) -> @remote.CoordinatorOutputRecord raise NodeHostFailure {
+  match @remote.commit_coordinator_output_intent(admission, durable) {
+    Ok((_, record)) => record
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputPrepareUnknown")
+pub fn strategy_remote_coordinator_output_prepare_unknown(
+  record : @remote.CoordinatorOutputRecord,
+) -> @remote.CoordinatorOutputTransition raise NodeHostFailure {
+  match @remote.prepare_coordinator_output_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputPrepareSuccess")
+pub fn strategy_remote_coordinator_output_prepare_success(
+  record : @remote.CoordinatorOutputRecord,
+  result : @remote.RemoteOutputResult,
+) -> @remote.CoordinatorOutputTransition raise NodeHostFailure {
+  match @remote.prepare_coordinator_output_success(record, result) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputTransitionKey")
+pub fn strategy_remote_coordinator_output_transition_key(
+  transition : @remote.CoordinatorOutputTransition,
+) -> Array[String] {
+  @remote.coordinator_output_transition_key(transition)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputTransitionProjection")
+pub fn strategy_remote_coordinator_output_transition_projection(
+  transition : @remote.CoordinatorOutputTransition,
+) -> Array[String] {
+  @remote.coordinator_output_transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputTransitionCommit")
+pub fn strategy_remote_coordinator_output_transition_commit(
+  transition : @remote.CoordinatorOutputTransition,
+  durable : Bool,
+) -> Unit raise NodeHostFailure {
+  match @remote.commit_coordinator_output_transition(transition, durable) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputRecordKey")
+pub fn strategy_remote_coordinator_output_record_key(
+  record : @remote.CoordinatorOutputRecord,
+) -> Array[String] {
+  @remote.coordinator_output_record_key(record)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputRecordStatus")
+pub fn strategy_remote_coordinator_output_record_status(
+  record : @remote.CoordinatorOutputRecord,
+) -> Array[String] {
+  @remote.coordinator_output_record_status(record)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputRecordRevision")
+pub fn strategy_remote_coordinator_output_record_revision(
+  record : @remote.CoordinatorOutputRecord,
+) -> Int {
+  @remote.coordinator_output_record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputRecordResultJson")
+pub fn strategy_remote_coordinator_output_record_result_json(
+  record : @remote.CoordinatorOutputRecord,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_output_record_result_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputRecordResultProjection")
+pub fn strategy_remote_coordinator_output_record_result_projection(
+  record : @remote.CoordinatorOutputRecord,
+) -> Array[String] raise NodeHostFailure {
+  match @remote.coordinator_output_record_result_projection(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorOutputRecordRestore")
+pub fn strategy_remote_coordinator_output_record_restore(
+  record : @remote.CoordinatorOutputRecord,
+  revision : Int,
+  progress : Int,
+  result_json : String,
+) -> Unit raise NodeHostFailure {
+  match
+    @remote.restore_coordinator_output_record(
+      record, revision, progress, result_json,
+    ) {
     Ok(_) => ()
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -4821,6 +5290,65 @@ pub fn strategy_remote_credential_grant_projection(
   grant : @credential.RemoteCredentialGrant,
 ) -> Array[String] {
   @credential.credential_grant_projection(grant)
+}
+
+///|
+#export_name("strategyRemoteCredentialSignaturePreimage")
+pub fn strategy_remote_credential_signature_preimage(
+  grant : @credential.RemoteCredentialGrant,
+) -> Bytes raise NodeHostFailure {
+  match @credential.credential_grant_signature_preimage(grant) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopePrepare")
+pub fn strategy_remote_credential_signature_envelope_prepare(
+  grant : @credential.RemoteCredentialGrant,
+  key_id : String,
+  signature : String,
+) -> @credential.RemoteCredentialSignatureEnvelope raise NodeHostFailure {
+  match
+    @credential.prepare_credential_signature_envelope(grant, key_id, signature) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopeAdmit")
+pub fn strategy_remote_credential_signature_envelope_admit(
+  version : String,
+  key_id : String,
+  grant_cid : String,
+  body : String,
+  signature : String,
+) -> @credential.RemoteCredentialSignatureEnvelope raise NodeHostFailure {
+  match
+    @credential.admit_credential_signature_envelope(
+      version, key_id, grant_cid, body, signature,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopeProjection")
+pub fn strategy_remote_credential_signature_envelope_projection(
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+) -> Array[String] {
+  @credential.credential_signature_envelope_projection(envelope)
+}
+
+///|
+#export_name("strategyRemoteCredentialSignatureEnvelopeGrant")
+pub fn strategy_remote_credential_signature_envelope_grant(
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+) -> @credential.RemoteCredentialGrant {
+  @credential.credential_signature_envelope_grant(envelope)
 }
 
 ///|
@@ -9319,6 +9847,305 @@ pub fn async_strategy_remote_poll_dispatch_json(
 }
 
 ///|
+#export_name("asyncStrategyRemotePollOutputJson")
+pub fn async_strategy_remote_poll_output_json(
+  request : @remote.DispatchRequest,
+  intent : @remote.RemoteOutputIntent,
+) -> String raise AsyncHostFailure {
+  match @remote.remote_poll_output_json(request, intent) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemotePollOutputPlanJson")
+pub fn async_strategy_remote_poll_output_plan_json(
+  request : @remote.DispatchRequest,
+  intent : @remote.RemoteOutputIntent,
+) -> String raise AsyncHostFailure {
+  match @remote.remote_poll_output_plan_json(request, intent) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputIntentPrepare")
+pub fn async_strategy_remote_output_intent_prepare(
+  request : @remote.DispatchRequest,
+  store_authority_cid : String,
+  publication_attempt_cid : String,
+  result_definition_cid : String,
+  ordering_evidence_cid : String,
+  coordinator_authority : String,
+  transfer_attempt : String,
+  transfer_route : Int,
+  destination_site_key : String,
+  destination_site_generation : Int,
+  transfer_max_bytes : Int64,
+  transfer_expires_unix_ms : Int64,
+  source_grant_cid : String,
+  destination_grant_cid : String,
+  route_capability_cid : String,
+  transfer_origin : String,
+) -> @remote.RemoteOutputIntent raise AsyncHostFailure {
+  let route = match transfer_route {
+    0 => @transfer.DirectStream
+    1 => @transfer.TransferStore
+    _ => raise InvalidCommand
+  }
+  match
+    @remote.prepare_remote_output_intent(request, {
+      store_authority_cid,
+      publication_attempt_cid,
+      result_definition_cid,
+      ordering_evidence_cid,
+      coordinator_authority,
+      transfer_attempt,
+      transfer_route: route,
+      destination_site_key,
+      destination_site_generation,
+      transfer_max_bytes,
+      transfer_expires_unix_ms,
+      source_grant_cid,
+      destination_grant_cid,
+      route_capability_cid,
+      transfer_origin,
+    }) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputIntentIdentity")
+pub fn async_strategy_remote_output_intent_identity(
+  intent : @remote.RemoteOutputIntent,
+) -> String {
+  @remote.remote_output_intent_identity(intent)
+}
+
+///|
+#export_name("asyncStrategyRemotePublicationPayloadPrepare")
+pub fn async_strategy_remote_publication_payload_prepare(
+  store_authority_cid : String,
+  publication_attempt_cid : String,
+  material_generation_cid : String,
+  result_definition_cid : String,
+  logical_relation_cid : String,
+  result_schema_cid : String,
+  ordering_evidence_cid : String,
+  durable_codec_cid : String,
+  max_bytes : Int64,
+  row_count : Int64,
+) -> @payload.PublicationPayloadRequest raise AsyncHostFailure {
+  match
+    @payload.prepare_publication_payload_request(
+      store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid,
+      logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid,
+      max_bytes, row_count,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRemotePublicationPayloadJson")
+pub fn async_strategy_remote_publication_payload_json(
+  request : @payload.PublicationPayloadRequest,
+) -> String raise AsyncHostFailure {
+  match @payload.publication_payload_request_json(request) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRemotePublicationPayloadAdmitJson")
+pub fn async_strategy_remote_publication_payload_admit_json(
+  body : String,
+  claimed_request_cid : String,
+) -> @payload.PublicationPayloadRequest raise AsyncHostFailure {
+  match
+    @payload.admit_publication_payload_request_json(body, claimed_request_cid) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRemotePollOutputAdmit")
+pub fn async_strategy_remote_poll_output_admit(
+  body : String,
+) -> @remote.RemotePollOutput raise AsyncHostFailure {
+  match @remote.admit_remote_poll_output_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemotePollOutputPlanAdmit")
+pub fn async_strategy_remote_poll_output_plan_admit(
+  body : String,
+) -> @remote.RemotePollOutput raise AsyncHostFailure {
+  match @remote.admit_remote_poll_output_plan_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputPlanAdmit")
+pub fn async_strategy_remote_output_plan_admit(
+  body : String,
+  output : @remote.RemotePollOutput,
+  subject : @remote.RemoteManagedOutputSubject,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> @remote.RemoteOutputPlan raise AsyncHostFailure {
+  match
+    @remote.admit_remote_output_plan_json(
+      body, output, subject, max_chunks, max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputPlanPrepare")
+pub fn async_strategy_remote_output_plan_prepare(
+  output : @remote.RemotePollOutput,
+  subject : @remote.RemoteManagedOutputSubject,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.RemoteOutputPlan raise AsyncHostFailure {
+  match
+    @remote.prepare_remote_output_plan(
+      output, subject, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputPlanJson")
+pub fn async_strategy_remote_output_plan_json(
+  plan : @remote.RemoteOutputPlan,
+) -> String raise AsyncHostFailure {
+  match @remote.remote_output_plan_json(plan) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputPlanIdentity")
+pub fn async_strategy_remote_output_plan_identity(
+  plan : @remote.RemoteOutputPlan,
+) -> String {
+  @remote.remote_output_plan_identity(plan)
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputPlanPayloadRequest")
+pub fn async_strategy_remote_output_plan_payload_request(
+  plan : @remote.RemoteOutputPlan,
+) -> @payload.PublicationPayloadRequest {
+  @remote.remote_output_plan_payload_request(plan)
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputPlanTransferRequest")
+pub fn async_strategy_remote_output_plan_transfer_request(
+  plan : @remote.RemoteOutputPlan,
+) -> @transfer.RemoteTransferRequest {
+  @remote.remote_output_plan_transfer_request(plan)
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputResultAdmit")
+pub fn async_strategy_remote_output_result_admit(
+  body : String,
+  output : @remote.RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.RemoteOutputResult raise AsyncHostFailure {
+  match
+    @remote.admit_remote_output_result_json(
+      body, output, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputResultPrepare")
+pub fn async_strategy_remote_output_result_prepare(
+  output : @remote.RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  payload_physical_digest : String,
+  transfer_record : @transfer.RemoteTransferRecord,
+) -> @remote.RemoteOutputResult raise AsyncHostFailure {
+  match
+    @remote.prepare_remote_output_result(
+      output, payload_request, payload_physical_digest, transfer_record,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputResultJson")
+pub fn async_strategy_remote_output_result_json(
+  result : @remote.RemoteOutputResult,
+) -> String raise AsyncHostFailure {
+  match @remote.remote_output_result_json(result) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputResultIdentity")
+pub fn async_strategy_remote_output_result_identity(
+  result : @remote.RemoteOutputResult,
+) -> String {
+  @remote.remote_output_result_identity(result)
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputResultProjection")
+pub fn async_strategy_remote_output_result_projection(
+  result : @remote.RemoteOutputResult,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> Array[String] raise AsyncHostFailure {
+  match @remote.remote_output_result_projection(result, transfer_request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputExpectedIdentity")
+pub fn async_strategy_remote_output_expected_identity(
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> Array[String] {
+  [
+    @payload.publication_payload_request_identity(payload_request),
+    @transfer.request_cid(transfer_request),
+  ]
+}
+
+///|
 #export_name("asyncStrategyRemoteInputBindingPrepare")
 pub fn async_strategy_remote_input_binding_prepare(
   body : String,
@@ -9808,6 +10635,176 @@ pub fn async_strategy_remote_coordinator_record_restore(
     quarantined_capacity, evidence_cid, subject_cid, measurement_cid,
   )
   match result {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputPrepare")
+pub fn async_strategy_remote_coordinator_output_prepare(
+  journal : @remote.CoordinatorDispatchJournal,
+  output : @remote.RemotePollOutput,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.CoordinatorOutputAdmission raise AsyncHostFailure {
+  match
+    @remote.prepare_coordinator_output_intent(
+      journal, output, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputIsNew")
+pub fn async_strategy_remote_coordinator_output_is_new(
+  admission : @remote.CoordinatorOutputAdmission,
+) -> Bool {
+  @remote.coordinator_output_intent_kind(admission) == @remote.NewDispatch
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputAdmissionKey")
+pub fn async_strategy_remote_coordinator_output_admission_key(
+  admission : @remote.CoordinatorOutputAdmission,
+) -> Array[String] {
+  @remote.coordinator_output_admission_key(admission)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputAdmissionJson")
+pub fn async_strategy_remote_coordinator_output_admission_json(
+  admission : @remote.CoordinatorOutputAdmission,
+) -> String raise AsyncHostFailure {
+  match @remote.coordinator_output_admission_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputCommit")
+pub fn async_strategy_remote_coordinator_output_commit(
+  admission : @remote.CoordinatorOutputAdmission,
+  durable : Bool,
+) -> @remote.CoordinatorOutputRecord raise AsyncHostFailure {
+  match @remote.commit_coordinator_output_intent(admission, durable) {
+    Ok((_, record)) => record
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputPrepareUnknown")
+pub fn async_strategy_remote_coordinator_output_prepare_unknown(
+  record : @remote.CoordinatorOutputRecord,
+) -> @remote.CoordinatorOutputTransition raise AsyncHostFailure {
+  match @remote.prepare_coordinator_output_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputPrepareSuccess")
+pub fn async_strategy_remote_coordinator_output_prepare_success(
+  record : @remote.CoordinatorOutputRecord,
+  result : @remote.RemoteOutputResult,
+) -> @remote.CoordinatorOutputTransition raise AsyncHostFailure {
+  match @remote.prepare_coordinator_output_success(record, result) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputTransitionKey")
+pub fn async_strategy_remote_coordinator_output_transition_key(
+  transition : @remote.CoordinatorOutputTransition,
+) -> Array[String] {
+  @remote.coordinator_output_transition_key(transition)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputTransitionProjection")
+pub fn async_strategy_remote_coordinator_output_transition_projection(
+  transition : @remote.CoordinatorOutputTransition,
+) -> Array[String] {
+  @remote.coordinator_output_transition_projection(transition)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputTransitionCommit")
+pub fn async_strategy_remote_coordinator_output_transition_commit(
+  transition : @remote.CoordinatorOutputTransition,
+  durable : Bool,
+) -> Unit raise AsyncHostFailure {
+  match @remote.commit_coordinator_output_transition(transition, durable) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputRecordKey")
+pub fn async_strategy_remote_coordinator_output_record_key(
+  record : @remote.CoordinatorOutputRecord,
+) -> Array[String] {
+  @remote.coordinator_output_record_key(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputRecordStatus")
+pub fn async_strategy_remote_coordinator_output_record_status(
+  record : @remote.CoordinatorOutputRecord,
+) -> Array[String] {
+  @remote.coordinator_output_record_status(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputRecordRevision")
+pub fn async_strategy_remote_coordinator_output_record_revision(
+  record : @remote.CoordinatorOutputRecord,
+) -> Int {
+  @remote.coordinator_output_record_revision(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputRecordResultJson")
+pub fn async_strategy_remote_coordinator_output_record_result_json(
+  record : @remote.CoordinatorOutputRecord,
+) -> String raise AsyncHostFailure {
+  match @remote.coordinator_output_record_result_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputRecordResultProjection")
+pub fn async_strategy_remote_coordinator_output_record_result_projection(
+  record : @remote.CoordinatorOutputRecord,
+) -> Array[String] raise AsyncHostFailure {
+  match @remote.coordinator_output_record_result_projection(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorOutputRecordRestore")
+pub fn async_strategy_remote_coordinator_output_record_restore(
+  record : @remote.CoordinatorOutputRecord,
+  revision : Int,
+  progress : Int,
+  result_json : String,
+) -> Unit raise AsyncHostFailure {
+  match
+    @remote.restore_coordinator_output_record(
+      record, revision, progress, result_json,
+    ) {
     Ok(_) => ()
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -10972,6 +11969,65 @@ pub fn async_strategy_remote_credential_grant_projection(
   grant : @credential.RemoteCredentialGrant,
 ) -> Array[String] {
   @credential.credential_grant_projection(grant)
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialSignaturePreimage")
+pub fn async_strategy_remote_credential_signature_preimage(
+  grant : @credential.RemoteCredentialGrant,
+) -> Bytes raise AsyncHostFailure {
+  match @credential.credential_grant_signature_preimage(grant) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialSignatureEnvelopePrepare")
+pub fn async_strategy_remote_credential_signature_envelope_prepare(
+  grant : @credential.RemoteCredentialGrant,
+  key_id : String,
+  signature : String,
+) -> @credential.RemoteCredentialSignatureEnvelope raise AsyncHostFailure {
+  match
+    @credential.prepare_credential_signature_envelope(grant, key_id, signature) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialSignatureEnvelopeAdmit")
+pub fn async_strategy_remote_credential_signature_envelope_admit(
+  version : String,
+  key_id : String,
+  grant_cid : String,
+  body : String,
+  signature : String,
+) -> @credential.RemoteCredentialSignatureEnvelope raise AsyncHostFailure {
+  match
+    @credential.admit_credential_signature_envelope(
+      version, key_id, grant_cid, body, signature,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialSignatureEnvelopeProjection")
+pub fn async_strategy_remote_credential_signature_envelope_projection(
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+) -> Array[String] {
+  @credential.credential_signature_envelope_projection(envelope)
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialSignatureEnvelopeGrant")
+pub fn async_strategy_remote_credential_signature_envelope_grant(
+  envelope : @credential.RemoteCredentialSignatureEnvelope,
+) -> @credential.RemoteCredentialGrant {
+  @credential.credential_signature_envelope_grant(envelope)
 }
 
 ///|
