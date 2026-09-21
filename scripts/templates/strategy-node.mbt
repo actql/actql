@@ -6495,6 +6495,7 @@ pub fn strategy_remote_transfer_record_restore(
   }
 }
 
+// NATIVE_REMOTE_STANDARD_BEGIN
 ///|
 /// Register one direct-input verifier without selecting a Node execution
 /// implementation. All input semantics and limits are fixed by MoonBit.
@@ -6675,3 +6676,4 @@ pub fn strategy_remote_standard_input_failure_cleanup_retry(
 ) -> Bool {
   @remote_standard.retry_native_remote_standard_input_failure_cleanup(failure)
 }
+// NATIVE_REMOTE_STANDARD_END
