@@ -312,8 +312,13 @@ refer to the same material. Repeated rows resolve to one canonical endpoint.
 Checked node predicates use bounded expression execution over typed Graph
 bindings. Both forms reach the standard Host, formal publication, two
 overlapping consumers, final reclamation, and all three portable targets.
-`nearest_per_source`, `nearest_pair`, and weighted costs remain open, so
-`shortest_path` remains partial.
+At `b69cfba4`, the unweighted kernel also executes `nearest_per_source` and
+`nearest_pair`. Canonically ordered endpoint iteration resolves cross-pair
+ties after hop count, and retained best-path storage is admitted before
+allocation. Empty predicate selections complete with zero rows and zero
+physical output capacity. Exact workspace rejection, bounded execution,
+standard Host consumers, formal publication, and all three portable targets
+are covered. Weighted costs remain open, so `shortest_path` remains partial.
 Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,
