@@ -481,9 +481,11 @@ machine evaluates a checked node predicate with shared typed Graph bindings.
 Binding and expression work use the existing workspace and logical-work
 limits, and no partial traversal output is exposed on evaluation failure.
 Direct tests select a node through a typed property predicate on all three
-targets. Standard Host evidence admission for the two selector forms,
-patterned hops, hop predicates, and path output remain open, so `traverse`
-remains partial.
+targets. At `ff2a6410`, predicate selection also reaches the registered
+standard Host with its correct capacity proof, two overlapping downstream
+computations, independent release, and final cleanup on JS, Wasm, and native.
+Standard Host evidence for the Relation selector, patterned hops, hop
+predicates, and path output remain open, so `traverse` remains partial.
 
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
