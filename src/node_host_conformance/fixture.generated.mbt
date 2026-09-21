@@ -2388,15 +2388,22 @@ fn local_vector_expression_program() -> String {
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
   "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
   "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
-  "\"id\":\"vectors\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"id\":\"vector_values\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":" +
   schema +
   ",\"rows\":[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{" +
-  "\"id\":2,\"left\":[2,1],\"right\":[4,3]}]},\"as\":\"seed\"},{" +
-  "\"from\":\"seed\",\"derive\":{\"score\":{" +
+  "\"id\":2,\"left\":[2,1],\"right\":[4,3]}]},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"left\",\"right\"]}}},{\"id\":\"vector_score\",\"inputs\":{" +
+  "\"rows\":{\"result\":{\"stage\":\"vector_values\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"derive\":{\"score\":{" +
   "\"vector_score\":{\"left\":{\"field\":\"left\"}," +
   "\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}}," +
-  "\"as\":\"scored\"},{\"from\":\"scored\",\"derive\":{" +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"id\",\"left\",\"right\",\"score\"]}}},{" +
+  "\"id\":\"vectors\",\"inputs\":{\"rows\":{\"result\":{" +
+  "\"stage\":\"vector_score\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"derive\":{" +
   "\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{" +
   "\"field\":\"left\"}]}},\"as\":\"out\"}],\"results\":{" +
   "\"r\":{\"from\":\"out\",\"fields\":" +
