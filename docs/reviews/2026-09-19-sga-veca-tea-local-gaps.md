@@ -12,16 +12,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 31/39 entries have kernels and managed completion, 30/39 reach the standard Host, and 26/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 31/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; 32/39 entries have kernels and managed completion, 31/39 reach the standard Host, and 27/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 32/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 25/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, bounded Events transforms, normalized, grafted, unioned, scored, pooled, or nearest Vectors projections, and RRF output; 25/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 26/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 31/39, standard Host
-30/39, consumer lifetime 26/39, cancellation 25/39, and publication 25/39. These are
+kernel/managed/resources/three-target evidence 32/39, standard Host
+31/39, consumer lifetime 27/39, cancellation 25/39, and publication 26/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -294,6 +294,19 @@ occurrences in logical accounting. Remaining property merge laws are open, so
 bounded fold and rejects a conflicting shared identity atomically at
 `c282a9f0`. Numeric and canonical-set strategies remain ineligible before
 execution.
+
+At `1b7dbec3`, `subtract_graphs` executes the property-free structural
+variant over two immutable internal Graph generations. The bounded kernel
+removes shared node identities, discards remaining edges whose endpoints were
+removed, observes cancellation between records, and admits output capacity
+before construction. The portable standard Host carries the result through
+the formal Graph-to-Relation Bridge, two overlapping Relation consumers,
+Named Result publication and retrieval, and final reclamation on JS, Wasm,
+and native. Direct Carrier inputs and authored property strategies remain
+ineligible before execution. Edge-only behavior with retained endpoints and
+the numeric and canonical-set property laws therefore remain open, so
+`subtract_graphs` remains partial. This slice does not claim environment-level
+cancellation delivery for subtraction.
 
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The
