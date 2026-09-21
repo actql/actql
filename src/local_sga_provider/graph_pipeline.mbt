@@ -73,9 +73,18 @@ fn issue() -> @connector.FixedComputeIssue {
 
 ///|
 fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
-  !@lower.graph_traverse_patterned(value) &&
+  let hop_count = @lower.graph_traverse_hop_count(value)
+  let bounds = if @lower.graph_traverse_patterned(value) {
+    if hop_count == 1 {
+      Some((1L, 1L))
+    } else {
+      None
+    }
+  } else {
+    @lower.graph_traverse_bounds(value)
+  }
   !@lower.graph_traverse_emits_paths(value) &&
-  @lower.graph_traverse_bounds(value) is Some((minimum, maximum)) &&
+  bounds is Some((minimum, maximum)) &&
   minimum <= 2147483647L &&
   maximum <= 2147483647L &&
   (
@@ -83,7 +92,7 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
     @lower.graph_traverse_start_relation_field(value) is Some(_) ||
     @lower.graph_traverse_start_predicate(value) is Some(_)
   ) &&
-  @lower.graph_traverse_hop_count(value) == 1 &&
+  hop_count == 1 &&
   @lower.graph_traverse_hop_direction(value, 0) is Some(_) &&
   @lower.graph_traverse_hop_edge_predicate(value, 0) is None &&
   @lower.graph_traverse_hop_node_predicate(value, 0) is None

@@ -250,31 +250,35 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "]"
     }) +
     "}," +
-    "\"direction\":\"" +
-    (if variant == "traverse_in" {
-      "in"
-    } else if variant == "traverse_both" {
-      "both"
+    (if variant == "traverse_pattern_one" {
+      "\"hops\":[{\"direction\":\"out\"}],"
     } else {
-      "out"
-    }) +
-    "\"," +
-    (if typed_traverse {
-      if variant == "traverse_type_empty" {
-        "\"edge_types\":[],"
-      } else if variant.has_prefix("traverse_types_") {
-        "\"edge_types\":[\"missing\",\"" +
-        (if variant == "traverse_types_match" { "owns" } else { "other" }) +
-        "\"],"
+      "\"direction\":\"" +
+      (if variant == "traverse_in" {
+        "in"
+      } else if variant == "traverse_both" {
+        "both"
       } else {
-        "\"edge_types\":[\"" +
-        (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
-        "\"],"
-      }
-    } else {
-      ""
+        "out"
+      }) +
+      "\"," +
+      (if typed_traverse {
+        if variant == "traverse_type_empty" {
+          "\"edge_types\":[],"
+        } else if variant.has_prefix("traverse_types_") {
+          "\"edge_types\":[\"missing\",\"" +
+          (if variant == "traverse_types_match" { "owns" } else { "other" }) +
+          "\"],"
+        } else {
+          "\"edge_types\":[\"" +
+          (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
+          "\"],"
+        }
+      } else {
+        ""
+      }) +
+      "\"min_hops\":1,\"max_hops\":2,"
     }) +
-    "\"min_hops\":1,\"max_hops\":2," +
     "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -4255,6 +4259,11 @@ test "standard Host traverses predicate-selected starts" {
 ///|
 test "standard Host traverses Relation-selected starts" {
   run_standard_host_graph_relation_path("traverse_relation_selector")
+}
+
+///|
+test "standard Host traverses one authored hop" {
+  run_standard_host_graph_relation_path("traverse_pattern_one")
 }
 
 ///|

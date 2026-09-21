@@ -36,10 +36,21 @@ pub fn start_traverse(
 ) -> Result[TraverseExecution, TraverseIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphTraverseStep(prepared)) &&
-    !@lower.graph_traverse_patterned(prepared) &&
-    !@lower.graph_traverse_emits_paths(prepared) &&
-    @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
+    is Some(@lower.GraphTraverseStep(prepared)) else {
+    return Err(UnsupportedTraverseKernel)
+  }
+  let hop_count = @lower.graph_traverse_hop_count(prepared)
+  let bounds = if @lower.graph_traverse_patterned(prepared) {
+    if hop_count == 1 {
+      Some((1L, 1L))
+    } else {
+      None
+    }
+  } else {
+    @lower.graph_traverse_bounds(prepared)
+  }
+  guard !@lower.graph_traverse_emits_paths(prepared) &&
+    bounds is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
     (
@@ -47,7 +58,7 @@ pub fn start_traverse(
       @lower.graph_traverse_start_relation_field(prepared) is Some(_) ||
       @lower.graph_traverse_start_predicate(prepared) is Some(_)
     ) &&
-    @lower.graph_traverse_hop_count(prepared) == 1 &&
+    hop_count == 1 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
     @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
