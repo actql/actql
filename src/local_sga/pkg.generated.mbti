@@ -306,7 +306,9 @@ pub(all) enum ReachIssue {
   ReachStartMissing
   ReachOutputLimit
   ReachWorkspaceLimit
+  ReachPredicate(@execution_relation.EvalIssueKind)
   ReachKeyOrder(@value_admission.KeyOrderIssue)
+  ReachGraph(@managed_graph_storage.Issue)
   ReachOutput(@execution_relation.CaptureIssue)
   ReachCompletion(@execution_relation.TrustedOutputIssue)
   ReachExecutionIssue(@bounded_execution.Issue)
