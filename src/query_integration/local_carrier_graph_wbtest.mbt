@@ -234,9 +234,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
   } else if variant.has_prefix("traverse_") {
-    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
-    (if variant == "traverse_ids" { "2,1,2" } else { "1" }) +
-    "]}," +
+    "\"from\":\"g\",\"traverse\":{\"start\":{" +
+    (if variant == "traverse_predicate" {
+      "\"where\":\"true\""
+    } else {
+      "\"ids\":[" +
+      (if variant == "traverse_ids" { "2,1,2" } else { "1" }) +
+      "]"
+    }) +
+    "}," +
     "\"direction\":\"" +
     (if variant == "traverse_in" {
       "in"
@@ -3984,6 +3990,8 @@ fn run_standard_host_graph_relation_path(
     4
   } else if variant == "traverse_ids" {
     2
+  } else if variant == "traverse_predicate" {
+    2
   } else if variant.has_prefix("traverse_") ||
     variant == "subtract" ||
     variant.has_prefix("subgraph_") {
@@ -4047,6 +4055,12 @@ fn run_standard_host_graph_relation_path(
     if variant == "traverse_ids" {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
       assert_true(graph_rows[0].contains("\"node_id\":2"))
+      assert_true(graph_rows[1].contains("\"start_id\":2"))
+      assert_true(graph_rows[1].contains("\"node_id\":1"))
+    } else if variant == "traverse_predicate" {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"node_id\":2"))
+      assert_true(graph_rows[0].contains("\"depth\":1"))
       assert_true(graph_rows[1].contains("\"start_id\":2"))
       assert_true(graph_rows[1].contains("\"node_id\":1"))
     } else {
@@ -4215,6 +4229,11 @@ test "standard Host traverses a Graph for two consumers" {
 ///|
 test "standard Host traverses sorted unique literal starts" {
   run_standard_host_graph_relation_path("traverse_ids")
+}
+
+///|
+test "standard Host traverses predicate-selected starts" {
+  run_standard_host_graph_relation_path("traverse_predicate")
 }
 
 ///|
