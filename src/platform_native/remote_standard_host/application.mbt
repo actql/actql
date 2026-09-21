@@ -29,6 +29,28 @@ struct NativeRemoteStandardSiteDistribution {
 }
 
 ///|
+/// Physical persistence failures for one already admitted remote output.
+/// Result-occurrence and publication-policy admission happen before this
+/// boundary; this type keeps physical source and destination cleanup owners
+/// attached to the failed copy without changing publication state.
+pub(all) enum NativeRemoteStandardPayloadIssue {
+  InvalidBinding
+  Runtime(@runtime.NativeRemoteRuntimeIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+}
+
+///|
+/// A failed Site-to-publication-Store stream. Cleanup retry never reopens the
+/// output reader or retries publication; it only stops the exact source and
+/// destination owners retained by the failed physical occurrence.
+struct NativeRemoteStandardPayloadFailure {
+  issue : NativeRemoteStandardPayloadIssue
+  mut reader : @runtime.NativeRemoteOutputReader?
+  mut writer : @publication_store.PayloadWriter?
+  mut store_recovery : @publication_store.Store?
+}
+
+///|
 /// Component composition, outbound progression, and runtime cleanup remain
 /// distinct from physical HTTP, journal, and bundle failures.
 pub(all) enum NativeRemoteStandardSiteComponentIssue {
@@ -50,6 +72,88 @@ pub(all) enum NativeRemoteStandardSiteDistributionIssue {
   Bundle(@bundle.NativeRuntimeBundleStoreIssue)
   JournalClose
   ClientClose
+}
+
+///|
+pub fn native_remote_standard_payload_failure_issue(
+  failure : NativeRemoteStandardPayloadFailure,
+) -> NativeRemoteStandardPayloadIssue {
+  failure.issue
+}
+
+///|
+pub fn native_remote_standard_payload_failure_cleanup_pending(
+  failure : NativeRemoteStandardPayloadFailure,
+) -> Bool {
+  failure.reader is Some(_) ||
+  failure.writer is Some(_) ||
+  failure.store_recovery is Some(_)
+}
+
+///|
+/// Retry only the physical owners retained by a failed payload stream.
+pub fn retry_native_remote_standard_payload_failure_cleanup(
+  failure : NativeRemoteStandardPayloadFailure,
+) -> Bool {
+  match failure.reader {
+    Some(reader) =>
+      match reader.close() {
+        Ok(_) => failure.reader = None
+        Err(_) => ()
+      }
+    None => ()
+  }
+  match failure.writer {
+    Some(writer) =>
+      match writer.cancel() {
+        Ok(_) => failure.writer = None
+        Err(_) => ()
+      }
+    None => ()
+  }
+  if failure.writer is None {
+    match failure.store_recovery {
+      Some(store) =>
+        match store.recover() {
+          Ok(_) => failure.store_recovery = None
+          Err(_) => ()
+        }
+      None => ()
+    }
+  }
+  !native_remote_standard_payload_failure_cleanup_pending(failure)
+}
+
+///|
+fn failed_payload_stream(
+  issue : NativeRemoteStandardPayloadIssue,
+  reader : @runtime.NativeRemoteOutputReader?,
+  writer : @publication_store.PayloadWriter?,
+  store : @publication_store.Store?,
+) -> NativeRemoteStandardPayloadFailure {
+  let failure : NativeRemoteStandardPayloadFailure = {
+    issue,
+    reader,
+    writer,
+    store_recovery: None,
+  }
+  match failure.reader {
+    Some(owner) =>
+      match owner.close() {
+        Ok(_) => failure.reader = None
+        Err(_) => ()
+      }
+    None => ()
+  }
+  match failure.writer {
+    Some(owner) =>
+      match owner.cancel() {
+        Ok(_) => failure.writer = None
+        Err(_) => failure.store_recovery = store
+      }
+    None => ()
+  }
+  failure
 }
 
 ///|
@@ -205,6 +309,134 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(
     return Err(Runtime(@runtime.OutputReaderUnavailable))
   }
   self.open_output_reader(request, projection[1], max_chunk_bytes)
+}
+
+///|
+/// Stream one exact observed output into the native publication Store. The
+/// caller supplies a payload request already admitted by common publication
+/// control; this boundary checks every physical and logical representation
+/// binding available in the durable Site observation before opening a writer.
+/// It does not commit a Result Manifest or a public index.
+pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
+  self : NativeRemoteStandardSiteComponent,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  payload_request : @payload.PublicationPayloadRequest,
+  store : @publication_store.Store,
+  max_chunk_bytes : Int,
+) -> Result[
+  @publication_store.NativePublicationPayloadInfo,
+  NativeRemoteStandardPayloadFailure,
+] {
+  if self.closed || max_chunk_bytes < 1 {
+    return Err(failed_payload_stream(InvalidBinding, None, None, None))
+  }
+  let reader = match
+    self.open_observed_output_reader(request, completion, max_chunk_bytes) {
+    Ok(value) => value
+    Err(Runtime(issue)) =>
+      return Err(failed_payload_stream(Runtime(issue), None, None, None))
+    Err(_) =>
+      return Err(failed_payload_stream(InvalidBinding, None, None, None))
+  }
+  let manifest = match reader.physical_manifest() {
+    Ok(value) => value
+    Err(issue) =>
+      return Err(
+        failed_payload_stream(Runtime(issue), Some(reader), None, None),
+      )
+  }
+  let material_generation = match reader.material_generation() {
+    Ok(value) => value
+    Err(issue) =>
+      return Err(
+        failed_payload_stream(Runtime(issue), Some(reader), None, None),
+      )
+  }
+  if @payload.publication_payload_material_identity(payload_request) !=
+    material_generation ||
+    @payload.publication_payload_request_logical_relation(payload_request) !=
+    manifest.view_contract_cid ||
+    @payload.publication_payload_request_schema(payload_request) !=
+    manifest.schema_contract_cid ||
+    @payload.publication_payload_request_codec(payload_request) !=
+    manifest.codec_contract_cid ||
+    @payload.publication_payload_request_row_count(payload_request) !=
+    manifest.row_count.to_int64() ||
+    @payload.publication_payload_request_max_bytes(payload_request) !=
+    manifest.referenced_bytes {
+    return Err(failed_payload_stream(InvalidBinding, Some(reader), None, None))
+  }
+  let writer = match store.begin_payload(payload_request) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err(failed_payload_stream(Store(issue), Some(reader), None, None))
+  }
+  let mut finished = false
+  while !finished {
+    let chunk = match reader.next() {
+      Ok(value) => value
+      Err(issue) =>
+        return Err(
+          failed_payload_stream(
+            Runtime(issue),
+            Some(reader),
+            Some(writer),
+            Some(store),
+          ),
+        )
+    }
+    match writer.append(chunk.bytes) {
+      Ok(_) => ()
+      Err(issue) =>
+        return Err(
+          failed_payload_stream(
+            Store(issue),
+            Some(reader),
+            Some(writer),
+            Some(store),
+          ),
+        )
+    }
+    finished = chunk.eof
+  }
+  match reader.finish() {
+    Ok(_) => ()
+    Err(issue) =>
+      return Err(
+        failed_payload_stream(
+          Runtime(issue),
+          Some(reader),
+          Some(writer),
+          Some(store),
+        ),
+      )
+  }
+  let payload = match writer.seal() {
+    Ok(value) => value
+    Err(issue) =>
+      return Err(
+        failed_payload_stream(Store(issue), None, Some(writer), Some(store)),
+      )
+  }
+  if payload.material_generation_cid != material_generation ||
+    payload.logical_relation_cid != manifest.view_contract_cid ||
+    payload.result_schema_cid != manifest.schema_contract_cid ||
+    payload.durable_codec_cid != manifest.codec_contract_cid ||
+    payload.row_count != manifest.row_count.to_int64() ||
+    payload.generation.size != manifest.referenced_bytes {
+    let cleanup = match store.reclaim_payload(material_generation) {
+      Ok(_) => None
+      Err(_) => Some(store)
+    }
+    return Err({
+      issue: InvalidBinding,
+      reader: None,
+      writer: None,
+      store_recovery: cleanup,
+    })
+  }
+  Ok(payload)
 }
 
 ///|
@@ -461,6 +693,28 @@ pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(
   self.component
   .open_observed_output_reader(request, completion, max_chunk_bytes)
   .map_err(issue => Component(issue))
+}
+
+///|
+/// Persist an observed output without routing its bytes through Coordinator
+/// memory. Publication admission and public-index commit remain separate.
+pub fn NativeRemoteStandardSiteDistribution::persist_observed_output_payload(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  payload_request : @payload.PublicationPayloadRequest,
+  store : @publication_store.Store,
+  max_chunk_bytes : Int,
+) -> Result[
+  @publication_store.NativePublicationPayloadInfo,
+  NativeRemoteStandardPayloadFailure,
+] {
+  if self.closed {
+    return Err(failed_payload_stream(InvalidBinding, None, None, None))
+  }
+  self.component.persist_observed_output_payload(
+    request, completion, payload_request, store, max_chunk_bytes,
+  )
 }
 
 ///|

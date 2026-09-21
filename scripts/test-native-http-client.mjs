@@ -27,10 +27,12 @@ const storeRoot = join(root, 'store');
 const sqliteRoot = join(root, 'sqlite');
 const standardRoot = join(root, 'standard');
 const transferStandardRoot = join(root, 'transfer-standard');
+const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(sqliteRoot, {recursive: true});
 await mkdir(standardRoot, {recursive: true});
 await mkdir(transferStandardRoot, {recursive: true});
+await mkdir(remotePublicationRoot, {recursive: true});
 
 const openssl = (...arguments_) => execFileSync(
   'openssl',
@@ -760,6 +762,7 @@ try {
     ACTQL_TEST_NATIVE_STORE_ROOT: storeRoot,
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
     ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT: transferStandardRoot,
+    ACTQL_TEST_NATIVE_REMOTE_PUBLICATION_ROOT: remotePublicationRoot,
     ACTQL_TEST_NATIVE_REMOTE_GATEWAY_ORIGIN: standardGateway.origin,
     ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
     ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:

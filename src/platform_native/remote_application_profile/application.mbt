@@ -459,6 +459,26 @@ pub fn NativeRemoteApplicationSite::open_observed_output_reader(
 }
 
 ///|
+/// Stream an observed output directly into the publication Store. This
+/// persists only the exact admitted payload; formal Manifest and public-index
+/// commit remain owned by common publication control.
+pub fn NativeRemoteApplicationSite::persist_observed_output_payload(
+  self : NativeRemoteApplicationSite,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  payload_request : @payload.PublicationPayloadRequest,
+  store : @publication_store.Store,
+  max_chunk_bytes : Int,
+) -> Result[
+  @publication_store.NativePublicationPayloadInfo,
+  @remote_standard.NativeRemoteStandardPayloadFailure,
+] {
+  self.distribution.persist_observed_output_payload(
+    request, completion, payload_request, store, max_chunk_bytes,
+  )
+}
+
+///|
 /// Open the exact physical manifest source for an independent output
 /// Transfer. The application owner keeps all Site and runtime custody alive
 /// until this reader is finished or physically closed.

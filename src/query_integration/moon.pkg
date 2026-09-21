@@ -57,6 +57,7 @@ import {
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
   "actql/actql/platform_native/publication_store" @native_publication_store,
+  "actql/actql/publication_payload",
   "actql/actql/platform_native/run_publication" @native_run_publication,
   "actql/actql/platform_native/result_access" @native_result_access,
   "actql/actql/platform_native/filesystem" @native_filesystem,

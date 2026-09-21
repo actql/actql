@@ -550,6 +550,10 @@ test "standard Local reads the exact committed Transfer destination" {
     is Some(runtime_root_path) else {
     return
   }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_PUBLICATION_ROOT")
+    is Some(publication_root_path) else {
+    return
+  }
   guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_GATEWAY_ORIGIN")
     is Some(gateway_origin) else {
     return
@@ -949,6 +953,77 @@ test "standard Local reads the exact committed Transfer destination" {
       ).unwrap(),
     )[1],
   )
+  let publication_authority = native_publication_cid(
+    "remote-standard-output-publication-store",
+  )
+  let publication_store = @native_publication_store.open_store(
+    sqlite, publication_root_path, publication_authority, 1048576L, 16L, 65536L,
+  ).unwrap()
+  let mismatched_payload_request = @publication_payload.prepare_publication_payload_request(
+    publication_authority,
+    native_publication_cid("remote-standard-output-rejected-attempt"),
+    output_material_generation,
+    native_publication_cid("remote-standard-output-result-definition"),
+    native_publication_cid("remote-standard-output-foreign-view"),
+    manifest.schema_contract_cid,
+    native_publication_cid("remote-standard-output-ordering-evidence"),
+    manifest.codec_contract_cid,
+    manifest.referenced_bytes,
+    manifest.row_count.to_int64(),
+  ).unwrap()
+  let mismatched_payload = component.persist_observed_output_payload(
+    observed_dispatch, observed_completion, mismatched_payload_request, publication_store,
+    5,
+  )
+  guard mismatched_payload is Err(mismatched_failure) &&
+    @native_remote_standard.native_remote_standard_payload_failure_issue(
+      mismatched_failure,
+    )
+    is @native_remote_standard.InvalidBinding &&
+    !@native_remote_standard.native_remote_standard_payload_failure_cleanup_pending(
+      mismatched_failure,
+    ) else {
+    fail("mismatched publication payload binding was not rejected cleanly")
+  }
+  let payload_request = @publication_payload.prepare_publication_payload_request(
+    publication_authority,
+    native_publication_cid("remote-standard-output-publication-attempt"),
+    output_material_generation,
+    native_publication_cid("remote-standard-output-result-definition"),
+    manifest.view_contract_cid,
+    manifest.schema_contract_cid,
+    native_publication_cid("remote-standard-output-ordering-evidence"),
+    manifest.codec_contract_cid,
+    manifest.referenced_bytes,
+    manifest.row_count.to_int64(),
+  ).unwrap()
+  let published_payload = component
+    .persist_observed_output_payload(
+      observed_dispatch, observed_completion, payload_request, publication_store,
+      5,
+    )
+    .unwrap()
+  assert_eq(
+    published_payload.material_generation_cid,
+    output_material_generation,
+  )
+  assert_eq(published_payload.generation.size, manifest.referenced_bytes)
+  assert_eq(published_payload.logical_relation_cid, manifest.view_contract_cid)
+  let payload_reader = publication_store
+    .open_payload_reader(output_material_generation)
+    .unwrap()
+  let persisted : Array[Byte] = []
+  while true {
+    let chunk = payload_reader.next(4).unwrap()
+    for byte in chunk.bytes {
+      persisted.push(byte)
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  payload_reader.finish().unwrap()
+  assert_eq(@utf8.decode_lossy(Bytes::from_array(persisted)), "[{\"id\":3}]")
   let manifest_chunk = manifest_reader.next().unwrap().unwrap()
   assert_eq(manifest_chunk.index, 0)
   assert_eq(@utf8.decode_lossy(manifest_chunk.bytes), "[{\"id\":3}]")
@@ -1092,6 +1167,8 @@ test "standard Local reads the exact committed Transfer destination" {
   assert_true(component.close().unwrap())
   assert_true(component.poll() is Err(@native_remote_standard.Closed))
   assert_false(component.close().unwrap())
+  publication_store.reclaim_payload(output_material_generation).unwrap()
+  assert_true(publication_store.close().unwrap())
   let cleanup = @native_transfer.pin_durable_store_destination_material(
     destination_journal,
     root,
