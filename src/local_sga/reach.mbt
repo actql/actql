@@ -2,9 +2,11 @@
 priv enum ReachPhase {
   InitializeNodes
   ScanDegrees
+  ScanDegreeTypes
   BuildOffsets
   InitializeEdges
   FillEdges
+  FillEdgeTypes
   FindStart
   PopNode
   ScanOutgoing
@@ -23,8 +25,7 @@ priv enum ReachPhase {
 ///|
 priv enum ReachEdgeFilter {
   AllReachEdges
-  NoReachEdges
-  OneReachEdgeType(String)
+  TraversalReachEdgeTypes(@lower.PreparedGraphTraverse, Int)
 }
 
 ///|
@@ -47,6 +48,7 @@ priv struct ReachState {
   mut index : Int
   mut current_node : Int
   mut neighbor_index : Int
+  mut edge_type_index : Int
   mut row_index : Int
   mut column : Int
   out_degree : Array[Int]
@@ -217,15 +219,28 @@ fn visit_reach_neighbor(
 }
 
 ///|
-fn reach_edge_allowed(state : ReachState, edge : Int) -> Bool {
+fn reach_edge_type_count(state : ReachState) -> Int? {
   match state.edge_filter {
-    AllReachEdges => true
-    NoReachEdges => false
-    OneReachEdgeType(expected) =>
-      match @storage.edge_label(state.source, edge) {
-        Some(Some({ value: @value.Text(actual), .. })) => actual == expected
-        _ => false
-      }
+    AllReachEdges => None
+    TraversalReachEdgeTypes(prepared, hop) =>
+      @lower.graph_traverse_hop_type_count(prepared, hop)
+  }
+}
+
+///|
+fn reach_edge_type_matches(
+  state : ReachState,
+  edge : Int,
+  type_index : Int,
+) -> Bool {
+  guard state.edge_filter is TraversalReachEdgeTypes(prepared, hop) &&
+    @lower.graph_traverse_hop_type_at(prepared, hop, type_index)
+    is Some(expected) else {
+    return false
+  }
+  match @storage.edge_label(state.source, edge) {
+    Some(Some({ value: @value.Text(actual), .. })) => actual == expected
+    _ => false
   }
 }
 
@@ -289,18 +304,48 @@ fn reach_step(
             is Some((source, target)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
-          if reach_edge_allowed(state, state.index) {
-            state.out_degree[source] += 1
-            state.in_degree[target] += 1
-          }
-          state.index += 1
           used += 1
+          match reach_edge_type_count(state) {
+            None => {
+              state.out_degree[source] += 1
+              state.in_degree[target] += 1
+              state.index += 1
+            }
+            Some(0) => state.index += 1
+            Some(_) => {
+              state.edge_type_index = 0
+              state.phase = ScanDegreeTypes
+            }
+          }
         } else {
           state.index = 0
           state.out_start.push(0)
           state.in_start.push(0)
           state.phase = BuildOffsets
         }
+      ScanDegreeTypes => {
+        guard @storage.edge_endpoints(state.source, state.index)
+          is Some((source, target)) &&
+          reach_edge_type_count(state) is Some(type_count) else {
+          return @bounded.Failed(ReachInputUnavailable, progress, used)
+        }
+        let matches = reach_edge_type_matches(
+          state,
+          state.index,
+          state.edge_type_index,
+        )
+        state.edge_type_index += 1
+        used += 1
+        if matches {
+          state.out_degree[source] += 1
+          state.in_degree[target] += 1
+          state.index += 1
+          state.phase = ScanDegrees
+        } else if state.edge_type_index >= type_count {
+          state.index += 1
+          state.phase = ScanDegrees
+        }
+      }
       BuildOffsets =>
         if state.index < @storage.node_count(state.source) {
           state.out_start.push(
@@ -333,20 +378,54 @@ fn reach_step(
             is Some((source, target)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
-          if reach_edge_allowed(state, state.index) {
-            let out = state.out_cursor[source]
-            let incoming = state.in_cursor[target]
-            state.out_edges[out] = target
-            state.in_edges[incoming] = source
-            state.out_cursor[source] = out + 1
-            state.in_cursor[target] = incoming + 1
-          }
-          state.index += 1
           used += 1
+          match reach_edge_type_count(state) {
+            None => {
+              let out = state.out_cursor[source]
+              let incoming = state.in_cursor[target]
+              state.out_edges[out] = target
+              state.in_edges[incoming] = source
+              state.out_cursor[source] = out + 1
+              state.in_cursor[target] = incoming + 1
+              state.index += 1
+            }
+            Some(0) => state.index += 1
+            Some(_) => {
+              state.edge_type_index = 0
+              state.phase = FillEdgeTypes
+            }
+          }
         } else {
           state.index = 0
           state.phase = FindStart
         }
+      FillEdgeTypes => {
+        guard @storage.edge_endpoints(state.source, state.index)
+          is Some((source, target)) &&
+          reach_edge_type_count(state) is Some(type_count) else {
+          return @bounded.Failed(ReachInputUnavailable, progress, used)
+        }
+        let matches = reach_edge_type_matches(
+          state,
+          state.index,
+          state.edge_type_index,
+        )
+        state.edge_type_index += 1
+        used += 1
+        if matches {
+          let out = state.out_cursor[source]
+          let incoming = state.in_cursor[target]
+          state.out_edges[out] = target
+          state.in_edges[incoming] = source
+          state.out_cursor[source] = out + 1
+          state.in_cursor[target] = incoming + 1
+          state.index += 1
+          state.phase = FillEdges
+        } else if state.edge_type_index >= type_count {
+          state.index += 1
+          state.phase = FillEdges
+        }
+      }
       FindStart =>
         if state.index < @storage.node_count(state.source) {
           used += 1
@@ -651,6 +730,7 @@ fn start_reach_state(
     index: 0,
     current_node: -1,
     neighbor_index: 0,
+    edge_type_index: 0,
     row_index: 0,
     column: 0,
     out_degree: [],

@@ -47,11 +47,6 @@ pub fn start_traverse(
     @lower.graph_traverse_start_relation_field(prepared) is None &&
     @lower.graph_traverse_hop_count(prepared) == 1 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
-    (
-      @lower.graph_traverse_hop_type_count(prepared, 0) is None ||
-      @lower.graph_traverse_hop_type_count(prepared, 0) == Some(0) ||
-      @lower.graph_traverse_hop_type_count(prepared, 0) == Some(1)
-    ) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
     @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
     @graph.producer_read_storage(input) is Some(source) else {
@@ -63,11 +58,7 @@ pub fn start_traverse(
   }
   let edge_filter = match @lower.graph_traverse_hop_type_count(prepared, 0) {
     None => AllReachEdges
-    Some(0) => NoReachEdges
-    Some(_) =>
-      OneReachEdgeType(
-        @lower.graph_traverse_hop_type_at(prepared, 0, 0).unwrap(),
-      )
+    Some(_) => TraversalReachEdgeTypes(prepared, 0)
   }
   start_reach_state(
     control,

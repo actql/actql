@@ -212,6 +212,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     (if typed_traverse {
       if variant == "traverse_type_empty" {
         "\"edge_types\":[],"
+      } else if variant.has_prefix("traverse_types_") {
+        "\"edge_types\":[\"missing\",\"" +
+        (if variant == "traverse_types_match" { "owns" } else { "other" }) +
+        "\"],"
       } else {
         "\"edge_types\":[\"" +
         (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
@@ -3518,7 +3522,8 @@ fn run_standard_host_graph_relation_path(
   )
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "traverse_type_miss" ||
-    variant == "traverse_type_empty" {
+    variant == "traverse_type_empty" ||
+    variant == "traverse_types_miss" {
     0
   } else if variant == "graph_bounds" {
     4
@@ -3575,7 +3580,9 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
-  } else if variant == "traverse_type_miss" || variant == "traverse_type_empty" {
+  } else if variant == "traverse_type_miss" ||
+    variant == "traverse_type_empty" ||
+    variant == "traverse_types_miss" {
     ()
   } else if variant.has_prefix("traverse_") {
     assert_true(graph_rows[0].contains("\"start_id\":1"))
@@ -3746,6 +3753,8 @@ test "standard Host filters Graph traversal by edge type" {
   run_standard_host_graph_relation_path("traverse_type", publication=true)
   run_standard_host_graph_relation_path("traverse_type_miss")
   run_standard_host_graph_relation_path("traverse_type_empty")
+  run_standard_host_graph_relation_path("traverse_types_match")
+  run_standard_host_graph_relation_path("traverse_types_miss")
 }
 
 ///|
