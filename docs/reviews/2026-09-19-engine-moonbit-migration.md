@@ -70,6 +70,9 @@ without reconstructing dispatch identity in an environment adapter.
 The process-owned Site distribution resolves that observation through its
 durable journal and opens only the exact retained material generation whose
 subject CID matches the portable completion.
+The application Site owner closes that distribution before its transferred-
+input journal and retains either failed step for retry; executable code does
+not infer that a returned poll or close call released physical authority.
 Each exact standard Run now owns its captured output cleanup separately from
 its input pin. Runtime stop, captured-output release, and input release advance
 monotonically and remain independently retryable, so a complete Site process

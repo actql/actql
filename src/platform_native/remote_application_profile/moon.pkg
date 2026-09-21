@@ -16,4 +16,6 @@ import {
   "actql/actql/execution_site" @site,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/platform_native/bounded_files",
+  "actql/actql/platform_native/remote_agent" @agent,
+  "actql/actql/platform_native/remote_runtime" @runtime,
 }

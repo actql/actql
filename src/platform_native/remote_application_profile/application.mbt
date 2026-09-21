@@ -47,6 +47,19 @@ pub(all) struct NativeRemoteApplicationTaskProfile {
 pub(all) enum NativeRemoteApplicationSiteIssue {
   Host(@remote_standard.NativeRemoteStandardHostIssue)
   Distribution(@remote_standard.NativeRemoteStandardSiteDistributionIssue)
+  TransferJournalClose
+}
+
+///|
+/// Complete process owner for one Store-input application Site. The standard
+/// distribution must release runtime, bundle, dispatch-journal, and transport
+/// authority before the transferred-input journal can close.
+struct NativeRemoteApplicationSite {
+  distribution : @remote_standard.NativeRemoteStandardSiteDistribution
+  transfer_journal : @transfer_journal.Journal
+  mut distribution_closed : Bool
+  mut transfer_journal_closed : Bool
+  mut closed : Bool
 }
 
 ///|
@@ -360,10 +373,7 @@ pub fn open_native_remote_application_store_site_distribution(
   observation_url : String,
   library? : @native_duckdb.Library? = None,
   database_path? : String = "",
-) -> Result[
-  @remote_standard.NativeRemoteStandardSiteDistribution,
-  NativeRemoteApplicationSiteIssue,
-] {
+) -> Result[NativeRemoteApplicationSite, NativeRemoteApplicationSiteIssue] {
   let factory = match
     register_native_remote_application_store_run_factory(
       app,
@@ -392,19 +402,86 @@ pub fn open_native_remote_application_store_site_distribution(
     Ok(value) => value
     Err(issue) => return Err(Host(issue))
   }
-  @remote_standard.open_native_remote_standard_site_distribution(
-    site,
-    active_runtime,
-    operation_capability_cid,
-    issuer_capability_cid,
-    [executor],
-    journal,
-    bundles,
-    budgets,
-    client,
-    poll_url,
-    observation_url,
-  ).map_err(issue => Distribution(issue))
+  let distribution = match
+    @remote_standard.open_native_remote_standard_site_distribution(
+      site,
+      active_runtime,
+      operation_capability_cid,
+      issuer_capability_cid,
+      [executor],
+      journal,
+      bundles,
+      budgets,
+      client,
+      poll_url,
+      observation_url,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Distribution(issue))
+  }
+  Ok({
+    distribution,
+    transfer_journal,
+    distribution_closed: false,
+    transfer_journal_closed: false,
+    closed: false,
+  })
+}
+
+///|
+/// Advances one authenticated outbound operation through the exact
+/// application task registry.
+pub fn NativeRemoteApplicationSite::poll(
+  self : NativeRemoteApplicationSite,
+) -> Result[@agent.NativeRemoteAgentOutcome, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution.poll().map_err(issue => Distribution(issue))
+}
+
+///|
+/// Opens the output fixed by a successful dispatch observation without
+/// exposing physical generation selection or journal projection to the
+/// executable adapter.
+pub fn NativeRemoteApplicationSite::open_observed_output_reader(
+  self : NativeRemoteApplicationSite,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[@runtime.NativeRemoteOutputReader, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .open_observed_output_reader(request, completion, max_chunk_bytes)
+  .map_err(issue => Distribution(issue))
+}
+
+///|
+/// Closes every process owner in authority order. A failed close is retryable
+/// on this same value and never advances to the transferred-input journal
+/// while the standard runtime still owns work.
+pub fn NativeRemoteApplicationSite::close(
+  self : NativeRemoteApplicationSite,
+) -> Result[Bool, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Ok(false)
+  }
+  if !self.distribution_closed {
+    match self.distribution.close() {
+      Ok(_) => self.distribution_closed = true
+      Err(issue) => return Err(Distribution(issue))
+    }
+  }
+  if !self.transfer_journal_closed {
+    if !self.transfer_journal.close() {
+      return Err(TransferJournalClose)
+    }
+    self.transfer_journal_closed = true
+  }
+  self.closed = true
+  Ok(true)
 }
 
 ///|
