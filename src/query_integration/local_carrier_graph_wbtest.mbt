@@ -249,6 +249,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
+  } else if variant == "shortest_ids" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1,2]}," +
+    "\"target\":{\"ids\":[2,1]},\"selection\":\"each_pair\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
   } else if variant.has_prefix("shortest_") {
     "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
     "\"target\":" +
@@ -1380,13 +1384,15 @@ fn carrier_graph_traverse_owner(
 }
 
 ///|
-fn carrier_graph_shortest_owner(
+fn carrier_graph_shortest_owner_with_endpoints(
   source : @lower.BoundPrepared,
-  source_id : Int,
-  target_id : Int,
+  source_endpoint : String,
+  target_endpoint : String,
   maximum : Int,
   labeled? : Bool = false,
   edge_types? : String = "",
+  selection? : String = "",
+  max_output_rows? : Int = 1,
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -1398,13 +1404,16 @@ fn carrier_graph_shortest_owner(
       (if labeled { "\"label\":\"rel\"," } else { "" }) +
       "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
       "\"from\":\"graph\",\"shortest_path\":{\"source\":" +
-      source_id.to_string() +
+      source_endpoint +
       ",\"target\":" +
-      target_id.to_string() +
+      target_endpoint +
+      selection +
       ",\"direction\":\"out\",\"max_hops\":" +
       maximum.to_string() +
       edge_types +
-      ",\"max_output_rows\":1}}]",
+      ",\"max_output_rows\":" +
+      max_output_rows.to_string() +
+      "}}]",
     ),
     [
       (
@@ -1439,6 +1448,25 @@ fn carrier_graph_shortest_owner(
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+fn carrier_graph_shortest_owner(
+  source : @lower.BoundPrepared,
+  source_id : Int,
+  target_id : Int,
+  maximum : Int,
+  labeled? : Bool = false,
+  edge_types? : String = "",
+) -> @lower.BoundPrepared {
+  carrier_graph_shortest_owner_with_endpoints(
+    source,
+    source_id.to_string(),
+    target_id.to_string(),
+    maximum,
+    labeled~,
+    edge_types~,
+  )
 }
 
 ///|
@@ -2862,7 +2890,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
       input,
       1,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      51,
+      71,
       1000,
       1000,
       [external],
@@ -2877,7 +2905,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    100,
+    72,
     1000,
     1000,
     [external],
@@ -2896,7 +2924,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    100,
+    72,
     1000,
     1000,
     [external],
@@ -2955,7 +2983,7 @@ test "scalar shortest path uses canonical identity ties" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    52,
+    72,
     1000,
     1000,
     [external],
@@ -3016,7 +3044,7 @@ test "scalar shortest path preserves edge type filters" {
       input,
       1,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      39,
+      54,
       1000,
       1000,
       [external],
@@ -3031,6 +3059,118 @@ test "scalar shortest path preserves edge type filters" {
     assert_true(@graphs.discard_completed(graph))
     assert_true(@execution.completed_output_available(output))
   }
+}
+
+///|
+test "shortest path executes explicit endpoint identity sets" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    "{\"ids\":[2,1,2]}",
+    "{\"ids\":[4,3,3]}",
+    2,
+    selection=",\"selection\":\"each_pair\"",
+    max_output_rows=4,
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    72,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_shortest(execution).unwrap()
+  assert_eq(@local_sga.cleanup_shortest(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  let first = @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap()
+  let second = @execution.completed_output_row_wire(output, 1, 1000, 100, 10).unwrap()
+  assert_true(
+    first.contains("\"source_id\":1") &&
+    first.contains("\"target_id\":3") &&
+    first.contains("\"node_ids\":[1,2,3]"),
+  )
+  assert_true(
+    second.contains("\"source_id\":2") &&
+    second.contains("\"target_id\":3") &&
+    second.contains("\"node_ids\":[2,3]"),
+  )
+  let missing_owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    "{\"ids\":[1]}",
+    "{\"ids\":[9]}",
+    2,
+    selection=",\"selection\":\"each_pair\"",
+  )
+  let missing_sequence = prepared_sequence(missing_owner)
+  let missing_external = @execution.prepare_producer_read(
+    missing_owner,
+    @execution.bind_completed_input(missing_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let missing_construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    missing_sequence,
+    0,
+    [missing_external, missing_external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let missing_graph = finish_rows_to_graph(missing_construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(missing_construction), Ok(true))
+  let missing_input = @graphs.prepare_step_read(
+    missing_owner, 1, 0, missing_graph,
+  ).unwrap()
+  let missing = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(missing_owner),
+    missing_sequence,
+    1,
+    missing_input,
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    72,
+    1000,
+    1000,
+    [missing_external],
+  ).unwrap()
+  assert_true(
+    finish_shortest(missing) is Err(@local_sga.ShortestEndpointMissing),
+  )
+  assert_eq(@local_sga.cleanup_shortest(missing), Ok(true))
+  assert_true(@graphs.discard_completed(missing_graph))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -4764,6 +4904,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
   } else if variant == "shortest_in" {
     "sha256:2415a7a8c26f36220fb0ab8b39e12b5a875638e7c7f12c77d33cff7beb3bf3f2"
+  } else if variant == "shortest_ids" {
+    "sha256:7de829b7221d828eb4205ffbb82988aedafea600a2454a84203e4d966ff03b3c"
   } else if variant.has_prefix("shortest_") {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
   } else if variant.has_prefix("traverse_") {
@@ -4978,6 +5120,8 @@ fn run_standard_host_graph_relation_path(
     4
   } else if variant == "traverse_ids" || traverse_relation_selector {
     2
+  } else if variant == "shortest_ids" {
+    4
   } else if variant.has_prefix("shortest_") {
     1
   } else if variant == "traverse_predicate" {
@@ -5058,6 +5202,15 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
+  } else if variant == "shortest_ids" {
+    assert_true(graph_rows[0].contains("\"source_id\":1"))
+    assert_true(graph_rows[0].contains("\"target_id\":1"))
+    assert_true(graph_rows[1].contains("\"source_id\":1"))
+    assert_true(graph_rows[1].contains("\"target_id\":2"))
+    assert_true(graph_rows[2].contains("\"source_id\":2"))
+    assert_true(graph_rows[2].contains("\"target_id\":1"))
+    assert_true(graph_rows[3].contains("\"source_id\":2"))
+    assert_true(graph_rows[3].contains("\"target_id\":2"))
   } else if variant.has_prefix("shortest_") && expected_rows > 0 {
     assert_true(graph_rows[0].contains("\"source_id\":1"))
     if variant == "shortest_zero" {
@@ -5378,6 +5531,11 @@ test "standard Host runs a bounded scalar shortest path" {
   run_standard_host_graph_relation_path("shortest_in", publication=true)
   run_standard_host_graph_relation_path("shortest_both")
   run_standard_host_graph_relation_path("shortest_zero")
+}
+
+///|
+test "standard Host runs explicit shortest endpoint identity sets" {
+  run_standard_host_graph_relation_path("shortest_ids", publication=true)
 }
 
 ///|

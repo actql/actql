@@ -509,7 +509,11 @@ fn query_checked_program_fixture(
         environment,
         "graph",
         "shortest_path",
-        output_rows=1L,
+        output_rows=if local_carrier_graph_variant == "shortest_ids" {
+          6L
+        } else {
+          1L
+        },
       ),
     ]
   } else if dag_join {

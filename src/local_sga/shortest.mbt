@@ -1,5 +1,15 @@
 ///|
 priv enum ShortestPhase {
+  InitializeEndpointSelection
+  ResolveSourceEndpoints
+  ResolveTargetEndpoints
+  CollectSourceEndpoints
+  CollectTargetEndpoints
+  InitializeEndpointScratch
+  PrepareEndpointSort
+  PrepareEndpointMerge
+  MergeEndpointNodes
+  CopyEndpointNodes
   InitializeNodes
   FinishOffsets
   ScanDegrees
@@ -14,7 +24,8 @@ priv enum ShortestPhase {
   PrepareSortMerge
   MergeEdges
   CopySortedEdges
-  ResolveEndpoints
+  PreparePair
+  ResetSearch
   StartSearch
   ScanNeighbor
   PreparePath
@@ -23,7 +34,14 @@ priv enum ShortestPhase {
   ReverseEdges
   ReadField
   CommitRow
+  FinishPair
   Finish
+}
+
+///|
+priv enum ShortestEndpoints {
+  SingleShortestEndpoint(@value.CheckedValue)
+  LiteralShortestEndpoints
 }
 
 ///|
@@ -34,9 +52,10 @@ priv struct ShortestState {
   value_limits : @value.Limits
   prepared : @lower.PreparedGraphShortest
   direction : @graph_type.Direction
-  source_id : @value.CheckedValue
-  target_id : @value.CheckedValue
+  sources : ShortestEndpoints
+  targets : ShortestEndpoints
   max_hops : Int
+  output_guard : Int64?
   mut output : @execution.AdmittedOutput?
   rows : Ref[@execution.AdmittedOutputRows?]
   live : Ref[Bool]
@@ -46,6 +65,9 @@ priv struct ShortestState {
   mut index : Int
   mut source_node : Int
   mut target_node : Int
+  mut source_pair : Int
+  mut target_pair : Int
+  mut endpoint_side : @schema.Side
   mut queue_index : Int
   mut neighbor_index : Int
   mut path_cursor : Int
@@ -69,12 +91,18 @@ priv struct ShortestState {
   edge : Array[Int]
   sort_neighbor : Array[Int]
   sort_edge : Array[Int]
+  source_selected : Array[Bool]
+  target_selected : Array[Bool]
+  source_nodes : Array[Int]
+  target_nodes : Array[Int]
+  endpoint_scratch : Array[Int?]
   depth : Array[Int]
   predecessor : Array[Int]
   predecessor_edge : Array[Int]
   queue : Array[Int]
   path_nodes : Array[Int]
   path_edges : Array[Int]
+  mut emitted_rows : Int64
   mut values : Array[@value.CheckedValue]
 }
 
@@ -139,12 +167,97 @@ fn shortest_workspace(nodes : Int, edges : Int, both : Bool) -> Int? {
     Some(edges)
   }
   guard directed_edges is Some(directed_edges) &&
-    checked_shortest_multiply(nodes, 9) is Some(node_slots) &&
+    checked_shortest_multiply(nodes, 14) is Some(node_slots) &&
     checked_shortest_multiply(directed_edges, 4) is Some(edge_slots) &&
     checked_shortest_add(node_slots, edge_slots) is Some(total) else {
     return None
   }
   Some(total)
+}
+
+///|
+fn shortest_endpoint_count(state : ShortestState, side : @schema.Side) -> Int {
+  let endpoints = if side == @schema.Left {
+    state.sources
+  } else {
+    state.targets
+  }
+  match endpoints {
+    SingleShortestEndpoint(_) => 1
+    LiteralShortestEndpoints =>
+      @lower.graph_shortest_endpoint_id_count(state.prepared, side)
+  }
+}
+
+///|
+fn shortest_endpoint_at(
+  state : ShortestState,
+  side : @schema.Side,
+  index : Int,
+) -> @value.CheckedValue? {
+  let endpoints = if side == @schema.Left {
+    state.sources
+  } else {
+    state.targets
+  }
+  match endpoints {
+    SingleShortestEndpoint(value) => if index == 0 { Some(value) } else { None }
+    LiteralShortestEndpoints =>
+      @lower.graph_shortest_endpoint_id_at(state.prepared, side, index)
+  }
+}
+
+///|
+fn shortest_endpoint_nodes(
+  state : ShortestState,
+  side : @schema.Side,
+) -> Array[Int] {
+  if side == @schema.Left {
+    state.source_nodes
+  } else {
+    state.target_nodes
+  }
+}
+
+///|
+fn shortest_compare_nodes(
+  state : ShortestState,
+  left : Int,
+  right : Int,
+) -> Result[Int, ShortestIssue] {
+  guard @storage.node_identity(state.source, left) is Some(left_id) &&
+    @storage.node_identity(state.source, right) is Some(right_id) else {
+    return Err(ShortestInputUnavailable)
+  }
+  shortest_compare_values(left_id, right_id)
+}
+
+///|
+fn shortest_prepare_endpoint_merge(state : ShortestState) -> Unit {
+  let nodes = shortest_endpoint_nodes(state, state.endpoint_side)
+  let end = nodes.length()
+  state.sort_middle = Int::min(state.sort_left + state.sort_width, end)
+  state.sort_right = Int::min(state.sort_middle + state.sort_width, end)
+  state.sort_left_at = state.sort_left
+  state.sort_right_at = state.sort_middle
+  state.sort_merge_at = state.sort_left
+  state.phase = MergeEndpointNodes
+}
+
+///|
+fn shortest_emit_endpoint_node(state : ShortestState, take_left : Bool) -> Unit {
+  let nodes = shortest_endpoint_nodes(state, state.endpoint_side)
+  let at = if take_left {
+    let at = state.sort_left_at
+    state.sort_left_at += 1
+    at
+  } else {
+    let at = state.sort_right_at
+    state.sort_right_at += 1
+    at
+  }
+  state.endpoint_scratch[state.sort_merge_at] = Some(nodes[at])
+  state.sort_merge_at += 1
 }
 
 ///|
@@ -290,17 +403,21 @@ fn shortest_path_value(
 ) -> @value.CheckedValue? {
   match field.name {
     @schema.Unqualified("source_id") =>
-      @value.recheck_runtime_value(
-        state.source_id.value,
-        field.contract,
-        state.value_limits,
-      )
+      @storage.node_identity(state.source, state.source_node).bind(identity => {
+        @value.recheck_runtime_value(
+          identity.value,
+          field.contract,
+          state.value_limits,
+        )
+      })
     @schema.Unqualified("target_id") =>
-      @value.recheck_runtime_value(
-        state.target_id.value,
-        field.contract,
-        state.value_limits,
-      )
+      @storage.node_identity(state.source, state.target_node).bind(identity => {
+        @value.recheck_runtime_value(
+          identity.value,
+          field.contract,
+          state.value_limits,
+        )
+      })
     @schema.Unqualified("total_cost") | @schema.Unqualified("hop_count") =>
       @value.checked_number_value(
         state.path_edges.length().to_double(),
@@ -370,6 +487,159 @@ fn shortest_step(
       return @bounded.Failed(ShortestInputUnavailable, progress, used)
     }
     match state.phase {
+      InitializeEndpointSelection =>
+        if state.index < @storage.node_count(state.source) {
+          state.source_selected.push(false)
+          state.target_selected.push(false)
+          state.index += 1
+          used += 1
+        } else {
+          state.index = 0
+          state.phase = ResolveSourceEndpoints
+        }
+      ResolveSourceEndpoints =>
+        if state.index < shortest_endpoint_count(state, @schema.Left) {
+          used += 1
+          guard shortest_endpoint_at(state, @schema.Left, state.index)
+            is Some(identity) else {
+            return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+          }
+          match @storage.node_index(state.source, identity) {
+            Err(issue) =>
+              return @bounded.Failed(ShortestStorage(issue), progress, used)
+            Ok(None) =>
+              return @bounded.Failed(ShortestEndpointMissing, progress, used)
+            Ok(Some(node)) => state.source_selected[node] = true
+          }
+          state.index += 1
+        } else {
+          state.index = 0
+          state.phase = ResolveTargetEndpoints
+        }
+      ResolveTargetEndpoints =>
+        if state.index < shortest_endpoint_count(state, @schema.Right) {
+          used += 1
+          guard shortest_endpoint_at(state, @schema.Right, state.index)
+            is Some(identity) else {
+            return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+          }
+          match @storage.node_index(state.source, identity) {
+            Err(issue) =>
+              return @bounded.Failed(ShortestStorage(issue), progress, used)
+            Ok(None) =>
+              return @bounded.Failed(ShortestEndpointMissing, progress, used)
+            Ok(Some(node)) => state.target_selected[node] = true
+          }
+          state.index += 1
+        } else {
+          state.index = 0
+          state.phase = CollectSourceEndpoints
+        }
+      CollectSourceEndpoints =>
+        if state.index < state.source_selected.length() {
+          if state.source_selected[state.index] {
+            state.source_nodes.push(state.index)
+          }
+          state.index += 1
+          used += 1
+        } else {
+          state.index = 0
+          state.phase = CollectTargetEndpoints
+        }
+      CollectTargetEndpoints =>
+        if state.index < state.target_selected.length() {
+          if state.target_selected[state.index] {
+            state.target_nodes.push(state.index)
+          }
+          state.index += 1
+          used += 1
+        } else {
+          state.index = 0
+          state.phase = InitializeEndpointScratch
+        }
+      InitializeEndpointScratch => {
+        let scratch = Int::max(
+          state.source_nodes.length(),
+          state.target_nodes.length(),
+        )
+        if state.index < scratch {
+          state.endpoint_scratch.push(None)
+          state.index += 1
+          used += 1
+        } else {
+          state.endpoint_side = @schema.Left
+          state.sort_width = 1
+          state.phase = PrepareEndpointSort
+        }
+      }
+      PrepareEndpointSort => {
+        let nodes = shortest_endpoint_nodes(state, state.endpoint_side)
+        if state.sort_width >= nodes.length() {
+          if state.endpoint_side == @schema.Left {
+            state.endpoint_side = @schema.Right
+            state.sort_width = 1
+          } else {
+            state.index = 0
+            state.phase = InitializeNodes
+          }
+        } else {
+          state.sort_left = 0
+          state.phase = PrepareEndpointMerge
+        }
+        used += 1
+      }
+      PrepareEndpointMerge => {
+        let nodes = shortest_endpoint_nodes(state, state.endpoint_side)
+        if state.sort_left >= nodes.length() {
+          state.sort_copy_at = 0
+          state.phase = CopyEndpointNodes
+        } else {
+          shortest_prepare_endpoint_merge(state)
+        }
+        used += 1
+      }
+      MergeEndpointNodes => {
+        let nodes = shortest_endpoint_nodes(state, state.endpoint_side)
+        if state.sort_left_at < state.sort_middle &&
+          state.sort_right_at < state.sort_right {
+          match
+            shortest_compare_nodes(
+              state,
+              nodes[state.sort_left_at],
+              nodes[state.sort_right_at],
+            ) {
+            Ok(order) => shortest_emit_endpoint_node(state, order <= 0)
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
+        } else if state.sort_left_at < state.sort_middle {
+          shortest_emit_endpoint_node(state, true)
+        } else if state.sort_right_at < state.sort_right {
+          shortest_emit_endpoint_node(state, false)
+        } else {
+          state.sort_left = state.sort_right
+          state.phase = PrepareEndpointMerge
+        }
+        used += 1
+      }
+      CopyEndpointNodes => {
+        let nodes = shortest_endpoint_nodes(state, state.endpoint_side)
+        if state.sort_copy_at < nodes.length() {
+          guard state.endpoint_scratch[state.sort_copy_at] is Some(node) else {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          nodes[state.sort_copy_at] = node
+          state.endpoint_scratch[state.sort_copy_at] = None
+          state.sort_copy_at += 1
+          used += 1
+        } else {
+          state.sort_width = if state.sort_width > nodes.length() / 2 {
+            nodes.length()
+          } else {
+            state.sort_width * 2
+          }
+          state.phase = PrepareEndpointSort
+        }
+      }
       InitializeNodes =>
         if state.index < @storage.node_count(state.source) {
           state.degree.push(0)
@@ -524,7 +794,9 @@ fn shortest_step(
         }
       PrepareSortNode =>
         if state.sort_node >= @storage.node_count(state.source) {
-          state.phase = ResolveEndpoints
+          state.source_pair = 0
+          state.target_pair = 0
+          state.phase = PreparePair
         } else {
           let begin = state.start[state.sort_node]
           let end = state.start[state.sort_node + 1]
@@ -606,28 +878,35 @@ fn shortest_step(
           state.phase = PrepareSortMerge
         }
       }
-      ResolveEndpoints => {
-        let source_node = match
-          @storage.node_index(state.source, state.source_id) {
-          Ok(Some(value)) => value
-          Ok(None) =>
-            return @bounded.Failed(ShortestEndpointMissing, progress, used)
-          Err(issue) =>
-            return @bounded.Failed(ShortestStorage(issue), progress, used)
+      PreparePair =>
+        if state.source_pair >= state.source_nodes.length() {
+          state.phase = Finish
+        } else if state.target_pair >= state.target_nodes.length() {
+          state.source_pair += 1
+          state.target_pair = 0
+          used += 1
+        } else {
+          state.source_node = state.source_nodes[state.source_pair]
+          state.target_node = state.target_nodes[state.target_pair]
+          state.index = 0
+          state.queue.clear()
+          state.path_nodes.clear()
+          state.path_edges.clear()
+          state.values = []
+          state.neighbor_index = 0
+          state.phase = ResetSearch
+          used += 1
         }
-        let target_node = match
-          @storage.node_index(state.source, state.target_id) {
-          Ok(Some(value)) => value
-          Ok(None) =>
-            return @bounded.Failed(ShortestEndpointMissing, progress, used)
-          Err(issue) =>
-            return @bounded.Failed(ShortestStorage(issue), progress, used)
+      ResetSearch =>
+        if state.index < state.depth.length() {
+          state.depth[state.index] = -1
+          state.predecessor[state.index] = -1
+          state.predecessor_edge[state.index] = -1
+          state.index += 1
+          used += 1
+        } else {
+          state.phase = StartSearch
         }
-        state.source_node = source_node
-        state.target_node = target_node
-        state.phase = StartSearch
-        used += 1
-      }
       StartSearch => {
         state.depth[state.source_node] = 0
         state.queue.push(state.source_node)
@@ -638,7 +917,7 @@ fn shortest_step(
       }
       ScanNeighbor =>
         if state.queue_index >= state.queue.length() {
-          state.phase = Finish
+          state.phase = FinishPair
         } else {
           let current = state.queue[state.queue_index]
           let begin = state.start[current]
@@ -730,16 +1009,26 @@ fn shortest_step(
         guard state.output is Some(output) else {
           return @bounded.Failed(UnsupportedShortestKernel, progress, used)
         }
+        if state.output_guard is Some(guard_rows) &&
+          state.emitted_rows >= guard_rows {
+          return @bounded.Failed(ShortestOutputLimit, progress, used)
+        }
         match @execution.append_admitted_output(output, state.values) {
           Ok(_) => {
             state.values = []
-            state.phase = Finish
+            state.emitted_rows += 1L
+            state.phase = FinishPair
             progress += 1
             used += 1
           }
           Err(issue) =>
             return @bounded.Failed(ShortestOutput(issue), progress, used)
         }
+      }
+      FinishPair => {
+        state.target_pair += 1
+        state.phase = PreparePair
+        used += 1
       }
       Finish => {
         guard state.output is Some(output) else {
@@ -781,6 +1070,11 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.edge.clear()
   state.sort_neighbor.clear()
   state.sort_edge.clear()
+  state.source_selected.clear()
+  state.target_selected.clear()
+  state.source_nodes.clear()
+  state.target_nodes.clear()
+  state.endpoint_scratch.clear()
   state.depth.clear()
   state.predecessor.clear()
   state.predecessor_edge.clear()
@@ -792,10 +1086,9 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
 }
 
 ///|
-/// Start the bounded scalar, unweighted shortest-path kernel. Selected
-/// endpoints, label filters and weighted paths are admitted by later kernels;
-/// this implementation rejects them before execution rather than changing
-/// their meaning.
+/// Start the bounded unweighted shortest-path kernel for scalar endpoints or
+/// explicit finite endpoint identity sets. Relation and predicate selectors,
+/// and weighted paths, are rejected before execution.
 pub fn start_shortest(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -818,14 +1111,41 @@ pub fn start_shortest(
     is Some(@lower.GraphShortestStep(prepared)) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) &&
-    @lower.graph_shortest_endpoint_single(prepared, @schema.Left)
-    is Some(source_id) &&
-    @lower.graph_shortest_endpoint_single(prepared, @schema.Right)
-    is Some(target_id) &&
     @lower.graph_shortest_selection(prepared) == @graph_type.EachPair &&
     @lower.graph_shortest_weight(prepared) is None &&
     @lower.graph_shortest_max_hops(prepared) is Some(max_hops) else {
     return Err(UnsupportedShortestKernel)
+  }
+  let sources = match
+    @lower.graph_shortest_endpoint_single(prepared, @schema.Left) {
+    Some(value) => SingleShortestEndpoint(value)
+    None =>
+      if @lower.graph_shortest_endpoint_id_count(prepared, @schema.Left) > 0 &&
+        @lower.graph_shortest_endpoint_relation_field(prepared, @schema.Left)
+        is None &&
+        @lower.graph_shortest_endpoint_predicate(prepared, @schema.Left) is None &&
+        @lower.graph_shortest_endpoint_input_port(prepared, @schema.Left)
+        is None {
+        LiteralShortestEndpoints
+      } else {
+        return Err(UnsupportedShortestKernel)
+      }
+  }
+  let targets = match
+    @lower.graph_shortest_endpoint_single(prepared, @schema.Right) {
+    Some(value) => SingleShortestEndpoint(value)
+    None =>
+      if @lower.graph_shortest_endpoint_id_count(prepared, @schema.Right) > 0 &&
+        @lower.graph_shortest_endpoint_relation_field(prepared, @schema.Right)
+        is None &&
+        @lower.graph_shortest_endpoint_predicate(prepared, @schema.Right)
+        is None &&
+        @lower.graph_shortest_endpoint_input_port(prepared, @schema.Right)
+        is None {
+        LiteralShortestEndpoints
+      } else {
+        return Err(UnsupportedShortestKernel)
+      }
   }
   let nodes = @storage.node_count(source)
   let edges = @storage.edge_count(source)
@@ -841,7 +1161,12 @@ pub fn start_shortest(
     return Err(ShortestOutputLimit)
   }
   let output = match
-    @execution.prepare_admitted_output(owner, @pipeline.Step(step), 1, limits) {
+    @execution.prepare_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      max_rows,
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(ShortestOutput(issue))
   }
@@ -874,18 +1199,22 @@ pub fn start_shortest(
       max_text_bytes: limits.max_text_bytes,
     },
     direction,
-    source_id,
-    target_id,
+    sources,
+    targets,
     max_hops,
+    output_guard: @lower.graph_shortest_output_guard(prepared),
     output: Some(output),
     rows,
     live,
     accepted,
     port,
-    phase: InitializeNodes,
+    phase: InitializeEndpointSelection,
     index: 0,
     source_node: -1,
     target_node: -1,
+    source_pair: 0,
+    target_pair: 0,
+    endpoint_side: @schema.Left,
     queue_index: 0,
     neighbor_index: 0,
     path_cursor: -1,
@@ -909,12 +1238,18 @@ pub fn start_shortest(
     edge: [],
     sort_neighbor: [],
     sort_edge: [],
+    source_selected: [],
+    target_selected: [],
+    source_nodes: [],
+    target_nodes: [],
+    endpoint_scratch: [],
     depth: [],
     predecessor: [],
     predecessor_edge: [],
     queue: [],
     path_nodes: [],
     path_edges: [],
+    emitted_rows: 0L,
     values: [],
   }
   let (session, token) = @bounded.start(
