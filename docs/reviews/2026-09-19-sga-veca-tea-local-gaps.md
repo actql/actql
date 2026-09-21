@@ -308,6 +308,15 @@ the numeric and canonical-set property laws therefore remain open, so
 `subtract_graphs` remains partial. This slice does not claim environment-level
 cancellation delivery for subtraction.
 
+At `9c0cf275`, an explicit `exact_equal` map retains shared subtraction
+entities instead of treating the strategy as a removal instruction. The
+kernel validates the complete duplicate payload, so unlisted properties keep
+their equality requirement. Conflicts fail atomically, right-only entities do
+not enter the result, and node and edge strategy maps remain independent.
+Property-bearing entity kinds without a complete executable map are rejected
+before output allocation. The portable kernel tests pass on JS, Wasm, and
+native. Numeric and canonical-set strategies remain open.
+
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The
 kernel advances through bounded work units and emits one admitted boolean

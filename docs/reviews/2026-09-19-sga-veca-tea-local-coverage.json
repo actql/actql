@@ -794,6 +794,16 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "explicit_exact_equal_property_law",
+          "layers": ["kernel", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9c0cf275",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt"
+          ]
         }
       ]
     },
