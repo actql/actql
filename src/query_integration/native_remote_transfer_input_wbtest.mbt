@@ -204,16 +204,6 @@ test "incremental direct destination uses common standard input verifier" {
   let run_available = [true]
   let run_releases = [0]
   let run_opens = [0]
-  let run_physical = @native_remote_standard.register_native_remote_standard_physical_source(
-    input,
-    () => run_available[0],
-    (_max_bytes, _emit) => Err("incremental-provider-only"),
-    () => {
-      run_releases[0] += 1
-      run_available[0] = false
-      true
-    },
-  )
   let binding = @native_remote_standard.native_remote_standard_transfer_binding(
     input,
   )
@@ -236,14 +226,26 @@ test "incremental direct destination uses common standard input verifier" {
     remote_transfer_input_cid("b"),
     remote_transfer_input_cid("c"),
   ).unwrap()
-  let run_admission = @native_remote_standard.prepare_native_remote_standard_physical_run_admission(
+  let run_admission = @native_remote_standard.prepare_native_remote_standard_direct_run_admission(
     dispatch,
     binding,
-    input,
-    run_physical,
+    request,
+    receipt,
+    () => run_available[0],
+    () => {
+      run_releases[0] += 1
+      run_available[0] = false
+      true
+    },
     codec,
     query_checked_sequence(program),
     @program_check.source_identity(program),
+    {
+      max_binding_bytes: 131072,
+      max_chunks: 8,
+      max_manifest_bytes: 4096,
+      max_referenced_bytes: 1048576L,
+    },
     {
       max_rows: 10,
       max_wire_bytes: 1000,
@@ -268,6 +270,19 @@ test "incremental direct destination uses common standard input verifier" {
       Err(())
     },
   ).unwrap()
+  assert_true(
+    @native_remote_standard.native_remote_standard_direct_run_admission_authorizes(
+      run_admission, request, receipt,
+    ),
+  )
+  let foreign_receipt = @transfer.prepare_destination_receipt(
+    request, "foreign-direct-generation",
+  ).unwrap()
+  assert_false(
+    @native_remote_standard.native_remote_standard_direct_run_admission_authorizes(
+      run_admission, request, foreign_receipt,
+    ),
+  )
   for index, chunk in chunks {
     let mut offset = 0
     while offset < chunk.length() {

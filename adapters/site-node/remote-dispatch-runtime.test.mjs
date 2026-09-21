@@ -169,8 +169,11 @@ test('registered runtime durably executes, evidences, and releases output',
   async t => {
     let executions = 0;
     let closes = 0;
-    const f = await fixture(t, async () => {
+    let admittedInputBinding;
+    const f = await fixture(t, async ({inputBinding, inputBindingBody}) => {
       executions++;
+      admittedInputBinding = inputBinding;
+      assert.equal(inputBindingBody, '{}');
       return managedOutput({
         async close() { closes++; },
       });
@@ -189,6 +192,10 @@ test('registered runtime durably executes, evidences, and releases output',
       '{}',
     );
     assert.equal(executions, 1);
+    assert.equal(
+      f.control.inputBindingIdentity(admittedInputBinding),
+      f.control.inputBindingIdentity(f.control.prepareInputBinding('{}')),
+    );
     assert.deepEqual(completed.state, [3, 2, 0, 1, 0]);
     assert.equal(completed.revision, 5);
     assert.equal(

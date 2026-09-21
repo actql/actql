@@ -65,6 +65,7 @@ struct NativeRemoteStandardPhysicalAdmission {
 struct NativeRemoteStandardPhysicalRunAdmission {
   request : @remote.DispatchRequest
   binding : @remote.RemoteInputBinding
+  input : NativeRemoteStandardTransferInput
   physical : NativeRemoteStandardPhysicalAdmission
   open_run : (@query.CapturedInputSource) -> Result[
     @native_host.NativeStandardStrategyRun,
@@ -583,7 +584,97 @@ pub fn prepare_native_remote_standard_physical_run_admission(
     Ok(value) => value
     Err(failure) => return Err(failure)
   }
-  Ok({ request, binding, physical: admission, open_run, terminal: false, })
+  Ok({
+    request,
+    binding,
+    input,
+    physical: admission,
+    open_run,
+    terminal: false,
+  })
+}
+
+///|
+/// Checks one current direct-receiver claim against the exact Transfer input
+/// fixed by a dispatch-bound session. This is rechecked before and after the
+/// environment adapter streams bytes; possession of a retained body alone is
+/// not input authority.
+pub fn native_remote_standard_direct_run_admission_authorizes(
+  admission : NativeRemoteStandardPhysicalRunAdmission,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Bool {
+  if admission.terminal ||
+    @transfer.request_cid(request) !=
+    @transfer.request_cid(admission.input.request) ||
+    @transfer.destination_receipt_cid(receipt) !=
+    admission.input.destination_receipt_cid ||
+    @transfer.destination_receipt_json(receipt) is Err(_) {
+    return false
+  }
+  let receipt_projection = @transfer.destination_receipt_projection(receipt)
+  receipt_projection.length() == 7 &&
+  receipt_projection[1] == @transfer.request_cid(request) &&
+  transfer_source_live(admission.physical.token)
+}
+
+///|
+/// Starts the product direct-receiver session from one already-admitted
+/// dispatch binding and its current retained claim. The environment owns only
+/// asynchronous byte access and physical lifetime observations.
+pub fn prepare_native_remote_standard_direct_run_admission(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  claimed_request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  available : () -> Bool,
+  release : () -> Bool,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[
+  NativeRemoteStandardPhysicalRunAdmission,
+  NativeRemoteStandardInputFailure,
+] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err({ code: "foreign-input-binding", cleanup: () => true, })
+  }
+  let input = match
+    admit_native_remote_standard_transfer_input(
+      binding,
+      binding_limits.max_binding_bytes,
+      binding_limits.max_chunks,
+      binding_limits.max_manifest_bytes,
+      binding_limits.max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err({ code: "transfer-input-binding", cleanup: () => true, })
+  }
+  let receipt_projection = @transfer.destination_receipt_projection(receipt)
+  if @transfer.request_cid(claimed_request) !=
+    @transfer.request_cid(input.request) ||
+    @transfer.destination_receipt_cid(receipt) != input.destination_receipt_cid ||
+    @transfer.destination_receipt_json(receipt) is Err(_) ||
+    receipt_projection.length() != 7 ||
+    receipt_projection[1] != @transfer.request_cid(claimed_request) {
+    return Err({ code: "foreign-direct-transfer", cleanup: () => true, })
+  }
+  let physical = register_native_remote_standard_physical_source(
+    input,
+    available,
+    (_max_bytes, _emit) => Err("incremental-provider-only"),
+    release,
+  )
+  prepare_native_remote_standard_physical_run_admission(
+    request, binding, input, physical, codec, sequence, program, source_limits, open_run,
+  )
 }
 
 ///|

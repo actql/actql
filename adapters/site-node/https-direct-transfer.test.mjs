@@ -14,6 +14,8 @@ import {
   sendHttpsDirectTransfer,
   startHttpsDirectTransferReceiver,
 } from './https-direct-transfer.mjs';
+import {createRemoteStandardDirectExecution} from
+  './remote-standard-direct-execution.mjs';
 import {openSqliteTransferJournal} from './sqlite-transfer-journal.mjs';
 
 const control = runtimeCore(moon).remoteTransferControl;
@@ -295,6 +297,47 @@ test('mTLS direct Transfer preserves ordered chunks without a bulk relay',
       claimed.destinationReceiptCid);
     assert.deepEqual(streamed.map(chunks => Buffer.concat(chunks).toString()),
       ['alpha', '日本語']);
+    const taskFrames = [[], []];
+    let directAvailable;
+    let releaseDirect;
+    const directOutput = Object.freeze({kind: 'standard-output'});
+    const executeDirect = createRemoteStandardDirectExecution({
+      receiver: setup.receiver,
+      control: Object.freeze({
+        requestCid: () => control.identity(request),
+        prepare(_dispatch, _binding, current, available, release) {
+          assert.equal(
+            current.destinationReceiptCid,
+            claimed.destinationReceiptCid,
+          );
+          directAvailable = available;
+          releaseDirect = release;
+          return Object.freeze({kind: 'standard-session'});
+        },
+        authorize: (_session, current) => directAvailable() &&
+          current.materialGeneration === claimed.materialGeneration &&
+          current.destinationReceiptCid === claimed.destinationReceiptCid,
+        feed(_session, index, frame) {
+          taskFrames[index].push(Buffer.from(frame));
+          return true;
+        },
+        finish() {
+          assert.equal(releaseDirect(), true);
+          return directOutput;
+        },
+        cancel: () => assert.fail('successful direct input was cancelled'),
+        failureCode: () => 'unexpected-direct-input-failure',
+        retryFailureCleanup: () => true,
+      }),
+    });
+    assert.equal(await executeDirect({
+      dispatch: Object.freeze({kind: 'dispatch'}),
+      inputBinding: Object.freeze({kind: 'input-binding'}),
+    }), directOutput);
+    assert.deepEqual(
+      taskFrames.map(chunks => Buffer.concat(chunks).toString()),
+      ['alpha', '日本語'],
+    );
     assert.equal(setup.destinationStore.status().reservedBytes, 14);
     assert.equal(setup.sourceStore.status().activeReaders, 0);
     assert.equal(await setup.receiver.release(control.identity(request)), true);

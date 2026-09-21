@@ -523,6 +523,7 @@ export function createRemoteDispatchRuntime({
     signal,
     bundleHoldId,
     inputBindingBody,
+    inputBinding,
   ) => {
     const identity = control.identity(dispatch);
     let output;
@@ -594,6 +595,7 @@ export function createRemoteDispatchRuntime({
           output = await registration.execute(Object.freeze({
             bundle,
             dispatch,
+            inputBinding,
             inputBindingBody,
             signal,
           }));
@@ -770,6 +772,7 @@ export function createRemoteDispatchRuntime({
         controller.signal,
         bundleHoldId,
         inputBindingBody,
+        inputBinding,
       ).finally(() => {
         signal?.removeEventListener('abort', abort);
         active.delete(identity);
