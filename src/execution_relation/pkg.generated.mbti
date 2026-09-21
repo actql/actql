@@ -2,6 +2,7 @@
 package "actql/actql/execution_relation"
 
 import {
+  "actql/actql/bounded_execution",
   "actql/actql/canonical_json",
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
@@ -36,6 +37,8 @@ pub fn admitted_output_schema(AdmittedOutputRows) -> @relation_schema.Schema
 pub fn admitted_output_target(AdmittedOutputRows) -> @pipeline_typing.Target
 
 pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage
+
+pub fn advance_bounded_binding_rows(BoundedBindingRowsExecution, Int) -> Result[BoundedBindingRowsPoll, BoundedBindingRowsIssue]
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
@@ -114,6 +117,8 @@ pub fn[T] bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedReta
 pub fn bind_managed_result_occurrence(@lowering_relation.BoundPrepared, String, @relation_results.ResultPort) -> Result[ManagedResultOccurrence, ManagedResultOccurrenceIssue]
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
+
+pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
 
 pub fn cancel_admitted_input(AdmittedInput) -> Bool
 
@@ -210,6 +215,8 @@ pub fn carrier_managed_producer_read_matches_input(CarrierManagedProducerRead, @
 pub fn carrier_managed_producer_read_matches_reference(CarrierManagedProducerRead, CarrierManagedCompletionReference) -> Bool
 
 pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierManagedProducerRead) -> Bool
+
+pub fn cleanup_bounded_binding_rows(BoundedBindingRowsExecution) -> Result[Bool, BoundedBindingRowsIssue]
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
@@ -793,6 +800,8 @@ pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
+pub fn start_bounded_binding_rows(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedBindingRowsExecution, BoundedBindingRowsIssue]
+
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
@@ -885,6 +894,23 @@ pub(all) enum BackendCapabilityIssueKind {
 }
 
 type BoundProducerInput
+
+type BoundedBindingRowsExecution
+
+pub(all) enum BoundedBindingRowsIssue {
+  InvalidExecution
+  Rows(RowIssue)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedBindingRowsPoll {
+  BoundedBindingRowsContinue(progress~ : Int64, work~ : Int64)
+  BoundedBindingRowsComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedBindingRowsFailed(BoundedBindingRowsIssue, progress~ : Int64, work~ : Int64)
+  BoundedBindingRowsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
 
 pub(all) enum CaptureIssue {
   InvalidCaptureLimits

@@ -10,6 +10,7 @@ priv struct OrderedBindingsExecution {
   workspace : RowWorkspace
   scope : ExpressionRoots
   row : Int
+  ordered : Bool
   mut slot : Int
   mut active : ExpressionFrame?
   mut values : Array[Value]
@@ -24,13 +25,14 @@ priv enum OrderedBindingsAdvance {
 }
 
 ///|
-fn start_ordered_bindings_execution(
+fn start_bindings_execution(
   bindings : Array[(String, @lower.Expression)],
   snapshot : Map[String, Value],
   control : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots,
   row : Int,
+  ordered : Bool,
 ) -> OrderedBindingsExecution {
   {
     bindings,
@@ -39,12 +41,41 @@ fn start_ordered_bindings_execution(
     workspace,
     scope,
     row,
+    ordered,
     slot: 0,
     active: None,
     values: [],
     roots: [],
     finished: false,
   }
+}
+
+///|
+fn start_ordered_bindings_execution(
+  bindings : Array[(String, @lower.Expression)],
+  snapshot : Map[String, Value],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots,
+  row : Int,
+) -> OrderedBindingsExecution {
+  start_bindings_execution(
+    bindings, snapshot, control, workspace, scope, row, true,
+  )
+}
+
+///|
+fn start_snapshot_bindings_execution(
+  bindings : Array[(String, @lower.Expression)],
+  snapshot : Map[String, Value],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots,
+  row : Int,
+) -> OrderedBindingsExecution {
+  start_bindings_execution(
+    bindings, snapshot, control, workspace, scope, row, false,
+  )
 }
 
 ///|
@@ -127,7 +158,11 @@ fn advance_ordered_bindings_execution(
     expression_frame(
       expression,
       execution.snapshot,
-      execution.values,
+      if execution.ordered {
+        execution.values
+      } else {
+        []
+      },
       execution.control,
       execution.workspace,
       Some(
