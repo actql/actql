@@ -249,6 +249,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
     "\"edges\":\"false\"},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_node_predicate" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
+    "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_edge_predicate" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
+    "\"edges\":\"weight > 10\"},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -335,7 +343,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
-    variant == "subgraph_edges_false" {
+    variant == "subgraph_edges_false" ||
+    variant == "subgraph_edge_predicate" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -357,7 +366,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
-    variant == "subgraph_edges_false" {
+    variant == "subgraph_edges_false" ||
+    variant == "subgraph_edge_predicate" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -3368,6 +3378,10 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "subgraph_edges_false" {
     "sha256:d2889f6d3b43fe20f75149d13eb0585918c94cf3a5b0520f5f9e1525b0846f3d"
+  } else if variant == "subgraph_node_predicate" {
+    "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
+  } else if variant == "subgraph_edge_predicate" {
+    "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
   } else if variant == "degree_both" {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
@@ -3619,6 +3633,9 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
   } else if variant == "subgraph_edges_false" {
     ()
+  } else if variant == "subgraph_edge_predicate" {
+    assert_true(graph_rows[0].contains("\"src\":2"))
+    assert_true(graph_rows[0].contains("\"weight\":20"))
   } else if variant.has_prefix("subgraph_") {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
@@ -3785,6 +3802,14 @@ test "standard Host selects a literal Graph subgraph" {
   run_standard_host_graph_relation_path("subgraph_shared", publication=true)
   run_standard_host_graph_relation_path(
     "subgraph_edges_false",
+    publication=true,
+  )
+  run_standard_host_graph_relation_path(
+    "subgraph_node_predicate",
+    publication=true,
+  )
+  run_standard_host_graph_relation_path(
+    "subgraph_edge_predicate",
     publication=true,
   )
 }
