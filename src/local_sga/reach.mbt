@@ -1287,8 +1287,7 @@ fn start_reach_state(
   guard minimum_depth >= 0 &&
     max_depth >= minimum_depth &&
     max_rows >= 0 &&
-    starts_valid &&
-    nodes <= max_rows else {
+    starts_valid else {
     return Err(ReachOutputLimit)
   }
   let start_predicate_fields = match starts {
