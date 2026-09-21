@@ -927,13 +927,8 @@ test "standard Local reads the exact committed Transfer destination" {
     observed_completion.dispatch_request_cid,
     @remote.dispatch_request_identity(dispatch),
   )
-  let observed = remote_journal.observation(dispatch).unwrap()
-  let subject = @native_remote_journal.recovered_site_dispatch_subject(observed).unwrap()
-  let material_generation = @remote.remote_managed_output_subject_projection(
-      subject,
-    )[1]
   let output_reader = component
-    .open_output_reader(dispatch, material_generation, 7)
+    .open_observed_output_reader(observed_dispatch, observed_completion, 7)
     .unwrap()
   let output_bytes : Array[Byte] = []
   while true {

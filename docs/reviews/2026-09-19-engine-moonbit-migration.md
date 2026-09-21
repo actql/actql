@@ -67,6 +67,9 @@ Successful dispatch observation now returns the exact admitted request and
 portable runtime completion, not only a detached CID. Downstream publication
 or Transfer composition can therefore consume the established occurrence
 without reconstructing dispatch identity in an environment adapter.
+The process-owned Site distribution resolves that observation through its
+durable journal and opens only the exact retained material generation whose
+subject CID matches the portable completion.
 Each exact standard Run now owns its captured output cleanup separately from
 its input pin. Runtime stop, captured-output release, and input release advance
 monotonically and remain independently retryable, so a complete Site process

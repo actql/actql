@@ -36,6 +36,7 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
   Host(NativeRemoteStandardHostIssue)
   Agent(@agent.NativeRemoteAgentIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
+  Journal(@journal.NativeRemoteJournalIssue)
 }
 
 ///|
@@ -166,6 +167,45 @@ pub fn NativeRemoteStandardSiteComponent::open_output_reader(
 }
 
 ///|
+/// Opens the output established by one exact dispatch observation. The
+/// durable Site journal remains authoritative for the material binding; the
+/// environment does not project or reconstruct a generation from response
+/// text.
+pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(
+  self : NativeRemoteStandardSiteComponent,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputReader,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if completion.dispatch_request_cid !=
+    @remote.dispatch_request_identity(request) {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard @journal.recovered_site_dispatch_subject(observed) is Some(subject) else {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  if !@remote.remote_managed_output_subject_matches_dispatch(subject, request) ||
+    @remote.remote_managed_output_subject_cid(subject) != completion.subject_cid {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let projection = @remote.remote_managed_output_subject_projection(subject)
+  if projection.length() < 2 {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  self.open_output_reader(request, projection[1], max_chunk_bytes)
+}
+
+///|
 /// Stops new admission and closes the common runtime. Physical adapter owners
 /// remain with application composition and may be closed only after this
 /// method confirms that all runtime custody has ended.
@@ -214,6 +254,26 @@ pub fn NativeRemoteStandardSiteDistribution::open_output_reader(
   }
   self.component
   .open_output_reader(request, material_generation, max_chunk_bytes)
+  .map_err(issue => Component(issue))
+}
+
+///|
+/// Opens a reader directly from the exact dispatch observation returned by
+/// `poll`, while preserving the process-owned distribution boundary.
+pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputReader,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .open_observed_output_reader(request, completion, max_chunk_bytes)
   .map_err(issue => Component(issue))
 }
 
