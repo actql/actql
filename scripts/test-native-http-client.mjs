@@ -913,6 +913,34 @@ try {
     '--next-runtime-revision', revisionB,
   ]);
   assert.notEqual(stale.code, 0);
+  execFileSync(moon, [
+    'build', '--target', 'native',
+    'src/cmd/native_remote_application_site',
+  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
+  const applicationExecutable = join(
+    new URL('../', import.meta.url).pathname,
+    '_build/native/debug/build/cmd/native_remote_application_site/' +
+      'native_remote_application_site.exe',
+  );
+  const applicationVersion = await new Promise(resolve => {
+    const child = spawn(applicationExecutable, ['--version'], {
+      cwd: new URL('../', import.meta.url),
+      env: {PATH: '/usr/bin:/bin', LANG: 'C'},
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on('data', chunk => stdout.push(chunk));
+    child.stderr.on('data', chunk => stderr.push(chunk));
+    child.on('exit', (code, signal) => resolve({
+      code,
+      signal,
+      stdout: Buffer.concat(stdout).toString('utf8'),
+      stderr: Buffer.concat(stderr).toString('utf8'),
+    }));
+  });
+  assert.equal(applicationVersion.code, 0, applicationVersion.stderr);
+  assert.match(applicationVersion.stdout, /0\.1/);
 } finally {
   releaseStalePoll?.();
   if (standardGateway !== undefined) {

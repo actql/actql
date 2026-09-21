@@ -47,8 +47,14 @@ cleanup owner into the remote runtime boundary.
 The profile now loads a bounded immutable application definition through the
 native filesystem adapter, registers Store and direct factories from the
 portable checked input identity, and composes the exact Store task into the
-process-owned Site distribution. Installing that distribution in the complete
-Site executable remains open. The live Node bundle boundary and
+process-owned Site distribution. A Node-free product executable now loads that
+checked application, verifies the active signed runtime component, fixes the
+Site generation and capabilities, opens both durable journals, binds the real
+native DuckDB driver and Store input, and polls only through that process-owned
+distribution. Its physical configuration surface does not install another
+progression callback. A real separated-process dispatch through this
+executable, including output Transfer and publication operations before
+release, remains open. The live Node bundle boundary and
 the native durable-Store route now install opaque factories directly; neither
 accepts a replacement input state machine from application composition. The
 native standard registry also accepts non-streaming Local and DuckDB Runs only

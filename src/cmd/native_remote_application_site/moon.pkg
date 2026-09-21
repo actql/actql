@@ -1,0 +1,22 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/connectors/duckdb/adapters/native" @duckdb,
+  "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/bounded_files",
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_application_profile" @application,
+  "actql/actql/platform_native/remote_agent" @agent,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_standard_host" @remote_standard,
+  "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol" @remote,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+}
