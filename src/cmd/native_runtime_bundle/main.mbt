@@ -58,18 +58,6 @@ fn parse_int(value : String, name : String) -> Result[Int, String] {
 }
 
 ///|
-fn trim_file_text(value : String) -> String {
-  let without_newline = match value.strip_suffix("\n") {
-    Some(text) => text.to_owned()
-    None => value
-  }
-  match without_newline.strip_suffix("\r") {
-    Some(text) => text.to_owned()
-    None => without_newline
-  }
-}
-
-///|
 fn filesystem_issue_code(issue : @filesystem.NativeFilesystemIssue) -> String {
   match issue {
     @filesystem.UnsupportedTarget => "unsupported-target"
@@ -124,60 +112,26 @@ fn read_text_file(
   name : String,
   max_bytes : Int64,
 ) -> Result[String, String] {
-  if max_bytes <= 0L {
-    return Err("invalid text input limit")
-  }
-  let root = match @filesystem.open_root(root_path) {
-    Ok(value) => value
-    Err(issue) => return Err("input " + filesystem_issue_code(issue))
-  }
-  let generation = match root.inspect_generation(name) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err("input missing")
-    Err(issue) => return Err("input " + filesystem_issue_code(issue))
-  }
-  if generation.size < 0L || generation.size > max_bytes {
-    return Err("input capacity exceeded")
-  }
-  let reader = match root.open_reader(name, generation) {
-    Ok(value) => value
-    Err(issue) => return Err("input " + filesystem_issue_code(issue))
-  }
-  let bytes : Array[Byte] = []
-  let mut done = false
-  while !done {
-    let chunk = match reader.next(65536) {
-      Ok(value) => value
-      Err(issue) => {
-        let cleanup = reader.close()
-        return match cleanup {
-          Ok(_) => Err("input " + filesystem_issue_code(issue))
-          Err(cleanup_issue) =>
-            Err(
-              "input " +
-              filesystem_issue_code(issue) +
-              "; close " +
-              filesystem_issue_code(cleanup_issue),
-            )
-        }
-      }
+  @bounded_files.read_bounded_text_file(
+    root_path,
+    name,
+    max_bytes,
+    trim_newline=true,
+  ).map_err(issue => {
+    match issue {
+      @bounded_files.InvalidLimit => "invalid text input limit"
+      @bounded_files.Missing => "input missing"
+      @bounded_files.CapacityExceeded => "input capacity exceeded"
+      @bounded_files.Filesystem(value) =>
+        "input " + filesystem_issue_code(value)
+      @bounded_files.Cleanup(primary, cleanup) =>
+        "input " +
+        filesystem_issue_code(primary) +
+        "; close " +
+        filesystem_issue_code(cleanup)
+      @bounded_files.InvalidUtf8 => "input is not valid UTF-8"
     }
-    for byte in chunk.bytes {
-      bytes.push(byte)
-    }
-    done = chunk.eof
-  }
-  match reader.finish() {
-    Ok(_) => ()
-    Err(issue) => {
-      ignore(reader.close())
-      return Err("input " + filesystem_issue_code(issue))
-    }
-  }
-  let text = @utf8.decode(Bytes::from_array(bytes)) catch {
-    _ => return Err("input is not valid UTF-8")
-  }
-  Ok(trim_file_text(text))
+  })
 }
 
 ///|

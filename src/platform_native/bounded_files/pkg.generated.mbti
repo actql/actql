@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/bounded_files"
+
+import {
+  "actql/actql/platform_native/filesystem",
+}
+
+// Values
+pub fn read_bounded_text_file(String, String, Int64, trim_newline? : Bool) -> Result[String, NativeBoundedTextIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeBoundedTextIssue {
+  InvalidLimit
+  Missing
+  CapacityExceeded
+  Filesystem(@filesystem.NativeFilesystemIssue)
+  Cleanup(@filesystem.NativeFilesystemIssue, @filesystem.NativeFilesystemIssue)
+  InvalidUtf8
+}
+
+// Type aliases
+
+// Traits

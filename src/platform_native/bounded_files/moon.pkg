@@ -1,0 +1,6 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/platform_native/filesystem",
+  "moonbitlang/core/encoding/utf8",
+}

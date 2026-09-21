@@ -2,6 +2,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,
   "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
