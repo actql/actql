@@ -894,7 +894,7 @@
       "output": "graph",
       "canonical": ["SGA.union_structural"],
       "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -981,6 +981,20 @@
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
+        },
+        {
+          "scope": "resumable_canonical_set_order_and_cleanup",
+          "layers": ["kernel", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+          "evidence": [
+            "src/bounded_value_set/set.mbt",
+            "src/bounded_value_set/set_wbtest.mbt",
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
         }
       ]
     },
@@ -991,7 +1005,7 @@
       "output": "graph",
       "canonical": ["SGA.diff_structural"],
       "variants": ["node removal", "edge removal", "property laws", "no-op"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -1086,6 +1100,20 @@
             "src/local_sga/graft.mbt",
             "src/local_sga/graft_wbtest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "resumable_canonical_set_order_and_cleanup",
+          "layers": ["kernel", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+          "evidence": [
+            "src/bounded_value_set/set.mbt",
+            "src/bounded_value_set/set_wbtest.mbt",
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
@@ -2741,6 +2769,54 @@
       "suites": [
         {
           "name": "portable Graph graft and retained consumers",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "union_graphs",
+      "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+      "suites": [
+        {
+          "name": "portable bounded structural set merge",
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable Graph consumers and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "subtract_graphs",
+      "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+      "suites": [
+        {
+          "name": "portable bounded structural set merge",
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable Graph consumers and publication",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"

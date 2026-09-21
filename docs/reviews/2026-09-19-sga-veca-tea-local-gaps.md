@@ -36,8 +36,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `cancellation` | 34/39 |
 | `publication` | 33/39 |
 | `three_targets` | 34/39 |
-| complete operations | 27/39 |
-| open operations | 12/39 |
+| complete operations | 29/39 |
+| open operations | 10/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -333,10 +333,12 @@ and canonical set union produces complete-value order without duplicates.
 The maximum non-interruptible value traversal includes every field and fold,
 rejects arithmetic overflow before output allocation, and is checked on all
 three targets. The numeric and set paths also run through the standard Host,
-overlapping consumers, publication, cancellation, and final reclaim. The
-canonical set-key sort is still one synchronous call whose comparison work is
-not represented by that value-node bound. `union_graphs` remains partial until
-that sort is resumable or admitted with an independently verified work bound.
+overlapping consumers, publication, cancellation, and final reclaim. At
+`def46cc0`, canonical set ordering runs as bounded merge-sort steps. Its child
+session retains exact workspace custody, reports byte and node bounds, receives
+cancellation, and is reclaimed before the Graph builder. The portable kernel
+and query integration suites pass on all three targets, and the real Node
+standard Host passes. This closes `union_graphs`.
 
 At `1b7dbec3`, `subtract_graphs` executes the property-free structural
 variant over two immutable internal Graph generations. The bounded kernel
@@ -362,9 +364,10 @@ set difference retain explicitly mapped shared entities, keep right-only
 entities out, and admit temporary set indexes before allocation. At
 `053005b9`, the real Node Host also delivers cancellation during the bounded
 kernel, observes stop separately from cleanup, and returns all ledger holdings
-and reservations to zero. The shared canonical set-key sort still lacks a
-resumable or independently verified comparison-work bound, so
-`subtract_graphs` remains partial.
+and reservations to zero. At `def46cc0`, the shared canonical set-key sort is
+resumable, accounts its workspace before allocation, and cleans an active child
+session after cancellation. Its portable and standard Host regressions close
+`subtract_graphs`.
 
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The
