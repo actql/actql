@@ -1017,6 +1017,26 @@
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "direct_relation_session_publication_and_consumers",
+          "layers": [
+            "managed",
+            "standard_host",
+            "two_consumers",
+            "publication",
+            "resources",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1a9e0e42",
+          "evidence": [
+            "src/managed_record_storage/storage_wbtest.mbt",
+            "src/local_tea/session.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
         }
       ]
     },

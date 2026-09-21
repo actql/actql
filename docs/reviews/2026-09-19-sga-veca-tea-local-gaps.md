@@ -498,15 +498,18 @@ reserved bytes. At `90e18aff`, exact owner-bound Events material feeds two
 bounded managed session consumers with overlapping lifetimes. Each returns
 retained Events material, one consumer can clean up and reclaim independently,
 and the other consumer and source remain available until their own final
-reclamation. The same provider path passes on JS, Wasm, and native. The Node
-standard Host still needs to carry that Carrier completion across a physical
-task boundary into the exact session input, so session assignment remains
-partial. At `4ef9c6be`, equal-time events reach the standard Host on all three
-targets and are ordered by their typed semantic identity before closed-open
-session assignment. Session identity construction
-now advances one scalar
-part per bounded phase, checks complete UTF-8 prefixes and separators before
-retention, and reclaims partial buffers after cancellation. Interval join now
+reclamation. The same provider path passes on JS, Wasm, and native. At
+`1a9e0e42`, the author-visible Relation form reaches the bounded session kernel
+through the standard Host, publishes its Named Result, feeds two downstream
+computations, and reclaims its managed record storage on all three targets.
+The Node standard Host still needs to carry an Events completion across a
+physical task boundary into the exact session input, so session assignment
+remains partial. At `4ef9c6be`, equal-time events reach the standard Host on
+all three targets and are ordered by their typed semantic identity before
+closed-open session assignment. Session identity construction now advances
+one scalar part per bounded phase, checks complete UTF-8 prefixes and
+separators before retention, and reclaims partial buffers after cancellation.
+Interval join now
 has typed canonical lowering for all
 four join kinds, both temporal modes and time domains, repeated equality keys,
 projections, and resolved output guards. Interval and as-of joins execute
