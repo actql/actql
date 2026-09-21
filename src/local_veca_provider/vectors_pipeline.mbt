@@ -873,7 +873,7 @@ pub fn provider(
         None
       }
     },
-    fn(sequence, inputs, max_rows, max_value_bytes) {
+    fn(sequence, inputs, max_rows, max_value_bytes, execution_limits) {
       if !accepts(sequence) || storage_bytes < 0L {
         return Err(@connector.InvalidLimits)
       }

@@ -5,10 +5,13 @@
 struct ManagedProvider {
   accepts : (@execution.GeneratedSequence) -> Bool
   capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?
-  start : (@execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int) -> Result[
-    ManagedProviderExecution,
-    @connector.FixedComputeIssue,
-  ]
+  start : (
+    @execution.GeneratedSequence,
+    Array[ManagedProviderInput],
+    Int,
+    Int,
+    @execution.SequenceExecutionLimits,
+  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]
 }
 
 ///|
@@ -114,6 +117,7 @@ pub fn managed_provider(
     Array[@execution.ProducerRead],
     Int,
     Int,
+    @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
 ) -> ManagedProvider {
   managed_provider_with_inputs(accepts, capacity, (
@@ -121,6 +125,7 @@ pub fn managed_provider(
     inputs,
     rows,
     bytes,
+    execution,
   ) => {
     let relations = []
     for input in inputs {
@@ -130,7 +135,7 @@ pub fn managed_provider(
           return Err(@connector.Execution(@execution.InputSet))
       }
     }
-    start(sequence, relations, rows, bytes)
+    start(sequence, relations, rows, bytes, execution)
   })
 }
 
@@ -140,10 +145,13 @@ pub fn managed_provider(
 pub fn managed_provider_with_inputs(
   accepts : (@execution.GeneratedSequence) -> Bool,
   capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?,
-  start : (@execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int) -> Result[
-    ManagedProviderExecution,
-    @connector.FixedComputeIssue,
-  ],
+  start : (
+    @execution.GeneratedSequence,
+    Array[ManagedProviderInput],
+    Int,
+    Int,
+    @execution.SequenceExecutionLimits,
+  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
 ) -> ManagedProvider {
   { accepts, capacity, start, }
 }
@@ -182,11 +190,31 @@ pub fn start_managed_provider(
   max_rows : Int,
   max_value_bytes : Int,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
+  start_managed_provider_with_execution(
+    provider,
+    sequence,
+    inputs,
+    max_rows,
+    max_value_bytes,
+    unavailable_provider_execution_limits(max_rows),
+  )
+}
+
+///|
+pub fn start_managed_provider_with_execution(
+  provider : ManagedProvider,
+  sequence : @execution.GeneratedSequence,
+  inputs : Array[@execution.ProducerRead],
+  max_rows : Int,
+  max_value_bytes : Int,
+  execution : @execution.SequenceExecutionLimits,
+) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   (provider.start)(
     sequence,
     inputs.map(input => RelationInput(input)),
     max_rows,
     max_value_bytes,
+    execution,
   )
 }
 
@@ -199,7 +227,53 @@ pub fn start_managed_provider_with_inputs(
   max_rows : Int,
   max_value_bytes : Int,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
-  (provider.start)(sequence, inputs, max_rows, max_value_bytes)
+  start_managed_provider_with_inputs_and_execution(
+    provider,
+    sequence,
+    inputs,
+    max_rows,
+    max_value_bytes,
+    unavailable_provider_execution_limits(max_rows),
+  )
+}
+
+///|
+pub fn start_managed_provider_with_inputs_and_execution(
+  provider : ManagedProvider,
+  sequence : @execution.GeneratedSequence,
+  inputs : Array[ManagedProviderInput],
+  max_rows : Int,
+  max_value_bytes : Int,
+  execution : @execution.SequenceExecutionLimits,
+) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
+  (provider.start)(sequence, inputs, max_rows, max_value_bytes, execution)
+}
+
+///|
+/// Compatibility-only limits for callers of the pre-bounded start API. A
+/// provider that needs common execution limits must reject these zero
+/// ceilings; the standard driver always uses the explicit execution variant.
+fn unavailable_provider_execution_limits(
+  max_rows : Int,
+) -> @execution.SequenceExecutionLimits {
+  let values : @execution.ValueLimits = {
+    max_nodes: 0,
+    max_text_bytes: 0,
+    max_depth: 0,
+    max_work: 0,
+  }
+  {
+    rows: {
+      max_rows,
+      metadata_entries: 0,
+      retained_entries: 0,
+      operation_entries: 0,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 0,
+    max_frames: 0,
+  }
 }
 
 ///|

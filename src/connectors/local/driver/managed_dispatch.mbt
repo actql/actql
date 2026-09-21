@@ -804,7 +804,7 @@ pub fn[T] start_local_managed_dispatch(
           Some(value) => value
           None => {
             let started = match
-              @local.start_managed_provider_with_inputs(
+              @local.start_managed_provider_with_inputs_and_execution(
                 provider,
                 setup.sequence,
                 setup.provider_inputs.map(input => {
@@ -821,6 +821,7 @@ pub fn[T] start_local_managed_dispatch(
                 }),
                 @connector.managed_fixed_compute_request_capacity(request).max_rows,
                 @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
+                setup.execution,
               ) {
               Ok(value) => value
               Err(issue) => return Err(Configuration(issue))

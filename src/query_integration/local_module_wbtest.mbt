@@ -2,7 +2,13 @@
 fn local_module_test_provider(
   capacity : @execution.ExecutionCapacity?,
 ) -> @local_connector.ManagedProvider {
-  @local_connector.managed_provider(_ => true, _ => capacity, fn(_, _, _, _) {
+  @local_connector.managed_provider(_ => true, _ => capacity, fn(
+    _,
+    _,
+    _,
+    _,
+    _,
+  ) {
     Err(@connector.InvalidLimits)
   })
 }

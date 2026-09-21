@@ -456,10 +456,10 @@ fn delayed_cleanup_provider(
   @local_connector.managed_provider(
     sequence => @local_connector.managed_provider_accepts(provider, sequence),
     sequence => @local_connector.managed_provider_capacity(provider, sequence),
-    fn(sequence, inputs, max_rows, max_value_bytes) {
+    fn(sequence, inputs, max_rows, max_value_bytes, execution) {
       match
-        @local_connector.start_managed_provider(
-          provider, sequence, inputs, max_rows, max_value_bytes,
+        @local_connector.start_managed_provider_with_execution(
+          provider, sequence, inputs, max_rows, max_value_bytes, execution,
         ) {
         Err(issue) => Err(issue)
         Ok(active) =>

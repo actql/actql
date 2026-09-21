@@ -125,7 +125,7 @@ pub fn time_series_provider(
         None
       }
     },
-    fn(sequence, inputs, max_rows, max_value_bytes) {
+    fn(sequence, inputs, max_rows, max_value_bytes, _execution) {
       if !time_series_provider_accepts(sequence) ||
         !inputs.is_empty() ||
         max_rows < 0 ||
