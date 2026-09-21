@@ -92,6 +92,13 @@ type NativeRemoteStandardBoundRun
 
 type NativeRemoteStandardDirectRunFactory
 pub fn NativeRemoteStandardDirectRunFactory::prepare(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
+pub fn NativeRemoteStandardDirectRunFactory::start_session(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool) -> NativeRemoteStandardDirectRunSession
+
+type NativeRemoteStandardDirectRunSession
+pub fn NativeRemoteStandardDirectRunSession::authorizes(Self, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Bool
+pub fn NativeRemoteStandardDirectRunSession::cancel(Self) -> NativeRemoteStandardInputFailure
+pub fn NativeRemoteStandardDirectRunSession::feed(Self, Int, Bytes) -> Bool
+pub fn NativeRemoteStandardDirectRunSession::finish(Self) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
 pub(all) enum NativeRemoteStandardHostIssue {
   InvalidConfiguration

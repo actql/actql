@@ -91,6 +91,16 @@ struct NativeRemoteStandardDirectRunFactory {
 }
 
 ///|
+/// One direct-input occurrence driven by an asynchronous environment adapter.
+/// Feed rejection, cancellation, and the exact cleanup owner remain together
+/// so the adapter cannot drop or replace a failed physical responsibility.
+struct NativeRemoteStandardDirectRunSession {
+  mut admission : NativeRemoteStandardPhysicalRunAdmission?
+  mut failure : NativeRemoteStandardInputFailure?
+  mut terminal : Bool
+}
+
+///|
 priv struct NativeRemoteTransferSourceToken {
   physical : NativeRemoteStandardPhysicalSource
   mut active : Bool
@@ -770,6 +780,118 @@ pub fn NativeRemoteStandardDirectRunFactory::prepare(
     self.source_limits,
     self.open_run,
   )
+}
+
+///|
+/// Opens one opaque direct-input session. Preparation failures are retained in
+/// the returned owner rather than raised across the environment boundary.
+pub fn NativeRemoteStandardDirectRunFactory::start_session(
+  self : NativeRemoteStandardDirectRunFactory,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  claimed_request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  available : () -> Bool,
+  release : () -> Bool,
+) -> NativeRemoteStandardDirectRunSession {
+  match
+    self.prepare(request, binding, claimed_request, receipt, available, release) {
+    Ok(admission) =>
+      { admission: Some(admission), failure: None, terminal: false, }
+    Err(failure) => { admission: None, failure: Some(failure), terminal: true, }
+  }
+}
+
+///|
+/// Reports whether the current receiver claim remains authorized for this
+/// exact unfinished session.
+pub fn NativeRemoteStandardDirectRunSession::authorizes(
+  self : NativeRemoteStandardDirectRunSession,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Bool {
+  if self.terminal {
+    return false
+  }
+  guard self.admission is Some(admission) else { return false }
+  native_remote_standard_direct_run_admission_authorizes(
+    admission, request, receipt,
+  )
+}
+
+///|
+/// Feeds one bounded frame. A rejected frame atomically moves the exact input
+/// owner into the session's failed cleanup state.
+pub fn NativeRemoteStandardDirectRunSession::feed(
+  self : NativeRemoteStandardDirectRunSession,
+  index : Int,
+  bytes : Bytes,
+) -> Bool {
+  if self.terminal {
+    return false
+  }
+  guard self.admission is Some(admission) else { return false }
+  match
+    feed_native_remote_standard_physical_run_admission(admission, index, bytes) {
+    Ok(_) => true
+    Err(_) => {
+      self.failure = Some(
+        cancel_native_remote_standard_physical_run_admission(admission),
+      )
+      self.admission = None
+      self.terminal = true
+      false
+    }
+  }
+}
+
+///|
+/// Finalizes verified input and opens the exact standard Run. Any failure is
+/// retained for the same session's cleanup retry.
+pub fn NativeRemoteStandardDirectRunSession::finish(
+  self : NativeRemoteStandardDirectRunSession,
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  if self.terminal {
+    return match self.failure {
+      Some(failure) => Err(failure)
+      None => Err(transfer_source_failure(None, InvalidProfile))
+    }
+  }
+  guard self.admission is Some(admission) else {
+    return Err(transfer_source_failure(None, InvalidProfile))
+  }
+  self.admission = None
+  self.terminal = true
+  match finish_native_remote_standard_physical_run_admission(admission) {
+    Ok(value) => Ok(value)
+    Err(failure) => {
+      self.failure = Some(failure)
+      Err(failure)
+    }
+  }
+}
+
+///|
+/// Cancels an unfinished session or returns its already-owned failure.
+pub fn NativeRemoteStandardDirectRunSession::cancel(
+  self : NativeRemoteStandardDirectRunSession,
+) -> NativeRemoteStandardInputFailure {
+  match self.failure {
+    Some(failure) => failure
+    None =>
+      match self.admission {
+        Some(admission) => {
+          let failure = cancel_native_remote_standard_physical_run_admission(
+            admission,
+          )
+          self.admission = None
+          self.failure = Some(failure)
+          self.terminal = true
+          failure
+        }
+        None => transfer_source_failure(None, Physical("cancelled"))
+      }
+  }
 }
 
 ///|

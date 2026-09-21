@@ -266,43 +266,38 @@ test "incremental direct destination uses common standard input verifier" {
     ).unwrap(),
     @transfer.request_cid(request),
   )
-  let run_admission = direct_factory
-    .prepare(dispatch, binding, request, receipt, () => run_available[0], () => {
+  let run_session = direct_factory.start_session(
+    dispatch,
+    binding,
+    request,
+    receipt,
+    () => run_available[0],
+    () => {
       run_releases[0] += 1
       run_available[0] = false
       true
-    })
-    .unwrap()
-  assert_true(
-    @native_remote_standard.native_remote_standard_direct_run_admission_authorizes(
-      run_admission, request, receipt,
-    ),
+    },
   )
+  assert_true(run_session.authorizes(request, receipt))
   let foreign_receipt = @transfer.prepare_destination_receipt(
     request, "foreign-direct-generation",
   ).unwrap()
-  assert_false(
-    @native_remote_standard.native_remote_standard_direct_run_admission_authorizes(
-      run_admission, request, foreign_receipt,
-    ),
-  )
+  assert_false(run_session.authorizes(request, foreign_receipt))
   for index, chunk in chunks {
     let mut offset = 0
     while offset < chunk.length() {
       let count = Int::min(3, chunk.length() - offset)
-      @native_remote_standard.feed_native_remote_standard_physical_run_admission(
-        run_admission,
-        index,
-        Bytes::from_array(Array::makei(count, unit => chunk[offset + unit])),
-      ).unwrap()
+      assert_true(
+        run_session.feed(
+          index,
+          Bytes::from_array(Array::makei(count, unit => chunk[offset + unit])),
+        ),
+      )
       offset += count
     }
   }
   assert_eq(run_opens[0], 0)
-  let run_failure = match
-    @native_remote_standard.finish_native_remote_standard_physical_run_admission(
-      run_admission,
-    ) {
+  let run_failure = match run_session.finish() {
     Err(value) => value
     Ok(_) => fail("incremental Run opened unexpectedly")
   }
@@ -321,6 +316,37 @@ test "incremental direct destination uses common standard input verifier" {
   )
   assert_eq(run_releases[0], 1)
   assert_false(run_available[0])
+
+  let rejected_available = [true]
+  let rejected_releases = [0]
+  let rejected_session = direct_factory.start_session(
+    dispatch,
+    binding,
+    request,
+    receipt,
+    () => rejected_available[0],
+    () => {
+      rejected_releases[0] += 1
+      rejected_available[0] = false
+      true
+    },
+  )
+  assert_false(rejected_session.feed(1, Bytes::from_array([chunks[1][0]])))
+  assert_false(rejected_session.authorizes(request, receipt))
+  let rejected_failure = rejected_session.cancel()
+  assert_eq(
+    @native_remote_standard.native_remote_standard_input_failure_code(
+      rejected_failure,
+    ),
+    "transfer-input-material",
+  )
+  assert_true(
+    @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
+      rejected_failure,
+    ),
+  )
+  assert_eq(rejected_releases[0], 1)
+  assert_false(rejected_available[0])
 }
 
 ///|
