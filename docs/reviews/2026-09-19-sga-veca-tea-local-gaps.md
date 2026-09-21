@@ -15,13 +15,13 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Carrier-aware lifecycle is shared; 30/39 entries have kernels and managed completion, 29/39 reach the standard Host, and 25/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 30/39 entries have resource and three-target kernel evidence | Implement and register the remaining nine entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 20/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 21/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, and bounded homogeneous traversal, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 25/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, bounded Events transforms, normalized, grafted, scored, pooled, or nearest Vectors projections, and RRF output; 26/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 30/39, standard Host 29/39,
-consumer lifetime 25/39, cancellation 20/39, and publication 25/39. These are
+consumer lifetime 25/39, cancellation 21/39, and publication 26/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -441,8 +441,8 @@ material repeated at two authored positions. Both reach two downstream
 Relation computations, independent release, and final ledger reclamation on
 JS, Wasm, and native. Maximum and weighted-sum still need runtime score-
 declaration authentication, tie-conflict fixtures, and standard Host evidence.
-Negative RRF boundaries, publication, and environment cancellation delivery
-also remain open, so ranking merge is partial.
+Negative RRF boundaries remain open. Maximum and weighted-sum also lack the
+same runtime evidence, so ranking merge remains partial.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -754,6 +754,15 @@ zero. The complete Local VecA, provider, and query-integration selection passes
 386 tests on each of JS, Wasm, and native. This does not establish maximum or
 weighted-sum runtime authentication, their tie rules, negative RRF execution
 fixtures, publication, environment cancellation delivery, or final Linux CI.
+
+At `4ed328ba`, ordinary and repeated-input RRF establish the exact
+LogicalRelation identity required by Named Result publication on JS, Wasm,
+and native. The real Node standard Host also cancels the third managed task
+during bounded RRF work, preserves the two completed input tasks, confirms
+stop, performs cleanup, and returns every ledger to zero. Generated Workers
+and dependency-free Node Host fixtures remain current, and their portable
+gates pass. This evidence does not cover maximum or weighted-sum runtime
+authentication, their tie rules, negative RRF execution, or final Linux CI.
 
 At `a9174bee`, interval join reaches one typed canonical
 `TEA.join.interval` occurrence without rediscovering frontend syntax. The

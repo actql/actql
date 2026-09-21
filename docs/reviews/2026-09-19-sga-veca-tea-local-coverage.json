@@ -1477,6 +1477,24 @@
             "src/local_veca_provider/vectors_pipeline.mbt",
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "rrf_publication_and_environment_cancellation",
+          "layers": [
+            "publication",
+            "cancellation",
+            "stop_confirmation",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "4ed328ba",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs",
+            "src/workers_conformance/fixture.generated.mbt",
+            "src/node_host_conformance/fixture.generated.mbt"
+          ]
         }
       ]
     },
