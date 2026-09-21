@@ -1766,6 +1766,168 @@ test "registered VecA provider authenticates weighted ranking scores" {
 }
 
 ///|
+fn direct_rrf_carrier() -> @carrier_contract.Carrier {
+  let number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  @carrier_contract.relation(
+    @carrier_contract.rows(
+      [
+        (@schema.Unqualified("q"), Some(number)),
+        (@schema.Unqualified("id"), Some(number)),
+        (@schema.Unqualified("rank"), Some(number)),
+      ],
+      field_set=@carrier_contract.Closed,
+      max_fields=3,
+      max_name_bytes=7,
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_rrf_owner() -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor("[{\"select\":[\"q\",\"id\",\"rank\"]}]"),
+      [
+        (
+          "rows",
+          @pipeline.RankingInput(@vector.ranking_relation(direct_rrf_carrier())),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_rrf_fusion_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"merge_rankings\":{\"with\":\"right\"," +
+        "\"by\":[\"q\"],\"candidate\":\"id\",\"rank\":\"rank\"," +
+        "\"k\":2,\"score_policy\":{\"rrf\":{" +
+        "\"rank_constant\":1,\"weights\":[1,1]," +
+        "\"rank_window\":2}}}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"left\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn run_direct_invalid_rrf(
+  left_rows : Array[(Double, Double, Double)],
+) -> Unit raise {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, left_rows)
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 1.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut failed = false
+  while !failed {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Failed(_, ..) => failed = true
+      @local_connector.Complete(_, ..) => fail("invalid RRF completed")
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("invalid RRF returned a Carrier")
+      @local_connector.Stopped(..) => fail("invalid RRF stopped")
+    }
+  }
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
+test "registered VecA provider rejects duplicate RRF candidates" {
+  run_direct_invalid_rrf([(1.0, 1.0, 1.0), (1.0, 1.0, 2.0)])
+}
+
+///|
+test "registered VecA provider rejects noncontiguous RRF ranks" {
+  run_direct_invalid_rrf([(1.0, 1.0, 1.0), (1.0, 2.0, 3.0)])
+}
+
+///|
 fn run_direct_nearest_provider(
   owner : @lower.BoundPrepared,
   inputs : Array[@local_connector.ManagedProviderInput],
