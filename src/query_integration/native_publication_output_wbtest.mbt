@@ -751,37 +751,24 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let local_run_owner = [Some(local_run)]
   let local_input_finished = [false]
-  let local_executor = @native_remote_standard.install_native_remote_standard_task_executor(
-    run_definition_cid,
-    "task-1-local",
-    1,
-    (request, binding) => {
-      if @remote.remote_input_binding_body(binding) != "{}" {
-        return Err(
-          @native_remote_standard.reject_native_remote_standard_input(
-            "standard-input-resolve",
-          ).unwrap(),
-        )
-      }
+  let local_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
+    input_binding,
+    () => {
       match local_run_owner[0] {
         Some(value) => {
           local_run_owner[0] = None
-          @native_remote_standard.bind_native_remote_standard_run(
-            request,
-            binding,
-            value,
-            () => {
-              if !local_input_finished[0] {
-                @mock.close_mock_query_issuer(local_query_issuer)
-                local_input_finished[0] = true
-              }
-              true
-            },
-          ).map_err(_ => {
-            @native_remote_standard.reject_native_remote_standard_input(
-              "standard-input-binding",
-            ).unwrap()
-          })
+          Ok(
+            @native_remote_standard.prepare_native_remote_standard_run_owner(
+              value,
+              () => {
+                if !local_input_finished[0] {
+                  @mock.close_mock_query_issuer(local_query_issuer)
+                  local_input_finished[0] = true
+                }
+                true
+              },
+            ),
+          )
         }
         None =>
           Err(
@@ -791,6 +778,12 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
           )
       }
     },
+  )
+  let local_executor = @native_remote_standard.install_native_remote_standard_bound_task_executor(
+    run_definition_cid,
+    "task-1-local",
+    1,
+    local_factory,
     {
       output_export: native_publication_export_limits(),
       max_manifest_bytes: 65536,
@@ -799,37 +792,24 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   ).unwrap()
   let duckdb_run_owner = [Some(duckdb_run)]
   let duckdb_input_finished = [false]
-  let duckdb_executor = @native_remote_standard.install_native_remote_standard_task_executor(
-    run_definition_cid,
-    "task-1-duckdb",
-    1,
-    (request, binding) => {
-      if @remote.remote_input_binding_body(binding) != "{}" {
-        return Err(
-          @native_remote_standard.reject_native_remote_standard_input(
-            "standard-input-resolve",
-          ).unwrap(),
-        )
-      }
+  let duckdb_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
+    input_binding,
+    () => {
       match duckdb_run_owner[0] {
         Some(value) => {
           duckdb_run_owner[0] = None
-          @native_remote_standard.bind_native_remote_standard_run(
-            request,
-            binding,
-            value,
-            () => {
-              if !duckdb_input_finished[0] {
-                @mock.close_mock_query_issuer(duckdb_query_issuer)
-                duckdb_input_finished[0] = true
-              }
-              true
-            },
-          ).map_err(_ => {
-            @native_remote_standard.reject_native_remote_standard_input(
-              "standard-input-binding",
-            ).unwrap()
-          })
+          Ok(
+            @native_remote_standard.prepare_native_remote_standard_run_owner(
+              value,
+              () => {
+                if !duckdb_input_finished[0] {
+                  @mock.close_mock_query_issuer(duckdb_query_issuer)
+                  duckdb_input_finished[0] = true
+                }
+                true
+              },
+            ),
+          )
         }
         None =>
           Err(
@@ -839,6 +819,12 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
           )
       }
     },
+  )
+  let duckdb_executor = @native_remote_standard.install_native_remote_standard_bound_task_executor(
+    run_definition_cid,
+    "task-1-duckdb",
+    1,
+    duckdb_factory,
     {
       output_export: native_publication_export_limits(),
       max_manifest_bytes: 65536,
@@ -849,19 +835,9 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   let foreign_binding = @remote.prepare_remote_input_binding(
     "{\"foreign\":true}", 32,
   ).unwrap()
-  let foreign_executor = @native_remote_standard.install_native_remote_standard_task_executor(
-    run_definition_cid,
-    "task-1-foreign-binding",
-    1,
-    (_, binding) => {
-      if @remote.remote_input_binding_cid(binding) !=
-        @remote.remote_input_binding_cid(foreign_binding) {
-        return Err(
-          @native_remote_standard.reject_native_remote_standard_input(
-            "standard-input-resolve",
-          ).unwrap(),
-        )
-      }
+  let foreign_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
+    foreign_binding,
+    () => {
       foreign_run_opens[0] += 1
       Err(
         @native_remote_standard.reject_native_remote_standard_input(
@@ -869,6 +845,12 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
         ).unwrap(),
       )
     },
+  )
+  let foreign_executor = @native_remote_standard.install_native_remote_standard_bound_task_executor(
+    run_definition_cid,
+    "task-1-foreign-binding",
+    1,
+    foreign_factory,
     {
       output_export: native_publication_export_limits(),
       max_manifest_bytes: 65536,
@@ -876,11 +858,9 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     },
   ).unwrap()
   let input_cleanup_attempts = [0]
-  let pending_input_executor = @native_remote_standard.install_native_remote_standard_task_executor(
-    run_definition_cid,
-    "task-1-pending-input",
-    1,
-    (_, _) => {
+  let pending_input_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
+    input_binding,
+    () => {
       Err(
         @native_remote_standard.prepare_native_remote_standard_input_failure(
           "standard-input-pending",
@@ -891,6 +871,12 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
         ).unwrap(),
       )
     },
+  )
+  let pending_input_executor = @native_remote_standard.install_native_remote_standard_bound_task_executor(
+    run_definition_cid,
+    "task-1-pending-input",
+    1,
+    pending_input_factory,
     {
       output_export: native_publication_export_limits(),
       max_manifest_bytes: 65536,
@@ -999,7 +985,7 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     )
     is Err(
       @native_remote_agent.RuntimeObserved(
-        @native_remote_runtime.Physical("standard-input-resolve"),
+        @native_remote_runtime.Physical("foreign-input-binding"),
         _
       )
     ) else {

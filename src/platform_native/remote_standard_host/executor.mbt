@@ -37,6 +37,27 @@ struct NativeRemoteStandardBoundRun {
 }
 
 ///|
+/// One fresh standard Run and its exact input owner. The factory that creates
+/// this value is fixed before remote runtime admission; a dispatch cannot
+/// replace either the Run or its cleanup responsibility.
+struct NativeRemoteStandardRunOwner {
+  run : @native_host.NativeStandardStrategyRun
+  finish_input_owner : () -> Bool
+}
+
+///|
+/// Exact non-streaming input factory installed by one verified runtime
+/// component. It admits only the input binding fixed at registration and
+/// opens a fresh occurrence owner after that binding has been checked.
+struct NativeRemoteStandardBoundRunFactory {
+  input_binding_cid : String
+  open : () -> Result[
+    NativeRemoteStandardRunOwner,
+    NativeRemoteStandardInputFailure,
+  ]
+}
+
+///|
 /// A resolver failure that retains any input cleanup owner acquired before a
 /// standard Run could be bound. The common runtime, rather than the resolver,
 /// decides when the dispatch may settle from this physical cleanup report.
@@ -99,7 +120,7 @@ pub fn reject_native_remote_standard_input(
 }
 
 ///|
-pub fn bind_native_remote_standard_run(
+fn bind_native_remote_standard_run(
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
   run : @native_host.NativeStandardStrategyRun,
@@ -116,6 +137,71 @@ pub fn bind_native_remote_standard_run(
     finish_input_owner,
     input_finished: false,
   })
+}
+
+///|
+/// Prepares one occurrence-owned standard Run. This does not bind the Run to
+/// a dispatch or make it executable; only a registered exact factory can do
+/// that after common runtime admission.
+pub fn prepare_native_remote_standard_run_owner(
+  run : @native_host.NativeStandardStrategyRun,
+  finish_input_owner : () -> Bool,
+) -> NativeRemoteStandardRunOwner {
+  { run, finish_input_owner, }
+}
+
+///|
+/// Registers one exact non-streaming input factory. Registration performs no
+/// physical work and cannot authorize a foreign input binding.
+pub fn register_native_remote_standard_bound_run_factory(
+  binding : @remote.RemoteInputBinding,
+  open : () -> Result[
+    NativeRemoteStandardRunOwner,
+    NativeRemoteStandardInputFailure,
+  ],
+) -> NativeRemoteStandardBoundRunFactory {
+  { input_binding_cid: @remote.remote_input_binding_cid(binding), open, }
+}
+
+///|
+/// Resolves one occurrence after both the dispatch binding and the factory's
+/// exact registered binding have been checked.
+fn NativeRemoteStandardBoundRunFactory::resolve(
+  self : NativeRemoteStandardBoundRunFactory,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
+    @remote.remote_input_binding_cid(binding) != self.input_binding_cid {
+    return Err(
+      reject_native_remote_standard_input("foreign-input-binding").unwrap(),
+    )
+  }
+  let owner = match (self.open)() {
+    Ok(value) => value
+    Err(failure) => return Err(failure)
+  }
+  match
+    bind_native_remote_standard_run(
+      request,
+      binding,
+      owner.run,
+      owner.finish_input_owner,
+    ) {
+    Ok(value) => Ok(value)
+    Err(_) =>
+      Err(
+        prepare_native_remote_standard_input_failure("standard-input-binding", () => {
+          let run_closed = match
+            @native_host.close_native_standard_strategy_run(owner.run) {
+            Ok(_) => true
+            Err(_) => false
+          }
+          let input_closed = (owner.finish_input_owner)()
+          run_closed && input_closed
+        }).unwrap(),
+      )
+  }
 }
 
 ///|
@@ -527,7 +613,7 @@ fn execute_native_remote_standard_task(
 /// those are derived here from the admitted common output and runtime owner.
 /// A fresh exact Run is opened only after the input binding matches, so a
 /// foreign dispatch cannot consume or close a preconfigured Run owner.
-pub fn install_native_remote_standard_task_executor(
+fn install_native_remote_standard_task_executor(
   run_definition_cid : String,
   task_key : String,
   expected_task : Int,
@@ -553,6 +639,26 @@ pub fn install_native_remote_standard_task_executor(
   })
   .map(executor => { executor, })
   .map_err(issue => Runtime(issue))
+}
+
+///|
+/// Installs one exact non-streaming input factory into the remote runtime.
+/// Application composition cannot inspect the dispatch or substitute a
+/// different input binding after registration.
+pub fn install_native_remote_standard_bound_task_executor(
+  run_definition_cid : String,
+  task_key : String,
+  expected_task : Int,
+  factory : NativeRemoteStandardBoundRunFactory,
+  limits : NativeRemoteStandardTaskLimits,
+) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue] {
+  install_native_remote_standard_task_executor(
+    run_definition_cid,
+    task_key,
+    expected_task,
+    (request, binding) => factory.resolve(request, binding),
+    limits,
+  )
 }
 
 ///|

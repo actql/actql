@@ -38,7 +38,10 @@ operation and returns failed release to the same MoonBit cleanup owner.
 Installing exact configured task factories in the complete Site executable
 remains an open product-composition step. The live Node bundle boundary and
 the native durable-Store route now install opaque factories directly; neither
-accepts a replacement input state machine from application composition.
+accepts a replacement input state machine from application composition. The
+native standard registry also accepts non-streaming Local and DuckDB Runs only
+through an opaque factory fixed to one exact input binding. Its earlier public
+request-resolver and raw Run-binding APIs have been removed.
 
 The JavaScript retained-row parser is not a product authority after this
 change. Its tests stay as independent physical fixtures; they are not used to
