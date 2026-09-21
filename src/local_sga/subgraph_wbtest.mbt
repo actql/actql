@@ -188,10 +188,36 @@ test "subgraph cancellation reclaims unpublished output" {
 }
 
 ///|
-test "subgraph rejects a selected identity missing from the graph" {
+test "subgraph rejects every missing identity before materialization" {
   let producer = source_owner()
   let source = subgraph_source_graph(producer, Ref(true))
-  let owner = subgraph_owner(producer, "[4]")
+  for (ids, missing) in [("[1,4]", 1), ("[4,1]", 0), ("[4]", 0)] {
+    let owner = subgraph_owner(producer, ids)
+    let execution = start_subgraph(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      @graph.prepare_producer_read(owner, 0, producer, source).unwrap(),
+      None,
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut failed = false
+    while !failed {
+      match advance_subgraph(execution, 1).unwrap() {
+        SubgraphContinue(_) => ()
+        SubgraphFailed(MissingSubgraphNodeIdentity(index), progress=0L, ..) => {
+          assert_eq(index, missing)
+          failed = true
+        }
+        _ => fail("missing subgraph identity was accepted")
+      }
+    }
+    assert_eq(cleanup_subgraph(execution), Ok(true))
+  }
+
+  let owner = subgraph_owner(producer, "[1,4]", edge_predicate=Some("false"))
   let execution = start_subgraph(
     @bounded.control(),
     sequence(owner),
@@ -206,11 +232,43 @@ test "subgraph rejects a selected identity missing from the graph" {
   while !failed {
     match advance_subgraph(execution, 1).unwrap() {
       SubgraphContinue(_) => ()
-      SubgraphFailed(MissingSubgraphNodeIdentity(0), ..) => failed = true
-      _ => fail("missing subgraph identity was accepted")
+      SubgraphFailed(MissingSubgraphNodeIdentity(1), progress=0L, ..) =>
+        failed = true
+      _ => fail("false edge predicate hid a missing identity")
     }
   }
   assert_eq(cleanup_subgraph(execution), Ok(true))
+
+  let empty_output = @graph.prepare_output(
+    producer,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let empty = @graph.finish_output(empty_output).unwrap()
+  let empty_owner = subgraph_owner(producer, "[1]")
+  let empty_execution = start_subgraph(
+    @bounded.control(),
+    sequence(empty_owner),
+    0,
+    @graph.prepare_producer_read(empty_owner, 0, producer, empty).unwrap(),
+    None,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut empty_failed = false
+  while !empty_failed {
+    match advance_subgraph(empty_execution, 1).unwrap() {
+      SubgraphContinue(_) => ()
+      SubgraphFailed(MissingSubgraphNodeIdentity(0), progress=0L, ..) =>
+        empty_failed = true
+      _ => fail("empty graph accepted a missing identity")
+    }
+  }
+  assert_eq(cleanup_subgraph(empty_execution), Ok(true))
 }
 
 ///|

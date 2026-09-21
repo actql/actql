@@ -5,6 +5,7 @@ priv enum SubgraphPhase {
   BeginNode
   CompareNodeIdentity
   VerifySelector
+  MaterializeNode
   PrepareNodePredicate
   EvaluateNodePredicate
   BeginEdge
@@ -102,12 +103,7 @@ fn select_subgraph_node(
   state : SubgraphState,
   selected : Bool,
 ) -> Result[Unit, SubgraphIssue] {
-  if selected {
-    match copy_subgraph_node(state, state.node) {
-      Ok(_) => state.selected[state.node] = true
-      Err(issue) => return Err(issue)
-    }
-  }
+  state.selected[state.node] = selected
   state.node += 1
   state.phase = BeginNode
   Ok(())
@@ -226,7 +222,7 @@ fn subgraph_step(
         let selector_count = state.selector_values.length()
         if state.selector >= selector_count {
           match select_subgraph_node(state, state.node_selected) {
-            Ok(_) => if state.node_selected { progress += 1 }
+            Ok(_) => ()
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
@@ -262,6 +258,20 @@ fn subgraph_step(
             )
           }
           state.selector += 1
+        } else {
+          state.node = 0
+          state.phase = MaterializeNode
+        }
+      MaterializeNode =>
+        if state.node < state.selected.length() {
+          used += 1
+          if state.selected[state.node] {
+            match copy_subgraph_node(state, state.node) {
+              Ok(_) => progress += 1
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+          state.node += 1
         } else {
           state.edge = 0
           state.phase = BeginEdge
@@ -330,7 +340,7 @@ fn subgraph_step(
             state.predicate_execution = None
             state.predicate_input.clear()
             match select_subgraph_node(state, selected) {
-              Ok(_) => if selected { progress += 1 }
+              Ok(_) => ()
               Err(issue) => return @bounded.Failed(issue, progress, used)
             }
           }
