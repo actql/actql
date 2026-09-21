@@ -2918,6 +2918,37 @@ test "registered Graph material crosses tasks to Graph and Bridge consumers" {
     @local_connector.cleanup_managed_provider(bridge_run).unwrap_or(false),
   )
   assert_true(@carrier_runtime.material_available(material))
+
+  let cancel_owner = carrier_graph_projection_owner(graph_owner, "node_rows")
+  let cancel_generated = task_test_generated(cancel_owner)
+  let cancel_view = @carrier_runtime.material_prepare_view(
+    material, cancel_owner, 0, graph_owner,
+  ).unwrap()
+  let cancel_provider = @local_sga_provider.provider(
+    limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      cancel_generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let cancel_run = @local_connector.start_managed_provider_with_inputs(
+    cancel_provider,
+    cancel_generated,
+    [@local_connector.managed_provider_carrier_input(cancel_view)],
+    10,
+    1000,
+  ).unwrap()
+  assert_true(@local_connector.cancel_managed_provider(cancel_run))
+  assert_true(
+    @local_connector.advance_managed_provider(cancel_run, 1).unwrap()
+    is @local_connector.Stopped(..),
+  )
+  assert_true(
+    @local_connector.cleanup_managed_provider(cancel_run).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(material))
   assert_true(@carrier_runtime.reclaim_material(material))
   assert_false(@carrier_runtime.material_available(material))
 }
