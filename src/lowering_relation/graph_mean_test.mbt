@@ -66,3 +66,49 @@ test "Graph mean emits checked property policies" {
     "[{\"id\":\"mean_graphs_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.mean_structural\",\"params\":{\"weights\":[1,2],\"support\":{\"nodes\":0.5,\"edges\":1},\"properties\":{\"nodes\":{\"score\":{\"mean\":{\"missing\":\"zero\",\"nulls\":\"exclude\"}}},\"edges\":{\"score\":\"exact_equal\"}}}}]",
   )
 }
+
+///|
+test "Graph mean exposes one typed ordered execution plan" {
+  let body = "{\"with\":[\"a\",\"b\",\"a\"],\"weights\":[1,2,3],\"support\":{\"nodes\":0.5,\"edges\":1},\"properties\":{\"nodes\":{\"score\":{\"mean\":{\"missing\":\"zero\",\"nulls\":\"exclude\"}}},\"edges\":{\"score\":\"exact_equal\"}}}"
+  let sequence = @lowering_relation.prepare_sequence(
+    graph_mean_owner(body, graph_union_property_carrier()),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.GraphMeanStep(mean)) else {
+    fail("prepared graph mean")
+  }
+  assert_eq(@lowering_relation.graph_mean_input_count(mean), 3)
+  assert_eq(@lowering_relation.graph_mean_input_step(mean, 0), None)
+  assert_eq(@lowering_relation.graph_mean_input_step(mean, 1), None)
+  assert_eq(@lowering_relation.graph_mean_input_step(mean, 2), None)
+  assert_eq(
+    @lowering_relation.graph_mean_input_target(mean, 0),
+    Some(@pipeline.Input(0)),
+  )
+  assert_eq(
+    @lowering_relation.graph_mean_input_target(mean, 1),
+    Some(@pipeline.Input(1)),
+  )
+  assert_eq(
+    @lowering_relation.graph_mean_input_target(mean, 2),
+    Some(@pipeline.Input(0)),
+  )
+  assert_eq(@lowering_relation.graph_mean_weight(mean, 0), Some(1.0))
+  assert_eq(@lowering_relation.graph_mean_weight(mean, 1), Some(2.0))
+  assert_eq(@lowering_relation.graph_mean_weight(mean, 2), Some(3.0))
+  assert_eq(@lowering_relation.graph_mean_support(mean, @graph.Nodes), 0.5)
+  assert_eq(@lowering_relation.graph_mean_support(mean, @graph.Edges), 1.0)
+  assert_eq(
+    @lowering_relation.graph_mean_property_name(mean, @graph.Nodes, 0),
+    Some("score"),
+  )
+  assert_eq(
+    @lowering_relation.graph_mean_property_strategy(mean, @graph.Nodes, 0),
+    Some(@graph.WeightedMean(@graph.ZeroMissing, @graph.ExcludeNull)),
+  )
+  assert_eq(
+    @lowering_relation.graph_mean_property_strategy(mean, @graph.Edges, 0),
+    Some(@graph.EqualValues),
+  )
+}

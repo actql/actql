@@ -5,6 +5,69 @@ struct PreparedGraphMean {
 }
 
 ///|
+/// Number of ordered semantic input occurrences. Repeated producers remain
+/// distinct occurrences and must not be deduplicated by an executor.
+pub fn graph_mean_input_count(value : PreparedGraphMean) -> Int {
+  @graph.mean_sample_count(value.options)
+}
+
+///|
+pub fn graph_mean_input_step(value : PreparedGraphMean, index : Int) -> Int? {
+  node_input_step(value.node, index)
+}
+
+///|
+pub fn graph_mean_input_target(
+  value : PreparedGraphMean,
+  index : Int,
+) -> @pipeline.Target? {
+  node_input_target(value.node, index)
+}
+
+///|
+pub fn graph_mean_weight(value : PreparedGraphMean, index : Int) -> Double? {
+  @graph.mean_weight_at(value.options, index)
+}
+
+///|
+pub fn graph_mean_support(
+  value : PreparedGraphMean,
+  entity : @graph.EntityKind,
+) -> Double {
+  @graph.mean_support(value.options, entity)
+}
+
+///|
+pub fn graph_mean_property_count(
+  value : PreparedGraphMean,
+  entity : @graph.EntityKind,
+) -> Int {
+  @graph.mean_property_count(value.options, entity)
+}
+
+///|
+pub fn graph_mean_property_name(
+  value : PreparedGraphMean,
+  entity : @graph.EntityKind,
+  index : Int,
+) -> String? {
+  @graph.mean_property_at(value.options, entity, index).map(property => {
+    property.name
+  })
+}
+
+///|
+pub fn graph_mean_property_strategy(
+  value : PreparedGraphMean,
+  entity : @graph.EntityKind,
+  index : Int,
+) -> @graph.MeanStrategy? {
+  @graph.mean_property_at(value.options, entity, index).map(property => {
+    property.strategy
+  })
+}
+
+///|
 pub(all) enum GraphMeanIssue {
   InvalidGraphMeanLimits
   InvalidGraphMeanWiring

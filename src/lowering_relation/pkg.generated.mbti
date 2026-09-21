@@ -325,6 +325,22 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_mean_input_count(PreparedGraphMean) -> Int
+
+pub fn graph_mean_input_step(PreparedGraphMean, Int) -> Int?
+
+pub fn graph_mean_input_target(PreparedGraphMean, Int) -> @pipeline_typing.Target?
+
+pub fn graph_mean_property_count(PreparedGraphMean, @graph_typing.EntityKind) -> Int
+
+pub fn graph_mean_property_name(PreparedGraphMean, @graph_typing.EntityKind, Int) -> String?
+
+pub fn graph_mean_property_strategy(PreparedGraphMean, @graph_typing.EntityKind, Int) -> @graph_typing.MeanStrategy?
+
+pub fn graph_mean_support(PreparedGraphMean, @graph_typing.EntityKind) -> Double
+
+pub fn graph_mean_weight(PreparedGraphMean, Int) -> Double?
+
 pub fn graph_reach_direction(PreparedGraphReach) -> @graph_typing.Direction
 
 pub fn graph_reach_max_depth(PreparedGraphReach) -> Int?
