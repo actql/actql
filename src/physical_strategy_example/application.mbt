@@ -3,6 +3,8 @@ struct Application {
   acquisition : @acquisition_host.NativeHostConfiguration
   graph : @strategy.CheckedDAG
   registry : @connector.CapabilityRegistry
+  input_sequence : @query.QuerySequence
+  program : @context.ProgramSourceIdentity
   generated : Array[@execution.GeneratedSequence]
   data : DataProfile?
 }
@@ -296,6 +298,8 @@ fn prepare_application_internal(
     ),
     graph,
     registry,
+    input_sequence: sequence,
+    program: identity,
     generated: generated[1:].to_owned(),
     data,
   }
@@ -311,6 +315,23 @@ fn core_application_acquisition(
 ///|
 fn core_application_graph(app : Application) -> @strategy.CheckedDAG {
   app.graph
+}
+
+///|
+/// Returns the checked acquisition sequence fixed by this application. Native
+/// Site composition uses this value to admit an exact transferred input
+/// without reparsing or reconstructing the Program.
+pub fn application_input_sequence(app : Application) -> @query.QuerySequence {
+  app.input_sequence
+}
+
+///|
+/// Returns the exact checked Program identity used by the application graph.
+/// It is retained separately from physical input and Connector selection.
+pub fn application_program_identity(
+  app : Application,
+) -> @context.ProgramSourceIdentity {
+  app.program
 }
 
 ///|

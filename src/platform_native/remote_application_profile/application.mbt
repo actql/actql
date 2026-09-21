@@ -90,6 +90,18 @@ pub fn bind_native_remote_application_run(
 }
 
 ///|
+/// Transfers an application occurrence and its Captured DAG output owner into
+/// a Store or direct input factory. The factory adds the physical input owner
+/// only after it has verified and captured the exact transferred relation.
+pub fn prepare_native_remote_application_compute_owner(
+  run : NativeRemoteApplicationRun,
+) -> @remote_standard.NativeRemoteStandardComputeOwner {
+  @remote_standard.prepare_native_remote_standard_compute_owner(run.strategy, () => {
+    run.finish_outputs()
+  })
+}
+
+///|
 fn NativeRemoteApplicationRun::finish_outputs(
   self : NativeRemoteApplicationRun,
 ) -> Bool {

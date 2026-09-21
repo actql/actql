@@ -16,6 +16,8 @@ pub fn bind_native_remote_application_run(NativeRemoteApplicationRun, () -> Bool
 
 pub fn open_native_remote_application_run(@physical_strategy_example.Application, @execution_query.CapturedInputSource, @physical_resources.LedgerLimits, Int64, Bool, @host_native.NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String) -> Result[NativeRemoteApplicationRun, NativeRemoteApplicationRunIssue]
 
+pub fn prepare_native_remote_application_compute_owner(NativeRemoteApplicationRun) -> @remote_standard_host.NativeRemoteStandardComputeOwner
+
 // Errors
 
 // Types and methods

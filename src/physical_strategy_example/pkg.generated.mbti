@@ -5,9 +5,11 @@ import {
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/duckdb/standard_host",
   "actql/actql/connectors_builtin",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/pipeline_check_context",
 }
 
 // Values
@@ -25,6 +27,8 @@ pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64, 
 
 pub fn application_graph(Application) -> @physical_strategy.CheckedDAG
 
+pub fn application_input_sequence(Application) -> @execution_query.QuerySequence
+
 pub fn application_ledger() -> @physical_resources.Ledger
 
 pub fn application_ledger_limits(@physical_resources.Ledger) -> @physical_resources.LedgerLimits
@@ -38,6 +42,8 @@ pub fn application_materializing_dispatch(Application, @physical_strategy.Captur
 pub fn application_output_cid(@physical_strategy.CapturedDAG, Int) -> String?
 
 pub fn application_profile_output_cid(Application, @physical_strategy.CapturedDAG, Int) -> String?
+
+pub fn application_program_identity(Application) -> @pipeline_check_context.ProgramSourceIdentity
 
 pub fn application_retained_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
