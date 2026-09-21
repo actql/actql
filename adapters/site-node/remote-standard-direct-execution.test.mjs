@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createRemoteStandardDirectExecution} from
+import {
+  createRemoteStandardDirectExecution,
+  prepareInstalledRemoteStandardDirectRegistration,
+} from
   './remote-standard-direct-execution.mjs';
 
 function fixture({rejectFrame = false, cleanupResults = [true]} = {}) {
@@ -148,4 +151,57 @@ test('MoonBit-owned failed input cleanup remains retryable', async () => {
     'retry-cleanup',
     'retry-cleanup',
   ]);
+});
+
+test('verified active bundle supplies the exact session factory', async () => {
+  const setup = fixture();
+  const bundle = Object.freeze({component: 'verified-component'});
+  const manifest = Object.freeze({runtimeBundleCid: 'bundle-a'});
+  let loads = 0;
+  const registration = await prepareInstalledRemoteStandardDirectRegistration({
+    receiver: setup.receiver,
+    loadSessionControl(value) {
+      assert.equal(value, bundle);
+      loads++;
+      return setup.control;
+    },
+    bundleStore: Object.freeze({
+      active: () => Object.freeze({manifest}),
+      async verify(runtimeBundleCid) {
+        assert.equal(runtimeBundleCid, 'bundle-a');
+        return bundle;
+      },
+    }),
+    bundleControl: Object.freeze({
+      identity: value => value.runtimeBundleCid,
+    }),
+    control: Object.freeze({
+      managedOutputEvidenceKind: 'managed-output',
+      registerExecutionCapability: value => Object.freeze({value}),
+      registerEvidenceIssuer: value => Object.freeze({value}),
+      managedRuntimeRegistrationScope: () => Object.freeze([
+        'site-a',
+        '1',
+        'bundle-a',
+        'local',
+        'local/1',
+        'strategy/1',
+        'operation-a',
+        'issuer-a',
+      ]),
+    }),
+    site: Object.freeze({kind: 'site'}),
+    runtimeBundleCid: 'bundle-a',
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
+    operationCapabilityCid: 'operation-a',
+    evidenceKind: 'managed-output',
+    issuerCapabilityCid: 'issuer-a',
+  });
+  assert.equal(loads, 1);
+  assert.equal(await registration.execute({
+    dispatch: setup.dispatch,
+    inputBinding: setup.inputBinding,
+  }), setup.output);
 });

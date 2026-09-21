@@ -1,3 +1,6 @@
+import {prepareInstalledRemoteRuntimeRegistration} from
+  './remote-dispatch-runtime.mjs';
+
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
@@ -112,4 +115,26 @@ export function createRemoteStandardDirectExecution({receiver, control} = {}) {
       throw owned.envelope;
     }
   };
+}
+
+/**
+ * Register one direct-input task from the exact verified active component.
+ * The component loader returns only a MoonBit session control; it cannot
+ * replace the common runtime registration or install an arbitrary executor.
+ */
+export async function prepareInstalledRemoteStandardDirectRegistration({
+  receiver,
+  loadSessionControl,
+  ...registration
+} = {}) {
+  if (typeof loadSessionControl !== 'function') {
+    fail('InvalidRemoteStandardSessionLoader');
+  }
+  return await prepareInstalledRemoteRuntimeRegistration({
+    ...registration,
+    load: async bundle => createRemoteStandardDirectExecution({
+      receiver,
+      control: await loadSessionControl(bundle),
+    }),
+  });
 }
