@@ -6,6 +6,12 @@ priv enum GraftPhase {
 }
 
 ///|
+priv enum StructuralMode {
+  Add
+  Subtract
+} derive(Eq)
+
+///|
 priv enum GraftSource {
   StorageSource(@storage.Storage)
   ViewSource(@lifecycle.ProducerView)
@@ -14,6 +20,7 @@ priv enum GraftSource {
 ///|
 priv struct GraftState {
   sources : Array[GraftSource]
+  mode : StructuralMode
   mut output : @graph.OutputBuilder?
   node_fields : Int
   edge_fields : Int
@@ -68,6 +75,10 @@ fn valid_graft_step(
         (
           @lower.operation(node) == "SGA.union_structural" &&
           @lower.graph_structural_has_only_exact_property_strategies(structural)
+        ) ||
+        (
+          @lower.operation(node) == "SGA.diff_structural" &&
+          !@lower.graph_structural_has_property_strategies(structural)
         )
       )
     Some(@lower.GraphUnionStep(union)) =>
@@ -75,6 +86,25 @@ fn valid_graft_step(
       @lower.graph_union_input_count(union) == input_count &&
       @lower.graph_union_has_only_exact_property_strategies(union)
     _ => false
+  }
+}
+
+///|
+fn structural_mode(
+  sequence : @lower.PreparedSequence,
+  step : Int,
+) -> StructuralMode? {
+  guard @lower.node_at(
+      @lower.bound_preparation(@lower.sequence_owner(sequence)),
+      step,
+    )
+    is Some(node) else {
+    return None
+  }
+  if @lower.operation(node) == "SGA.diff_structural" {
+    Some(Subtract)
+  } else {
+    Some(Add)
   }
 }
 
@@ -112,6 +142,69 @@ fn advance_graft_source(state : GraftState) -> Unit {
 }
 
 ///|
+fn subtract_node_step(
+  state : GraftState,
+  left : @storage.Storage,
+  right : @storage.Storage,
+) -> Result[Unit, GraftIssue] {
+  guard state.output is Some(output) &&
+    @storage.node_identity(left, state.record_index) is Some(identity) else {
+    return Err(GraftInputUnavailable)
+  }
+  let shared = match @storage.node_index(right, identity) {
+    Ok(value) => value is Some(_)
+    Err(_) => return Err(GraftInputUnavailable)
+  }
+  if !shared {
+    match copy_graph_node(left, output, 0, state.record_index) {
+      Ok(_) => ()
+      Err(Unavailable) => return Err(GraftInputUnavailable)
+      Err(GraphCopyIssue::Output(issue)) => return Err(GraftOutput(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
+fn subtract_edge_step(
+  state : GraftState,
+  left : @storage.Storage,
+  right : @storage.Storage,
+) -> Result[Unit, GraftIssue] {
+  guard state.output is Some(output) &&
+    @storage.edge_endpoints(left, state.record_index)
+    is Some((source_node, target_node)) &&
+    @storage.node_identity(left, source_node) is Some(source_id) &&
+    @storage.node_identity(left, target_node) is Some(target_id) &&
+    @storage.edge_label(left, state.record_index) is Some(label) else {
+    return Err(GraftInputUnavailable)
+  }
+  let shared = match @storage.edge_index(right, source_id, target_id, label) {
+    Ok(value) => value is Some(_)
+    Err(_) => return Err(GraftInputUnavailable)
+  }
+  if shared {
+    return Ok(())
+  }
+  let source_present = match @graph.contains_declared_node(output, source_id) {
+    Ok(value) => value
+    Err(issue) => return Err(GraftOutput(issue))
+  }
+  let target_present = match @graph.contains_declared_node(output, target_id) {
+    Ok(value) => value
+    Err(issue) => return Err(GraftOutput(issue))
+  }
+  if source_present && target_present {
+    match copy_graph_edge(left, output, 0, state.record_index) {
+      Ok(_) => ()
+      Err(Unavailable) => return Err(GraftInputUnavailable)
+      Err(GraphCopyIssue::Output(issue)) => return Err(GraftOutput(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
 fn graft_step(
   state : GraftState,
   quantum : Int,
@@ -141,6 +234,22 @@ fn graft_step(
             }
         }
         if state.record_index < count {
+          if state.mode == Subtract {
+            guard state.sources.length() == 2 &&
+              state.sources[0] is StorageSource(left) &&
+              state.sources[1] is StorageSource(right) else {
+              return @bounded.Failed(InvalidGraftKernel, progress, used)
+            }
+            match subtract_node_step(state, left, right) {
+              Ok(_) => {
+                state.record_index += 1
+                used += 1
+                progress += 1
+                continue
+              }
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
           guard state.output is Some(output) else {
             return @bounded.Failed(InvalidGraftKernel, progress, used)
           }
@@ -190,6 +299,22 @@ fn graft_step(
             }
         }
         if state.record_index < count {
+          if state.mode == Subtract {
+            guard state.sources.length() == 2 &&
+              state.sources[0] is StorageSource(left) &&
+              state.sources[1] is StorageSource(right) else {
+              return @bounded.Failed(InvalidGraftKernel, progress, used)
+            }
+            match subtract_edge_step(state, left, right) {
+              Ok(_) => {
+                state.record_index += 1
+                used += 1
+                progress += 1
+                continue
+              }
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
           guard state.output is Some(output) else {
             return @bounded.Failed(InvalidGraftKernel, progress, used)
           }
@@ -220,6 +345,8 @@ fn graft_step(
             Err(GraphCopyIssue::Output(issue)) =>
               return @bounded.Failed(GraftOutput(issue), progress, used)
           }
+        } else if state.mode == Subtract {
+          state.phase = Finish
         } else {
           advance_graft_source(state)
         }
@@ -262,6 +389,9 @@ pub fn start_graft(
   guard valid_graft_step(sequence, step, inputs.length()) else {
     return Err(InvalidGraftKernel)
   }
+  guard structural_mode(sequence, step) is Some(mode) else {
+    return Err(InvalidGraftKernel)
+  }
   let sources = []
   for index, input in inputs {
     guard @graph.producer_read_matches_operation_input(
@@ -275,6 +405,13 @@ pub fn start_graft(
   guard sources[0] is StorageSource(first) &&
     @storage.carrier(first) is @carrier.GraphValue(contract) else {
     return Err(GraftInputUnavailable)
+  }
+  if mode == Subtract &&
+    (
+      @carrier.field_count(@carrier.graph_node_properties(contract)) != 0 ||
+      @carrier.field_count(@carrier.graph_edge_properties(contract)) != 0
+    ) {
+    return Err(InvalidGraftKernel)
   }
   if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
     return Err(InvalidGraftLimits)
@@ -293,6 +430,7 @@ pub fn start_graft(
   }
   let state : GraftState = {
     sources,
+    mode,
     output: Some(output),
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
@@ -322,6 +460,9 @@ pub fn start_graft_views(
 ) -> Result[GraftExecution, GraftIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard valid_graft_step(sequence, step, inputs.length()) else {
+    return Err(InvalidGraftKernel)
+  }
+  guard structural_mode(sequence, step) is Some(mode) && mode == Add else {
     return Err(InvalidGraftKernel)
   }
   let sources = []
@@ -359,6 +500,7 @@ pub fn start_graft_views(
   }
   let state : GraftState = {
     sources,
+    mode,
     output: Some(output),
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),

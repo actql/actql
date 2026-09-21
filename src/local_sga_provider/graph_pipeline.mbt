@@ -101,9 +101,22 @@ fn fail_execution(
 fn direct_structural_input_count(
   sequence : @execution.GeneratedSequence,
 ) -> Int? {
+  let owner = @execution.generated_sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+    return None
+  }
   match
     @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
-    Some(@lower.GraphStructuralStep(_)) => Some(2)
+    Some(@lower.GraphStructuralStep(structural)) =>
+      if @lower.operation(node) == "SGA.graft" ||
+        (
+          @lower.operation(node) == "SGA.union_structural" &&
+          @lower.graph_structural_has_only_exact_property_strategies(structural)
+        ) {
+        Some(2)
+      } else {
+        None
+      }
     Some(@lower.GraphUnionStep(union)) =>
       if !@lower.graph_union_has_only_exact_property_strategies(union) {
         None
@@ -180,6 +193,10 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         (
           @lower.operation(node) == "SGA.union_structural" &&
           @lower.graph_structural_has_only_exact_property_strategies(structural)
+        ) ||
+        (
+          @lower.operation(node) == "SGA.diff_structural" &&
+          !@lower.graph_structural_has_property_strategies(structural)
         )
       (current, @lower.GraphUnionStep(union)) if current < count - 1 =>
         @lower.operation(node) == "SGA.union_structural" &&

@@ -93,6 +93,122 @@ fn union_owner(
 }
 
 ///|
+fn empty_graph_contract() -> @carrier.Carrier {
+  let number_contract = @contract.primitive(
+    @contract.NumberType,
+    nullable=false,
+  )
+  let empty = @carrier.rows(
+    [],
+    field_set=@carrier.Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  @carrier.graph(
+    number_contract,
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+    label_contract=Some(
+      @contract.primitive(@contract.StringType, nullable=true),
+    ),
+  ).unwrap()
+}
+
+///|
+fn empty_graph_owner() -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_carriers(
+      cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
+      [("g", empty_graph_contract())],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn subtract_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor("[{\"from\":\"left\",\"subtract_graphs\":{\"with\":\"right\"}}]"),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn empty_graph(
+  owner : @lower.BoundPrepared,
+  nodes : Array[Double],
+  edges : Array[(Double, Double, String)],
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  for identity in nodes {
+    @graph.append_node(output, number(identity), []).unwrap()
+  }
+  for (source, target, label) in edges {
+    @graph.append_edge(
+      output,
+      number(source),
+      number(target),
+      Some(text(label, nullable=true)),
+      [],
+    ).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
 fn reordered_graft_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
@@ -497,6 +613,108 @@ test "finite-list union applies explicit exact equality at every fold" {
     advance_graft(rejected, 8).unwrap()
     is GraftFailed(
       GraftOutput(@graph.Storage(@storage.DuplicateNodeConflict)),
+      progress=1L,
+      work=1L
+    ),
+  )
+  assert_eq(cleanup_graft(rejected), Ok(true))
+}
+
+///|
+test "structural subtraction removes identities and closes endpoints" {
+  let left_owner = empty_graph_owner()
+  let right_owner = empty_graph_owner()
+  let owner = subtract_owner(left_owner, right_owner)
+  let left = empty_graph(left_owner, [1.0, 2.0, 3.0], [
+    (1.0, 2.0, "a"),
+    (2.0, 3.0, "b"),
+    (1.0, 3.0, "c"),
+  ])
+  let right = empty_graph(right_owner, [2.0], [])
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let output = match advance_graft(execution, 16).unwrap() {
+    GraftComplete(output, progress~, work~) => {
+      assert_eq(progress, 6L)
+      assert_eq(work, 6L)
+      output
+    }
+    GraftContinue(progress~, work~) =>
+      abort(
+        "subtraction continued " + progress.to_string() + "/" + work.to_string(),
+      )
+    GraftFailed(_, progress~, work~) =>
+      abort(
+        "subtraction failed " + progress.to_string() + "/" + work.to_string(),
+      )
+    GraftStopped(_, progress~, work~) =>
+      abort(
+        "subtraction stopped " + progress.to_string() + "/" + work.to_string(),
+      )
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(result), 2)
+  assert_eq(@storage.edge_count(result), 1)
+  assert_true(@storage.node_index(result, number(1.0)).unwrap() is Some(_))
+  assert_true(@storage.node_index(result, number(2.0)).unwrap() is None)
+  assert_true(@storage.node_index(result, number(3.0)).unwrap() is Some(_))
+  assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
+test "structural subtraction observes cancellation and exact capacity" {
+  let left_owner = empty_graph_owner()
+  let right_owner = empty_graph_owner()
+  let owner = subtract_owner(left_owner, right_owner)
+  let left = empty_graph(left_owner, [1.0, 2.0], [])
+  let right = empty_graph(right_owner, [], [])
+  let control = @bounded.control()
+  let cancelled = start_graft(
+    control,
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_graft(cancelled, 1).unwrap() is GraftContinue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_graft(cancelled, 1).unwrap() is GraftStopped(_))
+  assert_eq(cleanup_graft(cancelled), Ok(true))
+
+  let exact = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_nodes: 2, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_graft(exact, 4).unwrap() is GraftComplete(_))
+  assert_eq(cleanup_graft(exact), Ok(true))
+
+  let rejected = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_nodes: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(rejected, 4).unwrap()
+    is GraftFailed(
+      GraftOutput(@graph.Storage(@storage.NodeLimit)),
       progress=1L,
       work=1L
     ),
