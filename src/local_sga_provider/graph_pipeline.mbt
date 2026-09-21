@@ -75,11 +75,7 @@ fn issue() -> @connector.FixedComputeIssue {
 fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   let hop_count = @lower.graph_traverse_hop_count(value)
   let bounds = if @lower.graph_traverse_patterned(value) {
-    if hop_count == 1 {
-      Some((1L, 1L))
-    } else {
-      None
-    }
+    Some((hop_count.to_int64(), hop_count.to_int64()))
   } else {
     @lower.graph_traverse_bounds(value)
   }
@@ -92,8 +88,16 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
     @lower.graph_traverse_start_relation_field(value) is Some(_) ||
     @lower.graph_traverse_start_predicate(value) is Some(_)
   ) &&
-  hop_count == 1 &&
-  @lower.graph_traverse_hop_direction(value, 0) is Some(_)
+  hop_count > 0 &&
+  ({
+    let mut valid = true
+    for hop in 0..<hop_count {
+      if @lower.graph_traverse_hop_direction(value, hop) is None {
+        valid = false
+      }
+    }
+    valid
+  })
 }
 
 ///|

@@ -18,9 +18,9 @@ pub(all) enum TraverseIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Start the homogeneous, literal-ID, node-emitting traversal kernel.
-/// Other checked traversal forms remain unsupported until their exact typed
-/// selector, hop, and path contracts are implemented.
+/// Start a finite node-emitting traversal kernel.
+/// Homogeneous bounds and authored hop patterns share the managed lifecycle,
+/// while path emission remains a separate unsupported result contract.
 pub fn start_traverse(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -40,12 +40,9 @@ pub fn start_traverse(
     return Err(UnsupportedTraverseKernel)
   }
   let hop_count = @lower.graph_traverse_hop_count(prepared)
-  let bounds = if @lower.graph_traverse_patterned(prepared) {
-    if hop_count == 1 {
-      Some((1L, 1L))
-    } else {
-      None
-    }
+  let patterned = @lower.graph_traverse_patterned(prepared)
+  let bounds = if patterned {
+    Some((hop_count.to_int64(), hop_count.to_int64()))
   } else {
     @lower.graph_traverse_bounds(prepared)
   }
@@ -58,10 +55,15 @@ pub fn start_traverse(
       @lower.graph_traverse_start_relation_field(prepared) is Some(_) ||
       @lower.graph_traverse_start_predicate(prepared) is Some(_)
     ) &&
-    hop_count == 1 &&
+    hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     @graph.producer_read_storage(input) is Some(source) else {
     return Err(UnsupportedTraverseKernel)
+  }
+  for hop in 0..<hop_count {
+    guard @lower.graph_traverse_hop_direction(prepared, hop) is Some(_) else {
+      return Err(UnsupportedTraverseKernel)
+    }
   }
   let starts = match
     (
@@ -101,9 +103,13 @@ pub fn start_traverse(
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()
     _ => max_rows
   }
-  let edge_filter = match @lower.graph_traverse_hop_type_count(prepared, 0) {
-    None => AllReachEdges
-    Some(_) => TraversalReachEdgeTypes(prepared, 0)
+  let edge_filter = if patterned {
+    AllReachEdges
+  } else {
+    match @lower.graph_traverse_hop_type_count(prepared, 0) {
+      None => AllReachEdges
+      Some(_) => TraversalReachEdgeTypes(prepared, 0)
+    }
   }
   start_reach_state(
     control,
@@ -114,6 +120,11 @@ pub fn start_traverse(
     source,
     @lower.graph_traverse_output_schema(prepared),
     starts,
+    if patterned {
+      Some(prepared)
+    } else {
+      None
+    },
     direction,
     edge_filter,
     @lower.graph_traverse_hop_edge_predicate(prepared, 0),

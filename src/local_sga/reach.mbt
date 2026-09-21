@@ -8,6 +8,7 @@ priv enum ReachPhase {
   EvaluateHopEdgePredicate
   PrepareHopNodePredicate
   EvaluateHopNodePredicate
+  ScanHopEdgeTypes
   VisitHopNeighbor
   CollectStarts
   InitializeNodes
@@ -24,6 +25,7 @@ priv enum ReachPhase {
   CopyStartPass
   StartNext
   ResetDepth
+  CopyPatternFrontier
   PopNode
   ScanOutgoing
   ScanIncoming
@@ -59,6 +61,7 @@ priv struct ReachState {
   graph : @carrier.Graph
   schema : @schema.Schema
   starts : ReachStarts
+  pattern : @lower.PreparedGraphTraverse?
   direction : @graph_type.Direction
   edge_filter : ReachEdgeFilter
   edge_predicate : @lower.Expression?
@@ -80,6 +83,7 @@ priv struct ReachState {
   mut candidate_edge : Int
   mut candidate_node : Int
   mut neighbor_resume : ReachPhase
+  mut pattern_hop : Int
   mut edge_type_index : Int
   mut row_index : Int
   mut column : Int
@@ -341,7 +345,14 @@ fn visit_reach_neighbor(
     state.depth.get(state.current_node) is Some(parent_depth) else {
     return Err(ReachInputUnavailable)
   }
-  if depth < 0 {
+  if state.pattern is Some(_) {
+    let next_depth = state.pattern_hop + 1
+    if depth != next_depth {
+      state.depth[node] = next_depth
+      state.selected.push(node)
+      state.scratch.push(None)
+    }
+  } else if depth < 0 {
     let next_depth = parent_depth + 1
     state.depth[node] = next_depth
     state.queue.push(node)
@@ -351,6 +362,57 @@ fn visit_reach_neighbor(
     }
   }
   Ok(())
+}
+
+///|
+fn reach_direction(state : ReachState) -> @graph_type.Direction? {
+  match state.pattern {
+    Some(pattern) =>
+      @lower.graph_traverse_hop_direction(pattern, state.pattern_hop)
+    None => Some(state.direction)
+  }
+}
+
+///|
+fn reach_edge_predicate(state : ReachState) -> @lower.Expression? {
+  match state.pattern {
+    Some(pattern) =>
+      @lower.graph_traverse_hop_edge_predicate(pattern, state.pattern_hop)
+    None => state.edge_predicate
+  }
+}
+
+///|
+fn reach_node_predicate(state : ReachState) -> @lower.Expression? {
+  match state.pattern {
+    Some(pattern) =>
+      @lower.graph_traverse_hop_node_predicate(pattern, state.pattern_hop)
+    None => state.node_predicate
+  }
+}
+
+///|
+fn reach_pattern_hop_type_count(state : ReachState) -> Int? {
+  state.pattern.bind(pattern => {
+    @lower.graph_traverse_hop_type_count(pattern, state.pattern_hop)
+  })
+}
+
+///|
+fn reach_pattern_hop_type_matches(
+  state : ReachState,
+  edge : Int,
+  type_index : Int,
+) -> Bool {
+  guard state.pattern is Some(pattern) &&
+    @lower.graph_traverse_hop_type_at(pattern, state.pattern_hop, type_index)
+    is Some(expected) else {
+    return false
+  }
+  match @storage.edge_label(state.source, edge) {
+    Some(Some({ value: @value.Text(actual), .. })) => actual == expected
+    _ => false
+  }
 }
 
 ///|
@@ -365,10 +427,30 @@ fn prepare_reach_neighbor_predicate(
   state.neighbor_resume = next_phase
   state.predicate_field = 0
   state.predicate_input.clear()
-  state.phase = if state.edge_predicate is Some(_) {
+  state.phase = if reach_edge_predicate(state) is Some(_) {
     PrepareHopEdgePredicate
   } else {
     PrepareHopNodePredicate
+  }
+}
+
+///|
+fn prepare_reach_neighbor(
+  state : ReachState,
+  edge : Int,
+  node : Int,
+  next_phase : ReachPhase,
+) -> Unit {
+  state.candidate_edge = edge
+  state.candidate_node = node
+  state.neighbor_resume = next_phase
+  match reach_pattern_hop_type_count(state) {
+    Some(0) => state.phase = next_phase
+    Some(_) => {
+      state.edge_type_index = 0
+      state.phase = ScanHopEdgeTypes
+    }
+    None => prepare_reach_neighbor_predicate(state, edge, node, next_phase)
   }
 }
 
@@ -769,17 +851,41 @@ fn reach_step(
             state.scratch.push(None)
           }
           state.index = 0
+          state.pattern_hop = 0
+          state.phase = PopNode
+        }
+      CopyPatternFrontier =>
+        if state.copy_index < state.selected.length() {
+          state.queue.push(state.selected[state.copy_index])
+          state.copy_index += 1
+          used += 1
+        } else {
+          state.selected.clear()
+          state.scratch.clear()
+          state.index = 0
+          state.pattern_hop += 1
           state.phase = PopNode
         }
       PopNode =>
         if state.index >= state.queue.length() {
-          state.width = 1
-          state.phase = PrepareSort
+          match state.pattern {
+            Some(pattern) if state.pattern_hop + 1 <
+              @lower.graph_traverse_hop_count(pattern) => {
+              state.queue.clear()
+              state.copy_index = 0
+              state.phase = CopyPatternFrontier
+            }
+            _ => {
+              state.width = 1
+              state.phase = PrepareSort
+            }
+          }
         } else {
           state.current_node = state.queue[state.index]
           state.index += 1
           state.neighbor_index = state.out_start[state.current_node]
-          state.phase = if state.depth[state.current_node] >= state.max_depth {
+          state.phase = if state.pattern is None &&
+            state.depth[state.current_node] >= state.max_depth {
             PopNode
           } else {
             ScanOutgoing
@@ -787,7 +893,10 @@ fn reach_step(
           used += 1
         }
       ScanOutgoing => {
-        let enabled = state.direction != @graph_type.Incoming
+        guard reach_direction(state) is Some(direction) else {
+          return @bounded.Failed(InvalidReachKernel, progress, used)
+        }
+        let enabled = direction != @graph_type.Incoming
         let end = state.out_start[state.current_node + 1]
         if !enabled || state.neighbor_index >= end {
           state.neighbor_index = state.in_start[state.current_node]
@@ -799,18 +908,14 @@ fn reach_step(
           guard @storage.edge_endpoints(state.source, edge) is Some((_, node)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
-          if state.edge_predicate is Some(_) || state.node_predicate is Some(_) {
-            prepare_reach_neighbor_predicate(state, edge, node, ScanOutgoing)
-          } else {
-            match visit_reach_neighbor(state, node) {
-              Ok(_) => ()
-              Err(issue) => return @bounded.Failed(issue, progress, used)
-            }
-          }
+          prepare_reach_neighbor(state, edge, node, ScanOutgoing)
         }
       }
       ScanIncoming => {
-        let enabled = state.direction != @graph_type.Outgoing
+        guard reach_direction(state) is Some(direction) else {
+          return @bounded.Failed(InvalidReachKernel, progress, used)
+        }
+        let enabled = direction != @graph_type.Outgoing
         let end = state.in_start[state.current_node + 1]
         if !enabled || state.neighbor_index >= end {
           state.phase = PopNode
@@ -821,14 +926,29 @@ fn reach_step(
           guard @storage.edge_endpoints(state.source, edge) is Some((node, _)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
-          if state.edge_predicate is Some(_) || state.node_predicate is Some(_) {
-            prepare_reach_neighbor_predicate(state, edge, node, ScanIncoming)
-          } else {
-            match visit_reach_neighbor(state, node) {
-              Ok(_) => ()
-              Err(issue) => return @bounded.Failed(issue, progress, used)
-            }
-          }
+          prepare_reach_neighbor(state, edge, node, ScanIncoming)
+        }
+      }
+      ScanHopEdgeTypes => {
+        guard reach_pattern_hop_type_count(state) is Some(type_count) else {
+          return @bounded.Failed(InvalidReachKernel, progress, used)
+        }
+        let matches = reach_pattern_hop_type_matches(
+          state,
+          state.candidate_edge,
+          state.edge_type_index,
+        )
+        state.edge_type_index += 1
+        used += 1
+        if matches {
+          prepare_reach_neighbor_predicate(
+            state,
+            state.candidate_edge,
+            state.candidate_node,
+            state.neighbor_resume,
+          )
+        } else if state.edge_type_index >= type_count {
+          state.phase = state.neighbor_resume
         }
       }
       PrepareHopEdgePredicate =>
@@ -847,7 +967,7 @@ fn reach_step(
           state.predicate_input[name] = value
           state.predicate_field += 1
         } else {
-          guard state.edge_predicate is Some(predicate) else {
+          guard reach_edge_predicate(state) is Some(predicate) else {
             return @bounded.Failed(InvalidReachKernel, progress, used)
           }
           match
@@ -889,7 +1009,7 @@ fn reach_step(
             state.predicate_field = 0
             state.phase = if !selected {
               state.neighbor_resume
-            } else if state.node_predicate is Some(_) {
+            } else if reach_node_predicate(state) is Some(_) {
               PrepareHopNodePredicate
             } else {
               VisitHopNeighbor
@@ -913,7 +1033,7 @@ fn reach_step(
           state.predicate_input[name] = value
           state.predicate_field += 1
         } else {
-          guard state.node_predicate is Some(predicate) else {
+          guard reach_node_predicate(state) is Some(predicate) else {
             state.phase = VisitHopNeighbor
             continue
           }
@@ -1125,6 +1245,7 @@ fn start_reach_state(
   source : @storage.Storage,
   schema : @schema.Schema,
   starts : ReachStarts,
+  pattern : @lower.PreparedGraphTraverse?,
   direction : @graph_type.Direction,
   edge_filter : ReachEdgeFilter,
   edge_predicate : @lower.Expression?,
@@ -1174,12 +1295,26 @@ fn start_reach_state(
     TraversalPredicateStarts(_) => graph_node_predicate_binding_count(graph)
     _ => 0
   }
-  let edge_predicate_fields = if edge_predicate is Some(_) {
+  let mut has_edge_predicate = edge_predicate is Some(_)
+  let mut has_node_predicate = node_predicate is Some(_)
+  match pattern {
+    Some(prepared) =>
+      for hop in 0..<@lower.graph_traverse_hop_count(prepared) {
+        if @lower.graph_traverse_hop_edge_predicate(prepared, hop) is Some(_) {
+          has_edge_predicate = true
+        }
+        if @lower.graph_traverse_hop_node_predicate(prepared, hop) is Some(_) {
+          has_node_predicate = true
+        }
+      }
+    None => ()
+  }
+  let edge_predicate_fields = if has_edge_predicate {
     graph_edge_predicate_binding_count(graph)
   } else {
     0
   }
-  let node_predicate_fields = if node_predicate is Some(_) {
+  let node_predicate_fields = if has_node_predicate {
     graph_node_predicate_binding_count(graph)
   } else {
     0
@@ -1228,6 +1363,7 @@ fn start_reach_state(
     graph,
     schema,
     starts,
+    pattern,
     direction,
     edge_filter,
     edge_predicate,
@@ -1253,6 +1389,7 @@ fn start_reach_state(
     candidate_edge: -1,
     candidate_node: -1,
     neighbor_resume: ScanOutgoing,
+    pattern_hop: 0,
     edge_type_index: 0,
     row_index: 0,
     column: 0,
@@ -1335,6 +1472,7 @@ pub fn start_reach(
     source,
     @lower.graph_reach_output_schema(prepared),
     SingleReachStart(@lower.graph_reach_start(prepared)),
+    None,
     @lower.graph_reach_direction(prepared),
     AllReachEdges,
     None,
