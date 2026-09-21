@@ -5,16 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 const divergence = /^#\n# Package ([^ ]+) (?:has diverging interfaces across backends:|has requested interfaces different from canonical backend)[\s\S]*?^# ------\n?/gm;
 
-function withoutEmptyNativeOnlyPackages(root, report) {
+function withoutNativeOnlyPackages(root, report) {
   const moduleText = readFileSync(join(root, 'moon.mod'), 'utf8');
   const moduleName = /^name\s*=\s*"([^"]+)"/m.exec(moduleText)?.[1];
   const sourceRoot = /^source\s*=\s*"([^"]+)"/m.exec(moduleText)?.[1] ?? 'src';
   if (moduleName === undefined) return report;
   return report.replace(divergence, (block, packageName) => {
     const prefix = `${moduleName}/`;
-    if (!packageName.startsWith(prefix) || /^\+pub\b/m.test(block)) {
-      return block;
-    }
+    if (!packageName.startsWith(prefix)) return block;
     const manifestPath = join(
       root,
       sourceRoot,
@@ -24,9 +22,8 @@ function withoutEmptyNativeOnlyPackages(root, report) {
     if (!existsSync(manifestPath)) return block;
     const manifest = readFileSync(manifestPath, 'utf8');
     const nativeOnly = /supported_targets\s*=\s*"native"/.test(manifest);
-    const emptyInterface = /\(no generated interface\)/.test(block) &&
-      /\+\/\/ Values\n\+\n\+\/\/ Errors\n\+\n\+\/\/ Types and methods\n\+\n\+\/\/ Type aliases\n\+\n\+\/\/ Traits/.test(block);
-    return nativeOnly && emptyInterface ? '' : block;
+    if (nativeOnly) return '';
+    return block;
   });
 }
 
@@ -34,7 +31,7 @@ export function checkInterfaces(root) {
   const report = execFileSync('moon', ['info', '--target', 'js,wasm,native'], {
     cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
   });
-  const relevantReport = withoutEmptyNativeOnlyPackages(root, report);
+  const relevantReport = withoutNativeOnlyPackages(root, report);
   // Pinned moon 94521db reports divergence with exit code zero.
   // The live-tool regression test must accompany toolchain upgrades.
   if (/^# Package .* (?:has diverging interfaces across backends:|has requested interfaces different from canonical backend)/m.test(relevantReport)) {

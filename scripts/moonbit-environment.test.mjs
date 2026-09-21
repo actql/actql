@@ -55,6 +55,15 @@ test('live tool rejects backend API drift, tracked changes and untracked interfa
     join(root, 'src/native_test/moon.pkg'),
     'supported_targets = "native"\n',
   );
+  writeFileSync(
+    join(root, 'src/native_test/native.mbt'),
+    'pub fn native_value() -> Int { 1 }\n',
+  );
+  writeFileSync(
+    join(root, 'src/native_test/pkg.generated.mbti'),
+    '// native-only fixture interface\npub fn native_value() -> Int\n',
+  );
+  run('git', ['add', 'src/native_test/pkg.generated.mbti']);
   checkInterfaces(root);
   writeFileSync(source, '#cfg(not(target="native"))\npub fn f(x : Int) -> Int { x }\n#cfg(target="native")\npub fn f(x : Int) -> String { x.to_string() }\n');
   for (const target of ['js', 'wasm', 'native']) run('moon', ['check', '--target', target]);
