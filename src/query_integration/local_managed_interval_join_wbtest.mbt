@@ -31,14 +31,25 @@ test "standard Host runs bounded interval join for two consumers" {
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
+  let generated = dispatch_test_generated(run)
+  let interval_capacity = @execution.generated_sequence_capacity(
+    generated[2],
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  let interval_provider = @local_tea_provider.interval_join_provider(
+    carrier_events_storage_limits(),
+    interval_capacity,
+  )
   let installed = @local_driver.prepare_local_dispatch_module(
     @host_driver.open_dispatch_driver(run),
     registry,
     @connector.capability_registration_at(registry, 0).unwrap(),
-    dispatch_test_generated(run),
+    generated,
     limits.local_execution,
     limits.guards,
     limits.candidate_work,
+    managed_providers=[interval_provider],
   ).unwrap()
   @local_driver.configure_local_retained_inputs(
     installed,

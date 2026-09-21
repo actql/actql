@@ -213,6 +213,17 @@ pub fn constrain_generated_join_output(
 }
 
 ///|
+/// The selected output ceiling for one exact prepared join step. Absence
+/// leaves the authored output limit and the enclosing execution limit in
+/// force; it is not an implicit zero ceiling.
+pub fn generated_join_output_ceiling(
+  generated : GeneratedSequence,
+  step : Int,
+) -> Int64? {
+  selected_step_ceiling(generated.join_ceilings, step)
+}
+
+///|
 /// Attach the separately selected ordered pair-visit ceiling for one interval
 /// join. This is not inferred from observed input cardinality or output limits.
 pub fn constrain_generated_interval_search(

@@ -2929,6 +2929,15 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     fields: ['time'],
   }, {
+    name: 'interval-join',
+    family: 'interval',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['left_value', 'right_value'],
+  }, {
     name: 'rows-to-vectors-bridge',
     family: 'veca',
     operation: 'bridge',
@@ -3027,7 +3036,8 @@ async function exerciseStrategyGraph(
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
-      cancellationCase.family === 'time-series';
+      cancellationCase.family === 'time-series' ||
+      cancellationCase.family === 'interval';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
     const unsizedGraph = cancellationCase.name === 'graphs-equal';
@@ -3047,7 +3057,86 @@ async function exerciseStrategyGraph(
               },
             }
             : {session: {by: ['payload'], gap: 10}};
-    const graphCancellationProgram = cancellationCase.family === 'tea'
+    const graphCancellationProgram = cancellationCase.family === 'interval'
+      ? {
+        version: 'actql/0.1',
+        id: 'p',
+        params: {minimum: {type: 'number', nullable: false}},
+        stages: [{
+          id: 'a',
+          inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+          steps: [
+            {filter: 'id > $minimum', as: 'filtered'},
+            {select: ['id'], as: 'captured'},
+          ],
+          results: {r: {from: 'captured', fields: ['id']}},
+        }, ...['left', 'right'].map(side => ({
+          id: side,
+          inputs: {},
+          steps: [{
+            values: {
+              schema: side === 'left'
+                ? {
+                  key: {type: 'number', nullable: false},
+                  time: {type: 'number', nullable: false},
+                  value: {type: 'number', nullable: false},
+                }
+                : {
+                  key: {type: 'number', nullable: false},
+                  start: {type: 'number', nullable: false},
+                  end: {type: 'number', nullable: false},
+                  value: {type: 'number', nullable: false},
+                },
+              rows: Array.from(
+                {length: cancellationCase.rows},
+                (_, index) => side === 'left'
+                  ? {key: index, time: index, value: index}
+                  : {key: index, start: index, end: index + 1, value: index},
+              ),
+            },
+            as: 'out',
+          }],
+          results: {
+            r: {
+              from: 'out',
+              fields: side === 'left'
+                ? ['key', 'time', 'value']
+                : ['key', 'start', 'end', 'value'],
+            },
+          },
+        })), {
+          id: 'joined',
+          inputs: {
+            l: {result: {stage: 'left', result: 'r'}},
+            r: {result: {stage: 'right', result: 'r'}},
+          },
+          steps: [{
+            from: 'l',
+            interval_join: {
+              with: 'r',
+              kind: 'inner',
+              mode: 'point_in_interval',
+              on: [{left: 'key', right: 'key'}],
+              left: {time: 'time'},
+              right: {start: 'start', end: 'end'},
+              select: {
+                left_value: 'left.value',
+                right_value: 'right.value',
+              },
+              max_output_rows: cancellationCase.rows,
+            },
+            as: 'out',
+          }],
+          results: {r: {from: 'out', fields: cancellationCase.fields}},
+        }, ...['a', 'b'].map(id => ({
+          id: `consumer_${id}`,
+          inputs: {x: {result: {stage: 'joined', result: 'r'}}},
+          steps: [{select: cancellationCase.fields, as: 'out'}],
+          results: {r: {from: 'out', fields: cancellationCase.fields}},
+        }))],
+        results: {published: {from: {stage: 'joined', result: 'r'}}},
+      }
+      : cancellationCase.family === 'tea'
       ? {
         version: 'actql/0.1',
         id: 'p',
