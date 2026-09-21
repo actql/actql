@@ -33,6 +33,24 @@ pub fn graph_subgraph_has_edge_predicate(value : PreparedGraphSubgraph) -> Bool 
 }
 
 ///|
+pub fn graph_subgraph_literal_edge_predicate(
+  value : PreparedGraphSubgraph,
+) -> Bool? {
+  match value.edge_predicate {
+    None => Some(true)
+    Some(expression) =>
+      match expression_body(expression) {
+        Literal(checked) =>
+          match checked.value {
+            @value.Boolean(selected) => Some(selected)
+            _ => None
+          }
+        _ => None
+      }
+  }
+}
+
+///|
 pub(all) enum GraphSubgraphIssue {
   InvalidGraphSubgraphLimits
   InvalidGraphSubgraphWiring

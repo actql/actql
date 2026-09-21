@@ -16,6 +16,7 @@ priv struct SubgraphState {
   selected : Array[Bool]
   node_fields : Int
   edge_fields : Int
+  include_edges : Bool
   mut phase : SubgraphPhase
   mut node : Int
   mut selector : Int
@@ -149,7 +150,7 @@ fn subgraph_step(
             state.selected.get(target) is Some(target_selected) else {
             return @bounded.Failed(SubgraphInputUnavailable, progress, used)
           }
-          if source_selected && target_selected {
+          if state.include_edges && source_selected && target_selected {
             match copy_subgraph_edge(state, state.edge) {
               Ok(_) => progress += 1
               Err(issue) => return @bounded.Failed(issue, progress, used)
@@ -199,7 +200,8 @@ pub fn start_subgraph(
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphSubgraphStep(prepared)) &&
     @lower.graph_subgraph_literal_id_count(prepared) is Some(_) &&
-    !@lower.graph_subgraph_has_edge_predicate(prepared) &&
+    @lower.graph_subgraph_literal_edge_predicate(prepared)
+    is Some(include_edges) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidSubgraphKernel)
   }
@@ -234,6 +236,7 @@ pub fn start_subgraph(
     selected: [],
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
+    include_edges,
     phase: InitializeSelection,
     node: 0,
     selector: 0,

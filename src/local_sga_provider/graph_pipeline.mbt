@@ -191,7 +191,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       (current, @lower.GraphSubgraphStep(subgraph)) if current < count - 1 =>
         @lower.operation(node) == "SGA.subgraph" &&
         @lower.graph_subgraph_literal_id_count(subgraph) is Some(_) &&
-        !@lower.graph_subgraph_has_edge_predicate(subgraph)
+        @lower.graph_subgraph_literal_edge_predicate(subgraph) is Some(_)
       (current, @lower.GraphStructuralStep(structural)) if current < count - 1 =>
         @lower.operation(node) == "SGA.graft" ||
         (

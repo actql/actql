@@ -2,10 +2,15 @@
 fn subgraph_owner(
   producer : @lower.BoundPrepared,
   ids : String,
+  edge_predicate? : String? = None,
 ) -> @lower.BoundPrepared {
+  let edge = match edge_predicate {
+    Some(predicate) => ",\"edges\":\"" + predicate + "\""
+    None => ""
+  }
   bind(
     @pipeline.check_with_evidence(
-      cursor("[{\"subgraph\":{\"nodes\":{\"ids\":" + ids + "}}}]"),
+      cursor("[{\"subgraph\":{\"nodes\":{\"ids\":" + ids + "}" + edge + "}}]"),
       [
         (
           "prior",
@@ -142,4 +147,36 @@ test "subgraph cancellation reclaims unpublished output" {
   assert_true(subgraph_cleanup_pending(execution))
   assert_eq(cleanup_subgraph(execution), Ok(true))
   assert_false(subgraph_cleanup_pending(execution))
+}
+
+///|
+test "subgraph preserves a literal false edge predicate" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]", edge_predicate=Some("false"))
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut output : @graph.Completed? = None
+  while output is None {
+    match advance_subgraph(execution, 1).unwrap() {
+      SubgraphContinue(_) => ()
+      SubgraphComplete(value, ..) => output = Some(value)
+      _ => fail("literal edge predicate failed")
+    }
+  }
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+  guard output is Some(completed) &&
+    @graph.completed_storage(completed) is Some(material) else {
+    fail("completed literal predicate subgraph")
+  }
+  assert_eq(@storage.node_count(material), 2)
+  assert_eq(@storage.edge_count(material), 0)
 }

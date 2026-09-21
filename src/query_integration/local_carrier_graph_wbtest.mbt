@@ -245,6 +245,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     }) +
     "\"from\":\"selected\"," +
     "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_edges_false" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
+    "\"edges\":\"false\"},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -329,7 +333,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\""
   } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
-  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
+  } else if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" ||
+    variant == "subgraph_edges_false" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -349,7 +355,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\""
   } else if concise {
     "\"weight\",\"src\""
-  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
+  } else if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" ||
+    variant == "subgraph_edges_false" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -3358,6 +3366,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
+  } else if variant == "subgraph_edges_false" {
+    "sha256:d2889f6d3b43fe20f75149d13eb0585918c94cf3a5b0520f5f9e1525b0846f3d"
   } else if variant == "degree_both" {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
@@ -3536,7 +3546,8 @@ fn run_standard_host_graph_relation_path(
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
-    variant == "traverse_types_miss" {
+    variant == "traverse_types_miss" ||
+    variant == "subgraph_edges_false" {
     0
   } else if variant == "graph_bounds" {
     4
@@ -3606,6 +3617,8 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_nodes_predicate" {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
+  } else if variant == "subgraph_edges_false" {
+    ()
   } else if variant.has_prefix("subgraph_") {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
@@ -3770,6 +3783,10 @@ test "standard Host preserves bidirectional Graph traversal" {
 test "standard Host selects a literal Graph subgraph" {
   run_standard_host_graph_relation_path("subgraph_ids", publication=true)
   run_standard_host_graph_relation_path("subgraph_shared", publication=true)
+  run_standard_host_graph_relation_path(
+    "subgraph_edges_false",
+    publication=true,
+  )
 }
 
 ///|

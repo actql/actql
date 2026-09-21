@@ -347,6 +347,8 @@ pub fn graph_structural_has_property_strategies(PreparedGraphStructural) -> Bool
 
 pub fn graph_subgraph_has_edge_predicate(PreparedGraphSubgraph) -> Bool
 
+pub fn graph_subgraph_literal_edge_predicate(PreparedGraphSubgraph) -> Bool?
+
 pub fn graph_subgraph_literal_id_at(PreparedGraphSubgraph, Int) -> @value_admission.CheckedValue?
 
 pub fn graph_subgraph_literal_id_count(PreparedGraphSubgraph) -> Int?
