@@ -12,16 +12,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 31/39 entries have kernels and managed completion, 29/39 reach the standard Host, and 25/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 31/39 entries have kernels and managed completion, 30/39 reach the standard Host, and 26/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 30/39 entries have resource evidence and 31/39 have three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 24/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 25/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, bounded Events transforms, normalized, grafted, scored, pooled, or nearest Vectors projections, and RRF output; 24/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, bounded Events transforms, normalized, grafted, unioned, scored, pooled, or nearest Vectors projections, and RRF output; 25/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/three-target evidence 31/39, resources 30/39, standard Host
-29/39, consumer lifetime 25/39, cancellation 24/39, and publication 24/39. These are
+30/39, consumer lifetime 26/39, cancellation 25/39, and publication 25/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -281,11 +281,14 @@ At `5dd60e2d`, the no-merge `union_graphs` variant executes its authored
 finite input list as one bounded occurrence. The provider resolves every
 ordered operation edge from its exact managed Carrier input, including
 repeated positions, without inventing external inputs or a binary fold tree.
-Portable tests cover successful repeated inputs, atomic payload conflict, and
-early rejection of explicit property strategies on JS, Wasm, and native.
-Property merge laws, standard Host consumers, cancellation, publication, and
-operation-specific resource boundaries remain open, so `union_graphs` remains
-partial.
+Portable tests cover successful singleton and repeated-list inputs, atomic
+payload conflict, and early rejection of explicit property strategies on JS,
+Wasm, and native. At `c533f7a0`, the repeated list also passes through the
+standard Host, formal Relation Bridge, overlapping consumers, Named Result
+publication, and final reclamation. The Node environment delivers cancellation
+during the bounded union and confirms stop before cleanup returns the ledger to
+zero. Property merge laws and operation-specific resource boundaries remain
+open, so `union_graphs` remains partial.
 
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The

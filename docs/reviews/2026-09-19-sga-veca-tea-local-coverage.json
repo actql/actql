@@ -685,6 +685,10 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "cancellation",
+        "publication",
         "three_targets"
       ],
       "layer_evidence": [
@@ -703,6 +707,22 @@
             "src/local_sga/graft.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "standard_host_consumers_publication_and_cancellation",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c533f7a0",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
