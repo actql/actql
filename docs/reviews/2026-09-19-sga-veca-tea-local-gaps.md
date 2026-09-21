@@ -1180,3 +1180,20 @@ supported by the binding-only provider.
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
 passing inventory count alone cannot complete a layer.
+
+At `c009251f`, homogeneous node traversal accepts the full nonempty literal
+start set instead of only a singleton. The bounded kernel resolves each typed
+identity through the admitted Graph index, rejects any missing identity before
+walking, deduplicates repeated selectors, and sorts unique starts by canonical
+identity before producing per-start minimum depths. Selector, ordering, and
+per-start traversal phases remain resumable, while output stays private and
+atomic until the complete set succeeds.
+
+Exact workspace admission accounts for the identity selection bitmap and both
+start-order arrays before allocation. An exact boundary succeeds and a
+one-short boundary rejects before execution. Direct fixtures also cover a
+missing member and repeated out-of-order starts. The portable standard Host
+runs the repeated selector through two downstream computations. The affected
+Local SGA, provider, and query integration suites pass 461 tests on JS, Wasm,
+and native. Traverse remains partial for Relation and predicate selectors,
+patterned hops, path emission, and their classified lifecycle evidence.
