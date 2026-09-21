@@ -107,6 +107,14 @@ struct PreparedGraphStructural {
 }
 
 ///|
+pub fn graph_structural_has_property_strategies(
+  value : PreparedGraphStructural,
+) -> Bool {
+  @graph.structural_strategy_count(value.checked, @schema.Left) > 0 ||
+  @graph.structural_strategy_count(value.checked, @schema.Right) > 0
+}
+
+///|
 fn prepare_graph_structural_node(
   node : PreparedNode,
 ) -> Result[PreparedGraphStructural, SequenceIssue] {

@@ -61,8 +61,15 @@ fn valid_graft_step(
     return false
   }
   match @lower.sequence_step(sequence, step) {
-    Some(@lower.GraphStructuralStep(_)) =>
-      @lower.operation(node) == "SGA.graft" && input_count == 2
+    Some(@lower.GraphStructuralStep(structural)) =>
+      input_count == 2 &&
+      (
+        @lower.operation(node) == "SGA.graft" ||
+        (
+          @lower.operation(node) == "SGA.union_structural" &&
+          !@lower.graph_structural_has_property_strategies(structural)
+        )
+      )
     Some(@lower.GraphUnionStep(union)) =>
       @lower.operation(node) == "SGA.union_structural" &&
       @lower.graph_union_input_count(union) == input_count &&

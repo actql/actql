@@ -163,16 +163,24 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "BRIDGE.rows.to_graph"
       (current, @lower.GraphConstructionStep(_)) if !direct_structural &&
         current < count - 1 => @lower.operation(node) == "BRIDGE.rows.to_graph"
-      (0, @lower.GraphStructuralStep(_)) if direct_structural =>
-        @lower.operation(node) == "SGA.graft"
+      (0, @lower.GraphStructuralStep(structural)) if direct_structural =>
+        @lower.operation(node) == "SGA.graft" ||
+        (
+          @lower.operation(node) == "SGA.union_structural" &&
+          !@lower.graph_structural_has_property_strategies(structural)
+        )
       (0, @lower.GraphUnionStep(union)) if direct_structural =>
         @lower.operation(node) == "SGA.union_structural" &&
         !@lower.graph_union_has_property_strategies(union)
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
-      (current, @lower.GraphStructuralStep(_)) if current < count - 1 =>
-        @lower.operation(node) == "SGA.graft"
+      (current, @lower.GraphStructuralStep(structural)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.graft" ||
+        (
+          @lower.operation(node) == "SGA.union_structural" &&
+          !@lower.graph_structural_has_property_strategies(structural)
+        )
       (current, @lower.GraphUnionStep(union)) if current < count - 1 =>
         @lower.operation(node) == "SGA.union_structural" &&
         !@lower.graph_union_has_property_strategies(union)

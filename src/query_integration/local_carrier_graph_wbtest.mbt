@@ -196,13 +196,18 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "union" {
+  } else if variant == "union" || variant == "union_singleton" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"union_graphs\":{" +
-    "\"with\":[\"right_graph\",\"g\",\"right_graph\"]}," +
+    "\"from\":\"g\",\"union_graphs\":{\"with\":" +
+    (if variant == "union_singleton" {
+      "\"right_graph\""
+    } else {
+      "[\"right_graph\",\"g\",\"right_graph\"]"
+    }) +
+    "}," +
     "\"as\":\"united\"},{\"from\":\"united\"," +
     "\"node_rows\":true,\"as\":\"out\""
   } else if graph_equality {
@@ -3618,4 +3623,5 @@ test "standard Host grafts two Graphs before the Relation bridge" {
 ///|
 test "standard Host unions a repeated Graph list before the Relation bridge" {
   run_standard_host_graph_relation_path("union", publication=true)
+  run_standard_host_graph_relation_path("union_singleton")
 }
