@@ -515,6 +515,8 @@ fn query_checked_program_fixture(
           9L
         } else if local_carrier_graph_variant == "shortest_predicate" {
           4L
+        } else if local_carrier_graph_variant == "shortest_nearest_per_source" {
+          2L
         } else {
           1L
         },

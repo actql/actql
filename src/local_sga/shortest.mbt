@@ -34,9 +34,11 @@ priv enum ShortestPhase {
   ReconstructPath
   ReverseNodes
   ReverseEdges
+  SelectNearestPath
   ReadField
   CommitRow
   FinishPair
+  FinishNearestSource
   Finish
 }
 
@@ -56,6 +58,7 @@ priv struct ShortestState {
   value_limits : @value.Limits
   prepared : @lower.PreparedGraphShortest
   direction : @graph_type.Direction
+  selection : @graph_type.PathSelection
   sources : ShortestEndpoints
   targets : ShortestEndpoints
   max_hops : Int
@@ -88,6 +91,9 @@ priv struct ShortestState {
   mut sort_merge_at : Int
   mut sort_copy_at : Int
   mut has_path : Bool
+  mut best_path : Bool
+  mut best_source_node : Int
+  mut best_target_node : Int
   degree : Array[Int]
   start : Array[Int]
   cursor : Array[Int]
@@ -110,8 +116,10 @@ priv struct ShortestState {
   predecessor : Array[Int]
   predecessor_edge : Array[Int]
   queue : Array[Int]
-  path_nodes : Array[Int]
-  path_edges : Array[Int]
+  mut path_nodes : Array[Int]
+  mut path_edges : Array[Int]
+  mut best_path_nodes : Array[Int]
+  mut best_path_edges : Array[Int]
   mut emitted_rows : Int64
   mut values : Array[@value.CheckedValue]
 }
@@ -171,7 +179,12 @@ fn checked_shortest_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
-fn shortest_workspace(nodes : Int, edges : Int, both : Bool) -> Int? {
+fn shortest_workspace(
+  nodes : Int,
+  edges : Int,
+  both : Bool,
+  retain_best_path : Bool,
+) -> Int? {
   let directed_edges = if both {
     checked_shortest_multiply(edges, 2)
   } else {
@@ -180,7 +193,10 @@ fn shortest_workspace(nodes : Int, edges : Int, both : Bool) -> Int? {
   guard directed_edges is Some(directed_edges) &&
     checked_shortest_multiply(nodes, 14) is Some(node_slots) &&
     checked_shortest_multiply(directed_edges, 4) is Some(edge_slots) &&
-    checked_shortest_add(node_slots, edge_slots) is Some(total) else {
+    checked_shortest_add(node_slots, edge_slots) is Some(base) &&
+    checked_shortest_multiply(nodes, if retain_best_path { 2 } else { 0 })
+    is Some(best_slots) &&
+    checked_shortest_add(base, best_slots) is Some(total) else {
     return None
   }
   Some(total)
@@ -257,6 +273,46 @@ fn shortest_endpoint_selection(state : ShortestState) -> Array[Bool] {
   } else {
     state.target_selected
   }
+}
+
+///|
+fn shortest_retain_nearest_path(state : ShortestState) -> Unit {
+  if !state.best_path ||
+    state.path_edges.length() < state.best_path_edges.length() {
+    let previous_nodes = state.best_path_nodes
+    let previous_edges = state.best_path_edges
+    state.best_path_nodes = state.path_nodes
+    state.best_path_edges = state.path_edges
+    state.path_nodes = previous_nodes
+    state.path_edges = previous_edges
+    state.path_nodes.clear()
+    state.path_edges.clear()
+    state.best_source_node = state.source_node
+    state.best_target_node = state.target_node
+    state.best_path = true
+  }
+}
+
+///|
+fn shortest_prepare_nearest_output(state : ShortestState) -> Bool {
+  if !state.best_path {
+    return false
+  }
+  let scratch_nodes = state.path_nodes
+  let scratch_edges = state.path_edges
+  state.path_nodes = state.best_path_nodes
+  state.path_edges = state.best_path_edges
+  state.best_path_nodes = scratch_nodes
+  state.best_path_edges = scratch_edges
+  state.best_path_nodes.clear()
+  state.best_path_edges.clear()
+  state.source_node = state.best_source_node
+  state.target_node = state.best_target_node
+  state.best_path = false
+  state.row_column = 0
+  state.values = []
+  state.phase = ReadField
+  true
 }
 
 ///|
@@ -1058,11 +1114,21 @@ fn shortest_step(
       }
       PreparePair =>
         if state.source_pair >= state.source_nodes.length() {
-          state.phase = Finish
+          if state.selection == @graph_type.NearestPair &&
+            shortest_prepare_nearest_output(state) {
+            ()
+          } else {
+            state.phase = Finish
+          }
         } else if state.target_pair >= state.target_nodes.length() {
-          state.source_pair += 1
-          state.target_pair = 0
-          used += 1
+          if state.selection == @graph_type.NearestPerSource &&
+            shortest_prepare_nearest_output(state) {
+            ()
+          } else {
+            state.source_pair += 1
+            state.target_pair = 0
+            used += 1
+          }
         } else {
           state.source_node = state.source_nodes[state.source_pair]
           state.target_node = state.target_nodes[state.target_pair]
@@ -1166,10 +1232,17 @@ fn shortest_step(
           state.path_edges[opposite] = saved
           state.reverse_index += 1
           used += 1
-        } else {
+        } else if state.selection == @graph_type.EachPair {
           state.row_column = 0
           state.phase = ReadField
+        } else {
+          state.phase = SelectNearestPath
         }
+      }
+      SelectNearestPath => {
+        shortest_retain_nearest_path(state)
+        state.phase = FinishPair
+        used += 1
       }
       ReadField =>
         if state.row_column < @schema.field_count(state.schema) {
@@ -1195,7 +1268,11 @@ fn shortest_step(
           Ok(_) => {
             state.values = []
             state.emitted_rows += 1L
-            state.phase = FinishPair
+            state.phase = match state.selection {
+              @graph_type.EachPair => FinishPair
+              @graph_type.NearestPerSource => FinishNearestSource
+              @graph_type.NearestPair => Finish
+            }
             progress += 1
             used += 1
           }
@@ -1205,6 +1282,12 @@ fn shortest_step(
       }
       FinishPair => {
         state.target_pair += 1
+        state.phase = PreparePair
+        used += 1
+      }
+      FinishNearestSource => {
+        state.source_pair += 1
+        state.target_pair = 0
         state.phase = PreparePair
         used += 1
       }
@@ -1264,6 +1347,8 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.queue.clear()
   state.path_nodes.clear()
   state.path_edges.clear()
+  state.best_path_nodes.clear()
+  state.best_path_edges.clear()
   state.values = []
   true
 }
@@ -1338,7 +1423,6 @@ pub fn start_shortest(
     is Some(@lower.GraphShortestStep(prepared)) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) &&
-    @lower.graph_shortest_selection(prepared) == @graph_type.EachPair &&
     @lower.graph_shortest_weight(prepared) is None &&
     @lower.graph_shortest_max_hops(prepared) is Some(max_hops) else {
     return Err(UnsupportedShortestKernel)
@@ -1356,6 +1440,7 @@ pub fn start_shortest(
   let nodes = @storage.node_count(source)
   let edges = @storage.edge_count(source)
   let direction = @lower.graph_shortest_direction(prepared)
+  let selection = @lower.graph_shortest_selection(prepared)
   guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
     return Err(ShortestInputUnavailable)
   }
@@ -1365,8 +1450,13 @@ pub fn start_shortest(
   } else {
     0
   }
-  guard max_rows >= 1 &&
-    shortest_workspace(nodes, edges, direction == @graph_type.Both)
+  guard max_rows >= 0 &&
+    shortest_workspace(
+      nodes,
+      edges,
+      direction == @graph_type.Both,
+      selection != @graph_type.EachPair,
+    )
     is Some(workspace) &&
     predicate_fields <= max_workspace_slots - workspace else {
     return Err(ShortestWorkspaceLimit)
@@ -1414,6 +1504,7 @@ pub fn start_shortest(
       max_text_bytes: limits.max_text_bytes,
     },
     direction,
+    selection,
     sources,
     targets,
     max_hops,
@@ -1446,6 +1537,9 @@ pub fn start_shortest(
     sort_merge_at: 0,
     sort_copy_at: 0,
     has_path: false,
+    best_path: false,
+    best_source_node: -1,
+    best_target_node: -1,
     degree: [],
     start: [],
     cursor: [],
@@ -1470,6 +1564,8 @@ pub fn start_shortest(
     queue: [],
     path_nodes: [],
     path_edges: [],
+    best_path_nodes: [],
+    best_path_edges: [],
     emitted_rows: 0L,
     values: [],
   }

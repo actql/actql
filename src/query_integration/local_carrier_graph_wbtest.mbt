@@ -265,6 +265,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1,2]}," +
     "\"target\":{\"ids\":[2,1]},\"selection\":\"each_pair\"," +
     "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_nearest_per_source" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1]}," +
+    "\"target\":{\"ids\":[2]},\"selection\":\"nearest_per_source\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_nearest_pair" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1]}," +
+    "\"target\":{\"ids\":[2,1]},\"selection\":\"nearest_pair\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
   } else if variant.has_prefix("shortest_") {
     "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
     "\"target\":" +
@@ -2876,7 +2884,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
   let external = @execution.prepare_producer_read(
     owner,
     @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
-    100,
+    72,
     1000,
   ).unwrap()
   let construction = @local_bridge.start_rows_to_graph(
@@ -2917,7 +2925,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    72,
+    100,
     1000,
     1000,
     [external],
@@ -3133,6 +3141,114 @@ test "shortest path executes explicit endpoint identity sets" {
     second.contains("\"target_id\":3") &&
     second.contains("\"node_ids\":[2,3]"),
   )
+  let nearest_owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    "{\"ids\":[2,1]}",
+    "{\"ids\":[4,3]}",
+    2,
+    selection=",\"selection\":\"nearest_per_source\"",
+    max_output_rows=2,
+  )
+  let nearest_sequence = prepared_sequence(nearest_owner)
+  let nearest_external = @execution.prepare_producer_read(
+    nearest_owner,
+    @execution.bind_completed_input(nearest_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let nearest_construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    nearest_sequence,
+    0,
+    [nearest_external, nearest_external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let nearest_graph = finish_rows_to_graph(nearest_construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(nearest_construction), Ok(true))
+  let nearest_input = @graphs.prepare_step_read(
+    nearest_owner, 1, 0, nearest_graph,
+  ).unwrap()
+  assert_true(
+    @local_sga.start_shortest(
+      @bounded.control(),
+      task_test_completion(nearest_owner),
+      nearest_sequence,
+      1,
+      nearest_input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      79,
+      1000,
+      1000,
+      [nearest_external],
+    )
+    is Err(@local_sga.ShortestWorkspaceLimit),
+  )
+  let nearest = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(nearest_owner),
+    nearest_sequence,
+    1,
+    nearest_input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    80,
+    1000,
+    1000,
+    [nearest_external],
+  ).unwrap()
+  let nearest_output = finish_shortest(nearest).unwrap()
+  assert_eq(@local_sga.cleanup_shortest(nearest), Ok(true))
+  assert_eq(@execution.completed_row_count(nearest_output), 2)
+  assert_true(@graphs.discard_completed(nearest_graph))
+  let empty_owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    "{\"where\":\"false\"}",
+    "{\"where\":\"true\"}",
+    2,
+    selection=",\"selection\":\"each_pair\"",
+    max_output_rows=1,
+  )
+  let empty_sequence = prepared_sequence(empty_owner)
+  let empty_external = @execution.prepare_producer_read(
+    empty_owner,
+    @execution.bind_completed_input(empty_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let empty_construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    empty_sequence,
+    0,
+    [empty_external, empty_external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let empty_graph = finish_rows_to_graph(empty_construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(empty_construction), Ok(true))
+  let empty_input = @graphs.prepare_step_read(empty_owner, 1, 0, empty_graph).unwrap()
+  let empty = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(empty_owner),
+    empty_sequence,
+    1,
+    empty_input,
+    0,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [empty_external],
+  ).unwrap()
+  let empty_output = finish_shortest(empty).unwrap()
+  assert_eq(@local_sga.cleanup_shortest(empty), Ok(true))
+  assert_eq(@execution.completed_row_count(empty_output), 0)
+  assert_true(@graphs.discard_completed(empty_graph))
   let missing_owner = carrier_graph_shortest_owner_with_endpoints(
     source_owner,
     "{\"ids\":[1]}",
@@ -4918,7 +5034,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:2415a7a8c26f36220fb0ab8b39e12b5a875638e7c7f12c77d33cff7beb3bf3f2"
   } else if variant == "shortest_ids" || variant == "shortest_relation_selector" {
     "sha256:7de829b7221d828eb4205ffbb82988aedafea600a2454a84203e4d966ff03b3c"
-  } else if variant == "shortest_predicate" {
+  } else if variant == "shortest_predicate" ||
+    variant == "shortest_nearest_per_source" {
     "sha256:9734654c29bb6c6adc042fa640e65d87f7bd2eec43261acc3d0ae56209d7fde1"
   } else if variant.has_prefix("shortest_") {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
@@ -5137,6 +5254,10 @@ fn run_standard_host_graph_relation_path(
     2
   } else if variant == "shortest_ids" || variant == "shortest_relation_selector" {
     4
+  } else if variant == "shortest_nearest_per_source" {
+    2
+  } else if variant == "shortest_nearest_pair" {
+    1
   } else if variant == "shortest_predicate" {
     2
   } else if variant.has_prefix("shortest_") {
@@ -5228,6 +5349,17 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[2].contains("\"target_id\":1"))
     assert_true(graph_rows[3].contains("\"source_id\":2"))
     assert_true(graph_rows[3].contains("\"target_id\":2"))
+  } else if variant == "shortest_nearest_per_source" {
+    assert_true(graph_rows[0].contains("\"source_id\":1"))
+    assert_true(graph_rows[0].contains("\"target_id\":2"))
+    assert_true(graph_rows[0].contains("\"hop_count\":1"))
+    assert_true(graph_rows[1].contains("\"source_id\":2"))
+    assert_true(graph_rows[1].contains("\"target_id\":2"))
+    assert_true(graph_rows[1].contains("\"hop_count\":0"))
+  } else if variant == "shortest_nearest_pair" {
+    assert_true(graph_rows[0].contains("\"source_id\":1"))
+    assert_true(graph_rows[0].contains("\"target_id\":1"))
+    assert_true(graph_rows[0].contains("\"hop_count\":0"))
   } else if variant == "shortest_predicate" {
     assert_true(graph_rows[0].contains("\"source_id\":1"))
     assert_true(graph_rows[0].contains("\"target_id\":2"))
@@ -5571,6 +5703,15 @@ test "standard Host runs Relation-selected shortest endpoint sets" {
 ///|
 test "standard Host runs predicate-selected shortest endpoint sets" {
   run_standard_host_graph_relation_path("shortest_predicate", publication=true)
+}
+
+///|
+test "standard Host runs nearest shortest selection policies" {
+  run_standard_host_graph_relation_path(
+    "shortest_nearest_per_source",
+    publication=true,
+  )
+  run_standard_host_graph_relation_path("shortest_nearest_pair")
 }
 
 ///|
