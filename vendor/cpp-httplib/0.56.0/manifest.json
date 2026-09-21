@@ -1,0 +1,10 @@
+{
+  "name": "cpp-httplib",
+  "version": "0.56.0",
+  "source": "https://github.com/yhirose/cpp-httplib/tree/v0.56.0",
+  "license": "MIT",
+  "files": {
+    "httplib.h": "sha256:1f99e51881c4c9d0649b27c611442c2f4d9bcfec5a22a14d5fcd1f8106f730b4",
+    "LICENSE": "sha256:4b45cbe16d7b71b89ae6127e26e0d90a029198ca5e958ad8e3d0b8bbed364d8b"
+  }
+}
