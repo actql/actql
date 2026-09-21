@@ -1,8 +1,11 @@
 # Engine and Remote Site completion result
 
-Date: 2026-09-21
+Date: 2026-09-22
 
-Validated implementation head: `04bac78f`
+Validated implementation commit: `b5cb4f61`
+
+The documentation commit that contains this record is metadata-only. The
+validated implementation commit above is its direct parent.
 
 This result closes the Engine milestone defined by the three acceptance
 milestones below. It does not claim production deployment across an arbitrary
@@ -15,7 +18,7 @@ separate formal performance milestone.
 | --- | --- | --- |
 | MoonBit ownership | Complete | Common progression, retry, completion, retention, reconciliation, and reclaim decisions are owned by MoonBit packages. Local, reference, DuckDB, Transfer, publication, credential, bundle, and Remote Site callers enter those owners. Handwritten environment code performs physical I/O, waits for physical completion, and reports observations; it does not own a second ActQL success or reclaim decision. |
 | Node-free native product path | Complete | Native executables run Local and real DuckDB tasks, durable filesystem and SQLite Stores, complete Run-bound Named Result publication, JSON, JSONL, and CSV delivery, restart retrieval, and cleanup without spawning Node. The test harness may coordinate the process, but the product path does not delegate execution or retrieval to a Node subprocess. |
-| Authenticated Remote Site | Complete | Mutual-authenticated outbound HTTPS connects separate processes. Linux network namespaces prove the direct profile and the outbound-only Store profile with separate Site roots. The path includes durable dispatch, direct and Store Transfer, publication, signed scoped credential use, bundle operations, restart reconciliation, force loss, release, and cleanup. |
+| Authenticated Remote Site | Complete | Mutual-authenticated outbound HTTPS connects separate processes. Linux network namespaces prove a native source-to-destination direct profile and an outbound-only product Transfer Store profile with separate Site roots. A native Coordinator owns the control path. The path includes durable dispatch, direct and Store Transfer, publication, signed scoped credential use, bundle operations, restart reconciliation, force loss, release, and cleanup. |
 
 ## Decision ownership
 
@@ -82,22 +85,27 @@ The native smoke profile passed on macOS arm64. It exercised the native Local,
 DuckDB, Store, publication, delivery, credential, bundle, restart, and cleanup
 paths.
 
-The separated-network profile passed in a clean Linux x86_64 container. It
-used two network namespaces, separate Store roots, blocked inbound traffic and
-cross-Site direct traffic for the outbound-only profile, and exercised both
-direct and Store routes.
+The separated-network profile passed in a clean Linux x86_64 container. The
+direct profile allowed only the source Site to reach the native destination
+receiver. The outbound-only profile blocked cross-Site traffic and used a
+separate product Transfer Store process and Store root. The test killed and
+restarted that Store before the destination consumed the sealed object. Both
+profiles used the native Coordinator control path, kept bulk bytes out of the
+Coordinator, and passed all 362 real DuckDB cases.
 
-The validated implementation head also passed:
+The validated implementation commit also passed:
 
 - MoonBit formatting and all-target checking;
-- retained-boundary tests;
-- publication runtime tests;
-- Remote Site runtime tests, including the idle outbound-poll race;
-- native Local and real DuckDB conformance, with 362 DuckDB tests;
+- retained-boundary tests: 239 tests;
+- publication runtime tests: 16 tests;
+- Remote Site runtime tests: 119 tests, including the idle outbound-poll
+  race;
+- native Local and real DuckDB conformance, with 362 DuckDB tests in each
+  separated-network profile;
 - signed native credential call, restart query, duplicate rejection,
   revocation, and post-revocation rejection;
 - native runtime bundle lifecycle and publication Store process locking.
-- MoonBit tests on JS, Wasm, and native targets: 5,157, 5,157, and 5,211 tests;
+- MoonBit tests on JS, Wasm, and native targets: 5,160, 5,160, and 5,214 tests;
 - public-interface comparison, including explicit native-only package
   classification;
 - independent Connector addition on JS, Wasm, native, and Node;
