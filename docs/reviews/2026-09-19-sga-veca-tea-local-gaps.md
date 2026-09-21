@@ -12,16 +12,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 29/39 entries have kernels and managed completion, 28/39 reach the standard Host, and 24/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 29/39 entries have resource and three-target kernel evidence | Implement and register the remaining 10 entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; 30/39 entries have kernels and managed completion, 29/39 reach the standard Host, and 25/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 30/39 entries have resource and three-target kernel evidence | Implement and register the remaining nine entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 20/39 entries record complete operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality and reach, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 24/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, and bounded homogeneous traversal, bounded Events transforms, and normalized, grafted, scored, pooled, or nearest Vectors projections; 25/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 29/39, standard Host 28/39,
-consumer lifetime 24/39, cancellation 20/39, and publication 24/39. These are
+kernel/managed/resources/three-target evidence 30/39, standard Host 29/39,
+consumer lifetime 25/39, cancellation 20/39, and publication 25/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -356,7 +356,17 @@ row order. A real timer delivers cancellation during strong-component work;
 the bounded kernel reports stop, no component result is completed, and retry
 cleanup releases all holdings and reservations. Direct portable tests cover
 the same cancellation boundary for weak and strong execution. `components`
-is complete. The remaining SGA operations still lack portable Local kernels.
+is complete. Commit `26292407` connects the first bounded `traverse` variant:
+a literal singleton start, one homogeneous directional hop rule, node output,
+finite minimum and maximum hop counts, and the resolved output guard. The
+registered provider rejects other variants before execution. The implemented
+path consumes a typed traversal bound proof and reaches the standard Host,
+formal publication, two downstream computations, independent release, and
+final reclamation on JS, Wasm, and native. Direct portable tests also cover
+kernel cancellation. Relation and predicate selectors, repeated starts, edge
+types and predicates, patterned hops, path output, and environment-delivered
+cancellation remain open, so `traverse` remains partial. The remaining SGA
+operations still lack portable Local kernels.
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
 
