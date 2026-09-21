@@ -4,6 +4,42 @@ fn retained_row_test_limits() -> RetainedRowDecodeLimits {
 }
 
 ///|
+test "retained wire admits provisional output without completion authority" {
+  let owner = capture_fixture()
+  let output = prepare_admitted_output(owner, Step(1), 2, stream_value_limits()).unwrap()
+  append_admitted_output_wire(
+    output,
+    "{\"n\":1,\"s\":\"é\"}",
+    retained_row_test_limits(),
+  ).unwrap()
+  append_admitted_output_wire(
+    output,
+    "{\"n\":2,\"s\":\"😀\"}",
+    retained_row_test_limits(),
+  ).unwrap()
+  let rows = finish_admitted_output(output).unwrap()
+  assert_eq(admitted_output_row_count(rows), 2)
+  assert_true(admitted_output_cell(rows, 0, 0) is Some(Number(1)))
+  assert_true(admitted_output_cell(rows, 1, 1) is Some(Text("😀")))
+
+  let invalid = prepare_admitted_output(
+    owner,
+    Step(1),
+    1,
+    stream_value_limits(),
+  ).unwrap()
+  assert_true(
+    append_admitted_output_wire(
+      invalid,
+      "{\"n\":1}",
+      retained_row_test_limits(),
+    )
+    is Err(Wire(_)),
+  )
+  assert_true(finish_admitted_output(invalid) is Err(ClosedCapture))
+}
+
+///|
 test "retained wire rows convert with exact owner and canonical identity" {
   let owner = capture_fixture()
   let (source, _) = retained_fixture(owner, Ref(true))

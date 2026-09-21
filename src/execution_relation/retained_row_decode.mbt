@@ -20,6 +20,14 @@ pub(all) enum RetainedRowDecodeIssue {
 }
 
 ///|
+/// Failure while decoding one retained row directly into provisional admitted
+/// output. This operation grants no completion or execution authority.
+pub(all) enum AdmittedOutputWireIssue {
+  Wire(RetainedRowDecodeIssue)
+  Admission(CaptureIssue)
+}
+
+///|
 fn preflight_retained_row(
   text : String,
   limits : RetainedRowDecodeLimits,
@@ -243,6 +251,31 @@ fn decode_retained_row(
     }
   }
   Ok(values)
+}
+
+///|
+/// Decode one bounded canonical row against the exact checked output schema.
+/// Provider code must still establish completion through its registered
+/// evidence verifier after every row and physical integrity check succeeds.
+pub fn append_admitted_output_wire(
+  output : AdmittedOutput,
+  text : String,
+  limits : RetainedRowDecodeLimits,
+) -> Result[Unit, AdmittedOutputWireIssue] {
+  if !output.buffer.open || output.buffer.reading {
+    return Err(Admission(ClosedCapture))
+  }
+  let values = match decode_retained_row(output.buffer.schema, text, limits) {
+    Ok(value) => value
+    Err(issue) => {
+      cancel_admitted_output(output) |> ignore
+      return Err(Wire(issue))
+    }
+  }
+  match append_admitted_output(output, values) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Admission(issue))
+  }
 }
 
 ///|
