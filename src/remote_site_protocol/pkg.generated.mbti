@@ -3,6 +3,7 @@ package "actql/actql/remote_site_protocol"
 
 import {
   "actql/actql/execution_site",
+  "actql/actql/remote_transfer",
   "moonbitlang/core/debug",
 }
 
@@ -35,11 +36,15 @@ pub fn admit_remote_managed_output_subject(String, String, String, String, Strin
 
 pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
+pub fn admit_remote_output_intent_json(String, String, DispatchRequest) -> Result[RemoteOutputIntent, DispatchIssue]
+
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
 
 pub fn admit_remote_poll_not_seen_json(String, DispatchRequest) -> Result[Unit, DispatchIssue]
 
 pub fn admit_remote_poll_operation_json(String) -> Result[RemotePollOperation, DispatchIssue]
+
+pub fn admit_remote_poll_output_json(String) -> Result[RemotePollOutput, DispatchIssue]
 
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
 
@@ -227,6 +232,8 @@ pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int],
 
 pub fn prepare_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
+pub fn prepare_remote_output_intent(DispatchRequest, RemoteOutputIntentProjection) -> Result[RemoteOutputIntent, DispatchIssue]
+
 pub fn prepare_remote_runtime_cleanup(DispatchRecord, Bool, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
 
 pub fn prepare_remote_runtime_failure(DispatchRecord, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
@@ -311,6 +318,14 @@ pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, Remo
 
 pub fn remote_output_holding_evidence_cid(DispatchRequest, String, Int64) -> Result[String, DispatchIssue]
 
+pub fn remote_output_intent_identity(RemoteOutputIntent) -> String
+
+pub fn remote_output_intent_json(RemoteOutputIntent) -> Result[String, DispatchIssue]
+
+pub fn remote_output_intent_matches_dispatch(RemoteOutputIntent, DispatchRequest) -> Bool
+
+pub fn remote_output_intent_projection(RemoteOutputIntent) -> RemoteOutputIntentProjection
+
 pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBinding
 
 pub fn remote_poll_dispatch_json(DispatchRequest, RemoteInputBinding) -> Result[String, DispatchIssue]
@@ -319,11 +334,19 @@ pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 
 pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssue]
 
+pub fn remote_poll_operation_is_output(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_is_query(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_release(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
+
+pub fn remote_poll_output_intent(RemotePollOutput) -> RemoteOutputIntent
+
+pub fn remote_poll_output_json(DispatchRequest, RemoteOutputIntent) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_output_request(RemotePollOutput) -> DispatchRequest
 
 pub fn remote_poll_query_json(DispatchRequest) -> Result[String, DispatchIssue]
 
@@ -509,13 +532,36 @@ type RemoteManagedOutputMeasurement
 
 type RemoteManagedOutputSubject
 
+type RemoteOutputIntent
+
+pub(all) struct RemoteOutputIntentProjection {
+  store_authority_cid : String
+  publication_attempt_cid : String
+  result_definition_cid : String
+  ordering_evidence_cid : String
+  coordinator_authority : String
+  transfer_attempt : String
+  transfer_route : @remote_transfer.RemoteTransferRoute
+  destination_site_key : String
+  destination_site_generation : Int
+  transfer_max_bytes : Int64
+  transfer_expires_unix_ms : Int64
+  source_grant_cid : String
+  destination_grant_cid : String
+  route_capability_cid : String
+  transfer_origin : String
+}
+
 type RemotePollDispatch
 
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
+  Output(RemotePollOutput)
   Query(DispatchRequest)
   Release(DispatchRequest)
 }
+
+type RemotePollOutput
 
 pub(all) enum RemoteRuntimeAction {
   RuntimeAwaitStop

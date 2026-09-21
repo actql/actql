@@ -378,6 +378,57 @@ test "outbound agent observes durable acceptance before one execution" {
     @remote.dispatch_request_identity(request),
   )
   assert_eq(executions[0], 1)
+  let output_intent = @remote.prepare_remote_output_intent(request, {
+    store_authority_cid: agent_test_cid(
+      "6666666666666666666666666666666666666666666666666666666666666666",
+    ),
+    publication_attempt_cid: agent_test_cid(
+      "7777777777777777777777777777777777777777777777777777777777777777",
+    ),
+    result_definition_cid: agent_test_cid(
+      "8888888888888888888888888888888888888888888888888888888888888888",
+    ),
+    ordering_evidence_cid: agent_test_cid(
+      "9999999999999999999999999999999999999999999999999999999999999999",
+    ),
+    coordinator_authority: "native-coordinator",
+    transfer_attempt: "transfer-agent-output",
+    transfer_route: @transfer.DirectStream,
+    destination_site_key: "native-destination-site",
+    destination_site_generation: 3,
+    transfer_max_bytes: 128L,
+    transfer_expires_unix_ms: 2000000000000L,
+    source_grant_cid: agent_test_cid(
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    ),
+    destination_grant_cid: agent_test_cid(
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    ),
+    route_capability_cid: agent_test_cid(
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    ),
+    transfer_origin: "https://destination.example.invalid/transfer",
+  }).unwrap()
+  let output = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_output_json(request, output_intent).unwrap(),
+  ).unwrap()
+  guard @agent.advance_native_outbound_operation(
+      runtime,
+      Some(output),
+      accept,
+      report_status,
+    )
+    is Ok(@agent.OutputRequested(output_request)) else {
+    fail("output operation was not returned to the application owner")
+  }
+  assert_eq(
+    @remote.remote_output_intent_identity(
+      @remote.remote_poll_output_intent(output_request),
+    ),
+    @remote.remote_output_intent_identity(output_intent),
+  )
+  assert_eq(acceptance_attempts[0], 5)
+  assert_eq(status_attempts[0], 3)
   let release = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_release_json(request).unwrap(),
   ).unwrap()

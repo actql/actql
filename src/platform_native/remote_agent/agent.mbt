@@ -4,6 +4,7 @@
 /// separate common-Host decision.
 pub(all) enum NativeRemoteAgentOutcome {
   Idle
+  OutputRequested(@remote.RemotePollOutput)
   DispatchObserved(
     @remote.DispatchRequest,
     @runtime.NativeRemoteRuntimeCompletion,
@@ -52,6 +53,7 @@ pub fn advance_native_outbound_operation(
 ) -> Result[NativeRemoteAgentOutcome, NativeRemoteAgentIssue] {
   match operation {
     None => Ok(Idle)
+    Some(@remote.Output(output)) => Ok(OutputRequested(output))
     Some(@remote.Query(request)) =>
       match acknowledge_status(request) {
         Ok(Some(record)) => {

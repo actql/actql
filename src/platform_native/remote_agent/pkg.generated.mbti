@@ -29,6 +29,7 @@ pub(all) enum NativeRemoteAgentIssue {
 
 pub(all) enum NativeRemoteAgentOutcome {
   Idle
+  OutputRequested(@remote_site_protocol.RemotePollOutput)
   DispatchObserved(@remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int)
   QueryObserved(String, Int)
   QueryNotSeen(String)

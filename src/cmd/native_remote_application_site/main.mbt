@@ -105,6 +105,17 @@ fn poll_outcome_json(
 ) -> Result[String, String] {
   match outcome.poll() {
     Ok(@agent.Idle) => Ok("{\"kind\":\"idle\"}")
+    Ok(@agent.OutputRequested(output)) => {
+      let request = @remote.remote_poll_output_request(output)
+      let intent = @remote.remote_poll_output_intent(output)
+      Ok(
+        "{\"kind\":\"output-requested\",\"request_cid\":\"" +
+        @remote.dispatch_request_identity(request) +
+        "\",\"intent_cid\":\"" +
+        @remote.remote_output_intent_identity(intent) +
+        "\"}",
+      )
+    }
     Ok(@agent.DispatchObserved(request, completion, revision)) =>
       Ok(
         "{\"kind\":\"dispatch\",\"request_cid\":\"" +

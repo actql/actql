@@ -47,10 +47,18 @@ struct RemotePollDispatch {
 }
 
 ///|
-/// Polling transports dispatch delivery and status reconciliation as distinct
-/// physical operations. Only `Dispatch` may reach Site admission.
+struct RemotePollOutput {
+  request : DispatchRequest
+  intent : RemoteOutputIntent
+}
+
+///|
+/// Polling transports dispatch, output handling, status reconciliation, and
+/// release as distinct physical operations. Output handling cannot recreate
+/// or replace the completed dispatch.
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
+  Output(RemotePollOutput)
   Query(DispatchRequest)
   Release(DispatchRequest)
 }
@@ -109,6 +117,44 @@ pub fn remote_poll_dispatch_json(
     @encode.string_value(writer, request_json)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-remote-poll-dispatch/0.2")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
+pub fn remote_poll_output_json(
+  request : DispatchRequest,
+  intent : RemoteOutputIntent,
+) -> Result[String, DispatchIssue] {
+  if !remote_output_intent_matches_dispatch(intent, request) {
+    return Err(DispatchIdentityMismatch)
+  }
+  let request_json = match dispatch_request_json(request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let intent_json = match remote_output_intent_json(intent) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let writer = @encode.writer(524288, 16, 2) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, dispatch_request_identity(request))
+    @encode.key(writer, "intent_cid")
+    @encode.string_value(writer, remote_output_intent_identity(intent))
+    @encode.key(writer, "intent_json")
+    @encode.string_value(writer, intent_json)
+    @encode.key(writer, "request_json")
+    @encode.string_value(writer, request_json)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-poll-output/0.1")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -198,11 +244,49 @@ pub fn admit_remote_poll_dispatch_json(
 }
 
 ///|
+pub fn admit_remote_poll_output_json(
+  body : String,
+) -> Result[RemotePollOutput, DispatchIssue] {
+  try {
+    let object = evidence_object(evidence_root(body, 524288, 16, 2), [
+      "dispatch_request_cid", "intent_cid", "intent_json", "request_json", "version",
+    ])
+    if evidence_text(object, "version") != "actql-remote-poll-output/0.1" {
+      raise EvidenceJsonStop
+    }
+    let request = match
+      admit_dispatch_request_json(
+        evidence_text(object, "request_json"),
+        evidence_text(object, "dispatch_request_cid"),
+      ) {
+      Ok(value) => value
+      Err(_) => raise EvidenceJsonStop
+    }
+    let intent = match
+      admit_remote_output_intent_json(
+        evidence_text(object, "intent_json"),
+        evidence_text(object, "intent_cid"),
+        request,
+      ) {
+      Ok(value) => value
+      Err(_) => raise EvidenceJsonStop
+    }
+    Ok({ request, intent, })
+  } catch {
+    EvidenceJsonStop => Err(InvalidDispatch)
+  }
+}
+
+///|
 pub fn admit_remote_poll_operation_json(
   body : String,
 ) -> Result[RemotePollOperation, DispatchIssue] {
   match admit_remote_poll_dispatch_json(body) {
     Ok(dispatch) => return Ok(Dispatch(dispatch))
+    Err(_) => ()
+  }
+  match admit_remote_poll_output_json(body) {
+    Ok(output) => return Ok(Output(output))
     Err(_) => ()
   }
   match admit_remote_poll_request_json(body, "actql-remote-poll-query/0.1") {
@@ -222,6 +306,7 @@ pub fn remote_poll_operation_request(
 ) -> DispatchRequest {
   match operation {
     Dispatch(dispatch) => dispatch.request
+    Output(output) => output.request
     Query(request) | Release(request) => request
   }
 }
@@ -229,7 +314,7 @@ pub fn remote_poll_operation_request(
 ///|
 pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
   match operation {
-    Dispatch(_) => false
+    Dispatch(_) | Output(_) => false
     Query(_) => true
     Release(_) => false
   }
@@ -241,7 +326,15 @@ pub fn remote_poll_operation_is_release(
 ) -> Bool {
   match operation {
     Release(_) => true
-    Dispatch(_) | Query(_) => false
+    Dispatch(_) | Output(_) | Query(_) => false
+  }
+}
+
+///|
+pub fn remote_poll_operation_is_output(operation : RemotePollOperation) -> Bool {
+  match operation {
+    Output(_) => true
+    Dispatch(_) | Query(_) | Release(_) => false
   }
 }
 
@@ -257,6 +350,18 @@ pub fn remote_poll_dispatch_input_binding(
   dispatch : RemotePollDispatch,
 ) -> RemoteInputBinding {
   dispatch.binding
+}
+
+///|
+pub fn remote_poll_output_request(output : RemotePollOutput) -> DispatchRequest {
+  output.request
+}
+
+///|
+pub fn remote_poll_output_intent(
+  output : RemotePollOutput,
+) -> RemoteOutputIntent {
+  output.intent
 }
 
 ///|

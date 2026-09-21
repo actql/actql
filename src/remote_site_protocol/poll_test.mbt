@@ -70,6 +70,33 @@ test "outbound release is distinct from dispatch and query" {
 }
 
 ///|
+test "outbound output carries exact intent without dispatch authority" {
+  let request = coordinator_request("dispatch-output-poll", 36)
+  let intent = prepare_remote_output_intent(request, output_intent_projection()).unwrap()
+  let body = remote_poll_output_json(request, intent).unwrap()
+  let admitted = admit_remote_poll_operation_json(body).unwrap()
+  assert_true(remote_poll_operation_is_output(admitted))
+  assert_false(remote_poll_operation_is_query(admitted))
+  assert_false(remote_poll_operation_is_release(admitted))
+  assert_eq(
+    dispatch_request_identity(remote_poll_operation_request(admitted)),
+    dispatch_request_identity(request),
+  )
+  guard admitted is Output(output) else { fail("expected output operation") }
+  assert_eq(
+    remote_output_intent_identity(remote_poll_output_intent(output)),
+    remote_output_intent_identity(intent),
+  )
+  assert_true(admit_remote_poll_dispatch_json(body) is Err(InvalidDispatch))
+  assert_true(
+    admit_remote_poll_operation_json(
+      body.replace(old="transfer-a", new="transfer-b"),
+    )
+    is Err(InvalidDispatch),
+  )
+}
+
+///|
 test "Site reply is admitted as the same transport observation" {
   let request = coordinator_request("dispatch-reply", 32)
   let site = @site.create_site(
