@@ -67,13 +67,13 @@ fn valid_graft_step(
         @lower.operation(node) == "SGA.graft" ||
         (
           @lower.operation(node) == "SGA.union_structural" &&
-          !@lower.graph_structural_has_property_strategies(structural)
+          @lower.graph_structural_has_only_exact_property_strategies(structural)
         )
       )
     Some(@lower.GraphUnionStep(union)) =>
       @lower.operation(node) == "SGA.union_structural" &&
       @lower.graph_union_input_count(union) == input_count &&
-      !@lower.graph_union_has_property_strategies(union)
+      @lower.graph_union_has_only_exact_property_strategies(union)
     _ => false
   }
 }

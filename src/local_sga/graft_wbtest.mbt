@@ -44,12 +44,19 @@ fn graft_owner(
 fn union_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
+  exact? : Bool = false,
 ) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_with_evidence(
       cursor(
         "[{\"from\":\"left\",\"union_graphs\":{" +
-        "\"with\":[\"right\",\"left\",\"right\"]}}]",
+        "\"with\":[\"right\",\"left\",\"right\"]" +
+        (if exact {
+          ",\"merge\":{\"node_properties\":{\"name\":\"exact_equal\"}}"
+        } else {
+          ""
+        }) +
+        "}}]",
       ),
       [
         (
@@ -449,4 +456,50 @@ test "finite-list union enforces output admission at the exact boundary" {
   assert_eq(@storage.node_count(result), 2)
   assert_eq(@storage.input_row_count(result), 4)
   assert_eq(cleanup_graft(admitted), Ok(true))
+}
+
+///|
+test "finite-list union applies explicit exact equality at every fold" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let owner = union_owner(left_owner, right_owner, exact=true)
+  let left = one_node_graph(left_owner, 1.0, "same")
+  let right = one_node_graph(right_owner, 1.0, "same")
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    union_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(execution, 8).unwrap()
+    is GraftComplete(output, progress=4L, work=4L) else {
+    fail("explicit exact union did not complete")
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(result), 1)
+  assert_eq(@storage.input_row_count(result), 4)
+  assert_eq(cleanup_graft(execution), Ok(true))
+
+  let conflict = one_node_graph(right_owner, 1.0, "different")
+  let rejected = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    union_inputs(owner, left_owner, right_owner, left, conflict),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(rejected, 8).unwrap()
+    is GraftFailed(
+      GraftOutput(@graph.Storage(@storage.DuplicateNodeConflict)),
+      progress=1L,
+      work=1L
+    ),
+  )
+  assert_eq(cleanup_graft(rejected), Ok(true))
 }

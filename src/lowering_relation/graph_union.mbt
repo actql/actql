@@ -26,6 +26,27 @@ pub fn graph_union_has_property_strategies(value : PreparedGraphUnion) -> Bool {
 }
 
 ///|
+pub fn graph_union_has_only_exact_property_strategies(
+  value : PreparedGraphUnion,
+) -> Bool {
+  for index in 0..<@graph.union_count(value.checked) {
+    guard @graph.union_fold_at(value.checked, index) is Some(fold) else {
+      return false
+    }
+    for side in [@schema.Left, @schema.Right] {
+      for strategy_index in 0..<@graph.structural_strategy_count(fold, side) {
+        guard @graph.structural_strategy_at(fold, side, strategy_index)
+          is Some(strategy) &&
+          @graph.property_strategy_kind(strategy) == @graph.ExactEqual else {
+          return false
+        }
+      }
+    }
+  }
+  true
+}
+
+///|
 fn prepare_graph_union_node(
   node : PreparedNode,
 ) -> Result[PreparedGraphUnion, SequenceIssue] {
@@ -112,6 +133,22 @@ pub fn graph_structural_has_property_strategies(
 ) -> Bool {
   @graph.structural_strategy_count(value.checked, @schema.Left) > 0 ||
   @graph.structural_strategy_count(value.checked, @schema.Right) > 0
+}
+
+///|
+pub fn graph_structural_has_only_exact_property_strategies(
+  value : PreparedGraphStructural,
+) -> Bool {
+  for side in [@schema.Left, @schema.Right] {
+    for index in 0..<@graph.structural_strategy_count(value.checked, side) {
+      guard @graph.structural_strategy_at(value.checked, side, index)
+        is Some(strategy) &&
+        @graph.property_strategy_kind(strategy) == @graph.ExactEqual else {
+        return false
+      }
+    }
+  }
+  true
 }
 
 ///|

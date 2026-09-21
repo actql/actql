@@ -337,6 +337,8 @@ pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
 
 pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema
 
+pub fn graph_structural_has_only_exact_property_strategies(PreparedGraphStructural) -> Bool
+
 pub fn graph_structural_has_property_strategies(PreparedGraphStructural) -> Bool
 
 pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
@@ -368,6 +370,8 @@ pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
 pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
 
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
+
+pub fn graph_union_has_only_exact_property_strategies(PreparedGraphUnion) -> Bool
 
 pub fn graph_union_has_property_strategies(PreparedGraphUnion) -> Bool
 

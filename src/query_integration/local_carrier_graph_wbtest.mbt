@@ -2969,7 +2969,7 @@ test "registered Graph provider unions an ordered repeated Carrier list" {
 }
 
 ///|
-test "registered Graph provider rejects unsupported union property laws" {
+test "registered Graph provider admits explicit exact union properties" {
   let left_owner = carrier_graft_source_owner()
   let right_owner = carrier_graft_source_owner()
   let owner = carrier_union_merge_owner(left_owner, right_owner)
@@ -2983,7 +2983,7 @@ test "registered Graph provider rejects unsupported union property laws" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  assert_false(@local_connector.managed_provider_accepts(provider, generated))
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
 }
 
 ///|

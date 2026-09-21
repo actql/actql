@@ -105,7 +105,7 @@ fn direct_structural_input_count(
     @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
     Some(@lower.GraphStructuralStep(_)) => Some(2)
     Some(@lower.GraphUnionStep(union)) =>
-      if @lower.graph_union_has_property_strategies(union) {
+      if !@lower.graph_union_has_only_exact_property_strategies(union) {
         None
       } else {
         Some(@lower.graph_union_input_count(union))
@@ -167,11 +167,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.graft" ||
         (
           @lower.operation(node) == "SGA.union_structural" &&
-          !@lower.graph_structural_has_property_strategies(structural)
+          @lower.graph_structural_has_only_exact_property_strategies(structural)
         )
       (0, @lower.GraphUnionStep(union)) if direct_structural =>
         @lower.operation(node) == "SGA.union_structural" &&
-        !@lower.graph_union_has_property_strategies(union)
+        @lower.graph_union_has_only_exact_property_strategies(union)
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
@@ -179,11 +179,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.graft" ||
         (
           @lower.operation(node) == "SGA.union_structural" &&
-          !@lower.graph_structural_has_property_strategies(structural)
+          @lower.graph_structural_has_only_exact_property_strategies(structural)
         )
       (current, @lower.GraphUnionStep(union)) if current < count - 1 =>
         @lower.operation(node) == "SGA.union_structural" &&
-        !@lower.graph_union_has_property_strategies(union)
+        @lower.graph_union_has_only_exact_property_strategies(union)
       (current, @lower.CarrierProjectionStep(projection)) if current ==
         count - 1 =>
         (
