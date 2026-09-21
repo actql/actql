@@ -14,6 +14,7 @@ priv enum Phase {
 priv enum GraphExecution {
   Normalize(@sga.NormalizeExecution)
   Graft(@sga.GraftExecution)
+  Mean(@sga.MeanExecution)
   Subgraph(@sga.SubgraphExecution)
 }
 
@@ -129,6 +130,8 @@ fn direct_structural_input_count(
       }
     Some(@lower.GraphUnionStep(union)) =>
       Some(@lower.graph_union_input_count(union))
+    Some(@lower.GraphMeanStep(mean)) =>
+      Some(@lower.graph_mean_input_count(mean))
     _ => None
   }
 }
@@ -188,6 +191,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.diff_structural"
       (0, @lower.GraphUnionStep(_)) if direct_structural =>
         @lower.operation(node) == "SGA.union_structural"
+      (0, @lower.GraphMeanStep(_)) if direct_structural && current < count - 1 =>
+        @lower.operation(node) == "SGA.mean_structural"
       (current, @lower.GraphBasicStep(basic)) if current < count - 1 =>
         @lower.operation(node) == "SGA.normalize" &&
         @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
@@ -297,6 +302,15 @@ fn provider_capacity(
     @execution.execution_capacity_retained_bytes(base),
     execution + extra,
   )
+}
+
+///|
+fn mean_exact_bits(limits : @storage.Limits) -> Int? {
+  if limits.max_value_bytes < 1 || limits.max_value_bytes > 2147483647 / 8 {
+    None
+  } else {
+    Some(limits.max_value_bytes * 8)
+  }
 }
 
 ///|
@@ -525,6 +539,26 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.GraphMeanStep(_)) if value.kernel_step == 0 => {
+            guard direct_structural_views(value) is Some(inputs) &&
+              mean_exact_bits(value.limits) is Some(exact_bits) else {
+              return fail_execution(value)
+            }
+            match
+              @sga.start_mean_views(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                inputs,
+                value.limits,
+                value.storage_bytes,
+                exact_bits,
+                fn() { true },
+              ) {
+              Ok(execution) => Mean(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           Some(@lower.GraphStructuralStep(_))
           | Some(@lower.GraphUnionStep(_)) => {
             let reads = []
@@ -658,6 +692,18 @@ fn advance_execution(
                 Ok((3, None, progress, work))
               Err(_) => Err(())
             }
+          Mean(execution) =>
+            match @sga.advance_mean(execution, quantum) {
+              Ok(@sga.MeanContinue(progress~, work~)) =>
+                Ok((0, None, progress, work))
+              Ok(@sga.MeanComplete(output, progress~, work~)) =>
+                Ok((1, Some(output), progress, work))
+              Ok(@sga.MeanFailed(_, progress~, work~)) =>
+                Ok((2, None, progress, work))
+              Ok(@sga.MeanStopped(_, progress~, work~)) =>
+                Ok((3, None, progress, work))
+              Err(_) => Err(())
+            }
           Subgraph(execution) =>
             match @sga.advance_subgraph(execution, quantum) {
               Ok(@sga.SubgraphContinue(progress~, work~)) =>
@@ -718,6 +764,12 @@ fn advance_execution(
             }
           Graft(execution) =>
             match @sga.cleanup_graft(execution) {
+              Ok(true) => 1
+              Ok(false) => 0
+              Err(_) => -1
+            }
+          Mean(execution) =>
+            match @sga.cleanup_mean(execution) {
               Ok(true) => 1
               Ok(false) => 0
               Err(_) => -1
@@ -1323,6 +1375,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      Mean(execution) =>
+        match @sga.cleanup_mean(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       Subgraph(execution) =>
         match @sga.cleanup_subgraph(execution) {
           Ok(_) => ()
@@ -1365,6 +1422,7 @@ fn cleanup_execution(
   let kernel_pending = match value.kernel {
     Some(Normalize(active)) => @sga.normalize_cleanup_pending(active)
     Some(Graft(active)) => @sga.graft_cleanup_pending(active)
+    Some(Mean(active)) => @sga.mean_cleanup_pending(active)
     Some(Subgraph(active)) => @sga.subgraph_cleanup_pending(active)
     None => false
   }

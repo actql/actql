@@ -3804,6 +3804,66 @@ fn carrier_numeric_union_owner(
 }
 
 ///|
+fn carrier_numeric_mean_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked_result = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"mean_graphs\":{" +
+      "\"with\":[\"left\",\"right\"],\"weights\":[1,3]," +
+      "\"support\":{\"nodes\":1,\"edges\":1}," +
+      "\"properties\":{\"nodes\":{\"score\":{" +
+      "\"mean\":{\"missing\":\"exclude\",\"nulls\":\"fail\"}}}," +
+      "\"edges\":{}}},\"as\":\"g\"}," +
+      "{\"from\":\"g\",\"node_rows\":true}]",
+    ),
+    [
+      (
+        "left",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(left)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "right",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(right)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  )
+  let checked = checked_result.unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graft_graph(
   owner : @lower.BoundPrepared,
   identity : Double,
@@ -4039,6 +4099,61 @@ test "registered Graph provider merges numeric Carrier properties" {
   let output = completed.unwrap()
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_cell(output, 0, 1) is Some(Number(6.0)))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(left_material))
+  assert_true(@carrier_runtime.material_available(right_material))
+}
+
+///|
+test "registered Graph provider computes an exact weighted mean" {
+  let left_owner = carrier_numeric_graph_owner()
+  let right_owner = carrier_numeric_graph_owner()
+  let owner = carrier_numeric_mean_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let left = carrier_numeric_graph(left_owner, 1.0, 2.0)
+  let right = carrier_numeric_graph(right_owner, 1.0, 4.0)
+  let left_material = @graphs.completed_material(left).unwrap()
+  let right_material = @graphs.completed_material(right).unwrap()
+  let inputs = [
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+  ]
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    inputs.map(@local_connector.managed_provider_carrier_input),
+    10,
+    1000,
+  ).unwrap()
+  let mut completed = None
+  while completed is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(output, ..) => completed = Some(output)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("mean projection returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("mean provider failed")
+      @local_connector.Stopped(..) => fail("mean provider stopped")
+    }
+  }
+  let output = completed.unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Number(3.5)))
   assert_true(@local_connector.managed_provider_stopped(execution))
   assert_true(
     @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
