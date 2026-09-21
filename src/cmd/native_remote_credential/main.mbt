@@ -260,11 +260,9 @@ fn execute_checked(matches : @argparse.Matches) -> String raise CommandStop {
   }
   let use_id = checked(option(matches, "use-id"))
   let result : Result[String, String] = match matches.subcommand {
-    Some(("call", _)) => {
+    Some(("call", _)) =>
       match
-        @resource.call_native_credential_resource(
-          service, grant, use_id, scope,
-        ) {
+        @resource.call_native_credential_resource(service, grant, use_id, scope) {
         Ok(response) =>
           Ok(
             "{\"outcome\":\"succeeded\",\"status\":" +
@@ -275,7 +273,6 @@ fn execute_checked(matches : @argparse.Matches) -> String raise CommandStop {
           )
         Err(_) => Err("credential resource call failed")
       }
-    }
     Some(("query", _)) =>
       match
         @resource.query_native_credential_use(service, grant, use_id, scope) {
