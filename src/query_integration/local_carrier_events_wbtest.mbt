@@ -38,6 +38,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
+  let session_relation = variant == "session_relation"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
@@ -101,6 +102,16 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
+  let event_steps = if session_relation {
+    "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
+    "\"as\":\"out\"}"
+  } else {
+    "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\"}}," +
+    transform +
+    ",{\"events\":true,\"as\":\"out\"}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
   (if variant == "window_parameter" {
@@ -124,12 +135,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":[\"event_id\",\"occurred_at\",\"payload\"]}}},{" +
   "\"id\":\"events\",\"inputs\":{\"rows\":{\"result\":{" +
-  "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
-  "\"time\":\"occurred_at\"}}," +
-  transform +
-  ",{" +
-  "\"events\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[" +
+  event_steps +
+  "],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":" +
   fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -283,7 +291,7 @@ fn carrier_events_publication_cid(variant : String) -> String {
     "sha256:c2ba9666c6a15ecbd0374413e5a94768d7dd66767bf17a710fbecd6a165a1cf8"
   } else if variant == "window_parameter" {
     "sha256:5528c393bdc40f682c1c7271183d2c43814871a253da19ee7fa9891ee59a9007"
-  } else if variant == "session" {
+  } else if variant == "session" || variant == "session_relation" {
     "sha256:cdb4e95a24f02c009ed6e25c03c17311d529d7941e7f594b24e73b5bc1d23ba3"
   } else if variant == "session_global" {
     "sha256:3d11a1af6cc603d13e7ef2e61dcfa8ebcf6fab726d5ee1289dc6ed161c0e75fe"
@@ -877,7 +885,7 @@ test "standard Host runs registered bounded Events provider" {
   for
     variant in [
       "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
-      "session", "session_global", "session_parameter", "session_ties",
+      "session", "session_global", "session_parameter", "session_ties", "session_relation",
     ] {
     let publication = variant != "session_ties"
     let (run, issuer) = captured_graph_fixture(

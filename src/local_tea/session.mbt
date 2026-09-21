@@ -31,6 +31,7 @@ priv enum SessionIdentityScalarIssue {
 priv enum SessionSource {
   Stored(@records.ProducerRead, @storage.Storage)
   Viewed(@lifecycle.ProducerView)
+  Relation(@execution.ProducerRead, @value.Limits)
 }
 
 ///|
@@ -89,6 +90,7 @@ fn session_source_available(source : SessionSource) -> Bool {
   match source {
     Stored(input, _) => @records.producer_read_available(input)
     Viewed(view) => @lifecycle.producer_view_record_count(view) is Some(_)
+    Relation(input, _) => @execution.producer_read_available(input)
   }
 }
 
@@ -100,6 +102,12 @@ fn session_source_field_count(source : SessionSource, record : Int) -> Int? {
       match @lifecycle.producer_view_record_field_count(view, record) {
         Ok(value) => Some(value)
         Err(_) => None
+      }
+    Relation(input, _) =>
+      if record >= 0 && record < @execution.producer_read_row_count(input) {
+        Some(@schema.field_count(@execution.producer_read_schema(input)))
+      } else {
+        None
       }
   }
 }
@@ -116,6 +124,15 @@ fn session_source_field(
       match @lifecycle.producer_view_record_field(view, record, field) {
         Ok(value) => Some(value)
         Err(_) => None
+      }
+    Relation(input, limits) =>
+      match
+        (
+          @schema.field_at(@execution.producer_read_schema(input), field),
+          @execution.producer_read_checked_cell(input, record, field, limits),
+        ) {
+        (Some(expected), Some(checked)) => Some((expected.name, checked))
+        _ => None
       }
   }
 }
@@ -792,12 +809,15 @@ fn session_output_contract(
   carrier : @carrier.Carrier,
   name : @schema.FieldName,
 ) -> @contract.Contract? {
-  guard carrier is @carrier.EventValue(events) &&
-    @carrier.lookup(@carrier.event_records(events), name)
-    is @carrier.Present(field) else {
-    return None
+  let records = match carrier {
+    @carrier.EventValue(events) => @carrier.event_records(events)
+    @carrier.Relation(rows) => rows
+    _ => return None
   }
-  field.contract
+  match @carrier.lookup(records, name) {
+    @carrier.Present(field) => field.contract
+    _ => None
+  }
 }
 
 ///|
@@ -935,6 +955,48 @@ pub fn start_session(
     gap,
     Stored(input, storage),
     @storage.record_count(storage),
+    limits,
+    storage_bytes,
+    available,
+  )
+}
+
+///|
+pub fn start_session_relation(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @execution.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[SessionExecution, SessionIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.window.session_assign" &&
+    @execution.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @lower.preparation_input_carrier(@lower.bound_preparation(owner), 0)
+    is Some(input_carrier) &&
+    @carrier.kind(input_carrier) == @carrier.RelationKind &&
+    @lower.event_session_keys(event) is Some(keys) &&
+    @lower.event_session_gap(event) is Some(gap) &&
+    gap > 0L else {
+    return Err(InvalidSessionKernel)
+  }
+  start_session_with_source(
+    control,
+    sequence,
+    step,
+    event,
+    keys,
+    gap,
+    Relation(input, {
+      max_nodes: limits.max_value_nodes,
+      max_depth: limits.max_value_depth,
+      max_text_bytes: limits.max_value_bytes,
+    }),
+    @execution.producer_read_row_count(input),
     limits,
     storage_bytes,
     available,

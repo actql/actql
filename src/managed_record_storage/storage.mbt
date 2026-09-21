@@ -82,6 +82,7 @@ fn valid_limits(limits : Limits) -> Bool {
 ///|
 fn identity_names(value : @carrier.Carrier) -> Array[String]? {
   match value {
+    @carrier.Relation(_) => Some([])
     @carrier.EventValue(events) =>
       Some([@schema.reference_name(@carrier.event_identity(events).name)])
     @carrier.VectorValue(vectors) => {
@@ -98,6 +99,7 @@ fn identity_names(value : @carrier.Carrier) -> Array[String]? {
 ///|
 fn carrier_records(value : @carrier.Carrier) -> @carrier.Knowledge? {
   match value {
+    @carrier.Relation(records) => Some(records)
     @carrier.EventValue(events) => Some(@carrier.event_records(events))
     @carrier.VectorValue(vectors) => Some(@carrier.vector_records(vectors))
     _ => None
@@ -128,7 +130,8 @@ pub fn prepare_with_additional_identities(
     identity_names(carrier) is Some(base_identities) else {
     return Err(WrongCarrier)
   }
-  if base_identities.is_empty() {
+  if base_identities.is_empty() &&
+    @carrier.kind(carrier) != @carrier.RelationKind {
     return Err(InvalidIdentity)
   }
   let identities = base_identities.copy()
@@ -368,12 +371,15 @@ pub fn append(
     identities.push(value)
   }
   let overhead = fields.length() + 1
-  let (key, key_bytes, key_work) = match
-    encode_values(builder, identities, 0, overhead) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
+  let (key, key_bytes, key_work) = if identities.is_empty() {
+    ("", 0, 0)
+  } else {
+    match encode_values(builder, identities, 0, overhead) {
+      Ok(value) => value
+      Err(issue) => return fail(builder, issue)
+    }
   }
-  if builder.keys.contains(key) {
+  if !identities.is_empty() && builder.keys.contains(key) {
     return fail(builder, DuplicateIdentity)
   }
   let (_, record_bytes, record_work) = match
@@ -389,7 +395,9 @@ pub fn append(
     None => ()
   }
   builder.values.push({ fields: fields.copy(), })
-  builder.keys[key] = true
+  if !identities.is_empty() {
+    builder.keys[key] = true
+  }
   builder.input_records += 1
   builder.value_bytes += bytes
   builder.retained_value_bytes += bytes

@@ -46,7 +46,8 @@ priv enum EventsToRowsPhase {
 
 ///|
 priv struct EventsToRowsState {
-  input : @records.ProducerRead
+  available : () -> Bool
+  mut owned : @records.Completed?
   source : @storage.Storage
   mut output : @execution.AdmittedOutput?
   rows : Ref[@execution.AdmittedOutputRows?]
@@ -310,7 +311,7 @@ fn events_to_rows_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !(state.available)() {
       return @bounded.Failed(InputUnavailable, progress, used)
     }
     match state.phase {
@@ -379,7 +380,13 @@ fn events_to_rows_step(
         }
         state.rows.val = Some(rows)
         return match @execution.complete_trusted_output(state.port, ()) {
-          Ok(completed) => @bounded.Complete(completed, progress, used)
+          Ok(completed) => {
+            if state.owned is Some(owned) {
+              @records.discard_completed(owned) |> ignore
+              state.owned = None
+            }
+            @bounded.Complete(completed, progress, used)
+          }
           Err(issue) => @bounded.Failed(Completion(issue), progress, used)
         }
       }
@@ -395,11 +402,83 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
     state.output = None
   }
   state.values = []
+  if state.owned is Some(owned) {
+    @records.discard_completed(owned) |> ignore
+    state.owned = None
+  }
   if !state.accepted.val {
     state.rows.val = None
     state.live.val = false
   }
   true
+}
+
+///|
+fn start_storage_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  source : @storage.Storage,
+  available : () -> Bool,
+  owned : @records.Completed?,
+  schema : @schema.Schema,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
+  let output = match
+    @execution.prepare_admitted_output(owner, target, max_rows, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(RelationOutput(issue))
+  }
+  let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
+  let live = Ref(true)
+  let accepted = Ref(false)
+  let port = match
+    @execution.prepare_trusted_output_port(
+      preparation,
+      target,
+      max_entries,
+      max_name_bytes,
+      fn(_) { if live.val { rows.val } else { None } },
+      inputs~,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.cancel_admitted_output(output) |> ignore
+      return Err(Completion(issue))
+    }
+  }
+  let state : EventsToRowsState = {
+    available,
+    owned,
+    source,
+    output: Some(output),
+    rows,
+    live,
+    accepted,
+    port,
+    schema,
+    phase: BeginRecord,
+    record: 0,
+    column: 0,
+    candidate: 0,
+    values: [],
+  }
+  let (session, token) = @bounded.start(
+    control,
+    state,
+    events_to_rows_step,
+    cleanup_events_to_rows_state,
+    _output => {
+      state.live.val = false
+      true
+    },
+  )
+  Ok({ session, token: Some(token), accepted, })
 }
 
 ///|
@@ -435,60 +514,69 @@ fn start_records_to_rows(
     is Some(schema) else {
     return Err(InvalidKernel)
   }
-  let output = match
-    @execution.prepare_admitted_output(
-      owner,
-      @pipeline.Step(step),
-      max_rows,
-      limits,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(RelationOutput(issue))
-  }
-  let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
-  let live = Ref(true)
-  let accepted = Ref(false)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      @execution.cancel_admitted_output(output) |> ignore
-      return Err(Completion(issue))
-    }
-  }
-  let state : EventsToRowsState = {
-    input,
-    source,
-    output: Some(output),
-    rows,
-    live,
-    accepted,
-    port,
-    schema,
-    phase: BeginRecord,
-    record: 0,
-    column: 0,
-    candidate: 0,
-    values: [],
-  }
-  let (session, token) = @bounded.start(
+  start_storage_to_rows(
     control,
-    state,
-    events_to_rows_step,
-    cleanup_events_to_rows_state,
-    _output => {
-      state.live.val = false
-      true
-    },
+    preparation,
+    owner,
+    @pipeline.Step(step),
+    source,
+    fn() { @records.producer_read_available(input) },
+    None,
+    schema,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    inputs,
   )
-  Ok({ session, token: Some(token), accepted, })
+}
+
+///|
+pub fn start_completed_relation_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.Completed,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step) is Some(@lower.EventStep(_)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind &&
+    @records.completed_available(input) &&
+    @records.completed_storage(input) is Some(source) &&
+    @carrier.kind(@storage.carrier(source)) == @carrier.RelationKind &&
+    @lower.preparation_schema_at(
+      @lower.bound_preparation(owner),
+      @pipeline.Step(step),
+    )
+    is Some(schema) else {
+    return Err(InvalidKernel)
+  }
+  start_storage_to_rows(
+    control,
+    preparation,
+    owner,
+    @pipeline.Step(step),
+    source,
+    fn() { @records.completed_available(input) },
+    Some(input),
+    schema,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  )
 }
 
 ///|

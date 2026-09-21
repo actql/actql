@@ -50,6 +50,13 @@ pub(all) enum Issue {
 fn storage_measure(value : @storage.Storage) -> @lifecycle.Measure? {
   let count = @storage.record_count(value)
   match @storage.carrier(value) {
+    @carrier.Relation(rows) =>
+      Some(
+        @lifecycle.RelationMeasure(
+          rows=count,
+          columns=@carrier.field_count(rows),
+        ),
+      )
     @carrier.EventValue(_) => Some(@lifecycle.EventsMeasure(records=count))
     @carrier.VectorValue(vectors) =>
       Some(
@@ -97,7 +104,9 @@ pub fn prepare_output_with_identities(
     Err(issue) => return Err(Lifecycle(issue))
   }
   let kind = @lifecycle.binding_kind(binding)
-  if kind != @carrier.EventsKind && kind != @carrier.VectorsKind {
+  if kind != @carrier.RelationKind &&
+    kind != @carrier.EventsKind &&
+    kind != @carrier.VectorsKind {
     return Err(Lifecycle(@lifecycle.WrongCarrier))
   }
   let records = match

@@ -47,6 +47,8 @@ pub fn rows_to_graph_cleanup_pending(RowsToGraphExecution) -> Bool
 
 pub fn rows_to_vectors_cleanup_pending(RowsToVectorsExecution) -> Bool
 
+pub fn start_completed_relation_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.Completed, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
+
 pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
 pub fn start_graph_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphRowsExecution, GraphBridgeIssue]

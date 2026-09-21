@@ -15,6 +15,7 @@ priv struct Execution {
   sequence : @lower.PreparedSequence
   inputs : Array[@execution.ProducerRead]
   carrier_input : @lifecycle.ProducerView?
+  relation_output : Bool
   event_step : Int
   projection_step : Int?
   control : @bounded.Control
@@ -327,7 +328,20 @@ fn advance_execution(
                   value.storage_bytes,
                   fn() { true },
                 )
-              _ => return fail_execution(value)
+              _ =>
+                if value.relation_output && value.inputs.length() == 1 {
+                  @tea.start_session_relation(
+                    value.control,
+                    value.sequence,
+                    value.event_step,
+                    value.inputs[0],
+                    value.limits,
+                    value.storage_bytes,
+                    fn() { true },
+                  )
+                } else {
+                  return fail_execution(value)
+                }
             }
             match started {
               Ok(execution) => value.session = Some(execution)
@@ -471,7 +485,40 @@ fn advance_execution(
                 delta(work, value.stage_work) is Some(work_delta) else {
                 return fail_execution(value)
               }
-              if value.projection_step is None {
+              if value.projection_step is None && value.relation_output {
+                let started = match
+                  @bridge.start_completed_relation_to_rows(
+                    value.control,
+                    @execution.generated_completion_preparation(value.generated),
+                    value.sequence,
+                    value.event_step,
+                    output,
+                    value.max_rows,
+                    {
+                      max_nodes: value.limits.max_value_nodes,
+                      max_text_bytes: value.max_value_bytes,
+                      max_depth: value.limits.max_value_depth,
+                      max_work: value.limits.max_work,
+                    },
+                    value.limits.max_workspace_slots,
+                    value.max_value_bytes,
+                    value.inputs,
+                  ) {
+                  Ok(execution) => execution
+                  Err(_) => {
+                    @records.discard_completed(output) |> ignore
+                    return fail_execution(value)
+                  }
+                }
+                value.projection = Some(started)
+                value.phase = Projection
+                reset_stage(value)
+                if work_delta > 0L {
+                  return Ok(
+                    @local.managed_provider_continue(progress_delta, work_delta),
+                  )
+                }
+              } else if value.projection_step is None {
                 let material = match @records.completed_material(output) {
                   Ok(value) => value
                   Err(_) => {
@@ -719,6 +766,10 @@ pub fn provider(
         1 &&
         @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
         @lower.operation(node) == "TEA.window.session_assign"
+      let direct_relation = direct_session &&
+        @lower.preparation_input_carrier(@lower.bound_preparation(owner), 0)
+        is Some(input_carrier) &&
+        @carrier.kind(input_carrier) == @carrier.RelationKind
       let relations : Array[@execution.ProducerRead] = []
       let mut carrier_input = None
       for input in inputs {
@@ -732,7 +783,11 @@ pub fn provider(
             }
         }
       }
-      if direct_session {
+      if direct_relation {
+        if relations.length() != 1 || carrier_input is Some(_) {
+          return Err(@connector.InvalidLimits)
+        }
+      } else if direct_session {
         if relations.length() != 0 || carrier_input is None {
           return Err(@connector.InvalidLimits)
         }
@@ -745,6 +800,7 @@ pub fn provider(
         sequence: @execution.generated_prepared_sequence(sequence),
         inputs: relations,
         carrier_input,
+        relation_output: direct_relation,
         event_step: if direct_session {
           0
         } else {

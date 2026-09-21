@@ -70,6 +70,38 @@ fn events(open? : Bool = false) -> @carrier.Carrier {
 }
 
 ///|
+fn relation() -> @carrier.Carrier {
+  @carrier.relation(
+    @carrier.rows(
+      [
+        (
+          @schema.Unqualified("value"),
+          Some(@contract.primitive(@contract.StringType, nullable=false)),
+        ),
+      ],
+      field_set=@carrier.Closed,
+      max_fields=1,
+      max_name_bytes=5,
+    ).unwrap(),
+  )
+}
+
+///|
+fn relation_record(
+  value : String,
+) -> Array[(@schema.FieldName, @value.CheckedValue)] {
+  [
+    (
+      @schema.Unqualified("value"),
+      checked(
+        @contract.primitive(@contract.StringType, nullable=false),
+        "\"" + value + "\"",
+      ),
+    ),
+  ]
+}
+
+///|
 fn event_record(
   id : String,
   time : Double,
@@ -178,6 +210,19 @@ test "event storage preserves typed fields and exact identity uniqueness" {
     is Err(DuplicateIdentity),
   )
   assert_true(finish(duplicate) is Err(Closed))
+}
+
+///|
+test "relation record storage preserves duplicate rows without an identity" {
+  let builder = prepare(relation(), limits()).unwrap()
+  append(builder, relation_record("same")).unwrap()
+  append(builder, relation_record("same")).unwrap()
+  let stored = finish(builder).unwrap()
+  assert_eq(@carrier.kind(carrier(stored)), @carrier.RelationKind)
+  assert_eq(record_count(stored), 2)
+  assert_eq(identity_count(stored), 0)
+  assert_eq(record_field_count(stored, 0), Some(1))
+  assert_eq(record_field_count(stored, 1), Some(1))
 }
 
 ///|
