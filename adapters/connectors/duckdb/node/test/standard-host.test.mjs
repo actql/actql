@@ -2950,6 +2950,30 @@ async function exerciseStrategyGraph(
     completedTasks: [1, 2],
     fields: ['q', 'id', 'score', 'rank'],
   }, {
+    name: 'vector-ranking-maximum',
+    family: 'veca',
+    operation: 'ranking',
+    scoredPolicy: 'max',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 1,
+    managedStarts: 1,
+    completedTasks: [],
+    fields: ['q', 'id', 'score', 'rank'],
+  }, {
+    name: 'vector-ranking-weighted',
+    family: 'veca',
+    operation: 'ranking',
+    scoredPolicy: {weighted_sum: {left: 0.5, right: 0.5}},
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 1,
+    managedStarts: 1,
+    completedTasks: [],
+    fields: ['q', 'id', 'score', 'rank'],
+  }, {
     name: 'vector-nearest',
     family: 'veca',
     operation: 'nearest',
@@ -3099,6 +3123,56 @@ async function exerciseStrategyGraph(
           }],
           results: {published: {from: {stage: 'series', result: 'r'}}},
         }
+        : vecaFamily && cancellationCase.operation === 'ranking' &&
+            cancellationCase.scoredPolicy !== undefined
+          ? {
+            version: 'actql/0.1',
+            id: 'p',
+            params: {minimum: {type: 'number', nullable: false}},
+            stages: [{
+              id: 'a',
+              inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+              steps: [
+                {filter: 'id > $minimum', as: 'filtered'},
+                {select: ['id'], as: 'captured'},
+              ],
+              results: {r: {from: 'captured', fields: ['id']}},
+            }, {
+              id: 'ranked',
+              inputs: Object.fromEntries(['left', 'right'].map(id => [id, {
+                carrier: 'relation',
+                schema: {
+                  q: {type: 'number', nullable: false},
+                  id: {type: 'number', nullable: false},
+                  score: {type: 'number', nullable: false},
+                },
+              }])),
+              from: 'left',
+              steps: [{
+                merge_rankings: {
+                  with: 'right',
+                  by: ['q'],
+                  candidate: 'id',
+                  score: 'score',
+                  score_policy: cancellationCase.scoredPolicy,
+                  score_contract: {
+                    domain: 'unit.v1',
+                    normalization: 'unit.v1',
+                    range: [0, 1],
+                  },
+                  k: cancellationCase.rows,
+                },
+                as: 'out',
+              }],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
+            }, ...['a', 'b'].map(id => ({
+              id: `consumer_${id}`,
+              inputs: {x: {result: {stage: 'ranked', result: 'r'}}},
+              steps: [{select: cancellationCase.fields, as: 'out'}],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
+            }))],
+            results: {published: {from: {stage: 'ranked', result: 'r'}}},
+          }
         : vecaFamily && cancellationCase.operation === 'ranking'
           ? {
             version: 'actql/0.1',
@@ -3408,7 +3482,45 @@ async function exerciseStrategyGraph(
         second: {from: {stage: 'graph', result: 'r'}},
       };
     }
-    const createCancellationFixture = teaFamily
+    let cancellationArguments = args;
+    if (cancellationCase.scoredPolicy !== undefined) {
+      const environment = JSON.parse(args[0]);
+      const scoreSchema = {
+        additional_properties: false,
+        fields: {
+          id: {nullable: false, type: 'number'},
+          q: {nullable: false, type: 'number'},
+          score: {nullable: false, type: 'number'},
+        },
+        nullable: false,
+        type: 'object',
+      };
+      environment.schema_snapshots = ['right', 'left'].map(input => ({
+        output_carrier: 'relation',
+        schema: scoreSchema,
+        score_contracts: {
+          score: {
+            domain: 'unit.v1',
+            normalization: 'unit.v1',
+            range: [0, 1],
+          },
+        },
+        source_ref: `source:local/ranked/${input}`,
+        version: 'actql-local-input-schema/0.1',
+      }));
+      const body = {...environment};
+      delete body.evidence_bundle_cid;
+      environment.evidence_bundle_cid = canonicalHash(body);
+      cancellationArguments = [
+        JSON.stringify(environment),
+        environment.evidence_bundle_cid,
+        ...args.slice(2),
+      ];
+    }
+    const createCancellationFixture = cancellationCase.scoredPolicy !==
+        undefined
+      ? fixture.strategyFixtureVecaScoredCreate
+      : teaFamily
       ? fixture.strategyFixtureTeaCreate
       : vecaFamily
         ? fixture.strategyFixtureVecaCreate
@@ -3425,13 +3537,15 @@ async function exerciseStrategyGraph(
         : fixture.strategyFixtureSgaSizedCreate;
     const cancellationFixture = createCancellationFixture(
       ...(teaFamily || vecaFamily
-        ? args
-        : sgaEnvironmentArguments(args)),
+        ? cancellationArguments
+        : sgaEnvironmentArguments(cancellationArguments)),
       JSON.stringify(graphCancellationProgram),
       ...(teaFamily || unsizedGraph
         ? []
         : vecaFamily
-          ? [orderedContract]
+          ? cancellationCase.scoredPolicy !== undefined
+            ? [orderedContract, cancellationCase.rows]
+            : [orderedContract]
         : [BigInt(cancellationCase.rows)]),
     );
     const cancellationCapture = await runNativeHostQuery(

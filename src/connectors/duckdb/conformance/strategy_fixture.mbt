@@ -12,6 +12,7 @@ struct StrategyFixture {
   values_json : String
   fragment_json : String
   ordered_json : String?
+  supplied : Array[@execution.CapturedRows]
   mut run : @strategy.CapturedDAG?
 }
 
@@ -138,6 +139,38 @@ pub fn strategy_fixture_veca_create(
     false,
     veca=true,
     ordered_json=Some(ordered_json),
+  )
+}
+
+///|
+#export_name("strategyFixtureVecaScoredCreate")
+pub fn strategy_fixture_veca_scored_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  ordered_json : String,
+  rows : Int,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    veca=true,
+    ordered_json=Some(ordered_json),
+    supplied_ranking_rows=Some(rows),
   )
 }
 
@@ -375,6 +408,7 @@ fn strategy_fixture_create_impl(
   traverse? : Bool = false,
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
+  supplied_ranking_rows? : Int? = None,
 ) -> StrategyFixture {
   try {
     let program = issued_fixture_checked(
@@ -440,6 +474,34 @@ fn strategy_fixture_create_impl(
       }
     })
     let graph = @strategy.prepare_checked_dag(program, owners, 10, 10000).unwrap()
+    let supplied = match supplied_ranking_rows {
+      Some(rows) => {
+        guard rows > 0 && rows <= 100 else {
+          fail("invalid scored ranking fixture rows")
+        }
+        let inputs = Array::makei(2, input => {
+          let values = Array::makei(rows, index => {
+            let score = 1.0 -
+              (index * 2 + input).to_double() / (rows * 4).to_double()
+            cursor(
+              "{\"q\":1,\"id\":" +
+              (index + 1).to_string() +
+              ",\"score\":" +
+              score.to_string() +
+              "}",
+            )
+          })
+          @execution.capture_input(owners[1], input, values, max_rows=100, {
+            max_nodes: 10000,
+            max_text_bytes: 10000,
+            max_depth: 10,
+            max_work: 100000,
+          }).unwrap()
+        })
+        inputs
+      }
+      None => []
+    }
     @acquisition_host.close_native_host(native.host) // unused fixture issuer, not real Host
     let extended = @program_check.unit_count(program) > 4
     let ledger = @resources.create_ledger({
@@ -492,6 +554,7 @@ fn strategy_fixture_create_impl(
       values_json,
       fragment_json,
       ordered_json,
+      supplied,
       run: None,
     }
   } catch {
@@ -558,7 +621,8 @@ pub fn strategy_fixture_open(
   if f.run is Some(_) {
     return false
   }
-  match @strategy.open_captured_dag(f.graph, source, f.ledger) {
+  match
+    @strategy.open_captured_dag(f.graph, source, f.ledger, supplied=f.supplied) {
     Ok(run) => {
       f.run = Some(run)
       true
