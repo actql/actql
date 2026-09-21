@@ -791,6 +791,25 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
       max_retained_bytes: 1048576L,
     },
   ).unwrap()
+  let foreign_run_opens = [0]
+  let foreign_binding = @remote.prepare_remote_input_binding(
+    "{\"foreign\":true}", 32,
+  ).unwrap()
+  let foreign_executor = @native_remote_standard.install_native_remote_standard_task_executor(
+    run_definition_cid,
+    "task-1-foreign-binding",
+    @remote.remote_input_binding_cid(foreign_binding),
+    1,
+    () => {
+      foreign_run_opens[0] += 1
+      Err("foreign dispatch opened a Run")
+    },
+    {
+      output_export: native_publication_export_limits(),
+      max_manifest_bytes: 65536,
+      max_retained_bytes: 1048576L,
+    },
+  ).unwrap()
   let operation_capability = native_publication_cid(
     "remote-standard-operation-capability",
   )
@@ -802,7 +821,7 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     active_runtime,
     operation_capability,
     issuer_capability,
-    [local_executor, duckdb_executor],
+    [local_executor, duckdb_executor, foreign_executor],
   ).unwrap()
   let local_budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
   let duckdb_budget = @remote.prepare_remote_dispatch_budget(
@@ -859,6 +878,51 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   assert_native_remote_standard_output(
     runtime, journal, duckdb_request, input_binding, "[{\"id\":3}]",
   )
+  let foreign_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    run_definition_cid,
+    "task-1-foreign-binding",
+    1,
+    "native-standard-foreign-binding-dispatch-1",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(local_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  let foreign_operation = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_dispatch_json(foreign_request, input_binding).unwrap(),
+  ).unwrap()
+  let acknowledge_foreign_acceptance = fn(request) {
+    let (_, record) = journal.accept(request).unwrap()
+    Ok(record)
+  }
+  let observe_foreign_status = fn(request) {
+    let observed = journal.observation(request).unwrap()
+    Ok(Some(@native_remote_journal.recovered_site_dispatch_record(observed)))
+  }
+  guard @native_remote_agent.advance_native_outbound_operation(
+      runtime,
+      Some(foreign_operation),
+      acknowledge_foreign_acceptance,
+      observe_foreign_status,
+    )
+    is Err(
+      @native_remote_agent.RuntimeObserved(
+        @native_remote_runtime.Physical("foreign-input-binding"),
+        _
+      )
+    ) else {
+    fail("foreign input binding did not fail through the Agent")
+  }
+  assert_eq(foreign_run_opens[0], 0)
+  assert_true(runtime.cleanup(foreign_request).unwrap())
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
