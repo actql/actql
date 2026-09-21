@@ -626,6 +626,70 @@ fn prepare_native_remote_application_output_plan(
 }
 
 ///|
+fn native_remote_application_output_intent(
+  intent : @remote.RemoteOutputIntent,
+) -> NativeRemoteApplicationOutputIntent {
+  let projection = @remote.remote_output_intent_projection(intent)
+  {
+    store_authority_cid: projection.store_authority_cid,
+    publication_attempt_cid: projection.publication_attempt_cid,
+    result_definition_cid: projection.result_definition_cid,
+    ordering_evidence_cid: projection.ordering_evidence_cid,
+    coordinator_authority: projection.coordinator_authority,
+    transfer_attempt: projection.transfer_attempt,
+    transfer_route: projection.transfer_route,
+    destination_site_key: projection.destination_site_key,
+    destination_site_generation: projection.destination_site_generation,
+    transfer_max_bytes: projection.transfer_max_bytes,
+    transfer_expires_unix_ms: projection.transfer_expires_unix_ms,
+    source_grant_cid: projection.source_grant_cid,
+    destination_grant_cid: projection.destination_grant_cid,
+    route_capability_cid: projection.route_capability_cid,
+  }
+}
+
+///|
+/// Derive the canonical physical requests for a Coordinator planning poll.
+/// No publication writer, Transfer reader, or destination operation starts.
+pub fn NativeRemoteApplicationSite::prepare_remote_output_plan(
+  self : NativeRemoteApplicationSite,
+  output : @remote.RemotePollOutput,
+) -> Result[@remote.RemoteOutputPlan, NativeRemoteApplicationOutputIssue] {
+  if self.closed || self.pending_output is Some(_) {
+    return Err(InvalidOperation)
+  }
+  let request = @remote.remote_poll_output_request(output)
+  let remote_intent = @remote.remote_poll_output_intent(output)
+  if !@remote.remote_output_intent_matches_dispatch(remote_intent, request) {
+    return Err(InvalidOperation)
+  }
+  let completion = match self.distribution.observed_completion(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Observation(Distribution(issue)))
+  }
+  let subject = match
+    self.distribution.observed_output_subject(request, completion) {
+    Ok(value) => value
+    Err(issue) => return Err(Observation(Distribution(issue)))
+  }
+  let plan = match
+    self.prepare_observed_output_plan(
+      request,
+      completion,
+      native_remote_application_output_intent(remote_intent),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Plan(issue))
+  }
+  @remote.prepare_remote_output_plan(
+    output,
+    subject,
+    plan.payload,
+    plan.transfer,
+  ).map_err(issue => Protocol(issue))
+}
+
+///|
 /// Advances one authenticated outbound operation through the exact
 /// application task registry.
 pub fn NativeRemoteApplicationSite::poll(
@@ -667,22 +731,7 @@ pub fn NativeRemoteApplicationSite::execute_output(
     Err(issue) => return Err(Observation(Distribution(issue)))
   }
   let projection = @remote.remote_output_intent_projection(remote_intent)
-  let intent : NativeRemoteApplicationOutputIntent = {
-    store_authority_cid: projection.store_authority_cid,
-    publication_attempt_cid: projection.publication_attempt_cid,
-    result_definition_cid: projection.result_definition_cid,
-    ordering_evidence_cid: projection.ordering_evidence_cid,
-    coordinator_authority: projection.coordinator_authority,
-    transfer_attempt: projection.transfer_attempt,
-    transfer_route: projection.transfer_route,
-    destination_site_key: projection.destination_site_key,
-    destination_site_generation: projection.destination_site_generation,
-    transfer_max_bytes: projection.transfer_max_bytes,
-    transfer_expires_unix_ms: projection.transfer_expires_unix_ms,
-    source_grant_cid: projection.source_grant_cid,
-    destination_grant_cid: projection.destination_grant_cid,
-    route_capability_cid: projection.route_capability_cid,
-  }
+  let intent = native_remote_application_output_intent(remote_intent)
   let plan = match
     self.prepare_observed_output_plan(request, completion, intent) {
     Ok(value) => value
@@ -773,6 +822,19 @@ pub fn NativeRemoteApplicationSite::acknowledge_output_result(
   }
   self.distribution
   .acknowledge_output_result(result.observation)
+  .map_err(issue => Distribution(issue))
+}
+
+///|
+pub fn NativeRemoteApplicationSite::acknowledge_output_plan(
+  self : NativeRemoteApplicationSite,
+  plan : @remote.RemoteOutputPlan,
+) -> Result[Unit, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .acknowledge_output_plan(plan)
   .map_err(issue => Distribution(issue))
 }
 

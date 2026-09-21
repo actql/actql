@@ -58,6 +58,7 @@ struct RemotePollOutput {
 /// or replace the completed dispatch.
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
+  Plan(RemotePollOutput)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Release(DispatchRequest)
@@ -129,6 +130,29 @@ pub fn remote_poll_output_json(
   request : DispatchRequest,
   intent : RemoteOutputIntent,
 ) -> Result[String, DispatchIssue] {
+  remote_poll_output_operation_json(
+    request, intent, "actql-remote-poll-output/0.1",
+  )
+}
+
+///|
+/// Ask the Site to derive the immutable physical output requests without
+/// executing publication or Transfer effects.
+pub fn remote_poll_output_plan_json(
+  request : DispatchRequest,
+  intent : RemoteOutputIntent,
+) -> Result[String, DispatchIssue] {
+  remote_poll_output_operation_json(
+    request, intent, "actql-remote-poll-output-plan/0.1",
+  )
+}
+
+///|
+fn remote_poll_output_operation_json(
+  request : DispatchRequest,
+  intent : RemoteOutputIntent,
+  version : String,
+) -> Result[String, DispatchIssue] {
   if !remote_output_intent_matches_dispatch(intent, request) {
     return Err(DispatchIdentityMismatch)
   }
@@ -154,7 +178,7 @@ pub fn remote_poll_output_json(
     @encode.key(writer, "request_json")
     @encode.string_value(writer, request_json)
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-poll-output/0.1")
+    @encode.string_value(writer, version)
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -247,11 +271,28 @@ pub fn admit_remote_poll_dispatch_json(
 pub fn admit_remote_poll_output_json(
   body : String,
 ) -> Result[RemotePollOutput, DispatchIssue] {
+  admit_remote_poll_output_operation_json(body, "actql-remote-poll-output/0.1")
+}
+
+///|
+pub fn admit_remote_poll_output_plan_json(
+  body : String,
+) -> Result[RemotePollOutput, DispatchIssue] {
+  admit_remote_poll_output_operation_json(
+    body, "actql-remote-poll-output-plan/0.1",
+  )
+}
+
+///|
+fn admit_remote_poll_output_operation_json(
+  body : String,
+  expected_version : String,
+) -> Result[RemotePollOutput, DispatchIssue] {
   try {
     let object = evidence_object(evidence_root(body, 524288, 16, 2), [
       "dispatch_request_cid", "intent_cid", "intent_json", "request_json", "version",
     ])
-    if evidence_text(object, "version") != "actql-remote-poll-output/0.1" {
+    if evidence_text(object, "version") != expected_version {
       raise EvidenceJsonStop
     }
     let request = match
@@ -285,6 +326,10 @@ pub fn admit_remote_poll_operation_json(
     Ok(dispatch) => return Ok(Dispatch(dispatch))
     Err(_) => ()
   }
+  match admit_remote_poll_output_plan_json(body) {
+    Ok(output) => return Ok(Plan(output))
+    Err(_) => ()
+  }
   match admit_remote_poll_output_json(body) {
     Ok(output) => return Ok(Output(output))
     Err(_) => ()
@@ -306,7 +351,7 @@ pub fn remote_poll_operation_request(
 ) -> DispatchRequest {
   match operation {
     Dispatch(dispatch) => dispatch.request
-    Output(output) => output.request
+    Plan(output) | Output(output) => output.request
     Query(request) | Release(request) => request
   }
 }
@@ -314,7 +359,7 @@ pub fn remote_poll_operation_request(
 ///|
 pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
   match operation {
-    Dispatch(_) | Output(_) => false
+    Dispatch(_) | Plan(_) | Output(_) => false
     Query(_) => true
     Release(_) => false
   }
@@ -326,7 +371,7 @@ pub fn remote_poll_operation_is_release(
 ) -> Bool {
   match operation {
     Release(_) => true
-    Dispatch(_) | Output(_) | Query(_) => false
+    Dispatch(_) | Plan(_) | Output(_) | Query(_) => false
   }
 }
 
@@ -334,7 +379,17 @@ pub fn remote_poll_operation_is_release(
 pub fn remote_poll_operation_is_output(operation : RemotePollOperation) -> Bool {
   match operation {
     Output(_) => true
-    Dispatch(_) | Query(_) | Release(_) => false
+    Dispatch(_) | Plan(_) | Query(_) | Release(_) => false
+  }
+}
+
+///|
+pub fn remote_poll_operation_is_output_plan(
+  operation : RemotePollOperation,
+) -> Bool {
+  match operation {
+    Plan(_) => true
+    Dispatch(_) | Output(_) | Query(_) | Release(_) => false
   }
 }
 

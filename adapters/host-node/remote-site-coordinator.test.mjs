@@ -318,3 +318,48 @@ test('Coordinator retries one durable unknown output after restart', async t => 
   assert.deepEqual(replayed, completed);
   assert.equal(retries, 1);
 });
+
+test('output planning failure creates no durable output operation', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-output-plan-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const dispatch = request('dispatch-output-plan-failure');
+  const fixture = outputFixture(dispatch);
+  const store = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  t.after(() => store.close());
+  let physicalOutputStarted = false;
+  const coordinator = createRemoteSiteCoordinator({
+    control,
+    transferControl,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    store,
+    send: async () => Object.freeze({
+      revision: 0,
+      state: [0, 0, 0, 0, 0],
+    }),
+    plan: async () => {
+      throw Object.assign(new Error('OutputPlanRejected'), {
+        code: 'OutputPlanRejected',
+      });
+    },
+    output: async () => {
+      physicalOutputStarted = true;
+    },
+  });
+  await coordinator.dispatch({dispatch});
+  await assert.rejects(
+    coordinator.output({
+      dispatch,
+      intent: fixture.intent,
+      subject: Object.freeze({}),
+      maxChunks: 4,
+      maxManifestBytes: 4096,
+      maxReferencedBytes: 12n,
+    }),
+    {code: 'OutputPlanRejected'},
+  );
+  assert.equal(physicalOutputStarted, false);
+  assert.equal(store.hasOutputOperations(), false);
+});

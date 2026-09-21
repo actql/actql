@@ -145,7 +145,8 @@ pub fn poll(
     Ok(None) => Ok(None)
     Ok(Some(@remote.Dispatch(dispatch))) =>
       Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
-    Ok(Some(@remote.Output(_)))
+    Ok(Some(@remote.Plan(_)))
+    | Ok(Some(@remote.Output(_)))
     | Ok(Some(@remote.Query(_)))
     | Ok(Some(@remote.Release(_))) => Err(Protocol(@remote.InvalidDispatch))
     Err(issue) => Err(issue)
@@ -227,6 +228,24 @@ pub fn acknowledge_output_result(
   result : @remote.RemoteOutputResult,
 ) -> Result[Unit, NativeRemoteClientIssue] {
   let body = match @remote.remote_output_result_json(result) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match client.post_json(url, body) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
+/// Post one side-effect-free output plan derived from immutable Site facts.
+pub fn acknowledge_output_plan(
+  client : @http.Client,
+  url : String,
+  plan : @remote.RemoteOutputPlan,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  let body = match @remote.remote_output_plan_json(plan) {
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))
   }

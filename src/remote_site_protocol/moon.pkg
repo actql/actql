@@ -5,13 +5,10 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,
   "actql/actql/execution_site" @site,
+  "actql/actql/physical_manifest" @manifest,
   "actql/actql/publication_payload" @payload,
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
 }
-
-import {
-  "actql/actql/physical_manifest" @manifest,
-} for "test"

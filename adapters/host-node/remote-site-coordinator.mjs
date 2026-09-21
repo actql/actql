@@ -17,6 +17,7 @@ export function createRemoteSiteCoordinator({
   query = queryRemoteDispatch,
   cancel = cancelRemoteDispatch,
   release = releaseRemoteDispatch,
+  plan: planOutput,
   output: executeOutput,
   transferControl,
 } = {}) {
@@ -35,6 +36,9 @@ export function createRemoteSiteCoordinator({
       typeof send !== 'function' || typeof query !== 'function' ||
       typeof cancel !== 'function' || typeof release !== 'function') {
     fail('InvalidRemoteSiteCoordinator');
+  }
+  if (planOutput !== undefined && typeof planOutput !== 'function') {
+    fail('InvalidRemoteSiteCoordinatorOutputPlan');
   }
   const outputEnabled = executeOutput !== undefined ||
     transferControl !== undefined;
@@ -60,6 +64,13 @@ export function createRemoteSiteCoordinator({
   const recoveredOutputs = outputEnabled
     ? store.recoverOutputs(journal, control, transferControl)
     : Object.freeze([]);
+  const outputKey = (dispatch, intent) =>
+    `${control.identity(dispatch)}:${control.outputIntentIdentity(intent)}`;
+  const outputs = new Map();
+  for (const recoveredOutput of recoveredOutputs) {
+    const key = control.coordinatorOutputRecordKey(recoveredOutput.record);
+    outputs.set(`${key[4]}:${key[6]}`, recoveredOutput);
+  }
   const options = value => {
     if (value === null || typeof value !== 'object' ||
         value.dispatch === undefined) {
@@ -148,31 +159,70 @@ export function createRemoteSiteCoordinator({
     async output(value) {
       if (!outputEnabled) fail('RemoteCoordinatorOutputUnavailable');
       const request = requireIntent(value);
-      if (request.intent === undefined ||
-          request.payloadRequest === undefined ||
-          request.transferRequest === undefined) {
+      if (request.intent === undefined) {
         fail('InvalidRemoteCoordinatorOutput');
       }
       const output = control.admitPollOutput(
         control.pollOutputJson(request.dispatch, request.intent),
       );
-      const admission = control.prepareCoordinatorOutput(
-        journal,
-        output,
-        request.payloadRequest,
-        request.transferRequest,
-      );
-      const record = store.acceptOutput(
-        admission,
-        request.payloadRequest,
-        request.transferRequest,
-        control,
-        transferControl,
-      );
+      const key = outputKey(request.dispatch, request.intent);
+      let currentOutput = outputs.get(key);
+      let payloadRequest = currentOutput?.payloadRequest ??
+        request.payloadRequest;
+      let transferRequest = currentOutput?.transferRequest ??
+        request.transferRequest;
+      if (currentOutput === undefined &&
+          (payloadRequest === undefined || transferRequest === undefined)) {
+        if (typeof planOutput !== 'function' || request.subject === undefined ||
+            !Number.isSafeInteger(request.maxChunks) ||
+            request.maxChunks < 1 ||
+            !Number.isSafeInteger(request.maxManifestBytes) ||
+            request.maxManifestBytes < 1 ||
+            typeof request.maxReferencedBytes !== 'bigint' ||
+            request.maxReferencedBytes < 0n) {
+          fail('InvalidRemoteCoordinatorOutputPlan');
+        }
+        const planned = await planOutput(request);
+        if (planned === null || typeof planned !== 'object' ||
+            planned.plan === undefined ||
+            planned.payloadRequest === undefined ||
+            planned.transferRequest === undefined) {
+          fail('InvalidRemoteCoordinatorOutputPlanResult');
+        }
+        payloadRequest = planned.payloadRequest;
+        transferRequest = planned.transferRequest;
+      }
+      let record = currentOutput?.record;
+      if (record === undefined) {
+        const admission = control.prepareCoordinatorOutput(
+          journal,
+          output,
+          payloadRequest,
+          transferRequest,
+        );
+        record = store.acceptOutput(
+          admission,
+          payloadRequest,
+          transferRequest,
+          control,
+          transferControl,
+        );
+        currentOutput = Object.freeze({
+          output,
+          payloadRequest,
+          transferRequest,
+          record,
+        });
+        outputs.set(key, currentOutput);
+      }
       const current = store.inspectOutput(record, control);
       if (current?.progress === 2) return projectOutputRecord(record);
       try {
-        const response = await executeOutput(request);
+        const response = await executeOutput(Object.freeze({
+          ...request,
+          payloadRequest,
+          transferRequest,
+        }));
         if (response === null || typeof response !== 'object' ||
             response.result === undefined) {
           fail('InvalidRemoteCoordinatorOutputResult');

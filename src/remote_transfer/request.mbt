@@ -422,6 +422,16 @@ pub fn request_manifest_json(
 }
 
 ///|
+/// Return the exact admitted manifest bound into this Transfer request. The
+/// manifest remains a physical integrity record, not a logical Result CID or
+/// a read capability.
+pub fn request_manifest(
+  request : RemoteTransferRequest,
+) -> @manifest.PhysicalManifest {
+  request.physical
+}
+
+///|
 /// Re-admit transport fields by recomputing the canonical request identity.
 pub fn admit_request(
   coordinator_authority : String,

@@ -191,6 +191,27 @@ fn poll_outcome_json(
 ) -> Result[String, String] {
   match outcome.poll() {
     Ok(@agent.Idle) => Ok("{\"kind\":\"idle\"}")
+    Ok(@agent.OutputPlanRequested(output)) => {
+      let request = @remote.remote_poll_output_request(output)
+      let intent = @remote.remote_poll_output_intent(output)
+      let plan = match outcome.prepare_remote_output_plan(output) {
+        Ok(value) => value
+        Err(_) => return Err("remote output planning failed")
+      }
+      match outcome.acknowledge_output_plan(plan) {
+        Ok(_) => ()
+        Err(_) => return Err("remote output plan acknowledgement failed")
+      }
+      Ok(
+        "{\"kind\":\"output-plan\",\"request_cid\":\"" +
+        @remote.dispatch_request_identity(request) +
+        "\",\"intent_cid\":\"" +
+        @remote.remote_output_intent_identity(intent) +
+        "\",\"plan_cid\":\"" +
+        @remote.remote_output_plan_identity(plan) +
+        "\"}",
+      )
+    }
     Ok(@agent.OutputRequested(output)) => {
       let request = @remote.remote_poll_output_request(output)
       let intent = @remote.remote_poll_output_intent(output)

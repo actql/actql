@@ -247,9 +247,47 @@ function remoteSiteControl(moon) {
     pollOutputJson: (request, intent) => checked(
       moon.strategyRemotePollOutputJson(request, intent),
     ),
+    pollOutputPlanJson: (request, intent) => checked(
+      moon.strategyRemotePollOutputPlanJson(request, intent),
+    ),
     admitPollOutput: body => checked(
       moon.strategyRemotePollOutputAdmit(body),
     ),
+    admitPollOutputPlan: body => checked(
+      moon.strategyRemotePollOutputPlanAdmit(body),
+    ),
+    admitOutputPlan: (
+      body,
+      output,
+      subject,
+      maxChunks,
+      maxManifestBytes,
+      maxReferencedBytes,
+    ) => checked(moon.strategyRemoteOutputPlanAdmit(
+      body,
+      output,
+      subject,
+      maxChunks,
+      maxManifestBytes,
+      int64(maxReferencedBytes, 'remote output plan capacity'),
+    )),
+    prepareOutputPlan: (
+      output,
+      subject,
+      payloadRequest,
+      transferRequest,
+    ) => checked(moon.strategyRemoteOutputPlanPrepare(
+      output,
+      subject,
+      payloadRequest,
+      transferRequest,
+    )),
+    outputPlanJson: plan => checked(
+      moon.strategyRemoteOutputPlanJson(plan),
+    ),
+    outputPlanIdentity: moon.strategyRemoteOutputPlanIdentity,
+    outputPlanPayloadRequest: moon.strategyRemoteOutputPlanPayloadRequest,
+    outputPlanTransferRequest: moon.strategyRemoteOutputPlanTransferRequest,
     admitOutputResult: (
       body,
       output,

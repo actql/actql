@@ -1222,6 +1222,7 @@ try {
     query: options => standardGateway.query(options),
     cancel: async () => { throw new Error('unused application cancellation'); },
     release: options => standardGateway.release(options),
+    plan: options => standardGateway.plan(options),
     output: options => standardGateway.output(options),
   });
   const dispatchCompletion = coordinator.dispatch({
@@ -1314,59 +1315,10 @@ try {
   );
   assert.equal(subject[0], remoteSiteControl.identity(dispatch));
   assert.equal(subject[9], '1');
-  const expectedOutput = Buffer.from('[{"id":3}]');
-  assert.equal(subject[10], String(expectedOutput.byteLength));
-  const outputTransfer = transferControl.prepare({
-    coordinatorAuthority: 'native-application-coordinator',
-    transferAttemptId: 'native-application-output-transfer',
-    route: 'direct',
-    sourceSite: 'native-standard-transfer-site',
-    sourceSiteGeneration: 1,
-    destinationSite: 'native-destination',
-    destinationSiteGeneration: 3,
-    sourceMaterialGeneration: subject[1],
-    physicalManifest: {
-      version: 'actql-managed-physical-manifest/0.1',
-      schemaContractCid: subject[4],
-      viewContractCid: subject[5],
-      codecContractCid: subject[6],
-      rowCount: 1,
-      chunks: [{
-        cid: physicalCid(expectedOutput),
-        byteLength: BigInt(expectedOutput.byteLength),
-        rowCount: 1,
-      }],
-    },
-    limits: {
-      maxChunks: 8,
-      maxManifestBytes: 4096,
-      maxReferencedBytes: 1048576n,
-    },
-    capacityBytes: 1048576n,
-    expiresAtMilliseconds: 4102444800000n,
-    sourceGrantCid: physicalCid('native-application-output-source-grant'),
-    destinationGrantCid:
-      physicalCid('native-application-output-destination-grant'),
-    routeCapabilityCid:
-      physicalCid('native-application-output-direct-route'),
-  });
   const resultDefinitionCid =
     physicalCid('native-application-result-definition');
   const orderingEvidenceCid =
     physicalCid('native-application-ordering-evidence');
-  const payloadRequest = remoteSiteControl.preparePublicationPayload({
-    storeAuthorityCid: publicationAuthorityCid,
-    publicationAttemptCid:
-      physicalCid('native-application-publication-attempt'),
-    materialGenerationCid: subject[1],
-    resultDefinitionCid,
-    logicalRelationCid: subject[5],
-    resultSchemaCid: subject[4],
-    orderingEvidenceCid,
-    durableCodecCid: subject[6],
-    maxBytes: BigInt(subject[10]),
-    rowCount: BigInt(subject[9]),
-  });
   const outputIntent = remoteSiteControl.prepareOutputIntent(dispatch, {
     storeAuthorityCid: publicationAuthorityCid,
     publicationAttemptCid:
@@ -1390,11 +1342,11 @@ try {
   const outputResult = await coordinator.output({
     dispatch,
     intent: outputIntent,
-    payloadRequest,
-    transferRequest: outputTransfer,
+    subject: dispatched.subject,
+    maxChunks: 8,
+    maxManifestBytes: 4096,
+    maxReferencedBytes: 1048576n,
   });
-  assert.equal(outputResult.transferRequestCid,
-    transferControl.identity(outputTransfer));
   const released = await coordinator.release({dispatch});
   assert.equal(released.state[2], 2);
   const applicationExit = await applicationRun.completed;
@@ -1403,7 +1355,7 @@ try {
     .filter(Boolean).map(line => JSON.parse(line));
   assert.deepEqual(
     applicationEvents.map(event => event.kind),
-    ['dispatch', 'output', 'released', 'idle'],
+    ['dispatch', 'output-plan', 'output', 'released', 'idle'],
   );
   assert.equal(standardGateway.pending(), 0);
   coordinatorStore.close();
@@ -1419,6 +1371,9 @@ try {
       'native-application-coordinator',
     ),
     store: reopenedStore,
+    plan: async () => {
+      assert.fail('durable output recovery repeated output planning');
+    },
     output: async () => {
       assert.fail('durable output recovery repeated physical transport');
     },
@@ -1427,8 +1382,6 @@ try {
   const recoveredOutput = await reopenedCoordinator.output({
     dispatch,
     intent: outputIntent,
-    payloadRequest,
-    transferRequest: outputTransfer,
   });
   assert.deepEqual(recoveredOutput, outputResult);
   reopenedStore.close();

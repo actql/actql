@@ -121,12 +121,16 @@ export async function startHttpsOutboundSiteGateway({
     outputIntent,
     payloadRequest,
     transferRequest,
+    subject,
+    planLimits,
   ) => {
     const identity = control.identity(dispatch);
     const key = `${operation}:${identity}`;
     const outputEnvelope = operation === 'output'
       ? control.pollOutputJson(dispatch, outputIntent)
-      : undefined;
+      : operation === 'plan'
+        ? control.pollOutputPlanJson(dispatch, outputIntent)
+        : undefined;
     const outputExpected = operation === 'output'
       ? control.outputExpectedIdentity(payloadRequest, transferRequest)
       : undefined;
@@ -141,6 +145,15 @@ export async function startHttpsOutboundSiteGateway({
           entry.outputExpected[0] !== outputExpected[0] ||
           entry.outputExpected[1] !== outputExpected[1])) {
         fail('OutboundOutputBindingCollision');
+      }
+      if (operation === 'plan' &&
+          (entry.envelope !== outputEnvelope ||
+          entry.subjectCid !== control.managedOutputSubjectIdentity(subject) ||
+          entry.planLimits.maxChunks !== planLimits.maxChunks ||
+          entry.planLimits.maxManifestBytes !== planLimits.maxManifestBytes ||
+          entry.planLimits.maxReferencedBytes !==
+            planLimits.maxReferencedBytes)) {
+        fail('OutboundOutputPlanBindingCollision');
       }
       return entry;
     }
@@ -159,10 +172,17 @@ export async function startHttpsOutboundSiteGateway({
       inputBindingBody,
       output: operation === 'output'
         ? control.admitPollOutput(outputEnvelope)
-        : undefined,
+        : operation === 'plan'
+          ? control.admitPollOutputPlan(outputEnvelope)
+          : undefined,
       outputExpected,
       payloadRequest,
       transferRequest,
+      subject,
+      subjectCid: operation === 'plan'
+        ? control.managedOutputSubjectIdentity(subject)
+        : undefined,
+      planLimits,
       key,
       operation,
       acceptanceObserved: false,
@@ -171,6 +191,8 @@ export async function startHttpsOutboundSiteGateway({
         : operation === 'release'
           ? control.pollReleaseJson(dispatch)
           : operation === 'output'
+            ? outputEnvelope
+          : operation === 'plan'
             ? outputEnvelope
           : control.pollJson(dispatch, inputBinding),
       sequence: sequence++,
@@ -187,6 +209,8 @@ export async function startHttpsOutboundSiteGateway({
     outputIntent,
     payloadRequest,
     transferRequest,
+    subject,
+    planLimits,
   ) => {
     if (signal?.aborted) return Promise.reject(signal.reason);
     const entry = entryFor(
@@ -196,6 +220,8 @@ export async function startHttpsOutboundSiteGateway({
       outputIntent,
       payloadRequest,
       transferRequest,
+      subject,
+      planLimits,
     );
     return new Promise((resolve, reject) => {
       const waiter = {resolve, reject, signal, abort: undefined};
@@ -267,6 +293,33 @@ export async function startHttpsOutboundSiteGateway({
       let admitted;
       let matched;
       let statusReply = false;
+      for (const entry of pending.values()) {
+        if (entry.binding !== binding || entry.operation !== 'plan') {
+          continue;
+        }
+        try {
+          admitted = control.admitOutputPlan(
+            body,
+            entry.output,
+            entry.subject,
+            entry.planLimits.maxChunks,
+            entry.planLimits.maxManifestBytes,
+            entry.planLimits.maxReferencedBytes,
+          );
+          matched = entry;
+          break;
+        } catch {}
+      }
+      if (matched !== undefined) {
+        settle(matched, 'resolve', Object.freeze({
+          plan: admitted,
+          planWire: body,
+          payloadRequest: control.outputPlanPayloadRequest(admitted),
+          transferRequest: control.outputPlanTransferRequest(admitted),
+        }));
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
       for (const entry of pending.values()) {
         if (entry.binding !== binding || entry.operation !== 'output') {
           continue;
@@ -403,6 +456,45 @@ export async function startHttpsOutboundSiteGateway({
         intent,
         payloadRequest,
         transferRequest,
+      );
+    },
+    plan({
+      dispatch,
+      intent,
+      subject,
+      maxChunks,
+      maxManifestBytes,
+      maxReferencedBytes,
+      signal,
+    } = {}) {
+      if (typeof control.pollOutputPlanJson !== 'function' ||
+          typeof control.admitPollOutputPlan !== 'function' ||
+          typeof control.admitOutputPlan !== 'function' ||
+          typeof control.outputPlanPayloadRequest !== 'function' ||
+          typeof control.outputPlanTransferRequest !== 'function' ||
+          typeof control.managedOutputSubjectIdentity !== 'function' ||
+          dispatch === undefined || intent === undefined ||
+          subject === undefined || !Number.isSafeInteger(maxChunks) ||
+          maxChunks < 1 || !Number.isSafeInteger(maxManifestBytes) ||
+          maxManifestBytes < 1 ||
+          typeof maxReferencedBytes !== 'bigint' ||
+          maxReferencedBytes < 0n) {
+        fail('InvalidOutboundOutputPlan');
+      }
+      return waitFor(
+        dispatch,
+        signal,
+        'plan',
+        undefined,
+        intent,
+        undefined,
+        undefined,
+        subject,
+        Object.freeze({
+          maxChunks,
+          maxManifestBytes,
+          maxReferencedBytes,
+        }),
       );
     },
     query({dispatch, signal} = {}) {

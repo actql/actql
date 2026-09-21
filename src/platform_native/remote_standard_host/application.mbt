@@ -362,6 +362,36 @@ pub fn NativeRemoteStandardSiteComponent::inspect_observed_output_facts(
 }
 
 ///|
+/// Resolve the exact typed subject admitted by the durable Site journal.
+/// This is a control-plane fact and opens no physical reader.
+pub fn NativeRemoteStandardSiteComponent::observed_output_subject(
+  self : NativeRemoteStandardSiteComponent,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+) -> Result[
+  @remote.RemoteManagedOutputSubject,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed ||
+    completion.dispatch_request_cid !=
+    @remote.dispatch_request_identity(request) {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard @journal.recovered_site_dispatch_subject(observed) is Some(subject) else {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  if !@remote.remote_managed_output_subject_matches_dispatch(subject, request) ||
+    @remote.remote_managed_output_subject_cid(subject) != completion.subject_cid {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  Ok(subject)
+}
+
+///|
 /// Reconcile one retained completion from the exact durable Site observation.
 /// The environment cannot manufacture evidence or material identities here.
 pub fn NativeRemoteStandardSiteComponent::observed_completion(
@@ -775,6 +805,20 @@ pub fn NativeRemoteStandardSiteComponent::acknowledge_output_result(
 }
 
 ///|
+pub fn NativeRemoteStandardSiteComponent::acknowledge_output_plan(
+  self : NativeRemoteStandardSiteComponent,
+  plan : @remote.RemoteOutputPlan,
+) -> Result[Unit, NativeRemoteStandardSiteComponentIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  @client.acknowledge_output_plan(self.client, self.observation_url, plan).map_err(issue => {
+      Agent(@agent.Client(issue))
+    },
+  )
+}
+
+///|
 pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_result(
   self : NativeRemoteStandardSiteDistribution,
   result : @remote.RemoteOutputResult,
@@ -784,6 +828,19 @@ pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_result(
   }
   self.component
   .acknowledge_output_result(result)
+  .map_err(issue => Component(issue))
+}
+
+///|
+pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_plan(
+  self : NativeRemoteStandardSiteDistribution,
+  plan : @remote.RemoteOutputPlan,
+) -> Result[Unit, NativeRemoteStandardSiteDistributionIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .acknowledge_output_plan(plan)
   .map_err(issue => Component(issue))
 }
 
@@ -803,6 +860,23 @@ pub fn NativeRemoteStandardSiteDistribution::open_output_reader(
   }
   self.component
   .open_output_reader(request, material_generation, max_chunk_bytes)
+  .map_err(issue => Component(issue))
+}
+
+///|
+pub fn NativeRemoteStandardSiteDistribution::observed_output_subject(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+) -> Result[
+  @remote.RemoteManagedOutputSubject,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .observed_output_subject(request, completion)
   .map_err(issue => Component(issue))
 }
 

@@ -240,7 +240,7 @@ fn poll_once(
     None => Ok("{\"kind\":\"idle\"}")
     Some(@remote.Dispatch(_)) =>
       Err("dispatch requires a runtime-linked Site component")
-    Some(@remote.Output(_)) =>
+    Some(@remote.Plan(_)) | Some(@remote.Output(_)) =>
       Err("output requires an application-linked Site component")
     Some(@remote.Query(request)) =>
       match

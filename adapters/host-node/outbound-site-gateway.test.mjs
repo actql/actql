@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {X509Certificate} from 'node:crypto';
+import {createHash, X509Certificate} from 'node:crypto';
 import {request as httpsRequest} from 'node:https';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -17,6 +17,8 @@ import {startHttpsOutboundSiteGateway} from './outbound-site-gateway.mjs';
 import {createRemoteSiteCoordinator} from './remote-site-coordinator.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const physicalCid = value =>
+  `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const runtime = runtimeCore(moon);
 const control = runtime.remoteSiteControl;
 const transferControl = runtime.remoteTransferControl;
@@ -312,6 +314,71 @@ test('outbound gateway admits one exact retained-output result', async t => {
     transferControl.prepareDestinationCommit(transferRecord),
     true,
   );
+  const measurement = control.prepareManagedOutputMeasurement(Object.freeze({
+    rowCount: 2,
+    admissionNodes: 0,
+    admissionTextBytes: 0,
+    admissionWork: 0,
+    columnRows: Object.freeze([2]),
+    columnBytes: Object.freeze([12]),
+    columnNodes: Object.freeze([2]),
+    columnMaxValueBytes: Object.freeze([6]),
+    columnNullRows: Object.freeze([0]),
+    columnAdmittedDepths: Object.freeze([10]),
+  }));
+  const subject = control.prepareManagedOutputSubject(
+    request,
+    Object.freeze({
+      materialGeneration,
+      managedProfileCid: cid('4'),
+      resultSchemaCid: physicalManifest.schemaContractCid,
+      logicalViewCid: physicalManifest.viewContractCid,
+      representationCodecCid: physicalManifest.codecContractCid,
+      physicalManifestCid: physicalCid(
+        transferControl.manifestJson(transferRequest),
+      ),
+      rowCount: 2,
+      retainedBytes: 12n,
+    }),
+    measurement,
+    control.outputHoldingEvidenceIdentity(request, materialGeneration, 12n),
+  );
+  const planning = gateway.plan({
+    dispatch: request,
+    intent,
+    subject,
+    ...limits,
+  });
+  const path = '/v1/sites/site-a/generations/1/outbound';
+  const siteMaterial = {
+    ca: certificates_.ca,
+    cert: certificates_.siteCertificate,
+    key: certificates_.siteKey,
+  };
+  const planPoll = await post(gateway.origin, `${path}/poll`, siteMaterial);
+  const planOutput = control.admitPollOutputPlan(planPoll.body);
+  const plan = control.prepareOutputPlan(
+    planOutput,
+    subject,
+    payloadRequest,
+    transferRequest,
+  );
+  const planReply = await post(
+    gateway.origin,
+    `${path}/observations`,
+    siteMaterial,
+    control.outputPlanJson(plan),
+  );
+  assert.equal(planReply.status, 200);
+  const planned = await planning;
+  assert.equal(
+    control.publicationPayloadJson(planned.payloadRequest),
+    control.publicationPayloadJson(payloadRequest),
+  );
+  assert.equal(
+    transferControl.identity(planned.transferRequest),
+    transferControl.identity(transferRequest),
+  );
   const completion = gateway.output({
     dispatch: request,
     intent,
@@ -325,12 +392,6 @@ test('outbound gateway admits one exact retained-output result', async t => {
     transferRequest,
   });
   assert.equal(gateway.pending(), 1);
-  const path = '/v1/sites/site-a/generations/1/outbound';
-  const siteMaterial = {
-    ca: certificates_.ca,
-    cert: certificates_.siteCertificate,
-    key: certificates_.siteKey,
-  };
   const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
   assert.equal(polled.status, 200);
   const output = control.admitPollOutput(polled.body);

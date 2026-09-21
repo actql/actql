@@ -409,6 +409,24 @@ test "outbound agent observes durable acceptance before one execution" {
     ),
     transfer_origin: "https://destination.example.invalid/transfer",
   }).unwrap()
+  let output_plan = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_output_plan_json(request, output_intent).unwrap(),
+  ).unwrap()
+  guard @agent.advance_native_outbound_operation(
+      runtime,
+      Some(output_plan),
+      accept,
+      report_status,
+    )
+    is Ok(@agent.OutputPlanRequested(plan_request)) else {
+    fail("output planning was not returned to the application owner")
+  }
+  assert_eq(
+    @remote.remote_output_intent_identity(
+      @remote.remote_poll_output_intent(plan_request),
+    ),
+    @remote.remote_output_intent_identity(output_intent),
+  )
   let output = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_output_json(request, output_intent).unwrap(),
   ).unwrap()

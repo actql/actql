@@ -3182,6 +3182,18 @@ pub fn strategy_remote_poll_output_json(
 }
 
 ///|
+#export_name("strategyRemotePollOutputPlanJson")
+pub fn strategy_remote_poll_output_plan_json(
+  request : @remote.DispatchRequest,
+  intent : @remote.RemoteOutputIntent,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_output_plan_json(request, intent) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteOutputIntentPrepare")
 pub fn strategy_remote_output_intent_prepare(
   request : @remote.DispatchRequest,
@@ -3295,6 +3307,88 @@ pub fn strategy_remote_poll_output_admit(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemotePollOutputPlanAdmit")
+pub fn strategy_remote_poll_output_plan_admit(
+  body : String,
+) -> @remote.RemotePollOutput raise NodeHostFailure {
+  match @remote.admit_remote_poll_output_plan_json(body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanAdmit")
+pub fn strategy_remote_output_plan_admit(
+  body : String,
+  output : @remote.RemotePollOutput,
+  subject : @remote.RemoteManagedOutputSubject,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> @remote.RemoteOutputPlan raise NodeHostFailure {
+  match
+    @remote.admit_remote_output_plan_json(
+      body, output, subject, max_chunks, max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanPrepare")
+pub fn strategy_remote_output_plan_prepare(
+  output : @remote.RemotePollOutput,
+  subject : @remote.RemoteManagedOutputSubject,
+  payload_request : @payload.PublicationPayloadRequest,
+  transfer_request : @transfer.RemoteTransferRequest,
+) -> @remote.RemoteOutputPlan raise NodeHostFailure {
+  match
+    @remote.prepare_remote_output_plan(
+      output, subject, payload_request, transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanJson")
+pub fn strategy_remote_output_plan_json(
+  plan : @remote.RemoteOutputPlan,
+) -> String raise NodeHostFailure {
+  match @remote.remote_output_plan_json(plan) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputPlanIdentity")
+pub fn strategy_remote_output_plan_identity(
+  plan : @remote.RemoteOutputPlan,
+) -> String {
+  @remote.remote_output_plan_identity(plan)
+}
+
+///|
+#export_name("strategyRemoteOutputPlanPayloadRequest")
+pub fn strategy_remote_output_plan_payload_request(
+  plan : @remote.RemoteOutputPlan,
+) -> @payload.PublicationPayloadRequest {
+  @remote.remote_output_plan_payload_request(plan)
+}
+
+///|
+#export_name("strategyRemoteOutputPlanTransferRequest")
+pub fn strategy_remote_output_plan_transfer_request(
+  plan : @remote.RemoteOutputPlan,
+) -> @transfer.RemoteTransferRequest {
+  @remote.remote_output_plan_transfer_request(plan)
 }
 
 ///|

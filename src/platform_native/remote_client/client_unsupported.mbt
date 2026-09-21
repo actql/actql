@@ -73,3 +73,12 @@ pub fn acknowledge_output_result(
 ) -> Result[Unit, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn acknowledge_output_plan(
+  _client : @http.Client,
+  _url : String,
+  _plan : @remote.RemoteOutputPlan,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}
