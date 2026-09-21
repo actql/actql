@@ -1495,6 +1495,89 @@ try {
       }
       throw new Error('native Direct Site did not accept mTLS traffic');
     }
+    if (configuration.mode === 'store') {
+      assert.equal(destination, false);
+      const sourceFingerprint = new X509Certificate(
+        await readFile(configuration.sourceAuthority.certificatePath),
+      ).fingerprint256;
+      const destinationFingerprint = new X509Certificate(
+        await readFile(configuration.destinationAuthority.certificatePath),
+      ).fingerprint256;
+      const operation = runCapturedIn(
+        nativeTransferStoreSite,
+        [
+          '--host', configuration.host,
+          '--port', configuration.port.toString(),
+          '--cert', configuration.certificatePath,
+          '--key', configuration.keyPath,
+          '--ca', configuration.caPath,
+          '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+          '--journal', `${configuration.journalPath}.sqlite3`,
+          '--clock-journal', `${configuration.journalPath}-clock.sqlite3`,
+          '--root', configuration.root,
+          '--source-site', configuration.sourceAuthority.siteKey,
+          '--source-generation',
+          configuration.sourceAuthority.siteGeneration.toString(),
+          '--source-fingerprint', sourceFingerprint,
+          '--destination-site', configuration.destinationAuthority.siteKey,
+          '--destination-generation',
+          configuration.destinationAuthority.siteGeneration.toString(),
+          '--destination-fingerprint', destinationFingerprint,
+          '--source-grant-cid', configuration.sourceGrantCid,
+          '--destination-grant-cid', configuration.destinationGrantCid,
+          '--route-capability-cid', configuration.routeCapabilityCid,
+          '--admin-fingerprint', sourceFingerprint,
+          '--max-request-bytes', configuration.maxControlBytes.toString(),
+          '--max-response-bytes', configuration.maxFrameBytes.toString(),
+          '--max-pending', '32',
+          '--max-entries', configuration.maxObjects.toString(),
+          '--max-chunks', configuration.maxChunks.toString(),
+          '--max-manifest-bytes', configuration.maxManifestBytes.toString(),
+          '--max-frame-bytes', configuration.maxFrameBytes.toString(),
+          '--max-bytes', configuration.maxBytes.toString(),
+          '--max-objects', configuration.maxObjects.toString(),
+        ],
+        {},
+      );
+      const origin = `https://${configuration.host}:${configuration.port}`;
+      const probeArguments = [
+        '--silent', '--show-error', '--max-time', '1',
+        '--cert', join(root, 'client.crt'),
+        '--key', join(root, 'client.key'),
+        '--cacert', join(root, 'ca.crt'),
+        `${origin}/v1/ready`,
+      ];
+      const deadline = Date.now() + 10_000;
+      while (Date.now() < deadline) {
+        if (operation.child.exitCode !== null) {
+          const outcome = await operation.completed;
+          throw new Error(
+            `native Transfer Store exited: ${JSON.stringify(outcome)}`,
+          );
+        }
+        const probe = await runCaptured('curl', probeArguments).completed;
+        if (probe.code === 0) {
+          return {
+            operation,
+            origin,
+            stopping: undefined,
+            shutdown: async () => {
+              const stopped = await runCaptured('curl', [
+                '--silent', '--show-error', '--fail', '--max-time', '5',
+                '--request', 'POST',
+                '--cert', join(root, 'client.crt'),
+                '--key', join(root, 'client.key'),
+                '--cacert', join(root, 'ca.crt'),
+                `${origin}/v1/admin/shutdown`,
+              ]).completed;
+              assert.equal(stopped.code, 0, stopped.stderr);
+            },
+          };
+        }
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      throw new Error('native Transfer Store did not accept mTLS traffic');
+    }
     const configurationPath = join(
       root,
       `transfer-service-${configuration.mode}-${configuration.instance}.json`,
@@ -1673,6 +1756,10 @@ try {
     'build', '--target', 'native',
     'src/cmd/native_direct_transfer_site',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
+  execFileSync(moon, [
+    'build', '--target', 'native',
+    'src/cmd/native_transfer_store_site',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
   const transferReceiver = join(
     repositoryRoot,
     '_build/native/debug/build/cmd/native_remote_transfer_receive/' +
@@ -1687,6 +1774,11 @@ try {
     repositoryRoot,
     '_build/native/debug/build/cmd/native_direct_transfer_site/' +
       'native_direct_transfer_site.exe',
+  );
+  const nativeTransferStoreSite = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_transfer_store_site/' +
+      'native_transfer_store_site.exe',
   );
 
   const catalogs = await readFile(join(
@@ -1891,17 +1983,56 @@ try {
     output: options => standardGateway.output(options),
     receiveStoreOutput: async ({transferRequest}) => {
       if (!transferServiceRestarted) {
-        await waitForServiceFile(
-          transferServiceUploadReplied,
-          productTransferService.operation,
+        nativeApplicationOutputRequestBody =
+          transferControl.requestJson(transferRequest);
+        nativeApplicationOutputManifestBody =
+          transferControl.manifestJson(transferRequest);
+        const envelopePath = join(
+          productTransferRoot,
+          'store-restart-admission.json',
         );
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await writeFile(
+          envelopePath,
+          transferControl.admissionEnvelopeJson(transferRequest),
+          {mode: 0o600},
+        );
+        const projection = transferControl.requestProjection(transferRequest);
+        const deadline = Date.now() + 10_000;
+        let sealed = false;
+        let lastStoreObservation;
+        while (Date.now() < deadline && !sealed) {
+          const observed = await runCaptured('curl', [
+            '--silent', '--show-error', '--max-time', '2',
+            '--request', 'POST',
+            '--cert', join(root, 'client.crt'),
+            '--key', join(root, 'client.key'),
+            '--cacert', join(root, 'ca.crt'),
+            '--header', 'content-type: application/json',
+            '--header',
+            `actql-transfer-cid: ${transferControl.identity(transferRequest)}`,
+            '--header', `actql-manifest-cid: ${projection[7]}`,
+            '--data-binary', `@${envelopePath}`,
+            `${transferServiceOrigin}/v1/transfer-store/uploads`,
+          ]).completed;
+          lastStoreObservation = observed;
+          if (observed.code === 0) {
+            const reply = JSON.parse(observed.stdout);
+            sealed = reply.sealed === true;
+          }
+          if (!sealed) await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        assert.equal(
+          sealed,
+          true,
+          `native Store upload did not seal: ${JSON.stringify(
+            lastStoreObservation,
+          )}`,
+        );
         await stopProductTransferService(productTransferService, 'SIGKILL');
         const restartedConfiguration = {
           ...transferServiceConfiguration,
           instance: 2,
           port: Number(new URL(transferServiceOrigin).port),
-          uploadRepliedPath: transferServiceRepeatedUpload,
           readyPath: join(
             productTransferRoot,
             `${applicationOutputRoute}-ready-2.json`,
@@ -1913,9 +2044,9 @@ try {
         transferServiceOrigin = productTransferService.origin;
         transferServiceRestarted = true;
       }
-      nativeApplicationOutputRequestBody =
+      nativeApplicationOutputRequestBody ??=
         transferControl.requestJson(transferRequest);
-      nativeApplicationOutputManifestBody =
+      nativeApplicationOutputManifestBody ??=
         transferControl.manifestJson(transferRequest);
       applicationOutputReceiveArguments = [
         '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
@@ -2180,9 +2311,6 @@ try {
       : undefined,
   );
   const outputResult = outputOutcome.value;
-  if (applicationOutputRoute === 'store') {
-    assert.equal(existsSync(transferServiceRepeatedUpload), false);
-  }
   const released = await coordinator.release({dispatch});
   assert.equal(released.state[2], 2);
   const applicationExit = await applicationRun.completed;
