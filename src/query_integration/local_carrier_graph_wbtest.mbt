@@ -66,6 +66,40 @@ fn carrier_graph_components_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn carrier_graph_selector_source_owner(rows : String) -> @lower.BoundPrepared {
+  let checked = @pipeline.check(
+    input_cursor(
+      "[{\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
+      "\"nullable\":false}},\"rows\":" +
+      rows +
+      "},\"as\":\"source\"}]",
+    ),
+    [],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_open_endpoint_source_owner() -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
@@ -1128,6 +1162,66 @@ fn carrier_graph_traverse_owner(
         @pipeline.ProducedInput(
           @pipeline.produced_input(
             @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graph_relation_traverse_owner(
+  source : @lower.BoundPrepared,
+  selector : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"traverse\":{\"start\":{" +
+      "\"from\":\"selected\",\"id\":\"key\"}," +
+      "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+      "\"emit\":\"nodes\",\"max_output_rows\":4}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "selected",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(selector)),
             @pipeline.Step(0),
           ).unwrap(),
         ),
@@ -2477,6 +2571,87 @@ test "homogeneous traversal sorts and deduplicates literal starts" {
       [external],
     )
     is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkspaceLimit)),
+  )
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "homogeneous traversal reads a Relation start selector" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let selector_owner = carrier_graph_selector_source_owner(
+    "[{\"key\":2},{\"key\":1},{\"key\":2}]",
+  )
+  let selector = carrier_events_source_output(selector_owner)
+  let owner = carrier_graph_relation_traverse_owner(
+    source_owner, selector_owner,
+  )
+  let generated = task_test_generated(owner)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let sequence = prepared_sequence(owner)
+  let source_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let selector_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, selector_owner, selector).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [source_read, source_read],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    65,
+    1000,
+    1000,
+    [source_read, selector_read],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 4)
+  let rows = []
+  for row in 0..<4 {
+    rows.push(
+      @execution.completed_output_row_wire(output, row, 1000, 100, 10).unwrap(),
+    )
+  }
+  assert_eq(rows, [
+    "{\"depth\":1,\"node_id\":2,\"start_id\":1}", "{\"depth\":2,\"node_id\":3,\"start_id\":1}",
+    "{\"depth\":1,\"node_id\":1,\"start_id\":2}", "{\"depth\":1,\"node_id\":3,\"start_id\":2}",
+  ])
+  assert_true(
+    @execution.completed_output_matches_inputs(output, [
+      source_read, selector_read,
+    ]),
   )
   assert_true(@graphs.discard_completed(graph))
 }

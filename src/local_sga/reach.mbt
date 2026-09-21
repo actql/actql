@@ -35,6 +35,7 @@ priv enum ReachPhase {
 priv enum ReachStarts {
   SingleReachStart(@value.CheckedValue)
   TraversalReachStarts(@lower.PreparedGraphTraverse)
+  TraversalRelationStarts(@execution.ProducerRead, Int)
 }
 
 ///|
@@ -161,15 +162,48 @@ fn reach_start_count(state : ReachState) -> Int {
     SingleReachStart(_) => 1
     TraversalReachStarts(prepared) =>
       @lower.graph_traverse_start_id_count(prepared)
+    TraversalRelationStarts(input, _) =>
+      @execution.producer_read_row_count(input)
   }
 }
 
 ///|
-fn reach_start_at(state : ReachState, index : Int) -> @value.CheckedValue? {
+fn reach_start_at(
+  state : ReachState,
+  index : Int,
+) -> Result[@value.CheckedValue, ReachIssue] {
   match state.starts {
-    SingleReachStart(value) => if index == 0 { Some(value) } else { None }
+    SingleReachStart(value) =>
+      if index == 0 {
+        Ok(value)
+      } else {
+        Err(InvalidReachKernel)
+      }
     TraversalReachStarts(prepared) =>
-      @lower.graph_traverse_start_id_at(prepared, index)
+      match @lower.graph_traverse_start_id_at(prepared, index) {
+        Some(value) => Ok(value)
+        None => Err(InvalidReachKernel)
+      }
+    TraversalRelationStarts(input, column) =>
+      match
+        @execution.producer_read_checked_cell(
+          input,
+          index,
+          column,
+          state.value_limits,
+        ) {
+        Some(value) => Ok(value)
+        None => Err(ReachInputUnavailable)
+      }
+  }
+}
+
+///|
+fn reach_starts_available(state : ReachState) -> Bool {
+  match state.starts {
+    TraversalRelationStarts(input, _) =>
+      @execution.producer_read_available(input)
+    _ => true
   }
 }
 
@@ -363,7 +397,8 @@ fn reach_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !@graph.producer_read_available(state.input) ||
+      !reach_starts_available(state) {
       return @bounded.Failed(ReachInputUnavailable, progress, used)
     }
     match state.phase {
@@ -378,10 +413,11 @@ fn reach_step(
         }
       ResolveStarts =>
         if state.index < reach_start_count(state) {
-          guard reach_start_at(state, state.index) is Some(start) else {
-            return @bounded.Failed(InvalidReachKernel, progress, used)
-          }
           used += 1
+          let start = match reach_start_at(state, state.index) {
+            Ok(value) => value
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
           match @storage.node_index(state.source, start) {
             Err(issue) =>
               return @bounded.Failed(ReachGraph(issue), progress, used)
@@ -851,11 +887,17 @@ fn start_reach_state(
     SingleReachStart(_) => 1
     TraversalReachStarts(prepared) =>
       @lower.graph_traverse_start_id_count(prepared)
+    TraversalRelationStarts(selector, _) =>
+      @execution.producer_read_row_count(selector)
+  }
+  let starts_valid = match starts {
+    TraversalReachStarts(_) => start_count > 0
+    _ => true
   }
   guard minimum_depth >= 0 &&
     max_depth >= minimum_depth &&
     max_rows >= 0 &&
-    start_count > 0 &&
+    starts_valid &&
     nodes <= max_rows else {
     return Err(ReachOutputLimit)
   }

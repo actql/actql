@@ -34,6 +34,7 @@ pub fn start_traverse(
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
 ) -> Result[TraverseExecution, TraverseIssue] {
+  let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphTraverseStep(prepared)) &&
     !@lower.graph_traverse_patterned(prepared) &&
@@ -41,15 +42,45 @@ pub fn start_traverse(
     @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
-    @lower.graph_traverse_start_id_count(prepared) > 0 &&
     @lower.graph_traverse_start_predicate(prepared) is None &&
-    @lower.graph_traverse_start_relation_field(prepared) is None &&
+    (
+      @lower.graph_traverse_start_id_count(prepared) > 0 ||
+      @lower.graph_traverse_start_relation_field(prepared) is Some(_)
+    ) &&
     @lower.graph_traverse_hop_count(prepared) == 1 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
     @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
     @graph.producer_read_storage(input) is Some(source) else {
     return Err(UnsupportedTraverseKernel)
+  }
+  let starts = match @lower.graph_traverse_start_relation_field(prepared) {
+    None => TraversalReachStarts(prepared)
+    Some(field) => {
+      let mut selector = None
+      for candidate in inputs {
+        if @execution.producer_read_matches_operation_input(
+            candidate, owner, step, 1,
+          ) {
+          selector = Some(candidate)
+          break
+        }
+      }
+      guard selector is Some(selector) else {
+        return Err(UnsupportedTraverseKernel)
+      }
+      let schema = @execution.producer_read_schema(selector)
+      let mut column = -1
+      for index in 0..<@schema.field_count(schema) {
+        if @schema.field_at(schema, index).map(value => value.name) ==
+          Some(field) {
+          column = index
+          break
+        }
+      }
+      guard column >= 0 else { return Err(UnsupportedTraverseKernel) }
+      TraversalRelationStarts(selector, column)
+    }
   }
   let max_rows = match @lower.graph_traverse_output_guard(prepared) {
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()
@@ -67,7 +98,7 @@ pub fn start_traverse(
     input,
     source,
     @lower.graph_traverse_output_schema(prepared),
-    TraversalReachStarts(prepared),
+    starts,
     direction,
     edge_filter,
     minimum.to_int(),
