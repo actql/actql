@@ -436,6 +436,14 @@ test "native remote runtime owns success failure and cleanup progression" {
     .unwrap()
   assert_eq(manifest_reader.material_generation().unwrap(), "native-material-a")
   let retained_manifest = manifest_reader.physical_manifest().unwrap()
+  let inspected = runtime
+    .inspect_output_facts(first, "native-material-a")
+    .unwrap()
+  assert_eq(inspected.material_generation, "native-material-a")
+  assert_eq(
+    @manifest.manifest_cid(inspected.physical_manifest),
+    @manifest.manifest_cid(retained_manifest),
+  )
   assert_eq(retained_manifest.row_count, 1)
   assert_eq(retained_manifest.referenced_bytes, 1L)
   assert_false(runtime.release(first).unwrap())

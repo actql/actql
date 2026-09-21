@@ -69,6 +69,35 @@ pub(all) enum NativeRemoteApplicationLoadIssue {
   InvalidApplication
 }
 
+pub(all) struct NativeRemoteApplicationOutputIntent {
+  store_authority_cid : String
+  publication_attempt_cid : String
+  result_definition_cid : String
+  ordering_evidence_cid : String
+  coordinator_authority : String
+  transfer_attempt : String
+  transfer_route : @remote_transfer.RemoteTransferRoute
+  destination_site_key : String
+  destination_site_generation : Int
+  transfer_max_bytes : Int64
+  transfer_expires_unix_ms : Int64
+  source_grant_cid : String
+  destination_grant_cid : String
+  route_capability_cid : String
+}
+
+pub(all) struct NativeRemoteApplicationOutputPlan {
+  payload : @publication_payload.PublicationPayloadRequest
+  transfer : @remote_transfer.RemoteTransferRequest
+}
+
+pub(all) enum NativeRemoteApplicationOutputPlanIssue {
+  OutputFacts(NativeRemoteApplicationSiteIssue)
+  InvalidOutputFacts
+  Publication(@publication_payload.PublicationPayloadIssue)
+  Transfer(@remote_transfer.RemoteTransferIssue)
+}
+
 type NativeRemoteApplicationRun
 
 pub(all) enum NativeRemoteApplicationRunIssue {
@@ -80,10 +109,12 @@ pub(all) enum NativeRemoteApplicationRunIssue {
 
 type NativeRemoteApplicationSite
 pub fn NativeRemoteApplicationSite::close(Self) -> Result[Bool, NativeRemoteApplicationSiteIssue]
+pub fn NativeRemoteApplicationSite::inspect_observed_output_facts(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_runtime.NativeRemoteOutputFacts, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::persist_observed_output_payload(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int) -> Result[@publication_store.NativePublicationPayloadInfo, @remote_standard_host.NativeRemoteStandardPayloadFailure]
 pub fn NativeRemoteApplicationSite::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteApplicationSiteIssue]
+pub fn NativeRemoteApplicationSite::prepare_observed_output_plan(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, NativeRemoteApplicationOutputIntent) -> Result[NativeRemoteApplicationOutputPlan, NativeRemoteApplicationOutputPlanIssue]
 pub fn NativeRemoteApplicationSite::send_observed_output_direct(Self, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::send_observed_output_store(Self, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue]
 

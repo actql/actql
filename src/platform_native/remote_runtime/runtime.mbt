@@ -1487,6 +1487,47 @@ pub fn NativeRemoteRuntime::open_output_reader(
 }
 
 ///|
+/// Inspect immutable facts for one exact retained output without opening a
+/// physical reader. This is metadata admission for a later publication or
+/// Transfer occurrence; it grants no byte access and creates no reader pin.
+pub fn NativeRemoteRuntime::inspect_output_facts(
+  self : NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+  material_generation : String,
+) -> Result[NativeRemoteOutputFacts, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let identity = @remote.dispatch_request_identity(request)
+  guard self.owners.get(identity) is Some(owner) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if !@remote.dispatch_record_matches_request(owner.record, request) ||
+    !@site.site_available(owner.registration.site) {
+    return Err(OutputReaderUnavailable)
+  }
+  guard owner.output is Some(output) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if output.facts.material_generation != material_generation ||
+    !@remote.remote_runtime_custody_output_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_output_released(owner.custody) ||
+    !@remote.remote_runtime_custody_holding_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_holding_released(owner.custody) {
+    return Err(OutputReaderUnavailable)
+  }
+  guard readmit_native_remote_output_manifest(output.facts.physical_manifest)
+    is Some(manifest) else {
+    return Err(OutputRejected)
+  }
+  match native_remote_runtime_completion(owner) {
+    Ok(_) => ()
+    Err(_) => return Err(OutputReaderUnavailable)
+  }
+  Ok({ ..output.facts, physical_manifest: manifest, })
+}
+
+///|
 /// Open a manifest-preserving reader for an explicit Transfer occurrence.
 /// Every admitted physical chunk must fit the caller's bounded buffer; this
 /// operation never combines chunks or materializes the complete Result.

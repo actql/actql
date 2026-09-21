@@ -42,6 +42,46 @@ pub(all) struct NativeRemoteApplicationTaskProfile {
 }
 
 ///|
+/// Coordinator-authorized identities and bounds needed to derive physical
+/// publication and Transfer requests for one observed output. The immutable
+/// output binding itself always comes from the durable Site observation.
+pub(all) struct NativeRemoteApplicationOutputIntent {
+  store_authority_cid : String
+  publication_attempt_cid : String
+  result_definition_cid : String
+  ordering_evidence_cid : String
+  coordinator_authority : String
+  transfer_attempt : String
+  transfer_route : @transfer.RemoteTransferRoute
+  destination_site_key : String
+  destination_site_generation : Int
+  transfer_max_bytes : Int64
+  transfer_expires_unix_ms : Int64
+  source_grant_cid : String
+  destination_grant_cid : String
+  route_capability_cid : String
+}
+
+///|
+/// Exact admitted requests derived from one durable output observation. The
+/// caller may execute them through physical adapters, but cannot replace the
+/// observed generation, manifest, logical view, schema, or codec.
+pub(all) struct NativeRemoteApplicationOutputPlan {
+  payload : @payload.PublicationPayloadRequest
+  transfer : @transfer.RemoteTransferRequest
+}
+
+///|
+/// Output planning fails before any publication writer or Transfer reader is
+/// opened.
+pub(all) enum NativeRemoteApplicationOutputPlanIssue {
+  OutputFacts(NativeRemoteApplicationSiteIssue)
+  InvalidOutputFacts
+  Publication(@payload.PublicationPayloadIssue)
+  Transfer(@transfer.RemoteTransferIssue)
+}
+
+///|
 /// Composition failures keep task registration distinct from process-owned
 /// Site distribution failures.
 pub(all) enum NativeRemoteApplicationSiteIssue {
@@ -55,6 +95,7 @@ pub(all) enum NativeRemoteApplicationSiteIssue {
 /// distribution must release runtime, bundle, dispatch-journal, and transport
 /// authority before the transferred-input journal can close.
 struct NativeRemoteApplicationSite {
+  site : @site.ExecutionSite
   distribution : @remote_standard.NativeRemoteStandardSiteDistribution
   transfer_journal : @transfer_journal.Journal
   mut distribution_closed : Bool
@@ -420,12 +461,89 @@ pub fn open_native_remote_application_store_site_distribution(
     Err(issue) => return Err(Distribution(issue))
   }
   Ok({
+    site,
     distribution,
     transfer_journal,
     distribution_closed: false,
     transfer_journal_closed: false,
     closed: false,
   })
+}
+
+///|
+/// Derive publication and Transfer requests from an exact durable output
+/// observation. This performs no physical I/O and does not create a reader
+/// pin. Coordinator-supplied intent cannot replace Site-owned output facts.
+pub fn NativeRemoteApplicationSite::prepare_observed_output_plan(
+  self : NativeRemoteApplicationSite,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  intent : NativeRemoteApplicationOutputIntent,
+) -> Result[
+  NativeRemoteApplicationOutputPlan,
+  NativeRemoteApplicationOutputPlanIssue,
+] {
+  let facts = match self.inspect_observed_output_facts(request, completion) {
+    Ok(value) => value
+    Err(issue) => return Err(OutputFacts(issue))
+  }
+  prepare_native_remote_application_output_plan(self.site, facts, intent)
+}
+
+///|
+fn prepare_native_remote_application_output_plan(
+  site : @site.ExecutionSite,
+  facts : @runtime.NativeRemoteOutputFacts,
+  intent : NativeRemoteApplicationOutputIntent,
+) -> Result[
+  NativeRemoteApplicationOutputPlan,
+  NativeRemoteApplicationOutputPlanIssue,
+] {
+  let manifest = facts.physical_manifest
+  if facts.result_schema_cid != manifest.schema_contract_cid ||
+    facts.logical_view_cid != manifest.view_contract_cid ||
+    facts.representation_codec_cid != manifest.codec_contract_cid ||
+    facts.row_count != manifest.row_count ||
+    facts.retained_bytes != manifest.referenced_bytes {
+    return Err(InvalidOutputFacts)
+  }
+  let payload = match
+    @payload.prepare_publication_payload_request(
+      intent.store_authority_cid,
+      intent.publication_attempt_cid,
+      facts.material_generation,
+      intent.result_definition_cid,
+      facts.logical_view_cid,
+      facts.result_schema_cid,
+      intent.ordering_evidence_cid,
+      facts.representation_codec_cid,
+      manifest.referenced_bytes,
+      manifest.row_count.to_int64(),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Publication(issue))
+  }
+  let transfer = match
+    @transfer.prepare_request(
+      intent.coordinator_authority,
+      intent.transfer_attempt,
+      intent.transfer_route,
+      @site.site_key(site),
+      @site.site_generation(site),
+      intent.destination_site_key,
+      intent.destination_site_generation,
+      facts.material_generation,
+      manifest,
+      intent.transfer_max_bytes,
+      intent.transfer_expires_unix_ms,
+      intent.source_grant_cid,
+      intent.destination_grant_cid,
+      intent.route_capability_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Transfer(issue))
+  }
+  Ok({ payload, transfer, })
 }
 
 ///|
@@ -455,6 +573,22 @@ pub fn NativeRemoteApplicationSite::open_observed_output_reader(
   }
   self.distribution
   .open_observed_output_reader(request, completion, max_chunk_bytes)
+  .map_err(issue => Distribution(issue))
+}
+
+///|
+/// Inspect immutable output facts selected by the durable dispatch
+/// observation without opening a physical reader.
+pub fn NativeRemoteApplicationSite::inspect_observed_output_facts(
+  self : NativeRemoteApplicationSite,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+) -> Result[@runtime.NativeRemoteOutputFacts, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .inspect_observed_output_facts(request, completion)
   .map_err(issue => Distribution(issue))
 }
 

@@ -22,3 +22,8 @@ import {
   "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/platform_native/remote_runtime" @runtime,
 }
+
+import {
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/sha256" @sha,
+} for "wbtest"

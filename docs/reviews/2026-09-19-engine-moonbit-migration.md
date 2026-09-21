@@ -54,8 +54,16 @@ native DuckDB driver and Store input, and polls only through that process-owned
 distribution. Its physical configuration surface does not install another
 progression callback. A real separated-process dispatch through this
 executable, including output Transfer and publication operations before
-release, remains open. The live Node bundle boundary and
-the native durable-Store route now install opaque factories directly; neither
+release, remains open. The runtime now projects immutable output facts from
+the exact durable dispatch observation without opening a physical reader.
+The application owner uses those facts to derive both the publication payload
+request and the direct or Store Transfer request from one Coordinator intent.
+The observed generation, physical manifest, logical view, schema, codec, and
+source Site generation cannot be replaced by the executable adapter. Carrying
+that intent through the authenticated outbound protocol and executing both
+physical operations before an admitted release remain open. The live Node
+bundle boundary and the native durable-Store route now install opaque
+factories directly; neither
 accepts a replacement input state machine from application composition. The
 native standard registry also accepts non-streaming Local and DuckDB Runs only
 through an opaque factory fixed to one exact input binding. Its earlier public

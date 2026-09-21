@@ -312,6 +312,42 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(
 }
 
 ///|
+/// Inspect the exact immutable output facts selected by a durable dispatch
+/// observation. This does not open a physical reader or grant byte access.
+pub fn NativeRemoteStandardSiteComponent::inspect_observed_output_facts(
+  self : NativeRemoteStandardSiteComponent,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+) -> Result[
+  @runtime.NativeRemoteOutputFacts,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed ||
+    completion.dispatch_request_cid !=
+    @remote.dispatch_request_identity(request) {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard @journal.recovered_site_dispatch_subject(observed) is Some(subject) else {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  if !@remote.remote_managed_output_subject_matches_dispatch(subject, request) ||
+    @remote.remote_managed_output_subject_cid(subject) != completion.subject_cid {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  let projection = @remote.remote_managed_output_subject_projection(subject)
+  if projection.length() < 2 {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  self.runtime
+  .inspect_output_facts(request, projection[1])
+  .map_err(issue => Runtime(issue))
+}
+
+///|
 /// Stream one exact observed output into the native publication Store. The
 /// caller supplies a payload request already admitted by common publication
 /// control; this boundary checks every physical and logical representation
@@ -692,6 +728,25 @@ pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(
   }
   self.component
   .open_observed_output_reader(request, completion, max_chunk_bytes)
+  .map_err(issue => Component(issue))
+}
+
+///|
+/// Inspect output metadata through the process-owned distribution without
+/// creating a physical reader or exposing runtime owner selection.
+pub fn NativeRemoteStandardSiteDistribution::inspect_observed_output_facts(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+) -> Result[
+  @runtime.NativeRemoteOutputFacts,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .inspect_observed_output_facts(request, completion)
   .map_err(issue => Component(issue))
 }
 
