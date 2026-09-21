@@ -16,6 +16,12 @@ const scratchParent = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchParent !== 'string' || scratchParent.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
 }
+const nativeSiteNamespace = process.env.ACTQL_TEST_NATIVE_SITE_NETNS;
+const nativeSiteUser = process.env.ACTQL_TEST_NATIVE_SITE_USER;
+if ((nativeSiteNamespace === undefined) !== (nativeSiteUser === undefined) ||
+    nativeSiteNamespace === '' || nativeSiteUser === '') {
+  throw new Error('native Site namespace and user must be configured together');
+}
 await mkdir(scratchParent, {recursive: true});
 const root = await mkdtemp(join(scratchParent, 'native-bundle-cli-'));
 const inputRoot = join(root, 'input');
@@ -172,9 +178,19 @@ try {
     '--max-record-bytes', '1048576',
   ];
   const run = async (...operation) => {
-    const result = await execute(executable, [...common, ...operation], {
+    const namespaced = nativeSiteNamespace !== undefined;
+    const command = namespaced ? 'sudo' : executable;
+    const arguments_ = namespaced
+      ? [
+          'ip', 'netns', 'exec', nativeSiteNamespace,
+          'sudo', `--user=${nativeSiteUser}`, 'env',
+          'PATH=/usr/bin:/bin', 'LANG=C',
+          executable, ...common, ...operation,
+        ]
+      : [...common, ...operation];
+    const result = await execute(command, arguments_, {
       cwd: repositoryRoot,
-      env: {PATH: '/usr/bin:/bin', LANG: 'C'},
+      env: namespaced ? process.env : {PATH: '/usr/bin:/bin', LANG: 'C'},
       maxBuffer: 2 * 1024 * 1024,
     });
     return JSON.parse(result.stdout);

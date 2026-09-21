@@ -45,7 +45,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$scratch_root/direct" "$scratch_root/store" "$scratch_root/probes"
+mkdir -p "$scratch_root/direct" "$scratch_root/store" \
+  "$scratch_root/bundle" "$scratch_root/probes"
 
 sudo ip netns add "$source_namespace"
 sudo ip netns add "$destination_namespace"
@@ -144,3 +145,7 @@ env "${common_environment[@]}" \
   "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/store" \
   ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE=store \
   node "$repository_root/scripts/test-native-http-client.mjs"
+
+env "${common_environment[@]}" \
+  "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/bundle" \
+  node "$repository_root/scripts/test-native-runtime-bundle-cli.mjs"

@@ -82,6 +82,9 @@ await mkdir(standardRoot, {recursive: true});
 await mkdir(transferStandardRoot, {recursive: true});
 await mkdir(remotePublicationRoot, {recursive: true});
 
+const physicalCid = value => `sha256:${createHash('sha256')
+  .update(value).digest('hex')}`;
+
 const openssl = (...arguments_) => execFileSync(
   'openssl',
   arguments_,
@@ -1004,6 +1007,48 @@ try {
       assert.equal(standardGateway.pending(), 0);
     }
   }
+  if (nativeSiteNamespace !== undefined) {
+    const credentialTest = join(
+      new URL('../', import.meta.url).pathname,
+      '_build/native/debug/test/platform_native/credential_resource/' +
+        'credential_resource.whitebox_test.exe',
+    );
+    const credentialEnvironment = {
+      PATH: '/usr/bin:/bin',
+      LANG: 'C',
+      ACTQL_TEST_NATIVE_HTTP_LIBRARY:
+        testEnvironment.ACTQL_TEST_NATIVE_HTTP_LIBRARY,
+      ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
+        testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+      ACTQL_TEST_NATIVE_HTTP_URL: testEnvironment.ACTQL_TEST_NATIVE_HTTP_URL,
+      ACTQL_TEST_NATIVE_HTTP_CA: testEnvironment.ACTQL_TEST_NATIVE_HTTP_CA,
+      ACTQL_TEST_NATIVE_HTTP_CERT:
+        testEnvironment.ACTQL_TEST_NATIVE_HTTP_CERT,
+      ACTQL_TEST_NATIVE_HTTP_KEY: testEnvironment.ACTQL_TEST_NATIVE_HTTP_KEY,
+      ACTQL_TEST_NATIVE_HTTP_SECRET:
+        testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
+      ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL:
+        join(root, 'credential-site.sqlite'),
+    };
+    const credential = spawn('sudo', [
+      'ip', 'netns', 'exec', nativeSiteNamespace,
+      'sudo', `--user=${nativeSiteUser}`, 'env',
+      ...Object.entries(credentialEnvironment)
+        .map(([name, value]) => `${name}=${value}`),
+      credentialTest,
+      'resource_native_wbtest.mbt:0-1',
+    ], {
+      cwd: new URL('../', import.meta.url),
+      env: process.env,
+      stdio: 'inherit',
+    });
+    const [code, signal] = await once(credential, 'exit');
+    if (code !== 0) {
+      throw new Error(
+        `namespaced native credential test failed: ${code ?? signal}`,
+      );
+    }
+  }
   execFileSync(moon, [
     'build', '--target', 'native', 'src/cmd/native_remote_site',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
@@ -1192,6 +1237,136 @@ try {
     nativeDestinationUser ?? nativeSiteUser,
   );
 
+  const applicationRoot = join(root, 'remote-application');
+  const applicationTransferRoot = join(root, 'remote-application-transfer');
+  const applicationPublicationRoot =
+    join(root, 'remote-application-publication');
+  const applicationRuntimeRoot =
+    join(root, 'remote-application-runtime');
+  const applicationBundleInputRoot =
+    join(root, 'remote-application-bundle-input');
+  const applicationCoordinatorRoot =
+    join(root, 'remote-application-coordinator');
+  const applicationOutputTransferRoot =
+    join(root, 'remote-application-output-transfer');
+  const applicationOutputTransferJournal =
+    join(root, 'remote-application-output-transfer.sqlite3');
+  await Promise.all([
+    mkdir(applicationRoot),
+    mkdir(applicationTransferRoot),
+    mkdir(applicationPublicationRoot),
+    mkdir(applicationRuntimeRoot),
+    mkdir(applicationBundleInputRoot),
+    mkdir(applicationCoordinatorRoot),
+    mkdir(applicationOutputTransferRoot),
+  ]);
+
+  execFileSync(moon, [
+    'build', '--target', 'native', 'src/cmd/native_runtime_bundle',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  const runtimeBundleExecutable = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_runtime_bundle/' +
+      'native_runtime_bundle.exe',
+  );
+  const applicationComponent = await readFile(applicationExecutable);
+  const applicationComponentCid = physicalCid(applicationComponent);
+  const applicationRuntimeManifest = runtimeControl.prepare({
+    issuerAuthority: 'bundle-authority-a',
+    bundleName: 'native-application-site',
+    revision: 'native-application/1',
+    targetTriple,
+    componentCid: applicationComponentCid,
+    componentBytes: BigInt(applicationComponent.byteLength),
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
+  });
+  const applicationRuntimeEnvelope = signRemoteRuntimeBundle(
+    applicationRuntimeManifest,
+    runtimeControl,
+    {keyId: 'key-a', privateKey: runtimeKeys.privateKey},
+  );
+  await Promise.all([
+    writeFile(
+      join(applicationBundleInputRoot, 'runtime-public.pem'),
+      testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(applicationBundleInputRoot, 'trust.json'),
+      JSON.stringify({
+        authorities: [{
+          admit_new_bundles: true,
+          issuer_authority: 'bundle-authority-a',
+          key_id: 'key-a',
+          public_key_name: 'runtime-public.pem',
+        }],
+        version: 'actql-native-runtime-bundle-trust/0.1',
+      }),
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(applicationBundleInputRoot, 'manifest.json'),
+      applicationRuntimeEnvelope.body,
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(applicationBundleInputRoot, 'signature.txt'),
+      applicationRuntimeEnvelope.signature,
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(applicationBundleInputRoot, 'component.bin'),
+      applicationComponent,
+      {mode: 0o700},
+    ),
+  ]);
+  const applicationBundleCommon = [
+    '--store-root', applicationRuntimeRoot,
+    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+    '--crypto-library', cryptoLibrary,
+    '--target-triple', targetTriple,
+    '--authority-root', applicationBundleInputRoot,
+    '--trust-config-name', 'trust.json',
+    '--capacity-bytes', '268435456',
+    '--max-bundles', '4',
+    '--max-owners', '8',
+    '--max-record-bytes', '1048576',
+  ];
+  const installedApplicationBundle = await runCaptured(
+    runtimeBundleExecutable,
+    [
+      ...applicationBundleCommon,
+      'install',
+      '--install-id', 'native-application-install',
+      '--signature-key-id', 'key-a',
+      '--bundle-cid', applicationRuntimeEnvelope.runtimeBundleCid,
+      '--input-root', applicationBundleInputRoot,
+      '--manifest-name', 'manifest.json',
+      '--signature-name', 'signature.txt',
+      '--component-name', 'component.bin',
+    ],
+  ).completed;
+  assert.equal(
+    installedApplicationBundle.code,
+    0,
+    installedApplicationBundle.stderr,
+  );
+  const activatedApplicationBundle = await runCaptured(
+    runtimeBundleExecutable,
+    [
+      ...applicationBundleCommon,
+      'activate',
+      '--bundle-cid', applicationRuntimeEnvelope.runtimeBundleCid,
+    ],
+  ).completed;
+  assert.equal(
+    activatedApplicationBundle.code,
+    0,
+    activatedApplicationBundle.stderr,
+  );
+
   execFileSync(moon, [
     'build', '--target', 'native',
     'src/cmd/native_remote_transfer_receive',
@@ -1210,23 +1385,6 @@ try {
     '_build/native/debug/build/cmd/native_remote_application_inspect/' +
       'native_remote_application_inspect.exe',
   );
-  const applicationRoot = join(root, 'remote-application');
-  const applicationTransferRoot = join(root, 'remote-application-transfer');
-  const applicationPublicationRoot =
-    join(root, 'remote-application-publication');
-  const applicationCoordinatorRoot =
-    join(root, 'remote-application-coordinator');
-  const applicationOutputTransferRoot =
-    join(root, 'remote-application-output-transfer');
-  const applicationOutputTransferJournal =
-    join(root, 'remote-application-output-transfer.sqlite3');
-  await Promise.all([
-    mkdir(applicationRoot),
-    mkdir(applicationTransferRoot),
-    mkdir(applicationPublicationRoot),
-    mkdir(applicationCoordinatorRoot),
-    mkdir(applicationOutputTransferRoot),
-  ]);
 
   const catalogs = await readFile(join(
     repositoryRoot,
@@ -1298,8 +1456,6 @@ try {
   nativeStoreTransferBodies.length = 0;
   nativeStoreUses.clear();
   const inputChunks = [Buffer.from('{"id":3}'), Buffer.from('{"id":2}')];
-  const physicalCid = value => `sha256:${createHash('sha256')
-    .update(value).digest('hex')}`;
   const inputSchemaCid = `sha256:${'1'.repeat(64)}`;
   const inputViewCid = `sha256:${'2'.repeat(64)}`;
   const inputCodecCid = `sha256:${'3'.repeat(64)}`;
@@ -1401,7 +1557,7 @@ try {
     dispatchId: 'native-application-dispatch',
     siteKey: 'native-standard-transfer-site',
     siteGeneration: 1,
-    runtimeBundleCid: runtimeEnvelope.runtimeBundleCid,
+    runtimeBundleCid: applicationRuntimeEnvelope.runtimeBundleCid,
     connectorRegistration: 'local',
     connectorRevision: 'local/1',
     strategyRevision: 'strategy/1',
@@ -1473,10 +1629,6 @@ try {
       return Object.freeze({record});
     },
   });
-  const dispatchCompletion = coordinator.dispatch({
-    dispatch,
-    inputBindingBody,
-  });
   nativeTransferInjectLostReply = false;
   const duckdbLibrary = join(
     repositoryRoot,
@@ -1487,7 +1639,7 @@ try {
   assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
   const publicationAuthorityCid =
     physicalCid('native-application-publication-store');
-  const applicationRun = runCaptured(applicationExecutable, [
+  const applicationArguments = [
     '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
     '--crypto-library', cryptoLibrary,
     '--http-library', library,
@@ -1496,14 +1648,14 @@ try {
     '--transfer-root', applicationTransferRoot,
     '--publication-root', applicationPublicationRoot,
     '--publication-authority-cid', publicationAuthorityCid,
-    '--runtime-root', transferStandardRoot,
+    '--runtime-root', applicationRuntimeRoot,
     '--transfer-journal', applicationTransferJournal,
     '--dispatch-journal', join(root, 'remote-application-dispatch.sqlite3'),
     '--database-path', join(root, 'remote-application.duckdb'),
     '--site-key', 'native-standard-transfer-site',
     '--site-generation', '1',
     '--target-triple', targetTriple,
-    '--component-cid', physicalCid(runtimeComponent),
+    '--component-cid', applicationComponentCid,
     '--process-hold-id', 'runtime-process:native-application',
     '--bundle-issuer', 'bundle-authority-a',
     '--bundle-key-id', 'key-a',
@@ -1528,7 +1680,25 @@ try {
     '--max-rows', '100',
     '--max-bytes', String(applicationMaxBytes),
     '--output-chunk-bytes', '4096',
-  ]);
+  ];
+  const componentCidIndex = applicationArguments.indexOf('--component-cid');
+  assert.notEqual(componentCidIndex, -1);
+  const mismatchedApplicationArguments = [...applicationArguments];
+  mismatchedApplicationArguments[componentCidIndex + 1] =
+    `sha256:${'0'.repeat(64)}`;
+  const mismatchedApplication = await runCaptured(
+    applicationExecutable,
+    mismatchedApplicationArguments,
+  ).completed;
+  assert.notEqual(mismatchedApplication.code, 0);
+  const dispatchCompletion = coordinator.dispatch({
+    dispatch,
+    inputBindingBody,
+  });
+  const applicationRun = runCaptured(
+    applicationExecutable,
+    applicationArguments,
+  );
   const firstApplicationOutcome = await Promise.race([
     dispatchCompletion.then(value => ({kind: 'dispatch', value})),
     applicationRun.completed.then(value => ({kind: 'application', value})),
