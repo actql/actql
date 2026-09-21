@@ -8,4 +8,6 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_strategy_example" @application,
   "actql/actql/platform_native/remote_standard_host" @remote_standard,
+  "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
+  "actql/actql/platform_native/filesystem",
 }

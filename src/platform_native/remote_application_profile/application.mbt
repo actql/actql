@@ -19,6 +19,19 @@ pub(all) enum NativeRemoteApplicationRunIssue {
 }
 
 ///|
+/// Physical execution limits fixed for every occurrence opened by one
+/// application input factory. These are execution admission facts, not
+/// transport hints that an environment adapter may replace per dispatch.
+pub(all) struct NativeRemoteApplicationExecutionLimits {
+  ledger : @resources.LedgerLimits
+  native_fixed_ms : Int64
+  resident : Bool
+  imports : @native_host.NativeComputeImportLimits
+  transfer_bytes : Int64
+  execution_bytes : Int64
+}
+
+///|
 /// Opens one fresh application occurrence from an already verified physical
 /// input source. Program checking and strategy construction are reused from
 /// the portable application builder; this native package adds no parser,
@@ -99,6 +112,96 @@ pub fn prepare_native_remote_application_compute_owner(
   @remote_standard.prepare_native_remote_standard_compute_owner(run.strategy, () => {
     run.finish_outputs()
   })
+}
+
+///|
+/// Registers a durable Store input factory for one exact checked
+/// application. Program identity, acquisition sequence, Connector execution,
+/// and Captured DAG cleanup all come from the portable application owner.
+pub fn register_native_remote_application_store_run_factory(
+  app : @application.Application,
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  codec : @remote_standard.NativeRemoteStandardRowCodec,
+  binding_limits : @remote_standard.NativeRemoteStandardTransferBindingLimits,
+  source_limits : @remote_standard.NativeRemoteStandardTransferSourceLimits,
+  execution : NativeRemoteApplicationExecutionLimits,
+  library? : @native_duckdb.Library? = None,
+  database_path? : String = "",
+) -> Result[
+  @remote_standard.NativeRemoteStandardStoreRunFactory,
+  @remote_standard.NativeRemoteStandardHostIssue,
+] {
+  @remote_standard.register_native_remote_standard_store_run_factory(
+    journal,
+    root,
+    codec,
+    @application.application_input_sequence(app),
+    @application.application_program_identity(app),
+    binding_limits,
+    source_limits,
+    source => {
+      match
+        open_native_remote_application_run(
+          app,
+          source,
+          execution.ledger,
+          execution.native_fixed_ms,
+          execution.resident,
+          execution.imports,
+          execution.transfer_bytes,
+          execution.execution_bytes,
+          library~,
+          database_path~,
+        ) {
+        Ok(run) => Ok(prepare_native_remote_application_compute_owner(run))
+        Err(_) => Err(())
+      }
+    },
+  )
+}
+
+///|
+/// Registers a direct-stream input factory for the same exact application
+/// profile. The direct transport owns only bounded physical delivery; this
+/// factory retains the checked input and execution authorities.
+pub fn register_native_remote_application_direct_run_factory(
+  app : @application.Application,
+  codec : @remote_standard.NativeRemoteStandardRowCodec,
+  binding_limits : @remote_standard.NativeRemoteStandardTransferBindingLimits,
+  source_limits : @remote_standard.NativeRemoteStandardTransferSourceLimits,
+  execution : NativeRemoteApplicationExecutionLimits,
+  library? : @native_duckdb.Library? = None,
+  database_path? : String = "",
+) -> Result[
+  @remote_standard.NativeRemoteStandardDirectRunFactory,
+  @remote_standard.NativeRemoteStandardHostIssue,
+] {
+  @remote_standard.register_native_remote_standard_direct_run_factory(
+    codec,
+    @application.application_input_sequence(app),
+    @application.application_program_identity(app),
+    binding_limits,
+    source_limits,
+    source => {
+      match
+        open_native_remote_application_run(
+          app,
+          source,
+          execution.ledger,
+          execution.native_fixed_ms,
+          execution.resident,
+          execution.imports,
+          execution.transfer_bytes,
+          execution.execution_bytes,
+          library~,
+          database_path~,
+        ) {
+        Ok(run) => Ok(prepare_native_remote_application_compute_owner(run))
+        Err(_) => Err(())
+      }
+    },
+  )
 }
 
 ///|

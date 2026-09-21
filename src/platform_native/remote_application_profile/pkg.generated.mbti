@@ -8,7 +8,9 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_example",
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/remote_transfer_journal",
 }
 
 // Values
@@ -18,9 +20,22 @@ pub fn open_native_remote_application_run(@physical_strategy_example.Application
 
 pub fn prepare_native_remote_application_compute_owner(NativeRemoteApplicationRun) -> @remote_standard_host.NativeRemoteStandardComputeOwner
 
+pub fn register_native_remote_application_direct_run_factory(@physical_strategy_example.Application, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, NativeRemoteApplicationExecutionLimits, library? : @native.Library?, database_path? : String) -> Result[@remote_standard_host.NativeRemoteStandardDirectRunFactory, @remote_standard_host.NativeRemoteStandardHostIssue]
+
+pub fn register_native_remote_application_store_run_factory(@physical_strategy_example.Application, @remote_transfer_journal.Journal, @filesystem.Root, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, NativeRemoteApplicationExecutionLimits, library? : @native.Library?, database_path? : String) -> Result[@remote_standard_host.NativeRemoteStandardStoreRunFactory, @remote_standard_host.NativeRemoteStandardHostIssue]
+
 // Errors
 
 // Types and methods
+pub(all) struct NativeRemoteApplicationExecutionLimits {
+  ledger : @physical_resources.LedgerLimits
+  native_fixed_ms : Int64
+  resident : Bool
+  imports : @host_native.NativeComputeImportLimits
+  transfer_bytes : Int64
+  execution_bytes : Int64
+}
+
 type NativeRemoteApplicationRun
 
 pub(all) enum NativeRemoteApplicationRunIssue {
