@@ -102,3 +102,21 @@ test "weighted mean matches independent exact-rational vectors" {
     )
   }
 }
+
+///|
+test "incremental exact folds preserve occurrences and terminal state" {
+  let total = prepare_weight_sum(4096).unwrap()
+  let present = prepare_weight_sum(4096).unwrap()
+  add_weight(total, 1.0).unwrap()
+  add_weight(total, 2.0).unwrap()
+  add_weight(present, 1.0).unwrap()
+  assert_eq(accumulated_support_at_least(present, total, 1.0 / 3.0), Ok(true))
+  assert_true(cancel_weight_sum(present))
+  assert_eq(add_weight(present, 1.0), Err(Closed))
+
+  let mean = prepare_weighted_mean(4096).unwrap()
+  add_weighted_value(mean, 6.0, 1.0).unwrap()
+  add_weighted_value(mean, 0.0, 2.0).unwrap()
+  assert_eq(finish_weighted_mean(mean), Ok(2.0))
+  assert_eq(finish_weighted_mean(mean), Err(Closed))
+}

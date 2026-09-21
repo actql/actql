@@ -6,6 +6,22 @@ import {
 }
 
 // Values
+pub fn accumulated_support_at_least(WeightSum, WeightSum, Double) -> Result[Bool, Issue]
+
+pub fn add_weight(WeightSum, Double) -> Result[Unit, Issue]
+
+pub fn add_weighted_value(Mean, Double, Double) -> Result[Unit, Issue]
+
+pub fn cancel_weight_sum(WeightSum) -> Bool
+
+pub fn cancel_weighted_mean(Mean) -> Bool
+
+pub fn finish_weighted_mean(Mean) -> Result[Double, Issue]
+
+pub fn prepare_weight_sum(Int) -> Result[WeightSum, Issue]
+
+pub fn prepare_weighted_mean(Int) -> Result[Mean, Issue]
+
 pub fn support_at_least(Array[Double], Array[Double], Double, Int) -> Result[Bool, Issue]
 
 pub fn weighted_mean(Array[(Double, Double)], Int) -> Result[Double, Issue]
@@ -19,7 +35,12 @@ pub(all) enum Issue {
   ZeroDenominator
   BitLimit
   Overflow
+  Closed
 } derive(Eq, @debug.Debug)
+
+type Mean
+
+type WeightSum
 
 // Type aliases
 

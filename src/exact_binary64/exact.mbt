@@ -5,6 +5,7 @@ pub(all) enum Issue {
   ZeroDenominator
   BitLimit
   Overflow
+  Closed
 } derive(Eq, Debug)
 
 ///|
@@ -13,6 +14,21 @@ pub(all) enum Issue {
 priv struct Dyadic {
   coefficient : @bigint.BigInt
   exponent : Int
+}
+
+///|
+struct WeightSum {
+  max_bits : Int
+  mut value : Dyadic
+  mut open : Bool
+}
+
+///|
+struct Mean {
+  max_bits : Int
+  mut numerator : Dyadic
+  mut denominator : Dyadic
+  mut open : Bool
 }
 
 ///|
@@ -293,6 +309,153 @@ fn divide_to_binary64(
 }
 
 ///|
+/// Start a bounded exact sum of nonnegative binary64 weights.
+pub fn prepare_weight_sum(max_bits : Int) -> Result[WeightSum, Issue] {
+  if max_bits < 1 {
+    Err(BitLimit)
+  } else {
+    Ok({ max_bits, value: zero(), open: true, })
+  }
+}
+
+///|
+/// Add one semantic weight occurrence. Repeated occurrences are not folded
+/// away and a failed addition does not change the prior exact sum.
+pub fn add_weight(sum : WeightSum, weight : Double) -> Result[Unit, Issue] {
+  if !sum.open {
+    return Err(Closed)
+  }
+  if weight < 0.0 {
+    return Err(NegativeWeight)
+  }
+  let exact = match from_finite(weight) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match add(sum.value, exact, sum.max_bits) {
+    Ok(value) => {
+      sum.value = value
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Compare two accumulated weight sums to one binary64 support threshold.
+/// Neither sum is consumed or rounded.
+pub fn accumulated_support_at_least(
+  present : WeightSum,
+  total : WeightSum,
+  threshold : Double,
+) -> Result[Bool, Issue] {
+  if !present.open || !total.open {
+    return Err(Closed)
+  }
+  if total.value.coefficient.compare_int(0) <= 0 {
+    return Err(ZeroDenominator)
+  }
+  let max_bits = Int::min(present.max_bits, total.max_bits)
+  let exact_threshold = match from_finite(threshold) {
+    Ok(value) if value.coefficient.compare_int(0) >= 0 => value
+    Ok(_) => return Err(NegativeWeight)
+    Err(issue) => return Err(issue)
+  }
+  let required = match multiply(total.value, exact_threshold, max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  compare(present.value, required, max_bits).map(order => order >= 0)
+}
+
+///|
+pub fn cancel_weight_sum(sum : WeightSum) -> Bool {
+  if !sum.open {
+    false
+  } else {
+    sum.open = false
+    sum.value = zero()
+    true
+  }
+}
+
+///|
+/// Start an exact weighted-mean fold. One call to `add_weighted_value`
+/// corresponds to one included semantic sample occurrence.
+pub fn prepare_weighted_mean(max_bits : Int) -> Result[Mean, Issue] {
+  if max_bits < 1 {
+    Err(BitLimit)
+  } else {
+    Ok({ max_bits, numerator: zero(), denominator: zero(), open: true, })
+  }
+}
+
+///|
+pub fn add_weighted_value(
+  mean : Mean,
+  value : Double,
+  weight : Double,
+) -> Result[Unit, Issue] {
+  if !mean.open {
+    return Err(Closed)
+  }
+  if weight < 0.0 {
+    return Err(NegativeWeight)
+  }
+  let exact_value = match from_finite(value) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let exact_weight = match from_finite(weight) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let product = match multiply(exact_value, exact_weight, mean.max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let numerator = match add(mean.numerator, product, mean.max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let denominator = match add(mean.denominator, exact_weight, mean.max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  mean.numerator = numerator
+  mean.denominator = denominator
+  Ok(())
+}
+
+///|
+pub fn finish_weighted_mean(mean : Mean) -> Result[Double, Issue] {
+  if !mean.open {
+    return Err(Closed)
+  }
+  mean.open = false
+  let result = divide_to_binary64(
+    mean.numerator,
+    mean.denominator,
+    mean.max_bits,
+  )
+  mean.numerator = zero()
+  mean.denominator = zero()
+  result
+}
+
+///|
+pub fn cancel_weighted_mean(mean : Mean) -> Bool {
+  if !mean.open {
+    false
+  } else {
+    mean.open = false
+    mean.numerator = zero()
+    mean.denominator = zero()
+    true
+  }
+}
+
+///|
 /// Compare `present / total` with an exact binary64 threshold. All inputs are
 /// nonnegative and the comparison performs no floating-point division.
 pub fn support_at_least(
@@ -301,47 +464,27 @@ pub fn support_at_least(
   threshold : Double,
   max_bits : Int,
 ) -> Result[Bool, Issue] {
-  let mut present_sum = zero()
-  let mut total_sum = zero()
+  let present_sum = match prepare_weight_sum(max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let total_sum = match prepare_weight_sum(max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   for weight in present {
-    if weight < 0.0 {
-      return Err(NegativeWeight)
-    }
-    let exact = match from_finite(weight) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    present_sum = match add(present_sum, exact, max_bits) {
-      Ok(value) => value
+    match add_weight(present_sum, weight) {
+      Ok(_) => ()
       Err(issue) => return Err(issue)
     }
   }
   for weight in total {
-    if weight < 0.0 {
-      return Err(NegativeWeight)
-    }
-    let exact = match from_finite(weight) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    total_sum = match add(total_sum, exact, max_bits) {
-      Ok(value) => value
+    match add_weight(total_sum, weight) {
+      Ok(_) => ()
       Err(issue) => return Err(issue)
     }
   }
-  if total_sum.coefficient.compare_int(0) <= 0 {
-    return Err(ZeroDenominator)
-  }
-  let exact_threshold = match from_finite(threshold) {
-    Ok(value) if value.coefficient.compare_int(0) >= 0 => value
-    Ok(_) => return Err(NegativeWeight)
-    Err(issue) => return Err(issue)
-  }
-  let required = match multiply(total_sum, exact_threshold, max_bits) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  compare(present_sum, required, max_bits).map(order => order >= 0)
+  accumulated_support_at_least(present_sum, total_sum, threshold)
 }
 
 ///|
@@ -351,32 +494,15 @@ pub fn weighted_mean(
   values : Array[(Double, Double)],
   max_bits : Int,
 ) -> Result[Double, Issue] {
-  let mut numerator = zero()
-  let mut denominator = zero()
+  let mean = match prepare_weighted_mean(max_bits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   for (value, weight) in values {
-    if weight < 0.0 {
-      return Err(NegativeWeight)
-    }
-    let exact_value = match from_finite(value) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let exact_weight = match from_finite(weight) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let product = match multiply(exact_value, exact_weight, max_bits) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    numerator = match add(numerator, product, max_bits) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    denominator = match add(denominator, exact_weight, max_bits) {
-      Ok(value) => value
+    match add_weighted_value(mean, value, weight) {
+      Ok(_) => ()
       Err(issue) => return Err(issue)
     }
   }
-  divide_to_binary64(numerator, denominator, max_bits)
+  finish_weighted_mean(mean)
 }
