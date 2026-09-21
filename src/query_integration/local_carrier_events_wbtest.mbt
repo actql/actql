@@ -55,6 +55,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if variant == "session_ties" {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else if session_global {
     "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
     "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"b\"}," +
@@ -873,9 +877,9 @@ test "standard Host runs registered bounded Events provider" {
   for
     variant in [
       "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
-      "session", "session_global", "session_parameter",
+      "session", "session_global", "session_parameter", "session_ties",
     ] {
-    let publication = true
+    let publication = variant != "session_ties"
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
       local_carrier_events_variant=variant,
@@ -1006,8 +1010,13 @@ test "standard Host runs registered bounded Events provider" {
       assert_true(event_rows[0].contains("\"window_start_ms\""))
       assert_true(event_rows[0].contains("\"window_end_ms\""))
     } else if variant.has_prefix("session") {
-      assert_true(event_rows[0].contains("\"event_id\":2"))
-      assert_true(event_rows[1].contains("\"event_id\":1"))
+      if variant == "session_ties" {
+        assert_true(event_rows[0].contains("\"event_id\":1"))
+        assert_true(event_rows[1].contains("\"event_id\":2"))
+      } else {
+        assert_true(event_rows[0].contains("\"event_id\":2"))
+        assert_true(event_rows[1].contains("\"event_id\":1"))
+      }
       assert_true(event_rows[2].contains("\"event_id\":3"))
       assert_true(event_rows[0].contains("\"session_start_ms\":1"))
       assert_true(event_rows[0].contains("\"session_id\":\"session:"))
@@ -1017,6 +1026,10 @@ test "standard Host runs registered bounded Events provider" {
         assert_true(event_rows[1].contains("\"session_start_ms\":3"))
         assert_true(event_rows[1].contains("\"session_end_ms\":5"))
         assert_true(event_rows[2].contains("\"session_end_ms\":15"))
+      } else if variant == "session_ties" {
+        assert_true(event_rows[0].contains("\"session_end_ms\":11"))
+        assert_true(event_rows[1].contains("\"session_end_ms\":11"))
+        assert_true(event_rows[2].contains("\"session_end_ms\":23"))
       } else {
         assert_true(event_rows[0].contains("\"session_end_ms\":13"))
         assert_true(event_rows[2].contains("\"session_end_ms\":23"))
