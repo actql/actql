@@ -484,8 +484,12 @@ Direct tests select a node through a typed property predicate on all three
 targets. At `ff2a6410`, predicate selection also reaches the registered
 standard Host with its correct capacity proof, two overlapping downstream
 computations, independent release, and final cleanup on JS, Wasm, and native.
-Standard Host evidence for the Relation selector, patterned hops, hop
-predicates, and path output remain open, so `traverse` remains partial.
+At `bf33b6e8`, Relation-backed selection reaches that same standard Host path.
+Its traversal proof includes the exact upstream selector bound, while repeated
+selector rows still resolve to canonical unique Graph identities at runtime.
+Three-target tests cover two consumers and final cleanup, and the real Node
+Host smoke passes. Patterned hops, hop predicates, and path output remain open,
+so `traverse` remains partial.
 
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
