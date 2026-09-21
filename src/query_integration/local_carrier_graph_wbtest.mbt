@@ -3387,7 +3387,9 @@ fn graph_publication_obligations(
 
 ///|
 fn graph_relation_publication_cid(variant : String) -> String {
-  if variant == "subtract_exact" {
+  if variant == "concise_projection" {
+    "sha256:4dc1796ed34dc82b34758a1fca828ec1a34ef068e231fd5637d51841529bdb97"
+  } else if variant == "subtract_exact" {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   } else if variant == "subtract" {
     "sha256:581c1ad7ac48237df5c669e328275ed013a700f7308143a32557810117210089"
@@ -3797,8 +3799,8 @@ fn run_standard_host_graph_relation_path(
 
 ///|
 test "standard Host runs bounded Graph relation paths with two consumers" {
-  run_standard_host_graph_relation_path("concise_projection")
-  run_standard_host_graph_relation_path("split_projection")
+  run_standard_host_graph_relation_path("concise_projection", publication=true)
+  run_standard_host_graph_relation_path("split_projection", publication=true)
   run_standard_host_graph_relation_path("projection", publication=true)
   run_standard_host_graph_relation_path("edge_projection", publication=true)
   run_standard_host_graph_relation_path("normalize")

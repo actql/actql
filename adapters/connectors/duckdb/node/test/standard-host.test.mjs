@@ -1643,6 +1643,16 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'concise-edge-rows',
+    concise: true,
+    step: {from: 'g', edge_rows: true, as: 'out'},
+    fields: ['src', 'dst', 'id', 'weight'],
+    secondFields: ['id', 'weight'],
+    expected: [
+      {src: 1, dst: 2, id: 1, weight: 10},
+      {src: 2, dst: 1, id: 2, weight: 20},
+    ],
+  }, {
     name: 'edge-rows',
     step: {from: 'g', edge_rows: true, as: 'out'},
     fields: ['src', 'dst', 'weight'],
@@ -1857,6 +1867,13 @@ async function exerciseStrategyGraph(
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
+    if (publicationCase.concise === true) {
+      graphProgram.stages[2].steps[0] = {
+        from: 'rows',
+        graph: {source: 'src', target: 'dst'},
+        as: 'g',
+      };
+    }
     graphProgram.stages[2].steps.splice(
       1,
       1,
