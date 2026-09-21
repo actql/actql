@@ -47,7 +47,10 @@ pub fn start_traverse(
     @lower.graph_traverse_start_relation_field(prepared) is None &&
     @lower.graph_traverse_hop_count(prepared) == 1 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
-    @lower.graph_traverse_hop_type_count(prepared, 0) is None &&
+    (
+      @lower.graph_traverse_hop_type_count(prepared, 0) is None ||
+      @lower.graph_traverse_hop_type_count(prepared, 0) == Some(1)
+    ) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
     @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
     @graph.producer_read_storage(input) is Some(source) else {
@@ -67,6 +70,7 @@ pub fn start_traverse(
     @lower.graph_traverse_output_schema(prepared),
     start,
     direction,
+    @lower.graph_traverse_hop_type_at(prepared, 0, 0),
     minimum.to_int(),
     maximum.to_int(),
     max_rows,

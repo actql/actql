@@ -119,9 +119,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let split = variant == "split_projection"
   let subtract = variant.has_prefix("subtract")
   let subtract_exact = variant == "subtract_exact"
+  let typed_traverse = variant.has_prefix("traverse_type")
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
+    (if typed_traverse {
+      "\"edge_type\":{\"type\":\"string\",\"nullable\":false},"
+    } else {
+      ""
+    }) +
     (if subtract && !subtract_exact {
       "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
     } else {
@@ -139,7 +145,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"first\""
   }
-  let rows = if subtract && !subtract_exact {
+  let rows = if typed_traverse {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"edge_type\":\"blocks\"," +
+    "\"node_name\":\"second\",\"weight\":20}]"
+  } else if subtract && !subtract_exact {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
     "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
   } else {
@@ -197,7 +208,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       "out"
     }) +
-    "\",\"min_hops\":1,\"max_hops\":2," +
+    "\"," +
+    (if typed_traverse {
+      "\"edge_types\":[\"" +
+      (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
+      "\"],"
+    } else {
+      ""
+    }) +
+    "\"min_hops\":1,\"max_hops\":2," +
     "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -402,6 +421,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   "\"src\",\"dst\"," +
   (if subtract && !subtract_exact {
     "\"marker\""
+  } else if typed_traverse {
+    "\"edge_type\",\"node_name\",\"weight\""
   } else {
     "\"node_name\",\"weight\""
   }) +
@@ -421,6 +442,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
     (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
     "}}," +
+    "\"as\":\"g\"},{"
+  } else if typed_traverse {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"label\":\"edge_type\",\"fields\":[\"weight\"]}}," +
     "\"as\":\"g\"},{"
   } else {
     "\"graph\":{\"nodes\":{\"from\":" +
@@ -3486,7 +3513,9 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_obligations,
   )
   let graph_rows = local_managed_test_rows(graph_ops)
-  let expected_rows = if variant == "graph_bounds" {
+  let expected_rows = if variant == "traverse_type_miss" {
+    0
+  } else if variant == "graph_bounds" {
     4
   } else if variant.has_prefix("traverse_") || variant == "subtract" {
     1
@@ -3541,6 +3570,8 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
+  } else if variant == "traverse_type_miss" {
+    ()
   } else if variant.has_prefix("traverse_") {
     assert_true(graph_rows[0].contains("\"start_id\":1"))
     assert_true(graph_rows[0].contains("\"node_id\":2"))
@@ -3703,6 +3734,12 @@ test "standard Host preserves inbound Graph traversal" {
 ///|
 test "standard Host preserves bidirectional Graph traversal" {
   run_standard_host_graph_relation_path("traverse_both", publication=true)
+}
+
+///|
+test "standard Host filters Graph traversal by edge type" {
+  run_standard_host_graph_relation_path("traverse_type", publication=true)
+  run_standard_host_graph_relation_path("traverse_type_miss")
 }
 
 ///|

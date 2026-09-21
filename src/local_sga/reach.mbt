@@ -27,6 +27,7 @@ priv struct ReachState {
   schema : @schema.Schema
   start : @value.CheckedValue
   direction : @graph_type.Direction
+  edge_type : String?
   minimum_depth : Int
   max_depth : Int
   value_limits : @value.Limits
@@ -209,6 +210,15 @@ fn visit_reach_neighbor(
 }
 
 ///|
+fn reach_edge_allowed(state : ReachState, edge : Int) -> Bool {
+  guard state.edge_type is Some(expected) else { return true }
+  match @storage.edge_label(state.source, edge) {
+    Some(Some({ value: @value.Text(actual), .. })) => actual == expected
+    _ => false
+  }
+}
+
+///|
 fn checked_reach_value(
   state : ReachState,
   field : @schema.Field,
@@ -268,8 +278,10 @@ fn reach_step(
             is Some((source, target)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
-          state.out_degree[source] += 1
-          state.in_degree[target] += 1
+          if reach_edge_allowed(state, state.index) {
+            state.out_degree[source] += 1
+            state.in_degree[target] += 1
+          }
           state.index += 1
           used += 1
         } else {
@@ -310,12 +322,14 @@ fn reach_step(
             is Some((source, target)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
-          let out = state.out_cursor[source]
-          let incoming = state.in_cursor[target]
-          state.out_edges[out] = target
-          state.in_edges[incoming] = source
-          state.out_cursor[source] = out + 1
-          state.in_cursor[target] = incoming + 1
+          if reach_edge_allowed(state, state.index) {
+            let out = state.out_cursor[source]
+            let incoming = state.in_cursor[target]
+            state.out_edges[out] = target
+            state.in_edges[incoming] = source
+            state.out_cursor[source] = out + 1
+            state.in_cursor[target] = incoming + 1
+          }
           state.index += 1
           used += 1
         } else {
@@ -544,6 +558,7 @@ fn start_reach_state(
   schema : @schema.Schema,
   start : @value.CheckedValue,
   direction : @graph_type.Direction,
+  edge_type : String?,
   minimum_depth : Int,
   max_depth : Int,
   max_rows : Int,
@@ -608,6 +623,7 @@ fn start_reach_state(
     schema,
     start,
     direction,
+    edge_type,
     minimum_depth,
     max_depth,
     value_limits: {
@@ -697,6 +713,7 @@ pub fn start_reach(
     @lower.graph_reach_output_schema(prepared),
     @lower.graph_reach_start(prepared),
     @lower.graph_reach_direction(prepared),
+    None,
     0,
     max_depth,
     max_rows,
