@@ -251,7 +251,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"max_depth\":2},\"as\":\"out\""
   } else if variant.has_prefix("shortest_") {
     "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
-    "\"target\":2,\"direction\":\"out\",\"max_hops\":2" +
+    "\"target\":" +
+    (if variant == "shortest_zero" { "1" } else { "2" }) +
+    ",\"direction\":\"" +
+    (if variant == "shortest_in" {
+      "in"
+    } else if variant == "shortest_both" {
+      "both"
+    } else {
+      "out"
+    }) +
+    "\",\"max_hops\":2" +
     (if variant == "shortest_type_empty" {
       ",\"edge_types\":[]"
     } else if variant == "shortest_types_match" {
@@ -4752,6 +4762,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
+  } else if variant == "shortest_in" {
+    "sha256:2415a7a8c26f36220fb0ab8b39e12b5a875638e7c7f12c77d33cff7beb3bf3f2"
   } else if variant.has_prefix("shortest_") {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
   } else if variant.has_prefix("traverse_") {
@@ -5048,10 +5060,17 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[1].contains("\"depth\":1"))
   } else if variant.has_prefix("shortest_") && expected_rows > 0 {
     assert_true(graph_rows[0].contains("\"source_id\":1"))
-    assert_true(graph_rows[0].contains("\"target_id\":2"))
-    assert_true(graph_rows[0].contains("\"total_cost\":1"))
-    assert_true(graph_rows[0].contains("\"hop_count\":1"))
-    assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
+    if variant == "shortest_zero" {
+      assert_true(graph_rows[0].contains("\"target_id\":1"))
+      assert_true(graph_rows[0].contains("\"total_cost\":0"))
+      assert_true(graph_rows[0].contains("\"hop_count\":0"))
+      assert_true(graph_rows[0].contains("\"node_ids\":[1]"))
+    } else {
+      assert_true(graph_rows[0].contains("\"target_id\":2"))
+      assert_true(graph_rows[0].contains("\"total_cost\":1"))
+      assert_true(graph_rows[0].contains("\"hop_count\":1"))
+      assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
+    }
   } else if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
     variant == "traverse_types_miss" ||
@@ -5356,6 +5375,9 @@ test "standard Host averages a repeated Graph list before projection" {
 ///|
 test "standard Host runs a bounded scalar shortest path" {
   run_standard_host_graph_relation_path("shortest_scalar")
+  run_standard_host_graph_relation_path("shortest_in", publication=true)
+  run_standard_host_graph_relation_path("shortest_both")
+  run_standard_host_graph_relation_path("shortest_zero")
 }
 
 ///|
