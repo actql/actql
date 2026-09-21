@@ -446,6 +446,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
+  let session_relation = variant == "session_relation"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
@@ -463,6 +464,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if variant == "session_ties" {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else if session_global {
     "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
     "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"b\"}," +
@@ -505,6 +510,16 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
+  let event_steps = if session_relation {
+    "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
+    "\"as\":\"out\"}"
+  } else {
+    "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\"}}," +
+    transform +
+    ",{\"events\":true,\"as\":\"out\"}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
   (if variant == "window_parameter" {
@@ -528,12 +543,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":[\"event_id\",\"occurred_at\",\"payload\"]}}},{" +
   "\"id\":\"events\",\"inputs\":{\"rows\":{\"result\":{" +
-  "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
-  "\"time\":\"occurred_at\"}}," +
-  transform +
-  ",{" +
-  "\"events\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[" +
+  event_steps +
+  "],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":" +
   fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
