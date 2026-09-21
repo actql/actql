@@ -289,8 +289,11 @@ publication, and final reclamation. The Node environment delivers cancellation
 during the bounded union and confirms stop before cleanup returns the ledger to
 zero. The finite-list kernel also rejects one node below the required output
 capacity and completes at the exact node limit while retaining all four input
-occurrences in logical accounting. Property merge laws remain open, so
-`union_graphs` remains partial.
+occurrences in logical accounting. Remaining property merge laws are open, so
+`union_graphs` remains partial. Explicit `exact_equal` now uses the same
+bounded fold and rejects a conflicting shared identity atomically at
+`c282a9f0`. Numeric and canonical-set strategies remain ineligible before
+execution.
 
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The

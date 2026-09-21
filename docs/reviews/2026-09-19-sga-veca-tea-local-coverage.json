@@ -718,6 +718,17 @@
           "evidence": ["src/local_sga/graft_wbtest.mbt"]
         },
         {
+          "scope": "explicit_exact_equal_property_law",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c282a9f0",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt"
+          ]
+        },
+        {
           "scope": "standard_host_consumers_publication_and_cancellation",
           "layers": [
             "standard_host",
