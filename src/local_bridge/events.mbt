@@ -590,6 +590,11 @@ pub fn start_completed_relation_to_rows(
     @lower.sequence_step(sequence, step) is Some(@lower.EventStep(_)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind &&
+    @lifecycle.completion_reference_matches_port(
+      @records.completed_carrier_reference(input),
+      owner,
+      @pipeline.Step(step),
+    ) &&
     @records.completed_available(input) &&
     @records.completed_storage(input) is Some(source) &&
     @carrier.kind(@storage.carrier(source)) == @carrier.RelationKind &&

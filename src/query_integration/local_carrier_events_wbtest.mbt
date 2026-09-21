@@ -560,6 +560,40 @@ fn carrier_events_consumer_output(
 }
 
 ///|
+test "completed Events relation bridge rejects a foreign owner" {
+  let source_owner = carrier_events_source_owner()
+  let events_owner = carrier_events_output_owner(source_owner)
+  let expected_owner = carrier_events_session_owner(events_owner)
+  let foreign_owner = carrier_events_session_owner(events_owner)
+  let builder = @records.prepare_output(
+    expected_owner,
+    @pipeline.Step(0),
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let completed = @records.finish_output(builder).unwrap()
+  assert_true(@records.completed_available(completed))
+
+  let rejected = @local_bridge.start_completed_relation_to_rows(
+    @bounded.control(),
+    task_test_completion(foreign_owner),
+    prepared_sequence(foreign_owner),
+    0,
+    completed,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    [],
+  )
+  assert_true(rejected is Err(@local_bridge.InvalidKernel))
+  assert_true(@records.completed_available(completed))
+  assert_true(@records.discard_completed(completed))
+  assert_false(@records.completed_available(completed))
+}
+
+///|
 test "bounded Events bridge round trip feeds two Relation consumers" {
   let source_owner = carrier_events_source_owner()
   let source = carrier_events_source_output(source_owner)
