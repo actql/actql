@@ -6520,6 +6520,14 @@ pub fn strategy_remote_transfer_record_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferRecordRequestIdentity")
+pub fn strategy_remote_transfer_record_request_identity(
+  record : @transfer.RemoteTransferRecord,
+) -> String {
+  @transfer.record_request_identity(record)
+}
+
+///|
 #export_name("strategyRemoteTransferRecordIsDestinationCommitted")
 pub fn strategy_remote_transfer_record_is_destination_committed(
   record : @transfer.RemoteTransferRecord,

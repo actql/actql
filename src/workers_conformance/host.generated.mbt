@@ -6520,6 +6520,14 @@ pub fn strategy_remote_transfer_record_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferRecordRequestIdentity")
+pub fn strategy_remote_transfer_record_request_identity(
+  record : @transfer.RemoteTransferRecord,
+) -> String {
+  @transfer.record_request_identity(record)
+}
+
+///|
 #export_name("strategyRemoteTransferRecordIsDestinationCommitted")
 pub fn strategy_remote_transfer_record_is_destination_committed(
   record : @transfer.RemoteTransferRecord,
@@ -13196,6 +13204,14 @@ pub fn async_strategy_remote_transfer_record_projection(
   record : @transfer.RemoteTransferRecord,
 ) -> Array[Int] {
   @transfer.record_projection(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteTransferRecordRequestIdentity")
+pub fn async_strategy_remote_transfer_record_request_identity(
+  record : @transfer.RemoteTransferRecord,
+) -> String {
+  @transfer.record_request_identity(record)
 }
 
 ///|

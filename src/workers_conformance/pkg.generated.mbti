@@ -860,6 +860,8 @@ pub fn async_strategy_remote_transfer_record_is_destination_committed(@remote_tr
 
 pub fn async_strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
 
+pub fn async_strategy_remote_transfer_record_request_identity(@remote_transfer.RemoteTransferRecord) -> String
+
 pub fn async_strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
@@ -1939,6 +1941,8 @@ pub fn strategy_remote_transfer_projection(@remote_transfer.RemoteTransferReques
 pub fn strategy_remote_transfer_record_is_destination_committed(@remote_transfer.RemoteTransferRecord) -> Bool
 
 pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
+
+pub fn strategy_remote_transfer_record_request_identity(@remote_transfer.RemoteTransferRecord) -> String
 
 pub fn strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
 
