@@ -214,6 +214,55 @@ test "subgraph rejects a selected identity missing from the graph" {
 }
 
 ///|
+test "subgraph materializes derived endpoints as declared selected nodes" {
+  let producer = empty_graph_owner()
+  let source_output = @graph.prepare_output(
+    producer,
+    @pipeline.Step(0),
+    @storage.DerivedEndpoints,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  @graph.append_edge(
+    source_output,
+    number(1.0),
+    number(2.0),
+    Some(text("edge", nullable=true)),
+    [],
+  ).unwrap()
+  let source = @graph.finish_output(source_output).unwrap()
+  let owner = subgraph_owner(producer, "[1]")
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    @graph.prepare_producer_read(owner, 0, producer, source).unwrap(),
+    None,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut output : @graph.Completed? = None
+  while output is None {
+    match advance_subgraph(execution, 1).unwrap() {
+      SubgraphContinue(_) => ()
+      SubgraphComplete(value, ..) => output = Some(value)
+      _ => fail("derived-endpoint subgraph failed")
+    }
+  }
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+  guard output is Some(completed) &&
+    @graph.completed_storage(completed) is Some(material) else {
+    fail("completed derived-endpoint subgraph")
+  }
+  assert_eq(@storage.mode(material), @storage.DeclaredNodes)
+  assert_eq(@storage.node_count(material), 1)
+  assert_eq(@storage.edge_count(material), 0)
+  assert_true(@storage.node_index(material, number(1.0)).unwrap() is Some(_))
+}
+
+///|
 test "subgraph preserves a literal false edge predicate" {
   let producer = source_owner()
   let source = subgraph_source_graph(producer, Ref(true))

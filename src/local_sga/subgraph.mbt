@@ -553,7 +553,7 @@ pub fn start_subgraph(
     @graph.prepare_output(
       owner,
       @pipeline.Step(step),
-      @storage.mode(source),
+      @storage.DeclaredNodes,
       limits,
       storage_bytes,
       available,
