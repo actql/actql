@@ -12,17 +12,17 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 31/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 32/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 33/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 26/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 28/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 30/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 31/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
-33/39, consumer lifetime 31/39, cancellation 26/39, and publication 30/39. These are
-layer counts, not operation completion: 19 entries are `complete` and 20 remain
+33/39, consumer lifetime 32/39, cancellation 28/39, and publication 31/39. These are
+layer counts, not operation completion: 21 entries are `complete` and 18 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -732,10 +732,11 @@ remains tracked above.
 `to_events` and `to_vectors` lower their checked semantic roles to
 `BRIDGE.rows.to_events` and `BRIDGE.rows.to_vectors`. Rows-to-Events and
 Events-to-rows execute inside the first registered provider. Rows-to-Vectors
-and Vectors-to-rows now execute inside a second registered provider, with
-normalization between them. Both paths preserve independently managed Carrier
-generations and reach two real downstream Relation computations before final
-ledger reclamation. The Graph-to-node and Graph-to-edge projections now also
+and Vectors-to-rows now execute as a bridge-only sequence and with intervening
+vector kernels inside the second registered provider. The vector paths cover
+an exact same-Carrier consumer, a formal Bridge consumer, two downstream
+Relation computations, publication, and final ledger reclamation. The
+Graph-to-node and Graph-to-edge projections now also
 publish and retrieve their exact Relation values, feed two downstream
 computations, and release the retained output independently. A real
 environment timer reaches each Bridge boundary, stop is observed, and final
@@ -744,16 +745,20 @@ operations are complete. Standalone Bridge selection, overlapping direct
 Carrier consumer lifetime and Graph construction remain open. The bounded
 Relation-to-Events-to-Relation path now has page-split evidence, but a
 Relation-shaped buffer alone is not evidence of a completed conversion.
-The Events-to-rows and Vectors-to-rows operations already feed two overlapping
+The Events-to-rows and Vectors-to-rows operations feed two overlapping
 Relation consumers and establish the exact Named Result identity on all three
-portable targets. The reverse Carrier-producing Bridges still need the
-standard Host to retain one exact Carrier generation across a same-Carrier
-consumer and a formal Bridge consumer; Relation publication does not substitute
-for that direct Carrier lifetime evidence.
+portable targets. Rows-to-Vectors now has the required direct Carrier consumer
+and formal Bridge consumer evidence. Rows-to-Events still needs the standard
+Host to retain one exact Carrier generation across those two consumer forms;
+Relation publication does not substitute for direct Carrier lifetime evidence.
 At `15af5df1`, the compiled Node Host separately delivers cancellation during
 the rows-to-Events copy and during the Events-to-rows copy after the bounded
 watermark transform. Both paths observe stop and reclaim the ledger without
 publishing a partial Relation or Carrier generation.
+At `eb01dc6f`, the same environment boundary separately delivers cancellation
+during rows-to-Vectors construction and Vectors-to-rows projection. The
+bridge-only sequence also distinguishes itself from two-step relation pooling
+and reaches two consumers and Named Result publication on all three targets.
 
 ## Current verification boundary
 
