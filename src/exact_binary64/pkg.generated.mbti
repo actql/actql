@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/exact_binary64"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn support_at_least(Array[Double], Array[Double], Double, Int) -> Result[Bool, Issue]
+
+pub fn weighted_mean(Array[(Double, Double)], Int) -> Result[Double, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  NonFinite
+  NegativeWeight
+  ZeroDenominator
+  BitLimit
+  Overflow
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
