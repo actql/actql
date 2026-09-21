@@ -1,0 +1,17 @@
+supported_targets = "native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  link: {
+    "native": {
+      "cc": "./scripts/native-cxx-link-driver.sh",
+      "stub-cc": "c++",
+      "stub-cc-flags": "-std=c++17",
+      "cc-link-flags": "-lssl -lcrypto",
+    },
+  },
+  "native-stub": [ "https_server_stub.cc" ],
+)

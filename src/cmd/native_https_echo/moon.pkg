@@ -1,0 +1,20 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/platform_native/https_server" @https,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}
+
+options(
+  link: {
+    "native": {
+      "cc": "./scripts/native-cxx-link-driver.sh",
+      "stub-cc": "c++",
+      "cc-link-flags": "-lssl -lcrypto",
+    },
+  },
+)
