@@ -115,6 +115,22 @@ pub fn append_node(
 }
 
 ///|
+pub fn observe_node(
+  output : OutputBuilder,
+  identity : @value.CheckedValue,
+  properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  @storage.observe_node(output.graph, identity, properties).map_err(issue => {
+    output.open = false
+    @lifecycle.cancel_retention_port(output.retention) |> ignore
+    Storage(issue)
+  })
+}
+
+///|
 pub fn append_edge(
   output : OutputBuilder,
   source : @value.CheckedValue,
@@ -126,6 +142,25 @@ pub fn append_edge(
     return Err(Closed)
   }
   @storage.append_edge(output.graph, source, target, label, properties).map_err(issue => {
+      output.open = false
+      @lifecycle.cancel_retention_port(output.retention) |> ignore
+      Storage(issue)
+    },
+  )
+}
+
+///|
+pub fn observe_edge(
+  output : OutputBuilder,
+  source : @value.CheckedValue,
+  target : @value.CheckedValue,
+  label : @value.CheckedValue?,
+  properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  @storage.observe_edge(output.graph, source, target, label, properties).map_err(issue => {
       output.open = false
       @lifecycle.cancel_retention_port(output.retention) |> ignore
       Storage(issue)

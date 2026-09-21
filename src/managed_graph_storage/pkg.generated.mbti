@@ -60,6 +60,10 @@ pub fn node_index(Storage, @value_admission.CheckedValue) -> Result[Int?, Issue]
 
 pub fn node_property(Storage, Int, Int) -> @value_admission.CheckedValue?
 
+pub fn observe_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn observe_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
 pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]
 
 pub fn retained_value_bytes(Storage) -> Int

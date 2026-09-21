@@ -410,6 +410,53 @@ pub fn append_node(
 }
 
 ///|
+/// Account for a validated node occurrence whose identity is already retained.
+/// Structural folds use this for later operand occurrences without exposing a
+/// second record or changing the retained payload.
+pub fn observe_node(
+  builder : Builder,
+  identity : @value.CheckedValue,
+  properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  if !builder.open {
+    return Err(Closed)
+  }
+  if !contract_equal(
+      builder,
+      @carrier.graph_identity(builder.graph),
+      identity.contract,
+    ) ||
+    !values_match(
+      builder,
+      @carrier.graph_node_properties(builder.graph),
+      properties,
+    ) {
+    return fail(builder, InvalidProperties)
+  }
+  let (_, key_bytes, key_work) = match
+    encoded_values(builder, [identity], 0, 1) {
+    Ok(value) => value
+    Err(issue) => return fail(builder, issue)
+  }
+  let (_, payload_bytes, payload_work) = match
+    encoded_values(builder, properties, key_bytes, key_work + 1) {
+    Ok(value) => value
+    Err(issue) => return fail(builder, issue)
+  }
+  let bytes = key_bytes + payload_bytes
+  let work = key_work + payload_work + 1
+  match reserve(builder, 1, 0, 0, bytes, 0, work, 0) {
+    Some(issue) => fail(builder, issue)
+    None => {
+      builder.input_rows += 1
+      builder.value_bytes += bytes
+      builder.work += work
+      Ok(())
+    }
+  }
+}
+
+///|
 fn checked_label(builder : Builder, label : @value.CheckedValue?) -> Bool {
   match (@carrier.graph_label_contract(builder.graph), label) {
     (None, None) => true
@@ -587,6 +634,72 @@ pub fn append_edge(
   builder.work += work
   builder.workspace_slots += slots
   Ok(())
+}
+
+///|
+/// Account for a validated edge occurrence already represented by a retained
+/// structural-fold result.
+pub fn observe_edge(
+  builder : Builder,
+  source : @value.CheckedValue,
+  target : @value.CheckedValue,
+  label : @value.CheckedValue?,
+  properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  if !builder.open {
+    return Err(Closed)
+  }
+  let identity_contract = @carrier.graph_identity(builder.graph)
+  if !contract_equal(builder, identity_contract, source.contract) ||
+    !contract_equal(builder, identity_contract, target.contract) ||
+    !checked_label(builder, label) ||
+    !values_match(
+      builder,
+      @carrier.graph_edge_properties(builder.graph),
+      properties,
+    ) {
+    return fail(builder, InvalidProperties)
+  }
+  let (_, source_bytes, source_work) = match
+    encoded_values(builder, [source], 0, 1) {
+    Ok(value) => value
+    Err(issue) => return fail(builder, issue)
+  }
+  let (_, target_bytes, target_work) = match
+    encoded_values(builder, [target], source_bytes, source_work + 1) {
+    Ok(value) => value
+    Err(issue) => return fail(builder, issue)
+  }
+  let (_, edge_key_bytes, edge_key_work) = match
+    encoded_edge_identity(
+      builder,
+      source,
+      target,
+      label,
+      source_bytes + target_bytes,
+      source_work + target_work + 1,
+    ) {
+    Ok(value) => value
+    Err(issue) => return fail(builder, issue)
+  }
+  let prior_bytes = source_bytes + target_bytes + edge_key_bytes
+  let prior_work = source_work + target_work + edge_key_work
+  let (_, payload_bytes, payload_work) = match
+    encoded_values(builder, properties, prior_bytes, prior_work + 1) {
+    Ok(value) => value
+    Err(issue) => return fail(builder, issue)
+  }
+  let bytes = prior_bytes + payload_bytes
+  let work = source_work + target_work + edge_key_work + payload_work + 1
+  match reserve(builder, 1, 0, 0, bytes, 0, work, 0) {
+    Some(issue) => fail(builder, issue)
+    None => {
+      builder.input_rows += 1
+      builder.value_bytes += bytes
+      builder.work += work
+      Ok(())
+    }
+  }
 }
 
 ///|

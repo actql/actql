@@ -52,6 +52,8 @@ pub fn compare_group_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOr
 
 pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
+pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderIssue]
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
@@ -121,6 +123,12 @@ pub enum CompleteEqualityPoll {
   EqualityComplete(equal~ : Bool, work~ : Int)
   EqualityFailed(CompleteEqualityIssue, work~ : Int)
 }
+
+pub(all) enum CompleteOrderIssue {
+  InvalidCompleteOrderLimits
+  CompleteOrderLimit
+  CompleteOrderReferenceUnavailable
+} derive(Eq, @debug.Debug)
 
 pub struct DecimalValue {
   coefficient : String
