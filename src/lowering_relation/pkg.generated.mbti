@@ -355,6 +355,34 @@ pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
 
 pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema
 
+pub fn graph_shortest_direction(PreparedGraphShortest) -> @graph_typing.Direction
+
+pub fn graph_shortest_endpoint_id_at(PreparedGraphShortest, @relation_schema.Side, Int) -> @value_admission.CheckedValue?
+
+pub fn graph_shortest_endpoint_id_count(PreparedGraphShortest, @relation_schema.Side) -> Int
+
+pub fn graph_shortest_endpoint_input_port(PreparedGraphShortest, @relation_schema.Side) -> Int?
+
+pub fn graph_shortest_endpoint_predicate(PreparedGraphShortest, @relation_schema.Side) -> Expression?
+
+pub fn graph_shortest_endpoint_relation_field(PreparedGraphShortest, @relation_schema.Side) -> @relation_schema.FieldName?
+
+pub fn graph_shortest_endpoint_single(PreparedGraphShortest, @relation_schema.Side) -> @value_admission.CheckedValue?
+
+pub fn graph_shortest_max_hops(PreparedGraphShortest) -> Int?
+
+pub fn graph_shortest_output_guard(PreparedGraphShortest) -> Int64?
+
+pub fn graph_shortest_output_schema(PreparedGraphShortest) -> @relation_schema.Schema
+
+pub fn graph_shortest_selection(PreparedGraphShortest) -> @graph_typing.PathSelection
+
+pub fn graph_shortest_type_at(PreparedGraphShortest, Int) -> String?
+
+pub fn graph_shortest_type_count(PreparedGraphShortest) -> Int?
+
+pub fn graph_shortest_weight(PreparedGraphShortest) -> @relation_schema.FieldName?
+
 pub fn graph_structural_has_edge_property_strategies(PreparedGraphStructural) -> Bool
 
 pub fn graph_structural_has_node_property_strategies(PreparedGraphStructural) -> Bool

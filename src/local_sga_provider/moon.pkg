@@ -12,4 +12,6 @@ import {
   "actql/actql/managed_carrier_runtime" @lifecycle,
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
+  "actql/actql/graph_typing" @graph_type,
+  "actql/actql/relation_schema" @schema,
 }

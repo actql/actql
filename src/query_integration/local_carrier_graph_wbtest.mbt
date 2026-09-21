@@ -248,6 +248,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
+  } else if variant == "shortest_scalar" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
+    "\"target\":2,\"direction\":\"out\",\"max_hops\":2}," +
+    "\"as\":\"out\""
   } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{" +
     (if variant == "traverse_predicate" ||
@@ -506,6 +510,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
+  } else if variant == "shortest_scalar" {
+    "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
+    "\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
   } else if graph_equality {
@@ -534,6 +541,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
+  } else if variant == "shortest_scalar" {
+    "\"source_id\",\"target_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
   } else if graph_equality {
@@ -1348,6 +1357,62 @@ fn carrier_graph_traverse_owner(
 }
 
 ///|
+fn carrier_graph_shortest_owner(
+  source : @lower.BoundPrepared,
+  source_id : Int,
+  target_id : Int,
+  maximum : Int,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"shortest_path\":{\"source\":" +
+      source_id.to_string() +
+      ",\"target\":" +
+      target_id.to_string() +
+      ",\"direction\":\"out\",\"max_hops\":" +
+      maximum.to_string() +
+      ",\"max_output_rows\":1}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_predicate_pattern_owner(
   source : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -1660,6 +1725,26 @@ fn finish_traverse(
       @local_sga.ReachExecutionIssue(@bounded.Terminal),
     ),
   )
+}
+
+///|
+fn finish_shortest(
+  execution : @local_sga.ShortestExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.ShortestIssue] {
+  while true {
+    let poll = match @local_sga.advance_shortest(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.ShortestContinue(..) => ()
+      @local_sga.ShortestComplete(output, ..) => return Ok(output)
+      @local_sga.ShortestFailed(issue, ..) => return Err(issue)
+      @local_sga.ShortestStopped(_, ..) =>
+        return Err(@local_sga.ShortestExecutionIssue(@bounded.Terminal))
+    }
+  }
+  Err(@local_sga.ShortestExecutionIssue(@bounded.Terminal))
 }
 
 ///|
@@ -2709,6 +2794,93 @@ test "homogeneous traversal enforces minimum depth and cancellation" {
   assert_true(@local_sga.traverse_cleanup_pending(cancelled))
   assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
   assert_false(@local_sga.traverse_cleanup_pending(cancelled))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "scalar shortest path admits workspace before allocation and cancels" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_shortest_owner(source_owner, 1, 3, 2)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let completion = task_test_completion(owner)
+  assert_true(
+    @local_sga.start_shortest(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      0,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_sga.ShortestWorkspaceLimit),
+  )
+  let execution = @local_sga.start_shortest(
+    @bounded.control(),
+    completion,
+    sequence,
+    1,
+    input,
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_shortest(execution).unwrap()
+  assert_eq(@local_sga.cleanup_shortest(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_output_matches_inputs(output, [external]))
+
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_shortest(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_shortest(cancelled, 1).unwrap()
+    is @local_sga.ShortestStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.shortest_stopped(cancelled))
+  assert_true(@local_sga.shortest_cleanup_pending(cancelled))
+  assert_eq(@local_sga.cleanup_shortest(cancelled), Ok(true))
+  assert_false(@local_sga.shortest_cleanup_pending(cancelled))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
 }
@@ -4652,6 +4824,8 @@ fn run_standard_host_graph_relation_path(
     4
   } else if variant == "traverse_ids" || traverse_relation_selector {
     2
+  } else if variant == "shortest_scalar" {
+    1
   } else if variant == "traverse_predicate" {
     2
   } else if variant == "union_set" {
@@ -4730,6 +4904,12 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
+  } else if variant == "shortest_scalar" {
+    assert_true(graph_rows[0].contains("\"source_id\":1"))
+    assert_true(graph_rows[0].contains("\"target_id\":2"))
+    assert_true(graph_rows[0].contains("\"total_cost\":1"))
+    assert_true(graph_rows[0].contains("\"hop_count\":1"))
+    assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
   } else if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
     variant == "traverse_types_miss" ||
@@ -5027,6 +5207,11 @@ test "standard Host unions a repeated Graph list before the Relation bridge" {
 ///|
 test "standard Host averages a repeated Graph list before projection" {
   run_standard_host_graph_relation_path("mean", publication=true)
+}
+
+///|
+test "standard Host runs a bounded scalar shortest path" {
+  run_standard_host_graph_relation_path("shortest_scalar")
 }
 
 ///|

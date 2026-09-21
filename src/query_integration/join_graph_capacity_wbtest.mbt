@@ -344,6 +344,15 @@ fn traversal_capacity_material(
     for proof in proofs {
       witnesses.push(@wire.program_proof_witness(proof))
     }
+  } else if operation == "shortest_path" {
+    let output = query_capacity_proof(
+      "actql.bound.shortest-path",
+      output_rows,
+      "{\"op\":\"source\"}",
+      step~,
+    )
+    proofs.push(output)
+    witnesses.push(@wire.program_proof_witness(output))
   }
   let artifacts : Array[(Bytes, String)] = []
   for
@@ -366,7 +375,8 @@ fn traversal_capacity_material(
     }).unwrap()
     witnesses.push(wire)
     let candidates = [wire]
-    if operation == "traverse" && unit == "rows" {
+    if (operation == "traverse" || operation == "shortest_path") &&
+      unit == "rows" {
       candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
       candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
     }

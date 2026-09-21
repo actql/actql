@@ -502,6 +502,16 @@ fn query_checked_program_fixture(
         },
       ),
     ]
+  } else if local_carrier_graph_chain &&
+    local_carrier_graph_variant.has_prefix("shortest_") {
+    [
+      traversal_capacity_material(
+        environment,
+        "graph",
+        "shortest_path",
+        output_rows=1L,
+      ),
+    ]
   } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_chain {

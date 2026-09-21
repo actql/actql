@@ -35,6 +35,8 @@ pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, Norma
 
 pub fn advance_reach(ReachExecution, Int) -> Result[ReachPoll, ReachIssue]
 
+pub fn advance_shortest(ShortestExecution, Int) -> Result[ShortestPoll, ShortestIssue]
+
 pub fn advance_subgraph(SubgraphExecution, Int) -> Result[SubgraphPoll, SubgraphIssue]
 
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
@@ -58,6 +60,8 @@ pub fn cleanup_mean(MeanExecution) -> Result[Bool, MeanIssue]
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
 pub fn cleanup_reach(ReachExecution) -> Result[Bool, ReachIssue]
+
+pub fn cleanup_shortest(ShortestExecution) -> Result[Bool, ShortestIssue]
 
 pub fn cleanup_subgraph(SubgraphExecution) -> Result[Bool, SubgraphIssue]
 
@@ -135,6 +139,14 @@ pub fn reach_max_noninterruptible_value_nodes(ReachExecution) -> Int
 
 pub fn reach_stopped(ReachExecution) -> Bool
 
+pub fn shortest_cleanup_pending(ShortestExecution) -> Bool
+
+pub fn shortest_max_noninterruptible_value_bytes(ShortestExecution) -> Int
+
+pub fn shortest_max_noninterruptible_value_nodes(ShortestExecution) -> Int
+
+pub fn shortest_stopped(ShortestExecution) -> Bool
+
 pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ComponentsExecution, ComponentsIssue]
 
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
@@ -156,6 +168,8 @@ pub fn start_mean_views(@bounded_execution.Control, @lowering_relation.PreparedS
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
 pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ReachExecution, ReachIssue]
+
+pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ShortestExecution, ShortestIssue]
 
 pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[SubgraphExecution, SubgraphIssue]
 
@@ -365,6 +379,27 @@ pub enum ReachPoll {
   ReachComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   ReachFailed(ReachIssue, progress~ : Int64, work~ : Int64)
   ReachStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type ShortestExecution
+
+pub(all) enum ShortestIssue {
+  UnsupportedShortestKernel
+  ShortestInputUnavailable
+  ShortestEndpointMissing
+  ShortestOutputLimit
+  ShortestWorkspaceLimit
+  ShortestStorage(@managed_graph_storage.Issue)
+  ShortestOutput(@execution_relation.CaptureIssue)
+  ShortestCompletion(@execution_relation.TrustedOutputIssue)
+  ShortestExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum ShortestPoll {
+  ShortestContinue(progress~ : Int64, work~ : Int64)
+  ShortestComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  ShortestFailed(ShortestIssue, progress~ : Int64, work~ : Int64)
+  ShortestStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type SubgraphExecution

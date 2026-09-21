@@ -28,6 +28,7 @@ priv enum RelationExecution {
   ComponentsExecution(@sga.ComponentsExecution)
   ReachExecution(@sga.ReachExecution)
   TraverseExecution(@sga.TraverseExecution)
+  ShortestExecution(@sga.ShortestExecution)
   GraphsEqualExecution(@sga.GraphsEqualExecution)
 }
 
@@ -237,6 +238,15 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.reachable"
       (current, @lower.GraphTraverseStep(traverse)) if current == count - 1 =>
         @lower.operation(node) == "SGA.traverse" && accepts_traverse(traverse)
+      (current, @lower.GraphShortestStep(shortest)) if current == count - 1 =>
+        @lower.operation(node) == "SGA.shortest_path" &&
+        @lower.graph_shortest_endpoint_single(shortest, @schema.Left) is Some(_) &&
+        @lower.graph_shortest_endpoint_single(shortest, @schema.Right)
+        is Some(_) &&
+        @lower.graph_shortest_selection(shortest) == @graph_type.EachPair &&
+        @lower.graph_shortest_weight(shortest) is None &&
+        @lower.graph_shortest_type_count(shortest) is None &&
+        @lower.graph_shortest_max_hops(shortest) is Some(_)
       (current, @lower.GraphBasicStep(basic)) if current == count - 1 =>
         (
           @lower.operation(node) == "SGA.bounds_check" &&
@@ -1134,6 +1144,31 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.GraphShortestStep(_)) => {
+            guard input is Some(input) else { return fail_execution(value) }
+            match
+              @sga.start_shortest(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                input,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              ) {
+              Ok(execution) => ShortestExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           Some(@lower.GraphRelationStep(relation)) => {
             guard @lower.graph_relation_kind(relation) ==
               @lower.GraphsEqualRelation &&
@@ -1286,6 +1321,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          ShortestExecution(execution) =>
+            match @sga.advance_shortest(execution, quantum) {
+              Ok(@sga.ShortestContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.ShortestComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.ShortestFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.ShortestStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
           GraphsEqualExecution(execution) =>
             match @sga.advance_graphs_equal(execution, quantum) {
               Ok(@sga.GraphsEqualContinue(progress~, work~)) =>
@@ -1405,6 +1452,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      ShortestExecution(execution) =>
+        match @sga.cleanup_shortest(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       GraphsEqualExecution(execution) =>
         match @sga.cleanup_graphs_equal(execution) {
           Ok(_) => ()
@@ -1464,6 +1516,7 @@ fn cleanup_execution(
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     Some(ReachExecution(active)) => @sga.reach_cleanup_pending(active)
     Some(TraverseExecution(active)) => @sga.traverse_cleanup_pending(active)
+    Some(ShortestExecution(active)) => @sga.shortest_cleanup_pending(active)
     Some(GraphsEqualExecution(active)) =>
       @sga.graphs_equal_cleanup_pending(active)
     None => false
