@@ -115,6 +115,8 @@ fn is_graph_equality_variant(variant : String) -> Bool {
 
 ///|
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
+  let concise = variant == "concise_projection"
+  let split = variant == "split_projection"
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -140,7 +142,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
   let graph_equality = is_graph_equality_variant(variant)
-  let projection = if variant == "match_nodes" {
+  let projection = if concise {
+    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
+  } else if variant == "match_nodes" {
     "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
   } else if variant == "match_nodes_literal" {
@@ -231,8 +235,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" {
+  let result_fields = if concise {
+    "\"src\",\"dst\",\"id\",\"weight\""
+  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -248,8 +253,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" {
+  let second_fields = if concise {
+    "\"weight\",\"src\""
+  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -264,7 +270,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if variant.has_suffix("unequal") {
+  let other_stage = if split {
+    "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":1," +
+    "\"node_name\":\"first\",\"weight\":0},{\"id\":2," +
+    "\"src\":2,\"dst\":2,\"node_name\":\"second\"," +
+    "\"weight\":0}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    "\"node_name\",\"weight\"]}}},"
+  } else if variant.has_suffix("unequal") {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
@@ -284,7 +300,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if variant.has_suffix("unequal") {
+  let graph_inputs = if split {
+    "\"nodes\":{\"result\":{\"stage\":\"node_values\"," +
+    "\"result\":\"r\"}},\"rows\":{\"result\":{" +
+    "\"stage\":\"values\",\"result\":\"r\"}}"
+  } else if variant.has_suffix("unequal") {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
@@ -309,10 +329,18 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   other_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
   graph_inputs +
-  "},\"steps\":[{\"graph\":{\"nodes\":{" +
-  "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
-  "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
-  "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
+  "},\"steps\":[{" +
+  (if concise {
+    "\"from\":\"rows\",\"graph\":{\"source\":\"src\"," +
+    "\"target\":\"dst\"},\"as\":\"g\"},{"
+  } else {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if split { "\"nodes\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"g\"},{"
+  }) +
   projection +
   "}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":[" +
@@ -2716,7 +2744,8 @@ fn run_standard_host_graph_relation_path(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
     managed_publication=publication,
-    ledger_limits=if variant.has_suffix("unequal") {
+    ledger_limits=if variant.has_suffix("unequal") ||
+      variant == "split_projection" {
       Some({
         planning_work: 20000,
         attempts: 20,
@@ -2809,11 +2838,20 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_publication_obligations(run, publication),
   )
   let values_rows = local_managed_test_rows(values_ops)
-  let graph_task = if variant.has_suffix("unequal") { 3 } else { 2 }
-  let graph_inputs = [values]
-  let graph_input_rows = [values_rows]
+  let graph_task = if variant.has_suffix("unequal") ||
+    variant == "split_projection" {
+    3
+  } else {
+    2
+  }
+  let graph_inputs = if variant == "split_projection" { [] } else { [values] }
+  let graph_input_rows = if variant == "split_projection" {
+    []
+  } else {
+    [values_rows]
+  }
   let other_cleanup : Ref[(() -> Unit)?] = Ref(None)
-  if variant.has_suffix("unequal") {
+  if variant.has_suffix("unequal") || variant == "split_projection" {
     let other_live = Ref(true)
     let (other_ops, other) = run_local_managed_test_task(
       installed,
@@ -2825,8 +2863,15 @@ fn run_standard_host_graph_relation_path(
       other_live,
       obligations?=graph_publication_obligations(run, publication),
     )
-    graph_inputs.push(other)
-    graph_input_rows.push(local_managed_test_rows(other_ops))
+    if variant == "split_projection" {
+      graph_inputs.push(other)
+      graph_input_rows.push(local_managed_test_rows(other_ops))
+      graph_inputs.push(values)
+      graph_input_rows.push(values_rows)
+    } else {
+      graph_inputs.push(other)
+      graph_input_rows.push(local_managed_test_rows(other_ops))
+    }
     other_cleanup.val = Some(fn() {
       other_live.val = false
       @strategy.close_captured_task_output(run, 2)
@@ -2911,6 +2956,11 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"equal\":true"))
   } else if variant.has_suffix("unequal") {
     assert_true(graph_rows[0].contains("\"equal\":false"))
+  } else if variant == "concise_projection" {
+    assert_true(graph_rows[0].contains("\"src\":1"))
+    assert_true(graph_rows[0].contains("\"dst\":2"))
+    assert_true(graph_rows[0].contains("\"id\":1"))
+    assert_true(graph_rows[1].contains("\"weight\":20"))
   } else {
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
@@ -3007,6 +3057,8 @@ fn run_standard_host_graph_relation_path(
 
 ///|
 test "standard Host runs bounded Graph relation paths with two consumers" {
+  run_standard_host_graph_relation_path("concise_projection")
+  run_standard_host_graph_relation_path("split_projection")
   run_standard_host_graph_relation_path("projection", publication=true)
   run_standard_host_graph_relation_path("edge_projection", publication=true)
   run_standard_host_graph_relation_path("normalize")

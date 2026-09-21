@@ -1,5 +1,9 @@
 ///|
 priv enum RowsToGraphPhase {
+  ReadDerivedSource
+  CommitDerivedSource
+  ReadDerivedTarget
+  CommitDerivedTarget
   BeginNode
   ReadNodeProperties
   CommitNode
@@ -152,6 +156,81 @@ fn rows_to_graph_step(
       return @bounded.Failed(GraphInputUnavailable, progress, used)
     }
     match state.phase {
+      ReadDerivedSource =>
+        if state.row < @execution.producer_read_row_count(state.edges) {
+          guard graph_checked_cell(
+              state.edges,
+              state.row,
+              state.edge_source,
+              state.value_limits,
+            )
+            is Some(identity) else {
+            return @bounded.Failed(
+              InvalidGraphRecord(state.row),
+              progress,
+              used,
+            )
+          }
+          state.identity = Some(identity)
+          state.phase = CommitDerivedSource
+          used += 1
+        } else {
+          state.row = 0
+          state.phase = BeginEdge
+        }
+      CommitDerivedSource => {
+        guard state.output is Some(output) && state.identity is Some(identity) else {
+          return @bounded.Failed(InvalidGraphKernel, progress, used)
+        }
+        used += 1
+        match @graph.append_node(output, identity, []) {
+          Err(_) =>
+            return @bounded.Failed(
+              InvalidGraphRecord(state.row),
+              progress,
+              used,
+            )
+          Ok(_) => {
+            state.identity = None
+            state.phase = ReadDerivedTarget
+            progress += 1
+          }
+        }
+      }
+      ReadDerivedTarget => {
+        guard graph_checked_cell(
+            state.edges,
+            state.row,
+            state.edge_target,
+            state.value_limits,
+          )
+          is Some(identity) else {
+          return @bounded.Failed(InvalidGraphRecord(state.row), progress, used)
+        }
+        state.identity = Some(identity)
+        state.phase = CommitDerivedTarget
+        used += 1
+      }
+      CommitDerivedTarget => {
+        guard state.output is Some(output) && state.identity is Some(identity) else {
+          return @bounded.Failed(InvalidGraphKernel, progress, used)
+        }
+        used += 1
+        match @graph.append_node(output, identity, []) {
+          Err(_) =>
+            return @bounded.Failed(
+              InvalidGraphRecord(state.row),
+              progress,
+              used,
+            )
+          Ok(_) => {
+            state.identity = None
+            state.row += 1
+            state.phase = ReadDerivedSource
+            progress += 1
+          }
+        }
+      }
       BeginNode =>
         if state.row < @execution.producer_read_row_count(state.nodes) {
           guard graph_checked_cell(
@@ -420,15 +499,26 @@ pub fn start_rows_to_graph(
   available : () -> Bool,
 ) -> Result[RowsToGraphExecution, GraphBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard inputs.length() == 2 &&
-    @lower.sequence_step(sequence, step)
+  guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphConstructionStep(graph)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "BRIDGE.rows.to_graph" &&
-    @execution.producer_read_matches_operation_input(inputs[0], owner, step, 0) &&
-    @execution.producer_read_matches_operation_input(inputs[1], owner, step, 1) else {
+    @lower.operation(node) == "BRIDGE.rows.to_graph" else {
     return Err(InvalidGraphKernel)
   }
+  let derived_nodes = @lower.graph_construction_derives_nodes(graph)
+  let expected_inputs = if derived_nodes { 1 } else { 2 }
+  if inputs.length() != expected_inputs {
+    return Err(InvalidGraphKernel)
+  }
+  for index, input in inputs {
+    if !@execution.producer_read_matches_operation_input(
+        input, owner, step, index,
+      ) {
+      return Err(InvalidGraphKernel)
+    }
+  }
+  let nodes = inputs[0]
+  let edges = if derived_nodes { inputs[0] } else { inputs[1] }
   let node_property_count = @lower.graph_construction_node_property_count(graph)
   let edge_property_count = @lower.graph_construction_edge_property_count(graph)
   if max_workspace_slots < 0 ||
@@ -437,27 +527,31 @@ pub fn start_rows_to_graph(
     8 > max_workspace_slots - node_property_count - edge_property_count {
     return Err(GraphWorkspaceLimit)
   }
+  let node_identity = if derived_nodes {
+    -1
+  } else {
+    guard relation_field_index(
+        nodes,
+        @lower.graph_construction_node_identity(graph),
+      )
+      is Some(index) else {
+      return Err(InvalidGraphKernel)
+    }
+    index
+  }
   guard relation_field_index(
-      inputs[0],
-      @lower.graph_construction_node_identity(graph),
-    )
-    is Some(node_identity) &&
-    relation_field_index(
-      inputs[1],
+      edges,
       @lower.graph_construction_edge_source(graph),
     )
     is Some(edge_source) &&
-    relation_field_index(
-      inputs[1],
-      @lower.graph_construction_edge_target(graph),
-    )
+    relation_field_index(edges, @lower.graph_construction_edge_target(graph))
     is Some(edge_target) else {
     return Err(InvalidGraphKernel)
   }
   let edge_label = match @lower.graph_construction_edge_label(graph) {
     None => None
     Some(name) =>
-      match relation_field_index(inputs[1], name) {
+      match relation_field_index(edges, name) {
         Some(index) => Some(index)
         None => return Err(InvalidGraphKernel)
       }
@@ -465,7 +559,7 @@ pub fn start_rows_to_graph(
   let node_properties : Array[Int] = []
   for index in 0..<node_property_count {
     guard @lower.graph_construction_node_property_at(graph, index) is Some(name) &&
-      relation_field_index(inputs[0], name) is Some(column) else {
+      relation_field_index(nodes, name) is Some(column) else {
       return Err(InvalidGraphKernel)
     }
     node_properties.push(column)
@@ -473,7 +567,7 @@ pub fn start_rows_to_graph(
   let edge_properties : Array[Int] = []
   for index in 0..<edge_property_count {
     guard @lower.graph_construction_edge_property_at(graph, index) is Some(name) &&
-      relation_field_index(inputs[1], name) is Some(column) else {
+      relation_field_index(edges, name) is Some(column) else {
       return Err(InvalidGraphKernel)
     }
     edge_properties.push(column)
@@ -491,8 +585,8 @@ pub fn start_rows_to_graph(
     Err(_) => return Err(InvalidGraphKernel)
   }
   let state : RowsToGraphState = {
-    nodes: inputs[0],
-    edges: inputs[1],
+    nodes,
+    edges,
     output: Some(output),
     value_limits: {
       max_nodes: limits.max_value_nodes,
@@ -505,7 +599,11 @@ pub fn start_rows_to_graph(
     edge_target,
     edge_label,
     edge_properties,
-    phase: BeginNode,
+    phase: if derived_nodes {
+      ReadDerivedSource
+    } else {
+      BeginNode
+    },
     row: 0,
     field: 0,
     identity: None,

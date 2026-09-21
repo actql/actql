@@ -309,16 +309,25 @@ fn advance_execution(
         if step >= value.construction_steps {
           return fail_execution(value)
         }
-        guard input_at(value, step, 0) is Some(nodes) &&
-          input_at(value, step, 1) is Some(edges) else {
+        guard @lower.sequence_step(value.sequence, step)
+          is Some(@lower.GraphConstructionStep(graph)) &&
+          input_at(value, step, 0) is Some(first) else {
           return fail_execution(value)
+        }
+        let inputs = if @lower.graph_construction_derives_nodes(graph) {
+          [first]
+        } else {
+          guard input_at(value, step, 1) is Some(second) else {
+            return fail_execution(value)
+          }
+          [first, second]
         }
         let started = match
           @bridge.start_rows_to_graph(
             value.control,
             value.sequence,
             step,
-            [nodes, edges],
+            inputs,
             value.limits,
             value.storage_bytes,
             value.limits.max_workspace_slots,
