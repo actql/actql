@@ -591,7 +591,27 @@ fn assert_native_remote_standard_output(
   input_binding : @remote.RemoteInputBinding,
   expected : String,
 ) -> Unit raise {
-  ignore(runtime.start(request, input_binding).unwrap())
+  let operation = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_dispatch_json(request, input_binding).unwrap(),
+  ).unwrap()
+  let acknowledge_acceptance = fn(request) {
+    let (_, record) = journal.accept(request).unwrap()
+    Ok(record)
+  }
+  let acknowledge_status = fn(request) {
+    let observed = journal.observation(request).unwrap()
+    Ok(Some(@native_remote_journal.recovered_site_dispatch_record(observed)))
+  }
+  guard @native_remote_agent.advance_native_outbound_operation(
+      runtime,
+      Some(operation),
+      acknowledge_acceptance,
+      acknowledge_status,
+    )
+    is Ok(@native_remote_agent.DispatchObserved(identity, _)) else {
+    fail("standard remote dispatch was not observed")
+  }
+  assert_eq(identity, @remote.dispatch_request_identity(request))
   let observed = journal.observation(request).unwrap()
   let subject = @native_remote_journal.recovered_site_dispatch_subject(observed).unwrap()
   let material_generation = @remote.remote_managed_output_subject_projection(
@@ -612,7 +632,19 @@ fn assert_native_remote_standard_output(
   }
   assert_eq(@utf8.decode_lossy(Bytes::from_array(bytes)), expected)
   assert_true(reader.finish().unwrap())
-  assert_true(runtime.release(request).unwrap())
+  let release = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_release_json(request).unwrap(),
+  ).unwrap()
+  guard @native_remote_agent.advance_native_outbound_operation(
+      runtime,
+      Some(release),
+      acknowledge_acceptance,
+      acknowledge_status,
+    )
+    is Ok(@native_remote_agent.ReleaseObserved(released_identity, _)) else {
+    fail("standard remote output release was not observed")
+  }
+  assert_eq(released_identity, @remote.dispatch_request_identity(request))
 }
 
 ///|

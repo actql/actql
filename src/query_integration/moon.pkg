@@ -61,6 +61,7 @@ import {
   "actql/actql/platform_native/result_access" @native_result_access,
   "actql/actql/platform_native/filesystem" @native_filesystem,
   "actql/actql/platform_native/remote_journal" @native_remote_journal,
+  "actql/actql/platform_native/remote_agent" @native_remote_agent,
   "actql/actql/platform_native/remote_runtime" @native_remote_runtime,
   "actql/actql/platform_native/remote_standard_host" @native_remote_standard,
   "actql/actql/platform_native/runtime_bundle" @native_runtime_bundle,
