@@ -180,6 +180,8 @@ jobs:
           node --version
           moon version --all
           npm ls --prefix adapters/workers
+      - name: Check generated Workers fixtures
+        run: node scripts/workers-fixtures.mjs
       - name: Check isolated Core closure in all targets
         run: node scripts/check-core-without-connectors.mjs
       - name: Build inspect and execute the Workers JS profile
