@@ -241,8 +241,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"max_depth\":2},\"as\":\"out\""
   } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{" +
-    (if variant == "traverse_predicate" {
-      "\"where\":\"true\""
+    (if variant == "traverse_predicate" ||
+      variant == "traverse_pattern_all_predicates" {
+      "\"where\":" +
+      (if variant == "traverse_pattern_all_predicates" {
+        "\"node_name = 'second'\""
+      } else {
+        "\"true\""
+      })
     } else if traverse_relation_selector {
       "\"from\":\"selected\",\"id\":\"key\""
     } else {
@@ -269,6 +275,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       } else {
         "\"hops\":[{\"direction\":\"out\"" +
         (if variant == "traverse_pattern_predicate" ||
+          variant == "traverse_pattern_all_predicates" ||
           variant == "traverse_pattern_edge_predicate" {
           ",\"edge_where\":\"weight > 10\""
         } else if variant == "traverse_pattern_predicate_empty" {
@@ -277,6 +284,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
           ""
         }) +
         (if variant == "traverse_pattern_predicate" ||
+          variant == "traverse_pattern_all_predicates" ||
           variant == "traverse_pattern_node_predicate" {
           ",\"node_where\":\"node_name = 'first'\""
         } else {
@@ -1218,6 +1226,57 @@ fn carrier_graph_traverse_owner(
       "\",\"max_output_rows\":" +
       max_output_rows.to_string() +
       "}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graph_predicate_pattern_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"traverse\":{\"start\":{\"where\":" +
+      "\"node_name = 'second'\"},\"hops\":[{\"direction\":\"out\"," +
+      "\"edge_where\":\"weight > 10\",\"node_where\":" +
+      "\"node_name = 'first'\"}],\"emit\":\"nodes\"," +
+      "\"max_output_rows\":4}}]",
     ),
     [
       (
@@ -2853,6 +2912,88 @@ test "homogeneous traversal evaluates a typed start predicate" {
 }
 
 ///|
+test "traversal separates predicate widths at exact workspace" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_predicate_pattern_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  assert_true(
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      37,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkspaceLimit)),
+  )
+  let short = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    38,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    finish_traverse(short)
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachPredicate(_))),
+  )
+  assert_eq(@local_sga.cleanup_traverse(short), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    39,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap(),
+    "{\"depth\":1,\"node_id\":1,\"start_id\":2}",
+  )
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "homogeneous traversal rejects a missing literal start atomically" {
   let source_owner = carrier_graph_components_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -4381,6 +4522,7 @@ test "standard Host traverses one authored hop" {
 ///|
 test "standard Host evaluates authored hop predicates" {
   run_standard_host_graph_relation_path("traverse_pattern_predicate")
+  run_standard_host_graph_relation_path("traverse_pattern_all_predicates")
   run_standard_host_graph_relation_path("traverse_pattern_edge_predicate")
   run_standard_host_graph_relation_path("traverse_pattern_node_predicate")
   run_standard_host_graph_relation_path("traverse_pattern_predicate_empty")

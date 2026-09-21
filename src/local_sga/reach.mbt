@@ -102,7 +102,9 @@ priv struct ReachState {
   start_selected : Array[Bool]
   start_nodes : Array[Int]
   start_scratch : Array[Int?]
-  predicate_fields : Int
+  start_predicate_fields : Int
+  edge_predicate_fields : Int
+  node_predicate_fields : Int
   predicate_workspace : Int
   mut predicate_work_remaining : Int
   predicate_input : Map[String, @execution.Value]
@@ -561,7 +563,7 @@ fn reach_step(
         if state.index >= @storage.node_count(state.source) {
           state.index = 0
           state.phase = CollectStarts
-        } else if state.predicate_field < state.predicate_fields {
+        } else if state.predicate_field < state.start_predicate_fields {
           used += 1
           guard graph_node_predicate_binding(
               state.graph,
@@ -952,8 +954,7 @@ fn reach_step(
         }
       }
       PrepareHopEdgePredicate =>
-        if state.predicate_field <
-          graph_edge_predicate_binding_count(state.graph) {
+        if state.predicate_field < state.edge_predicate_fields {
           used += 1
           guard graph_edge_predicate_binding(
               state.graph,
@@ -1018,8 +1019,7 @@ fn reach_step(
         }
       }
       PrepareHopNodePredicate =>
-        if state.predicate_field <
-          graph_node_predicate_binding_count(state.graph) {
+        if state.predicate_field < state.node_predicate_fields {
           used += 1
           guard graph_node_predicate_binding(
               state.graph,
@@ -1318,13 +1318,14 @@ fn start_reach_state(
   } else {
     0
   }
-  let predicate_fields = Int::max(
+  let predicate_workspace_width = Int::max(
     start_predicate_fields,
     Int::max(edge_predicate_fields, node_predicate_fields),
   )
   guard reach_workspace(nodes, edges, @schema.field_count(schema))
     is Some(base_workspace) &&
-    checked_reach_add(base_workspace, predicate_fields) is Some(workspace) &&
+    checked_reach_add(base_workspace, predicate_workspace_width)
+    is Some(workspace) &&
     workspace <= max_workspace_slots else {
     return Err(ReachWorkspaceLimit)
   }
@@ -1407,7 +1408,9 @@ fn start_reach_state(
     start_selected: [],
     start_nodes: [],
     start_scratch: [],
-    predicate_fields,
+    start_predicate_fields,
+    edge_predicate_fields,
+    node_predicate_fields,
     predicate_workspace: max_workspace_slots - workspace,
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),

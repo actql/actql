@@ -488,6 +488,7 @@ fn query_checked_program_fixture(
         "traverse",
         output_rows=if local_carrier_graph_variant == "traverse_ids" ||
           local_carrier_graph_variant == "traverse_predicate" ||
+          local_carrier_graph_variant == "traverse_pattern_all_predicates" ||
           local_carrier_graph_variant == "traverse_relation_selector" {
           4L
         } else {
