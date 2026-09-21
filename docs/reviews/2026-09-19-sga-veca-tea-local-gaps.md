@@ -436,9 +436,11 @@ Relation roles, `k=1`, `k` greater than corpus size, and empty candidate or
 query sides. The registered provider now consumes every formal Relation and
 Vectors input combination without erasing Carrier authority, rejects reversed
 use-site bindings, and preserves source storage after output cleanup on all
-three targets. Standard Host selection for the direct Carrier forms, their
-two-consumer lifetime, duplicate identity failures, environment cancellation
-delivery, and publication remain open. Ranking merge now has typed canonical
+three targets. The real Node Host now delivers timer cancellation after exact
+nearest work begins, observes kernel stop, publishes no partial result, and
+reclaims all reservations at `456c2f27`. Standard Host selection for the direct
+Carrier forms, their two-consumer lifetime, duplicate identity failures, and
+publication remain open. Ranking merge now has typed canonical
 lowering for maximum, weighted-sum, and finite-list RRF policies. It retains
 score contracts, omitted versus explicit empty tie-breaks,
 and ordered repeated RRF inputs as one operation occurrence. RRF now executes

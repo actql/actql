@@ -1423,6 +1423,19 @@
             "src/local_veca_provider/vectors_pipeline.mbt",
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "relation_relation_environment_cancellation",
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
+          "sha": "456c2f27",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
         }
       ]
     },
