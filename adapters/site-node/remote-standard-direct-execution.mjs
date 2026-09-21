@@ -9,19 +9,26 @@ const method = (value, name) => value !== null &&
   typeof value === 'object' && typeof value[name] === 'function';
 
 function failureEnvelope(primary, failure, control) {
-  let pending = true;
   const diagnostics = [];
-  const retry = async () => {
+  const status = () => {
+    let pending = true;
     try {
-      pending = control.retryFailureCleanup(failure) !== true;
+      pending = control.failureCleanupPending(failure) === true;
     } catch (error) {
       diagnostics.push(error);
-      pending = true;
     }
     return Object.freeze({
       pending,
       errors: Object.freeze([...diagnostics]),
     });
+  };
+  const retry = async () => {
+    try {
+      control.retryFailureCleanup(failure);
+    } catch (error) {
+      diagnostics.push(error);
+    }
+    return status();
   };
   const envelope = Object.assign(
     new Error(control.failureCode(failure), {cause: primary}),
@@ -29,10 +36,7 @@ function failureEnvelope(primary, failure, control) {
   );
   envelope.cleanupPending = true;
   envelope.cleanupHandle = Object.freeze({
-    status: () => Object.freeze({
-      pending,
-      errors: Object.freeze([...diagnostics]),
-    }),
+    status,
     retry,
   });
   envelope.cleanupErrors = Object.freeze([]);
@@ -55,6 +59,7 @@ export function createRemoteStandardDirectExecution({receiver, control} = {}) {
       typeof control.finish !== 'function' ||
       typeof control.cancel !== 'function' ||
       typeof control.failureCode !== 'function' ||
+      typeof control.failureCleanupPending !== 'function' ||
       typeof control.retryFailureCleanup !== 'function') {
     fail('InvalidRemoteStandardDirectExecution');
   }

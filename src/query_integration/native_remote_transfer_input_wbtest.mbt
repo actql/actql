@@ -310,6 +310,21 @@ test "incremental direct destination uses common standard input verifier" {
   )
   assert_true(run_available[0])
   assert_true(
+    @native_remote_standard.native_remote_standard_input_failure_cleanup_pending(
+      run_failure,
+    ),
+  )
+  assert_true(
+    @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
+      run_failure,
+    ),
+  )
+  assert_false(
+    @native_remote_standard.native_remote_standard_input_failure_cleanup_pending(
+      run_failure,
+    ),
+  )
+  assert_true(
     @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
       run_failure,
     ),
@@ -341,7 +356,17 @@ test "incremental direct destination uses common standard input verifier" {
     "transfer-input-material",
   )
   assert_true(
+    @native_remote_standard.native_remote_standard_input_failure_cleanup_pending(
+      rejected_failure,
+    ),
+  )
+  assert_true(
     @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
+      rejected_failure,
+    ),
+  )
+  assert_false(
+    @native_remote_standard.native_remote_standard_input_failure_cleanup_pending(
       rejected_failure,
     ),
   )

@@ -327,6 +327,7 @@ test('mTLS direct Transfer preserves ordered chunks without a bulk relay',
         },
         cancel: () => assert.fail('successful direct input was cancelled'),
         failureCode: () => 'unexpected-direct-input-failure',
+        failureCleanupPending: () => false,
         retryFailureCleanup: () => true,
       }),
     });

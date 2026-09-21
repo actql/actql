@@ -47,6 +47,8 @@ pub fn native_remote_standard_direct_run_admission_authorizes(NativeRemoteStanda
 
 pub fn native_remote_standard_direct_run_factory_request_cid(NativeRemoteStandardDirectRunFactory, @remote_site_protocol.RemoteInputBinding) -> Result[String, NativeRemoteStandardInputFailure]
 
+pub fn native_remote_standard_input_failure_cleanup_pending(NativeRemoteStandardInputFailure) -> Bool
+
 pub fn native_remote_standard_input_failure_code(NativeRemoteStandardInputFailure) -> String
 
 pub fn native_remote_standard_transfer_binding(NativeRemoteStandardTransferInput) -> @remote_site_protocol.RemoteInputBinding

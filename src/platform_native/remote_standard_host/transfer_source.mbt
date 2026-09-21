@@ -197,6 +197,7 @@ fn transfer_source_failure(
         }
       }
     },
+    cleanup_complete: false,
   }
 }
 
@@ -553,6 +554,7 @@ fn bind_native_remote_standard_transfer_source_run(
       return Err({
         code: "standard-run-open",
         cleanup: () => finish_native_remote_standard_transfer_source(source),
+        cleanup_complete: false,
       })
   }
   match
@@ -573,6 +575,7 @@ fn bind_native_remote_standard_transfer_source_run(
           }
           finish_native_remote_standard_transfer_source(source)
         },
+        cleanup_complete: false,
       })
     }
   }
@@ -601,7 +604,11 @@ pub fn prepare_native_remote_standard_physical_run_admission(
   if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
     @remote.remote_input_binding_cid(input.binding) !=
     @remote.remote_input_binding_cid(binding) {
-    return Err({ code: "foreign-input-binding", cleanup: physical.release, })
+    return Err({
+      code: "foreign-input-binding",
+      cleanup: physical.release,
+      cleanup_complete: false,
+    })
   }
   let admission = match
     prepare_native_remote_standard_physical_admission(
@@ -669,7 +676,11 @@ pub fn prepare_native_remote_standard_direct_run_admission(
   NativeRemoteStandardInputFailure,
 ] {
   if !@remote.remote_input_binding_matches_dispatch(binding, request) {
-    return Err({ code: "foreign-input-binding", cleanup: () => true, })
+    return Err({
+      code: "foreign-input-binding",
+      cleanup: () => true,
+      cleanup_complete: false,
+    })
   }
   let input = match
     admit_native_remote_standard_transfer_input(
@@ -681,7 +692,11 @@ pub fn prepare_native_remote_standard_direct_run_admission(
     ) {
     Ok(value) => value
     Err(_) =>
-      return Err({ code: "transfer-input-binding", cleanup: () => true, })
+      return Err({
+        code: "transfer-input-binding",
+        cleanup: () => true,
+        cleanup_complete: false,
+      })
   }
   let receipt_projection = @transfer.destination_receipt_projection(receipt)
   if @transfer.request_cid(claimed_request) !=
@@ -690,7 +705,11 @@ pub fn prepare_native_remote_standard_direct_run_admission(
     @transfer.destination_receipt_json(receipt) is Err(_) ||
     receipt_projection.length() != 7 ||
     receipt_projection[1] != @transfer.request_cid(claimed_request) {
-    return Err({ code: "foreign-direct-transfer", cleanup: () => true, })
+    return Err({
+      code: "foreign-direct-transfer",
+      cleanup: () => true,
+      cleanup_complete: false,
+    })
   }
   let physical = register_native_remote_standard_physical_source(
     input,
@@ -747,7 +766,12 @@ pub fn native_remote_standard_direct_run_factory_request_cid(
       factory.binding_limits.max_referenced_bytes,
     ) {
     Ok(input) => Ok(@transfer.request_cid(input.request))
-    Err(_) => Err({ code: "transfer-input-binding", cleanup: () => true, })
+    Err(_) =>
+      Err({
+        code: "transfer-input-binding",
+        cleanup: () => true,
+        cleanup_complete: false,
+      })
   }
 }
 
@@ -1075,6 +1099,7 @@ pub fn resolve_native_remote_standard_physical_run(
         cleanup: () => {
           retry_native_remote_standard_input_failure_cleanup(failure)
         },
+        cleanup_complete: false,
       })
     }
   }
@@ -1101,7 +1126,11 @@ pub fn resolve_native_remote_standard_transfer_run(
   ],
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
   if !@remote.remote_input_binding_matches_dispatch(binding, request) {
-    return Err({ code: "foreign-input-binding", cleanup: () => true, })
+    return Err({
+      code: "foreign-input-binding",
+      cleanup: () => true,
+      cleanup_complete: false,
+    })
   }
   let input = match
     admit_native_remote_standard_transfer_input(
@@ -1113,7 +1142,11 @@ pub fn resolve_native_remote_standard_transfer_run(
     ) {
     Ok(value) => value
     Err(_) =>
-      return Err({ code: "transfer-input-binding", cleanup: () => true, })
+      return Err({
+        code: "transfer-input-binding",
+        cleanup: () => true,
+        cleanup_complete: false,
+      })
   }
   let physical = match
     pin_native_remote_standard_store_source(journal, root, input) {

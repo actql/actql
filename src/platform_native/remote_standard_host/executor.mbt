@@ -43,6 +43,7 @@ struct NativeRemoteStandardBoundRun {
 struct NativeRemoteStandardInputFailure {
   code : String
   cleanup : () -> Bool
+  mut cleanup_complete : Bool
 }
 
 ///|
@@ -59,7 +60,24 @@ pub fn native_remote_standard_input_failure_code(
 pub fn retry_native_remote_standard_input_failure_cleanup(
   failure : NativeRemoteStandardInputFailure,
 ) -> Bool {
-  (failure.cleanup)()
+  if failure.cleanup_complete {
+    return true
+  }
+  if (failure.cleanup)() {
+    failure.cleanup_complete = true
+    true
+  } else {
+    false
+  }
+}
+
+///|
+/// Reports the current physical cleanup responsibility retained by this
+/// failure. Environment adapters may observe this state but do not derive it.
+pub fn native_remote_standard_input_failure_cleanup_pending(
+  failure : NativeRemoteStandardInputFailure,
+) -> Bool {
+  !failure.cleanup_complete
 }
 
 ///|
@@ -70,7 +88,7 @@ pub fn prepare_native_remote_standard_input_failure(
   if code.is_empty() || code.length() > 128 {
     return Err(InvalidConfiguration)
   }
-  Ok({ code, cleanup, })
+  Ok({ code, cleanup, cleanup_complete: false, })
 }
 
 ///|
@@ -161,18 +179,14 @@ fn remote_standard_failure(
 fn remote_standard_rejection(
   failure : NativeRemoteStandardInputFailure,
 ) -> @runtime.NativeRemotePhysicalExecution {
-  if (failure.cleanup)() {
+  if retry_native_remote_standard_input_failure_cleanup(failure) {
     @runtime.prepare_native_remote_failure(failure.code, false, false, true, () => {
       true
     }).unwrap()
   } else {
-    @runtime.prepare_native_remote_failure(
-      failure.code,
-      false,
-      true,
-      false,
-      failure.cleanup,
-    ).unwrap()
+    @runtime.prepare_native_remote_failure(failure.code, false, true, false, () => {
+      retry_native_remote_standard_input_failure_cleanup(failure)
+    }).unwrap()
   }
 }
 

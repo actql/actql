@@ -37,6 +37,7 @@ function fixture({rejectFrame = false, cleanupResults = [true]} = {}) {
   const session = Object.freeze({kind: 'session'});
   const failure = Object.freeze({kind: 'failure'});
   const output = Object.freeze({kind: 'output'});
+  let failureCleanupPending = true;
   let physicalAvailable;
   let releasePhysical;
   const control = Object.freeze({
@@ -84,13 +85,19 @@ function fixture({rejectFrame = false, cleanupResults = [true]} = {}) {
       assert.equal(value, failure);
       return 'standard-input-failed';
     },
+    failureCleanupPending(value) {
+      assert.equal(value, failure);
+      return failureCleanupPending;
+    },
     retryFailureCleanup(value) {
       assert.equal(value, failure);
       events.push('retry-cleanup');
-      return cleanupResults[Math.min(
+      const result = cleanupResults[Math.min(
         cleanupIndex++,
         cleanupResults.length - 1,
       )];
+      if (result) failureCleanupPending = false;
+      return result;
     },
   });
   return {
