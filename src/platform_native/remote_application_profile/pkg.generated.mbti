@@ -19,6 +19,7 @@ import {
   "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
 }
 
 // Values
@@ -80,6 +81,8 @@ pub fn NativeRemoteApplicationSite::close(Self) -> Result[Bool, NativeRemoteAppl
 pub fn NativeRemoteApplicationSite::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteApplicationSiteIssue]
+pub fn NativeRemoteApplicationSite::send_observed_output_direct(Self, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue]
+pub fn NativeRemoteApplicationSite::send_observed_output_store(Self, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue]
 
 pub(all) enum NativeRemoteApplicationSiteIssue {
   Host(@remote_standard_host.NativeRemoteStandardHostIssue)

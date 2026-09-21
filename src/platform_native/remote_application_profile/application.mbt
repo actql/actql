@@ -480,6 +480,59 @@ pub fn NativeRemoteApplicationSite::open_observed_output_manifest_reader(
 }
 
 ///|
+/// Sends one exact observed application output over the direct route. The
+/// Site-owned Transfer journal preserves reconciliation independently from
+/// the dispatch journal and application completion.
+pub fn NativeRemoteApplicationSite::send_observed_output_direct(
+  self : NativeRemoteApplicationSite,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .send_observed_output_direct(
+    self.transfer_journal,
+    origin,
+    dispatch,
+    completion,
+    transfer,
+    max_chunk_bytes,
+  )
+  .map_err(issue => Distribution(issue))
+}
+
+///|
+/// Sends one exact observed application output through the outbound-only
+/// Store route while retaining the same verified manifest boundaries.
+pub fn NativeRemoteApplicationSite::send_observed_output_store(
+  self : NativeRemoteApplicationSite,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue] {
+  if self.closed {
+    return Err(Distribution(@remote_standard.Closed))
+  }
+  self.distribution
+  .send_observed_output_store(
+    self.transfer_journal,
+    origin,
+    dispatch,
+    completion,
+    transfer,
+    max_chunk_bytes,
+  )
+  .map_err(issue => Distribution(issue))
+}
+
+///|
 /// Closes every process owner in authority order. A failed close is retryable
 /// on this same value and never advances to the transferred-input journal
 /// while the standard runtime still owns work.
