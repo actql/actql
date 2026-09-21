@@ -298,9 +298,12 @@ omitted, explicitly empty, and finite `edge_types` are distinct. Degree and
 CSR phases compare one authored label per bounded step. Match, later-list
 match, miss, and empty cases reach the standard Host, two consumers, and
 three portable targets; the matching case also establishes and retrieves its
-formal publication identity. Selected endpoints, `nearest_per_source`,
-`nearest_pair`, and weighted costs remain open, so `shortest_path` remains
-partial.
+formal publication identity. At `8023b17d`, incoming, outgoing, bidirectional,
+and source-equals-target zero-hop paths reach the standard Host and overlapping
+consumers on all three portable targets. The incoming case also establishes
+and retrieves its formal publication identity. Selected endpoints,
+`nearest_per_source`, `nearest_pair`, and weighted costs remain open, so
+`shortest_path` remains partial.
 Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,
