@@ -25,6 +25,7 @@ source_site_ip="10.231.1.2"
 destination_host_ip="10.231.2.1"
 destination_site_ip="10.231.2.2"
 probe_port="$((39000 + suffix % 1000))"
+transfer_port="$((40000 + suffix % 1000))"
 source_probe_pid=""
 destination_probe_pid=""
 
@@ -40,6 +41,13 @@ cleanup() {
     -o "$destination_host_interface" -j REJECT 2>/dev/null
   sudo iptables -D FORWARD -i "$destination_host_interface" \
     -o "$source_host_interface" -j REJECT 2>/dev/null
+  sudo iptables -D FORWARD -i "$source_host_interface" \
+    -o "$destination_host_interface" -p tcp \
+    -d "$destination_site_ip" --dport "$transfer_port" \
+    -j ACCEPT 2>/dev/null
+  sudo ip netns exec "$destination_namespace" iptables -D INPUT \
+    -p tcp -s "$source_site_ip" --dport "$transfer_port" \
+    -j ACCEPT 2>/dev/null
   sudo ip netns delete "$source_namespace" 2>/dev/null
   sudo ip netns delete "$destination_namespace" 2>/dev/null
 }
@@ -134,12 +142,24 @@ common_environment=(
   "ACTQL_TEST_NATIVE_SITE_USER=$site_user"
   "ACTQL_TEST_NATIVE_DESTINATION_NETNS=$destination_namespace"
   "ACTQL_TEST_NATIVE_DESTINATION_USER=$site_user"
+  "ACTQL_TEST_NATIVE_DESTINATION_HOST=$destination_site_ip"
+  "ACTQL_TEST_NATIVE_TRANSFER_PORT=$transfer_port"
 )
 
+sudo iptables -I FORWARD 1 -i "$source_host_interface" \
+  -o "$destination_host_interface" -p tcp \
+  -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
+sudo ip netns exec "$destination_namespace" iptables -I INPUT 1 \
+  -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
 env "${common_environment[@]}" \
   "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/direct" \
   ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE=direct \
   node "$repository_root/scripts/test-native-http-client.mjs"
+sudo iptables -D FORWARD -i "$source_host_interface" \
+  -o "$destination_host_interface" -p tcp \
+  -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
+sudo ip netns exec "$destination_namespace" iptables -D INPUT \
+  -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
 
 env "${common_environment[@]}" \
   "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/store" \

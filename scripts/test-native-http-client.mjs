@@ -55,6 +55,12 @@ const nativeDestinationNamespace =
   process.env.ACTQL_TEST_NATIVE_DESTINATION_NETNS;
 const nativeDestinationUser =
   process.env.ACTQL_TEST_NATIVE_DESTINATION_USER;
+const nativeDestinationHost =
+  process.env.ACTQL_TEST_NATIVE_DESTINATION_HOST ?? '127.0.0.1';
+const nativeTransferPort = Number.parseInt(
+  process.env.ACTQL_TEST_NATIVE_TRANSFER_PORT ?? '0',
+  10,
+);
 if ((nativeDestinationNamespace === undefined) !==
       (nativeDestinationUser === undefined) ||
     nativeDestinationNamespace === '' || nativeDestinationUser === '') {
@@ -65,6 +71,11 @@ if ((nativeDestinationNamespace === undefined) !==
 if (nativeDestinationNamespace !== undefined &&
     nativeSiteNamespace === undefined) {
   throw new Error('destination namespace requires a source Site namespace');
+}
+if (isIP(nativeDestinationHost) === 0 ||
+    !Number.isInteger(nativeTransferPort) ||
+    nativeTransferPort < 0 || nativeTransferPort > 65_535) {
+  throw new Error('invalid native destination Transfer endpoint');
 }
 const applicationOutputRoute =
   process.env.ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE ?? 'direct';
@@ -202,6 +213,8 @@ let nativeApplicationInputRequestBody;
 let nativeApplicationInputManifestBody;
 let nativeApplicationOutputRequestBody;
 let nativeApplicationOutputManifestBody;
+let productTransferService;
+let stopProductTransferService;
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -230,8 +243,16 @@ try {
     join(root, 'client.ext'),
     'extendedKeyUsage=clientAuth\n',
   );
+  await writeFile(
+    join(root, 'destination-server.ext'),
+    `subjectAltName=DNS:localhost,IP:127.0.0.1,` +
+      `IP:${nativeDestinationHost}\n` +
+      'extendedKeyUsage=serverAuth\n',
+  );
   issue('ca', 'server', 'server.ext');
   issue('ca', 'client', 'client.ext');
+  issue('ca', 'destination-client', 'client.ext');
+  issue('ca', 'destination-server', 'destination-server.ext');
   issue('foreign-ca', 'foreign-client', 'client.ext');
   server = createServer({
     key: await readFile(join(root, 'server.key')),
@@ -1359,6 +1380,53 @@ try {
     nativeDestinationNamespace ?? nativeSiteNamespace,
     nativeDestinationUser ?? nativeSiteUser,
   );
+  const waitForServiceFile = async (path, operation) => {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      if (existsSync(path)) return JSON.parse(await readFile(path, 'utf8'));
+      if (operation.child.exitCode !== null) {
+        const outcome = await operation.completed;
+        throw new Error(
+          `product Transfer service exited: ${JSON.stringify(outcome)}`,
+        );
+      }
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    throw new Error(`product Transfer service did not create ${path}`);
+  };
+  const startProductTransferService = async (
+    configuration,
+    {destination = false} = {},
+  ) => {
+    const configurationPath = join(
+      root,
+      `transfer-service-${configuration.mode}-${configuration.instance}.json`,
+    );
+    await writeFile(configurationPath, JSON.stringify(configuration), {
+      mode: 0o600,
+    });
+    const script = join(repositoryRoot, 'scripts/run-product-transfer-service.mjs');
+    const operation = destination
+      ? runCapturedAtDestination(process.execPath, [script, configurationPath])
+      : runCapturedIn(process.execPath, [script, configurationPath], {});
+    const ready = await waitForServiceFile(configuration.readyPath, operation);
+    return {operation, origin: ready.origin, stopping: undefined};
+  };
+  stopProductTransferService = async (running, signal = 'SIGTERM') => {
+    if (running === undefined) return;
+    if (running.stopping === undefined) {
+      running.stopping = (async () => {
+        running.operation.child.kill(signal);
+        const outcome = await running.operation.completed;
+        if (signal !== 'SIGKILL' && outcome.code !== 0) {
+          throw new Error(
+            `product Transfer service cleanup failed: ${JSON.stringify(outcome)}`,
+          );
+        }
+      })();
+    }
+    await running.stopping;
+  };
 
   const applicationRoot = join(root, 'remote-application');
   const applicationTransferRoot = join(root, 'remote-application-transfer');
@@ -1374,6 +1442,7 @@ try {
     join(root, 'remote-application-output-transfer');
   const applicationOutputTransferJournal =
     join(root, 'remote-application-output-transfer.sqlite3');
+  const productTransferRoot = join(root, 'product-transfer-service');
   await Promise.all([
     mkdir(applicationRoot),
     mkdir(applicationTransferRoot),
@@ -1382,6 +1451,7 @@ try {
     mkdir(applicationBundleInputRoot),
     mkdir(applicationCoordinatorRoot),
     mkdir(applicationOutputTransferRoot),
+    mkdir(productTransferRoot),
   ]);
 
   execFileSync(moon, [
@@ -1710,6 +1780,29 @@ try {
     plan: options => standardGateway.plan(options),
     output: options => standardGateway.output(options),
     receiveStoreOutput: async ({transferRequest}) => {
+      if (!transferServiceRestarted) {
+        await waitForServiceFile(
+          transferServiceUploadReplied,
+          productTransferService.operation,
+        );
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await stopProductTransferService(productTransferService, 'SIGKILL');
+        const restartedConfiguration = {
+          ...transferServiceConfiguration,
+          instance: 2,
+          port: Number(new URL(transferServiceOrigin).port),
+          uploadRepliedPath: transferServiceRepeatedUpload,
+          readyPath: join(
+            productTransferRoot,
+            `${applicationOutputRoute}-ready-2.json`,
+          ),
+        };
+        productTransferService = await startProductTransferService(
+          restartedConfiguration,
+        );
+        transferServiceOrigin = productTransferService.origin;
+        transferServiceRestarted = true;
+      }
       nativeApplicationOutputRequestBody =
         transferControl.requestJson(transferRequest);
       nativeApplicationOutputManifestBody =
@@ -1719,10 +1812,10 @@ try {
         '--http-library', library,
         '--journal', applicationOutputTransferJournal,
         '--root', applicationOutputTransferRoot,
-        '--origin', nativeHttpOrigin,
+        '--origin', transferServiceOrigin,
         '--ca', join(root, 'ca.crt'),
-        '--cert', join(root, 'client.crt'),
-        '--key', join(root, 'client.key'),
+        '--cert', join(root, 'destination-client.crt'),
+        '--key', join(root, 'destination-client.key'),
         '--request-url',
         `${nativeHttpOrigin}/v1/native-application/output/request`,
         '--manifest-url',
@@ -1864,6 +1957,75 @@ try {
     nativeStoreAutoCommit = false;
     resetNativeStoreTransfer();
   }
+  const transferServiceRoot = join(
+    productTransferRoot,
+    applicationOutputRoute,
+  );
+  await mkdir(transferServiceRoot, {recursive: true});
+  const transferServiceReady = join(
+    productTransferRoot,
+    `${applicationOutputRoute}-ready-1.json`,
+  );
+  const transferServiceUploadReplied = join(
+    productTransferRoot,
+    `${applicationOutputRoute}-upload-replied.json`,
+  );
+  const transferServiceRepeatedUpload = join(
+    productTransferRoot,
+    `${applicationOutputRoute}-repeated-upload.json`,
+  );
+  const transferServiceConfiguration = {
+    mode: applicationOutputRoute,
+    instance: 1,
+    host: applicationOutputRoute === 'direct'
+      ? nativeDestinationHost
+      : nativeHttpHost,
+    port: nativeTransferPort,
+    keyPath: join(
+      root,
+      applicationOutputRoute === 'direct'
+        ? 'destination-server.key'
+        : 'server.key',
+    ),
+    certificatePath: join(
+      root,
+      applicationOutputRoute === 'direct'
+        ? 'destination-server.crt'
+        : 'server.crt',
+    ),
+    caPath: join(root, 'ca.crt'),
+    root: transferServiceRoot,
+    journalPath: join(productTransferRoot, `${applicationOutputRoute}-journal`),
+    readyPath: transferServiceReady,
+    uploadRepliedPath: applicationOutputRoute === 'store'
+      ? transferServiceUploadReplied
+      : undefined,
+    storeAuthorityCid: physicalCid('native-output-transfer-store'),
+    sourceAuthority: {
+      certificatePath: join(root, 'client.crt'),
+      siteKey: 'native-standard-transfer-site',
+      siteGeneration: 1,
+    },
+    destinationAuthority: {
+      certificatePath: join(root, 'destination-client.crt'),
+      siteKey: 'native-destination',
+      siteGeneration: 3,
+    },
+    destinationSiteKey: 'native-destination',
+    destinationSiteGeneration: 3,
+    maxControlBytes: 131072,
+    maxManifestBytes: 4096,
+    maxChunks: 8,
+    maxBytes: 1048576,
+    maxFrameBytes: 4096,
+    maxObjects: 32,
+  };
+  productTransferService = await startProductTransferService(
+    transferServiceConfiguration,
+    {destination: applicationOutputRoute === 'direct'},
+  );
+  let transferServiceOrigin = productTransferService.origin;
+  let transferServiceRestarted = false;
   const outputIntent = remoteSiteControl.prepareOutputIntent(dispatch, {
     storeAuthorityCid: publicationAuthorityCid,
     publicationAttemptCid:
@@ -1882,7 +2044,7 @@ try {
       physicalCid('native-application-output-destination-grant'),
     routeCapabilityCid:
       physicalCid('native-application-output-direct-route'),
-    transferOrigin: nativeHttpOrigin,
+    transferOrigin: transferServiceOrigin,
   });
   const outputOutcome = await Promise.race([
     coordinator.output({
@@ -1903,6 +2065,9 @@ try {
       : undefined,
   );
   const outputResult = outputOutcome.value;
+  if (applicationOutputRoute === 'store') {
+    assert.equal(existsSync(transferServiceRepeatedUpload), false);
+  }
   const released = await coordinator.release({dispatch});
   assert.equal(released.state[2], 2);
   const applicationExit = await applicationRun.completed;
@@ -1961,8 +2126,15 @@ try {
     assert.deepEqual(JSON.parse(reclaimedOutput.stdout), {reclaimed: true});
     assert.deepEqual(await readdir(applicationOutputTransferRoot), []);
   }
+  await stopProductTransferService(productTransferService);
+  productTransferService = undefined;
 } finally {
   releaseStalePoll?.();
+  if (productTransferService !== undefined &&
+      stopProductTransferService !== undefined) {
+    try { await stopProductTransferService(productTransferService); }
+    catch (error) { console.error(error); }
+  }
   if (standardGateway !== undefined) {
     await standardGateway.close();
   }
@@ -1970,5 +2142,7 @@ try {
     server.close();
     await once(server, 'close');
   }
-  await rm(root, {recursive: true, force: true});
+  if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+    await rm(root, {recursive: true, force: true});
+  }
 }

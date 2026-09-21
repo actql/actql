@@ -123,6 +123,7 @@ export async function startHttpsTransferObjectStore({
   store,
   useJournal,
   authorize,
+  observe = () => {},
   clock = () => Date.now(),
   maxControlBytes = 131_072,
   maxManifestBytes = 65_536,
@@ -160,7 +161,8 @@ export async function startHttpsTransferObjectStore({
       typeof useJournal.accept !== 'function' ||
       typeof useJournal.advance !== 'function' ||
       typeof useJournal.recover !== 'function' ||
-      typeof authorize !== 'function' || typeof clock !== 'function' ||
+      typeof authorize !== 'function' || typeof observe !== 'function' ||
+      typeof clock !== 'function' ||
       !count(maxControlBytes) || maxControlBytes === 0 ||
       !count(maxManifestBytes) || maxManifestBytes === 0 ||
       !count(maxChunks) || typeof maxReferencedBytes !== 'bigint' ||
@@ -548,12 +550,17 @@ export async function startHttpsTransferObjectStore({
           if (holding === undefined) fail('RemoteTransferUnavailable');
           publish(objectFor(entry.request), 'holding', holding);
           uploads.delete(requestCid);
+          const finished = once(response, 'finish');
           replyCanonical(response, 200, control.storeUploadReplyJson(
             entry.request,
             'commit',
             entry.nextChunk,
             true,
           ));
+          void finished.then(() => observe(Object.freeze({
+            kind: 'upload-commit-replied',
+            requestCid,
+          }))).catch(() => {});
           return;
         }
       }
