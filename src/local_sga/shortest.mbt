@@ -3,10 +3,12 @@ priv enum ShortestPhase {
   InitializeNodes
   FinishOffsets
   ScanDegrees
+  ScanDegreeTypes
   BuildOffsets
   InitializeEdges
   CopyCursors
   FillEdges
+  FillEdgeTypes
   InitializeSortScratch
   PrepareSortNode
   PrepareSortMerge
@@ -30,6 +32,7 @@ priv struct ShortestState {
   source : @storage.Storage
   schema : @schema.Schema
   value_limits : @value.Limits
+  prepared : @lower.PreparedGraphShortest
   direction : @graph_type.Direction
   source_id : @value.CheckedValue
   target_id : @value.CheckedValue
@@ -48,6 +51,7 @@ priv struct ShortestState {
   mut path_cursor : Int
   mut reverse_index : Int
   mut row_column : Int
+  mut edge_type_index : Int
   mut sort_node : Int
   mut sort_width : Int
   mut sort_left : Int
@@ -240,6 +244,27 @@ fn shortest_edge_count(state : ShortestState) -> Int {
 }
 
 ///|
+fn shortest_edge_type_count(state : ShortestState) -> Int? {
+  @lower.graph_shortest_type_count(state.prepared)
+}
+
+///|
+fn shortest_edge_type_matches(
+  state : ShortestState,
+  edge : Int,
+  type_index : Int,
+) -> Bool {
+  guard @lower.graph_shortest_type_at(state.prepared, type_index)
+    is Some(expected) else {
+    return false
+  }
+  match @storage.edge_label(state.source, edge) {
+    Some(Some({ value: @value.Text(actual), .. })) => actual == expected
+    _ => false
+  }
+}
+
+///|
 fn shortest_oriented_endpoints(
   state : ShortestState,
   occurrence : Int,
@@ -370,13 +395,44 @@ fn shortest_step(
             is Some((source, _, _)) else {
             return @bounded.Failed(ShortestInputUnavailable, progress, used)
           }
-          state.degree[source] += 1
-          state.index += 1
+          match shortest_edge_type_count(state) {
+            None => {
+              state.degree[source] += 1
+              state.index += 1
+            }
+            Some(0) => state.index += 1
+            Some(_) => {
+              state.edge_type_index = 0
+              state.phase = ScanDegreeTypes
+            }
+          }
           used += 1
         } else {
           state.index = 0
           state.phase = BuildOffsets
         }
+      ScanDegreeTypes => {
+        guard shortest_oriented_endpoints(state, state.index)
+          is Some((source, _, edge)) &&
+          shortest_edge_type_count(state) is Some(type_count) else {
+          return @bounded.Failed(ShortestInputUnavailable, progress, used)
+        }
+        let matches = shortest_edge_type_matches(
+          state,
+          edge,
+          state.edge_type_index,
+        )
+        state.edge_type_index += 1
+        used += 1
+        if matches {
+          state.degree[source] += 1
+          state.index += 1
+          state.phase = ScanDegrees
+        } else if state.edge_type_index >= type_count {
+          state.index += 1
+          state.phase = ScanDegrees
+        }
+      }
       BuildOffsets =>
         if state.index < @storage.node_count(state.source) {
           state.start[state.index + 1] = state.start[state.index] +
@@ -412,16 +468,50 @@ fn shortest_step(
             is Some((source, target, edge)) else {
             return @bounded.Failed(ShortestInputUnavailable, progress, used)
           }
-          let at = state.cursor[source]
-          state.neighbor[at] = target
-          state.edge[at] = edge
-          state.cursor[source] = at + 1
-          state.index += 1
+          match shortest_edge_type_count(state) {
+            None => {
+              let at = state.cursor[source]
+              state.neighbor[at] = target
+              state.edge[at] = edge
+              state.cursor[source] = at + 1
+              state.index += 1
+            }
+            Some(0) => state.index += 1
+            Some(_) => {
+              state.edge_type_index = 0
+              state.phase = FillEdgeTypes
+            }
+          }
           used += 1
         } else {
           state.index = 0
           state.phase = InitializeSortScratch
         }
+      FillEdgeTypes => {
+        guard shortest_oriented_endpoints(state, state.index)
+          is Some((source, target, edge)) &&
+          shortest_edge_type_count(state) is Some(type_count) else {
+          return @bounded.Failed(ShortestInputUnavailable, progress, used)
+        }
+        let matches = shortest_edge_type_matches(
+          state,
+          edge,
+          state.edge_type_index,
+        )
+        state.edge_type_index += 1
+        used += 1
+        if matches {
+          let at = state.cursor[source]
+          state.neighbor[at] = target
+          state.edge[at] = edge
+          state.cursor[source] = at + 1
+          state.index += 1
+          state.phase = FillEdges
+        } else if state.edge_type_index >= type_count {
+          state.index += 1
+          state.phase = FillEdges
+        }
+      }
       InitializeSortScratch =>
         if state.index < shortest_edge_count(state) {
           state.sort_neighbor.push(-1)
@@ -734,7 +824,6 @@ pub fn start_shortest(
     is Some(target_id) &&
     @lower.graph_shortest_selection(prepared) == @graph_type.EachPair &&
     @lower.graph_shortest_weight(prepared) is None &&
-    @lower.graph_shortest_type_count(prepared) is None &&
     @lower.graph_shortest_max_hops(prepared) is Some(max_hops) else {
     return Err(UnsupportedShortestKernel)
   }
@@ -778,6 +867,7 @@ pub fn start_shortest(
     input,
     source,
     schema: @lower.graph_shortest_output_schema(prepared),
+    prepared,
     value_limits: {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
@@ -801,6 +891,7 @@ pub fn start_shortest(
     path_cursor: -1,
     reverse_index: 0,
     row_column: 0,
+    edge_type_index: 0,
     sort_node: 0,
     sort_width: 1,
     sort_left: 0,

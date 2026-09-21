@@ -245,7 +245,6 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         is Some(_) &&
         @lower.graph_shortest_selection(shortest) == @graph_type.EachPair &&
         @lower.graph_shortest_weight(shortest) is None &&
-        @lower.graph_shortest_type_count(shortest) is None &&
         @lower.graph_shortest_max_hops(shortest) is Some(_)
       (current, @lower.GraphBasicStep(basic)) if current == count - 1 =>
         (

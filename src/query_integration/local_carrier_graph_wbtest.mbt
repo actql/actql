@@ -157,6 +157,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subtract_properties = subtract_exact || subtract_numeric
   let union_set = variant == "union_set"
   let typed_traverse = variant.has_prefix("traverse_type") ||
+    variant.has_prefix("shortest_type") ||
     variant == "traverse_pattern_multi"
   let subgraph_relation_selector = variant.has_prefix(
     "subgraph_relation_selector",
@@ -248,9 +249,21 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
-  } else if variant == "shortest_scalar" {
+  } else if variant.has_prefix("shortest_") {
     "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
-    "\"target\":2,\"direction\":\"out\",\"max_hops\":2}," +
+    "\"target\":2,\"direction\":\"out\",\"max_hops\":2" +
+    (if variant == "shortest_type_empty" {
+      ",\"edge_types\":[]"
+    } else if variant == "shortest_types_match" {
+      ",\"edge_types\":[\"missing\",\"owns\"]"
+    } else if variant == "shortest_type_miss" {
+      ",\"edge_types\":[\"blocks\"]"
+    } else if variant == "shortest_type_match" {
+      ",\"edge_types\":[\"owns\"]"
+    } else {
+      ""
+    }) +
+    "}," +
     "\"as\":\"out\""
   } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{" +
@@ -510,7 +523,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant == "shortest_scalar" {
+  } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
     "\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
@@ -541,7 +554,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
-  } else if variant == "shortest_scalar" {
+  } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
@@ -1362,12 +1375,17 @@ fn carrier_graph_shortest_owner(
   source_id : Int,
   target_id : Int,
   maximum : Int,
+  labeled? : Bool = false,
+  edge_types? : String = "",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
-      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":" +
+      (if labeled { "[]" } else { "[\"node_name\"]" }) +
+      "},\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
+      "\"target\":\"dst\"," +
+      (if labeled { "\"label\":\"rel\"," } else { "" }) +
       "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
       "\"from\":\"graph\",\"shortest_path\":{\"source\":" +
       source_id.to_string() +
@@ -1375,6 +1393,7 @@ fn carrier_graph_shortest_owner(
       target_id.to_string() +
       ",\"direction\":\"out\",\"max_hops\":" +
       maximum.to_string() +
+      edge_types +
       ",\"max_output_rows\":1}}]",
     ),
     [
@@ -2939,6 +2958,69 @@ test "scalar shortest path uses canonical identity ties" {
   )
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "scalar shortest path preserves edge type filters" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  for
+    (edge_types, expected_rows) in [
+      (",\"edge_types\":[\"missing\",\"owns\"]", 1),
+      (",\"edge_types\":[\"controls\"]", 0),
+      (",\"edge_types\":[]", 0),
+    ] {
+    let owner = carrier_graph_shortest_owner(
+      source_owner,
+      1,
+      2,
+      2,
+      labeled=true,
+      edge_types~,
+    )
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let execution = @local_sga.start_shortest(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      39,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    let output = finish_shortest(execution).unwrap()
+    assert_eq(@local_sga.cleanup_shortest(execution), Ok(true))
+    assert_eq(@execution.completed_row_count(output), expected_rows)
+    if expected_rows == 1 {
+      let row = @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap()
+      assert_true(row.contains("\"node_ids\":[1,2]"))
+    }
+    assert_true(@graphs.discard_completed(graph))
+    assert_true(@execution.completed_output_available(output))
+  }
 }
 
 ///|
@@ -4670,6 +4752,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
+  } else if variant.has_prefix("shortest_") {
+    "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
   } else if variant.has_prefix("traverse_") {
     "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
@@ -4874,13 +4958,15 @@ fn run_standard_host_graph_relation_path(
     variant == "traverse_type_empty" ||
     variant == "traverse_types_miss" ||
     variant == "traverse_pattern_predicate_empty" ||
+    variant == "shortest_type_miss" ||
+    variant == "shortest_type_empty" ||
     variant == "subgraph_edges_false" {
     0
   } else if variant == "graph_bounds" {
     4
   } else if variant == "traverse_ids" || traverse_relation_selector {
     2
-  } else if variant == "shortest_scalar" {
+  } else if variant.has_prefix("shortest_") {
     1
   } else if variant == "traverse_predicate" {
     2
@@ -4960,7 +5046,7 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
-  } else if variant == "shortest_scalar" {
+  } else if variant.has_prefix("shortest_") && expected_rows > 0 {
     assert_true(graph_rows[0].contains("\"source_id\":1"))
     assert_true(graph_rows[0].contains("\"target_id\":2"))
     assert_true(graph_rows[0].contains("\"total_cost\":1"))
@@ -4969,6 +5055,8 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
     variant == "traverse_types_miss" ||
+    variant == "shortest_type_miss" ||
+    variant == "shortest_type_empty" ||
     variant == "traverse_pattern_predicate_empty" {
     ()
   } else if variant.has_prefix("traverse_") {
@@ -5268,6 +5356,14 @@ test "standard Host averages a repeated Graph list before projection" {
 ///|
 test "standard Host runs a bounded scalar shortest path" {
   run_standard_host_graph_relation_path("shortest_scalar")
+}
+
+///|
+test "standard Host filters scalar shortest paths by edge type" {
+  run_standard_host_graph_relation_path("shortest_type_match", publication=true)
+  run_standard_host_graph_relation_path("shortest_types_match")
+  run_standard_host_graph_relation_path("shortest_type_miss")
+  run_standard_host_graph_relation_path("shortest_type_empty")
 }
 
 ///|
