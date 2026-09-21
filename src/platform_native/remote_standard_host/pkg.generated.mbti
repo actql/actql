@@ -12,13 +12,17 @@ import {
 }
 
 // Values
-pub fn install_native_remote_standard_task_executor(String, String, String, Int, () -> Result[@host_native.NativeStandardStrategyRun, String], NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
+pub fn bind_native_remote_standard_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @host_native.NativeStandardStrategyRun, () -> Bool) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardHostIssue]
+
+pub fn install_native_remote_standard_task_executor(String, String, Int, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteStandardBoundRun, String], NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
 
 pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteStandardHostIssue]
 
 // Errors
 
 // Types and methods
+type NativeRemoteStandardBoundRun
+
 pub(all) enum NativeRemoteStandardHostIssue {
   InvalidConfiguration
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)

@@ -24,9 +24,67 @@ struct NativeRemoteStandardTaskExecutor {
 }
 
 ///|
+/// One exact standard Run opened from the dispatch-bound input owner. The
+/// resolver must retain the input until `finish_input` is called after the
+/// synchronous Connector has stopped reading it. A raw preconfigured Run
+/// cannot cross the remote task installation boundary.
+struct NativeRemoteStandardBoundRun {
+  request_cid : String
+  input_binding_cid : String
+  run : @native_host.NativeStandardStrategyRun
+  finish_input_owner : () -> Bool
+  mut input_finished : Bool
+}
+
+///|
+pub fn bind_native_remote_standard_run(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  run : @native_host.NativeStandardStrategyRun,
+  finish_input_owner : () -> Bool,
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardHostIssue] {
+  let binding_cid = @remote.remote_input_binding_cid(binding)
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    request_cid: @remote.dispatch_request_identity(request),
+    input_binding_cid: binding_cid,
+    run,
+    finish_input_owner,
+    input_finished: false,
+  })
+}
+
+///|
+fn NativeRemoteStandardBoundRun::finish_input(
+  self : NativeRemoteStandardBoundRun,
+) -> Bool {
+  if self.input_finished {
+    return true
+  }
+  if (self.finish_input_owner)() {
+    self.input_finished = true
+    true
+  } else {
+    false
+  }
+}
+
+///|
+fn NativeRemoteStandardBoundRun::release(
+  self : NativeRemoteStandardBoundRun,
+) -> Bool {
+  match @native_host.close_native_standard_strategy_run(self.run) {
+    Ok(true) => self.finish_input()
+    Ok(false) | Err(_) => false
+  }
+}
+
+///|
 priv struct NativeRemoteStandardOutputOwner {
   output_export : @publication_host.PublicationOutputExport
-  run : @native_host.NativeStandardStrategyRun
+  bound : NativeRemoteStandardBoundRun
   mut export_cancelled : Bool
   mut released : Bool
 }
@@ -43,18 +101,15 @@ priv struct NativeRemoteStandardReaderState {
 
 ///|
 fn remote_standard_failure(
-  run : @native_host.NativeStandardStrategyRun,
+  bound : NativeRemoteStandardBoundRun,
   code : String,
 ) -> @runtime.NativeRemotePhysicalExecution {
-  match @native_host.close_native_standard_strategy_run(run) {
-    Ok(true) =>
-      @runtime.prepare_native_remote_failure(code, false, false, true, () => {
-        true
-      }).unwrap()
-    Ok(false) | Err(_) =>
-      @runtime.prepare_native_remote_failure(code, false, true, false, () => {
-        @native_host.close_native_standard_strategy_run(run) is Ok(true)
-      }).unwrap()
+  if bound.release() {
+    @runtime.prepare_native_remote_failure(code, false, false, true, () => true).unwrap()
+  } else {
+    @runtime.prepare_native_remote_failure(code, false, true, false, () => {
+      bound.release()
+    }).unwrap()
   }
 }
 
@@ -104,12 +159,11 @@ fn NativeRemoteStandardOutputOwner::release(
     self.output_export.cancel()
     self.export_cancelled = true
   }
-  match @native_host.close_native_standard_strategy_run(self.run) {
-    Ok(true) => {
-      self.released = true
-      true
-    }
-    Ok(false) | Err(_) => false
+  if self.bound.release() {
+    self.released = true
+    true
+  } else {
+    false
   }
 }
 
@@ -202,29 +256,37 @@ fn NativeRemoteStandardOutputOwner::open_reader(
 
 ///|
 fn execute_native_remote_standard_task(
-  expected_binding_cid : String,
   expected_task : Int,
-  open_run : () -> Result[@native_host.NativeStandardStrategyRun, String],
+  resolve_run : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> Result[
+    NativeRemoteStandardBoundRun,
+    String,
+  ],
   limits : NativeRemoteStandardTaskLimits,
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
   budget : @remote.RemoteDispatchBudget,
 ) -> @runtime.NativeRemotePhysicalExecution {
-  if @remote.remote_input_binding_cid(binding) != expected_binding_cid {
+  let bound = match resolve_run(request, binding) {
+    Ok(value) => value
+    Err(_) => return remote_standard_rejection("standard-input-resolve")
+  }
+  if bound.request_cid != @remote.dispatch_request_identity(request) ||
+    bound.input_binding_cid != @remote.remote_input_binding_cid(binding) {
+    ignore(bound.release())
     return remote_standard_rejection("foreign-input-binding")
   }
-  let run = match open_run() {
-    Ok(value) => value
-    Err(_) => return remote_standard_rejection("standard-run-open")
-  }
+  let run = bound.run
   let completion = match
     @native_host.execute_next_native_standard_strategy_task(run) {
     Ok(Some(value)) => value
-    Ok(None) => return remote_standard_failure(run, "missing-standard-task")
-    Err(_) => return remote_standard_failure(run, "standard-task-failed")
+    Ok(None) => return remote_standard_failure(bound, "missing-standard-task")
+    Err(_) => return remote_standard_failure(bound, "standard-task-failed")
   }
   if completion.task != expected_task {
-    return remote_standard_failure(run, "foreign-standard-task")
+    return remote_standard_failure(bound, "foreign-standard-task")
+  }
+  if !bound.finish_input() {
+    return remote_standard_failure(bound, "standard-input-cleanup")
   }
   let output_export = match
     @publication_host.prepare_publication_output_export(
@@ -232,7 +294,7 @@ fn execute_native_remote_standard_task(
       limits.output_export,
     ) {
     Ok(value) => value
-    Err(_) => return remote_standard_failure(run, "output-export-prepare")
+    Err(_) => return remote_standard_failure(bound, "output-export-prepare")
   }
   while true {
     match output_export.next() {
@@ -240,7 +302,7 @@ fn execute_native_remote_standard_task(
       Ok(None) => break
       Err(_) => {
         output_export.cancel()
-        return remote_standard_failure(run, "output-export-read")
+        return remote_standard_failure(bound, "output-export-read")
       }
     }
   }
@@ -248,56 +310,56 @@ fn execute_native_remote_standard_task(
     Ok(_) => ()
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-export-finish")
+      return remote_standard_failure(bound, "output-export-finish")
     }
   }
   let content_cid = match output_export.content_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-content-identity")
+      return remote_standard_failure(bound, "output-content-identity")
     }
   }
   let content_bytes = match output_export.content_bytes() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-content-size")
+      return remote_standard_failure(bound, "output-content-size")
     }
   }
   let row_count = match output_export.row_count() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-row-count")
+      return remote_standard_failure(bound, "output-row-count")
     }
   }
   let result_schema_cid = match output_export.result_schema_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-schema-identity")
+      return remote_standard_failure(bound, "output-schema-identity")
     }
   }
   let logical_view_cid = match output_export.logical_relation_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-view-identity")
+      return remote_standard_failure(bound, "output-view-identity")
     }
   }
   let codec_cid = match output_export.codec_contract_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-codec-identity")
+      return remote_standard_failure(bound, "output-codec-identity")
     }
   }
   let measured = match output_export.measurement() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-measurement")
+      return remote_standard_failure(bound, "output-measurement")
     }
   }
   let measurement = match
@@ -316,7 +378,7 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-measurement-admission")
+      return remote_standard_failure(bound, "output-measurement-admission")
     }
   }
   let retained_bytes = content_bytes.to_int64()
@@ -324,7 +386,7 @@ fn execute_native_remote_standard_task(
   if retained_bytes > limits.max_retained_bytes ||
     retained_bytes > admitted_retained {
     output_export.cancel()
-    return remote_standard_failure(run, "output-capacity")
+    return remote_standard_failure(bound, "output-capacity")
   }
   let manifest = match
     @manifest.admit(
@@ -343,7 +405,7 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-manifest")
+      return remote_standard_failure(bound, "output-manifest")
     }
   }
   let material_generation = match
@@ -351,12 +413,12 @@ fn execute_native_remote_standard_task(
     Some(value) => value
     None => {
       output_export.cancel()
-      return remote_standard_failure(run, "output-generation")
+      return remote_standard_failure(bound, "output-generation")
     }
   }
   let owner : NativeRemoteStandardOutputOwner = {
     output_export,
-    run,
+    bound,
     export_cancelled: false,
     released: false,
   }
@@ -381,7 +443,7 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       ignore(owner.release())
-      remote_standard_failure(run, "output-runtime-admission")
+      remote_standard_failure(bound, "output-runtime-admission")
     }
   }
 }
@@ -396,13 +458,14 @@ fn execute_native_remote_standard_task(
 pub fn install_native_remote_standard_task_executor(
   run_definition_cid : String,
   task_key : String,
-  expected_input_binding_cid : String,
   expected_task : Int,
-  open_run : () -> Result[@native_host.NativeStandardStrategyRun, String],
+  resolve_run : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> Result[
+    NativeRemoteStandardBoundRun,
+    String,
+  ],
   limits : NativeRemoteStandardTaskLimits,
 ) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue] {
-  if expected_input_binding_cid.is_empty() ||
-    expected_task < 0 ||
+  if expected_task < 0 ||
     limits.max_manifest_bytes < 1 ||
     limits.max_retained_bytes < 0L {
     return Err(InvalidConfiguration)
@@ -413,8 +476,7 @@ pub fn install_native_remote_standard_task_executor(
     budget,
   ) => {
     execute_native_remote_standard_task(
-      expected_input_binding_cid, expected_task, open_run, limits, request, binding,
-      budget,
+      expected_task, resolve_run, limits, request, binding, budget,
     )
   })
   .map(executor => { executor, })
