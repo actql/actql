@@ -87,6 +87,17 @@ pub fn Journal::commit_transition(
 }
 
 ///|
+pub fn Journal::force_loss(
+  _self : Journal,
+  record : @remote.DispatchRecord,
+  authorized : Bool,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  ignore(record)
+  ignore(authorized)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::commit_evidence_transition(
   _self : Journal,
   transition : @remote.DispatchTransition,

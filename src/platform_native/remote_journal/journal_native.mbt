@@ -523,7 +523,7 @@ pub fn Journal::restart(
 }
 
 ///|
-pub fn Journal::commit_transition(
+fn Journal::persist_transition(
   self : Journal,
   transition : @remote.DispatchTransition,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
@@ -583,7 +583,45 @@ pub fn Journal::commit_transition(
       return Err(Physical(issue))
     }
   }
+  Ok(())
+}
+
+///|
+pub fn Journal::commit_transition(
+  self : Journal,
+  transition : @remote.DispatchTransition,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  match self.persist_transition(transition) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match @remote.commit_dispatch_transition(transition, true) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+/// Durably transfers an exact unresolved responsibility into quarantine.
+/// This ends normal Site authority without claiming physical reclamation.
+pub fn Journal::force_loss(
+  self : Journal,
+  record : @remote.DispatchRecord,
+  authorized : Bool,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let force = match
+    @remote.prepare_force_loss(self.control, record, authorized) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.persist_transition(@remote.force_loss_transition(force)) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match @remote.commit_force_loss(force, true) {
     Ok(_) => Ok(())
     Err(issue) => Err(Protocol(issue))
   }

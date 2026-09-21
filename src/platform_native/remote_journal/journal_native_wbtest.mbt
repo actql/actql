@@ -477,6 +477,53 @@ test "native Site restart durably fences the old generation" {
 }
 
 ///|
+test "native force loss durably quarantines exact responsibility" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-force-loss-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(site),
+  ).unwrap()
+  let request = test_request("dispatch-force-loss")
+  let (_, record) = journal.accept(request).unwrap()
+  assert_true(
+    journal.force_loss(record, false)
+    is Err(Protocol(@remote.UnauthorizedForceLoss)),
+  )
+  journal.force_loss(record, true).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(record), [6, 0, 4, 0, 1])
+  assert_true(journal.close())
+
+  let reopened = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let recovered = reopened.require(request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(recovered), [6, 0, 4, 0, 1])
+  reopened
+  .commit_transition(
+    @remote.prepare_reconcile_cleanup_after_loss(recovered).unwrap(),
+  )
+  .unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(recovered), [6, 0, 5, 0, 0])
+  assert_true(reopened.close())
+}
+
+///|
 test "native remote recovery rejects a durable key alias" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     return

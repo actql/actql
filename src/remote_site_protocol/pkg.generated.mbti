@@ -39,6 +39,8 @@ pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest)
 
 pub fn admit_remote_output_intent_json(String, String, DispatchRequest) -> Result[RemoteOutputIntent, DispatchIssue]
 
+pub fn admit_remote_output_plan_json(String, RemotePollOutput, RemoteManagedOutputSubject, Int, Int, Int64) -> Result[RemoteOutputPlan, DispatchIssue]
+
 pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputResult, DispatchIssue]
 
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
@@ -48,6 +50,8 @@ pub fn admit_remote_poll_not_seen_json(String, DispatchRequest) -> Result[Unit, 
 pub fn admit_remote_poll_operation_json(String) -> Result[RemotePollOperation, DispatchIssue]
 
 pub fn admit_remote_poll_output_json(String) -> Result[RemotePollOutput, DispatchIssue]
+
+pub fn admit_remote_poll_output_plan_json(String) -> Result[RemotePollOutput, DispatchIssue]
 
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
 
@@ -197,6 +201,8 @@ pub fn force_loss_journal_key(ForceLossTransition) -> Array[String]
 
 pub fn force_loss_projection(ForceLossTransition) -> Array[String]
 
+pub fn force_loss_transition(ForceLossTransition) -> DispatchTransition
+
 pub fn issue_remote_execution_evidence(RemoteEvidenceIssuer, DispatchRecord, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
 pub fn issue_remote_managed_output_evidence(RemoteEvidenceIssuer, DispatchRecord, RemoteManagedOutputSubject) -> Result[RemoteExecutionEvidence, DispatchIssue]
@@ -266,6 +272,8 @@ pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int],
 pub fn prepare_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
 pub fn prepare_remote_output_intent(DispatchRequest, RemoteOutputIntentProjection) -> Result[RemoteOutputIntent, DispatchIssue]
+
+pub fn prepare_remote_output_plan(RemotePollOutput, RemoteManagedOutputSubject, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputPlan, DispatchIssue]
 
 pub fn prepare_remote_output_result(RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> Result[RemoteOutputResult, DispatchIssue]
 
@@ -361,6 +369,14 @@ pub fn remote_output_intent_matches_dispatch(RemoteOutputIntent, DispatchRequest
 
 pub fn remote_output_intent_projection(RemoteOutputIntent) -> RemoteOutputIntentProjection
 
+pub fn remote_output_plan_identity(RemoteOutputPlan) -> String
+
+pub fn remote_output_plan_json(RemoteOutputPlan) -> Result[String, DispatchIssue]
+
+pub fn remote_output_plan_payload_request(RemoteOutputPlan) -> @publication_payload.PublicationPayloadRequest
+
+pub fn remote_output_plan_transfer_request(RemoteOutputPlan) -> @remote_transfer.RemoteTransferRequest
+
 pub fn remote_output_result_identity(RemoteOutputResult) -> String
 
 pub fn remote_output_result_json(RemoteOutputResult) -> Result[String, DispatchIssue]
@@ -381,6 +397,8 @@ pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssu
 
 pub fn remote_poll_operation_is_output(RemotePollOperation) -> Bool
 
+pub fn remote_poll_operation_is_output_plan(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_is_query(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_release(RemotePollOperation) -> Bool
@@ -390,6 +408,8 @@ pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
 pub fn remote_poll_output_intent(RemotePollOutput) -> RemoteOutputIntent
 
 pub fn remote_poll_output_json(DispatchRequest, RemoteOutputIntent) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_output_plan_json(DispatchRequest, RemoteOutputIntent) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_output_request(RemotePollOutput) -> DispatchRequest
 
@@ -611,12 +631,15 @@ pub(all) struct RemoteOutputIntentProjection {
   transfer_origin : String
 }
 
+type RemoteOutputPlan
+
 type RemoteOutputResult
 
 type RemotePollDispatch
 
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
+  Plan(RemotePollOutput)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Release(DispatchRequest)

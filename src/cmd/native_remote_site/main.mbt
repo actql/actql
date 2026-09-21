@@ -148,6 +148,58 @@ fn open_journal(
 }
 
 ///|
+fn request_from_file(
+  matches : @argparse.Matches,
+  max_bytes : Int64,
+) -> Result[@remote.DispatchRequest, String] {
+  let root = match option(matches, "request-root") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let name = match option(matches, "request-name") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let claimed_cid = match option(matches, "request-cid") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let body = match @files.read_bounded_text_file(root, name, max_bytes) {
+    Ok(value) => value
+    Err(_) => return Err("dispatch request read failed")
+  }
+  match @remote.admit_dispatch_request_json(body, claimed_cid) {
+    Ok(value) => Ok(value)
+    Err(_) => Err("dispatch request admission failed")
+  }
+}
+
+///|
+fn force_loss(
+  matches : @argparse.Matches,
+  journal : @journal.Journal,
+  max_record_bytes : Int64,
+) -> Result[String, String] {
+  let request = match request_from_file(matches, max_record_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err("force-loss " + journal_issue_code(issue))
+  }
+  let authorized = match option(matches, "operator-confirmation") {
+    Ok("quarantine-unreclaimed-capacity") => true
+    Ok(_) => false
+    Err(issue) => return Err(issue)
+  }
+  match journal.force_loss(record, authorized) {
+    Ok(_) => Ok("{\"forced_loss\":true,\"capacity_released\":false}")
+    Err(issue) => Err("force-loss " + journal_issue_code(issue))
+  }
+}
+
+///|
 fn poll_result_json(
   kind : String,
   request_cid : String,
@@ -340,6 +392,12 @@ fn command() -> @argparse.Command {
     ],
     subcommands=[
       @argparse.Command("poll-once"),
+      @argparse.Command("force-loss", options=[
+        @argparse.OptionArg("request-root", required=true),
+        @argparse.OptionArg("request-name", required=true),
+        @argparse.OptionArg("request-cid", required=true),
+        @argparse.OptionArg("operator-confirmation", required=true),
+      ]),
       @argparse.Command("restart", options=[
         @argparse.OptionArg("next-generation", required=true),
         @argparse.OptionArg("next-runtime-revision", required=true),
@@ -361,6 +419,11 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
   }
   let result = match matches.subcommand {
     Some(("poll-once", _)) => poll_once(matches, journal)
+    Some(("force-loss", child)) =>
+      match int64_option(matches, "max-record-bytes") {
+        Ok(max_record_bytes) => force_loss(child, journal, max_record_bytes)
+        Err(issue) => Err(issue)
+      }
     Some(("restart", child)) => {
       let next = match
         site_from(matches, child, "next-generation", "next-runtime-revision") {

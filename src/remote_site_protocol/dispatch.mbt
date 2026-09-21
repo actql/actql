@@ -2453,6 +2453,14 @@ pub fn force_loss_journal_key(force : ForceLossTransition) -> Array[String] {
 }
 
 ///|
+/// Returns the exact state transition owned by an authorized force-loss
+/// operation. Physical journals may persist this transition, but only
+/// `commit_force_loss` may complete it and revoke the Site authority.
+pub fn force_loss_transition(force : ForceLossTransition) -> DispatchTransition {
+  force.transition
+}
+
+///|
 pub fn site_restart_transition_count(restart : SiteRestartTransition) -> Int {
   restart.transitions.length()
 }

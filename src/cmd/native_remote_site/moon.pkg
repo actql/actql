@@ -1,6 +1,7 @@
 import {
   "actql/actql/encode_core" @encode,
   "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/bounded_files" @files,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_client" @client,
   "actql/actql/platform_native/remote_journal" @journal,
