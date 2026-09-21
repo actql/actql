@@ -91,6 +91,8 @@ let nativeStoreTransferSealed = false;
 let nativeStoreTransferManifest = [];
 const nativeStoreTransferBodies = [];
 const nativeStoreUses = new Map();
+let nativeStandardTransferOperation;
+const nativeStandardTransferObservations = [];
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -175,6 +177,9 @@ try {
           '/outbound/observation',
           '/outbound/status-observation',
           '/outbound/stale-observation',
+          '/standard-transfer/queue',
+          '/standard-transfer/poll',
+          '/standard-transfer/observation',
         ]
           .includes(request.url))) {
       response.writeHead(404).end();
@@ -192,6 +197,31 @@ try {
     }
     const bodyBytes = Buffer.concat(chunks);
     const body = bodyBytes.toString('utf8');
+    if (request.url === '/standard-transfer/queue') {
+      if (nativeStandardTransferOperation !== undefined) {
+        response.writeHead(409).end();
+        return;
+      }
+      nativeStandardTransferOperation = body;
+      response.writeHead(201).end();
+      return;
+    }
+    if (request.url === '/standard-transfer/poll') {
+      if (nativeStandardTransferOperation === undefined) {
+        response.writeHead(204).end();
+        return;
+      }
+      const operation = nativeStandardTransferOperation;
+      nativeStandardTransferOperation = undefined;
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(operation);
+      return;
+    }
+    if (request.url === '/standard-transfer/observation') {
+      nativeStandardTransferObservations.push(body);
+      response.writeHead(200).end();
+      return;
+    }
     if (request.url === nativeStoreTransferBase && request.method === 'POST') {
       let envelope;
       try { envelope = JSON.parse(body); }
@@ -725,6 +755,8 @@ try {
       nativeStoreTransferManifest = [];
       nativeStoreTransferBodies.length = 0;
       nativeStoreUses.clear();
+      nativeStandardTransferOperation = undefined;
+      nativeStandardTransferObservations.length = 0;
     }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),

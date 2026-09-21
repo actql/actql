@@ -366,9 +366,66 @@ test "standard Local reads the exact committed Transfer destination" {
     issuer_capability,
     operation_capability,
   ).unwrap()
-  assert_native_remote_standard_output(
-    runtime, remote_journal, dispatch, input_binding, "[{\"id\":3}]",
-  )
+  let dispatch_operation = @remote.remote_poll_dispatch_json(
+    dispatch, input_binding,
+  ).unwrap()
+  let queued = client
+    .post_json(
+      origin + "/standard-transfer/queue",
+      @utf8.encode(dispatch_operation),
+    )
+    .unwrap()
+  assert_eq(queued.status, 201)
+  guard @native_remote_agent.run_native_outbound_site_occurrence(
+      runtime,
+      remote_journal,
+      client,
+      origin + "/standard-transfer/poll",
+      origin + "/standard-transfer/observation",
+    )
+    is Ok(@native_remote_agent.DispatchObserved(dispatch_identity, _)) else {
+    fail("standard Transfer dispatch was not observed over HTTPS")
+  }
+  assert_eq(dispatch_identity, @remote.dispatch_request_identity(dispatch))
+  let observed = remote_journal.observation(dispatch).unwrap()
+  let subject = @native_remote_journal.recovered_site_dispatch_subject(observed).unwrap()
+  let material_generation = @remote.remote_managed_output_subject_projection(
+      subject,
+    )[1]
+  let output_reader = runtime
+    .open_output_reader(dispatch, material_generation, 7)
+    .unwrap()
+  let output_bytes : Array[Byte] = []
+  while true {
+    let chunk = output_reader.next().unwrap()
+    for byte in chunk.bytes {
+      output_bytes.push(byte)
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  assert_eq(@utf8.decode_lossy(Bytes::from_array(output_bytes)), "[{\"id\":3}]")
+  assert_true(output_reader.finish().unwrap())
+  let release_operation = @remote.remote_poll_release_json(dispatch).unwrap()
+  let release_queued = client
+    .post_json(
+      origin + "/standard-transfer/queue",
+      @utf8.encode(release_operation),
+    )
+    .unwrap()
+  assert_eq(release_queued.status, 201)
+  guard @native_remote_agent.run_native_outbound_site_occurrence(
+      runtime,
+      remote_journal,
+      client,
+      origin + "/standard-transfer/poll",
+      origin + "/standard-transfer/observation",
+    )
+    is Ok(@native_remote_agent.ReleaseObserved(released_identity, _)) else {
+    fail("standard Transfer release was not observed over HTTPS")
+  }
+  assert_eq(released_identity, @remote.dispatch_request_identity(dispatch))
   assert_eq(captured_runs.length(), 1)
   assert_true(runtime.close().unwrap())
   assert_true(remote_journal.close())
