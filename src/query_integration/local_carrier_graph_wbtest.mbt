@@ -153,6 +153,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let split = variant == "split_projection"
   let subtract = variant.has_prefix("subtract")
   let subtract_exact = variant == "subtract_exact"
+  let subtract_numeric = variant == "subtract_numeric"
+  let subtract_properties = subtract_exact || subtract_numeric
+  let union_set = variant == "union_set"
   let typed_traverse = variant.has_prefix("traverse_type") ||
     variant == "traverse_pattern_multi"
   let subgraph_relation_selector = variant.has_prefix(
@@ -169,7 +172,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       ""
     }) +
-    (if subtract && !subtract_exact {
+    (if union_set {
+      "\"tags\":{\"type\":\"array\",\"nullable\":false," +
+      "\"items\":{\"type\":\"string\",\"nullable\":true}," +
+      "\"max_items\":10}}"
+    } else if subtract && !subtract_properties {
       "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
     } else {
       "\"node_name\":{\"type\":\"string\",\"nullable\":" +
@@ -186,12 +193,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"first\""
   }
-  let rows = if typed_traverse {
+  let rows = if union_set {
+    "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
+  } else if typed_traverse {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"edge_type\":\"blocks\"," +
     "\"node_name\":\"second\",\"weight\":20}]"
-  } else if subtract && !subtract_exact {
+  } else if subtract && !subtract_properties {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
     "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
   } else {
@@ -365,19 +374,30 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node_rows\":true,\"as\":\"out\""
   } else if variant == "union" ||
     variant == "union_singleton" ||
-    variant == "union_numeric" {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    variant == "union_numeric" ||
+    union_set {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if union_set { "\"other\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":" +
+    (if union_set { "[\"tags\"]" } else { "[\"node_name\"]" }) +
+    "},\"edges\":{\"from\":" +
+    (if union_set { "\"other\"" } else { "\"rows\"" }) +
+    "," +
     "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"fields\":" +
+    (if union_set { "[]" } else { "[\"weight\"]" }) +
+    "}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"union_graphs\":{\"with\":" +
-    (if variant == "union_singleton" || variant == "union_numeric" {
+    (if variant == "union_singleton" || variant == "union_numeric" || union_set {
       "\"right_graph\""
     } else {
       "[\"right_graph\",\"g\",\"right_graph\"]"
     }) +
     (if variant == "union_numeric" {
       ",\"merge\":{\"edge_properties\":{\"weight\":" + "\"number_sum\"}}"
+    } else if union_set {
+      ",\"merge\":{\"node_properties\":{\"tags\":\"set_union\"}}"
     } else {
       ""
     }) +
@@ -391,22 +411,29 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
     "\"fields\":" +
-    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"node_name\"]" } else { "[]" }) +
     "},\"edges\":{\"from\":\"other\"," +
     "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
-    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"weight\"]" } else { "[]" }) +
     "}}," +
     "\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"" +
     (if subtract_exact {
       ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
       "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
+    } else if subtract_numeric {
+      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
+      "\"edge_properties\":{\"weight\":\"number_sum\"}}"
     } else {
       ""
     }) +
     "}," +
     "\"as\":\"subtracted\"},{\"from\":\"subtracted\"," +
-    "\"node_rows\":true,\"as\":\"out\""
+    (if subtract_numeric {
+      "\"edge_rows\":true,\"as\":\"out\""
+    } else {
+      "\"node_rows\":true,\"as\":\"out\""
+    })
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
       ""
@@ -446,8 +473,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if subtract && !subtract_exact {
+  let result_fields = if union_set {
+    "\"id\",\"tags\""
+  } else if subtract && !subtract_properties {
     "\"id\""
+  } else if subtract_numeric {
+    "\"src\",\"dst\",\"weight\""
   } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
@@ -470,8 +501,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if subtract && !subtract_exact {
+  let second_fields = if union_set {
+    "\"tags\""
+  } else if subtract && !subtract_properties {
     "\"id\""
+  } else if subtract_numeric {
+    "\"weight\",\"src\""
   } else if concise {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
@@ -493,19 +528,36 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if subtract {
+  let other_stage = if subtract || union_set {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
-    ",\"rows\":[{\"id\":2,\"src\":2,\"dst\":2," +
-    (if subtract_exact {
-      "\"node_name\":\"second\",\"weight\":20"
+    ",\"rows\":" +
+    (if union_set {
+      "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"c\",null,\"b\"]}]"
+    } else if subtract_numeric {
+      "[{\"id\":1,\"src\":1,\"dst\":2," +
+      "\"node_name\":\"first\",\"weight\":1},{\"id\":2," +
+      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
+      "\"weight\":5}]"
     } else {
-      "\"marker\":0"
+      "[{\"id\":2,\"src\":2,\"dst\":2," +
+      (if subtract_properties {
+        "\"node_name\":\"second\",\"weight\":20"
+      } else {
+        "\"marker\":0"
+      }) +
+      "}]"
     }) +
-    "}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "},\"as\":\"out\"}],\"results\":{\"r\":{" +
     "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-    (if subtract_exact { "\"node_name\",\"weight\"" } else { "\"marker\"" }) +
+    (if union_set {
+      "\"tags\""
+    } else if subtract_properties {
+      "\"node_name\",\"weight\""
+    } else {
+      "\"marker\""
+    }) +
     "]}}},"
   } else if split {
     "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
@@ -558,7 +610,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if subtract {
+  let graph_inputs = if subtract || union_set {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
@@ -592,7 +644,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
   "\"src\",\"dst\"," +
-  (if subtract && !subtract_exact {
+  (if union_set {
+    "\"tags\""
+  } else if subtract && !subtract_properties {
     "\"marker\""
   } else if typed_traverse {
     "\"edge_type\",\"node_name\",\"weight\""
@@ -611,11 +665,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if subtract {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":" +
-    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"node_name\"]" } else { "[]" }) +
     "},\"edges\":{\"from\":\"rows\"," +
     "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
-    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    (if subtract_properties { "[\"weight\"]" } else { "[]" }) +
     "}}," +
+    "\"as\":\"g\"},{"
+  } else if union_set {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"tags\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":[]}}," +
     "\"as\":\"g\"},{"
   } else if typed_traverse {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
@@ -4281,6 +4340,7 @@ fn run_standard_host_graph_relation_path(
     ledger_limits=if variant.has_suffix("unequal") ||
       variant == "split_projection" ||
       variant.has_prefix("subtract") ||
+      variant == "union_set" ||
       relation_selector {
       Some({
         planning_work: 20000,
@@ -4307,6 +4367,7 @@ fn run_standard_host_graph_relation_path(
   let graph_task = if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
     variant.has_prefix("subtract") ||
+    variant == "union_set" ||
     relation_selector {
     3
   } else {
@@ -4411,7 +4472,8 @@ fn run_standard_host_graph_relation_path(
     })
   } else if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
-    variant.has_prefix("subtract") {
+    variant.has_prefix("subtract") ||
+    variant == "union_set" {
     let other_live = Ref(true)
     let (other_ops, other) = run_local_managed_test_task(
       installed,
@@ -4464,6 +4526,8 @@ fn run_standard_host_graph_relation_path(
     2
   } else if variant == "traverse_predicate" {
     2
+  } else if variant == "union_set" {
+    1
   } else if variant.has_prefix("traverse_") ||
     variant == "subtract" ||
     variant.has_prefix("subgraph_") {
@@ -4483,6 +4547,12 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"id\":1"))
     assert_true(graph_rows[1].contains("\"id\":2"))
     assert_true(graph_rows[1].contains("\"node_name\":\"second\""))
+  } else if variant == "subtract_numeric" {
+    assert_true(graph_rows[0].contains("\"weight\":11"))
+    assert_true(graph_rows[1].contains("\"weight\":25"))
+  } else if variant == "union_set" {
+    assert_true(graph_rows[0].contains("\"id\":1"))
+    assert_true(graph_rows[0].contains("\"tags\":[null,\"a\",\"b\",\"c\"]"))
   } else if variant == "match_edges" ||
     variant == "edge_projection" ||
     variant == "union_numeric" {
@@ -4823,10 +4893,12 @@ test "standard Host unions a repeated Graph list before the Relation bridge" {
   run_standard_host_graph_relation_path("union", publication=true)
   run_standard_host_graph_relation_path("union_singleton")
   run_standard_host_graph_relation_path("union_numeric")
+  run_standard_host_graph_relation_path("union_set")
 }
 
 ///|
 test "standard Host subtracts a property-free Graph before projection" {
   run_standard_host_graph_relation_path("subtract", publication=true)
   run_standard_host_graph_relation_path("subtract_exact", publication=true)
+  run_standard_host_graph_relation_path("subtract_numeric")
 }
