@@ -22,10 +22,6 @@ import {pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
-import {createRemoteSiteCoordinator} from
-  '../adapters/host-node/remote-site-coordinator.mjs';
-import {openSqliteCoordinatorDispatchJournal} from
-  '../adapters/host-node/sqlite-coordinator-journal.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 import {signRemoteCredentialGrant} from
@@ -77,9 +73,9 @@ if (isIP(nativeDestinationHost) === 0 ||
     configuredNativeTransferPort < 0 || configuredNativeTransferPort > 65_535) {
   throw new Error('invalid native destination Transfer endpoint');
 }
-const allocateNativeTransferPort = async () => {
+const allocatePort = async host => {
   const probe = createNetServer();
-  probe.listen(0, nativeDestinationHost);
+  probe.listen(0, host);
   await once(probe, 'listening');
   const address = probe.address();
   if (address === null || typeof address === 'string') {
@@ -91,6 +87,7 @@ const allocateNativeTransferPort = async () => {
   await once(probe, 'close');
   return port;
 };
+const allocateNativeTransferPort = () => allocatePort(nativeDestinationHost);
 const nativeTransferPort = configuredNativeTransferPort === 0
   ? await allocateNativeTransferPort()
   : configuredNativeTransferPort;
@@ -1760,6 +1757,10 @@ try {
     'build', '--target', 'native',
     'src/cmd/native_transfer_store_site',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
+  execFileSync(moon, [
+    'build', '--target', 'native',
+    'src/cmd/native_remote_coordinator',
+  ], {cwd: repositoryRoot, stdio: 'inherit'});
   const transferReceiver = join(
     repositoryRoot,
     '_build/native/debug/build/cmd/native_remote_transfer_receive/' +
@@ -1779,6 +1780,11 @@ try {
     repositoryRoot,
     '_build/native/debug/build/cmd/native_transfer_store_site/' +
       'native_transfer_store_site.exe',
+  );
+  const nativeRemoteCoordinator = join(
+    repositoryRoot,
+    '_build/native/debug/build/cmd/native_remote_coordinator/' +
+      'native_remote_coordinator.exe',
   );
 
   const catalogs = await readFile(join(
@@ -1962,130 +1968,7 @@ try {
     evidenceIssuerCapabilityCid: issuerCapabilityCid,
     grantCid: operationCapabilityCid,
   });
-  const coordinatorStore = openSqliteCoordinatorDispatchJournal(
-    applicationCoordinatorRoot,
-    {coordinatorAuthority: 'native-application-coordinator'},
-  );
-  const coordinatorJournal = remoteSiteControl.createCoordinatorJournal(
-    'native-application-coordinator',
-  );
   let applicationOutputReceiveArguments;
-  const coordinator = createRemoteSiteCoordinator({
-    control: remoteSiteControl,
-    transferControl,
-    journal: coordinatorJournal,
-    store: coordinatorStore,
-    send: options => standardGateway.dispatch(options),
-    query: options => standardGateway.query(options),
-    cancel: async () => { throw new Error('unused application cancellation'); },
-    release: options => standardGateway.release(options),
-    plan: options => standardGateway.plan(options),
-    output: options => standardGateway.output(options),
-    receiveStoreOutput: async ({transferRequest}) => {
-      if (!transferServiceRestarted) {
-        nativeApplicationOutputRequestBody =
-          transferControl.requestJson(transferRequest);
-        nativeApplicationOutputManifestBody =
-          transferControl.manifestJson(transferRequest);
-        const envelopePath = join(
-          productTransferRoot,
-          'store-restart-admission.json',
-        );
-        await writeFile(
-          envelopePath,
-          transferControl.admissionEnvelopeJson(transferRequest),
-          {mode: 0o600},
-        );
-        const projection = transferControl.requestProjection(transferRequest);
-        const deadline = Date.now() + 10_000;
-        let sealed = false;
-        let lastStoreObservation;
-        while (Date.now() < deadline && !sealed) {
-          const observed = await runCaptured('curl', [
-            '--silent', '--show-error', '--max-time', '2',
-            '--request', 'POST',
-            '--cert', join(root, 'client.crt'),
-            '--key', join(root, 'client.key'),
-            '--cacert', join(root, 'ca.crt'),
-            '--header', 'content-type: application/json',
-            '--header',
-            `actql-transfer-cid: ${transferControl.identity(transferRequest)}`,
-            '--header', `actql-manifest-cid: ${projection[7]}`,
-            '--data-binary', `@${envelopePath}`,
-            `${transferServiceOrigin}/v1/transfer-store/uploads`,
-          ]).completed;
-          lastStoreObservation = observed;
-          if (observed.code === 0) {
-            const reply = JSON.parse(observed.stdout);
-            sealed = reply.sealed === true;
-          }
-          if (!sealed) await new Promise(resolve => setTimeout(resolve, 20));
-        }
-        assert.equal(
-          sealed,
-          true,
-          `native Store upload did not seal: ${JSON.stringify(
-            lastStoreObservation,
-          )}`,
-        );
-        await stopProductTransferService(productTransferService, 'SIGKILL');
-        const restartedConfiguration = {
-          ...transferServiceConfiguration,
-          instance: 2,
-          port: Number(new URL(transferServiceOrigin).port),
-          readyPath: join(
-            productTransferRoot,
-            `${applicationOutputRoute}-ready-2.json`,
-          ),
-        };
-        productTransferService = await startProductTransferService(
-          restartedConfiguration,
-        );
-        transferServiceOrigin = productTransferService.origin;
-        transferServiceRestarted = true;
-      }
-      nativeApplicationOutputRequestBody ??=
-        transferControl.requestJson(transferRequest);
-      nativeApplicationOutputManifestBody ??=
-        transferControl.manifestJson(transferRequest);
-      applicationOutputReceiveArguments = [
-        '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-        '--http-library', library,
-        '--journal', applicationOutputTransferJournal,
-        '--root', applicationOutputTransferRoot,
-        '--origin', transferServiceOrigin,
-        '--ca', join(root, 'ca.crt'),
-        '--cert', join(root, 'destination-client.crt'),
-        '--key', join(root, 'destination-client.key'),
-        '--request-url',
-        `${nativeHttpOrigin}/v1/native-application/output/request`,
-        '--manifest-url',
-        `${nativeHttpOrigin}/v1/native-application/output/manifest`,
-        '--request-cid', transferControl.identity(transferRequest),
-        '--manifest-cid',
-        transferControl.requestProjection(transferRequest)[7],
-        '--use-id', 'native-application-output-use',
-        '--max-chunks', '8',
-        '--max-manifest-bytes', '4096',
-        '--max-bytes', '1048576',
-      ];
-      const receivedOutput = runCapturedAtDestination(transferReceiver, [
-        ...applicationOutputReceiveArguments,
-        '--mode', 'receive-output',
-      ]);
-      const outcome = await receivedOutput.completed;
-      assert.equal(outcome.code, 0, outcome.stderr);
-      const record = transferControl.admitReplyJson(
-        outcome.stdout.trim(),
-        transferRequest,
-      );
-      assert.equal(
-        transferControl.recordIsDestinationCommitted(record),
-        true,
-      );
-      return Object.freeze({record});
-    },
-  });
   nativeTransferInjectLostReply = false;
   const duckdbLibrary = join(
     repositoryRoot,
@@ -2096,100 +1979,6 @@ try {
   assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
   const publicationAuthorityCid =
     physicalCid('native-application-publication-store');
-  const applicationArguments = [
-    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    '--crypto-library', cryptoLibrary,
-    '--http-library', library,
-    '--duckdb-library', duckdbLibrary,
-    '--application-root', applicationRoot,
-    '--transfer-root', applicationTransferRoot,
-    '--publication-root', applicationPublicationRoot,
-    '--publication-authority-cid', publicationAuthorityCid,
-    '--runtime-root', applicationRuntimeRoot,
-    '--transfer-journal', applicationTransferJournal,
-    '--dispatch-journal', join(root, 'remote-application-dispatch.sqlite3'),
-    '--database-path', join(root, 'remote-application.duckdb'),
-    '--site-key', 'native-standard-transfer-site',
-    '--site-generation', '1',
-    '--target-triple', targetTriple,
-    '--component-cid', applicationComponentCid,
-    '--process-hold-id', 'runtime-process:native-application',
-    '--bundle-issuer', 'bundle-authority-a',
-    '--bundle-key-id', 'key-a',
-    '--bundle-public-key-root', applicationRoot,
-    '--bundle-public-key-file', 'runtime-public.pem',
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', standardGateway.origin +
-      '/v1/sites/native-standard-transfer-site/generations/1/outbound/poll',
-    '--observation-url', standardGateway.origin +
-      '/v1/sites/native-standard-transfer-site/generations/1/' +
-      'outbound/observations',
-    '--operation-capability-cid', operationCapabilityCid,
-    '--issuer-capability-cid', issuerCapabilityCid,
-    '--input-schema-cid', inputSchemaCid,
-    '--input-view-cid', inputViewCid,
-    '--input-codec-cid', inputCodecCid,
-    '--task-key', 'application-task',
-    '--expected-task', '1',
-    '--max-polls', '8',
-    '--max-rows', '100',
-    '--max-bytes', String(applicationMaxBytes),
-    '--output-chunk-bytes', '4096',
-  ];
-  const componentCidIndex = applicationArguments.indexOf('--component-cid');
-  assert.notEqual(componentCidIndex, -1);
-  const mismatchedApplicationArguments = [...applicationArguments];
-  mismatchedApplicationArguments[componentCidIndex + 1] =
-    `sha256:${'0'.repeat(64)}`;
-  const mismatchedApplication = await runCaptured(
-    applicationExecutable,
-    mismatchedApplicationArguments,
-  ).completed;
-  assert.notEqual(mismatchedApplication.code, 0);
-  const dispatchCompletion = coordinator.dispatch({
-    dispatch,
-    inputBindingBody,
-  });
-  const applicationRun = runCaptured(
-    applicationExecutable,
-    applicationArguments,
-  );
-  const firstApplicationOutcome = await Promise.race([
-    dispatchCompletion.then(value => ({kind: 'dispatch', value})),
-    applicationRun.completed.then(value => ({kind: 'application', value})),
-  ]);
-  assert.equal(
-    firstApplicationOutcome.kind,
-    'dispatch',
-    firstApplicationOutcome.kind === 'application'
-      ? JSON.stringify(firstApplicationOutcome.value)
-      : undefined,
-  );
-  const dispatched = firstApplicationOutcome.value;
-  if (dispatched.subject === undefined) {
-    const failedApplication = await applicationRun.completed;
-    assert.fail(JSON.stringify({
-      dispatched,
-      application: failedApplication,
-    }));
-  }
-  assert.equal(
-    coordinator.completionEvidenceAvailable({dispatch}),
-    true,
-    JSON.stringify({
-      state: dispatched.state,
-      evidenceCid: dispatched.evidenceCid,
-      subjectCid: dispatched.subjectCid,
-      measurementCid: dispatched.measurementCid,
-    }),
-  );
-  const subject = remoteSiteControl.managedOutputSubjectProjection(
-    dispatched.subject,
-  );
-  assert.equal(subject[0], remoteSiteControl.identity(dispatch));
-  assert.equal(subject[9], '1');
   const resultDefinitionCid =
     physicalCid('native-application-result-definition');
   const orderingEvidenceCid =
@@ -2210,10 +1999,6 @@ try {
   const transferServiceUploadReplied = join(
     productTransferRoot,
     `${applicationOutputRoute}-upload-replied.json`,
-  );
-  const transferServiceRepeatedUpload = join(
-    productTransferRoot,
-    `${applicationOutputRoute}-repeated-upload.json`,
   );
   const transferServiceConfiguration = {
     mode: applicationOutputRoute,
@@ -2271,7 +2056,6 @@ try {
     {destination: applicationOutputRoute === 'direct'},
   );
   let transferServiceOrigin = productTransferService.origin;
-  let transferServiceRestarted = false;
   const outputIntent = remoteSiteControl.prepareOutputIntent(dispatch, {
     storeAuthorityCid: publicationAuthorityCid,
     publicationAttemptCid:
@@ -2292,63 +2076,304 @@ try {
       physicalCid('native-application-output-direct-route'),
     transferOrigin: transferServiceOrigin,
   });
-  const outputOutcome = await Promise.race([
-    coordinator.output({
-      dispatch,
-      intent: outputIntent,
-      subject: dispatched.subject,
-      maxChunks: 8,
-      maxManifestBytes: 4096,
-      maxReferencedBytes: 1048576n,
-    }).then(value => ({kind: 'output', value})),
-    applicationRun.completed.then(value => ({kind: 'application', value})),
+  const coordinatorPort = await allocatePort(nativeHttpHost);
+  const coordinatorOrigin = `https://${nativeHttpHost}:${coordinatorPort}`;
+  const dispatchFile = 'dispatch.json';
+  const inputBindingFile = 'input-binding.json';
+  const outputEnvelopeFile = 'output-envelope.json';
+  await Promise.all([
+    writeFile(
+      join(applicationCoordinatorRoot, dispatchFile),
+      remoteSiteControl.requestJson(dispatch),
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(applicationCoordinatorRoot, inputBindingFile),
+      inputBindingBody,
+      {mode: 0o600},
+    ),
+    writeFile(
+      join(applicationCoordinatorRoot, outputEnvelopeFile),
+      remoteSiteControl.pollOutputJson(dispatch, outputIntent),
+      {mode: 0o600},
+    ),
+  ]);
+  const siteFingerprint = new X509Certificate(
+    await readFile(join(root, 'client.crt')),
+  ).fingerprint256;
+  const coordinatorAdminFingerprint = new X509Certificate(
+    await readFile(join(root, 'destination-client.crt')),
+  ).fingerprint256;
+  const coordinatorArguments = [
+      '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+      '--journal', join(applicationCoordinatorRoot, 'dispatch.sqlite3'),
+      '--output-journal', join(applicationCoordinatorRoot, 'output.sqlite3'),
+      '--contract-root', applicationCoordinatorRoot,
+      '--dispatch-file', dispatchFile,
+      '--dispatch-cid', remoteSiteControl.identity(dispatch),
+      '--input-binding-file', inputBindingFile,
+      '--output-envelope-file', outputEnvelopeFile,
+      '--authority', 'native-application-coordinator',
+      '--site-fingerprint', siteFingerprint,
+      '--admin-fingerprint', coordinatorAdminFingerprint,
+      '--host', nativeHttpHost,
+      '--port', coordinatorPort.toString(),
+      '--cert', join(root, 'server.crt'),
+      '--key', join(root, 'server.key'),
+      '--ca', join(root, 'ca.crt'),
+      '--max-chunks', '8',
+      '--max-manifest-bytes', '4096',
+      '--max-referenced-bytes', '1048576',
+  ];
+  const coordinatorRun = runCapturedIn(
+    nativeRemoteCoordinator,
+    coordinatorArguments,
+    {},
+    undefined,
+    undefined,
+  );
+  const coordinatorDeadline = Date.now() + 10_000;
+  while (Date.now() < coordinatorDeadline) {
+    if (coordinatorRun.child.exitCode !== null) {
+      assert.fail(JSON.stringify(await coordinatorRun.completed));
+    }
+    const ready = await runCapturedIn('curl', [
+      '--silent', '--show-error', '--max-time', '1',
+      '--request', 'POST',
+      '--cert', join(root, 'destination-client.crt'),
+      '--key', join(root, 'destination-client.key'),
+      '--cacert', join(root, 'ca.crt'),
+      '--header', 'content-type: application/json',
+      '--data', '{}',
+      `${coordinatorOrigin}/v1/coordinator/output-plan`,
+    ], {}, undefined, undefined).completed;
+    if (ready.code === 0) break;
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  const applicationArguments = [
+    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+    '--crypto-library', cryptoLibrary,
+    '--http-library', library,
+    '--duckdb-library', duckdbLibrary,
+    '--application-root', applicationRoot,
+    '--transfer-root', applicationTransferRoot,
+    '--publication-root', applicationPublicationRoot,
+    '--publication-authority-cid', publicationAuthorityCid,
+    '--runtime-root', applicationRuntimeRoot,
+    '--transfer-journal', applicationTransferJournal,
+    '--dispatch-journal', join(root, 'remote-application-dispatch.sqlite3'),
+    '--database-path', join(root, 'remote-application.duckdb'),
+    '--site-key', 'native-standard-transfer-site',
+    '--site-generation', '1',
+    '--target-triple', targetTriple,
+    '--component-cid', applicationComponentCid,
+    '--process-hold-id', 'runtime-process:native-application',
+    '--bundle-issuer', 'bundle-authority-a',
+    '--bundle-key-id', 'key-a',
+    '--bundle-public-key-root', applicationRoot,
+    '--bundle-public-key-file', 'runtime-public.pem',
+    '--ca', join(root, 'ca.crt'),
+    '--cert', join(root, 'client.crt'),
+    '--key', join(root, 'client.key'),
+    '--poll-url', coordinatorOrigin +
+      '/v1/sites/native-standard-transfer-site/generations/1/outbound/poll',
+    '--observation-url', coordinatorOrigin +
+      '/v1/sites/native-standard-transfer-site/generations/1/' +
+      'outbound/observations',
+    '--operation-capability-cid', operationCapabilityCid,
+    '--issuer-capability-cid', issuerCapabilityCid,
+    '--input-schema-cid', inputSchemaCid,
+    '--input-view-cid', inputViewCid,
+    '--input-codec-cid', inputCodecCid,
+    '--task-key', 'application-task',
+    '--expected-task', '1',
+    '--max-polls', '8',
+    '--max-rows', '100',
+    '--max-bytes', String(applicationMaxBytes),
+    '--output-chunk-bytes', '4096',
+  ];
+  const componentCidIndex = applicationArguments.indexOf('--component-cid');
+  assert.notEqual(componentCidIndex, -1);
+  const mismatchedApplicationArguments = [...applicationArguments];
+  mismatchedApplicationArguments[componentCidIndex + 1] =
+    `sha256:${'0'.repeat(64)}`;
+  const mismatchedApplication = await runCaptured(
+    applicationExecutable,
+    mismatchedApplicationArguments,
+  ).completed;
+  assert.notEqual(mismatchedApplication.code, 0);
+  const applicationRun = runCaptured(
+    applicationExecutable,
+    applicationArguments,
+  );
+  const destinationCompletion = applicationOutputRoute === 'store'
+    ? (async () => {
+        const deadline = Date.now() + 20_000;
+        let planBody;
+        while (Date.now() < deadline) {
+          const result = await runCapturedIn('curl', [
+            '--silent', '--show-error', '--fail', '--max-time', '2',
+            '--request', 'POST',
+            '--cert', join(root, 'destination-client.crt'),
+            '--key', join(root, 'destination-client.key'),
+            '--cacert', join(root, 'ca.crt'),
+            '--header', 'content-type: application/json',
+            '--data', '{}',
+            `${coordinatorOrigin}/v1/coordinator/output-plan`,
+          ], {}, undefined, undefined).completed;
+          if (result.code === 0) {
+            planBody = result.stdout;
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        assert.notEqual(planBody, undefined, 'native output plan unavailable');
+        const plan = JSON.parse(planBody);
+        const transferRequest = transferControl.admitJson(
+          plan.transfer_request_json,
+          plan.physical_manifest_json,
+          plan.transfer_request_cid,
+          plan.physical_manifest_cid,
+          {
+            maxChunks: 8,
+            maxManifestBytes: 4096,
+            maxReferencedBytes: 1048576n,
+          },
+        );
+        nativeApplicationOutputRequestBody =
+          transferControl.requestJson(transferRequest);
+        nativeApplicationOutputManifestBody =
+          transferControl.manifestJson(transferRequest);
+        const envelopePath = join(
+          productTransferRoot,
+          'store-restart-admission.json',
+        );
+        await writeFile(
+          envelopePath,
+          transferControl.admissionEnvelopeJson(transferRequest),
+          {mode: 0o600},
+        );
+        const projection = transferControl.requestProjection(transferRequest);
+        let sealed = false;
+        let lastStoreObservation;
+        while (Date.now() < deadline && !sealed) {
+          const observed = await runCapturedIn('curl', [
+            '--silent', '--show-error', '--max-time', '2',
+            '--request', 'POST',
+            '--cert', join(root, 'client.crt'),
+            '--key', join(root, 'client.key'),
+            '--cacert', join(root, 'ca.crt'),
+            '--header', 'content-type: application/json',
+            '--header',
+            `actql-transfer-cid: ${transferControl.identity(transferRequest)}`,
+            '--header', `actql-manifest-cid: ${projection[7]}`,
+            '--data-binary', `@${envelopePath}`,
+            `${transferServiceOrigin}/v1/transfer-store/uploads`,
+          ], {}, undefined, undefined).completed;
+          lastStoreObservation = observed;
+          if (observed.code === 0) {
+            sealed = JSON.parse(observed.stdout).sealed === true;
+          }
+          if (!sealed) await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        assert.equal(
+          sealed,
+          true,
+          `native Store upload did not seal: ${JSON.stringify(
+            lastStoreObservation,
+          )}`,
+        );
+        await stopProductTransferService(productTransferService, 'SIGKILL');
+        const restartedConfiguration = {
+          ...transferServiceConfiguration,
+          instance: 2,
+          port: Number(new URL(transferServiceOrigin).port),
+          readyPath: join(
+            productTransferRoot,
+            `${applicationOutputRoute}-ready-2.json`,
+          ),
+        };
+        productTransferService = await startProductTransferService(
+          restartedConfiguration,
+        );
+        transferServiceOrigin = productTransferService.origin;
+        applicationOutputReceiveArguments = [
+          '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+          '--http-library', library,
+          '--journal', applicationOutputTransferJournal,
+          '--root', applicationOutputTransferRoot,
+          '--origin', transferServiceOrigin,
+          '--ca', join(root, 'ca.crt'),
+          '--cert', join(root, 'destination-client.crt'),
+          '--key', join(root, 'destination-client.key'),
+          '--request-url',
+          `${nativeHttpOrigin}/v1/native-application/output/request`,
+          '--manifest-url',
+          `${nativeHttpOrigin}/v1/native-application/output/manifest`,
+          '--request-cid', transferControl.identity(transferRequest),
+          '--manifest-cid', projection[7],
+          '--use-id', 'native-application-output-use',
+          '--max-chunks', '8',
+          '--max-manifest-bytes', '4096',
+          '--max-bytes', '1048576',
+        ];
+        const receivedOutput = runCapturedAtDestination(transferReceiver, [
+          ...applicationOutputReceiveArguments,
+          '--mode', 'receive-output',
+        ]);
+        const outcome = await receivedOutput.completed;
+        assert.equal(outcome.code, 0, outcome.stderr);
+        const record = transferControl.admitReplyJson(
+          outcome.stdout.trim(),
+          transferRequest,
+        );
+        assert.equal(
+          transferControl.recordIsDestinationCommitted(record),
+          true,
+        );
+      })()
+    : Promise.resolve();
+  const [applicationExit, coordinatorExit] = await Promise.all([
+    applicationRun.completed,
+    coordinatorRun.completed,
+    destinationCompletion,
   ]);
   assert.equal(
-    outputOutcome.kind,
-    'output',
-    outputOutcome.kind === 'application'
-      ? JSON.stringify(outputOutcome.value)
-      : undefined,
+    applicationExit.code,
+    0,
+    JSON.stringify({applicationExit, coordinatorExit}),
   );
-  const outputResult = outputOutcome.value;
-  const released = await coordinator.release({dispatch});
-  assert.equal(released.state[2], 2);
-  const applicationExit = await applicationRun.completed;
-  assert.equal(applicationExit.code, 0, applicationExit.stderr);
+  assert.equal(
+    coordinatorExit.code,
+    0,
+    JSON.stringify({applicationExit, coordinatorExit}),
+  );
   const applicationEvents = applicationExit.stdout.trim().split('\n')
     .filter(Boolean).map(line => JSON.parse(line));
   assert.deepEqual(
     applicationEvents.map(event => event.kind),
     ['dispatch', 'output-plan', 'output', 'released', 'idle'],
   );
-  assert.equal(standardGateway.pending(), 0);
-  coordinatorStore.close();
-
-  const reopenedStore = openSqliteCoordinatorDispatchJournal(
-    applicationCoordinatorRoot,
-    {coordinatorAuthority: 'native-application-coordinator'},
+  const coordinatorEvents = coordinatorExit.stdout.trim().split('\n')
+    .filter(Boolean).map(line => JSON.parse(line));
+  assert.equal(coordinatorEvents.at(-1).kind, 'complete');
+  assert.equal(
+    coordinatorEvents.at(-1).dispatch_request_cid,
+    remoteSiteControl.identity(dispatch),
   );
-  const reopenedCoordinator = createRemoteSiteCoordinator({
-    control: remoteSiteControl,
-    transferControl,
-    journal: remoteSiteControl.createCoordinatorJournal(
-      'native-application-coordinator',
-    ),
-    store: reopenedStore,
-    plan: async () => {
-      assert.fail('durable output recovery repeated output planning');
-    },
-    output: async () => {
-      assert.fail('durable output recovery repeated physical transport');
-    },
+  assert.ok(coordinatorEvents.at(-1).control_bytes < 3_145_728);
+  const reconciled = await runCapturedIn(
+    nativeRemoteCoordinator,
+    [...coordinatorArguments, '--mode', 'reconcile'],
+    {},
+    undefined,
+    undefined,
+  ).completed;
+  assert.equal(reconciled.code, 0, reconciled.stderr);
+  assert.deepEqual(JSON.parse(reconciled.stdout), {
+    kind: 'reconciled',
+    dispatch_request_cid: remoteSiteControl.identity(dispatch),
   });
-  assert.equal(reopenedCoordinator.recoveredOutputs.length, 1);
-  const recoveredOutput = await reopenedCoordinator.output({
-    dispatch,
-    intent: outputIntent,
-  });
-  assert.deepEqual(recoveredOutput, outputResult);
-  reopenedStore.close();
 
   const reclaimedRun = runCaptured(transferReceiver, [
     ...receiveArguments,
