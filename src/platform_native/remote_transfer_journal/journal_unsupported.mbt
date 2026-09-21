@@ -138,6 +138,22 @@ pub fn Journal::inspect_destination_allocation(
 }
 
 ///|
+pub fn Journal::inspect_destination_allocation_if_present(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+) -> Result[
+  NativeRemoteDestinationAllocation?,
+  NativeRemoteTransferJournalIssue,
+] {
+  ignore(request)
+  ignore(use_id)
+  ignore(index)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::record_destination_allocation_owned(
   _self : Journal,
   current : NativeRemoteDestinationAllocation,

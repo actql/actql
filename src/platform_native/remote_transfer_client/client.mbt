@@ -858,16 +858,15 @@ fn verify_destination_object(
 }
 
 ///|
-fn prepare_destination_chunk(
+fn prepare_destination_chunk_with_loader(
   journal : @journal.Journal,
   root : @filesystem.Root,
-  client : @http.Client,
-  base : String,
   request : @transfer.RemoteTransferRequest,
   use_id : String,
   index : Int,
   expected_cid : String,
   expected_bytes : Int64,
+  load : () -> Result[Bytes, NativeRemoteTransferClientIssue],
 ) -> Result[@filesystem.NativeFileGeneration, NativeRemoteTransferClientIssue] {
   let final_name = match destination_object_name(request, index) {
     Ok(value) => value
@@ -958,34 +957,12 @@ fn prepare_destination_chunk(
     Ok(None) => ()
     Err(issue) => return Err(Destination(issue))
   }
-  let request_cid = match
-    transfer_path_component(@transfer.request_cid(request)) {
-    Some(value) => value
-    None => return Err(InvalidRequest)
-  }
-  let encoded_use = match transfer_path_component(use_id) {
-    Some(value) => value
-    None => return Err(InvalidRequest)
-  }
-  let response = match
-    client.request(
-      @http.Get,
-      base +
-      "/downloads/" +
-      request_cid +
-      "/" +
-      encoded_use +
-      "/chunks/" +
-      index.to_string(),
-      [],
-      b"",
-    ) {
+  let body = match load() {
     Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(issue)
   }
-  if response.status != 200 ||
-    response.body.length().to_int64() != expected_bytes ||
-    "sha256:" + @sha.hex(response.body) != expected_cid {
+  if body.length().to_int64() != expected_bytes ||
+    "sha256:" + @sha.hex(body) != expected_cid {
     return Err(SourceMismatch)
   }
   let writer = match root.create_writer(staging_name, expected_bytes) {
@@ -1000,7 +977,7 @@ fn prepare_destination_chunk(
       return Err(Durable(issue))
     }
   }
-  match writer.append(response.body) {
+  match writer.append(body) {
     Ok(_) => ()
     Err(issue) => {
       ignore(writer.cancel())
@@ -1018,6 +995,57 @@ fn prepare_destination_chunk(
       Err(Destination(issue))
     }
   }
+}
+
+///|
+fn prepare_destination_chunk(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  client : @http.Client,
+  base : String,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+  expected_cid : String,
+  expected_bytes : Int64,
+) -> Result[@filesystem.NativeFileGeneration, NativeRemoteTransferClientIssue] {
+  prepare_destination_chunk_with_loader(
+    journal,
+    root,
+    request,
+    use_id,
+    index,
+    expected_cid,
+    expected_bytes,
+    () => {
+      let request_cid = match
+        transfer_path_component(@transfer.request_cid(request)) {
+        Some(value) => value
+        None => return Err(InvalidRequest)
+      }
+      let encoded_use = match transfer_path_component(use_id) {
+        Some(value) => value
+        None => return Err(InvalidRequest)
+      }
+      match
+        client.request(
+          @http.Get,
+          base +
+          "/downloads/" +
+          request_cid +
+          "/" +
+          encoded_use +
+          "/chunks/" +
+          index.to_string(),
+          [],
+          b"",
+        ) {
+        Ok(response) if response.status == 200 => Ok(response.body)
+        Ok(response) => Err(Rejected(response.status))
+        Err(issue) => Err(Physical(issue))
+      }
+    },
+  )
 }
 
 ///|
@@ -1050,6 +1078,344 @@ fn destination_material_generation(
     _ => return Err(Protocol(@transfer.InvalidTransfer))
   }
   Ok("sha256:" + digest)
+}
+
+///|
+/// Durably admits one direct destination before accepting any chunk bytes.
+/// The journal owns the destination reservation across process restarts.
+pub fn admit_durable_direct_destination(
+  journal : @journal.Journal,
+  request : @transfer.RemoteTransferRequest,
+  max_destination_bytes : Int64,
+  max_destination_objects : Int64,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" {
+    return Err(InvalidRequest)
+  }
+  match journal.accept(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  match
+    journal.reserve_destination_holding(
+      request, max_destination_bytes, max_destination_objects,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  let mut record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  match @transfer.direct_transfer_progress(record) {
+    @transfer.DirectTransferStart => {
+      let transition = match @transfer.prepare_start(record) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
+      match journal.commit_transition(transition) {
+        Ok(_) => ()
+        Err(issue) => return Err(Durable(issue))
+      }
+      record = match journal.require(request) {
+        Ok(value) => value
+        Err(issue) => return Err(Durable(issue))
+      }
+    }
+    @transfer.DirectTransferCopying
+    | @transfer.DirectTransferSourceSettled
+    | @transfer.DirectTransferCommitted => ()
+    @transfer.DirectTransferReconciliationRequired =>
+      return Err(ReconciliationRequired)
+  }
+  Ok(record)
+}
+
+///|
+/// Stores one exact direct Transfer chunk in its destination-owned generation.
+/// Replays return the already verified generation without rewriting bytes.
+pub fn write_durable_direct_destination_chunk(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  index : Int,
+  body : Bytes,
+) -> Result[@filesystem.NativeFileGeneration, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" || index < 0 {
+    return Err(InvalidRequest)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  if @transfer.direct_transfer_progress(record) !=
+    @transfer.DirectTransferCopying {
+    return Err(ReconciliationRequired)
+  }
+  let cids = @transfer.request_chunk_cids(request)
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  if index >= cids.length() || cids.length() != lengths.length() {
+    return Err(InvalidRequest)
+  }
+  prepare_destination_chunk_with_loader(
+    journal,
+    root,
+    request,
+    "direct-destination",
+    index,
+    cids[index],
+    lengths[index],
+    () => Ok(body),
+  )
+}
+
+///|
+/// Commits a direct destination only after every exact chunk generation is
+/// durable and its destination receipt is stored.
+pub fn commit_durable_direct_destination(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" {
+    return Err(InvalidRequest)
+  }
+  let cids = @transfer.request_chunk_cids(request)
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  if cids.length() != lengths.length() {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  let generations : Array[@filesystem.NativeFileGeneration] = []
+  for index, expected_cid in cids {
+    let generation = match
+      prepare_destination_chunk_with_loader(
+        journal,
+        root,
+        request,
+        "direct-destination",
+        index,
+        expected_cid,
+        lengths[index],
+        () => Err(ReconciliationRequired),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    generations.push(generation)
+  }
+  match root.sync_directory() {
+    Ok(_) => ()
+    Err(issue) => return Err(Destination(issue))
+  }
+  let material_generation = match
+    destination_material_generation(request, generations) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let receipt = match
+    @transfer.prepare_destination_receipt(request, material_generation) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match journal.commit_destination_receipt(receipt, request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  let mut record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  match @transfer.direct_transfer_progress(record) {
+    @transfer.DirectTransferCopying => {
+      let transition = match
+        @transfer.prepare_source_settled(record, true, false) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
+      match journal.commit_transition(transition) {
+        Ok(_) => ()
+        Err(issue) => return Err(Durable(issue))
+      }
+      record = match journal.require(request) {
+        Ok(value) => value
+        Err(issue) => return Err(Durable(issue))
+      }
+    }
+    @transfer.DirectTransferSourceSettled | @transfer.DirectTransferCommitted =>
+      ()
+    _ => return Err(ReconciliationRequired)
+  }
+  if @transfer.direct_transfer_progress(record) ==
+    @transfer.DirectTransferSourceSettled {
+    let transition = match @transfer.prepare_destination_commit(record) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match journal.commit_transition(transition) {
+      Ok(_) => ()
+      Err(issue) => return Err(Durable(issue))
+    }
+    record = match journal.require(request) {
+      Ok(value) => value
+      Err(issue) => return Err(Durable(issue))
+    }
+  }
+  if @transfer.record_is_destination_committed(record) {
+    Ok(record)
+  } else {
+    Err(ReconciliationRequired)
+  }
+}
+
+///|
+/// Cancels an uncommitted direct destination and returns its holding only
+/// after every owned generation is durably absent.
+pub fn cancel_durable_direct_destination(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" {
+    return Err(InvalidRequest)
+  }
+  let mut record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  if @transfer.record_is_destination_committed(record) {
+    return Ok(record)
+  }
+  if !@transfer.direct_transfer_cleanup_confirmed(record) {
+    let state = @transfer.record_projection(record)
+    if state[1] != 3 && state[1] != 4 {
+      let failed = match @transfer.prepare_failure(record, true, true) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
+      match journal.commit_transition(failed) {
+        Ok(_) => ()
+        Err(issue) => return Err(Durable(issue))
+      }
+      record = match journal.require(request) {
+        Ok(value) => value
+        Err(issue) => return Err(Durable(issue))
+      }
+    }
+  }
+  let chunk_count = @transfer.request_chunk_cids(request).length()
+  for index = 0; index < chunk_count; index = index + 1 {
+    let allocation = match
+      journal.inspect_destination_allocation_if_present(
+        request, "direct-destination", index,
+      ) {
+      Ok(Some(value)) => value
+      Ok(None) => continue
+      Err(issue) => return Err(Durable(issue))
+    }
+    let reclaiming = match @journal.destination_allocation_phase(allocation) {
+      @journal.DestinationAllocationIntent =>
+        match journal.release_destination_allocation_intent(allocation) {
+          Ok(value) => value
+          Err(issue) => return Err(Durable(issue))
+        }
+      @journal.DestinationAllocationStagingOwned(ownership) => {
+        let generation = match
+          root.inspect_generation(
+            @journal.destination_allocation_staging_name(allocation),
+          ) {
+          Ok(Some(value)) if value.device == ownership.device &&
+            value.inode == ownership.inode => value
+          Ok(None) => return Err(ReconciliationRequired)
+          Ok(Some(_)) => return Err(ReconciliationRequired)
+          Err(issue) => return Err(Destination(issue))
+        }
+        let owned = match
+          journal.begin_destination_allocation_reclaim(allocation) {
+          Ok(value) => value
+          Err(issue) => return Err(Durable(issue))
+        }
+        match
+          root.reclaim_generation(
+            @journal.destination_allocation_staging_name(owned),
+            generation,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(Destination(issue))
+        }
+        match root.sync_directory() {
+          Ok(_) => ()
+          Err(issue) => return Err(Destination(issue))
+        }
+        match journal.finish_destination_allocation_reclaim(owned) {
+          Ok(value) => value
+          Err(issue) => return Err(Durable(issue))
+        }
+      }
+      @journal.DestinationAllocationSealed(_)
+      | @journal.DestinationAllocationReused(_) =>
+        match journal.begin_destination_allocation_reclaim(allocation) {
+          Ok(value) => value
+          Err(issue) => return Err(Durable(issue))
+        }
+      @journal.DestinationAllocationReclaimingOwned(_)
+      | @journal.DestinationAllocationReclaimingSealed(_)
+      | @journal.DestinationAllocationReleased => allocation
+    }
+    match @journal.destination_allocation_phase(reclaiming) {
+      @journal.DestinationAllocationReclaimingSealed(generation) => {
+        match
+          root.reclaim_generation(
+            @journal.destination_allocation_final_name(reclaiming),
+            generation,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(Destination(issue))
+        }
+        match root.sync_directory() {
+          Ok(_) => ()
+          Err(issue) => return Err(Destination(issue))
+        }
+        match journal.finish_destination_allocation_reclaim(reclaiming) {
+          Ok(_) => ()
+          Err(issue) => return Err(Durable(issue))
+        }
+      }
+      @journal.DestinationAllocationReclaimingOwned(_) =>
+        return Err(ReconciliationRequired)
+      _ => ()
+    }
+  }
+  match root.sync_directory() {
+    Ok(_) => ()
+    Err(issue) => return Err(Destination(issue))
+  }
+  match journal.release_destination_holding(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  if !@transfer.direct_transfer_cleanup_confirmed(record) {
+    let cleaned = match @transfer.prepare_cleanup(record, true, true, true) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match journal.commit_transition(cleaned) {
+      Ok(_) => ()
+      Err(issue) => return Err(Durable(issue))
+    }
+    record = match journal.require(request) {
+      Ok(value) => value
+      Err(issue) => return Err(Durable(issue))
+    }
+  }
+  if @transfer.direct_transfer_cleanup_confirmed(record) {
+    Ok(record)
+  } else {
+    Err(ReconciliationRequired)
+  }
 }
 
 ///|

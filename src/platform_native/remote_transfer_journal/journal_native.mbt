@@ -91,6 +91,13 @@ fn destination_allocation_key(
   if index < 0 {
     return Err(Protocol(@transfer.InvalidTransfer))
   }
+  if @transfer.request_projection(request)[1] == "direct" {
+    let occurrence = match @transfer.request_journal_identity(request) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    return Ok(occurrence + "-direct-" + index.to_string())
+  }
   let store_use = match @transfer.prepare_store_use(request, use_id) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -803,6 +810,35 @@ pub fn Journal::inspect_destination_allocation(
   }
   match self.database.read("remote_transfer_destination_allocation", key) {
     Ok(value) => parse_destination_allocation(key, value)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+/// Observes an allocation without turning absence into a cleanup failure.
+pub fn Journal::inspect_destination_allocation_if_present(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  index : Int,
+) -> Result[
+  NativeRemoteDestinationAllocation?,
+  NativeRemoteTransferJournalIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match destination_allocation_key(request, use_id, index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("remote_transfer_destination_allocation", key) {
+    Ok(value) =>
+      match parse_destination_allocation(key, value) {
+        Ok(allocation) => Ok(Some(allocation))
+        Err(issue) => Err(issue)
+      }
+    Err(@sqlite.NotFound) => Ok(None)
     Err(issue) => Err(Physical(issue))
   }
 }

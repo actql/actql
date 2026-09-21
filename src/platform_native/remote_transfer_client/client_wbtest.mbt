@@ -4,9 +4,10 @@ fn native_transfer_cid(unit : String) -> String {
 }
 
 ///|
-fn native_transfer_request(
+fn native_transfer_request_for(
   chunks : Array[Bytes],
   route : @transfer.RemoteTransferRoute,
+  transfer_attempt : String,
 ) -> @transfer.RemoteTransferRequest {
   let mut referenced_bytes = 0L
   for chunk in chunks {
@@ -27,7 +28,7 @@ fn native_transfer_request(
   ).unwrap()
   @transfer.prepare_request(
     "native-coordinator",
-    "native-transfer-1",
+    transfer_attempt,
     route,
     "native-source",
     2,
@@ -44,10 +45,129 @@ fn native_transfer_request(
 }
 
 ///|
+fn native_transfer_request(
+  chunks : Array[Bytes],
+  route : @transfer.RemoteTransferRoute,
+) -> @transfer.RemoteTransferRequest {
+  native_transfer_request_for(chunks, route, "native-transfer-1")
+}
+
+///|
 fn native_direct_request(
   chunks : Array[Bytes],
 ) -> @transfer.RemoteTransferRequest {
   native_transfer_request(chunks, @transfer.DirectStream)
+}
+
+///|
+fn native_transfer_issue_name(
+  issue : NativeRemoteTransferClientIssue,
+) -> String {
+  match issue {
+    InvalidRequest => "invalid-request"
+    SourceMismatch => "source-mismatch"
+    Rejected(_) => "rejected"
+    Physical(_) => "physical"
+    Durable(_) => "durable"
+    Destination(_) => "destination"
+    Protocol(_) => "protocol"
+    ReconciliationRequired => "reconciliation-required"
+    Consumer(_) => "consumer"
+  }
+}
+
+///|
+test "native direct destination owns exact durable generations" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(store_root) else {
+    return
+  }
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let journal_path = sqlite_root + "/direct-destination.sqlite"
+  let journal = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let root = @filesystem.open_root(store_root).unwrap()
+  let chunks = [b"direct-destination-alpha", b"direct-destination-beta"]
+  let request = native_direct_request(chunks)
+  let admitted = admit_durable_direct_destination(journal, request, 1024L, 8L).unwrap()
+  assert_eq(
+    @transfer.direct_transfer_progress(admitted),
+    @transfer.DirectTransferCopying,
+  )
+  assert_true(
+    write_durable_direct_destination_chunk(
+      journal, root, request, 0, b"altered",
+    )
+    is Err(_),
+  )
+  match
+    write_durable_direct_destination_chunk(journal, root, request, 0, chunks[0]) {
+    Ok(_) => ()
+    Err(issue) =>
+      fail(
+        "exact first direct destination chunk was rejected: " +
+        native_transfer_issue_name(issue),
+      )
+  }
+  assert_true(
+    commit_durable_direct_destination(journal, root, request) is Err(_),
+  )
+  guard write_durable_direct_destination_chunk(
+      journal,
+      root,
+      request,
+      1,
+      chunks[1],
+    )
+    is Ok(_) else {
+    fail("exact second direct destination chunk was rejected")
+  }
+  guard commit_durable_direct_destination(journal, root, request)
+    is Ok(committed) else {
+    fail("complete direct destination was not committed")
+  }
+  assert_true(@transfer.record_is_destination_committed(committed))
+  assert_true(journal.close())
+  let reopened = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  guard admit_durable_direct_destination(reopened, request, 1024L, 8L)
+    is Ok(replayed) else {
+    fail("committed direct destination admission was not idempotent")
+  }
+  assert_true(@transfer.record_is_destination_committed(replayed))
+  guard commit_durable_direct_destination(reopened, root, request)
+    is Ok(recommitted) else {
+    fail("committed direct destination retry was not idempotent")
+  }
+  assert_true(@transfer.record_is_destination_committed(recommitted))
+  let retained_usage = reopened.destination_capacity_usage().unwrap()
+  let cancelled_request = native_transfer_request_for(
+    [b"direct-cancel-alpha", b"direct-cancel-beta"],
+    @transfer.DirectStream,
+    "native-transfer-cancel",
+  )
+  admit_durable_direct_destination(reopened, cancelled_request, 1024L, 8L).unwrap()
+  |> ignore
+  write_durable_direct_destination_chunk(
+    reopened, root, cancelled_request, 0, b"direct-cancel-alpha",
+  ).unwrap()
+  |> ignore
+  let cancelled = cancel_durable_direct_destination(
+    reopened, root, cancelled_request,
+  ).unwrap()
+  assert_true(@transfer.direct_transfer_cleanup_confirmed(cancelled))
+  let usage = reopened.destination_capacity_usage().unwrap()
+  assert_eq(usage.reserved_bytes, retained_usage.reserved_bytes)
+  assert_eq(usage.reserved_objects, retained_usage.reserved_objects)
+  assert_true(reopened.close())
 }
 
 ///|
