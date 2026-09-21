@@ -266,16 +266,115 @@ fn one_node_graph(
   identity : Double,
   name : String,
 ) -> @graph.Completed {
+  one_node_graph_with_availability(owner, identity, name, Ref(true))
+}
+
+///|
+fn one_node_graph_with_availability(
+  owner : @lower.BoundPrepared,
+  identity : Double,
+  name : String,
+  available : Ref[Bool],
+) -> @graph.Completed {
   let output = @graph.prepare_output(
     owner,
     @pipeline.Step(0),
     @storage.DeclaredNodes,
     storage_limits(),
     2048L,
-    fn() { true },
+    fn() { available.val },
   ).unwrap()
   @graph.append_node(output, number(identity), [text(name)]).unwrap()
   @graph.finish_output(output).unwrap()
+}
+
+///|
+test "graft observes exact raw input lifetime until output handoff" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let owner = graft_owner(left_owner, right_owner)
+  for invalidated in [0, 1] {
+    let left_live = Ref(true)
+    let right_live = Ref(true)
+    let left = one_node_graph_with_availability(
+      left_owner, 1.0, "left", left_live,
+    )
+    let right = one_node_graph_with_availability(
+      right_owner, 2.0, "right", right_live,
+    )
+    let execution = start_graft(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      graft_inputs(owner, left_owner, right_owner, left, right),
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    assert_true(advance_graft(execution, 1).unwrap() is GraftContinue(_))
+    if invalidated == 0 {
+      left_live.val = false
+    } else {
+      right_live.val = false
+    }
+    assert_true(
+      advance_graft(execution, 1).unwrap()
+      is GraftFailed(GraftInputUnavailable, progress=1L, work=1L),
+    )
+    assert_eq(cleanup_graft(execution), Ok(true))
+  }
+
+  let left_live = Ref(true)
+  let right_live = Ref(true)
+  let left = one_node_graph_with_availability(
+    left_owner, 1.0, "left", left_live,
+  )
+  let right = one_node_graph_with_availability(
+    right_owner, 2.0, "right", right_live,
+  )
+  let finishing = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(finishing, 2).unwrap() is GraftContinue(progress=2L, work=2L),
+  )
+  right_live.val = false
+  assert_true(
+    advance_graft(finishing, 1).unwrap()
+    is GraftFailed(GraftInputUnavailable, progress=2L, work=2L),
+  )
+  assert_eq(cleanup_graft(finishing), Ok(true))
+
+  let left_live = Ref(true)
+  let right_live = Ref(true)
+  let left = one_node_graph_with_availability(
+    left_owner, 1.0, "left", left_live,
+  )
+  let right = one_node_graph_with_availability(
+    right_owner, 2.0, "right", right_live,
+  )
+  let completed = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(completed, 3).unwrap() is GraftComplete(output, ..) else {
+    fail("live graft did not complete")
+  }
+  left_live.val = false
+  right_live.val = false
+  assert_eq(@storage.node_count(@graph.completed_storage(output).unwrap()), 2)
+  assert_eq(cleanup_graft(completed), Ok(true))
 }
 
 ///|

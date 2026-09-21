@@ -13,7 +13,7 @@ priv enum StructuralMode {
 
 ///|
 priv enum GraftSource {
-  StorageSource(@storage.Storage)
+  StorageSource(@graph.ProducerRead, @storage.Storage)
   ViewSource(@lifecycle.ProducerView)
 }
 
@@ -119,10 +119,14 @@ fn graft_source(state : GraftState) -> GraftSource? {
 fn graft_inputs_available(state : GraftState) -> Bool {
   for source in state.sources {
     match source {
-      StorageSource(source) =>
-        match @storage.carrier(source) {
-          @carrier.GraphValue(_) => ()
-          _ => return false
+      StorageSource(read, source) =>
+        if !@graph.producer_read_available(read) {
+          return false
+        } else {
+          match @storage.carrier(source) {
+            @carrier.GraphValue(_) => ()
+            _ => return false
+          }
         }
       ViewSource(source) =>
         if @lifecycle.producer_view_node_count(source) is None {
@@ -257,7 +261,7 @@ fn graft_step(
           return @bounded.Failed(InvalidGraftKernel, progress, used)
         }
         let count = match source {
-          StorageSource(value) => @storage.node_count(value)
+          StorageSource(_, value) => @storage.node_count(value)
           ViewSource(value) =>
             match @lifecycle.producer_view_node_count(value) {
               Some(count) => count
@@ -268,8 +272,8 @@ fn graft_step(
         if state.record_index < count {
           if state.mode == Subtract {
             guard state.sources.length() == 2 &&
-              state.sources[0] is StorageSource(left) &&
-              state.sources[1] is StorageSource(right) else {
+              state.sources[0] is StorageSource(_, left) &&
+              state.sources[1] is StorageSource(_, right) else {
               return @bounded.Failed(InvalidGraftKernel, progress, used)
             }
             match subtract_node_step(state, left, right) {
@@ -286,7 +290,7 @@ fn graft_step(
             return @bounded.Failed(InvalidGraftKernel, progress, used)
           }
           let copied = match source {
-            StorageSource(source) =>
+            StorageSource(_, source) =>
               copy_graph_node(
                 source,
                 output,
@@ -322,7 +326,7 @@ fn graft_step(
           return @bounded.Failed(InvalidGraftKernel, progress, used)
         }
         let count = match source {
-          StorageSource(value) => @storage.edge_count(value)
+          StorageSource(_, value) => @storage.edge_count(value)
           ViewSource(value) =>
             match @lifecycle.producer_view_edge_count(value) {
               Some(count) => count
@@ -333,8 +337,8 @@ fn graft_step(
         if state.record_index < count {
           if state.mode == Subtract {
             guard state.sources.length() == 2 &&
-              state.sources[0] is StorageSource(left) &&
-              state.sources[1] is StorageSource(right) else {
+              state.sources[0] is StorageSource(_, left) &&
+              state.sources[1] is StorageSource(_, right) else {
               return @bounded.Failed(InvalidGraftKernel, progress, used)
             }
             match subtract_edge_step(state, left, right) {
@@ -351,7 +355,7 @@ fn graft_step(
             return @bounded.Failed(InvalidGraftKernel, progress, used)
           }
           let copied = match source {
-            StorageSource(source) =>
+            StorageSource(_, source) =>
               copy_graph_edge(
                 source,
                 output,
@@ -446,9 +450,9 @@ pub fn start_graft(
       @graph.producer_read_storage(input) is Some(source) else {
       return Err(GraftInputUnavailable)
     }
-    sources.push(StorageSource(source))
+    sources.push(StorageSource(input, source))
   }
-  guard sources[0] is StorageSource(first) &&
+  guard sources[0] is StorageSource(_, first) &&
     @storage.carrier(first) is @carrier.GraphValue(contract) else {
     return Err(GraftInputUnavailable)
   }
