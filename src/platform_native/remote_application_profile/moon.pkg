@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/duckdb/adapters/native" @native_duckdb,
+  "actql/actql/connectors/duckdb/host_native" @native_host,
+  "actql/actql/execution_query" @query,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_example" @application,
+  "actql/actql/platform_native/remote_standard_host" @remote_standard,
+}

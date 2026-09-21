@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_application_profile"
+
+import {
+  "actql/actql/connectors/duckdb/adapters/native",
+  "actql/actql/connectors/duckdb/host_native",
+  "actql/actql/execution_query",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_example",
+  "actql/actql/platform_native/remote_standard_host",
+}
+
+// Values
+pub fn bind_native_remote_application_run(NativeRemoteApplicationRun, () -> Bool) -> @remote_standard_host.NativeRemoteStandardRunOwner
+
+pub fn open_native_remote_application_run(@physical_strategy_example.Application, @execution_query.CapturedInputSource, @physical_resources.LedgerLimits, Int64, Bool, @host_native.NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String) -> Result[NativeRemoteApplicationRun, NativeRemoteApplicationRunIssue]
+
+// Errors
+
+// Types and methods
+type NativeRemoteApplicationRun
+
+pub(all) enum NativeRemoteApplicationRunIssue {
+  InvalidConfiguration
+  Ledger(@physical_resources.LedgerIssue)
+  Capture(@physical_strategy.RunIssue)
+  Strategy(@host_native.NativeStandardStrategyRunIssue)
+}
+
+// Type aliases
+
+// Traits

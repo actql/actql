@@ -522,7 +522,31 @@ fn core_application_dispatch(
   native_fixed_ms : Int64,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
-  create_application_dispatch(app, run, native_fixed_ms, resident, None)
+  @dbhost.dispatch_installation(
+    create_application_strategy_dispatch(
+      app,
+      run,
+      native_fixed_ms,
+      resident,
+      None,
+    ),
+  )
+}
+
+///|
+pub fn application_strategy_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  resident : Bool,
+) -> @dbhost.StrategyHostDispatch raise {
+  create_application_strategy_dispatch(
+    app,
+    run,
+    native_fixed_ms,
+    resident,
+    None,
+  )
 }
 
 ///|
@@ -534,12 +558,14 @@ fn core_application_retained_dispatch(
   file_work_ms : Int64,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
-  create_application_dispatch(
-    app,
-    run,
-    native_fixed_ms,
-    resident,
-    Some((file_bytes, Some(file_work_ms))),
+  @dbhost.dispatch_installation(
+    create_application_strategy_dispatch(
+      app,
+      run,
+      native_fixed_ms,
+      resident,
+      Some((file_bytes, Some(file_work_ms))),
+    ),
   )
 }
 
@@ -552,13 +578,15 @@ fn core_application_managed_dispatch(
   file_work_ms : Int64,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
-  create_application_dispatch(
-    app,
-    run,
-    native_fixed_ms,
-    resident,
-    Some((file_bytes, Some(file_work_ms))),
-    managed_output=true,
+  @dbhost.dispatch_installation(
+    create_application_strategy_dispatch(
+      app,
+      run,
+      native_fixed_ms,
+      resident,
+      Some((file_bytes, Some(file_work_ms))),
+      managed_output=true,
+    ),
   )
 }
 
@@ -572,13 +600,15 @@ fn core_application_materializing_dispatch(
   local_import_ms : Int64,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
-  create_application_dispatch(
-    app,
-    run,
-    native_fixed_ms,
-    resident,
-    Some((file_bytes, Some(file_work_ms))),
-    local_import_ms=Some(local_import_ms),
+  @dbhost.dispatch_installation(
+    create_application_strategy_dispatch(
+      app,
+      run,
+      native_fixed_ms,
+      resident,
+      Some((file_bytes, Some(file_work_ms))),
+      local_import_ms=Some(local_import_ms),
+    ),
   )
 }
 
@@ -594,20 +624,22 @@ fn core_application_retained_local_dispatch(
   native_task_ms : Array[Int64],
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
-  create_application_dispatch(
-    app,
-    run,
-    native_fixed_ms,
-    resident,
-    Some((file_bytes, Some(file_work_ms))),
-    local_import_ms=Some(local_import_ms),
-    local_export_ms=Some(local_export_ms),
-    native_task_ms~,
+  @dbhost.dispatch_installation(
+    create_application_strategy_dispatch(
+      app,
+      run,
+      native_fixed_ms,
+      resident,
+      Some((file_bytes, Some(file_work_ms))),
+      local_import_ms=Some(local_import_ms),
+      local_export_ms=Some(local_export_ms),
+      native_task_ms~,
+    ),
   )
 }
 
 ///|
-fn create_application_dispatch(
+fn create_application_strategy_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
@@ -617,7 +649,7 @@ fn create_application_dispatch(
   local_export_ms? : Int64? = None,
   native_task_ms? : Array[Int64] = [],
   managed_output? : Bool = false,
-) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+) -> @dbhost.StrategyHostDispatch raise {
   if !physical_equal(@strategy.captured_dag_graph(run), app.graph) {
     fail("foreign graph")
   }
@@ -836,5 +868,5 @@ fn create_application_dispatch(
       ]),
     ).unwrap()
   }
-  @dbhost.dispatch_installation(dispatch)
+  dispatch
 }

@@ -3,6 +3,7 @@ package "actql/actql/physical_strategy_example"
 
 import {
   "actql/actql/connectors/duckdb/host",
+  "actql/actql/connectors/duckdb/standard_host",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
@@ -41,6 +42,8 @@ pub fn application_profile_output_cid(Application, @physical_strategy.CapturedDA
 pub fn application_retained_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
 pub fn application_retained_local_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+
+pub fn application_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @standard_host.StrategyHostDispatch raise
 
 pub fn application_task_completion_preparation(Application, Int) -> @execution_relation.CompletionPreparation raise
 

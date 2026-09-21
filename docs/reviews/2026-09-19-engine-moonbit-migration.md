@@ -40,7 +40,10 @@ independent tests on JavaScript, Wasm, and native. Its JavaScript export names
 are target-specific wrappers over the portable product functions rather than
 the only callable implementation. This makes the existing Program checking,
 graph construction, and Local or DuckDB selection reusable by a native Site
-application without adding a second parser or planning implementation.
+application without adding a second parser or planning implementation. A
+native application profile now opens that portable strategy dispatch from an
+exact captured input and transfers both the standard Run and Captured DAG
+cleanup owner into the remote runtime boundary.
 Installing exact configured task factories in the complete Site executable
 remains an open product-composition step. The live Node bundle boundary and
 the native durable-Store route now install opaque factories directly; neither
