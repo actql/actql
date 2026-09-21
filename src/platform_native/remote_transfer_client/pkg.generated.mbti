@@ -17,7 +17,17 @@ pub fn cancel_durable_direct_transfer(@remote_transfer_journal.Journal, @http_cl
 
 pub fn cancel_durable_store_transfer(@remote_transfer_journal.Journal, @http_client.Client, @filesystem.Root, String, @remote_transfer.RemoteTransferRequest, String) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
+pub fn destination_material_use_generation(NativeRemoteDestinationMaterialUse) -> String
+
+pub fn destination_material_use_receipt_cid(NativeRemoteDestinationMaterialUse) -> String
+
+pub fn pin_durable_store_destination_material(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, String, String, String) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue]
+
 pub fn receive_durable_store_transfer(@remote_transfer_journal.Journal, @http_client.Client, @filesystem.Root, String, @remote_transfer.RemoteTransferRequest, String, Int64, Int64) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
+
+pub fn reclaim_durable_store_destination_material(NativeRemoteDestinationMaterialUse) -> Result[Bool, NativeRemoteTransferClientIssue]
+
+pub fn release_destination_material_use(NativeRemoteDestinationMaterialUse) -> Result[Bool, NativeRemoteTransferClientIssue]
 
 pub fn send_direct_transfer(@http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
@@ -25,9 +35,15 @@ pub fn send_durable_direct_transfer(@remote_transfer_journal.Journal, @http_clie
 
 pub fn send_durable_store_upload(@remote_transfer_journal.Journal, @http_client.Client, String, @remote_transfer.RemoteTransferRequest, Array[Bytes]) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
 
+pub fn stream_destination_material_use(NativeRemoteDestinationMaterialUse, Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, NativeRemoteTransferClientIssue]
+
+pub fn validate_destination_material_use(NativeRemoteDestinationMaterialUse) -> Result[Unit, NativeRemoteTransferClientIssue]
+
 // Errors
 
 // Types and methods
+type NativeRemoteDestinationMaterialUse
+
 pub(all) enum NativeRemoteTransferClientIssue {
   InvalidRequest
   SourceMismatch
@@ -37,6 +53,7 @@ pub(all) enum NativeRemoteTransferClientIssue {
   Destination(@filesystem.NativeFilesystemIssue)
   Protocol(@remote_transfer.RemoteTransferIssue)
   ReconciliationRequired
+  Consumer(String)
 }
 
 // Type aliases

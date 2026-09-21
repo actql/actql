@@ -8,6 +8,39 @@ pub(all) enum NativeRemoteTransferClientIssue {
   Destination(@filesystem.NativeFilesystemIssue)
   Protocol(@transfer.RemoteTransferIssue)
   ReconciliationRequired
+  Consumer(String)
+}
+
+///|
+/// One exact committed Store-route destination pinned for a consumer
+/// occurrence. The durable reader pin and the Transfer's physical holding are
+/// independent: releasing this use never releases destination capacity.
+struct NativeRemoteDestinationMaterialUse {
+  journal : @journal.Journal
+  root : @filesystem.Root
+  request : @transfer.RemoteTransferRequest
+  receipt : @transfer.RemoteTransferDestinationReceipt
+  use_id : String
+  reader_id : String
+  mut allocations : Array[@journal.NativeRemoteDestinationAllocation]
+  mut generations : Array[@filesystem.NativeFileGeneration]
+  mut reading : Bool
+  mut validated : Bool
+  mut released : Bool
+}
+
+///|
+pub fn destination_material_use_generation(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  @transfer.destination_receipt_projection(material.receipt)[4]
+}
+
+///|
+pub fn destination_material_use_receipt_cid(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  @transfer.destination_receipt_cid(material.receipt)
 }
 
 ///|
@@ -694,6 +727,321 @@ fn destination_material_generation(
     _ => return Err(Protocol(@transfer.InvalidTransfer))
   }
   Ok("sha256:" + digest)
+}
+
+///|
+/// Pins one exact committed Store-route destination for a consumer
+/// occurrence. The returned owner remains responsible for the durable reader
+/// pin until `release_destination_material_use` succeeds.
+pub fn pin_durable_store_destination_material(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  reader_id : String,
+  expected_receipt_cid : String,
+) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "store" ||
+    use_id.is_empty() ||
+    reader_id.is_empty() ||
+    expected_receipt_cid.is_empty() {
+    return Err(InvalidRequest)
+  }
+  let receipt = match journal.inspect_destination_receipt(request) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(ReconciliationRequired)
+    Err(issue) => return Err(Durable(issue))
+  }
+  if @transfer.destination_receipt_cid(receipt) != expected_receipt_cid {
+    return Err(ReconciliationRequired)
+  }
+  match journal.acquire_destination_reader(request, receipt, reader_id) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  Ok({
+    journal,
+    root,
+    request,
+    receipt,
+    use_id,
+    reader_id,
+    allocations: [],
+    generations: [],
+    reading: false,
+    validated: false,
+    released: false,
+  })
+}
+
+///|
+/// Fixes the exact physical generations named by a committed destination
+/// receipt without rereading their payload. Callers must still wait for a
+/// successful `stream_destination_material_use` before committing a result
+/// derived from the bytes.
+pub fn validate_destination_material_use(
+  material : NativeRemoteDestinationMaterialUse,
+) -> Result[Unit, NativeRemoteTransferClientIssue] {
+  if material.released || material.reading {
+    return Err(ReconciliationRequired)
+  }
+  if material.validated {
+    return Ok(())
+  }
+  let cids = @transfer.request_chunk_cids(material.request)
+  let lengths = @transfer.request_chunk_byte_lengths(material.request)
+  if cids.length() != lengths.length() {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  let allocations : Array[@journal.NativeRemoteDestinationAllocation] = []
+  let generations : Array[@filesystem.NativeFileGeneration] = []
+  for index, length in lengths {
+    let allocation = match
+      material.journal.inspect_destination_allocation(
+        material.request,
+        material.use_id,
+        index,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Durable(issue))
+    }
+    let generation = match @journal.destination_allocation_phase(allocation) {
+      @journal.DestinationAllocationSealed(value)
+      | @journal.DestinationAllocationReused(value) => value
+      _ => return Err(ReconciliationRequired)
+    }
+    if generation.size != length ||
+      @journal.destination_allocation_final_name(allocation) !=
+      destination_object_name(material.request, index).unwrap_or("") ||
+      !material.root.verify_generation(
+        @journal.destination_allocation_final_name(allocation),
+        generation,
+      ) {
+      return Err(ReconciliationRequired)
+    }
+    allocations.push(allocation)
+    generations.push(generation)
+  }
+  let actual = match
+    destination_material_generation(material.request, generations) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if actual != destination_material_use_generation(material) {
+    return Err(ReconciliationRequired)
+  }
+  material.allocations = allocations
+  material.generations = generations
+  material.validated = true
+  Ok(())
+}
+
+///|
+/// Streams each manifest chunk through a bounded buffer while verifying its
+/// physical digest. A consumer must treat bytes as provisional until this
+/// function returns successfully.
+pub fn stream_destination_material_use(
+  material : NativeRemoteDestinationMaterialUse,
+  max_read_bytes : Int,
+  consume : (Int, Bytes) -> Result[Unit, String],
+) -> Result[Unit, NativeRemoteTransferClientIssue] {
+  if material.released ||
+    material.reading ||
+    !material.validated ||
+    max_read_bytes <= 0 ||
+    max_read_bytes > 1048576 {
+    return Err(InvalidRequest)
+  }
+  let expected_cids = @transfer.request_chunk_cids(material.request)
+  let expected_lengths = @transfer.request_chunk_byte_lengths(material.request)
+  if material.generations.length() != expected_cids.length() ||
+    expected_cids.length() != expected_lengths.length() {
+    return Err(ReconciliationRequired)
+  }
+  material.reading = true
+  for index, generation in material.generations {
+    let name = @journal.destination_allocation_final_name(
+      material.allocations[index],
+    )
+    let reader = match material.root.open_reader(name, generation) {
+      Ok(value) => value
+      Err(issue) => {
+        material.reading = false
+        return Err(Destination(issue))
+      }
+    }
+    let hash = @sha.hasher()
+    let mut length = 0L
+    while true {
+      let chunk = match reader.next(max_read_bytes) {
+        Ok(value) => value
+        Err(issue) => {
+          ignore(reader.close())
+          material.reading = false
+          return Err(Destination(issue))
+        }
+      }
+      length = length + chunk.bytes.length().to_int64()
+      @sha.update(hash, chunk.bytes) catch {
+        _ => {
+          ignore(reader.close())
+          material.reading = false
+          return Err(Protocol(@transfer.InvalidTransfer))
+        }
+      }
+      if !chunk.bytes.is_empty() || (chunk.eof && length == 0L) {
+        match consume(index, chunk.bytes) {
+          Ok(_) => ()
+          Err(message) => {
+            ignore(reader.close())
+            material.reading = false
+            return Err(Consumer(message))
+          }
+        }
+      }
+      if chunk.eof {
+        break
+      }
+    }
+    match reader.finish() {
+      Ok(_) => ()
+      Err(issue) => {
+        ignore(reader.close())
+        material.reading = false
+        return Err(Destination(issue))
+      }
+    }
+    match reader.close() {
+      Ok(_) => ()
+      Err(issue) => {
+        material.reading = false
+        return Err(Destination(issue))
+      }
+    }
+    let digest = @sha.finish_hex(hash) catch {
+      _ => {
+        material.reading = false
+        return Err(Protocol(@transfer.InvalidTransfer))
+      }
+    }
+    if length != expected_lengths[index] ||
+      "sha256:" + digest != expected_cids[index] {
+      material.reading = false
+      return Err(SourceMismatch)
+    }
+  }
+  material.reading = false
+  Ok(())
+}
+
+///|
+/// Releases only this consumer occurrence. Destination capacity remains held
+/// until the material is explicitly reclaimed.
+pub fn release_destination_material_use(
+  material : NativeRemoteDestinationMaterialUse,
+) -> Result[Bool, NativeRemoteTransferClientIssue] {
+  if material.reading {
+    return Err(ReconciliationRequired)
+  }
+  if material.released {
+    return Ok(false)
+  }
+  let released = match
+    material.journal.release_destination_reader(
+      material.request,
+      material.receipt,
+      material.reader_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Durable(issue))
+  }
+  material.released = true
+  Ok(released)
+}
+
+///|
+/// Reclaims a destination material after this use has stopped. The durable
+/// material state prevents new readers before physical deletion begins, and
+/// capacity is returned only after every owned generation is durably absent.
+pub fn reclaim_durable_store_destination_material(
+  material : NativeRemoteDestinationMaterialUse,
+) -> Result[Bool, NativeRemoteTransferClientIssue] {
+  if material.reading {
+    return Err(ReconciliationRequired)
+  }
+  match release_destination_material_use(material) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match
+    material.journal.begin_destination_material_reclaim(
+      material.request,
+      material.receipt,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  let lengths = @transfer.request_chunk_byte_lengths(material.request)
+  for index, _ in lengths {
+    let allocation = match
+      material.journal.inspect_destination_allocation(
+        material.request,
+        material.use_id,
+        index,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Durable(issue))
+    }
+    let reclaiming = match @journal.destination_allocation_phase(allocation) {
+      @journal.DestinationAllocationSealed(_)
+      | @journal.DestinationAllocationReused(_) =>
+        match
+          material.journal.begin_destination_allocation_reclaim(allocation) {
+          Ok(value) => value
+          Err(issue) => return Err(Durable(issue))
+        }
+      @journal.DestinationAllocationReclaimingOwned(_)
+      | @journal.DestinationAllocationReclaimingSealed(_)
+      | @journal.DestinationAllocationReleased => allocation
+      _ => return Err(ReconciliationRequired)
+    }
+    match @journal.destination_allocation_phase(reclaiming) {
+      @journal.DestinationAllocationReclaimingSealed(generation) =>
+        match
+          material.root.reclaim_generation(
+            @journal.destination_allocation_final_name(reclaiming),
+            generation,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(Destination(issue))
+        }
+      @journal.DestinationAllocationReclaimingOwned(_) =>
+        return Err(ReconciliationRequired)
+      @journal.DestinationAllocationReleased => continue
+      _ => return Err(ReconciliationRequired)
+    }
+    match material.root.sync_directory() {
+      Ok(_) => ()
+      Err(issue) => return Err(Destination(issue))
+    }
+    match material.journal.finish_destination_allocation_reclaim(reclaiming) {
+      Ok(_) => ()
+      Err(issue) => return Err(Durable(issue))
+    }
+  }
+  match material.root.sync_directory() {
+    Ok(_) => ()
+    Err(issue) => return Err(Destination(issue))
+  }
+  match
+    material.journal.finish_destination_material_reclaim(
+      material.request,
+      material.receipt,
+      true,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Durable(issue))
+  }
 }
 
 ///|

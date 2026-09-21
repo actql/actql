@@ -293,6 +293,7 @@ test "native Store upload seals once and restores without source upload" {
     Err(Destination(_)) =>
       fail("native Store failure setup: destination failure")
     Err(Protocol(_)) => fail("native Store failure setup: protocol failure")
+    Err(Consumer(_)) => fail("native Store failure setup: consumer failure")
     Err(ReconciliationRequired) =>
       fail("native Store failure setup: reconciliation required")
     Ok(_) => fail("native Store failure setup unexpectedly succeeded")
@@ -325,6 +326,7 @@ test "native Store upload seals once and restores without source upload" {
     Err(Durable(_)) => fail("native Store download: journal failure")
     Err(Destination(_)) => fail("native Store download: destination failure")
     Err(Protocol(_)) => fail("native Store download: protocol failure")
+    Err(Consumer(_)) => fail("native Store download: consumer failure")
     Err(ReconciliationRequired) =>
       fail("native Store download: reconciliation required")
   }
@@ -338,7 +340,61 @@ test "native Store upload seals once and restores without source upload" {
     1048576L, 8L,
   ).unwrap()
   assert_true(@transfer.record_is_destination_committed(completed_again))
+  let receipt = destination_reopened
+    .inspect_destination_receipt(request)
+    .unwrap()
+    .unwrap()
+  let receipt_cid = @transfer.destination_receipt_cid(receipt)
+  let first = pin_durable_store_destination_material(
+    destination_reopened, destination_root, request, "native-store-use", "reader-first",
+    receipt_cid,
+  ).unwrap()
+  validate_destination_material_use(first).unwrap()
+  let stopped = stream_destination_material_use(first, 4, fn(_, _) {
+    Err("consumer stopped")
+  })
+  assert_true(stopped is Err(Consumer("consumer stopped")))
+  let delivered : Array[Byte] = []
+  stream_destination_material_use(first, 4, fn(_, bytes) {
+    for byte in bytes {
+      delivered.push(byte)
+    }
+    Ok(())
+  }).unwrap()
+  let expected : Array[Byte] = []
+  for chunk in chunks {
+    for byte in chunk {
+      expected.push(byte)
+    }
+  }
+  assert_eq(Bytes::from_array(delivered), Bytes::from_array(expected))
+  let second = pin_durable_store_destination_material(
+    destination_reopened, destination_root, request, "native-store-use", "reader-second",
+    receipt_cid,
+  ).unwrap()
+  validate_destination_material_use(second).unwrap()
+  assert_true(
+    reclaim_durable_store_destination_material(first)
+    is Err(Durable(@journal.MaterialInUse)),
+  )
+  assert_true(release_destination_material_use(second).unwrap())
+  assert_true(reclaim_durable_store_destination_material(first).unwrap())
+  assert_eq(
+    destination_reopened.destination_capacity_usage().unwrap().reserved_bytes,
+    0L,
+  )
   assert_true(destination_reopened.close())
+  let reclaimed = @journal.open_journal(
+    sqlite, destination_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  assert_true(
+    pin_durable_store_destination_material(
+      reclaimed, destination_root, request, "native-store-use", "reader-after-reclaim",
+      receipt_cid,
+    )
+    is Err(Durable(@journal.RecoveryRequired)),
+  )
+  assert_true(reclaimed.close())
   assert_true(client.close())
 }
 
