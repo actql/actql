@@ -47,6 +47,8 @@ pub fn native_remote_standard_direct_run_admission_authorizes(NativeRemoteStanda
 
 pub fn native_remote_standard_direct_run_factory_request_cid(NativeRemoteStandardDirectRunFactory, @remote_site_protocol.RemoteInputBinding) -> Result[String, NativeRemoteStandardInputFailure]
 
+pub fn native_remote_standard_direct_source_factory_request_cid(NativeRemoteStandardDirectSourceFactory, @remote_site_protocol.RemoteInputBinding) -> Result[String, NativeRemoteStandardInputFailure]
+
 pub fn native_remote_standard_input_failure_cleanup_pending(NativeRemoteStandardInputFailure) -> Bool
 
 pub fn native_remote_standard_input_failure_code(NativeRemoteStandardInputFailure) -> String
@@ -75,6 +77,8 @@ pub fn prepare_native_remote_standard_transfer_input(@remote_transfer.RemoteTran
 
 pub fn register_native_remote_standard_direct_run_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue]
 
+pub fn register_native_remote_standard_direct_source_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardDirectSourceFactory, NativeRemoteStandardHostIssue]
+
 pub fn register_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, () -> Bool, (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String], () -> Bool) -> NativeRemoteStandardPhysicalSource
 
 pub fn register_native_remote_standard_row_codec(String, String, String) -> Result[NativeRemoteStandardRowCodec, NativeRemoteStandardTransferSourceIssue]
@@ -101,6 +105,15 @@ pub fn NativeRemoteStandardDirectRunSession::authorizes(Self, @remote_transfer.R
 pub fn NativeRemoteStandardDirectRunSession::cancel(Self) -> NativeRemoteStandardInputFailure
 pub fn NativeRemoteStandardDirectRunSession::feed(Self, Int, Bytes) -> Bool
 pub fn NativeRemoteStandardDirectRunSession::finish(Self) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
+
+type NativeRemoteStandardDirectSourceFactory
+pub fn NativeRemoteStandardDirectSourceFactory::start_session(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool) -> NativeRemoteStandardDirectSourceSession
+
+type NativeRemoteStandardDirectSourceSession
+pub fn NativeRemoteStandardDirectSourceSession::authorizes(Self, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Bool
+pub fn NativeRemoteStandardDirectSourceSession::cancel(Self) -> NativeRemoteStandardInputFailure
+pub fn NativeRemoteStandardDirectSourceSession::feed(Self, Int, Bytes) -> Bool
+pub fn NativeRemoteStandardDirectSourceSession::finish(Self) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
 
 pub(all) enum NativeRemoteStandardHostIssue {
   InvalidConfiguration

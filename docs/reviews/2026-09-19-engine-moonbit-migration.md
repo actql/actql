@@ -28,9 +28,12 @@ frame rejection, cancellation, and the exact cleanup owner. The environment
 adapter can only authorize, feed, finish, cancel, and retry that session; it no
 longer constructs a parallel input-failure lifecycle. Cleanup completion is
 also monotonic state on the MoonBit failure owner, so repeated adapter retries
-cannot release the physical input twice. Generating and installing those task
-factories in the complete Site executable remains an open product-composition
-step.
+cannot release the physical input twice. A Run-independent source factory now
+ends at the same verified captured-source boundary, allowing an asynchronous
+Host to execute after verification without duplicating the native Run type or
+the input state machine. The Node adapter awaits that environment execution as
+a physical operation. Generating and installing exact task factories in the
+complete Site executable remains an open product-composition step.
 
 The JavaScript retained-row parser is not a product authority after this
 change. Its tests stay as independent physical fixtures; they are not used to

@@ -99,7 +99,7 @@ export function createRemoteStandardDirectExecution({receiver, control} = {}) {
         signal,
       );
       signal?.throwIfAborted();
-      const output = control.finish(session);
+      const output = await control.finish(session);
       terminal = true;
       return output;
     } catch (primary) {

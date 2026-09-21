@@ -69,8 +69,9 @@ function fixture({rejectFrame = false, cleanupResults = [true]} = {}) {
       events.push(`feed-${index}`);
       return !(rejectFrame && index === 1);
     },
-    finish(value) {
+    async finish(value) {
       assert.equal(value, session);
+      await Promise.resolve();
       assert.equal(releasePhysical(), true);
       assert.equal(physicalAvailable(), false);
       events.push('finish');

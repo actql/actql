@@ -75,15 +75,33 @@ struct NativeRemoteStandardPhysicalRunAdmission {
 }
 
 ///|
-/// Exact checked task input factory installed by one verified runtime bundle.
-/// Environment adapters cannot replace its codec, checked sequence, Program
-/// identity, limits, or standard Run construction after registration.
-struct NativeRemoteStandardDirectRunFactory {
+/// Exact checked input semantics shared by synchronous native execution and
+/// asynchronous environment Hosts. It contains no Run implementation.
+struct NativeRemoteStandardDirectSourceFactory {
   codec : NativeRemoteStandardRowCodec
   sequence : @query.QuerySequence
   program : @context.ProgramSourceIdentity
   binding_limits : NativeRemoteStandardTransferBindingLimits
   source_limits : NativeRemoteStandardTransferSourceLimits
+}
+
+///|
+/// One direct-input occurrence that establishes only the verified captured
+/// source. The environment chooses no schema, view, codec, framing, or cleanup
+/// transition while driving this session.
+struct NativeRemoteStandardDirectSourceSession {
+  input : NativeRemoteStandardTransferInput?
+  mut admission : NativeRemoteStandardPhysicalAdmission?
+  mut failure : NativeRemoteStandardInputFailure?
+  mut terminal : Bool
+}
+
+///|
+/// Exact checked task input factory installed by one verified runtime bundle.
+/// Environment adapters cannot replace its codec, checked sequence, Program
+/// identity, limits, or standard Run construction after registration.
+struct NativeRemoteStandardDirectRunFactory {
+  source : NativeRemoteStandardDirectSourceFactory
   open_run : (@query.CapturedInputSource) -> Result[
     @native_host.NativeStandardStrategyRun,
     Unit,
@@ -652,27 +670,16 @@ pub fn native_remote_standard_direct_run_admission_authorizes(
 }
 
 ///|
-/// Starts the product direct-receiver session from one already-admitted
-/// dispatch binding and its current retained claim. The environment owns only
-/// asynchronous byte access and physical lifetime observations.
-pub fn prepare_native_remote_standard_direct_run_admission(
+fn prepare_native_remote_standard_direct_source_admission(
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
   claimed_request : @transfer.RemoteTransferRequest,
   receipt : @transfer.RemoteTransferDestinationReceipt,
   available : () -> Bool,
   release : () -> Bool,
-  codec : NativeRemoteStandardRowCodec,
-  sequence : @query.QuerySequence,
-  program : @context.ProgramSourceIdentity,
-  binding_limits : NativeRemoteStandardTransferBindingLimits,
-  source_limits : NativeRemoteStandardTransferSourceLimits,
-  open_run : (@query.CapturedInputSource) -> Result[
-    @native_host.NativeStandardStrategyRun,
-    Unit,
-  ],
+  factory : NativeRemoteStandardDirectSourceFactory,
 ) -> Result[
-  NativeRemoteStandardPhysicalRunAdmission,
+  (NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalAdmission),
   NativeRemoteStandardInputFailure,
 ] {
   if !@remote.remote_input_binding_matches_dispatch(binding, request) {
@@ -685,10 +692,10 @@ pub fn prepare_native_remote_standard_direct_run_admission(
   let input = match
     admit_native_remote_standard_transfer_input(
       binding,
-      binding_limits.max_binding_bytes,
-      binding_limits.max_chunks,
-      binding_limits.max_manifest_bytes,
-      binding_limits.max_referenced_bytes,
+      factory.binding_limits.max_binding_bytes,
+      factory.binding_limits.max_chunks,
+      factory.binding_limits.max_manifest_bytes,
+      factory.binding_limits.max_referenced_bytes,
     ) {
     Ok(value) => value
     Err(_) =>
@@ -717,9 +724,92 @@ pub fn prepare_native_remote_standard_direct_run_admission(
     (_max_bytes, _emit) => Err("incremental-provider-only"),
     release,
   )
-  prepare_native_remote_standard_physical_run_admission(
-    request, binding, input, physical, codec, sequence, program, source_limits, open_run,
-  )
+  prepare_native_remote_standard_physical_admission(
+    input,
+    physical,
+    factory.codec,
+    factory.sequence,
+    factory.program,
+    factory.source_limits,
+  ).map(admission => (input, admission))
+}
+
+///|
+/// Starts the product direct-receiver session from one already-admitted
+/// dispatch binding and its current retained claim. The environment owns only
+/// asynchronous byte access and physical lifetime observations.
+pub fn prepare_native_remote_standard_direct_run_admission(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  claimed_request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  available : () -> Bool,
+  release : () -> Bool,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[
+  NativeRemoteStandardPhysicalRunAdmission,
+  NativeRemoteStandardInputFailure,
+] {
+  let source_factory : NativeRemoteStandardDirectSourceFactory = {
+    codec,
+    sequence,
+    program,
+    binding_limits,
+    source_limits,
+  }
+  match
+    prepare_native_remote_standard_direct_source_admission(
+      request, binding, claimed_request, receipt, available, release, source_factory,
+    ) {
+    Ok((input, physical)) =>
+      Ok({ request, binding, input, physical, open_run, terminal: false, })
+    Err(failure) => Err(failure)
+  }
+}
+
+///|
+fn valid_native_remote_standard_direct_source_limits(
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+) -> Bool {
+  binding_limits.max_binding_bytes >= 0 &&
+  binding_limits.max_chunks >= 0 &&
+  binding_limits.max_manifest_bytes >= 0 &&
+  binding_limits.max_referenced_bytes >= 0L &&
+  source_limits.max_rows >= 0 &&
+  source_limits.max_wire_bytes >= 0 &&
+  source_limits.max_read_bytes > 0 &&
+  source_limits.max_entries >= 0 &&
+  source_limits.max_name_bytes >= 0
+}
+
+///|
+/// Registers one exact checked input factory without selecting an environment
+/// Run implementation. Registration performs no physical access or reserve.
+pub fn register_native_remote_standard_direct_source_factory(
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+) -> Result[
+  NativeRemoteStandardDirectSourceFactory,
+  NativeRemoteStandardHostIssue,
+] {
+  if !valid_native_remote_standard_direct_source_limits(
+      binding_limits, source_limits,
+    ) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({ codec, sequence, program, binding_limits, source_limits, })
 }
 
 ///|
@@ -736,25 +826,21 @@ pub fn register_native_remote_standard_direct_run_factory(
     Unit,
   ],
 ) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue] {
-  if binding_limits.max_binding_bytes < 0 ||
-    binding_limits.max_chunks < 0 ||
-    binding_limits.max_manifest_bytes < 0 ||
-    binding_limits.max_referenced_bytes < 0L ||
-    source_limits.max_rows < 0 ||
-    source_limits.max_wire_bytes < 0 ||
-    source_limits.max_read_bytes <= 0 ||
-    source_limits.max_entries < 0 ||
-    source_limits.max_name_bytes < 0 {
-    return Err(InvalidConfiguration)
+  let source = match
+    register_native_remote_standard_direct_source_factory(
+      codec, sequence, program, binding_limits, source_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  Ok({ codec, sequence, program, binding_limits, source_limits, open_run, })
+  Ok({ source, open_run, })
 }
 
 ///|
 /// Resolves the exact Transfer request selected by one registered task before
 /// the environment acquires a direct-receiver claim.
-pub fn native_remote_standard_direct_run_factory_request_cid(
-  factory : NativeRemoteStandardDirectRunFactory,
+pub fn native_remote_standard_direct_source_factory_request_cid(
+  factory : NativeRemoteStandardDirectSourceFactory,
   binding : @remote.RemoteInputBinding,
 ) -> Result[String, NativeRemoteStandardInputFailure] {
   match
@@ -772,6 +858,141 @@ pub fn native_remote_standard_direct_run_factory_request_cid(
         cleanup: () => true,
         cleanup_complete: false,
       })
+  }
+}
+
+///|
+pub fn native_remote_standard_direct_run_factory_request_cid(
+  factory : NativeRemoteStandardDirectRunFactory,
+  binding : @remote.RemoteInputBinding,
+) -> Result[String, NativeRemoteStandardInputFailure] {
+  native_remote_standard_direct_source_factory_request_cid(
+    factory.source,
+    binding,
+  )
+}
+
+///|
+/// Opens one direct source session without selecting an environment Run.
+pub fn NativeRemoteStandardDirectSourceFactory::start_session(
+  self : NativeRemoteStandardDirectSourceFactory,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  claimed_request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  available : () -> Bool,
+  release : () -> Bool,
+) -> NativeRemoteStandardDirectSourceSession {
+  match
+    prepare_native_remote_standard_direct_source_admission(
+      request, binding, claimed_request, receipt, available, release, self,
+    ) {
+    Ok((input, admission)) =>
+      {
+        input: Some(input),
+        admission: Some(admission),
+        failure: None,
+        terminal: false,
+      }
+    Err(failure) =>
+      { input: None, admission: None, failure: Some(failure), terminal: true, }
+  }
+}
+
+///|
+/// Rechecks the exact retained direct claim for this unfinished source.
+pub fn NativeRemoteStandardDirectSourceSession::authorizes(
+  self : NativeRemoteStandardDirectSourceSession,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Bool {
+  if self.terminal {
+    return false
+  }
+  guard self.input is Some(input) else { return false }
+  guard self.admission is Some(admission) else { return false }
+  if @transfer.request_cid(request) != @transfer.request_cid(input.request) ||
+    @transfer.destination_receipt_cid(receipt) != input.destination_receipt_cid ||
+    @transfer.destination_receipt_json(receipt) is Err(_) {
+    return false
+  }
+  let receipt_projection = @transfer.destination_receipt_projection(receipt)
+  receipt_projection.length() == 7 &&
+  receipt_projection[1] == @transfer.request_cid(request) &&
+  transfer_source_live(admission.token)
+}
+
+///|
+/// Feeds one bounded physical frame into the common source verifier.
+pub fn NativeRemoteStandardDirectSourceSession::feed(
+  self : NativeRemoteStandardDirectSourceSession,
+  index : Int,
+  bytes : Bytes,
+) -> Bool {
+  if self.terminal {
+    return false
+  }
+  guard self.admission is Some(admission) else { return false }
+  match
+    feed_native_remote_standard_physical_admission(admission, index, bytes) {
+    Ok(_) => true
+    Err(issue) => {
+      self.failure = Some(cancel_transfer_source_admission(admission, issue))
+      self.admission = None
+      self.terminal = true
+      false
+    }
+  }
+}
+
+///|
+/// Establishes the captured source after complete physical verification.
+pub fn NativeRemoteStandardDirectSourceSession::finish(
+  self : NativeRemoteStandardDirectSourceSession,
+) -> Result[
+  NativeRemoteStandardTransferSource,
+  NativeRemoteStandardInputFailure,
+] {
+  if self.terminal {
+    return match self.failure {
+      Some(failure) => Err(failure)
+      None => Err(transfer_source_failure(None, InvalidProfile))
+    }
+  }
+  guard self.admission is Some(admission) else {
+    return Err(transfer_source_failure(None, InvalidProfile))
+  }
+  self.admission = None
+  self.terminal = true
+  match finish_native_remote_standard_physical_admission(admission) {
+    Ok(source) => Ok(source)
+    Err(failure) => {
+      self.failure = Some(failure)
+      Err(failure)
+    }
+  }
+}
+
+///|
+/// Cancels the unfinished source or returns its existing cleanup owner.
+pub fn NativeRemoteStandardDirectSourceSession::cancel(
+  self : NativeRemoteStandardDirectSourceSession,
+) -> NativeRemoteStandardInputFailure {
+  match self.failure {
+    Some(failure) => failure
+    None =>
+      match self.admission {
+        Some(admission) => {
+          let failure = cancel_native_remote_standard_physical_admission(
+            admission,
+          )
+          self.admission = None
+          self.failure = Some(failure)
+          self.terminal = true
+          failure
+        }
+        None => transfer_source_failure(None, Physical("cancelled"))
+      }
   }
 }
 
@@ -797,11 +1018,11 @@ pub fn NativeRemoteStandardDirectRunFactory::prepare(
     receipt,
     available,
     release,
-    self.codec,
-    self.sequence,
-    self.program,
-    self.binding_limits,
-    self.source_limits,
+    self.source.codec,
+    self.source.sequence,
+    self.source.program,
+    self.source.binding_limits,
+    self.source.source_limits,
     self.open_run,
   )
 }

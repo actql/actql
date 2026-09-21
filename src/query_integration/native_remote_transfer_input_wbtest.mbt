@@ -332,6 +332,85 @@ test "incremental direct destination uses common standard input verifier" {
   assert_eq(run_releases[0], 1)
   assert_false(run_available[0])
 
+  let source_available = [true]
+  let source_releases = [0]
+  let source_factory = @native_remote_standard.register_native_remote_standard_direct_source_factory(
+    codec,
+    query_checked_sequence(program),
+    @program_check.source_identity(program),
+    {
+      max_binding_bytes: 131072,
+      max_chunks: 8,
+      max_manifest_bytes: 4096,
+      max_referenced_bytes: 1048576L,
+    },
+    {
+      max_rows: 10,
+      max_wire_bytes: 1000,
+      max_read_bytes: 3,
+      max_entries: 100,
+      max_name_bytes: 10000,
+      values: {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 10,
+        max_work: 200000,
+      },
+      wire: {
+        max_bytes: 100,
+        max_nodes: 20,
+        max_depth: 4,
+        max_text_bytes: 100,
+      },
+    },
+  ).unwrap()
+  assert_eq(
+    @native_remote_standard.native_remote_standard_direct_source_factory_request_cid(
+      source_factory, binding,
+    ).unwrap(),
+    @transfer.request_cid(request),
+  )
+  let source_session = source_factory.start_session(
+    dispatch,
+    binding,
+    request,
+    receipt,
+    () => source_available[0],
+    () => {
+      source_releases[0] += 1
+      source_available[0] = false
+      true
+    },
+  )
+  assert_true(source_session.authorizes(request, receipt))
+  for index, chunk in chunks {
+    let mut offset = 0
+    while offset < chunk.length() {
+      let count = Int::min(3, chunk.length() - offset)
+      assert_true(
+        source_session.feed(
+          index,
+          Bytes::from_array(Array::makei(count, unit => chunk[offset + unit])),
+        ),
+      )
+      offset += count
+    }
+  }
+  let captured_source = source_session.finish().unwrap()
+  ignore(
+    @native_remote_standard.native_remote_standard_transfer_captured_source(
+      captured_source,
+    ),
+  )
+  assert_true(source_available[0])
+  assert_true(
+    @native_remote_standard.finish_native_remote_standard_transfer_source(
+      captured_source,
+    ),
+  )
+  assert_eq(source_releases[0], 1)
+  assert_false(source_available[0])
+
   let rejected_available = [true]
   let rejected_releases = [0]
   let rejected_session = direct_factory.start_session(
