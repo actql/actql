@@ -2,7 +2,7 @@
 
 Date: 2026-09-22
 
-Validated implementation commit: `b5cb4f61`
+Validated implementation commit: `e5cbb3eb`
 
 The documentation commit that contains this record is metadata-only. The
 validated implementation commit above is its direct parent.
