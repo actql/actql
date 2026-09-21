@@ -488,8 +488,10 @@ At `bf33b6e8`, Relation-backed selection reaches that same standard Host path.
 Its traversal proof includes the exact upstream selector bound, while repeated
 selector rows still resolve to canonical unique Graph identities at runtime.
 Three-target tests cover two consumers and final cleanup, and the real Node
-Host smoke passes. Patterned hops, hop predicates, and path output remain open,
-so `traverse` remains partial.
+Host smoke passes. At `a4392c06`, the distinct authored `hops` source form with
+one predicate-free hop executes through the bounded kernel and the same Host,
+consumer, and cleanup path on all portable targets. Multi-hop patterns, hop
+predicates, and path output remain open, so `traverse` remains partial.
 
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
