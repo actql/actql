@@ -22,7 +22,7 @@ readable coverage manifest is authoritative for individual operation status.
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
 33/39, consumer lifetime 33/39, cancellation 28/39, and publication 31/39. These are
-layer counts, not operation completion: 21 entries are `complete` and 18 remain
+layer counts, not operation completion: 22 entries are `complete` and 17 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -970,8 +970,16 @@ release each consumer independently, and return the execution ledger to zero.
 Query integration passes 433 tests on each of JS, Wasm, and native. Generated
 Workers and Node Host fixtures are current; all 24 Workers tests, the
 dependency-free Node Host check, and all 236 retained-boundary tests pass.
-Environment cancellation of scored-policy work and final same-SHA Linux CI
-remain open.
+Final same-SHA Linux CI remains open.
+
+At `580993ac`, maximum and weighted-sum ranking use owner-bound supplied score
+inputs in the real Node standard Host. Cancellation is delivered through the
+event loop during bounded policy work, the kernel observes it, the Host
+confirms stop, cleanup reclaims the exact inputs, and every ledger returns to
+zero. The same revision passes all 433 query-integration tests on JS, Wasm,
+and native, and the complete Node standard-Host test. With the existing RRF,
+tie, repeated-input, negative, numeric, and resource fixtures, all classified
+`merge_rankings` variants and required Local layers are closed.
 
 At `bf85b1b4`, duplicate candidates and noncontiguous positions are exercised
 through the registered RRF provider rather than only through checker or helper
