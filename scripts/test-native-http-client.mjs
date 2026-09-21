@@ -49,6 +49,21 @@ if ((nativeSiteNamespace === undefined) !== (nativeSiteUser === undefined) ||
     nativeSiteNamespace === '' || nativeSiteUser === '') {
   throw new Error('native Site namespace and user must be configured together');
 }
+const nativeDestinationNamespace =
+  process.env.ACTQL_TEST_NATIVE_DESTINATION_NETNS;
+const nativeDestinationUser =
+  process.env.ACTQL_TEST_NATIVE_DESTINATION_USER;
+if ((nativeDestinationNamespace === undefined) !==
+      (nativeDestinationUser === undefined) ||
+    nativeDestinationNamespace === '' || nativeDestinationUser === '') {
+  throw new Error(
+    'native destination namespace and user must be configured together',
+  );
+}
+if (nativeDestinationNamespace !== undefined &&
+    nativeSiteNamespace === undefined) {
+  throw new Error('destination namespace requires a source Site namespace');
+}
 const applicationOutputRoute =
   process.env.ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE ?? 'direct';
 if (!['direct', 'store'].includes(applicationOutputRoute)) {
@@ -1116,14 +1131,20 @@ try {
   assert.match(applicationVersion.stdout, /0\.1/);
 
   const repositoryRoot = new URL('../', import.meta.url).pathname;
-  const runCaptured = (executable_, arguments_, environment = {}) => {
+  const runCapturedIn = (
+    executable_,
+    arguments_,
+    environment,
+    namespace,
+    user,
+  ) => {
     const siteEnvironment = {PATH: '/usr/bin:/bin', LANG: 'C', ...environment};
-    const namespaced = nativeSiteNamespace !== undefined;
+    const namespaced = namespace !== undefined;
     const command = namespaced ? 'sudo' : executable_;
     const commandArguments = namespaced
       ? [
-          'ip', 'netns', 'exec', nativeSiteNamespace,
-          'sudo', `--user=${nativeSiteUser}`, 'env',
+          'ip', 'netns', 'exec', namespace,
+          'sudo', `--user=${user}`, 'env',
           ...Object.entries(siteEnvironment)
             .map(([name, value]) => `${name}=${value}`),
           executable_, ...arguments_,
@@ -1151,6 +1172,25 @@ try {
       })(),
     });
   };
+  const runCaptured = (executable_, arguments_, environment = {}) =>
+    runCapturedIn(
+      executable_,
+      arguments_,
+      environment,
+      nativeSiteNamespace,
+      nativeSiteUser,
+    );
+  const runCapturedAtDestination = (
+    executable_,
+    arguments_,
+    environment = {},
+  ) => runCapturedIn(
+    executable_,
+    arguments_,
+    environment,
+    nativeDestinationNamespace ?? nativeSiteNamespace,
+    nativeDestinationUser ?? nativeSiteUser,
+  );
 
   execFileSync(moon, [
     'build', '--target', 'native',
@@ -1416,7 +1456,7 @@ try {
         '--max-manifest-bytes', '4096',
         '--max-bytes', '1048576',
       ];
-      const receivedOutput = runCaptured(transferReceiver, [
+      const receivedOutput = runCapturedAtDestination(transferReceiver, [
         ...applicationOutputReceiveArguments,
         '--mode', 'receive-output',
       ]);
@@ -1619,7 +1659,7 @@ try {
   assert.deepEqual(await readdir(applicationTransferRoot), []);
   if (applicationOutputRoute === 'store') {
     assert.notEqual(applicationOutputReceiveArguments, undefined);
-    const reclaimedOutputRun = runCaptured(transferReceiver, [
+    const reclaimedOutputRun = runCapturedAtDestination(transferReceiver, [
       ...applicationOutputReceiveArguments,
       '--mode', 'reclaim',
     ]);

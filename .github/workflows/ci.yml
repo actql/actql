@@ -120,6 +120,40 @@ jobs:
           moon version --all
           ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
             npm run check:native-http-client
+  native-separated-network:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Install pinned native DuckDB transport
+        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+      - name: Install pinned MoonBit
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Install isolated network tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes iproute2 iptables curl
+      - name: Verify native direct and outbound-only Store profiles
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
+        run: npm run check:native-separated-network
   workers:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
