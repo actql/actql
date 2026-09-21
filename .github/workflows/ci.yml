@@ -24,10 +24,15 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
       - run: npm ci
+      - name: Install pinned native DuckDB transport
+        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
       - name: Install pinned MoonBit
         run: |
           node scripts/setup-moonbit.mjs
@@ -97,7 +102,12 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
       - run: npm ci
+      - name: Install pinned native DuckDB transport
+        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
       - name: Install pinned MoonBit
         run: |
           node scripts/setup-moonbit.mjs
