@@ -225,6 +225,29 @@ relation suite passes 709 tests on each portable target.
 These fixes close the three findings in the fixed review. They do not change
 the family layer counts above or replace final same-SHA Linux CI.
 
+## Closed review findings after `7143be63`
+
+The literal selector membership finding was already closed after the reviewed
+SHA by `e48f65f6`. Literal and Relation selectors retain their typed values,
+mark every matched identity, and fail the operation if any requested identity
+is absent. This check finishes before edge selection or output completion.
+
+Commit `c26b567b` keeps each raw Graph producer read beside its immutable
+storage during graft, exact union, and structural subtraction. Every bounded
+resume, including the final handoff, rechecks all exact reads before touching
+storage. A successful copy owns an independent output generation and does not
+retain a permanent dependency on its inputs.
+
+Commit `d4a42cd2` constructs subgraph output in declared-node mode regardless
+of the source construction representation. A valid derived-endpoint Graph can
+therefore retain a selected isolated node even when no selected edge remains.
+The focused Local SGA tests pass 22 tests and the affected provider and query
+integration selection passes 445 tests on each of JS, Wasm, and native.
+
+The stale Workers finding is also closed by canonical regeneration in
+`2a2f385f`; the read-only generator checks and all 24 Workers tests pass. These
+focused results do not replace final same-SHA Linux CI.
+
 ## Family execution gaps
 
 ### SGA
