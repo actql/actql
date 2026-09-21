@@ -687,6 +687,7 @@
         "managed",
         "standard_host",
         "consumer_lifetime",
+        "resources",
         "cancellation",
         "publication",
         "three_targets"
@@ -708,6 +709,13 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "finite_list_resource_boundary",
+          "layers": ["resources"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "cf752643",
+          "evidence": ["src/local_sga/graft_wbtest.mbt"]
         },
         {
           "scope": "standard_host_consumers_publication_and_cancellation",
