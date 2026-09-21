@@ -77,6 +77,10 @@ test "standard Local reads the exact committed Transfer destination" {
     is Some(runtime_root_path) else {
     return
   }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_GATEWAY_ORIGIN")
+    is Some(gateway_origin) else {
+    return
+  }
   guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET")
     is Some(runtime_target) else {
     return
@@ -380,8 +384,10 @@ test "standard Local reads the exact committed Transfer destination" {
       runtime,
       remote_journal,
       client,
-      origin + "/standard-transfer/poll",
-      origin + "/standard-transfer/observation",
+      gateway_origin +
+      "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
+      gateway_origin +
+      "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
     )
     is Ok(@native_remote_agent.DispatchObserved(dispatch_identity, _)) else {
     fail("standard Transfer dispatch was not observed over HTTPS")
@@ -419,8 +425,10 @@ test "standard Local reads the exact committed Transfer destination" {
       runtime,
       remote_journal,
       client,
-      origin + "/standard-transfer/poll",
-      origin + "/standard-transfer/observation",
+      gateway_origin +
+      "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
+      gateway_origin +
+      "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
     )
     is Ok(@native_remote_agent.ReleaseObserved(released_identity, _)) else {
     fail("standard Transfer release was not observed over HTTPS")

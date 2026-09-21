@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {
+  createHash,
+  generateKeyPairSync,
+  X509Certificate,
+} from 'node:crypto';
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:https';
@@ -8,6 +12,8 @@ import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {startHttpsOutboundSiteGateway} from
+  '../adapters/host-node/outbound-site-gateway.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 
@@ -79,6 +85,8 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
   .update(remoteInputBindingBody).digest('hex')}`;
 
 let server;
+let standardGateway;
+let remoteSiteControl;
 let outboundPolls = 0;
 let nativeTransferCid;
 let nativeTransferChunks = 0;
@@ -91,8 +99,7 @@ let nativeStoreTransferSealed = false;
 let nativeStoreTransferManifest = [];
 const nativeStoreTransferBodies = [];
 const nativeStoreUses = new Map();
-let nativeStandardTransferOperation;
-const nativeStandardTransferObservations = [];
+const nativeStandardTransferCompletions = [];
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -178,8 +185,6 @@ try {
           '/outbound/status-observation',
           '/outbound/stale-observation',
           '/standard-transfer/queue',
-          '/standard-transfer/poll',
-          '/standard-transfer/observation',
         ]
           .includes(request.url))) {
       response.writeHead(404).end();
@@ -198,28 +203,42 @@ try {
     const bodyBytes = Buffer.concat(chunks);
     const body = bodyBytes.toString('utf8');
     if (request.url === '/standard-transfer/queue') {
-      if (nativeStandardTransferOperation !== undefined) {
-        response.writeHead(409).end();
+      if (standardGateway === undefined || remoteSiteControl === undefined) {
+        response.writeHead(503).end();
         return;
       }
-      nativeStandardTransferOperation = body;
-      response.writeHead(201).end();
-      return;
-    }
-    if (request.url === '/standard-transfer/poll') {
-      if (nativeStandardTransferOperation === undefined) {
-        response.writeHead(204).end();
+      let envelope;
+      try { envelope = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
         return;
       }
-      const operation = nativeStandardTransferOperation;
-      nativeStandardTransferOperation = undefined;
-      response.writeHead(200, {'content-type': 'application/json'});
-      response.end(operation);
-      return;
-    }
-    if (request.url === '/standard-transfer/observation') {
-      nativeStandardTransferObservations.push(body);
-      response.writeHead(200).end();
+      try {
+        let completion;
+        if (envelope.version === 'actql-remote-poll-dispatch/0.2') {
+          const operation = remoteSiteControl.admitPollDispatch(body);
+          const dispatch = remoteSiteControl.pollDispatchRequest(operation);
+          completion = standardGateway.dispatch({
+            dispatch,
+            inputBindingBody:
+              remoteSiteControl.pollDispatchBindingBody(operation),
+          });
+        } else if (envelope.version === 'actql-remote-poll-release/0.1') {
+          const dispatch = remoteSiteControl.admitJson(
+            envelope.request_json,
+            envelope.dispatch_request_cid,
+          );
+          completion = standardGateway.release({dispatch});
+        } else {
+          response.writeHead(400).end();
+          return;
+        }
+        nativeStandardTransferCompletions.push(completion);
+        void completion.catch(() => {});
+        response.writeHead(201).end();
+      } catch {
+        response.writeHead(400).end();
+      }
       return;
     }
     if (request.url === nativeStoreTransferBase && request.method === 'POST') {
@@ -677,7 +696,9 @@ try {
     '_build/js/release/build/connectors_builtin_node/' +
       'connectors_builtin_node.js',
   )).href);
-  const runtimeControl = runtimeCore(moonModule).remoteBundleControl;
+  const portableRuntime = runtimeCore(moonModule);
+  const runtimeControl = portableRuntime.remoteBundleControl;
+  remoteSiteControl = portableRuntime.remoteSiteControl;
   const runtimeKeys = generateKeyPairSync('ed25519');
   const runtimeComponent = Buffer.from('native-runtime');
   const runtimeManifest = runtimeControl.prepare({
@@ -697,6 +718,17 @@ try {
     runtimeControl,
     {keyId: 'key-a', privateKey: runtimeKeys.privateKey},
   );
+  const siteCertificate = await readFile(join(root, 'client.crt'));
+  standardGateway = await startHttpsOutboundSiteGateway({
+    key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')),
+    ca: await readFile(join(root, 'ca.crt')),
+    siteAuthorities: new Map([[
+      new X509Certificate(siteCertificate).fingerprint256,
+      {siteKey: 'native-standard-transfer-site', siteGeneration: 1},
+    ]]),
+    control: remoteSiteControl,
+  });
   const testEnvironment = {
     ...process.env,
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
@@ -719,6 +751,7 @@ try {
     ACTQL_TEST_NATIVE_STORE_ROOT: storeRoot,
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
     ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT: transferStandardRoot,
+    ACTQL_TEST_NATIVE_REMOTE_GATEWAY_ORIGIN: standardGateway.origin,
     ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
     ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
       runtimeKeys.publicKey.export({type: 'spki', format: 'pem'}),
@@ -755,8 +788,7 @@ try {
       nativeStoreTransferManifest = [];
       nativeStoreTransferBodies.length = 0;
       nativeStoreUses.clear();
-      nativeStandardTransferOperation = undefined;
-      nativeStandardTransferObservations.length = 0;
+      nativeStandardTransferCompletions.length = 0;
     }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
@@ -766,6 +798,10 @@ try {
     const [code, signal] = await once(child, 'exit');
     if (code !== 0) {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
+    }
+    if (packagePath === 'src/query_integration') {
+      await Promise.all(nativeStandardTransferCompletions);
+      assert.equal(standardGateway.pending(), 0);
     }
   }
   execFileSync(moon, [
@@ -867,6 +903,9 @@ try {
   assert.notEqual(stale.code, 0);
 } finally {
   releaseStalePoll?.();
+  if (standardGateway !== undefined) {
+    await standardGateway.close();
+  }
   if (server !== undefined) {
     server.close();
     await once(server, 'close');
