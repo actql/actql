@@ -558,7 +558,8 @@ test "recovery rejects a replacement for an owned staging allocation" {
     intent,
     StagingOwned(original.ownership()),
   ).unwrap()
-  original.cancel().unwrap()
+  let preserved_name = intent.staging_name + "-preserved"
+  ignore(original.seal(preserved_name).unwrap())
   let replacement = store.root.create_writer(intent.staging_name, 11L).unwrap()
   replacement.append(b"runtime-one").unwrap()
   let replacement_generation = store.root
@@ -582,6 +583,7 @@ test "recovery rejects a replacement for an owned staging allocation" {
   replacement.cancel().unwrap()
   assert_true(store.recover_install(intent.install_id).unwrap())
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  original.cancel().unwrap()
   assert_true(store.close().unwrap())
 }
 
