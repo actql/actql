@@ -629,6 +629,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subtract = variant.has_prefix("subtract")
   let subtract_exact = variant == "subtract_exact"
   let typed_traverse = variant.has_prefix("traverse_type")
+  let relation_selector = variant.has_prefix("subgraph_relation_selector")
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -762,7 +763,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
     "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_relation_selector" {
+  } else if relation_selector {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
     "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
     "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
@@ -939,10 +940,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let selector_stage = if variant == "subgraph_relation_selector" {
+  let selector_stage = if relation_selector {
     "{\"id\":\"selector_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
-    "\"nullable\":false}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    "\"nullable\":" +
+    (if variant == "subgraph_relation_selector_nullable" {
+      "true"
+    } else {
+      "false"
+    }) +
+    "}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
     ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
     "\"fields\":[\"key\"]}}},"
   } else {
@@ -960,7 +967,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
-  } else if variant == "subgraph_relation_selector" {
+  } else if relation_selector {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"selected\":{\"result\":{\"stage\":\"selector_values\"," +
     "\"result\":\"r\"}}"

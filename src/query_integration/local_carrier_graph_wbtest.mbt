@@ -120,6 +120,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subtract = variant.has_prefix("subtract")
   let subtract_exact = variant == "subtract_exact"
   let typed_traverse = variant.has_prefix("traverse_type")
+  let relation_selector = variant.has_prefix("subgraph_relation_selector")
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -253,7 +254,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
     "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_relation_selector" {
+  } else if relation_selector {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
     "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
     "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
@@ -430,10 +431,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let selector_stage = if variant == "subgraph_relation_selector" {
+  let selector_stage = if relation_selector {
     "{\"id\":\"selector_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
-    "\"nullable\":false}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    "\"nullable\":" +
+    (if variant == "subgraph_relation_selector_nullable" {
+      "true"
+    } else {
+      "false"
+    }) +
+    "}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
     ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
     "\"fields\":[\"key\"]}}},"
   } else {
@@ -451,7 +458,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
-  } else if variant == "subgraph_relation_selector" {
+  } else if relation_selector {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"selected\":{\"result\":{\"stage\":\"selector_values\"," +
     "\"result\":\"r\"}}"
@@ -3398,7 +3405,7 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:d2889f6d3b43fe20f75149d13eb0585918c94cf3a5b0520f5f9e1525b0846f3d"
   } else if variant == "subgraph_node_predicate" {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
-  } else if variant == "subgraph_relation_selector" {
+  } else if variant.has_prefix("subgraph_relation_selector") {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "subgraph_edge_predicate" {
     "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
@@ -3429,7 +3436,7 @@ fn run_standard_host_graph_relation_path(
     ledger_limits=if variant.has_suffix("unequal") ||
       variant == "split_projection" ||
       variant.has_prefix("subtract") ||
-      variant == "subgraph_relation_selector" {
+      variant.has_prefix("subgraph_relation_selector") {
       Some({
         planning_work: 20000,
         attempts: 20,
@@ -3455,7 +3462,7 @@ fn run_standard_host_graph_relation_path(
   let graph_task = if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
     variant.has_prefix("subtract") ||
-    variant == "subgraph_relation_selector" {
+    variant.has_prefix("subgraph_relation_selector") {
     3
   } else {
     2
@@ -3537,7 +3544,7 @@ fn run_standard_host_graph_relation_path(
     [values_rows]
   }
   let other_cleanup : Ref[(() -> Unit)?] = Ref(None)
-  if variant == "subgraph_relation_selector" {
+  if variant.has_prefix("subgraph_relation_selector") {
     let selector_live = Ref(true)
     let (selector_ops, selector) = run_local_managed_test_task(
       installed,
@@ -3860,6 +3867,10 @@ test "standard Host selects a literal Graph subgraph" {
 test "standard Host selects a Graph subgraph from a Relation" {
   run_standard_host_graph_relation_path(
     "subgraph_relation_selector",
+    publication=true,
+  )
+  run_standard_host_graph_relation_path(
+    "subgraph_relation_selector_nullable",
     publication=true,
   )
 }

@@ -193,7 +193,19 @@ fn subgraph_step(
                   )
               }
           }
-          state.selector_values.push(value)
+          guard @value.recheck_runtime_value(
+              value.value,
+              @carrier.graph_identity(state.graph),
+              state.value_limits,
+            )
+            is Some(identity) else {
+            return @bounded.Failed(
+              SubgraphKeyOrder(@value.InvalidKey),
+              progress,
+              used,
+            )
+          }
+          state.selector_values.push(identity)
           state.selector_found.push(false)
           state.selector_row += 1
         } else {

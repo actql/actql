@@ -29,6 +29,7 @@ fn captured_graph_fixture(
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
+  local_supplied_ranking_chain? : Bool = false,
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
@@ -56,6 +57,7 @@ fn captured_graph_fixture(
   ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
+  supplied_local_rows? : Array[(Int, Int, Array[String])] = [],
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -86,6 +88,7 @@ fn captured_graph_fixture(
     local_time_series_chain~,
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
+    local_supplied_ranking_chain~,
     local_vector_expression_chain~,
     local_values_analytic_chain~,
     local_values_analytic_variant~,
@@ -154,7 +157,20 @@ fn captured_graph_fixture(
       execution_bytes: 134217728L,
     }),
   ).unwrap()
-  (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
+  let supplied = supplied_local_rows.map(entry => {
+    let (stage, input, rows) = entry
+    @execution.capture_input(
+      owners[stage],
+      input,
+      rows.map(input_cursor),
+      max_rows=100,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    ).unwrap()
+  })
+  (
+    @strategy.open_captured_dag(graph, source, ledger, supplied~).unwrap(),
+    issuer,
+  )
 }
 
 ///|
@@ -446,6 +462,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
+  let session_relation = variant == "session_relation"
   let fields = if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
@@ -463,6 +480,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":10,\"payload\":\"a\"}," +
     "{\"event_id\":3,\"occurred_at\":30,\"payload\":\"b\"}," +
     "{\"event_id\":4,\"occurred_at\":5,\"payload\":\"b\"}]"
+  } else if variant == "session_ties" {
+    "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":1,\"occurred_at\":1,\"payload\":\"a\"}," +
+    "{\"event_id\":3,\"occurred_at\":13,\"payload\":\"a\"}]"
   } else if session_global {
     "[{\"event_id\":2,\"occurred_at\":1,\"payload\":\"a\"}," +
     "{\"event_id\":1,\"occurred_at\":3,\"payload\":\"b\"}," +
@@ -505,6 +526,16 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else {
     "[\"watermark_decision\",\"late\",\"event_id\"]"
   }
+  let event_steps = if session_relation {
+    "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
+    "\"as\":\"out\"}"
+  } else {
+    "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\"}}," +
+    transform +
+    ",{\"events\":true,\"as\":\"out\"}"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
   (if variant == "window_parameter" {
@@ -528,12 +559,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":[\"event_id\",\"occurred_at\",\"payload\"]}}},{" +
   "\"id\":\"events\",\"inputs\":{\"rows\":{\"result\":{" +
-  "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
-  "\"time\":\"occurred_at\"}}," +
-  transform +
-  ",{" +
-  "\"events\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"stage\":\"values\",\"result\":\"r\"}}},\"steps\":[" +
+  event_steps +
+  "],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":" +
   fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -596,15 +624,30 @@ fn local_carrier_graph_environment(
 ///|
 /// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
+  let concise = variant == "concise_projection"
+  let split = variant == "split_projection"
+  let subtract = variant.has_prefix("subtract")
+  let subtract_exact = variant == "subtract_exact"
+  let typed_traverse = variant.has_prefix("traverse_type")
+  let relation_selector = variant.has_prefix("subgraph_relation_selector")
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"node_name\":{\"type\":\"string\",\"nullable\":" +
-    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
-    "}," +
-    "\"weight\":{\"type\":\"number\",\"nullable\":" +
-    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
-    "}}"
+    (if typed_traverse {
+      "\"edge_type\":{\"type\":\"string\",\"nullable\":false},"
+    } else {
+      ""
+    }) +
+    (if subtract && !subtract_exact {
+      "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
+    } else {
+      "\"node_name\":{\"type\":\"string\",\"nullable\":" +
+      (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+      "}," +
+      "\"weight\":{\"type\":\"number\",\"nullable\":" +
+      (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+      "}}"
+    })
   let first_name = if variant == "graphs_nullable_null_equal" {
     "null"
   } else if variant == "graphs_nullable_equal" {
@@ -612,7 +655,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"first\""
   }
-  let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
+  let rows = if typed_traverse {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"edge_type\":\"blocks\"," +
+    "\"node_name\":\"second\",\"weight\":20}]"
+  } else if subtract && !subtract_exact {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
+    "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
+  } else {
+    "[{\"id\":1,\"src\":1,\"dst\":2," +
     "\"node_name\":" +
     first_name +
     ",\"weight\":" +
@@ -620,8 +672,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
+  }
   let graph_equality = is_graph_equality_variant(variant)
-  let projection = if variant == "match_nodes" {
+  let projection = if concise {
+    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
+  } else if variant == "match_nodes" {
     "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
   } else if variant == "match_nodes_literal" {
@@ -653,9 +708,33 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
-  } else if variant == "traverse_out" {
+  } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
-    "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+    "\"direction\":\"" +
+    (if variant == "traverse_in" {
+      "in"
+    } else if variant == "traverse_both" {
+      "both"
+    } else {
+      "out"
+    }) +
+    "\"," +
+    (if typed_traverse {
+      if variant == "traverse_type_empty" {
+        "\"edge_types\":[],"
+      } else if variant.has_prefix("traverse_types_") {
+        "\"edge_types\":[\"missing\",\"" +
+        (if variant == "traverse_types_match" { "owns" } else { "other" }) +
+        "\"],"
+      } else {
+        "\"edge_types\":[\"" +
+        (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
+        "\"],"
+      }
+    } else {
+      ""
+    }) +
+    "\"min_hops\":1,\"max_hops\":2," +
     "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -665,6 +744,33 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[2]}}," +
+    "\"as\":\"selected\"},{" +
+    (if variant == "subgraph_shared" {
+      "\"from\":\"selected\",\"normalize_graph\":true," +
+      "\"as\":\"same_carrier\"},{"
+    } else {
+      ""
+    }) +
+    "\"from\":\"selected\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_edges_false" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
+    "\"edges\":\"false\"},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_node_predicate" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
+    "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
+  } else if relation_selector {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
+    "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_edge_predicate" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
+    "\"edges\":\"weight > 10\"},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -672,6 +778,39 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "union" || variant == "union_singleton" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"union_graphs\":{\"with\":" +
+    (if variant == "union_singleton" {
+      "\"right_graph\""
+    } else {
+      "[\"right_graph\",\"g\",\"right_graph\"]"
+    }) +
+    "}," +
+    "\"as\":\"united\"},{\"from\":\"united\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if subtract {
+    "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
+    "\"fields\":" +
+    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    "},\"edges\":{\"from\":\"other\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
+    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    "}}," +
+    "\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"" +
+    (if subtract_exact {
+      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
+      "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
+    } else {
+      ""
+    }) +
+    "}," +
+    "\"as\":\"subtracted\"},{\"from\":\"subtracted\"," +
     "\"node_rows\":true,\"as\":\"out\""
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
@@ -712,8 +851,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" {
+  let result_fields = if subtract && !subtract_exact {
+    "\"id\""
+  } else if concise {
+    "\"src\",\"dst\",\"id\",\"weight\""
+  } else if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" ||
+    variant == "subgraph_edges_false" ||
+    variant == "subgraph_edge_predicate" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -729,8 +874,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" {
+  let second_fields = if subtract && !subtract_exact {
+    "\"id\""
+  } else if concise {
+    "\"weight\",\"src\""
+  } else if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" ||
+    variant == "subgraph_edges_false" ||
+    variant == "subgraph_edge_predicate" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -745,7 +896,31 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if variant.has_suffix("unequal") {
+  let other_stage = if subtract {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":2,\"src\":2,\"dst\":2," +
+    (if subtract_exact {
+      "\"node_name\":\"second\",\"weight\":20"
+    } else {
+      "\"marker\":0"
+    }) +
+    "}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    (if subtract_exact { "\"node_name\",\"weight\"" } else { "\"marker\"" }) +
+    "]}}},"
+  } else if split {
+    "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":1," +
+    "\"node_name\":\"first\",\"weight\":0},{\"id\":2," +
+    "\"src\":2,\"dst\":2,\"node_name\":\"second\"," +
+    "\"weight\":0}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    "\"node_name\",\"weight\"]}}},"
+  } else if variant.has_suffix("unequal") {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
@@ -765,9 +940,36 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if variant.has_suffix("unequal") {
+  let selector_stage = if relation_selector {
+    "{\"id\":\"selector_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
+    "\"nullable\":" +
+    (if variant == "subgraph_relation_selector_nullable" {
+      "true"
+    } else {
+      "false"
+    }) +
+    "}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+    "\"fields\":[\"key\"]}}},"
+  } else {
+    ""
+  }
+  let graph_inputs = if subtract {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if split {
+    "\"nodes\":{\"result\":{\"stage\":\"node_values\"," +
+    "\"result\":\"r\"}},\"rows\":{\"result\":{" +
+    "\"stage\":\"values\",\"result\":\"r\"}}"
+  } else if variant.has_suffix("unequal") {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if relation_selector {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"selected\":{\"result\":{\"stage\":\"selector_values\"," +
     "\"result\":\"r\"}}"
   } else {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
@@ -786,14 +988,46 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}}," +
+  "\"src\",\"dst\"," +
+  (if subtract && !subtract_exact {
+    "\"marker\""
+  } else if typed_traverse {
+    "\"edge_type\",\"node_name\",\"weight\""
+  } else {
+    "\"node_name\",\"weight\""
+  }) +
+  "]}}}," +
   other_stage +
+  selector_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
   graph_inputs +
-  "},\"steps\":[{\"graph\":{\"nodes\":{" +
-  "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
-  "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
-  "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
+  "},\"steps\":[{" +
+  (if concise {
+    "\"from\":\"rows\",\"graph\":{\"source\":\"src\"," +
+    "\"target\":\"dst\"},\"as\":\"g\"},{"
+  } else if subtract {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":" +
+    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    "},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
+    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    "}}," +
+    "\"as\":\"g\"},{"
+  } else if typed_traverse {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"label\":\"edge_type\",\"fields\":[\"weight\"]}}," +
+    "\"as\":\"g\"},{"
+  } else {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if split { "\"nodes\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"g\"},{"
+  }) +
   projection +
   "}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":[" +
@@ -956,6 +1190,11 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "bridge_only" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
@@ -1200,6 +1439,76 @@ fn local_select_qualified_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":2,"l":"l2"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"selected","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}]},"as":"joined"},{"from":"joined","select":[{"right_value":"right.r"},{"left_value":"left.l"},{"id":"left.id"}],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value","id"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["id","left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["right_value","id","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","id","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_supplied_ranking_program() -> String {
+  let input = "{\"carrier\":\"relation\",\"schema\":{" +
+    "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"q\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"score\":{\"type\":\"number\",\"nullable\":false}}}"
+  "{\"version\":\"actql/0.1\",\"id\":\"supplied-ranking\"," +
+  "\"params\":{\"minimum\":{\"type\":\"number\"," +
+  "\"nullable\":false}},\"stages\":[{" +
+  "\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":" +
+  "\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"ranked\",\"inputs\":{\"left\":" +
+  input +
+  ",\"right\":" +
+  input +
+  "},\"from\":\"left\",\"steps\":[{\"merge_rankings\":{" +
+  "\"with\":\"right\",\"by\":[\"q\"]," +
+  "\"candidate\":\"id\",\"score\":\"score\",\"k\":2," +
+  "\"score_policy\":\"max\",\"score_contract\":{" +
+  "\"domain\":\"unit.v1\",\"normalization\":\"unit.v1\"," +
+  "\"range\":[0,1]}},\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"q\",\"id\",\"rank\",\"score\"]}}},{" +
+  "\"id\":\"consumer-a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"ranked\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"q\",\"id\",\"rank\",\"score\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"q\",\"id\",\"rank\",\"score\"]}}},{" +
+  "\"id\":\"consumer-b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"ranked\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"score\",\"id\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"score\",\"id\"]}}}],\"results\":{" +
+  "\"ranked\":{\"from\":{\"stage\":\"ranked\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_supplied_ranking_schema() -> String {
+  "{\"additional_properties\":false,\"fields\":{" +
+  "\"id\":{\"nullable\":false,\"type\":\"number\"}," +
+  "\"q\":{\"nullable\":false,\"type\":\"number\"}," +
+  "\"score\":{\"nullable\":false,\"type\":\"number\"}}," +
+  "\"nullable\":false,\"type\":\"object\"}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_supplied_ranking_schema_snapshots() -> String {
+  let body = fn(source : String) {
+    "{\"output_carrier\":\"relation\",\"schema\":" +
+    local_supplied_ranking_schema() +
+    ",\"score_contracts\":{\"score\":{" +
+    "\"domain\":\"unit.v1\",\"normalization\":\"unit.v1\"," +
+    "\"range\":[0,1]}},\"source_ref\":\"" +
+    source +
+    "\",\"version\":\"actql-local-input-schema/0.1\"}"
+  }
+  "[" +
+  body("source:local/ranked/right") +
+  "," +
+  body("source:local/ranked/left") +
+  "]"
 }
 
 ///|
@@ -2597,6 +2906,7 @@ fn query_checked_program_fixture(
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
+  local_supplied_ranking_chain? : Bool = false,
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
@@ -2689,6 +2999,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_carrier_vectors_chain {
     local_carrier_vectors_program(variant=local_carrier_vectors_variant)
+  } else {
+    text
+  }
+  let text = if local_supplied_ranking_chain {
+    local_supplied_ranking_program()
   } else {
     text
   }
@@ -2974,6 +3289,9 @@ fn query_checked_program_fixture(
       } else if local_values_interval_chain || local_values_asof_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"joined\",\"result\":\"r\"}}}}"
+      } else if local_values_sequence_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"matched\",\"result\":\"r\"}}}}"
       } else {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"compute_b\",\"result\":\"r\"}}}}"
@@ -3007,6 +3325,11 @@ fn query_checked_program_fixture(
             } else {
               query_program_catalog_fixture(
                 analytic=local_values_analytic_chain,
+                schema_snapshots=if local_supplied_ranking_chain {
+                  local_supplied_ranking_schema_snapshots()
+                } else {
+                  "[]"
+                },
               )
             },
           ),
@@ -3234,7 +3557,9 @@ fn query_checked_program_fixture(
         environment,
         {
           text_time: false,
-          veca: local_carrier_vectors_chain || local_vector_expression_chain,
+          veca: local_carrier_vectors_chain ||
+          local_vector_expression_chain ||
+          local_supplied_ranking_chain,
         },
         {
           rela: true,
@@ -3444,9 +3769,32 @@ fn query_nullable_catalog_fixture() -> @environment.SourceRequestContracts {
 // Fixed scan catalog with explicit Host capacity. No execution success evidence.
 fn query_program_catalog_fixture(
   analytic? : Bool = false,
+  schema_snapshots? : String = "[]",
 ) -> @environment.SourceRequestContracts {
+  let wire = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:0fc7ba404624b0490f013122e852411fbd111d41cd61bb49545589c674285f7f\",\"commands\":[],\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contracts\":[{\"body\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://crm/main/r#v\",\"version\":\"actql-source-data-policy/0.1\"},\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[{\"acquisition\":{\"authority\":\"read_metadata\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"version\":\"fixture\"}},\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contract_cid\":\"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"version\":\"fixture\"},\"facts\":{\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"version\":\"fixture\"},\"schema\":{\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"version\":\"fixture\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"version\":\"fixture\"},\"operations\":[]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"record\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"v\",\"view_version\":\"fixture\"}]}],\"contract_registry\":[{\"body\":{},\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://crm/main/r#v\",\"version\":\"actql-source-data-policy/0.1\"},\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}],\"evidence_bundle_cid\":\"sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74\",\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":10000,\"max_artifact_bytes\":10000,\"max_artifact_rows\":10000,\"max_effect_items\":10000,\"max_graph_input_edges\":10000,\"max_graph_input_nodes\":10000,\"max_graph_output_rows\":10000,\"max_graph_paths\":10000,\"max_infer_items\":10000,\"max_model_input_tokens_per_item\":10000,\"max_model_request_bytes_per_item\":10000,\"max_model_total_duration_ms\":10000,\"max_nested_value_bytes\":10000,\"max_nested_value_depth\":10000,\"max_relation_output_rows\":10000,\"max_temporal_matches_per_key\":10000,\"max_temporal_output_rows\":10000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[{\"acquisition\":{\"authority\":\"read_metadata\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"version\":\"fixture\"}},\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contract_cid\":\"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"version\":\"fixture\"},\"facts\":{\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"version\":\"fixture\"},\"schema\":{\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"version\":\"fixture\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"version\":\"fixture\"},\"operations\":[]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"record\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"v\",\"view_version\":\"fixture\"}],\"version\":\"actql-check-environment/0.1\"}"
+  if schema_snapshots != "[]" {
+    let body = wire
+      .replace(
+        old="\"evidence_bundle_cid\":\"sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74\",",
+        new="",
+      )
+      .replace(
+        old="\"schema_snapshots\":[]",
+        new="\"schema_snapshots\":" + schema_snapshots,
+      )
+    let expected = "sha256:" + @sha.hex(@utf8.encode(body))
+    return query_catalog_from_wire(
+      body.replace(
+        old="\"host_policy_profile\":",
+        new="\"evidence_bundle_cid\":\"" +
+          expected +
+          "\",\"host_policy_profile\":",
+      ),
+      expected~,
+    )
+  }
   query_catalog_from_wire(
-    "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:0fc7ba404624b0490f013122e852411fbd111d41cd61bb49545589c674285f7f\",\"commands\":[],\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contracts\":[{\"body\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://crm/main/r#v\",\"version\":\"actql-source-data-policy/0.1\"},\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[{\"acquisition\":{\"authority\":\"read_metadata\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"version\":\"fixture\"}},\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contract_cid\":\"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"version\":\"fixture\"},\"facts\":{\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"version\":\"fixture\"},\"schema\":{\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"version\":\"fixture\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"version\":\"fixture\"},\"operations\":[]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"record\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"v\",\"view_version\":\"fixture\"}]}],\"contract_registry\":[{\"body\":{},\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://crm/main/r#v\",\"version\":\"actql-source-data-policy/0.1\"},\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}],\"evidence_bundle_cid\":\"sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74\",\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":10000,\"max_artifact_bytes\":10000,\"max_artifact_rows\":10000,\"max_effect_items\":10000,\"max_graph_input_edges\":10000,\"max_graph_input_nodes\":10000,\"max_graph_output_rows\":10000,\"max_graph_paths\":10000,\"max_infer_items\":10000,\"max_model_input_tokens_per_item\":10000,\"max_model_request_bytes_per_item\":10000,\"max_model_total_duration_ms\":10000,\"max_nested_value_bytes\":10000,\"max_nested_value_depth\":10000,\"max_relation_output_rows\":10000,\"max_temporal_matches_per_key\":10000,\"max_temporal_output_rows\":10000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[{\"acquisition\":{\"authority\":\"read_metadata\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"version\":\"fixture\"}},\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contract_cid\":\"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"version\":\"fixture\"},\"facts\":{\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"version\":\"fixture\"},\"schema\":{\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"version\":\"fixture\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"version\":\"fixture\"},\"operations\":[]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"record\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"v\",\"view_version\":\"fixture\"}],\"version\":\"actql-check-environment/0.1\"}",
+    wire,
     expected="sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74",
     analytic~,
   )
