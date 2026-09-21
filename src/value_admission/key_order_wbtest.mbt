@@ -51,6 +51,23 @@ test "key order compares decimal coefficients without binary64 conversion" {
 }
 
 ///|
+test "author order accepts nullable values and places null last" {
+  let nullable = @contract.primitive(@contract.StringType, nullable=true)
+  let required = @contract.primitive(@contract.StringType, nullable=false)
+  let text = checked_key(nullable, Text("x"))
+  let null = checked_key(nullable, Null)
+  assert_eq(compare_key_values(text, text), Err(InvalidKey))
+  assert_eq(compare_author_order_values(text, text), Ok(0))
+  assert_eq(compare_author_order_values(text, null), Ok(-1))
+  assert_eq(compare_author_order_values(null, text), Ok(1))
+  assert_eq(compare_author_order_values(null, null), Ok(0))
+  assert_eq(
+    compare_author_order_values(checked_key(required, Null), text),
+    Err(InvalidKey),
+  )
+}
+
+///|
 test "checked numbers reject the wrong contract and negative zero" {
   let number = @contract.primitive(@contract.NumberType, nullable=false)
   let text = @contract.primitive(@contract.StringType, nullable=false)

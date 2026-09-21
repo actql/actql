@@ -56,14 +56,10 @@ fn compare_key_decimal(left : DecimalValue, right : DecimalValue) -> Int {
 }
 
 ///|
-/// Compare non-null KeyComparable values using their semantic type order.
-pub fn compare_key_values(
+fn compare_nonnull_order_values(
   left : CheckedValue,
   right : CheckedValue,
 ) -> Result[Int, KeyOrderIssue] {
-  if left.contract.nullable || right.contract.nullable {
-    return Err(InvalidKey)
-  }
   match (left.value, right.value, left.contract.shape, right.contract.shape) {
     (Number(a), Number(b), @contract.Number, @contract.Number) =>
       Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
@@ -101,5 +97,65 @@ pub fn compare_key_values(
       )
     }
     _ => Err(InvalidKey)
+  }
+}
+
+///|
+/// Compare non-null KeyComparable values using their semantic type order.
+pub fn compare_key_values(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[Int, KeyOrderIssue] {
+  if left.contract.nullable || right.contract.nullable {
+    return Err(InvalidKey)
+  }
+  compare_nonnull_order_values(left, right)
+}
+
+///|
+fn same_author_order_domain(
+  left : @contract.Shape,
+  right : @contract.Shape,
+) -> Bool {
+  match (left, right) {
+    (@contract.Number, @contract.Number)
+    | (@contract.Boolean, @contract.Boolean)
+    | (@contract.Text(_), @contract.Text(_))
+    | (@contract.Date, @contract.Date)
+    | (@contract.Timestamp, @contract.Timestamp)
+    | (@contract.Decimal(..), @contract.Decimal(..)) => true
+    _ => false
+  }
+}
+
+///|
+/// Compare AuthorOrderable values in ascending order with nulls last.
+pub fn compare_author_order_values(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[Int, KeyOrderIssue] {
+  if !same_author_order_domain(left.contract.shape, right.contract.shape) {
+    return Err(InvalidKey)
+  }
+  match (left.value, right.value) {
+    (Null, Null) =>
+      if left.contract.nullable && right.contract.nullable {
+        Ok(0)
+      } else {
+        Err(InvalidKey)
+      }
+    (Null, _) =>
+      if left.contract.nullable {
+        compare_nonnull_order_values(right, right).map(_ => 1)
+      } else {
+        Err(InvalidKey)
+      }
+    (_, Null) =>
+      if right.contract.nullable {
+        compare_nonnull_order_values(left, left).map(_ => -1)
+      } else {
+        Err(InvalidKey)
+      }
+    _ => compare_nonnull_order_values(left, right)
   }
 }

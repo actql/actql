@@ -288,6 +288,27 @@ fn ranking_values_compare(
 }
 
 ///|
+fn ranking_tie_values_compare(
+  left : Array[@value.CheckedValue],
+  right : Array[@value.CheckedValue],
+) -> Result[Int, RankingIssue] {
+  if left.length() != right.length() {
+    return Err(InvalidRankingKernel)
+  }
+  for index in 0..<left.length() {
+    let comparison = match
+      @value.compare_author_order_values(left[index], right[index]) {
+      Ok(value) => value
+      Err(issue) => return Err(RankingKeyOrder(issue))
+    }
+    if comparison != 0 {
+      return Ok(comparison)
+    }
+  }
+  Ok(0)
+}
+
+///|
 fn ranking_record_compare(
   left : RankingRecord,
   right : RankingRecord,
@@ -344,7 +365,7 @@ fn fused_ranking_compare(
   if left.score != right.score {
     return Ok(if left.score > right.score { -1 } else { 1 })
   }
-  let tie = match ranking_values_compare(left.tie, right.tie) {
+  let tie = match ranking_tie_values_compare(left.tie, right.tie) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -476,7 +497,7 @@ fn finish_ranking_record(state : RankingState) -> Result[Unit, RankingIssue] {
     guard value is Some(value) else {
       return Err(InvalidRankingRecord(state.input, state.row))
     }
-    match @value.compare_key_values(value, value) {
+    match @value.compare_author_order_values(value, value) {
       Ok(_) => tie.push(value)
       Err(issue) => return Err(RankingKeyOrder(issue))
     }
@@ -716,7 +737,7 @@ fn validate_ranking_tie(
   record : RankingRecord,
 ) -> Result[Unit, RankingIssue] {
   let first = state.records[state.fusion_start]
-  let comparison = match ranking_values_compare(first.tie, record.tie) {
+  let comparison = match ranking_tie_values_compare(first.tie, record.tie) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

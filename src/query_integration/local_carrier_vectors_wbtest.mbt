@@ -1991,6 +1991,170 @@ fn direct_ranking_output(
 }
 
 ///|
+fn direct_nullable_ranking_carrier() -> @carrier_contract.Carrier {
+  let number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  let priority = @value_contract.primitive(
+    @value_contract.StringType,
+    nullable=true,
+  )
+  @carrier_contract.relation(
+    @carrier_contract.rows(
+      [
+        (@schema.Unqualified("q"), Some(number)),
+        (@schema.Unqualified("id"), Some(number)),
+        (@schema.Unqualified("score"), Some(number)),
+        (@schema.Unqualified("priority"), Some(priority)),
+      ],
+      field_set=@carrier_contract.Closed,
+      max_fields=4,
+      max_name_bytes=16,
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_nullable_ranking_owner() -> @lower.BoundPrepared {
+  let contract = "{\"domain\":\"unit.v1\",\"range\":[0,1]," +
+    "\"normalization\":\"unit.v1\"}"
+  let ranking = @vector.declare_ranking_score(
+    input_cursor(contract),
+    direct_nullable_ranking_carrier(),
+    @schema.Unqualified("score"),
+    { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor("[{\"select\":[\"q\",\"id\",\"score\",\"priority\"]}]"),
+      [("rows", @pipeline.RankingInput(ranking))],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_nullable_ranking_fusion_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+  policy : String,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"merge_rankings\":{\"with\":\"right\"," +
+        "\"by\":[\"q\"],\"candidate\":\"id\"," +
+        "\"score\":\"score\",\"tie_break\":[\"priority\"]," +
+        "\"k\":3,\"score_policy\":" +
+        policy +
+        ",\"score_contract\":{\"domain\":\"unit.v1\"," +
+        "\"range\":[0,1],\"normalization\":\"unit.v1\"}}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"left\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_nullable_ranking_output(
+  owner : @lower.BoundPrepared,
+  rows : Array[(Double, Double, Double, String?)],
+) -> @execution.CompletedOutput raise {
+  let values = @execution.prepare_admitted_output(
+    owner,
+    @pipeline.Step(0),
+    100,
+    { max_nodes: 10000, max_text_bytes: 10000, max_depth: 10, max_work: 10000, },
+  ).unwrap()
+  let schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  for row in rows {
+    let cells = Array::makei(@schema.field_count(schema), column => {
+      let field = @schema.field_at(schema, column).unwrap()
+      let name = @schema.reference_name(field.name)
+      if name == "priority" {
+        @admitted.admit(
+          field.contract,
+          input_cursor(
+            match row.3 {
+              Some(value) => "\"" + value + "\""
+              None => "null"
+            },
+          ),
+          { max_nodes: 1, max_depth: 1, max_text_bytes: 10, },
+        ).unwrap()
+      } else {
+        let value = if name == "q" {
+          row.0
+        } else if name == "id" {
+          row.1
+        } else {
+          row.2
+        }
+        direct_ranking_number(owner, column, value)
+      }
+    })
+    @execution.append_admitted_output(values, cells).unwrap()
+  }
+  let rows = @execution.finish_admitted_output(values).unwrap()
+  let completion = @execution.prepare_trusted_output_port(
+    task_test_completion(owner),
+    @pipeline.Step(0),
+    1000,
+    10000,
+    (proof : @execution.AdmittedOutputRows) => {
+      if physical_equal(proof, rows) {
+        Some(rows)
+      } else {
+        None
+      }
+    },
+  ).unwrap()
+  @execution.complete_trusted_output(completion, rows).unwrap()
+}
+
+///|
 fn run_direct_ranking_provider(
   policy : String,
   expected : Array[(Double, Double, Double, Double)],
@@ -2085,6 +2249,94 @@ fn run_direct_ranking_provider(
 }
 
 ///|
+fn run_direct_nullable_ranking_provider(
+  policy : String,
+  expected_scores : Array[Double],
+) -> Unit raise {
+  let left = direct_nullable_ranking_owner()
+  let right = direct_nullable_ranking_owner()
+  let owner = direct_nullable_ranking_fusion_owner(left, right, policy)
+  let left_output = direct_nullable_ranking_output(left, [
+    (1.0, 1.0, 0.8, Some("x")),
+    (1.0, 2.0, 0.6, None),
+    (1.0, 3.0, 0.6, Some("a")),
+  ])
+  let right_output = direct_nullable_ranking_output(right, [
+    (1.0, 1.0, 0.6, Some("x")),
+    (1.0, 2.0, 0.4, None),
+    (1.0, 3.0, 0.4, Some("a")),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut output = None
+  while output is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("nullable ranking returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("nullable ranking failed")
+      @local_connector.Stopped(..) => fail("nullable ranking stopped")
+    }
+  }
+  let result = output.unwrap()
+  let schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  let columns : Map[String, Int] = Map([])
+  for column in 0..<@schema.field_count(schema) {
+    columns.set(
+      @schema.reference_name(@schema.field_at(schema, column).unwrap().name),
+      column,
+    )
+  }
+  assert_eq(@execution.completed_row_count(result), 3)
+  for row, candidate in [1.0, 3.0, 2.0] {
+    assert_true(
+      @execution.completed_cell(result, row, columns.get("id").unwrap())
+      is Some(Number(actual)) &&
+      actual == candidate,
+    )
+    assert_true(
+      @execution.completed_cell(result, row, columns.get("score").unwrap())
+      is Some(Number(actual)) &&
+      actual == expected_scores[row],
+    )
+  }
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
 test "registered VecA provider authenticates maximum ranking scores" {
   run_direct_ranking_provider("\"max\"", [
     (1.0, 1.0, 1.0, 0.75),
@@ -2098,6 +2350,15 @@ test "registered VecA provider authenticates weighted ranking scores" {
   run_direct_ranking_provider(
     "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}",
     [(1.0, 1.0, 1.0, 0.625), (1.0, 2.0, 2.0, 0.25), (2.0, 1.0, 1.0, 0.5)],
+  )
+}
+
+///|
+test "registered VecA provider orders nullable business ties" {
+  run_direct_nullable_ranking_provider("\"max\"", [0.8, 0.6, 0.6])
+  run_direct_nullable_ranking_provider(
+    "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}",
+    [0.7, 0.5, 0.5],
   )
 }
 
