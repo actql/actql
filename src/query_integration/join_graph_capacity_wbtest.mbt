@@ -288,9 +288,10 @@ fn components_capacity_material(
 }
 
 ///|
-fn reach_capacity_material(
+fn traversal_capacity_material(
   environment : @environment.WireEnvironment,
   stage : String,
+  operation : String,
   step? : Int = 1,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
@@ -301,6 +302,36 @@ fn reach_capacity_material(
     }).unwrap(),
   )
   let witnesses : Array[@wire.WireWitness] = []
+  let proofs : Array[@wire.ProgramProofClaim] = []
+  if operation == "traverse" {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let graph = query_capacity_proof(
+      "actql.bound.graph-nodes",
+      2L,
+      "{\"op\":\"source\"}",
+      inputs=[@wire.cid(@wire.program_proof_witness(input))],
+      step=0,
+      unit="nodes",
+    )
+    let output = query_capacity_proof(
+      "actql.bound.traverse-nodes",
+      2L,
+      "{\"op\":\"source\"}",
+      inputs=[@wire.cid(@wire.program_proof_witness(graph))],
+      step~,
+    )
+    proofs.push(input)
+    proofs.push(graph)
+    proofs.push(output)
+    for proof in proofs {
+      witnesses.push(@wire.program_proof_witness(proof))
+    }
+  }
   let artifacts : Array[(Bytes, String)] = []
   for
     (field, unit, suffix) in [
@@ -321,13 +352,29 @@ fn reach_capacity_material(
       max_depth: 30,
     }).unwrap()
     witnesses.push(wire)
+    let candidates = [wire]
+    if operation == "traverse" && unit == "rows" {
+      candidates.push(@wire.program_proof_witness(proofs[2]))
+      candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    }
+    let texts = candidates.map(candidate => {
+      let writer = @encode.writer(10000, 1000, 30)
+      @wire.emit(candidate, writer)
+      @encode.finish(writer)
+    })
+    let mut effective = @wire.value(candidates[0])
+    for candidate in candidates {
+      effective = Int64::min(effective, @wire.value(candidate))
+    }
     let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\"," +
       "\"candidates\":[" +
-      text +
+      texts.join(",") +
       "],\"effective_max\":" +
-      @wire.value(wire).to_string() +
+      effective.to_string() +
       ",\"enforcement\":\"engine_atomic\""
-    let tail = ",\"subject_ref\":\"reach:checked-step:" +
+    let tail = ",\"subject_ref\":\"" +
+      operation +
+      ":checked-step:" +
       step.to_string() +
       suffix +
       "\",\"unit\":\"" +
@@ -348,7 +395,7 @@ fn reach_capacity_material(
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 20,
     max_references: 100,
   }).unwrap()

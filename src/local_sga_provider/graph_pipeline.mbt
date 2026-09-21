@@ -25,6 +25,7 @@ priv enum RelationExecution {
   GraphDegreeExecution(@sga.GraphDegreeExecution)
   ComponentsExecution(@sga.ComponentsExecution)
   ReachExecution(@sga.ReachExecution)
+  TraverseExecution(@sga.TraverseExecution)
   GraphsEqualExecution(@sga.GraphsEqualExecution)
 }
 
@@ -67,6 +68,24 @@ priv struct Execution {
 ///|
 fn issue() -> @connector.FixedComputeIssue {
   @connector.Execution(@execution.InputSet)
+}
+
+///|
+fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
+  !@lower.graph_traverse_patterned(value) &&
+  !@lower.graph_traverse_emits_paths(value) &&
+  @lower.graph_traverse_bounds(value) is Some((minimum, maximum)) &&
+  minimum <= 2147483647L &&
+  maximum <= 2147483647L &&
+  @lower.graph_traverse_start_id_count(value) == 1 &&
+  @lower.graph_traverse_start_id_at(value, 0) is Some(_) &&
+  @lower.graph_traverse_start_predicate(value) is None &&
+  @lower.graph_traverse_start_relation_field(value) is None &&
+  @lower.graph_traverse_hop_count(value) == 1 &&
+  @lower.graph_traverse_hop_direction(value, 0) is Some(_) &&
+  @lower.graph_traverse_hop_type_count(value, 0) is None &&
+  @lower.graph_traverse_hop_edge_predicate(value, 0) is None &&
+  @lower.graph_traverse_hop_node_predicate(value, 0) is None
 }
 
 ///|
@@ -129,6 +148,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         }
       (current, @lower.GraphReachStep(_)) if current == count - 1 =>
         @lower.operation(node) == "SGA.reachable"
+      (current, @lower.GraphTraverseStep(traverse)) if current == count - 1 =>
+        @lower.operation(node) == "SGA.traverse" && accepts_traverse(traverse)
       (current, @lower.GraphBasicStep(basic)) if current == count - 1 =>
         (
           @lower.operation(node) == "SGA.bounds_check" &&
@@ -784,6 +805,31 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.GraphTraverseStep(_)) => {
+            guard input is Some(input) else { return fail_execution(value) }
+            match
+              @sga.start_traverse(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                input,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              ) {
+              Ok(execution) => TraverseExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           Some(@lower.GraphRelationStep(relation)) => {
             guard @lower.graph_relation_kind(relation) ==
               @lower.GraphsEqualRelation &&
@@ -924,6 +970,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          TraverseExecution(execution) =>
+            match @sga.advance_traverse(execution, quantum) {
+              Ok(@sga.TraverseContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.TraverseComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.TraverseFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.TraverseStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
           GraphsEqualExecution(execution) =>
             match @sga.advance_graphs_equal(execution, quantum) {
               Ok(@sga.GraphsEqualContinue(progress~, work~)) =>
@@ -1038,6 +1096,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      TraverseExecution(execution) =>
+        match @sga.cleanup_traverse(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       GraphsEqualExecution(execution) =>
         match @sga.cleanup_graphs_equal(execution) {
           Ok(_) => ()
@@ -1086,6 +1149,7 @@ fn cleanup_execution(
       @sga.graph_degree_cleanup_pending(active)
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     Some(ReachExecution(active)) => @sga.reach_cleanup_pending(active)
+    Some(TraverseExecution(active)) => @sga.traverse_cleanup_pending(active)
     Some(GraphsEqualExecution(active)) =>
       @sga.graphs_equal_cleanup_pending(active)
     None => false

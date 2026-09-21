@@ -172,6 +172,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
+  } else if variant == "traverse_out" {
+    "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+    "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+    "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"normalize_graph\":true," +
@@ -236,7 +240,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node\",\"degree\""
   } else if variant.has_prefix("components_") {
     "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant.has_prefix("reach_") {
+  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
   } else if graph_equality {
     "\"equal\""
@@ -253,7 +257,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"degree\""
   } else if variant.has_prefix("components_") {
     "\"component_id\",\"component_size\""
-  } else if variant.has_prefix("reach_") {
+  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
   } else if graph_equality {
     "\"equal\""
@@ -802,6 +806,7 @@ fn carrier_graph_traverse_owner(
   source : @lower.BoundPrepared,
   minimum : Int,
   maximum : Int,
+  emission? : String = "nodes",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -814,7 +819,9 @@ fn carrier_graph_traverse_owner(
       minimum.to_string() +
       ",\"max_hops\":" +
       maximum.to_string() +
-      ",\"emit\":\"nodes\",\"max_output_rows\":4}}]",
+      ",\"emit\":\"" +
+      emission +
+      "\",\"max_output_rows\":4}}]",
     ),
     [
       (
@@ -2107,6 +2114,23 @@ test "homogeneous traversal enforces minimum depth and cancellation" {
 }
 
 ///|
+test "Graph provider rejects unsupported traversal before execution" {
+  let source_owner = carrier_graph_components_source_owner()
+  let owner = carrier_graph_traverse_owner(source_owner, 1, 2, emission="paths")
+  let generated = task_test_generated(owner)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_false(@local_connector.managed_provider_accepts(provider, generated))
+}
+
+///|
 fn carrier_graph_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,
@@ -2672,6 +2696,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
   } else if variant == "reach_out" {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
+  } else if variant == "traverse_out" {
+    "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
     variant == "graphs_nullable_equal" ||
     variant == "graphs_nullable_null_equal" {
@@ -2823,6 +2849,8 @@ fn run_standard_host_graph_relation_path(
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "graph_bounds" {
     4
+  } else if variant == "traverse_out" {
+    1
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
     1
@@ -2868,6 +2896,10 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
+  } else if variant.has_prefix("traverse_") {
+    assert_true(graph_rows[0].contains("\"start_id\":1"))
+    assert_true(graph_rows[0].contains("\"node_id\":2"))
+    assert_true(graph_rows[0].contains("\"depth\":1"))
   } else if variant == "match_nodes_predicate" {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
@@ -3004,6 +3036,11 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_nullable_null_equal")
   run_standard_host_graph_relation_path("graphs_unequal")
   run_standard_host_graph_relation_path("graphs_payload_unequal")
+}
+
+///|
+test "standard Host traverses a Graph for two consumers" {
+  run_standard_host_graph_relation_path("traverse_out", publication=true)
 }
 
 ///|
