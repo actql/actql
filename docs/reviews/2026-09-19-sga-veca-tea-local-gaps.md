@@ -22,7 +22,7 @@ readable coverage manifest is authoritative for individual operation status.
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 35/39, standard Host
 35/39, consumer lifetime 35/39, cancellation 30/39, and publication 34/39. These are
-layer counts, not operation completion: 24 entries are `complete` and 15 remain
+layer counts, not operation completion: 25 entries are `complete` and 14 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
 
@@ -768,7 +768,16 @@ lifetimes overlap; independent release leaves the producer live until the last
 view is done, and a cancelled projection stops and cleans up before final
 reclamation on JS, Wasm, and native. Scheduling the same Carrier handoff by the
 standard Host, rather than the direct registered-provider harness, remains
-open.
+open for `to_events`.
+
+At `c5f7dd45`, an owner-bound Events view preserves canonical timestamp values
+through the formal Events-to-Relation Bridge on JS, Wasm, and native. A separate
+negative fixture rejects duplicate semantic identities before Carrier
+completion and preserves the completed Relation input through cleanup. These
+fixtures close clock preservation and identity transfer; the existing standard
+Host page-split, two-consumer, publication, and environment-cancellation
+evidence closes `events` without claiming the still-open `to_events` scheduling
+boundary.
 
 ## Current verification boundary
 

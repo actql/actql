@@ -2176,7 +2176,7 @@
       "output": "relation",
       "canonical": ["BRIDGE.events.to_rows"],
       "variants": ["identity transfer", "clock preservation", "page split invariance"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
         "contract",
@@ -2212,6 +2212,15 @@
           "sha": "15af5df1",
           "evidence": [
             "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "timestamp_clock_and_semantic_identity_conformance",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c5f7dd45",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt"
           ]
         }
       ]
