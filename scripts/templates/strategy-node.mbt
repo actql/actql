@@ -6449,6 +6449,20 @@ pub fn strategy_remote_transfer_direct_cleanup_confirmed(
 }
 
 ///|
+#export_name("strategyRemoteTransferDirectProgress")
+pub fn strategy_remote_transfer_direct_progress(
+  record : @transfer.RemoteTransferRecord,
+) -> Int {
+  match @transfer.direct_transfer_progress(record) {
+    @transfer.DirectTransferStart => 0
+    @transfer.DirectTransferCopying => 1
+    @transfer.DirectTransferSourceSettled => 2
+    @transfer.DirectTransferCommitted => 3
+    @transfer.DirectTransferReconciliationRequired => 4
+  }
+}
+
+///|
 #export_name("strategyRemoteTransferDirectCancelDecision")
 pub fn strategy_remote_transfer_direct_cancel_decision(
   record : @transfer.RemoteTransferRecord,

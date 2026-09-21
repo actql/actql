@@ -157,7 +157,7 @@ async function startReceiver(material, destinationStore, journal, authorize) {
   });
 }
 
-async function fixture(t, {authorize} = {}) {
+async function fixture(t, {authorize, decorateJournal} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-direct-transfer-'));
   const material = await certificates(root);
   const sourceStore = await createLocalRetainedStore({
@@ -174,13 +174,15 @@ async function fixture(t, {authorize} = {}) {
     maxEntries: 8,
     maxReadersPerBody: 2,
   });
-  const journal = openSqliteTransferJournal(join(root, 'journal'), {
+  const durableJournal = openSqliteTransferJournal(join(root, 'journal'), {
     destinationSiteKey: 'destination-b',
     destinationSiteGeneration: 2,
     maxChunks: 8,
     maxManifestBytes: 8192,
     maxReferencedBytes: 1024n,
   });
+  const journal = decorateJournal === undefined ? durableJournal :
+    decorateJournal(durableJournal);
   const receiver = await startReceiver(
     material,
     destinationStore,
@@ -351,6 +353,76 @@ test('live direct receiver reconciles a commit without source access',
     await setup.sourceStore.cleanup();
     assert.equal(await setup.receiver.close(), true);
   });
+
+test('direct commit resumes after durable source settlement', async t => {
+  let destinationCommitFailures = 1;
+  const setup = await fixture(t, {
+    authorize: ({request, peer, phase}) =>
+      phase !== 'cancel' && peer.sourceSite === 'source-a' &&
+      control.requestProjection(request)[11] === cid('5'),
+    decorateJournal: journal => Object.freeze({
+      ...journal,
+      advance(transition, transferControl) {
+        const [before, after] = transferControl.transitionProjection(transition);
+        if (destinationCommitFailures > 0 && before[1] === 1 &&
+            before[5] === 1 && after[1] === 2) {
+          destinationCommitFailures--;
+          throw Object.assign(new Error('injected destination commit failure'), {
+            code: 'InjectedDestinationCommitFailure',
+          });
+        }
+        return journal.advance(transition, transferControl);
+      },
+    }),
+  });
+  const source = await body(setup.sourceStore, 'alpha');
+  const request = transferRequest(
+    ['alpha'],
+    BigInt(Date.now() + 60_000),
+  );
+  await assert.rejects(
+    sendHttpsDirectTransfer({
+      origin: setup.receiver.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request,
+      sourceBodies: [source],
+    }),
+    {code: 'RemoteTransferRejected'},
+  );
+  assert.deepEqual(setup.journal.inspect(request, control).state,
+    [2, 1, 0, 1, 0, 1, 0, 1, 0]);
+  const requestCid = control.identity(request);
+  const commitPath = `/v1/sites/destination-b/generations/2/transfers/` +
+    `${encodeURIComponent(requestCid)}/commit`;
+  const resumed = await receiverRequest(setup, {
+    path: commitPath,
+    headers: {'content-length': '0'},
+  });
+  assert.equal(resumed.status, 200);
+  assert.deepEqual(
+    control.recordProjection(control.admitReplyJson(resumed.body, request)),
+    [3, 2, 0, 1, 0, 1, 1, 1, 1],
+  );
+  for (let retry = 0; retry < 2; retry++) {
+    const repeated = await receiverRequest(setup, {
+      path: commitPath,
+      headers: {'content-length': '0'},
+    });
+    assert.equal(repeated.status, 200);
+    assert.deepEqual(
+      control.recordProjection(control.admitReplyJson(repeated.body, request)),
+      [3, 2, 0, 1, 0, 1, 1, 1, 1],
+    );
+  }
+  assert.equal(setup.destinationStore.status().reservedBytes, 5);
+  assert.equal(await setup.receiver.release(requestCid), true);
+  source.close();
+  await setup.sourceStore.cleanup();
+  assert.equal(await setup.receiver.close(), true);
+});
 
 test('cancel after direct commit preserves destination material', async t => {
   const setup = await fixture(t);

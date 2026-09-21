@@ -147,6 +147,7 @@ export async function startHttpsDirectTransferReceiver({
       typeof control.recordProjection !== 'function' ||
       typeof control.recordIsDestinationCommitted !== 'function' ||
       typeof control.directCleanupConfirmed !== 'function' ||
+      typeof control.directTransferProgress !== 'function' ||
       typeof control.directCancelDecision !== 'function' ||
       typeof control.replyJson !== 'function' ||
       journal === null || typeof journal !== 'object' ||
@@ -374,16 +375,23 @@ export async function startHttpsDirectTransferReceiver({
             entry.bodies.length !== entry.chunks.length) {
           fail('RemoteTransferIncomplete');
         }
-        const state = control.recordProjection(entry.record);
-        if (state[1] !== 2) {
+        let progress = control.directTransferProgress(entry.record);
+        if (progress === 1) {
           entry.record = journal.advance(
             control.prepareSourceSettled(entry.record, true, false),
             control,
           );
+          progress = control.directTransferProgress(entry.record);
+        }
+        if (progress === 2) {
           entry.record = journal.advance(
             control.prepareDestinationCommit(entry.record),
             control,
           );
+          progress = control.directTransferProgress(entry.record);
+        }
+        if (progress !== 3) {
+          fail('RemoteTransferReconciliationRequired');
         }
         replyCanonical(response, 200, stateReply(entry));
         return;

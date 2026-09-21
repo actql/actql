@@ -753,6 +753,8 @@ pub fn async_strategy_remote_transfer_direct_cancel_decision(@remote_transfer.Re
 
 pub fn async_strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
 
+pub fn async_strategy_remote_transfer_direct_progress(@remote_transfer.RemoteTransferRecord) -> Int
+
 pub fn async_strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise AsyncHostFailure
 
 pub fn async_strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
@@ -1746,6 +1748,8 @@ pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.
 pub fn strategy_remote_transfer_direct_cancel_decision(@remote_transfer.RemoteTransferRecord) -> Int
 
 pub fn strategy_remote_transfer_direct_cleanup_confirmed(@remote_transfer.RemoteTransferRecord) -> Bool
+
+pub fn strategy_remote_transfer_direct_progress(@remote_transfer.RemoteTransferRecord) -> Int
 
 pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 

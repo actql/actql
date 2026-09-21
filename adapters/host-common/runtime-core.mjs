@@ -985,6 +985,8 @@ function remoteTransferControl(moon) {
       moon.strategyRemoteTransferRecordIsDestinationCommitted,
     directCleanupConfirmed:
       moon.strategyRemoteTransferDirectCleanupConfirmed,
+    directTransferProgress:
+      moon.strategyRemoteTransferDirectProgress,
     directCancelDecision:
       moon.strategyRemoteTransferDirectCancelDecision,
     revision: moon.strategyRemoteTransferRecordRevision,
