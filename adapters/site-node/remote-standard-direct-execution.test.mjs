@@ -470,6 +470,134 @@ test('unhanded output cleanup and input cancellation remain retryable',
     assert.equal(inputRetries, 1);
   });
 
+test('dispatch abort reaches captured Compute before input release',
+  async () => {
+    const session = Object.freeze({kind: 'session'});
+    const source = Object.freeze({kind: 'source'});
+    const failure = Object.freeze({kind: 'input-failure'});
+    const controller = new AbortController();
+    let computeStarted;
+    const started = new Promise(resolve => { computeStarted = resolve; });
+    let stopRequests = 0;
+    let inputCancels = 0;
+    const control = createRemoteStandardSourceSessionControl({
+      factory: Object.freeze({kind: 'factory'}),
+      portable: Object.freeze({
+        requestCid: () => 'request-a',
+        start: () => session,
+        authorize: () => true,
+        feed: () => true,
+        finish: () => source,
+        captured: () => Object.freeze({kind: 'captured'}),
+        release: () => { throw new Error('cancel must release the input'); },
+        cancel(value) {
+          assert.equal(value, session);
+          inputCancels++;
+          return failure;
+        },
+        failureCode: () => 'dispatch-aborted',
+        failureCleanupPending: () => false,
+        retryFailureCleanup: () => true,
+      }),
+      executeCaptured: async (_captured, options) => {
+        assert.equal(options.signal, controller.signal);
+        computeStarted();
+        await new Promise((resolve, reject) => {
+          const stop = () => {
+            stopRequests++;
+            reject(options.signal.reason);
+          };
+          options.signal.addEventListener('abort', stop, {once: true});
+        });
+      },
+    });
+    const receiver = Object.freeze({
+      claim: () => Object.freeze({kind: 'claim'}),
+      async consume(_requestCid, authorize, accept) {
+        const claim = Object.freeze({kind: 'claim'});
+        assert.equal(authorize(claim), true);
+        await accept(0, Buffer.from('row'));
+      },
+    });
+    const executing = createRemoteStandardDirectExecution({receiver, control})(
+      {
+        dispatch: Object.freeze({kind: 'dispatch'}),
+        inputBinding: Object.freeze({kind: 'binding'}),
+        signal: controller.signal,
+      },
+    );
+    await started;
+    controller.abort('cancel-compute');
+    const result = await executing.catch(error => error);
+    assert.equal(result.code, 'dispatch-aborted');
+    assert.equal(result.primaryFailure, 'cancel-compute');
+    assert.equal(stopRequests, 1);
+    assert.equal(inputCancels, 1);
+    assert.equal(result.cleanupPending, false);
+  });
+
+test('abort racing with Compute output reclaims output before input',
+  async () => {
+    const session = Object.freeze({kind: 'session'});
+    const source = Object.freeze({kind: 'source'});
+    const failure = Object.freeze({kind: 'input-failure'});
+    const controller = new AbortController();
+    let resolveCompute;
+    let inputCancels = 0;
+    const events = [];
+    const output = Object.freeze({
+      async close() { events.push('output-closed'); },
+    });
+    const control = createRemoteStandardSourceSessionControl({
+      factory: Object.freeze({kind: 'factory'}),
+      portable: Object.freeze({
+        requestCid: () => 'request-a',
+        start: () => session,
+        authorize: () => true,
+        feed: () => true,
+        finish: () => source,
+        captured: () => Object.freeze({kind: 'captured'}),
+        release: () => { throw new Error('cancel must release the input'); },
+        cancel() {
+          events.push('input-cancelled');
+          inputCancels++;
+          return failure;
+        },
+        failureCode: () => 'dispatch-aborted',
+        failureCleanupPending: () => false,
+        retryFailureCleanup: () => true,
+      }),
+      executeCaptured: async (_captured, {signal}) => {
+        assert.equal(signal, controller.signal);
+        return await new Promise(resolve => { resolveCompute = resolve; });
+      },
+    });
+    const receiver = Object.freeze({
+      claim: () => Object.freeze({kind: 'claim'}),
+      async consume(_requestCid, authorize, accept) {
+        const claim = Object.freeze({kind: 'claim'});
+        assert.equal(authorize(claim), true);
+        await accept(0, Buffer.from('row'));
+      },
+    });
+    const executing = createRemoteStandardDirectExecution({receiver, control})(
+      {
+        dispatch: Object.freeze({kind: 'dispatch'}),
+        inputBinding: Object.freeze({kind: 'binding'}),
+        signal: controller.signal,
+      },
+    );
+    while (resolveCompute === undefined) await Promise.resolve();
+    controller.abort('cancel-race');
+    resolveCompute(output);
+    const result = await executing.catch(error => error);
+    assert.equal(result.code, 'dispatch-aborted');
+    assert.equal(result.primaryFailure, 'cancel-race');
+    assert.equal(inputCancels, 1);
+    assert.deepEqual(events, ['output-closed', 'input-cancelled']);
+    assert.equal(result.cleanupPending, false);
+  });
+
 test('falsy execution failures retain their exact primary cause', async () => {
   for (const primary of [null, undefined, false, 0, '']) {
     const session = Object.freeze({kind: 'session'});

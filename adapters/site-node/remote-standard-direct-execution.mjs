@@ -191,11 +191,22 @@ export function createRemoteStandardSourceSessionControl({
     },
     authorize: portable.authorize,
     feed: portable.feed,
-    async finish(session) {
+    async finish(session, {signal} = {}) {
+      signal?.throwIfAborted();
       const source = portable.finish(session);
       if (source === undefined) fail('RemoteStandardInputRejected');
       const captured = portable.captured(source);
-      const output = await executeCaptured(captured);
+      signal?.throwIfAborted();
+      const output = await executeCaptured(captured, {signal});
+      if (signal?.aborted) {
+        const primary = signal.reason;
+        if (!method(output, 'close')) {
+          throw outputCleanupFailure(primary, output);
+        }
+        try { await output.close(); }
+        catch { throw outputCleanupFailure(primary, output); }
+        throw primary;
+      }
       let releaseFailure;
       try {
         if (portable.release(source) !== true) {
@@ -272,7 +283,7 @@ export function createRemoteStandardDirectExecution({receiver, control} = {}) {
         signal,
       );
       signal?.throwIfAborted();
-      const output = await control.finish(session);
+      const output = await control.finish(session, {signal});
       terminal = true;
       return output;
     } catch (primary) {
