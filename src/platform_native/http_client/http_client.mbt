@@ -8,6 +8,7 @@ pub(all) enum NativeHttpIssue {
   CapacityExceeded
   Cancelled
   Closed
+  DeadlineExpired
   Transport(String)
 }
 

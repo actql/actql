@@ -6,8 +6,5 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/encoding/utf8",
-}
-
-import {
   "moonbitlang/core/env",
-} for "wbtest"
+}

@@ -61,9 +61,11 @@ pub fn Client::get_bearer_file(
   _self : Client,
   url : String,
   secret_path : String,
+  expires_at_milliseconds : Int64,
 ) -> Result[NativeHttpResponse, NativeHttpIssue] {
   ignore(url)
   ignore(secret_path)
+  ignore(expires_at_milliseconds)
   Err(UnsupportedTarget)
 }
 

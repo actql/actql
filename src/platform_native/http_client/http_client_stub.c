@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifndef O_NOFOLLOW
@@ -667,7 +668,8 @@ int32_t actql_native_http_client_get_bearer_file(
   moonbit_bytes_t url,
   int32_t url_length,
   moonbit_bytes_t secret_path,
-  int32_t secret_path_length
+  int32_t secret_path_length,
+  int64_t expires_at_milliseconds
 ) {
   if (client == NULL || client->closed) return 3;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
@@ -780,6 +782,20 @@ int32_t actql_native_http_client_get_bearer_file(
     free(url_text);
     actql_replace_error(&client->error, "read bearer credential failed");
     return -1;
+  }
+  struct timespec observed_time;
+  bool deadline_valid = expires_at_milliseconds > 0 &&
+    clock_gettime(CLOCK_REALTIME, &observed_time) == 0 &&
+    observed_time.tv_sec >= 0 &&
+    observed_time.tv_sec <= INT64_MAX / 1000 &&
+    observed_time.tv_sec * 1000 + observed_time.tv_nsec / 1000000 <
+      expires_at_milliseconds;
+  if (!deadline_valid) {
+    memset(authorization, 0, authorization_length);
+    free(authorization);
+    free(url_text);
+    actql_replace_error(&client->error, "credential deadline expired");
+    return 4;
   }
   CURL *curl = client->library->easy_init();
   if (curl == NULL) {

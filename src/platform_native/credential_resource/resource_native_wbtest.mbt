@@ -102,7 +102,7 @@ test "native credential resource consumes one durable scoped use" {
     is Err(Credential(@credential.InvalidCredentialSignature)),
   )
   let response = call_native_credential_resource(
-    service, grant, "use-a", 1999999999999L, scope,
+    service, grant, "use-a", scope,
   ).unwrap()
   assert_eq(response.status, 200)
   assert_eq(response.body, b"{\"authorized\":true}")
@@ -113,19 +113,19 @@ test "native credential resource consumes one durable scoped use" {
   assert_eq(stages, ["claim", "send", "query", "return"])
   revoke_native_credential_grant(service, grant).unwrap()
   guard call_native_credential_resource(
-      service, grant, "revoked", 1999999999999L, scope,
+      service, grant, "revoked", scope,
     )
     is Err(Credential(@credential.CredentialGrantInactive)) else {
     fail("revoked credential grant started another resource call")
   }
   guard call_native_credential_resource(
-      service, grant, "use-a", 1999999999999L, scope,
+      service, grant, "use-a", scope,
     )
     is Err(UseAlreadyClaimed) else {
     fail("exact credential retry started another resource call")
   }
   guard call_native_credential_resource(
-      service, grant, "use-b", 1999999999999L, scope,
+      service, grant, "use-b", scope,
     )
     is Err(Journal(@sqlite.CapacityExceeded)) else {
     fail("credential use ceiling was not durable")
@@ -153,7 +153,7 @@ test "native credential resource consumes one durable scoped use" {
     dispatch_request_cid: credential_test_cid("d"),
   }
   guard call_native_credential_resource(
-      service, expired_grant, "expired", 10L, expired_scope,
+      service, expired_grant, "expired", expired_scope,
     )
     is Err(Credential(@credential.CredentialGrantInactive)) else {
     fail("expired credential grant consumed a durable use")
@@ -166,7 +166,7 @@ test "native credential resource consumes one durable scoped use" {
   }
   let foreign : NativeCredentialScope = { ..scope, operation: "records:write", }
   guard call_native_credential_resource(
-      service, grant, "foreign", 1999999999999L, foreign,
+      service, grant, "foreign", foreign,
     )
     is Err(Credential(@credential.CredentialGrantInactive)) else {
     fail("foreign credential operation was accepted")
@@ -194,7 +194,7 @@ test "native credential resource consumes one durable scoped use" {
   assert_eq(recovered.use_cid, response.use_cid)
   assert_eq(recovered.outcome, "succeeded")
   guard call_native_credential_resource(
-      reopened, grant, "restart-revoked", 1999999999999L, scope,
+      reopened, grant, "restart-revoked", scope,
     )
     is Err(Credential(@credential.CredentialGrantInactive)) else {
     fail("restart lost durable credential revocation")

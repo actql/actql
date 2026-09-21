@@ -1123,7 +1123,7 @@ try {
       stdio: 'inherit',
     });
     const credential = runCredential([
-      'call', '--trusted-now-unix-ms', '1999999999999',
+      'call',
     ]);
     const [code, signal] = await once(credential, 'exit');
     if (code !== 0) {
@@ -1141,7 +1141,7 @@ try {
       );
     }
     const duplicate = runCredential([
-      'call', '--trusted-now-unix-ms', '1999999999999',
+      'call',
     ]);
     const [duplicateCode] = await once(duplicate, 'exit');
     if (duplicateCode === 0) {
@@ -1159,7 +1159,7 @@ try {
       );
     }
     const revoked = runCredential([
-      'call', '--trusted-now-unix-ms', '1999999999999',
+      'call',
     ], 'use-b');
     const [revokedCode] = await once(revoked, 'exit');
     if (revokedCode === 0) {

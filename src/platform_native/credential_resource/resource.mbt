@@ -8,6 +8,7 @@ pub(all) enum NativeCredentialResourceIssue {
   Signature(@signature.NativeSignatureIssue)
   Journal(@sqlite.NativeSqliteIssue)
   Transport(@http.NativeHttpIssue)
+  TrustedClockRollback
   TerminalRecordFailed(String, @sqlite.NativeSqliteIssue)
 }
 
@@ -72,6 +73,7 @@ struct NativeCredentialResourceService {
   client : @http.Client
   operations : Array[NativeCredentialOperation]
   authorize : (NativeCredentialAuthorization) -> Bool
+  clock : () -> Int64
 }
 
 ///|
@@ -317,11 +319,12 @@ fn persist_outcome(
 }
 
 ///|
-pub fn install_native_credential_resource_service(
+fn install_native_credential_resource_service_with_clock(
   database : @sqlite.Database,
   client : @http.Client,
   operations : Array[NativeCredentialOperation],
   authorize : (NativeCredentialAuthorization) -> Bool,
+  clock : () -> Int64,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
@@ -335,7 +338,70 @@ pub fn install_native_credential_resource_service(
       }
     }
   }
-  Ok({ database, client, operations, authorize, })
+  Ok({ database, client, operations, authorize, clock, })
+}
+
+///|
+pub fn install_native_credential_resource_service(
+  database : @sqlite.Database,
+  client : @http.Client,
+  operations : Array[NativeCredentialOperation],
+  authorize : (NativeCredentialAuthorization) -> Bool,
+) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
+  install_native_credential_resource_service_with_clock(
+    database,
+    client,
+    operations,
+    authorize,
+    fn() { @env.now().reinterpret_as_int64() },
+  )
+}
+
+///|
+fn observe_trusted_clock(
+  service : NativeCredentialResourceService,
+) -> Result[Int64, NativeCredentialResourceIssue] {
+  let observed = (service.clock)()
+  if observed < 0L {
+    return Err(TrustedClockRollback)
+  }
+  let scope = "credential-clock-v1"
+  let key = "host-lower-bound"
+  let body = @utf8.encode(observed.to_string())
+  for attempt = 0; attempt < 8; attempt = attempt + 1 {
+    match service.database.read(scope, key) {
+      Ok(existing) => {
+        let previous = match parse_positive_int64(@utf8.decode_lossy(existing.body)) {
+          Some(value) => value
+          None => return Err(Journal(@sqlite.Collision))
+        }
+        if observed < previous {
+          return Err(TrustedClockRollback)
+        }
+        if observed == previous {
+          return Ok(observed)
+        }
+        match service.database.compare_exchange(
+          scope,
+          key,
+          existing.revision,
+          body,
+        ) {
+          Ok(_) => return Ok(observed)
+          Err(@sqlite.Collision) | Err(@sqlite.Busy) => continue
+          Err(issue) => return Err(Journal(issue))
+        }
+      }
+      Err(@sqlite.NotFound) =>
+        match service.database.insert(scope, key, body) {
+          Ok(_) => return Ok(observed)
+          Err(@sqlite.Collision) | Err(@sqlite.Busy) => continue
+          Err(issue) => return Err(Journal(issue))
+        }
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
+  Err(Journal(@sqlite.Busy))
 }
 
 ///|
@@ -343,9 +409,12 @@ pub fn call_native_credential_resource(
   service : NativeCredentialResourceService,
   grant : @credential.RemoteCredentialGrant,
   use_id : String,
-  trusted_now_ms : Int64,
   scope : NativeCredentialScope,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  let trusted_now_ms = match observe_trusted_clock(service) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let grant_cid = @credential.credential_grant_cid(grant)
   let revoked = match native_credential_grant_revoked(service, grant_cid) {
     Ok(value) => value
@@ -416,7 +485,11 @@ pub fn call_native_credential_resource(
     }
     Err(issue) => return Err(Journal(issue))
   }
-  let authorized = (service.authorize)({
+  let send_time = match observe_trusted_clock(service) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let authorized = send_time < expires_at && (service.authorize)({
       stage: "send",
       grant_cid,
       use_cid: Some(use_cid),
@@ -424,7 +497,7 @@ pub fn call_native_credential_resource(
     }) &&
     @credential.authorize_credential_use(
       credential_use,
-      trusted_now_ms,
+      send_time,
       revoked,
       scope.principal,
       scope.tenant,
@@ -452,6 +525,7 @@ pub fn call_native_credential_resource(
     service.client.get_bearer_file(
       operation.resource_origin + operation.path,
       operation.secret_path,
+      expires_at,
     ) {
     Ok(value) => value
     Err(issue) =>

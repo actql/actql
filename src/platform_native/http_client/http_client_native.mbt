@@ -75,6 +75,7 @@ extern "C" fn client_get_bearer_file_ffi(
   url_length : Int,
   secret_path : Bytes,
   secret_path_length : Int,
+  expires_at_milliseconds : Int64,
 ) -> Int = "actql_native_http_client_get_bearer_file"
 
 ///|
@@ -290,11 +291,12 @@ pub fn Client::get_bearer_file(
   self : Client,
   url : String,
   secret_path : String,
+  expires_at_milliseconds : Int64,
 ) -> Result[NativeHttpResponse, NativeHttpIssue] {
   if !url.has_prefix("https://") ||
     url.length() > 8192 ||
     url.contains("\u{0}") ||
-    !valid_path(secret_path) {
+    !valid_path(secret_path) || expires_at_milliseconds < 1L {
     return Err(InvalidRequest)
   }
   let encoded_url = @utf8.encode(url)
@@ -306,11 +308,13 @@ pub fn Client::get_bearer_file(
       encoded_url.length(),
       encoded_secret_path,
       encoded_secret_path.length(),
+      expires_at_milliseconds,
     ) {
     0 => Ok({ status: client_status_ffi(self), body: client_body_ffi(self), })
     1 => Err(CapacityExceeded)
     2 => Err(Cancelled)
     3 => Err(Closed)
+    4 => Err(DeadlineExpired)
     _ => Err(Transport(decode_message(client_error_ffi(self))))
   }
 }

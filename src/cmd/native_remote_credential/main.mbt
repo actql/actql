@@ -98,9 +98,7 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
-      @argparse.Command("call", options=[
-        @argparse.OptionArg("trusted-now-unix-ms", required=true),
-      ]),
+      @argparse.Command("call"),
       @argparse.Command("query"),
       @argparse.Command("revoke", options=[
         @argparse.OptionArg("confirmation", required=true),
@@ -262,16 +260,10 @@ fn execute_checked(matches : @argparse.Matches) -> String raise CommandStop {
   }
   let use_id = checked(option(matches, "use-id"))
   let result : Result[String, String] = match matches.subcommand {
-    Some(("call", child)) => {
-      let trusted_now = checked(
-        parse_int64(
-          checked(option(child, "trusted-now-unix-ms")),
-          "trusted-now-unix-ms",
-        ),
-      )
+    Some(("call", _)) => {
       match
         @resource.call_native_credential_resource(
-          service, grant, use_id, trusted_now, scope,
+          service, grant, use_id, scope,
         ) {
         Ok(response) =>
           Ok(
