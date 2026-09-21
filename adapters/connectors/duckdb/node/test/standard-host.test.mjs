@@ -2561,6 +2561,17 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'subgraph',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    steps: [{
+      from: 'g', subgraph: {nodes: {ids: [1]}}, as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'graft',
     rows: 40,
     advanceQuantum: 1,

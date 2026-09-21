@@ -610,15 +610,27 @@ fn local_carrier_graph_environment(
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let concise = variant == "concise_projection"
   let split = variant == "split_projection"
+  let subtract = variant.has_prefix("subtract")
+  let subtract_exact = variant == "subtract_exact"
+  let typed_traverse = variant.has_prefix("traverse_type")
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"node_name\":{\"type\":\"string\",\"nullable\":" +
-    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
-    "}," +
-    "\"weight\":{\"type\":\"number\",\"nullable\":" +
-    (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
-    "}}"
+    (if typed_traverse {
+      "\"edge_type\":{\"type\":\"string\",\"nullable\":false},"
+    } else {
+      ""
+    }) +
+    (if subtract && !subtract_exact {
+      "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
+    } else {
+      "\"node_name\":{\"type\":\"string\",\"nullable\":" +
+      (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+      "}," +
+      "\"weight\":{\"type\":\"number\",\"nullable\":" +
+      (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
+      "}}"
+    })
   let first_name = if variant == "graphs_nullable_null_equal" {
     "null"
   } else if variant == "graphs_nullable_equal" {
@@ -626,7 +638,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"first\""
   }
-  let rows = "[{\"id\":1,\"src\":1,\"dst\":2," +
+  let rows = if typed_traverse {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":1,\"edge_type\":\"blocks\"," +
+    "\"node_name\":\"second\",\"weight\":20}]"
+  } else if subtract && !subtract_exact {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
+    "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
+  } else {
+    "[{\"id\":1,\"src\":1,\"dst\":2," +
     "\"node_name\":" +
     first_name +
     ",\"weight\":" +
@@ -634,6 +655,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "},{\"id\":2," +
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
+  }
   let graph_equality = is_graph_equality_variant(variant)
   let projection = if concise {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
@@ -669,9 +691,33 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
-  } else if variant == "traverse_out" {
+  } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]}," +
-    "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+    "\"direction\":\"" +
+    (if variant == "traverse_in" {
+      "in"
+    } else if variant == "traverse_both" {
+      "both"
+    } else {
+      "out"
+    }) +
+    "\"," +
+    (if typed_traverse {
+      if variant == "traverse_type_empty" {
+        "\"edge_types\":[],"
+      } else if variant.has_prefix("traverse_types_") {
+        "\"edge_types\":[\"missing\",\"" +
+        (if variant == "traverse_types_match" { "owns" } else { "other" }) +
+        "\"],"
+      } else {
+        "\"edge_types\":[\"" +
+        (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
+        "\"],"
+      }
+    } else {
+      ""
+    }) +
+    "\"min_hops\":1,\"max_hops\":2," +
     "\"emit\":\"nodes\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -681,6 +727,21 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[2]}}," +
+    "\"as\":\"selected\"},{" +
+    (if variant == "subgraph_shared" {
+      "\"from\":\"selected\",\"normalize_graph\":true," +
+      "\"as\":\"same_carrier\"},{"
+    } else {
+      ""
+    }) +
+    "\"from\":\"selected\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_edges_false" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
+    "\"edges\":\"false\"},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -688,6 +749,39 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "union" || variant == "union_singleton" {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"union_graphs\":{\"with\":" +
+    (if variant == "union_singleton" {
+      "\"right_graph\""
+    } else {
+      "[\"right_graph\",\"g\",\"right_graph\"]"
+    }) +
+    "}," +
+    "\"as\":\"united\"},{\"from\":\"united\"," +
+    "\"node_rows\":true,\"as\":\"out\""
+  } else if subtract {
+    "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
+    "\"fields\":" +
+    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    "},\"edges\":{\"from\":\"other\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
+    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    "}}," +
+    "\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"" +
+    (if subtract_exact {
+      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
+      "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
+    } else {
+      ""
+    }) +
+    "}," +
+    "\"as\":\"subtracted\"},{\"from\":\"subtracted\"," +
     "\"node_rows\":true,\"as\":\"out\""
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
@@ -728,9 +822,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if concise {
+  let result_fields = if subtract && !subtract_exact {
+    "\"id\""
+  } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
-  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
+  } else if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" ||
+    variant == "subgraph_edges_false" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -746,9 +844,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if concise {
+  let second_fields = if subtract && !subtract_exact {
+    "\"id\""
+  } else if concise {
     "\"weight\",\"src\""
-  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
+  } else if variant.has_prefix("match_edges") ||
+    variant == "edge_projection" ||
+    variant == "subgraph_edges_false" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -763,7 +865,21 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if split {
+  let other_stage = if subtract {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":2,\"src\":2,\"dst\":2," +
+    (if subtract_exact {
+      "\"node_name\":\"second\",\"weight\":20"
+    } else {
+      "\"marker\":0"
+    }) +
+    "}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    (if subtract_exact { "\"node_name\",\"weight\"" } else { "\"marker\"" }) +
+    "]}}},"
+  } else if split {
     "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
@@ -793,7 +909,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if split {
+  let graph_inputs = if subtract {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if split {
     "\"nodes\":{\"result\":{\"stage\":\"node_values\"," +
     "\"result\":\"r\"}},\"rows\":{\"result\":{" +
     "\"stage\":\"values\",\"result\":\"r\"}}"
@@ -818,7 +938,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   rows +
   "},\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}}," +
+  "\"src\",\"dst\"," +
+  (if subtract && !subtract_exact {
+    "\"marker\""
+  } else if typed_traverse {
+    "\"edge_type\",\"node_name\",\"weight\""
+  } else {
+    "\"node_name\",\"weight\""
+  }) +
+  "]}}}," +
   other_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
   graph_inputs +
@@ -826,6 +954,21 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   (if concise {
     "\"from\":\"rows\",\"graph\":{\"source\":\"src\"," +
     "\"target\":\"dst\"},\"as\":\"g\"},{"
+  } else if subtract {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":" +
+    (if subtract_exact { "[\"node_name\"]" } else { "[]" }) +
+    "},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
+    (if subtract_exact { "[\"weight\"]" } else { "[]" }) +
+    "}}," +
+    "\"as\":\"g\"},{"
+  } else if typed_traverse {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"label\":\"edge_type\",\"fields\":[\"weight\"]}}," +
+    "\"as\":\"g\"},{"
   } else {
     "\"graph\":{\"nodes\":{\"from\":" +
     (if split { "\"nodes\"" } else { "\"rows\"" }) +
@@ -3014,6 +3157,9 @@ fn query_checked_program_fixture(
       } else if local_values_interval_chain || local_values_asof_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"joined\",\"result\":\"r\"}}}}"
+      } else if local_values_sequence_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"matched\",\"result\":\"r\"}}}}"
       } else {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"compute_b\",\"result\":\"r\"}}}}"
