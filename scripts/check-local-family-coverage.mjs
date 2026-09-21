@@ -15,6 +15,14 @@ const expressionContractPath = path.join(
   root,
   "spec/contracts/actql-expressions.json",
 );
+const gapsPath = process.env.ACTQL_LOCAL_FAMILY_COVERAGE_GAPS
+  ? path.resolve(process.env.ACTQL_LOCAL_FAMILY_COVERAGE_GAPS)
+  : path.join(
+      root,
+      "docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md",
+    );
+const summaryStart = "<!-- local-family-coverage-summary:start -->";
+const summaryEnd = "<!-- local-family-coverage-summary:end -->";
 
 function readText(file) {
   return fs.readFileSync(file, "utf8");
@@ -180,6 +188,61 @@ for (const expression of ["vector_score", "vector_concat"]) {
 }
 
 const complete = entries.filter((entry) => entry.status === "complete");
+const summaryLayers = [
+  "contract",
+  "checker",
+  "lowering",
+  "kernel",
+  "managed",
+  "standard_host",
+  "consumer_lifetime",
+  "resources",
+  "cancellation",
+  "publication",
+  "three_targets",
+];
+const layerCounts = new Map(
+  summaryLayers.map(layer => [
+    layer,
+    entries.filter(entry => (entry.completed_layers ?? []).includes(layer))
+      .length,
+  ]),
+);
+const summary = [
+  summaryStart,
+  "| Coverage state | Count |",
+  "|---|---:|",
+  ...summaryLayers.map(
+    layer => `| \`${layer}\` | ${layerCounts.get(layer)}/${entries.length} |`,
+  ),
+  `| complete operations | ${complete.length}/${entries.length} |`,
+  `| open operations | ${entries.length - complete.length}/${entries.length} |`,
+  summaryEnd,
+].join("\n");
+if (
+  !process.env.ACTQL_LOCAL_FAMILY_COVERAGE_MANIFEST ||
+  process.env.ACTQL_LOCAL_FAMILY_COVERAGE_GAPS
+) {
+  const gaps = readText(gapsPath);
+  const start = gaps.indexOf(summaryStart);
+  const end = gaps.indexOf(summaryEnd);
+  if (start < 0 || end < start) {
+    fail("gaps ledger lacks the generated coverage summary markers");
+  } else {
+    const current = gaps.slice(start, end + summaryEnd.length);
+    if (process.argv.includes("--write-summary")) {
+      fs.writeFileSync(
+        gapsPath,
+        gaps.slice(0, start) + summary + gaps.slice(end + summaryEnd.length),
+      );
+    } else if (current !== summary) {
+      fail(
+        "gaps ledger coverage summary is stale; run " +
+          "node scripts/check-local-family-coverage.mjs --write-summary",
+      );
+    }
+  }
+}
 const evidence = manifest.evidence ?? [];
 for (const entry of complete) {
   const linked = evidence.find((item) => item.operation === entry.operation);

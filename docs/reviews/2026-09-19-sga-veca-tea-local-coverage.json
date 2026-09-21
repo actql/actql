@@ -525,6 +525,23 @@
             "src/local_sga/reach.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "combined_predicate_binding_widths",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0cd04f72",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
         }
       ]
     },
@@ -2064,6 +2081,18 @@
           "layers": ["kernel", "managed", "three_targets"],
           "targets": ["js", "wasm", "native"],
           "sha": "06974f71",
+          "evidence": [
+            "src/value_admission/key_order.mbt",
+            "src/local_veca/ranking.mbt",
+            "src/local_veca/ranking_wbtest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "nullable_query_group_order",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5a8badc2",
           "evidence": [
             "src/value_admission/key_order.mbt",
             "src/local_veca/ranking.mbt",

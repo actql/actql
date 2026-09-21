@@ -13,13 +13,14 @@ const manifestPath = path.join(
   "docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json",
 );
 
-function run(manifest) {
+function run(manifest, gaps) {
   return spawnSync(process.execPath, [script], {
     cwd: root,
     encoding: "utf8",
     env: {
       ...process.env,
       ACTQL_LOCAL_FAMILY_COVERAGE_MANIFEST: manifest,
+      ...(gaps ? { ACTQL_LOCAL_FAMILY_COVERAGE_GAPS: gaps } : {}),
     },
   });
 }
@@ -83,4 +84,27 @@ test("local family coverage rejects an unclassified variant surface", async t =>
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /missing formal variant classification: nearest/u);
+});
+
+test("local family coverage rejects a stale generated summary", async t => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "actql-local-family-summary-"),
+  );
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const target = path.join(directory, "coverage.json");
+  const gaps = path.join(directory, "gaps.md");
+  await writeFile(target, await readFile(manifestPath, "utf8"));
+  await writeFile(
+    gaps,
+    (await readFile(
+      path.join(
+        root,
+        "docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md",
+      ),
+      "utf8",
+    )).replace("| complete operations | 25/39 |", "| complete operations | 24/39 |"),
+  );
+  const result = run(target, gaps);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /coverage summary is stale/u);
 });

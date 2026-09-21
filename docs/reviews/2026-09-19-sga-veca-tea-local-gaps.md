@@ -12,19 +12,33 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 35/39 entries have kernels and managed completion, 35/39 reach the standard Host, and 35/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 35/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
+| Completion | Carrier-aware lifecycle is shared; exact layer counts are generated below | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; exact layer counts are generated below | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 28/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; exact layer counts are generated below | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph construction projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 32/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves the implemented Relation projections; exact layer counts are generated below | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
-Manifest snapshot at this revision: contract/checker/lowering 39/39,
-kernel/managed/resources/three-target evidence 35/39, standard Host
-35/39, consumer lifetime 35/39, cancellation 30/39, and publication 34/39. These are
-layer counts, not operation completion: 25 entries are `complete` and 14 remain
-`partial` until their classified variants and required layers close on one
-verified SHA.
+The following snapshot is generated from the authoritative manifest. It is
+checked by `check:local-family-coverage`; do not edit its counts by hand.
+
+<!-- local-family-coverage-summary:start -->
+| Coverage state | Count |
+|---|---:|
+| `contract` | 39/39 |
+| `checker` | 39/39 |
+| `lowering` | 39/39 |
+| `kernel` | 34/39 |
+| `managed` | 34/39 |
+| `standard_host` | 34/39 |
+| `consumer_lifetime` | 34/39 |
+| `resources` | 34/39 |
+| `cancellation` | 31/39 |
+| `publication` | 33/39 |
+| `three_targets` | 34/39 |
+| complete operations | 25/39 |
+| open operations | 14/39 |
+<!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
 
@@ -508,6 +522,13 @@ cover a four-node Graph that emits one row, the same Graph with no reached row,
 and repeated starts whose combined output exceeds the ceiling. The excess case
 fails atomically without exposing a partial Relation. The tests pass on JS,
 Wasm, and native.
+
+At `0cd04f72`, start, edge, and reached-node predicates retain independent
+binding widths. Only their maximum contributes to shared workspace admission;
+each evaluation phase enumerates its own exact bindings. A standard Host
+fixture combines all three predicates with a wider edge domain. A direct
+managed fixture covers structural rejection, expression workspace one-short,
+and exact success. The relevant suites pass on JS, Wasm, and native.
 
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
@@ -1033,6 +1054,13 @@ group identity. Nullable AuthorOrderable ties preserve equality for two NULLs
 and order NULL after a present value without weakening nonnullable candidate
 identity. Registered managed-provider regressions cover maximum and
 weighted-sum inputs with present and NULL ties on JS, Wasm, and native.
+
+At `5a8badc2`, query-group ordering has its own nullable KeyComparable path.
+It applies canonical ascending order with NULLS FIRST while candidate identity
+continues to use the strict non-null comparator. Registered provider fixtures
+cover nullable composite groups for maximum and weighted sum and nullable
+groups for reciprocal-rank fusion on JS, Wasm, and native. Existing reference
+key comparison remains on the same exact-domain, availability-checked path.
 
 At `bf85b1b4`, duplicate candidates and noncontiguous positions are exercised
 through the registered RRF provider rather than only through checker or helper
