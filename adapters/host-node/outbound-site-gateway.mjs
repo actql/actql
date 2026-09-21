@@ -135,6 +135,7 @@ export async function startHttpsOutboundSiteGateway({
       inputBindingBody,
       key,
       operation,
+      acceptanceObserved: false,
       envelope: operation === 'query'
         ? control.pollQueryJson(dispatch)
         : operation === 'release'
@@ -218,13 +219,16 @@ export async function startHttpsOutboundSiteGateway({
       }
       let admitted;
       let matched;
+      let statusReply = false;
       for (const entry of pending.values()) {
         if (entry.binding !== binding) continue;
         try {
+          statusReply = entry.operation === 'query' ||
+            entry.operation === 'release' || entry.acceptanceObserved;
           admitted = control.admitResponseJson(
             body,
             entry.dispatch,
-            entry.operation === 'query' || entry.operation === 'release',
+            statusReply,
           );
           matched = entry;
           break;
@@ -259,8 +263,14 @@ export async function startHttpsOutboundSiteGateway({
         control,
         matched.dispatch,
         admitted,
-        {statusReply: matched.operation === 'query'},
+        {statusReply},
       );
+      if (matched.operation === 'dispatch' && !statusReply &&
+          projected.state.every(value => value === 0)) {
+        matched.acceptanceObserved = true;
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
       settle(matched, 'resolve', projected);
       replyJson(response, 200, {accepted: true});
     } catch (error) {

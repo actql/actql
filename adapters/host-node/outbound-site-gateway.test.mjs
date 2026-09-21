@@ -229,9 +229,30 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       control.replyJson(record),
     );
     assert.equal(observed.status, 200);
+    assert.equal(gateway.pending(), 1);
+    siteStore.advance(control.prepareProvisioning(
+      record,
+      control.registerExecutionCapability(Object.freeze({
+        site,
+        runtimeBundleCid: cid('a'),
+        connectorRegistration: 'local',
+        connectorRevision: 'local/1',
+        strategyRevision: 'strategy/1',
+        operationCapabilityCid: cid('4'),
+      })),
+    ), record, control);
+    siteStore.advance(control.prepareExecution(record), record, control);
+    siteStore.advance(control.prepareSettled(record), record, control);
+    const terminal = await post(
+      gateway.origin,
+      `${path}/observations`,
+      siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined),
+    );
+    assert.equal(terminal.status, 200);
     const result = await completion;
     assert.equal(result.dispatchRequestCid, control.identity(request));
-    assert.deepEqual(result.state, [0, 0, 0, 0, 0]);
+    assert.deepEqual(result.state, [3, 0, 0, 0, 0]);
     assert.equal(gateway.pending(), 0);
     assert.equal(coordinatorStore.contains(request, control), true);
 
@@ -258,23 +279,10 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.equal(queryObservation.status, 200);
     const queryResult = await queryCompletion;
     assert.equal(queryResult.dispatchRequestCid, control.identity(request));
-    assert.deepEqual(queryResult.state, [0, 0, 0, 0, 0]);
+    assert.deepEqual(queryResult.state, [3, 0, 0, 0, 0]);
     assert.equal(siteAcceptCount, 1);
     assert.equal(gateway.pending(), 0);
 
-    siteStore.advance(control.prepareProvisioning(
-      record,
-      control.registerExecutionCapability(Object.freeze({
-        site,
-        runtimeBundleCid: cid('a'),
-        connectorRegistration: 'local',
-        connectorRevision: 'local/1',
-        strategyRevision: 'strategy/1',
-        operationCapabilityCid: cid('4'),
-      })),
-    ), record, control);
-    siteStore.advance(control.prepareExecution(record), record, control);
-    siteStore.advance(control.prepareSettled(record), record, control);
     const terminalCompletion = gateway.query({dispatch: request});
     const terminalPoll = await post(
       gateway.origin,
@@ -524,6 +532,27 @@ test('outbound cancellation cannot admit work before dispatch', async t => {
     control.replyJson(record),
   );
   assert.equal(observed.status, 200);
+  assert.equal(gateway.pending(), 1);
+  siteStore.advance(control.prepareProvisioning(
+    record,
+    control.registerExecutionCapability(Object.freeze({
+      site,
+      runtimeBundleCid: cid('a'),
+      connectorRegistration: 'local',
+      connectorRevision: 'local/1',
+      strategyRevision: 'strategy/1',
+      operationCapabilityCid: cid('4'),
+    })),
+  ), record, control);
+  siteStore.advance(control.prepareExecution(record), record, control);
+  siteStore.advance(control.prepareSettled(record), record, control);
+  const terminal = await post(
+    gateway.origin,
+    `${path}/observations`,
+    siteMaterial,
+    control.statusJson(record, undefined, undefined, undefined),
+  );
+  assert.equal(terminal.status, 200);
   assert.equal((await survivor).dispatchRequestCid, control.identity(request));
   assert.equal(gateway.pending(), 0);
 });
