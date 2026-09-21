@@ -1316,8 +1316,45 @@
       "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_mean_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_mean_test.mbt",
+        "src/exact_binary64/exact.mbt",
+        "src/exact_binary64/exact_wbtest.mbt",
+        "src/local_sga/mean.mbt",
+        "src/local_sga/mean_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "exact_support_property_laws_and_relation_bridge",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0b3ef3297e8278f55e4b97bc176401e4dd6f2201",
+          "evidence": [
+            "src/exact_binary64/exact.mbt",
+            "src/exact_binary64/exact_wbtest.mbt",
+            "src/local_sga/mean.mbt",
+            "src/local_sga/mean_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "TEA",

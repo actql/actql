@@ -28,14 +28,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `contract` | 39/39 |
 | `checker` | 39/39 |
 | `lowering` | 39/39 |
-| `kernel` | 34/39 |
-| `managed` | 34/39 |
-| `standard_host` | 34/39 |
+| `kernel` | 35/39 |
+| `managed` | 35/39 |
+| `standard_host` | 35/39 |
 | `consumer_lifetime` | 34/39 |
 | `resources` | 34/39 |
 | `cancellation` | 34/39 |
 | `publication` | 33/39 |
-| `three_targets` | 34/39 |
+| `three_targets` | 35/39 |
 | complete operations | 29/39 |
 | open operations | 10/39 |
 <!-- local-family-coverage-summary:end -->
@@ -339,6 +339,20 @@ session retains exact workspace custody, reports byte and node bounds, receives
 cancellation, and is reclaimed before the Graph builder. The portable kernel
 and query integration suites pass on all three targets, and the real Node
 standard Host passes. This closes `union_graphs`.
+
+At `0b3ef329`, `mean_graphs` executes its ordered finite sample list as one
+bounded occurrence. Exact dyadic folds compare weighted support without a
+rounded quotient and compute weighted number properties with one final
+nearest-ties-to-even binary64 rounding. The kernel preserves repeated sample
+positions, canonical node and edge order, retained-endpoint closure,
+`exact_equal`, and every missing and null policy. Workspace admission precedes
+state construction, partial output remains private, and direct cancellation
+separates stop from cleanup. The registered Graph provider carries a weighted
+mean through the formal Graph-to-Relation Bridge on JS, Wasm, and native; the
+focused kernel suites pass 30 tests and query integration passes 452 tests per
+target. Two downstream consumers, Effect-free publication, environment-level
+cancellation delivery, and the final scalable ordering evidence remain open,
+so `mean_graphs` remains partial.
 
 At `1b7dbec3`, `subtract_graphs` executes the property-free structural
 variant over two immutable internal Graph generations. The bounded kernel
