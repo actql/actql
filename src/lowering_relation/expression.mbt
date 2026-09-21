@@ -7,6 +7,7 @@ struct Expression {
   contract : @contract.Contract
   source : @decode.Cursor
   location : @syntax.Location
+  uses_veca : Bool
 }
 
 ///|
@@ -137,6 +138,12 @@ pub fn expression_source(value : Expression) -> @decode.Cursor {
 ///|
 pub fn expression_location(value : Expression) -> @syntax.Location {
   value.location
+}
+
+///|
+/// Allocation-free capability summary computed during bounded lowering.
+pub fn expression_uses_veca(value : Expression) -> Bool {
+  value.uses_veca
 }
 
 ///|
@@ -728,6 +735,7 @@ fn lower_expression_measured(
               contract: null_contract,
               source: body,
               location: @syntax.origin(syntax, body).unwrap(),
+              uses_veca: false,
             }
           }
           let clauses = []
@@ -744,6 +752,18 @@ fn lower_expression_measured(
         contract,
         source: cursor,
         location: @syntax.origin(syntax, cursor).unwrap(),
+        uses_veca: match lowered {
+          VectorScore(_, _, _) | VectorConcat(_) => true
+          Unary(_, child) => child.uses_veca
+          Binary(_, left, right) => left.uses_veca || right.uses_veca
+          Many(_, children) => children.any(child => child.uses_veca)
+          Conditional(condition, yes, no) =>
+            condition.uses_veca || yes.uses_veca || no.uses_veca
+          Case(clauses, otherwise) =>
+            otherwise.uses_veca ||
+            clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
+          Field(_, _) | Literal(_) | TypedNull => false
+        },
       }
     }
     Ok(

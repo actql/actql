@@ -1987,7 +1987,7 @@ async function exerciseStrategyGraph(
       ],
       results: {r: {from: 'captured', fields: ['id']}},
     }, {
-      id: 'vectors',
+      id: 'vector_values',
       inputs: {},
       steps: [{
         values: {
@@ -2001,9 +2001,15 @@ async function exerciseStrategyGraph(
             {id: 2, left: [2, 1], right: [4, 3]},
           ],
         },
-        as: 'seed',
-      }, {
-        from: 'seed',
+        as: 'out',
+      }],
+      results: {r: {from: 'out', fields: ['id', 'left', 'right']}},
+    }, {
+      id: 'vector_score',
+      inputs: {
+        rows: {result: {stage: 'vector_values', result: 'r'}},
+      },
+      steps: [{
         derive: {
           score: {
             vector_score: {
@@ -2013,9 +2019,17 @@ async function exerciseStrategyGraph(
             },
           },
         },
-        as: 'scored',
-      }, {
-        from: 'scored',
+        as: 'out',
+      }],
+      results: {
+        r: {from: 'out', fields: ['id', 'left', 'right', 'score']},
+      },
+    }, {
+      id: 'vectors',
+      inputs: {
+        rows: {result: {stage: 'vector_score', result: 'r'}},
+      },
+      steps: [{
         derive: {
           joined: {
             vector_concat: [{field: 'right'}, {field: 'left'}],
@@ -2092,7 +2106,7 @@ async function exerciseStrategyGraph(
       vectorPublicationOwner.execution.completed.map(
         value => value.realization,
       ),
-      Array(3).fill('local-managed'),
+      Array(5).fill('local-managed'),
     );
     const occurrence =
       vectorPublicationOwner.execution.publicationInventory.occurrences[0];
@@ -2940,6 +2954,15 @@ async function exerciseStrategyGraph(
     constructionProgress: 80,
     fields: ['id', 'embedding'],
   }, {
+    name: 'vector-expression',
+    family: 'veca',
+    operation: 'expression',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 2,
+    fields: ['id', 'score', 'joined'],
+  }, {
     name: 'vector-score',
     family: 'veca',
     operation: 'score',
@@ -3140,6 +3163,77 @@ async function exerciseStrategyGraph(
           }],
           results: {published: {from: {stage: 'series', result: 'r'}}},
         }
+        : vecaFamily && cancellationCase.operation === 'expression'
+          ? {
+            version: 'actql/0.1',
+            id: 'p',
+            params: {minimum: {type: 'number', nullable: false}},
+            stages: [{
+              id: 'a',
+              inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+              steps: [
+                {filter: 'id > $minimum', as: 'filtered'},
+                {select: ['id'], as: 'captured'},
+              ],
+              results: {r: {from: 'captured', fields: ['id']}},
+            }, {
+              id: 'values',
+              inputs: {},
+              steps: [{
+                values: {
+                  schema: {
+                    id: {type: 'number', nullable: false},
+                    left: {
+                      type: 'vector', dimensions: 2, nullable: false,
+                    },
+                    right: {
+                      type: 'vector', dimensions: 2, nullable: false,
+                    },
+                  },
+                  rows: Array.from(
+                    {length: cancellationCase.rows},
+                    (_, index) => ({
+                      id: index + 1,
+                      left: [index + 1, index + 2],
+                      right: [index + 2, index + 1],
+                    }),
+                  ),
+                },
+                as: 'out',
+              }],
+              results: {
+                r: {from: 'out', fields: ['id', 'left', 'right']},
+              },
+            }, {
+              id: 'expression',
+              inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+              steps: [{
+                derive: {
+                  score: {
+                    vector_score: {
+                      left: {field: 'left'},
+                      right: {field: 'right'},
+                      metric: 'dot',
+                    },
+                  },
+                  joined: {
+                    vector_concat: [
+                      {field: 'right'},
+                      {field: 'left'},
+                    ],
+                  },
+                },
+                as: 'out',
+              }],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
+            }, ...['a', 'b'].map(id => ({
+              id: `consumer_${id}`,
+              inputs: {x: {result: {stage: 'expression', result: 'r'}}},
+              steps: [{select: cancellationCase.fields, as: 'out'}],
+              results: {r: {from: 'out', fields: cancellationCase.fields}},
+            }))],
+            results: {published: {from: {stage: 'expression', result: 'r'}}},
+          }
         : vecaFamily && cancellationCase.operation === 'ranking' &&
             cancellationCase.scoredPolicy !== undefined
           ? {

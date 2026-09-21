@@ -188,18 +188,51 @@ test "Local managed zero-input values feed two downstream Computes" {
 
 ///|
 test "checked VecA expressions reach two standard Host consumers" {
-  let (run, issuer) = captured_graph_fixture(local_vector_expression_chain=true)
+  let (run, issuer) = captured_graph_fixture(
+    local_vector_expression_chain=true,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 128000000L,
+      execution_bytes: 134217728L,
+    }),
+  )
   let registry = search_registry()
   let limits = dispatch_test_limits()
-  let installed = @local_driver.prepare_local_dispatch_module(
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
-    @connector.capability_registration_at(registry, 0).unwrap(),
-    dispatch_test_generated(run),
-    limits.local_execution,
-    limits.guards,
-    limits.candidate_work,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
   ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -223,33 +256,65 @@ test "checked VecA expressions reach two standard Host consumers" {
     None,
   ).unwrap()
 
-  let producer_live = Ref(true)
-  let (producer_ops, producer) = run_local_managed_test_task(
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
     installed,
     run,
     1,
     [],
     [],
     1,
+    values_live,
+    finalization_quantum=1,
+  )
+  let value_rows = local_managed_test_rows(values_ops)
+  assert_eq(value_rows, [
+    "{\"id\":1,\"left\":[1,2],\"right\":[3,4]}", "{\"id\":2,\"left\":[2,1],\"right\":[4,3]}",
+  ])
+
+  let score_live = Ref(true)
+  let (score_ops, scored) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [values],
+    [value_rows],
+    2,
+    score_live,
+    finalization_quantum=1,
+  )
+  let score_rows = local_managed_test_rows(score_ops)
+  assert_eq(score_rows, [
+    "{\"id\":1,\"left\":[1,2],\"right\":[3,4],\"score\":11}", "{\"id\":2,\"left\":[2,1],\"right\":[4,3],\"score\":11}",
+  ])
+
+  let producer_live = Ref(true)
+  let (producer_ops, producer) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [scored],
+    [score_rows],
+    3,
     producer_live,
     finalization_quantum=1,
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, [
-    "{\"id\":1,\"left\":[1,2],\"right\":[3,4],\"score\":11," +
-    "\"joined\":[3,4,1,2]}",
-    "{\"id\":2,\"left\":[2,1],\"right\":[4,3],\"score\":11," +
-    "\"joined\":[4,3,2,1]}",
+    "{\"id\":1,\"joined\":[3,4,1,2],\"left\":[1,2]," +
+    "\"right\":[3,4],\"score\":11}",
+    "{\"id\":2,\"joined\":[4,3,2,1],\"left\":[2,1]," +
+    "\"right\":[4,3],\"score\":11}",
   ])
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    4,
     [producer],
     [rows],
-    2,
+    4,
     first_live,
     finalization_quantum=2,
   )
@@ -257,10 +322,10 @@ test "checked VecA expressions reach two standard Host consumers" {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    5,
     [producer],
     [rows],
-    3,
+    5,
     second_live,
     finalization_quantum=31,
   )
@@ -272,7 +337,7 @@ test "checked VecA expressions reach two standard Host consumers" {
   ])
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 4)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -280,13 +345,21 @@ test "checked VecA expressions reach two standard Host consumers" {
   assert_true(@execution.managed_completed_output_available(producer))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 5)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   producer_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, 3)
   (producer_ops.close)()
   (producer_ops.cleanup_refresh)() |> ignore
+  score_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (score_ops.close)()
+  (score_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

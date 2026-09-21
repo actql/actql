@@ -1,5 +1,7 @@
 ///|
 priv enum Phase {
+  StartBindingRows
+  BindingRows
   StartRows
   Rows
   StartKernel
@@ -33,9 +35,11 @@ priv struct Execution {
   storage_bytes : Int64
   max_rows : Int
   max_value_bytes : Int
+  execution_limits : @execution.SequenceExecutionLimits
   projection_step : Int
   relation_pool : Bool
   mut phase : Phase
+  mut binding_execution : @execution.BoundedBindingRowsExecution?
   mut rows : @bridge.RowsToVectorsExecution?
   mut kernel_step : Int
   mut kernel : VectorExecution?
@@ -76,10 +80,14 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @execution.generated_prepared_sequence(sequence),
         0,
       )
-      is Some(@lower.VectorStep(_)) &&
+      is Some(step) &&
       @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
       return false
     }
+    if step is @lower.RowStep(kernel) {
+      return @lower.kernel_has_veca_bindings(kernel)
+    }
+    guard step is @lower.VectorStep(_) else { return false }
     let operation = @lower.operation(node)
     return operation == "VEC.merge_rankings" || operation == "VEC.knn_join"
   }
@@ -264,6 +272,68 @@ fn advance_execution(
   }
   while true {
     match value.phase {
+      StartBindingRows => {
+        guard value.relation_inputs is Some(inputs) && inputs.length() == 1 else {
+          return fail_execution(value)
+        }
+        let started = match
+          @execution.start_bounded_binding_rows(
+            value.control,
+            value.generated,
+            inputs[0],
+            value.max_rows,
+            value.execution_limits.rows.output_values,
+            value.execution_limits.max_work,
+            value.execution_limits.max_frames,
+            value.execution_limits.rows.operation_entries,
+            value.max_value_bytes,
+          ) {
+          Ok(execution) => execution
+          Err(_) => return fail_execution(value)
+        }
+        value.binding_execution = Some(started)
+        value.phase = BindingRows
+        reset_stage(value)
+      }
+      BindingRows => {
+        guard value.binding_execution is Some(active) else {
+          return fail_execution(value)
+        }
+        match @execution.advance_bounded_binding_rows(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@execution.BoundedBindingRowsContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@execution.BoundedBindingRowsComplete(output, progress~, work~)) => {
+            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+              delta(work, value.stage_work) is Some(work_delta) else {
+              return fail_execution(value)
+            }
+            value.terminal = true
+            value.phase = Terminal
+            return Ok(
+              @local.managed_provider_complete(
+                output, progress_delta, work_delta,
+              ),
+            )
+          }
+          Ok(@execution.BoundedBindingRowsFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@execution.BoundedBindingRowsStopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
       StartRows => {
         guard value.relation_inputs is Some(inputs) && inputs.length() == 1 else {
           return fail_execution(value)
@@ -787,6 +857,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.binding_execution is Some(active) {
+    match @execution.cleanup_bounded_binding_rows(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   if value.kernel is Some(active) {
     match cleanup_kernel_execution(active) {
       Ok(_) => ()
@@ -819,6 +895,10 @@ fn cleanup_execution(
     Some(active) => @bridge.rows_to_vectors_cleanup_pending(active)
     None => false
   }
+  let binding_pending = match value.binding_execution {
+    Some(active) => @execution.bounded_binding_rows_cleanup_pending(active)
+    None => false
+  }
   let kernel_pending = match value.kernel {
     Some(Normalize(active)) => @veca.normalize_cleanup_pending(active)
     Some(Score(active)) => @veca.score_cleanup_pending(active)
@@ -840,7 +920,8 @@ fn cleanup_execution(
   if failed {
     return Err(issue())
   }
-  if rows_pending ||
+  if binding_pending ||
+    rows_pending ||
     kernel_pending ||
     projection_pending ||
     nearest_pending ||
@@ -885,6 +966,12 @@ pub fn provider(
         0,
       ).map(node => @lower.operation(node))
       let relation_pool = count == 2 && first_operation == Some("VEC.pool")
+      let binding_rows = count == 1 &&
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          0,
+        )
+        is Some(@lower.RowStep(_))
       let direct = count == 1
       let direct_operation = if direct {
         @lower.node_at(
@@ -917,9 +1004,12 @@ pub fn provider(
         storage_bytes,
         max_rows,
         max_value_bytes,
+        execution_limits,
         projection_step: count - 1,
         relation_pool,
-        phase: if direct_operation == Some("VEC.knn_join") {
+        phase: if binding_rows {
+          StartBindingRows
+        } else if direct_operation == Some("VEC.knn_join") {
           StartNearest
         } else if direct_operation == Some("VEC.merge_rankings") {
           StartRanking
@@ -927,6 +1017,7 @@ pub fn provider(
           StartRows
         },
         rows: None,
+        binding_execution: None,
         kernel_step: if relation_pool {
           0
         } else {

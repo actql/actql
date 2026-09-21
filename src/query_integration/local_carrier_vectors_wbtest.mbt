@@ -485,15 +485,22 @@ fn local_vector_expression_program() -> String {
   "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
   "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
   "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
-  "\"id\":\"vectors\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"id\":\"vector_values\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":" +
   schema +
   ",\"rows\":[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{" +
-  "\"id\":2,\"left\":[2,1],\"right\":[4,3]}]},\"as\":\"seed\"},{" +
-  "\"from\":\"seed\",\"derive\":{\"score\":{" +
+  "\"id\":2,\"left\":[2,1],\"right\":[4,3]}]},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"left\",\"right\"]}}},{\"id\":\"vector_score\",\"inputs\":{" +
+  "\"rows\":{\"result\":{\"stage\":\"vector_values\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"derive\":{\"score\":{" +
   "\"vector_score\":{\"left\":{\"field\":\"left\"}," +
   "\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}}," +
-  "\"as\":\"scored\"},{\"from\":\"scored\",\"derive\":{" +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"id\",\"left\",\"right\",\"score\"]}}},{" +
+  "\"id\":\"vectors\",\"inputs\":{\"rows\":{\"result\":{" +
+  "\"stage\":\"vector_score\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"derive\":{" +
   "\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{" +
   "\"field\":\"left\"}]}},\"as\":\"out\"}],\"results\":{" +
   "\"r\":{\"from\":\"out\",\"fields\":" +
@@ -1557,6 +1564,200 @@ fn direct_nearest_relation_output(
     compute_test_limits(),
   ).unwrap()
   @execution.completed_output(completed, @pipeline.Step(0)).unwrap()
+}
+
+///|
+fn direct_vector_expression_source_owner() -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check(
+      input_cursor(
+        "[{\"values\":{\"schema\":{" +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"left\":{\"type\":\"vector\",\"dimensions\":2," +
+        "\"nullable\":false},\"right\":{\"type\":\"vector\"," +
+        "\"dimensions\":2,\"nullable\":false}},\"rows\":[" +
+        "{\"id\":1,\"left\":[1,2],\"right\":[3,4]}," +
+        "{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]}," +
+        "\"as\":\"rows\"}]",
+      ),
+      [],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_vector_expression_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"derive\":{\"score\":{\"vector_score\":{" +
+      "\"left\":{\"field\":\"left\"},\"right\":{" +
+      "\"field\":\"right\"},\"metric\":\"dot\"}}," +
+      "\"joined\":{\"vector_concat\":[{\"field\":\"right\"}," +
+      "{\"field\":\"left\"}]}}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+    expression_profiles={ text_time: false, veca: true, },
+  ).unwrap()
+}
+
+///|
+fn direct_vector_expression_read(
+  owner : @lower.BoundPrepared,
+  source : @lower.BoundPrepared,
+  output : @execution.CompletedOutput,
+) -> @execution.ProducerRead {
+  @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source, output).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+}
+
+///|
+test "registered VecA provider bounds row expressions and cancellation" {
+  let source = direct_vector_expression_source_owner()
+  let owner = direct_vector_expression_owner(source)
+  let output = direct_nearest_relation_output(source)
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let compatibility = @local_connector.start_managed_provider(
+    provider,
+    generated,
+    [direct_vector_expression_read(owner, source, output)],
+    10,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(compatibility, 1).unwrap()
+    is @local_connector.Failed(_),
+  )
+  assert_true(
+    @local_connector.cleanup_managed_provider(compatibility).unwrap_or(false),
+  )
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    [direct_vector_expression_read(owner, source, output)],
+    10,
+    1000,
+    limits.local_execution,
+  ).unwrap()
+  let mut completed = None
+  let mut advances = 0
+  while completed is None {
+    advances += 1
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => completed = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("vector expression returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("vector expression failed")
+      @local_connector.Stopped(..) => fail("vector expression stopped")
+    }
+  }
+  assert_true(advances > 1)
+  let result = completed.unwrap()
+  let schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  let columns : Map[String, Int] = Map([])
+  for column in 0..<@schema.field_count(schema) {
+    columns.set(
+      @schema.reference_name(@schema.field_at(schema, column).unwrap().name),
+      column,
+    )
+  }
+  assert_eq(@execution.completed_row_count(result), 2)
+  assert_true(
+    @execution.completed_cell(result, 0, columns.get("score").unwrap())
+    is Some(Number(11.0)),
+  )
+  assert_true(
+    @execution.completed_cell(result, 0, columns.get("joined").unwrap())
+    is Some(Captured(@admitted.Vector(joined))) &&
+    @admitted.element_count(joined) == 4,
+  )
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+
+  let cancelled = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    [direct_vector_expression_read(owner, source, output)],
+    10,
+    1000,
+    limits.local_execution,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+    is @local_connector.Continue(_),
+  )
+  assert_true(@local_connector.cancel_managed_provider(cancelled))
+  assert_true(
+    @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+    is @local_connector.Stopped(_),
+  )
+  assert_true(@local_connector.managed_provider_stopped(cancelled))
+  assert_true(
+    @local_connector.cleanup_managed_provider(cancelled).unwrap_or(false),
+  )
+  assert_true(@execution.completed_output_available(output))
 }
 
 ///|

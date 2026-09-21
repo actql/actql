@@ -257,6 +257,8 @@ pub fn expression_location(Expression) -> @expression_syntax.Location
 
 pub fn expression_source(Expression) -> @decode_core.Cursor
 
+pub fn expression_uses_veca(Expression) -> Bool
+
 pub fn expression_view_entries(Expression) -> Int
 
 pub fn fragment_pipeline_input(FragmentPipeline) -> String
@@ -524,6 +526,8 @@ pub fn kernel_dedupe_order_count(PreparedKernel) -> Int
 pub fn kernel_distinct_projection(PreparedKernel) -> PreparedProjection?
 
 pub fn kernel_group(PreparedKernel) -> PreparedGroup?
+
+pub fn kernel_has_veca_bindings(PreparedKernel) -> Bool
 
 pub fn kernel_input(PreparedKernel) -> String
 

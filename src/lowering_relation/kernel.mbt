@@ -242,6 +242,34 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
 }
 
 ///|
+/// Allocation-free family selection over already lowered binding roots.
+pub fn kernel_has_veca_bindings(kernel : PreparedKernel) -> Bool {
+  match kernel.body {
+    SnapshotMap(bindings) | OrderedBindings(bindings) =>
+      bindings.any(binding => binding.1.uses_veca)
+    Filter(_)
+    | AssertAll(_)
+    | AssertUnique(_)
+    | JsonPick(_, _, _)
+    | Select(_)
+    | Limit(_, _, _)
+    | TopK(_, _)
+    | PartitionedTopK(_, _)
+    | Pivot(_)
+    | Unnest(_, _, _, _, _)
+    | Unpivot(_, _, _, _)
+    | DistinctRows
+    | DedupeRows
+    | StableSort(_)
+    | Lag(_, _)
+    | Watermark(_, _, _, _)
+    | AnalyticRows(_)
+    | CountGroups(_)
+    | Groups(_) => false
+  }
+}
+
+///|
 pub fn prepare_kernel(
   owner : BoundPrepared,
   step_index : Int,
