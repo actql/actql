@@ -12,6 +12,55 @@ pub fn graph_union_input_count(value : PreparedGraphUnion) -> Int {
 }
 
 ///|
+pub fn graph_union_fold_output(
+  value : PreparedGraphUnion,
+  fold_index : Int,
+) -> @carrier.Carrier? {
+  @graph.union_fold_at(value.checked, fold_index).map(fold => {
+    @graph.structural_output(fold)
+  })
+}
+
+///|
+pub fn graph_union_fold_strategy_count(
+  value : PreparedGraphUnion,
+  fold_index : Int,
+  side : @schema.Side,
+) -> Int? {
+  @graph.union_fold_at(value.checked, fold_index).map(fold => {
+    @graph.structural_strategy_count(fold, side)
+  })
+}
+
+///|
+pub fn graph_union_fold_strategy_name(
+  value : PreparedGraphUnion,
+  fold_index : Int,
+  side : @schema.Side,
+  strategy_index : Int,
+) -> String? {
+  @graph.union_fold_at(value.checked, fold_index).bind(fold => {
+    @graph.structural_strategy_at(fold, side, strategy_index).map(strategy => {
+      @graph.property_strategy_name(strategy)
+    })
+  })
+}
+
+///|
+pub fn graph_union_fold_strategy_kind(
+  value : PreparedGraphUnion,
+  fold_index : Int,
+  side : @schema.Side,
+  strategy_index : Int,
+) -> @graph.FieldStrategy? {
+  @graph.union_fold_at(value.checked, fold_index).bind(fold => {
+    @graph.structural_strategy_at(fold, side, strategy_index).map(strategy => {
+      @graph.property_strategy_kind(strategy)
+    })
+  })
+}
+
+///|
 pub fn graph_union_has_property_strategies(value : PreparedGraphUnion) -> Bool {
   for index in 0..<@graph.union_count(value.checked) {
     guard @graph.union_fold_at(value.checked, index) is Some(fold) else {
@@ -125,6 +174,43 @@ fn emit_checked_structural_params(
 struct PreparedGraphStructural {
   node : PreparedNode
   checked : @graph.CheckedStructural
+}
+
+///|
+pub fn graph_structural_output(
+  value : PreparedGraphStructural,
+) -> @carrier.Carrier {
+  @graph.structural_output(value.checked)
+}
+
+///|
+pub fn graph_structural_strategy_count(
+  value : PreparedGraphStructural,
+  side : @schema.Side,
+) -> Int {
+  @graph.structural_strategy_count(value.checked, side)
+}
+
+///|
+pub fn graph_structural_strategy_name(
+  value : PreparedGraphStructural,
+  side : @schema.Side,
+  index : Int,
+) -> String? {
+  @graph.structural_strategy_at(value.checked, side, index).map(strategy => {
+    @graph.property_strategy_name(strategy)
+  })
+}
+
+///|
+pub fn graph_structural_strategy_kind(
+  value : PreparedGraphStructural,
+  side : @schema.Side,
+  index : Int,
+) -> @graph.FieldStrategy? {
+  @graph.structural_strategy_at(value.checked, side, index).map(strategy => {
+    @graph.property_strategy_kind(strategy)
+  })
 }
 
 ///|

@@ -107,6 +107,27 @@ test "Graph union emits checked property merge laws" {
     max_name_bytes=0,
   ).unwrap()
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.GraphUnionStep(union)) else {
+    fail("prepared graph union")
+  }
+  assert_eq(@lowering_relation.graph_union_input_count(union), 2)
+  assert_eq(
+    @lowering_relation.graph_union_fold_strategy_count(union, 0, @schema.Left),
+    Some(1),
+  )
+  assert_eq(
+    @lowering_relation.graph_union_fold_strategy_name(union, 0, @schema.Left, 0),
+    Some("score"),
+  )
+  assert_eq(
+    @lowering_relation.graph_union_fold_strategy_kind(union, 0, @schema.Left, 0),
+    Some(@graph.NumberMax),
+  )
+  assert_true(
+    @lowering_relation.graph_union_fold_output(union, 0)
+    is Some(@carrier.GraphValue(_)),
+  )
   let writer = @encode.writer(10000, 1000, 100)
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
@@ -145,6 +166,37 @@ test "Structural graph lowering retains binary operation and merge laws" {
     max_name_bytes=0,
   ).unwrap()
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.GraphStructuralStep(structural)) else {
+    fail("prepared graph subtraction")
+  }
+  assert_eq(
+    @lowering_relation.graph_structural_strategy_count(
+      structural,
+      @schema.Right,
+    ),
+    1,
+  )
+  assert_eq(
+    @lowering_relation.graph_structural_strategy_name(
+      structural,
+      @schema.Right,
+      0,
+    ),
+    Some("score"),
+  )
+  assert_eq(
+    @lowering_relation.graph_structural_strategy_kind(
+      structural,
+      @schema.Right,
+      0,
+    ),
+    Some(@graph.NumberSum),
+  )
+  assert_true(
+    @lowering_relation.graph_structural_output(structural)
+    is @carrier.GraphValue(_),
+  )
   let writer = @encode.writer(10000, 1000, 100)
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
