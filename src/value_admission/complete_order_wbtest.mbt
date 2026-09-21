@@ -55,3 +55,16 @@ test "complete order keys fail closed under their byte ceiling" {
     Err(CompleteOrderLimit),
   )
 }
+
+///|
+test "complete order budget includes typed tags and JSON escaping" {
+  let text = @contract.primitive(@contract.StringType, nullable=false)
+  let value = order_checked(text, "\"\\\"\\\\x\"")
+  let key = complete_order_key(value, {
+    max_nodes: 1,
+    max_depth: 1,
+    max_text_bytes: 3,
+  }).unwrap()
+  assert_true(key.contains("text"))
+  assert_true(key.length() > 3)
+}

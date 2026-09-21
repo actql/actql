@@ -40,9 +40,20 @@ pub fn complete_order_key(
     limits.max_depth > (2147483647 - 2) / 2 {
     return Err(InvalidCompleteOrderLimits)
   }
+  if recheck_runtime_value(checked.value, checked.contract, limits) is None {
+    return Err(CompleteOrderLimit)
+  }
+  if limits.max_nodes > (2147483647 - 128) / 96 {
+    return Err(InvalidCompleteOrderLimits)
+  }
+  let structural_bytes = limits.max_nodes * 96 + 128
+  if limits.max_text_bytes > (2147483647 - structural_bytes) / 6 {
+    return Err(InvalidCompleteOrderLimits)
+  }
+  let max_order_bytes = structural_bytes + limits.max_text_bytes * 6
   try {
     let out = @encode.writer(
-      limits.max_text_bytes,
+      max_order_bytes,
       limits.max_nodes * 4 + 4,
       limits.max_depth * 2 + 2,
     )
