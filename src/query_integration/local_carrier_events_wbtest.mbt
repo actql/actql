@@ -1,8 +1,17 @@
 ///|
-fn carrier_events_source_owner() -> @lower.BoundPrepared {
+fn carrier_events_source_owner_with(
+  time_type : String,
+  rows : String,
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
-      "[{\"values\":{\"schema\":{\"event_id\":{\"type\":\"number\",\"nullable\":false},\"occurred_at\":{\"type\":\"number\",\"nullable\":false},\"payload\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"event_id\":1,\"occurred_at\":11,\"payload\":\"first\"},{\"event_id\":2,\"occurred_at\":9,\"payload\":\"late\"}]},\"as\":\"source\"}]",
+      "[{\"values\":{\"schema\":{\"event_id\":{\"type\":\"number\"," +
+      "\"nullable\":false},\"occurred_at\":{\"type\":\"" +
+      time_type +
+      "\",\"nullable\":false},\"payload\":{\"type\":\"string\"," +
+      "\"nullable\":false}},\"rows\":" +
+      rows +
+      "},\"as\":\"source\"}]",
     ),
     [],
     None,
@@ -27,6 +36,15 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+fn carrier_events_source_owner() -> @lower.BoundPrepared {
+  carrier_events_source_owner_with(
+    "number",
+    "[{\"event_id\":1,\"occurred_at\":11,\"payload\":\"first\"}," +
+    "{\"event_id\":2,\"occurred_at\":9,\"payload\":\"late\"}]",
+  )
 }
 
 ///|
@@ -666,6 +684,117 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
   assert_true(@execution.completed_cell(first, 1, 2) is Some(Text("mark")))
   assert_true(@execution.completed_cell(second, 0, 0) is Some(Text("first")))
   assert_true(@execution.completed_cell(second, 1, 1) is Some(Number(10.0)))
+}
+
+///|
+test "Events bridge preserves timestamp clocks through a typed round trip" {
+  let source_owner = carrier_events_source_owner_with(
+    "timestamp",
+    "[{\"event_id\":1,\"occurred_at\":" +
+    "\"1969-12-31T23:59:59.999Z\",\"payload\":\"before\"}," +
+    "{\"event_id\":2,\"occurred_at\":" +
+    "\"2000-02-29T12:30:00.000Z\",\"payload\":\"leap\"}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let source_input = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let encoding = @local_bridge.start_rows_to_events(
+    @bounded.control(),
+    prepared_sequence(events_owner),
+    0,
+    source_input,
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let events = finish_rows_to_events(encoding)
+  assert_eq(@local_bridge.cleanup_rows_to_events(encoding), Ok(true))
+
+  let projection_owner = carrier_events_projection_owner(events_owner)
+  let events_input = @records.prepare_producer_read(
+    projection_owner, 0, events_owner, events,
+  ).unwrap()
+  assert_true(
+    @records.producer_read_matches_operation_input(
+      events_input, projection_owner, 0, 0,
+    ),
+  )
+  assert_true(
+    @lower.sequence_step(prepared_sequence(projection_owner), 0)
+    is Some(@lower.CarrierProjectionStep(_)),
+  )
+  let events_view = @records.producer_read_view(events_input).unwrap()
+  let projection = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    events_view,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+  ).unwrap()
+  let rows = finish_events_to_rows(projection)
+  assert_eq(@local_bridge.cleanup_events_to_rows(projection), Ok(true))
+  assert_true(
+    @execution.completed_cell(rows, 0, 1)
+    is Some(Captured(@admitted.Timestamp("1969-12-31T23:59:59.999Z"))),
+  )
+  assert_true(
+    @execution.completed_cell(rows, 1, 1)
+    is Some(Captured(@admitted.Timestamp("2000-02-29T12:30:00.000Z"))),
+  )
+  assert_true(@records.completed_available(events))
+  assert_true(@records.discard_completed(events))
+}
+
+///|
+test "rows to Events rejects duplicate semantic identities" {
+  let source_owner = carrier_events_source_owner_with(
+    "number",
+    "[{\"event_id\":1,\"occurred_at\":1,\"payload\":\"first\"}," +
+    "{\"event_id\":1,\"occurred_at\":2,\"payload\":\"second\"}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let source_input = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let encoding = @local_bridge.start_rows_to_events(
+    @bounded.control(),
+    prepared_sequence(events_owner),
+    0,
+    source_input,
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut failed = false
+  while !failed {
+    match @local_bridge.advance_rows_to_events(encoding, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.Output(
+          @records.Storage(@record_storage.DuplicateIdentity)
+        ),
+        ..
+      ) => failed = true
+      @local_bridge.Failed(_, ..) => abort("unexpected rows-to-events failure")
+      @local_bridge.Complete(_, ..) => abort("duplicate identity was accepted")
+      @local_bridge.Stopped(_, ..) => abort("rows-to-events stopped")
+    }
+  }
+  assert_eq(@local_bridge.cleanup_rows_to_events(encoding), Ok(true))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
