@@ -69,6 +69,34 @@ test "standard Local reads the exact committed Transfer destination" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(store_root) else {
     return
   }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY")
+    is Some(crypto_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT")
+    is Some(runtime_root_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET")
+    is Some(runtime_target) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY")
+    is Some(runtime_public_key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY")
+    is Some(runtime_bundle_body) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID")
+    is Some(runtime_bundle_cid) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE")
+    is Some(runtime_signature) else {
+    return
+  }
   let http = @native_http.load_library(http_path).unwrap()
   let client = http.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
   let sqlite = @native_sqlite.load_library(sqlite_path).unwrap()
@@ -155,33 +183,6 @@ test "standard Local reads the exact committed Transfer destination" {
     )
     is Err(_),
   )
-  let source_owner = @native_remote_standard.acquire_native_remote_standard_transfer_source(
-    destination_journal,
-    root,
-    input,
-    codec,
-    sequence,
-    @program_check.source_identity(program),
-    {
-      max_rows: 10,
-      max_wire_bytes: 1000,
-      max_read_bytes: 4,
-      max_entries: 100,
-      max_name_bytes: 10000,
-      values: {
-        max_nodes: 10000,
-        max_text_bytes: 100000,
-        max_depth: 10,
-        max_work: 200000,
-      },
-      wire: {
-        max_bytes: 100,
-        max_nodes: 20,
-        max_depth: 4,
-        max_text_bytes: 100,
-      },
-    },
-  ).unwrap()
   let owners = physical_graph_owners(program)
   owners[0] = @query.query_sequence_owner(sequence)
   let graph = @strategy.prepare_checked_dag(
@@ -190,34 +191,196 @@ test "standard Local reads the exact committed Transfer destination" {
     @program_check.unit_count(program),
     1000,
   ).unwrap()
-  let ledger = @resources.create_ledger({
-    planning_work: 10000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 300000L,
-    retained_bytes: 32000000L,
-    execution_bytes: 134217728L,
-  }).unwrap()
-  let run = @strategy.open_captured_dag(
-    graph,
-    @native_remote_standard.native_remote_standard_transfer_captured_source(
-      source_owner,
-    ),
-    ledger,
+  let crypto = @native_signature.load_library(crypto_path).unwrap()
+  let runtime_root = @native_filesystem.open_root(runtime_root_path).unwrap()
+  let runtime_component = b"native-runtime"
+  let runtime_writer = runtime_root
+    .create_writer("runtime-stage", runtime_component.length().to_int64())
+    .unwrap()
+  runtime_writer.append(runtime_component).unwrap()
+  let runtime_generation = runtime_writer.seal("runtime-component").unwrap()
+  let bundles = @native_runtime_bundle.open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    runtime_root_path,
+    [
+      {
+        issuer_authority: "bundle-authority-a",
+        key_id: "key-a",
+        public_key_pem: runtime_public_key,
+      },
+    ],
+    runtime_target,
+    runtime_component.length().to_int64(),
+    4,
+    8,
+    262144L,
   ).unwrap()
-  captured_graph_local(run, 1).unwrap()
-  let output = @strategy.captured_task_output(run, 1, @pipeline.Step(1)).unwrap()
-  assert_eq(@execution.completed_row_count(output), 1)
-  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
-  assert_true(
-    @native_remote_standard.finish_native_remote_standard_transfer_source(
-      source_owner,
-    ),
+  bundles
+  .adopt(
+    "actql-remote-runtime-bundle-signature/0.1", "key-a", runtime_bundle_cid, runtime_bundle_body,
+    runtime_signature, "runtime-component", runtime_generation,
   )
-  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
-  @strategy.stop_captured_dag(run)
-  for task in 0..<@program_check.unit_count(program) {
-    @strategy.close_captured_task_output(run, task)
+  .unwrap()
+  |> ignore
+  bundles.activate(runtime_bundle_cid).unwrap() |> ignore
+  let active_runtime = bundles
+    .acquire_active_component(
+      "sha256:" + @sha.hex(runtime_component),
+      runtime_target,
+      "runtime-process:standard-transfer-input",
+    )
+    .unwrap()
+  let site = @site.create_site(
+    "native-standard-transfer-site", 1, runtime_bundle_cid, 2, 2, 1048576L, 268435456L,
+  ).unwrap()
+  let journal_control = @remote.create_site_dispatch_journal(
+    site, "actql-remote-site/0.1",
+  ).unwrap()
+  let remote_journal = @native_remote_journal.open_journal(
+    sqlite,
+    runtime_root_path + "/standard-transfer-journal.sqlite3",
+    262144L,
+    journal_control,
+  ).unwrap()
+  let captured_runs : Array[@strategy.CapturedDAG] = []
+  let executor = @native_remote_standard.install_native_remote_standard_task_executor(
+    @strategy.graph_program_definition_cid(graph),
+    "task-1-transfer-local",
+    1,
+    (dispatch, binding) => {
+      @native_remote_standard.resolve_native_remote_standard_transfer_run(
+        dispatch,
+        binding,
+        destination_journal,
+        root,
+        codec,
+        sequence,
+        @program_check.source_identity(program),
+        {
+          max_binding_bytes: 131072,
+          max_chunks: 8,
+          max_manifest_bytes: 4096,
+          max_referenced_bytes: 1048576L,
+        },
+        {
+          max_rows: 10,
+          max_wire_bytes: 1000,
+          max_read_bytes: 4,
+          max_entries: 100,
+          max_name_bytes: 10000,
+          values: {
+            max_nodes: 10000,
+            max_text_bytes: 100000,
+            max_depth: 10,
+            max_work: 200000,
+          },
+          wire: {
+            max_bytes: 100,
+            max_nodes: 20,
+            max_depth: 4,
+            max_text_bytes: 100,
+          },
+        },
+        captured_source => {
+          try {
+            let ledger = @resources.create_ledger({
+              planning_work: 10000,
+              attempts: 10,
+              holdings: 10,
+              transfer_bytes: 300000L,
+              retained_bytes: 32000000L,
+              execution_bytes: 134217728L,
+            }).unwrap()
+            let captured = @strategy.open_captured_dag(
+              graph, captured_source, ledger,
+            ).unwrap()
+            let registry = search_registry()
+            ignore(channel_test_selection(captured, registry))
+            let host = @dbhost.configure_strategy_dispatch(
+              captured,
+              registry,
+              @connector.capability_registration_at(registry, 0).unwrap(),
+              @connector.capability_registration_at(registry, 1).unwrap(),
+              dispatch_test_generated(captured),
+              dispatch_test_limits(),
+            ).unwrap()
+            let run = @native_host.open_native_standard_strategy_run(
+              host,
+              native_compute_import_limits(),
+              100000L,
+              1000000L,
+            ).unwrap()
+            captured_runs.push(captured)
+            Ok(run)
+          } catch {
+            _ => Err(())
+          }
+        },
+      )
+    },
+    {
+      output_export: native_publication_export_limits(),
+      max_manifest_bytes: 65536,
+      max_retained_bytes: 1048576L,
+    },
+  ).unwrap()
+  let operation_capability = native_publication_cid(
+    "remote-standard-transfer-operation-capability",
+  )
+  let issuer_capability = native_publication_cid(
+    "remote-standard-transfer-issuer-capability",
+  )
+  let budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
+  let runtime = @native_remote_standard.open_native_remote_standard_site_runtime(
+    site,
+    active_runtime,
+    operation_capability,
+    issuer_capability,
+    [executor],
+    remote_journal,
+    bundles,
+    [budget],
+  ).unwrap()
+  let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
+    active_runtime,
+  )
+  let input_binding = @native_remote_standard.native_remote_standard_transfer_binding(
+    input,
+  )
+  let dispatch = @remote.prepare_dispatch_request(
+    "native-standard-transfer-coordinator",
+    @strategy.graph_program_definition_cid(graph),
+    "task-1-transfer-local",
+    1,
+    "native-standard-transfer-dispatch-1",
+    "native-standard-transfer-site",
+    1,
+    runtime_bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-transfer-obligations"),
+    @remote.remote_dispatch_budget_cid(budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_native_remote_standard_output(
+    runtime, remote_journal, dispatch, input_binding, "[{\"id\":3}]",
+  )
+  assert_eq(captured_runs.length(), 1)
+  assert_true(runtime.close().unwrap())
+  assert_true(remote_journal.close())
+  assert_true(bundles.close().unwrap())
+  for captured in captured_runs {
+    for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
+      @strategy.close_captured_task_output(captured, task)
+    }
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
   }
   let cleanup = @native_transfer.pin_durable_store_destination_material(
     destination_journal,

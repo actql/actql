@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {signRemoteRuntimeBundle} from
+  '../adapters/site-node/remote-bundle-signature.mjs';
 
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
@@ -15,8 +19,12 @@ await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-http-'));
 const storeRoot = join(root, 'store');
 const sqliteRoot = join(root, 'sqlite');
+const standardRoot = join(root, 'standard');
+const transferStandardRoot = join(root, 'transfer-standard');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(sqliteRoot, {recursive: true});
+await mkdir(standardRoot, {recursive: true});
+await mkdir(transferStandardRoot, {recursive: true});
 
 const openssl = (...arguments_) => execFileSync(
   'openssl',
@@ -621,6 +629,44 @@ try {
           '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib',
         ].find(existsSync) ?? 'libcrypto.3.dylib'
       : 'libcrypto.so.3');
+  const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
+    ? 'aarch64-apple-darwin'
+    : process.platform === 'linux' && process.arch === 'x64'
+      ? 'x86_64-unknown-linux-gnu'
+      : undefined;
+  if (targetTriple === undefined) {
+    throw new Error(
+      `unsupported native HTTP test target ${process.platform}/${process.arch}`,
+    );
+  }
+  execFileSync(moon, [
+    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
+  const moonModule = await import(pathToFileURL(join(
+    new URL('../', import.meta.url).pathname,
+    '_build/js/release/build/connectors_builtin_node/' +
+      'connectors_builtin_node.js',
+  )).href);
+  const runtimeControl = runtimeCore(moonModule).remoteBundleControl;
+  const runtimeKeys = generateKeyPairSync('ed25519');
+  const runtimeComponent = Buffer.from('native-runtime');
+  const runtimeManifest = runtimeControl.prepare({
+    issuerAuthority: 'bundle-authority-a',
+    bundleName: 'native-runtime',
+    revision: 'native/1',
+    targetTriple,
+    componentCid: `sha256:${createHash('sha256')
+      .update(runtimeComponent).digest('hex')}`,
+    componentBytes: BigInt(runtimeComponent.byteLength),
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
+  });
+  const runtimeEnvelope = signRemoteRuntimeBundle(
+    runtimeManifest,
+    runtimeControl,
+    {keyId: 'key-a', privateKey: runtimeKeys.privateKey},
+  );
   const testEnvironment = {
     ...process.env,
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
@@ -641,6 +687,15 @@ try {
     ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
     ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
     ACTQL_TEST_NATIVE_STORE_ROOT: storeRoot,
+    ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
+    ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT: transferStandardRoot,
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
+      runtimeKeys.publicKey.export({type: 'spki', format: 'pem'}),
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: runtimeEnvelope.body,
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID:
+      runtimeEnvelope.runtimeBundleCid,
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: runtimeEnvelope.signature,
   };
   await writeFile(
     testEnvironment.ACTQL_TEST_NATIVE_HTTP_SECRET,
