@@ -602,6 +602,10 @@ operations are complete. Standalone Bridge selection, overlapping direct
 Carrier consumer lifetime and Graph construction remain open. The bounded
 Relation-to-Events-to-Relation path now has page-split evidence, but a
 Relation-shaped buffer alone is not evidence of a completed conversion.
+At `15af5df1`, the compiled Node Host separately delivers cancellation during
+the rows-to-Events copy and during the Events-to-rows copy after the bounded
+watermark transform. Both paths observe stop and reclaim the ledger without
+publishing a partial Relation or Carrier generation.
 
 ## Current verification boundary
 

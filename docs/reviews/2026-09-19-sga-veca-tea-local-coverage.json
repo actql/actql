@@ -1695,12 +1695,24 @@
         "managed",
         "standard_host",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/event_test.mbt",
         "src/query_integration/local_carrier_events_wbtest.mbt",
         "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "environment_cancellation_during_rows_to_events",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "15af5df1",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
@@ -1720,11 +1732,23 @@
         "managed",
         "standard_host",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/query_integration/local_carrier_events_wbtest.mbt",
         "adapters/duckdb-node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "environment_cancellation_during_events_to_rows",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "15af5df1",
+          "evidence": [
+            "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        }
       ]
     },
     {
