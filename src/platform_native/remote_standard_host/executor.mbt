@@ -31,9 +31,7 @@ struct NativeRemoteStandardTaskExecutor {
 struct NativeRemoteStandardBoundRun {
   request_cid : String
   input_binding_cid : String
-  run : @native_host.NativeStandardStrategyRun
-  finish_input_owner : () -> Bool
-  mut input_finished : Bool
+  owner : NativeRemoteStandardRunOwner
 }
 
 ///|
@@ -42,7 +40,11 @@ struct NativeRemoteStandardBoundRun {
 /// replace either the Run or its cleanup responsibility.
 struct NativeRemoteStandardRunOwner {
   run : @native_host.NativeStandardStrategyRun
+  finish_output_owner : () -> Bool
   finish_input_owner : () -> Bool
+  mut run_finished : Bool
+  mut output_finished : Bool
+  mut input_finished : Bool
 }
 
 ///|
@@ -123,8 +125,7 @@ pub fn reject_native_remote_standard_input(
 fn bind_native_remote_standard_run(
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
-  run : @native_host.NativeStandardStrategyRun,
-  finish_input_owner : () -> Bool,
+  owner : NativeRemoteStandardRunOwner,
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardHostIssue] {
   let binding_cid = @remote.remote_input_binding_cid(binding)
   if !@remote.remote_input_binding_matches_dispatch(binding, request) {
@@ -133,9 +134,7 @@ fn bind_native_remote_standard_run(
   Ok({
     request_cid: @remote.dispatch_request_identity(request),
     input_binding_cid: binding_cid,
-    run,
-    finish_input_owner,
-    input_finished: false,
+    owner,
   })
 }
 
@@ -147,7 +146,65 @@ pub fn prepare_native_remote_standard_run_owner(
   run : @native_host.NativeStandardStrategyRun,
   finish_input_owner : () -> Bool,
 ) -> NativeRemoteStandardRunOwner {
-  { run, finish_input_owner, }
+  prepare_native_remote_standard_captured_run_owner(
+    run,
+    () => true,
+    finish_input_owner,
+  )
+}
+
+///|
+/// Prepares one occurrence owner whose captured output lifetime remains
+/// independent from its input lifetime. The output owner is released only
+/// after the standard Run has stopped and remains retryable without rerunning
+/// either physical cleanup step.
+pub fn prepare_native_remote_standard_captured_run_owner(
+  run : @native_host.NativeStandardStrategyRun,
+  finish_output_owner : () -> Bool,
+  finish_input_owner : () -> Bool,
+) -> NativeRemoteStandardRunOwner {
+  {
+    run,
+    finish_output_owner,
+    finish_input_owner,
+    run_finished: false,
+    output_finished: false,
+    input_finished: false,
+  }
+}
+
+///|
+fn NativeRemoteStandardRunOwner::finish_input(
+  self : NativeRemoteStandardRunOwner,
+) -> Bool {
+  if self.input_finished {
+    return true
+  }
+  if (self.finish_input_owner)() {
+    self.input_finished = true
+    true
+  } else {
+    false
+  }
+}
+
+///|
+fn NativeRemoteStandardRunOwner::release(
+  self : NativeRemoteStandardRunOwner,
+) -> Bool {
+  if !self.run_finished {
+    match @native_host.close_native_standard_strategy_run(self.run) {
+      Ok(true) => self.run_finished = true
+      Ok(false) | Err(_) => return false
+    }
+  }
+  if !self.output_finished {
+    if !(self.finish_output_owner)() {
+      return false
+    }
+    self.output_finished = true
+  }
+  self.finish_input()
 }
 
 ///|
@@ -181,24 +238,12 @@ fn NativeRemoteStandardBoundRunFactory::resolve(
     Ok(value) => value
     Err(failure) => return Err(failure)
   }
-  match
-    bind_native_remote_standard_run(
-      request,
-      binding,
-      owner.run,
-      owner.finish_input_owner,
-    ) {
+  match bind_native_remote_standard_run(request, binding, owner) {
     Ok(value) => Ok(value)
     Err(_) =>
       Err(
         prepare_native_remote_standard_input_failure("standard-input-binding", () => {
-          let run_closed = match
-            @native_host.close_native_standard_strategy_run(owner.run) {
-            Ok(_) => true
-            Err(_) => false
-          }
-          let input_closed = (owner.finish_input_owner)()
-          run_closed && input_closed
+          owner.release()
         }).unwrap(),
       )
   }
@@ -208,25 +253,14 @@ fn NativeRemoteStandardBoundRunFactory::resolve(
 fn NativeRemoteStandardBoundRun::finish_input(
   self : NativeRemoteStandardBoundRun,
 ) -> Bool {
-  if self.input_finished {
-    return true
-  }
-  if (self.finish_input_owner)() {
-    self.input_finished = true
-    true
-  } else {
-    false
-  }
+  self.owner.finish_input()
 }
 
 ///|
 fn NativeRemoteStandardBoundRun::release(
   self : NativeRemoteStandardBoundRun,
 ) -> Bool {
-  match @native_host.close_native_standard_strategy_run(self.run) {
-    Ok(true) => self.finish_input()
-    Ok(false) | Err(_) => false
-  }
+  self.owner.release()
 }
 
 ///|
@@ -433,7 +467,7 @@ fn execute_native_remote_standard_task(
       reject_native_remote_standard_input("foreign-input-binding").unwrap(),
     )
   }
-  let run = bound.run
+  let run = bound.owner.run
   let completion = match
     @native_host.execute_next_native_standard_strategy_task(run) {
     Ok(Some(value)) => value

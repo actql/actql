@@ -57,6 +57,11 @@ accept a dispatch. The process-owned distribution additionally closes the
 common runtime before the active bundle Store, dispatch journal, and HTTPS
 client. A failed earlier authority remains retryable and prevents later
 physical owners from being closed out of order.
+Each exact standard Run now owns its captured output cleanup separately from
+its input pin. Runtime stop, captured-output release, and input release advance
+monotonically and remain independently retryable, so a complete Site process
+does not depend on a conformance fixture to release the Captured DAG after an
+output reader closes.
 
 The JavaScript retained-row parser is not a product authority after this
 change. Its tests stay as independent physical fixtures; they are not used to

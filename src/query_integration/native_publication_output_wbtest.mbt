@@ -590,6 +590,7 @@ fn assert_native_remote_standard_output(
   request : @remote.DispatchRequest,
   input_binding : @remote.RemoteInputBinding,
   expected : String,
+  retry_release? : Bool = false,
 ) -> Unit raise {
   let operation = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_dispatch_json(request, input_binding).unwrap(),
@@ -635,6 +636,22 @@ fn assert_native_remote_standard_output(
   let release = @remote.admit_remote_poll_operation_json(
     @remote.remote_poll_release_json(request).unwrap(),
   ).unwrap()
+  if retry_release {
+    guard @native_remote_agent.advance_native_outbound_operation(
+        runtime,
+        Some(release),
+        acknowledge_acceptance,
+        acknowledge_status,
+      )
+      is Err(
+        @native_remote_agent.RuntimeObserved(
+          @native_remote_runtime.CleanupPending("output"),
+          _
+        )
+      ) else {
+      fail("standard remote output release did not retain cleanup ownership")
+    }
+  }
   guard @native_remote_agent.advance_native_outbound_operation(
       runtime,
       Some(release),
@@ -751,6 +768,8 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let local_run_owner = [Some(local_run)]
   let local_input_finished = [false]
+  let local_output_finished = [false]
+  let local_output_finish_count = [0]
   let local_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
     input_binding,
     () => {
@@ -758,8 +777,23 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
         Some(value) => {
           local_run_owner[0] = None
           Ok(
-            @native_remote_standard.prepare_native_remote_standard_run_owner(
+            @native_remote_standard.prepare_native_remote_standard_captured_run_owner(
               value,
+              () => {
+                local_output_finish_count[0] += 1
+                if local_output_finish_count[0] == 1 {
+                  return false
+                }
+                if !local_output_finished[0] {
+                  for task = @strategy.graph_task_count(local_graph) - 1
+                      task > 0
+                      task = task - 1 {
+                    @strategy.close_captured_task_output(local_captured, task)
+                  }
+                  local_output_finished[0] = true
+                }
+                true
+              },
               () => {
                 if !local_input_finished[0] {
                   @mock.close_mock_query_issuer(local_query_issuer)
@@ -792,6 +826,8 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   ).unwrap()
   let duckdb_run_owner = [Some(duckdb_run)]
   let duckdb_input_finished = [false]
+  let duckdb_output_finished = [false]
+  let duckdb_output_finish_count = [0]
   let duckdb_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
     input_binding,
     () => {
@@ -799,8 +835,20 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
         Some(value) => {
           duckdb_run_owner[0] = None
           Ok(
-            @native_remote_standard.prepare_native_remote_standard_run_owner(
+            @native_remote_standard.prepare_native_remote_standard_captured_run_owner(
               value,
+              () => {
+                duckdb_output_finish_count[0] += 1
+                if !duckdb_output_finished[0] {
+                  for task = @strategy.graph_task_count(duckdb_graph) - 1
+                      task > 0
+                      task = task - 1 {
+                    @strategy.close_captured_task_output(duckdb_captured, task)
+                  }
+                  duckdb_output_finished[0] = true
+                }
+                true
+              },
               () => {
                 if !duckdb_input_finished[0] {
                   @mock.close_mock_query_issuer(duckdb_query_issuer)
@@ -925,7 +973,12 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     operation_capability,
   ).unwrap()
   assert_native_remote_standard_output(
-    runtime, journal, local_request, input_binding, "[{\"id\":3}]",
+    runtime,
+    journal,
+    local_request,
+    input_binding,
+    "[{\"id\":3}]",
+    retry_release=true,
   )
   let duckdb_request = @remote.prepare_dispatch_request(
     "native-standard-coordinator",
@@ -1036,16 +1089,10 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   assert_true(bundles.close().unwrap())
   assert_true(local_input_finished[0])
   assert_true(duckdb_input_finished[0])
-  for task = @strategy.graph_task_count(local_graph) - 1
-      task > 0
-      task = task - 1 {
-    @strategy.close_captured_task_output(local_captured, task)
-  }
-  for task = @strategy.graph_task_count(duckdb_graph) - 1
-      task > 0
-      task = task - 1 {
-    @strategy.close_captured_task_output(duckdb_captured, task)
-  }
+  assert_true(local_output_finished[0])
+  assert_true(duckdb_output_finished[0])
+  assert_eq(local_output_finish_count[0], 2)
+  assert_eq(duckdb_output_finish_count[0], 1)
   for captured in [local_captured, duckdb_captured] {
     let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
     assert_eq(usage.reserved_execution_bytes, 0L)

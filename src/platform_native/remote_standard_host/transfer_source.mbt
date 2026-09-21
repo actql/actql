@@ -599,27 +599,17 @@ fn bind_native_remote_standard_transfer_source_run(
         cleanup_complete: false,
       })
   }
-  match
-    bind_native_remote_standard_run(request, binding, run, () => {
-      finish_native_remote_standard_transfer_source(source)
-    }) {
+  let owner = prepare_native_remote_standard_run_owner(run, () => {
+    finish_native_remote_standard_transfer_source(source)
+  })
+  match bind_native_remote_standard_run(request, binding, owner) {
     Ok(value) => Ok(value)
-    Err(_) => {
-      let closed = [false]
+    Err(_) =>
       Err({
         code: "standard-run-binding",
-        cleanup: fn() {
-          if !closed[0] {
-            match @native_host.close_native_standard_strategy_run(run) {
-              Ok(true) => closed[0] = true
-              Ok(false) | Err(_) => return false
-            }
-          }
-          finish_native_remote_standard_transfer_source(source)
-        },
+        cleanup: () => owner.release(),
         cleanup_complete: false,
       })
-    }
   }
 }
 
