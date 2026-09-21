@@ -608,6 +608,8 @@ fn local_carrier_graph_environment(
 ///|
 /// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
+  let concise = variant == "concise_projection"
+  let split = variant == "split_projection"
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -633,7 +635,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
     "\"weight\":20}]"
   let graph_equality = is_graph_equality_variant(variant)
-  let projection = if variant == "match_nodes" {
+  let projection = if concise {
+    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
+  } else if variant == "match_nodes" {
     "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
     "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
   } else if variant == "match_nodes_literal" {
@@ -724,8 +728,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_rows\":true,\"as\":\"out\""
   }
-  let result_fields = if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" {
+  let result_fields = if concise {
+    "\"src\",\"dst\",\"id\",\"weight\""
+  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -741,8 +746,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = result_fields
-  let second_fields = if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" {
+  let second_fields = if concise {
+    "\"weight\",\"src\""
+  } else if variant.has_prefix("match_edges") || variant == "edge_projection" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -757,7 +763,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if variant.has_suffix("unequal") {
+  let other_stage = if split {
+    "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":1," +
+    "\"node_name\":\"first\",\"weight\":0},{\"id\":2," +
+    "\"src\":2,\"dst\":2,\"node_name\":\"second\"," +
+    "\"weight\":0}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    "\"node_name\",\"weight\"]}}},"
+  } else if variant.has_suffix("unequal") {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
@@ -777,7 +793,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if variant.has_suffix("unequal") {
+  let graph_inputs = if split {
+    "\"nodes\":{\"result\":{\"stage\":\"node_values\"," +
+    "\"result\":\"r\"}},\"rows\":{\"result\":{" +
+    "\"stage\":\"values\",\"result\":\"r\"}}"
+  } else if variant.has_suffix("unequal") {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
@@ -802,10 +822,18 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   other_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
   graph_inputs +
-  "},\"steps\":[{\"graph\":{\"nodes\":{" +
-  "\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
-  "\"edges\":{\"from\":\"rows\",\"source\":\"src\"," +
-  "\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"g\"},{" +
+  "},\"steps\":[{" +
+  (if concise {
+    "\"from\":\"rows\",\"graph\":{\"source\":\"src\"," +
+    "\"target\":\"dst\"},\"as\":\"g\"},{"
+  } else {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if split { "\"nodes\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"g\"},{"
+  }) +
   projection +
   "}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":[" +
