@@ -12,7 +12,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 32/39 entries have kernels and managed completion, 31/39 reach the standard Host, and 27/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 32/39 entries have kernels and managed completion, 32/39 reach the standard Host, and 28/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 32/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 26/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
@@ -21,7 +21,7 @@ readable coverage manifest is authoritative for individual operation status.
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 32/39, standard Host
-31/39, consumer lifetime 27/39, cancellation 26/39, and publication 26/39. These are
+32/39, consumer lifetime 28/39, cancellation 26/39, and publication 27/39. These are
 layer counts, not operation completion: 19 entries are `complete` and 20 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -574,9 +574,13 @@ Author match guards fail atomically, and output storage is admitted before
 publication. The focused lowering and runtime suites pass on JS, Wasm, and
 native. A Relation input now reaches the standard Host under exact temporal
 limits, feeds two downstream computations with overlapping lifetimes, releases
-them independently, and reclaims the final ledger on all three targets. The
-Events input path, publication, and environment cancellation delivery remain
-open, so sequence matching is partial. Event windows now preserve the Events
+them independently, and reclaims the final ledger on all three targets. At
+`a93ea126`, the same path establishes the exact Logical Relation identity for
+its Named Result before publication on JS, Wasm, and native. The Events input
+path and environment cancellation delivery remain open, so sequence matching
+is partial. The synchronous Relation evaluator does not yet expose its bounded
+sequence state through the managed advance boundary; finalization cancellation
+is not counted as kernel cancellation. Event windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
 sliding-assignment operation. Their bounded kernel validates the complete
 membership bound before output allocation, retains input occurrence order,

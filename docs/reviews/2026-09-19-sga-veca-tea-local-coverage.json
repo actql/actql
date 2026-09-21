@@ -1362,13 +1362,27 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
+        "consumer_lifetime",
         "resources",
+        "publication",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/sequence_match_test.mbt",
         "src/execution_relation/sequence_match_rows_wbtest.mbt",
         "src/query_integration/local_managed_sequence_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "relation_host_consumers_and_named_result_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "a93ea126",
+          "evidence": [
+            "src/query_integration/local_managed_sequence_wbtest.mbt"
+          ]
+        }
       ]
     },
     {
