@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/process_image"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn current_executable_cid(Int64, Int) -> Result[String, NativeProcessImageIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeProcessImageIssue {
+  InvalidLimit
+  Open(String)
+  Read(String)
+  Close(String)
+  CapacityExceeded
+  EmptyImage
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

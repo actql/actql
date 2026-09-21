@@ -9,6 +9,7 @@ import {
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/process_image",
   "actql/actql/platform_native/remote_application_profile" @application,
   "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/platform_native/remote_journal" @journal,

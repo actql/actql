@@ -1,0 +1,10 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "process_image_stub.c" ],
+)

@@ -519,6 +519,14 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let site_key = required(matches, "site-key")
   let target = required(matches, "target-triple")
   let component_cid = required(matches, "component-cid")
+  let loaded_component_cid = match
+    @process_image.current_executable_cid(max_bytes, 1048576) {
+    Ok(value) => value
+    Err(_) => stop("native Site executable identity failed")
+  }
+  if loaded_component_cid != component_cid {
+    stop("native Site executable identity mismatch")
+  }
   let process_hold_id = required(matches, "process-hold-id")
   let bundle_issuer = required(matches, "bundle-issuer")
   let bundle_key_id = required(matches, "bundle-key-id")
@@ -573,7 +581,9 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   let active_runtime = match
-    bundles.acquire_active_component(component_cid, target, process_hold_id) {
+    bundles.acquire_active_component(
+      loaded_component_cid, target, process_hold_id,
+    ) {
     Ok(value) => value
     Err(_) => {
       ignore(bundles.close())
