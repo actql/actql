@@ -554,8 +554,26 @@
       "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_shortest_test.mbt"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_shortest_test.mbt",
+        "src/local_sga/shortest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "src/query_integration/join_graph_capacity_wbtest.mbt"
+      ],
       "implementation_evidence": [
         {
           "scope": "scalar_unweighted_each_pair_vertical_slice",
@@ -567,6 +585,27 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "src/query_integration/join_graph_capacity_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "canonical_equal_hop_identity_ties",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "457e1886",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_edge_type_filters_and_publication",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "77a0bed4",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         }
       ]

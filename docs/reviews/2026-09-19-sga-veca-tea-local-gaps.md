@@ -28,14 +28,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `contract` | 39/39 |
 | `checker` | 39/39 |
 | `lowering` | 39/39 |
-| `kernel` | 35/39 |
-| `managed` | 35/39 |
-| `standard_host` | 35/39 |
-| `consumer_lifetime` | 35/39 |
-| `resources` | 35/39 |
-| `cancellation` | 35/39 |
-| `publication` | 34/39 |
-| `three_targets` | 35/39 |
+| `kernel` | 36/39 |
+| `managed` | 36/39 |
+| `standard_host` | 36/39 |
+| `consumer_lifetime` | 36/39 |
+| `resources` | 36/39 |
+| `cancellation` | 36/39 |
+| `publication` | 35/39 |
+| `three_targets` | 36/39 |
 | complete operations | 30/39 |
 | open operations | 9/39 |
 <!-- local-family-coverage-summary:end -->
@@ -285,10 +285,22 @@ kernel through the standard Host. The portable tests cover exact managed Graph
 input binding, pre-allocation workspace rejection, cancellation observation,
 cleanup, two overlapping Relation consumers, and final reclamation on JS,
 Wasm, and native. The capacity fixture now includes the exact shortest-path
-program candidate instead of relying only on the Host ceiling. Selected
-endpoints, `nearest_per_source`, `nearest_pair`, edge-type filtering, weighted
-costs, and canonical equal-cost tie resolution remain open, so
-`shortest_path` remains partial.
+program candidate instead of relying only on the Host ceiling. At that
+revision, selected endpoints, `nearest_per_source`, `nearest_pair`, edge-type
+filtering, weighted costs, and canonical equal-cost tie resolution were open.
+
+At `457e1886`, every admitted adjacency segment is sorted by semantic node
+and edge identity before the bounded breadth-first search. Equal-hop choices
+therefore no longer depend on physical edge enumeration. Merge scratch and
+path reconstruction arrays are included in pre-allocation workspace admission;
+exact and one-short boundaries pass on JS, Wasm, and native. At `77a0bed4`,
+omitted, explicitly empty, and finite `edge_types` are distinct. Degree and
+CSR phases compare one authored label per bounded step. Match, later-list
+match, miss, and empty cases reach the standard Host, two consumers, and
+three portable targets; the matching case also establishes and retrieves its
+formal publication identity. Selected endpoints, `nearest_per_source`,
+`nearest_pair`, and weighted costs remain open, so `shortest_path` remains
+partial.
 Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,
