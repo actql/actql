@@ -502,6 +502,13 @@ depth-two result through two consumers and final cleanup. Empty intermediate
 frontiers remain successful empty results. Path output remains open, so
 `traverse` remains partial.
 
+At `5d95e21e`, traversal output admission applies the authored row ceiling to
+emitted rows rather than to the input Graph node count. Portable regressions
+cover a four-node Graph that emits one row, the same Graph with no reached row,
+and repeated starts whose combined output exceeds the ceiling. The excess case
+fails atomically without exposing a partial Relation. The tests pass on JS,
+Wasm, and native.
+
 At `2f924a7d`, literal identity selection has a bounded induced-subgraph
 kernel. It compares one authored identity per work unit, copies every selected
 node once, retains only edges whose two endpoints were selected, and keeps
@@ -1020,6 +1027,12 @@ zero. The same revision passes all 433 query-integration tests on JS, Wasm,
 and native, and the complete Node standard-Host test. With the existing RRF,
 tie, repeated-input, negative, numeric, and resource fixtures, all classified
 `merge_rankings` variants and required Local layers are closed.
+
+At `06974f71`, business tie ordering is separated from strict candidate and
+group identity. Nullable AuthorOrderable ties preserve equality for two NULLs
+and order NULL after a present value without weakening nonnullable candidate
+identity. Registered managed-provider regressions cover maximum and
+weighted-sum inputs with present and NULL ties on JS, Wasm, and native.
 
 At `bf85b1b4`, duplicate candidates and noncontiguous positions are exercised
 through the registered RRF provider rather than only through checker or helper

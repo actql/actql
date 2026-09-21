@@ -515,6 +515,16 @@
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
+        },
+        {
+          "scope": "output_ceiling_applies_to_emitted_rows",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5d95e21e",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
@@ -2047,6 +2057,18 @@
           "evidence": [
             "src/duckdb_conformance/strategy_fixture.mbt",
             "adapters/duckdb-node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "nullable_business_tie_order",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "06974f71",
+          "evidence": [
+            "src/value_admission/key_order.mbt",
+            "src/local_veca/ranking.mbt",
+            "src/local_veca/ranking_wbtest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
           ]
         }
       ]
