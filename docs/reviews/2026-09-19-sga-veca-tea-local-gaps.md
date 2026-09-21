@@ -471,8 +471,10 @@ It admits work and workspace before builder construction and cancels private
 output before releasing reservations. Two- and three-operand, NULL, missing
 operand, cancellation, and exact/short resource cases pass on JS, Wasm, and
 native. The same checked-profile path reaches the standard Host, two downstream
-Compute consumers, independent release, and final ledger reclamation.
-Publication remains open, so concat is partial.
+Compute consumers, independent release, final ledger reclamation, and the
+Effect-free Named Result publication and retrieval path. Its bounded kernel
+also has direct cancellation coverage on all three targets, so concat is
+complete.
 Common immutable record storage preserves composite vector identities,
 admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
