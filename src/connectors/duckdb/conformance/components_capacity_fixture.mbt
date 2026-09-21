@@ -204,6 +204,7 @@ fn graph_fixture_capacity(
   environment : @environment.WireEnvironment,
   stage : String,
   rows : Int64,
+  node_rows? : Int64 = rows,
 ) -> @context.StageCapacityInput {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -218,7 +219,7 @@ fn graph_fixture_capacity(
   let input_cid = @wire.cid(@wire.program_proof_witness(input))
   let nodes = components_fixture_proof(
     "actql.bound.graph-nodes",
-    rows,
+    node_rows,
     "{\"op\":\"source\"}",
     inputs=[input_cid],
     unit="nodes",

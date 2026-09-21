@@ -2504,6 +2504,15 @@ async function exerciseStrategyGraph(
     });
   }
   const graphCancellationCases = [{
+    name: 'concise-graph-construction',
+    concise: true,
+    rows: 100,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 2,
+    constructionProgress: 0,
+    step: {from: 'g', edge_rows: true, as: 'out'},
+    fields: ['src', 'dst', 'id', 'weight'],
+  }, {
     name: 'node-rows',
     rows: 100,
     advanceQuantum: 16,
@@ -3129,6 +3138,13 @@ async function exerciseStrategyGraph(
         }));
     }
     if (graphFamily) {
+      if (cancellationCase.concise === true) {
+        graphCancellationProgram.stages[2].steps[0] = {
+          from: 'rows',
+          graph: {source: 'src', target: 'dst'},
+          as: 'g',
+        };
+      }
       graphCancellationProgram.stages[2].steps.splice(
         1,
         1,
@@ -3168,8 +3184,10 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : cancellationCase.name === 'traverse-out'
           ? fixture.strategyFixtureSgaTraverseSizedCreate
-        : cancellationCase.name === 'reach-out'
+      : cancellationCase.name === 'reach-out'
           ? fixture.strategyFixtureSgaReachSizedCreate
+        : cancellationCase.concise === true
+          ? fixture.strategyFixtureSgaDerivedCreate
         : fixture.strategyFixtureSgaSizedCreate;
     const cancellationFixture = createCancellationFixture(
       ...(teaFamily || vecaFamily

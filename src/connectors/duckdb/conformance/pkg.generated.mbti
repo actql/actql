@@ -357,6 +357,8 @@ pub fn strategy_fixture_sga_components_sized_create(String, String, String, Stri
 
 pub fn strategy_fixture_sga_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
+pub fn strategy_fixture_sga_derived_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
 pub fn strategy_fixture_sga_reach_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_sga_reach_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
