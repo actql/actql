@@ -3,6 +3,7 @@ package "actql/actql/platform_native/remote_runtime"
 
 import {
   "actql/actql/execution_site",
+  "actql/actql/physical_manifest",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/remote_site_protocol",
@@ -37,7 +38,7 @@ pub(all) struct NativeRemoteOutputFacts {
   result_schema_cid : String
   logical_view_cid : String
   representation_codec_cid : String
-  physical_manifest_cid : String
+  physical_manifest : @physical_manifest.PhysicalManifest
   row_count : Int
   retained_bytes : Int64
   measurement : @remote_site_protocol.RemoteManagedOutputMeasurement
@@ -46,7 +47,9 @@ pub(all) struct NativeRemoteOutputFacts {
 type NativeRemoteOutputReader
 pub fn NativeRemoteOutputReader::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteOutputReader::finish(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteOutputReader::material_generation(Self) -> Result[String, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteOutputReader::next(Self) -> Result[NativeRemoteOutputChunk, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteOutputReader::physical_manifest(Self) -> Result[@physical_manifest.PhysicalManifest, NativeRemoteRuntimeIssue]
 
 pub(all) enum NativeRemotePhysicalExecution {
   NativeRemoteOutputReady(NativeRemoteOutput)

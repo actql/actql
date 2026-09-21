@@ -119,24 +119,38 @@ test "outbound agent observes durable acceptance before one execution" {
         [0],
         [1],
       ).unwrap()
+      let schema_cid = agent_test_cid(
+        "8888888888888888888888888888888888888888888888888888888888888888",
+      )
+      let view_cid = agent_test_cid(
+        "9999999999999999999999999999999999999999999999999999999999999999",
+      )
+      let codec_cid = agent_test_cid(
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      )
+      let physical_manifest = @manifest.admit(
+        "actql-managed-physical-manifest/0.1",
+        schema_cid,
+        view_cid,
+        codec_cid,
+        1,
+        ["sha256:" + @sha.hex(b"x")],
+        [1L],
+        [1],
+        1,
+        1024,
+        1L,
+      ).unwrap()
       @runtime.prepare_native_remote_output(
         {
           material_generation: "native-agent-material",
           managed_profile_cid: agent_test_cid(
             "7777777777777777777777777777777777777777777777777777777777777777",
           ),
-          result_schema_cid: agent_test_cid(
-            "8888888888888888888888888888888888888888888888888888888888888888",
-          ),
-          logical_view_cid: agent_test_cid(
-            "9999999999999999999999999999999999999999999999999999999999999999",
-          ),
-          representation_codec_cid: agent_test_cid(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          ),
-          physical_manifest_cid: agent_test_cid(
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          ),
+          result_schema_cid: schema_cid,
+          logical_view_cid: view_cid,
+          representation_codec_cid: codec_cid,
+          physical_manifest,
           row_count: 1,
           retained_bytes: 1L,
           measurement,

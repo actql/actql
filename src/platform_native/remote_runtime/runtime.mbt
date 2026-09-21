@@ -8,7 +8,7 @@ pub(all) struct NativeRemoteOutputFacts {
   result_schema_cid : String
   logical_view_cid : String
   representation_codec_cid : String
-  physical_manifest_cid : String
+  physical_manifest : @manifest.PhysicalManifest
   row_count : Int
   retained_bytes : Int64
   measurement : @remote.RemoteManagedOutputMeasurement
@@ -169,11 +169,52 @@ pub(all) enum NativeRemoteRuntimeIssue {
 }
 
 ///|
+fn readmit_native_remote_output_manifest(
+  manifest : @manifest.PhysicalManifest,
+) -> @manifest.PhysicalManifest? {
+  let chunks = manifest.chunks
+  match
+    @manifest.admit(
+      "actql-managed-physical-manifest/0.1",
+      manifest.schema_contract_cid,
+      manifest.view_contract_cid,
+      manifest.codec_contract_cid,
+      manifest.row_count,
+      chunks.map(chunk => chunk.cid),
+      chunks.map(chunk => chunk.byte_length),
+      chunks.map(chunk => chunk.row_count),
+      chunks.length(),
+      manifest.metadata_bytes,
+      manifest.referenced_bytes,
+    ) {
+    Ok(value) =>
+      if @manifest.manifest_cid(value) == @manifest.manifest_cid(manifest) {
+        Some(value)
+      } else {
+        None
+      }
+    Err(_) => None
+  }
+}
+
+///|
 pub fn prepare_native_remote_output(
   facts : NativeRemoteOutputFacts,
   open_reader : () -> Result[NativeRemotePhysicalReader, String],
   release : () -> Bool,
 ) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue] {
+  let manifest = facts.physical_manifest
+  guard readmit_native_remote_output_manifest(manifest)
+    is Some(admitted_manifest) else {
+    return Err(OutputRejected)
+  }
+  if admitted_manifest.schema_contract_cid != facts.result_schema_cid ||
+    admitted_manifest.view_contract_cid != facts.logical_view_cid ||
+    admitted_manifest.codec_contract_cid != facts.representation_codec_cid ||
+    admitted_manifest.row_count != facts.row_count ||
+    admitted_manifest.referenced_bytes != facts.retained_bytes {
+    return Err(OutputRejected)
+  }
   let measurement_cid = @remote.remote_managed_output_measurement_cid(
     facts.measurement,
   )
@@ -186,12 +227,19 @@ pub fn prepare_native_remote_output(
       facts.result_schema_cid,
       facts.logical_view_cid,
       facts.representation_codec_cid,
-      facts.physical_manifest_cid,
+      @manifest.manifest_cid(admitted_manifest),
       measurement_cid,
       facts.row_count,
       facts.retained_bytes,
     ) {
-    Ok(_) => Ok(NativeRemoteOutputReady({ facts, open_reader, release, }))
+    Ok(_) =>
+      Ok(
+        NativeRemoteOutputReady({
+          facts: { ..facts, physical_manifest: admitted_manifest, },
+          open_reader,
+          release,
+        }),
+      )
     Err(_) => Err(OutputRejected)
   }
 }
@@ -1093,7 +1141,7 @@ fn NativeRemoteRuntime::run_success(
             output.facts.result_schema_cid,
             output.facts.logical_view_cid,
             output.facts.representation_codec_cid,
-            output.facts.physical_manifest_cid,
+            @manifest.manifest_cid(output.facts.physical_manifest),
             @remote.remote_managed_output_measurement_cid(measurement),
             output.facts.row_count,
             output.facts.retained_bytes,
@@ -1411,6 +1459,40 @@ pub fn NativeRemoteOutputReader::next(
     self.eof = true
   }
   Ok(chunk)
+}
+
+///|
+/// Return a fresh admitted snapshot of the exact physical manifest bound to
+/// this live reader occurrence. The snapshot conveys no Transfer grant or
+/// completion authority; it only prevents adapters from reconstructing the
+/// physical source from detached strings.
+pub fn NativeRemoteOutputReader::physical_manifest(
+  self : NativeRemoteOutputReader,
+) -> Result[@manifest.PhysicalManifest, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(OutputReaderClosed)
+  }
+  guard self.owner.output is Some(output) else {
+    return Err(OutputReaderUnavailable)
+  }
+  match readmit_native_remote_output_manifest(output.facts.physical_manifest) {
+    Some(value) => Ok(value)
+    None => Err(OutputRejected)
+  }
+}
+
+///|
+/// Return the exact retained generation pinned by this reader occurrence.
+pub fn NativeRemoteOutputReader::material_generation(
+  self : NativeRemoteOutputReader,
+) -> Result[String, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(OutputReaderClosed)
+  }
+  guard self.owner.output is Some(output) else {
+    return Err(OutputReaderUnavailable)
+  }
+  Ok(output.facts.material_generation)
 }
 
 ///|

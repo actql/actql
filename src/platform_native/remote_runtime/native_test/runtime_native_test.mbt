@@ -142,30 +142,46 @@ test "native remote runtime owns success failure and cleanup progression" {
         [1],
       ).unwrap()
       let output_release_attempts = [0]
+      let retained_bytes = if executions[0] == 3 { 129L } else { 1L }
+      let physical_bytes = if retained_bytes == 1L {
+        b"x"
+      } else {
+        Bytes::from_array(Array::make(129, (120 : Byte)))
+      }
+      let schema_cid = runtime_test_cid(
+        "8888888888888888888888888888888888888888888888888888888888888888",
+      )
+      let view_cid = runtime_test_cid(
+        "9999999999999999999999999999999999999999999999999999999999999999",
+      )
+      let codec_cid = runtime_test_cid(
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      )
+      let physical_manifest = @manifest.admit(
+        "actql-managed-physical-manifest/0.1",
+        schema_cid,
+        view_cid,
+        codec_cid,
+        1,
+        ["sha256:" + @sha.hex(physical_bytes)],
+        [retained_bytes],
+        [1],
+        1,
+        1024,
+        retained_bytes,
+      ).unwrap()
       @runtime.prepare_native_remote_output(
         {
           material_generation: "native-material-a",
           managed_profile_cid: runtime_test_cid(
             "7777777777777777777777777777777777777777777777777777777777777777",
           ),
-          result_schema_cid: runtime_test_cid(
-            "8888888888888888888888888888888888888888888888888888888888888888",
-          ),
-          logical_view_cid: runtime_test_cid(
-            "9999999999999999999999999999999999999999999999999999999999999999",
-          ),
-          representation_codec_cid: runtime_test_cid(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          ),
-          physical_manifest_cid: runtime_test_cid(
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          ),
+          result_schema_cid: schema_cid,
+          logical_view_cid: view_cid,
+          representation_codec_cid: codec_cid,
+          physical_manifest,
           row_count: 1,
-          retained_bytes: if executions[0] == 3 {
-            129L
-          } else {
-            1L
-          },
+          retained_bytes,
           measurement,
         },
         () => {

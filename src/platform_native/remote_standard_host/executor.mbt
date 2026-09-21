@@ -642,7 +642,7 @@ fn execute_native_remote_standard_task(
         result_schema_cid,
         logical_view_cid,
         representation_codec_cid: codec_cid,
-        physical_manifest_cid: @manifest.manifest_cid(manifest),
+        physical_manifest: manifest,
         row_count,
         retained_bytes,
         measurement,
