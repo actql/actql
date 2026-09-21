@@ -14,4 +14,5 @@ import {
   "actql/actql/remote_transfer" @transfer,
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
 }

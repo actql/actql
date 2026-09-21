@@ -20,6 +20,46 @@ fn required(
 }
 
 ///|
+fn optional(matches : @argparse.Matches, name : String) -> String {
+  match matches.values.get(name) {
+    Some([value]) => value
+    _ => ""
+  }
+}
+
+///|
+fn fetch_contract_body(
+  matches : @argparse.Matches,
+  url : String,
+  max_bytes : Int64,
+) -> String raise CommandStop {
+  let library = match @http.load_library(required(matches, "http-library")) {
+    Ok(value) => value
+    Err(_) => stop("HTTP library load failed")
+  }
+  let client = match
+    library.create_client(
+      required(matches, "ca"),
+      required(matches, "cert"),
+      required(matches, "key"),
+      max_bytes,
+      2000,
+      30000,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("HTTP client creation failed")
+  }
+  let response = client.request(@http.Get, url, [], b"")
+  let closed = client.close()
+  guard response is Ok(value) && value.status == 200 && closed else {
+    stop("Transfer contract fetch failed")
+  }
+  @utf8.decode(value.body) catch {
+    _ => stop("Transfer contract is not UTF-8")
+  }
+}
+
+///|
 fn required_int(
   matches : @argparse.Matches,
   name : String,
@@ -56,9 +96,11 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("ca", required=true),
       @argparse.OptionArg("cert", required=true),
       @argparse.OptionArg("key", required=true),
-      @argparse.OptionArg("request-root", required=true),
+      @argparse.OptionArg("request-root", default_values=[""]),
       @argparse.OptionArg("request-file", default_values=["request.json"]),
       @argparse.OptionArg("manifest-file", default_values=["manifest.json"]),
+      @argparse.OptionArg("request-url", default_values=[""]),
+      @argparse.OptionArg("manifest-url", default_values=[""]),
       @argparse.OptionArg("request-cid", required=true),
       @argparse.OptionArg("manifest-cid", required=true),
       @argparse.OptionArg("use-id", required=true),
@@ -89,24 +131,39 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     max_binding_bytes < 1 {
     stop("invalid Transfer limits")
   }
-  let request_root = required(matches, "request-root")
-  let request_body = match
-    @bounded_files.read_bounded_text_file(
-      request_root,
-      required(matches, "request-file"),
-      max_record_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("failed to read Transfer request")
+  let request_root = optional(matches, "request-root")
+  let request_url = optional(matches, "request-url")
+  let manifest_url = optional(matches, "manifest-url")
+  let use_network = !request_url.is_empty() && !manifest_url.is_empty()
+  if use_network == !request_root.is_empty() ||
+    request_url.is_empty() != manifest_url.is_empty() {
+    stop("select exactly one Transfer contract source")
   }
-  let manifest_body = match
-    @bounded_files.read_bounded_text_file(
-      request_root,
-      required(matches, "manifest-file"),
-      max_manifest_bytes.to_int64(),
-    ) {
-    Ok(value) => value
-    Err(_) => stop("failed to read Transfer manifest")
+  let request_body = if use_network {
+    fetch_contract_body(matches, request_url, max_record_bytes)
+  } else {
+    match
+      @bounded_files.read_bounded_text_file(
+        request_root,
+        required(matches, "request-file"),
+        max_record_bytes,
+      ) {
+      Ok(value) => value
+      Err(_) => stop("failed to read Transfer request")
+    }
+  }
+  let manifest_body = if use_network {
+    fetch_contract_body(matches, manifest_url, max_manifest_bytes.to_int64())
+  } else {
+    match
+      @bounded_files.read_bounded_text_file(
+        request_root,
+        required(matches, "manifest-file"),
+        max_manifest_bytes.to_int64(),
+      ) {
+      Ok(value) => value
+      Err(_) => stop("failed to read Transfer manifest")
+    }
   }
   let request = match
     @transfer.admit_request_json(

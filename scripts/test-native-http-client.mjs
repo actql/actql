@@ -128,6 +128,8 @@ let nativeStoreTransferManifest = [];
 const nativeStoreTransferBodies = [];
 const nativeStoreUses = new Map();
 const nativeStandardTransferCompletions = [];
+let nativeApplicationInputRequestBody;
+let nativeApplicationInputManifestBody;
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -195,6 +197,28 @@ try {
       }
       response.writeHead(200, {'content-type': 'application/json'});
       response.end('{"authorized":true}');
+      return;
+    }
+    const applicationInputContract = new Map([
+      [
+        '/v1/native-application/input/request',
+        nativeApplicationInputRequestBody,
+      ],
+      [
+        '/v1/native-application/input/manifest',
+        nativeApplicationInputManifestBody,
+      ],
+    ]).get(request.url);
+    if (applicationInputContract !== undefined) {
+      if (request.method !== 'GET') {
+        response.writeHead(405).end();
+        return;
+      }
+      response.writeHead(200, {
+        'content-length': Buffer.byteLength(applicationInputContract),
+        'content-type': 'application/json',
+      });
+      response.end(applicationInputContract);
       return;
     }
     const genericPut = request.method === 'PUT' &&
@@ -1141,18 +1165,10 @@ try {
     request: inputTransfer,
     sourceBodies: inputSources,
   });
-  const transferRequestRoot = join(root, 'remote-application-input-request');
-  await mkdir(transferRequestRoot);
-  await Promise.all([
-    writeFile(
-      join(transferRequestRoot, 'request.json'),
-      transferControl.requestJson(inputTransfer),
-    ),
-    writeFile(
-      join(transferRequestRoot, 'manifest.json'),
-      transferControl.manifestJson(inputTransfer),
-    ),
-  ]);
+  nativeApplicationInputRequestBody =
+    transferControl.requestJson(inputTransfer);
+  nativeApplicationInputManifestBody =
+    transferControl.manifestJson(inputTransfer);
   const applicationTransferJournal =
     join(root, 'remote-application-transfer.sqlite3');
   const inputUseId = 'native-application-input-use';
@@ -1165,7 +1181,10 @@ try {
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
     '--key', join(root, 'client.key'),
-    '--request-root', transferRequestRoot,
+    '--request-url',
+    `https://127.0.0.1:${address.port}/v1/native-application/input/request`,
+    '--manifest-url',
+    `https://127.0.0.1:${address.port}/v1/native-application/input/manifest`,
     '--request-cid', transferControl.identity(inputTransfer),
     '--manifest-cid', transferControl.requestProjection(inputTransfer)[7],
     '--use-id', inputUseId,
