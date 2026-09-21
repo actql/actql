@@ -17,11 +17,11 @@ readable coverage manifest is authoritative for individual operation status.
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 28/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 31/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph construction projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 32/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
-33/39, consumer lifetime 33/39, cancellation 28/39, and publication 31/39. These are
+33/39, consumer lifetime 33/39, cancellation 28/39, and publication 32/39. These are
 layer counts, not operation completion: 22 entries are `complete` and 17 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -1130,6 +1130,13 @@ Host fixtures cover concise input, distinct explicit node and edge inputs,
 the pre-existing repeated-input form, two downstream Relation consumers, and
 final ledger reclamation on JS, Wasm, and native. A Node timer also delivers
 cancellation during endpoint derivation and verifies stop before cleanup.
+
+Commit `9940712f` establishes the formal Relation publication identity for
+the explicit, split-input, and concise construction projections on JS, Wasm,
+and native. The product Node Host additionally publishes the concise
+construction projection, retrieves it from the publication store, and checks
+the independent value. This closes publication for the Graph-producing Bridge
+without defining a non-Relation Graph artifact format.
 
 The Graph-producing Bridge remains partial because a completed Graph is not
 yet scheduled through the product standard Host across a physical task

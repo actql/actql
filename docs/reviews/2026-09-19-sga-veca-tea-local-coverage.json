@@ -1925,6 +1925,7 @@
         "consumer_lifetime",
         "resources",
         "cancellation",
+        "publication",
         "three_targets"
       ],
       "layer_evidence": [
@@ -2015,6 +2016,24 @@
             "src/local_bridge/graph.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "graph_construction_projection_publication",
+          "layers": [
+            "publication",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
+          "sha": "9940712f",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
