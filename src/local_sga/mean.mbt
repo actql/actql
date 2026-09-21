@@ -3,6 +3,7 @@ priv enum MeanPhase {
   AddTotalWeight
   CollectNodes
   SortNodes
+  CopyNodes
   BeginNodeSupport
   AddNodeSupport
   BeginNodeProperties
@@ -11,6 +12,7 @@ priv enum MeanPhase {
   EmitNode
   CollectEdges
   SortEdges
+  CopyEdges
   BeginEdgeSupport
   AddEdgeSupport
   BeginEdgeProperties
@@ -41,9 +43,11 @@ priv struct MeanState {
   mut output : @graph.OutputBuilder?
   node_keys : Map[String, Bool]
   nodes : Array[@value.CheckedValue]
+  node_sort_buffer : Array[@value.CheckedValue]
   retained_nodes : Map[String, Bool]
   edge_keys : Map[String, Bool]
   edges : Array[MeanEdge]
+  edge_sort_buffer : Array[MeanEdge]
   mut support : @exact.WeightSum?
   properties : Array[@value.CheckedValue]
   mut property : Int
@@ -56,8 +60,13 @@ priv struct MeanState {
   mut candidate : Int
   mut retain_candidate : Bool
   mut sample : Int
-  mut sort_end : Int
-  mut sort_at : Int
+  mut sort_width : Int
+  mut sort_left : Int
+  mut sort_middle : Int
+  mut sort_right : Int
+  mut sort_left_at : Int
+  mut sort_right_at : Int
+  mut sort_copy_at : Int
 }
 
 ///|
@@ -141,6 +150,50 @@ fn reserve_mean_slots(state : MeanState, slots : Int) -> Bool {
     state.workspace_slots += slots
     true
   }
+}
+
+///|
+fn release_mean_slots(state : MeanState, slots : Int) -> Unit {
+  state.workspace_slots -= slots
+}
+
+///|
+fn begin_mean_sort(state : MeanState, count : Int) -> Bool {
+  if count > 1 && !reserve_mean_slots(state, count) {
+    false
+  } else {
+    state.sort_width = 1
+    state.sort_left = 0
+    state.sort_middle = -1
+    state.sort_right = 0
+    state.sort_left_at = 0
+    state.sort_right_at = 0
+    state.sort_copy_at = 0
+    true
+  }
+}
+
+///|
+fn begin_mean_merge(state : MeanState, count : Int) -> Unit {
+  let left = state.sort_left
+  let middle = left + Int::min(state.sort_width, count - left)
+  let right = middle + Int::min(state.sort_width, count - middle)
+  state.sort_middle = middle
+  state.sort_right = right
+  state.sort_left_at = left
+  state.sort_right_at = middle
+}
+
+///|
+fn finish_mean_sort_pass(state : MeanState, count : Int) -> Unit {
+  state.sort_width = if state.sort_width > count / 2 {
+    count
+  } else {
+    state.sort_width * 2
+  }
+  state.sort_left = 0
+  state.sort_middle = -1
+  state.sort_copy_at = 0
 }
 
 ///|
@@ -622,35 +675,71 @@ fn advance_mean_state(
             state.record = 0
           }
         } else {
+          if !begin_mean_sort(state, state.nodes.length()) {
+            return @bounded.Failed(MeanWorkspaceLimit, progress, used)
+          }
           state.phase = SortNodes
-          state.sort_end = state.nodes.length()
-          state.sort_at = 1
         }
       SortNodes =>
-        if state.sort_end <= 1 {
+        if state.sort_width >= state.nodes.length() {
+          if state.nodes.length() > 1 {
+            release_mean_slots(state, state.nodes.length())
+          }
+          state.node_sort_buffer.clear()
           state.phase = BeginNodeSupport
           state.candidate = 0
-        } else if state.sort_at < state.sort_end {
-          match
-            compare_mean_nodes(
-              state.nodes[state.sort_at - 1],
-              state.nodes[state.sort_at],
-            ) {
-            Ok(order) => {
-              if order > 0 {
-                let prior = state.nodes[state.sort_at - 1]
-                state.nodes[state.sort_at - 1] = state.nodes[state.sort_at]
-                state.nodes[state.sort_at] = prior
-              }
-              state.sort_at += 1
-              used += 1
-              progress += 1
-            }
-            Err(issue) => return @bounded.Failed(issue, progress, used)
-          }
+        } else if state.sort_left >= state.nodes.length() {
+          state.phase = CopyNodes
+          state.sort_copy_at = 0
         } else {
-          state.sort_end -= 1
-          state.sort_at = 1
+          if state.sort_middle < 0 {
+            begin_mean_merge(state, state.nodes.length())
+          }
+          if state.sort_left_at < state.sort_middle &&
+            state.sort_right_at < state.sort_right {
+            match
+              compare_mean_nodes(
+                state.nodes[state.sort_left_at],
+                state.nodes[state.sort_right_at],
+              ) {
+              Ok(order) => {
+                if order <= 0 {
+                  state.node_sort_buffer.push(state.nodes[state.sort_left_at])
+                  state.sort_left_at += 1
+                } else {
+                  state.node_sort_buffer.push(state.nodes[state.sort_right_at])
+                  state.sort_right_at += 1
+                }
+                used += 1
+                progress += 1
+              }
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          } else if state.sort_left_at < state.sort_middle {
+            state.node_sort_buffer.push(state.nodes[state.sort_left_at])
+            state.sort_left_at += 1
+            used += 1
+            progress += 1
+          } else if state.sort_right_at < state.sort_right {
+            state.node_sort_buffer.push(state.nodes[state.sort_right_at])
+            state.sort_right_at += 1
+            used += 1
+            progress += 1
+          } else {
+            state.sort_left = state.sort_right
+            state.sort_middle = -1
+          }
+        }
+      CopyNodes =>
+        if state.sort_copy_at < state.nodes.length() {
+          state.nodes[state.sort_copy_at] = state.node_sort_buffer[state.sort_copy_at]
+          state.sort_copy_at += 1
+          used += 1
+          progress += 1
+        } else {
+          state.node_sort_buffer.clear()
+          finish_mean_sort_pass(state, state.nodes.length())
+          state.phase = SortNodes
         }
       BeginNodeSupport =>
         if state.candidate < state.nodes.length() {
@@ -764,35 +853,71 @@ fn advance_mean_state(
             state.record = 0
           }
         } else {
+          if !begin_mean_sort(state, state.edges.length()) {
+            return @bounded.Failed(MeanWorkspaceLimit, progress, used)
+          }
           state.phase = SortEdges
-          state.sort_end = state.edges.length()
-          state.sort_at = 1
         }
       SortEdges =>
-        if state.sort_end <= 1 {
+        if state.sort_width >= state.edges.length() {
+          if state.edges.length() > 1 {
+            release_mean_slots(state, state.edges.length())
+          }
+          state.edge_sort_buffer.clear()
           state.phase = BeginEdgeSupport
           state.candidate = 0
-        } else if state.sort_at < state.sort_end {
-          match
-            compare_mean_edges(
-              state.edges[state.sort_at - 1],
-              state.edges[state.sort_at],
-            ) {
-            Ok(order) => {
-              if order > 0 {
-                let prior = state.edges[state.sort_at - 1]
-                state.edges[state.sort_at - 1] = state.edges[state.sort_at]
-                state.edges[state.sort_at] = prior
-              }
-              state.sort_at += 1
-              used += 1
-              progress += 1
-            }
-            Err(issue) => return @bounded.Failed(issue, progress, used)
-          }
+        } else if state.sort_left >= state.edges.length() {
+          state.phase = CopyEdges
+          state.sort_copy_at = 0
         } else {
-          state.sort_end -= 1
-          state.sort_at = 1
+          if state.sort_middle < 0 {
+            begin_mean_merge(state, state.edges.length())
+          }
+          if state.sort_left_at < state.sort_middle &&
+            state.sort_right_at < state.sort_right {
+            match
+              compare_mean_edges(
+                state.edges[state.sort_left_at],
+                state.edges[state.sort_right_at],
+              ) {
+              Ok(order) => {
+                if order <= 0 {
+                  state.edge_sort_buffer.push(state.edges[state.sort_left_at])
+                  state.sort_left_at += 1
+                } else {
+                  state.edge_sort_buffer.push(state.edges[state.sort_right_at])
+                  state.sort_right_at += 1
+                }
+                used += 1
+                progress += 1
+              }
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          } else if state.sort_left_at < state.sort_middle {
+            state.edge_sort_buffer.push(state.edges[state.sort_left_at])
+            state.sort_left_at += 1
+            used += 1
+            progress += 1
+          } else if state.sort_right_at < state.sort_right {
+            state.edge_sort_buffer.push(state.edges[state.sort_right_at])
+            state.sort_right_at += 1
+            used += 1
+            progress += 1
+          } else {
+            state.sort_left = state.sort_right
+            state.sort_middle = -1
+          }
+        }
+      CopyEdges =>
+        if state.sort_copy_at < state.edges.length() {
+          state.edges[state.sort_copy_at] = state.edge_sort_buffer[state.sort_copy_at]
+          state.sort_copy_at += 1
+          used += 1
+          progress += 1
+        } else {
+          state.edge_sort_buffer.clear()
+          finish_mean_sort_pass(state, state.edges.length())
+          state.phase = SortEdges
         }
       BeginEdgeSupport =>
         if state.candidate < state.edges.length() {
@@ -928,9 +1053,11 @@ fn cleanup_mean_state(state : MeanState) -> Bool {
   @exact.cancel_weight_sum(state.total) |> ignore
   state.node_keys.clear()
   state.nodes.clear()
+  state.node_sort_buffer.clear()
   state.retained_nodes.clear()
   state.edge_keys.clear()
   state.edges.clear()
+  state.edge_sort_buffer.clear()
   state.properties.clear()
   state.workspace_slots = 0
   if state.output is Some(output) {
@@ -1040,9 +1167,11 @@ pub fn start_mean_views(
     output: Some(output),
     node_keys: Map([]),
     nodes: [],
+    node_sort_buffer: [],
     retained_nodes: Map([]),
     edge_keys: Map([]),
     edges: [],
+    edge_sort_buffer: [],
     support: None,
     properties: [],
     property: 0,
@@ -1055,8 +1184,13 @@ pub fn start_mean_views(
     candidate: 0,
     retain_candidate: false,
     sample: 0,
-    sort_end: 0,
-    sort_at: 0,
+    sort_width: 0,
+    sort_left: 0,
+    sort_middle: -1,
+    sort_right: 0,
+    sort_left_at: 0,
+    sort_right_at: 0,
+    sort_copy_at: 0,
   }
   let (session, token) = @bounded.start(
     control, state, advance_mean_state, cleanup_mean_state, @graph.discard_completed,

@@ -126,12 +126,79 @@ fn finish_mean(execution : MeanExecution) -> @graph.Completed {
 }
 
 ///|
+fn mean_scale_limits(count : Int) -> @storage.Limits {
+  {
+    max_input_rows: count,
+    max_nodes: count,
+    max_edges: count,
+    max_value_bytes: 1000,
+    max_total_value_bytes: 1000000,
+    max_retained_value_bytes: 1000000,
+    max_value_nodes: 100,
+    max_value_depth: 10,
+    max_contract_work: 100000,
+    max_work: 100000,
+    max_workspace_slots: count * 8 + 16,
+  }
+}
+
+///|
+fn mean_graph_with_limits(
+  owner : @lower.BoundPrepared,
+  nodes : Array[Double],
+  limits : @storage.Limits,
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    limits,
+    1000000L,
+    fn() { true },
+  ).unwrap()
+  for identity in nodes {
+    @graph.append_node(output, number(identity), []).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_scale_work(count : Int) -> Int64 raise {
+  let first_owner = mean_source_owner()
+  let second_owner = mean_source_owner()
+  let owner = mean_owner(first_owner, second_owner)
+  let limits = mean_scale_limits(count)
+  let first = mean_graph_with_limits(
+    first_owner,
+    Array::makei(count, index => (count - index).to_double()),
+    limits,
+  )
+  let second = mean_graph_with_limits(second_owner, [], limits)
+  let execution = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_views(owner, first_owner, second_owner, first, second),
+    limits,
+    1000000L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  let work = match advance_mean(execution, 100000).unwrap() {
+    MeanComplete(_, work~, ..) => work
+    _ => abort("mean scale execution did not complete")
+  }
+  assert_true(cleanup_mean(execution).unwrap())
+  work
+}
+
+///|
 test "graph mean retains exact support in canonical identity order" {
   let first_owner = mean_source_owner()
   let second_owner = mean_source_owner()
   let owner = mean_owner(first_owner, second_owner)
-  let first = mean_graph(first_owner, [2.0, 1.0], [(1.0, 2.0)])
-  let second = mean_graph(second_owner, [3.0, 2.0], [(2.0, 3.0)])
+  let first = mean_graph(first_owner, [3.0, 2.0], [(2.0, 3.0)])
+  let second = mean_graph(second_owner, [2.0, 1.0], [(1.0, 2.0)])
   let execution = start_mean_views(
     @bounded.control(),
     sequence(owner),
@@ -155,6 +222,8 @@ test "graph mean retains exact support in canonical identity order" {
       Some(expected.to_string()),
     )
   }
+  assert_eq(@storage.edge_endpoints(storage, 0), Some((0, 1)))
+  assert_eq(@storage.edge_endpoints(storage, 1), Some((1, 2)))
   assert_true(mean_stopped(execution))
   assert_true(mean_cleanup_pending(execution))
   assert_eq(cleanup_mean(execution), Ok(true))
@@ -375,4 +444,53 @@ test "graph mean admits fixed workspace before building state" {
     )
     is Err(MeanWorkspaceLimit),
   )
+}
+
+///|
+test "graph mean admits merge storage before sorting" {
+  let first_owner = mean_source_owner()
+  let second_owner = mean_source_owner()
+  let owner = mean_owner(first_owner, second_owner)
+  let first = mean_graph(first_owner, [2.0, 1.0], [])
+  let second = mean_graph(second_owner, [], [])
+  let views = mean_views(owner, first_owner, second_owner, first, second)
+  let exact = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    views,
+    { ..storage_limits(), max_workspace_slots: 11, },
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  let output = finish_mean(exact)
+  assert_eq(@storage.node_count(@graph.completed_storage(output).unwrap()), 2)
+  assert_eq(cleanup_mean(exact), Ok(true))
+  let short = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    views,
+    { ..storage_limits(), max_workspace_slots: 10, },
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(short, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanFailed(MeanWorkspaceLimit, ..) => break
+      _ => abort("one-short mean workspace did not fail")
+    }
+  }
+  assert_eq(cleanup_mean(short), Ok(true))
+}
+
+///|
+test "graph mean canonical ordering scales below quadratic work" {
+  let small = mean_scale_work(32)
+  let large = mean_scale_work(64)
+  assert_true(large > small * 2L)
+  assert_true(large < small * 3L)
 }
