@@ -12,7 +12,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 32/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
+| Completion | Carrier-aware lifecycle is shared; 33/39 entries have kernels and managed completion, 33/39 reach the standard Host, and 33/39 have operation-specific consumer lifetime evidence | Extend the registered boundary and independent lifetime evidence to every principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; 33/39 entries have resource and three-target kernel evidence | Implement and register the remaining entries without forced Carrier-erasing copies |
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 28/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
@@ -21,7 +21,7 @@ readable coverage manifest is authoritative for individual operation status.
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
-33/39, consumer lifetime 32/39, cancellation 28/39, and publication 31/39. These are
+33/39, consumer lifetime 33/39, cancellation 28/39, and publication 31/39. These are
 layer counts, not operation completion: 21 entries are `complete` and 18 remain
 `partial` until their classified variants and required layers close on one
 verified SHA.
@@ -749,8 +749,8 @@ The Events-to-rows and Vectors-to-rows operations feed two overlapping
 Relation consumers and establish the exact Named Result identity on all three
 portable targets. Rows-to-Vectors now has the required direct Carrier consumer
 and formal Bridge consumer evidence. Rows-to-Events still needs the standard
-Host to retain one exact Carrier generation across those two consumer forms;
-Relation publication does not substitute for direct Carrier lifetime evidence.
+Host to schedule that retained generation across those two consumer forms;
+Relation publication does not substitute for that standard Host evidence.
 At `15af5df1`, the compiled Node Host separately delivers cancellation during
 the rows-to-Events copy and during the Events-to-rows copy after the bounded
 watermark transform. Both paths observe stop and reclaim the ledger without
@@ -759,6 +759,13 @@ At `eb01dc6f`, the same environment boundary separately delivers cancellation
 during rows-to-Vectors construction and Vectors-to-rows projection. The
 bridge-only sequence also distinguishes itself from two-step relation pooling
 and reaches two consumers and Named Result publication on all three targets.
+At `5b83cf99`, an exact retained Events generation crosses managed task
+boundaries to one session consumer and one formal Bridge consumer. Their
+lifetimes overlap; independent release leaves the producer live until the last
+view is done, and a cancelled projection stops and cleans up before final
+reclamation on JS, Wasm, and native. Scheduling the same Carrier handoff by the
+standard Host, rather than the direct registered-provider harness, remains
+open.
 
 ## Current verification boundary
 

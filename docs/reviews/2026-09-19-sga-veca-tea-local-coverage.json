@@ -2051,6 +2051,7 @@
         "kernel",
         "managed",
         "standard_host",
+        "consumer_lifetime",
         "resources",
         "cancellation",
         "three_targets"
@@ -2061,6 +2062,17 @@
         "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
+        {
+          "scope": "exact_carrier_and_bridge_consumers_across_tasks",
+          "layers": ["managed", "consumer_lifetime", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5b83cf99",
+          "evidence": [
+            "src/local_bridge/events.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
         {
           "scope": "environment_cancellation_during_rows_to_events",
           "layers": ["cancellation"],
