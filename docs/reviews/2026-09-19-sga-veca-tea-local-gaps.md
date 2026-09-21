@@ -474,9 +474,13 @@ input construction, expression evaluation, output construction, and cleanup
 remain bounded phases. At `2cbc57bf`, both predicate forms run from the
 standard Host through the registered provider, formal Bridge, two downstream
 Relation consumers, Named Result publication and retrieval, and final
-reclamation on JS, Wasm, and native. The Relation selector form remains open,
-so `subgraph` is still partial; the existing environment cancellation fixture
-currently covers the literal selector path.
+reclamation on JS, Wasm, and native. At `e48f65f6`, the same kernel admits the
+exact Relation selector edge, deduplicates repeated identities, and rejects
+any selected identity absent from the graph. At `d80944d1`, that form reaches
+the standard Host, formal Bridge, two downstream consumers, publication, and
+final reclamation on all three targets. All selector forms now execute;
+`subgraph` remains partial until cancellation delivery covers the predicate
+evaluation and Relation scan paths rather than only the literal selector.
 
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.

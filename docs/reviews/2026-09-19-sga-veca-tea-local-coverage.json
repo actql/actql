@@ -952,6 +952,19 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "relation_selector_membership_and_fanout",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d80944d1",
+          "evidence": [
+            "src/lowering_relation/graph_subgraph.mbt",
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
