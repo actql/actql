@@ -49,6 +49,8 @@ pub fn register_native_remote_standard_row_codec(String, String, String) -> Resu
 
 pub fn reject_native_remote_standard_input(String) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
+pub fn resolve_native_remote_standard_transfer_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
+
 // Errors
 
 // Types and methods
@@ -69,6 +71,13 @@ pub(all) struct NativeRemoteStandardTaskLimits {
   output_export : @run_publication_host.PublicationOutputExportLimits
   max_manifest_bytes : Int
   max_retained_bytes : Int64
+}
+
+pub(all) struct NativeRemoteStandardTransferBindingLimits {
+  max_binding_bytes : Int
+  max_chunks : Int
+  max_manifest_bytes : Int
+  max_referenced_bytes : Int64
 }
 
 type NativeRemoteStandardTransferInput

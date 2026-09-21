@@ -20,6 +20,14 @@ pub(all) struct NativeRemoteStandardTransferSourceLimits {
 }
 
 ///|
+pub(all) struct NativeRemoteStandardTransferBindingLimits {
+  max_binding_bytes : Int
+  max_chunks : Int
+  max_manifest_bytes : Int
+  max_referenced_bytes : Int64
+}
+
+///|
 priv struct NativeRemoteTransferSourceToken {
   material : @transfer_client.NativeRemoteDestinationMaterialUse
   mut active : Bool
@@ -333,5 +341,78 @@ pub fn finish_native_remote_standard_transfer_source(
     @transfer_client.release_destination_material_use(owner.token.material) {
     Ok(_) => true
     Err(_) => false
+  }
+}
+
+///|
+/// Product resolver for a registered standard task. It re-admits the canonical
+/// binding, acquires the exact Transfer destination, and gives only the verified
+/// captured source to the task-specific standard-Run factory.
+pub fn resolve_native_remote_standard_transfer_run(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err({ code: "foreign-input-binding", cleanup: () => true, })
+  }
+  let input = match
+    admit_native_remote_standard_transfer_input(
+      binding,
+      binding_limits.max_binding_bytes,
+      binding_limits.max_chunks,
+      binding_limits.max_manifest_bytes,
+      binding_limits.max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err({ code: "transfer-input-binding", cleanup: () => true, })
+  }
+  let source = match
+    acquire_native_remote_standard_transfer_source(
+      journal, root, input, codec, sequence, program, source_limits,
+    ) {
+    Ok(value) => value
+    Err(failure) => return Err(failure)
+  }
+  let run = match
+    open_run(native_remote_standard_transfer_captured_source(source)) {
+    Ok(value) => value
+    Err(_) =>
+      return Err({
+        code: "standard-run-open",
+        cleanup: () => finish_native_remote_standard_transfer_source(source),
+      })
+  }
+  match
+    bind_native_remote_standard_run(request, binding, run, () => {
+      finish_native_remote_standard_transfer_source(source)
+    }) {
+    Ok(value) => Ok(value)
+    Err(_) => {
+      let closed = [false]
+      Err({
+        code: "standard-run-binding",
+        cleanup: fn() {
+          if !closed[0] {
+            match @native_host.close_native_standard_strategy_run(run) {
+              Ok(true) => closed[0] = true
+              Ok(false) | Err(_) => return false
+            }
+          }
+          finish_native_remote_standard_transfer_source(source)
+        },
+      })
+    }
   }
 }
