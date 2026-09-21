@@ -1819,6 +1819,23 @@
           ]
         },
         {
+          "scope": "scored_policy_standard_host_lifecycle_and_publication",
+          "layers": [
+            "standard_host",
+            "two_consumers",
+            "publication",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "467537d6",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "src/workers_conformance/fixture.generated.mbt",
+            "src/node_host_conformance/fixture.generated.mbt"
+          ]
+        },
+        {
           "scope": "negative_rrf_provider_execution",
           "layers": ["kernel", "managed", "reclamation", "three_targets"],
           "targets": ["js", "wasm", "native"],

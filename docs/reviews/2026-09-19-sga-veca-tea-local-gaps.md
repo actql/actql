@@ -961,8 +961,17 @@ evidence into maximum and weighted-sum fusion. Exact retained Relation outputs
 bind to those producers and execute through the registered VecA provider. The
 fixtures check grouped scores, fresh ranks, and stable candidate ordering for
 score ties. The query-integration suite passes 428 tests on each of JS, Wasm,
-and native. Product standard Host scheduling, downstream lifetime,
-publication, environment cancellation, and negative RRF execution remain open.
+and native.
+
+At `467537d6`, both scored policies use the product supplied-input standard
+Host path. Maximum and weighted-sum results establish the required Named
+Result identity, feed two overlapping downstream Relation computations,
+release each consumer independently, and return the execution ledger to zero.
+Query integration passes 433 tests on each of JS, Wasm, and native. Generated
+Workers and Node Host fixtures are current; all 24 Workers tests, the
+dependency-free Node Host check, and all 236 retained-boundary tests pass.
+Environment cancellation of scored-policy work and final same-SHA Linux CI
+remain open.
 
 At `bf85b1b4`, duplicate candidates and noncontiguous positions are exercised
 through the registered RRF provider rather than only through checker or helper
