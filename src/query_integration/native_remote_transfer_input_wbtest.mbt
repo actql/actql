@@ -806,7 +806,7 @@ test "standard Local reads the exact committed Transfer destination" {
     "remote-standard-transfer-issuer-capability",
   )
   let budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
-  let runtime = @native_remote_standard.open_native_remote_standard_site_runtime(
+  let component = @native_remote_standard.open_native_remote_standard_site_component(
     site,
     active_runtime,
     operation_capability,
@@ -815,6 +815,11 @@ test "standard Local reads the exact committed Transfer destination" {
     remote_journal,
     bundles,
     [budget],
+    client,
+    gateway_origin +
+    "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
+    gateway_origin +
+    "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
   ).unwrap()
   let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
     active_runtime,
@@ -850,35 +855,36 @@ test "standard Local reads the exact committed Transfer destination" {
     )
     .unwrap()
   assert_eq(queued.status, 201)
-  let occurrence = @native_remote_agent.run_native_outbound_site_occurrence(
-    runtime,
-    remote_journal,
-    client,
-    gateway_origin +
-    "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
-    gateway_origin +
-    "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
-  )
+  let occurrence = component.poll()
   guard occurrence
     is Ok(@native_remote_agent.DispatchObserved(dispatch_identity, _)) else {
     match occurrence {
-      Err(@native_remote_agent.Runtime(@native_remote_runtime.Physical(code))) =>
-        fail("standard Transfer runtime failed: " + code)
       Err(
-        @native_remote_agent.RuntimeObserved(
-          @native_remote_runtime.Physical(code),
-          _
+        @native_remote_standard.Agent(
+          @native_remote_agent.Runtime(@native_remote_runtime.Physical(code))
+        )
+      ) => fail("standard Transfer runtime failed: " + code)
+      Err(
+        @native_remote_standard.Agent(
+          @native_remote_agent.RuntimeObserved(
+            @native_remote_runtime.Physical(code),
+            _
+          )
         )
       ) => fail("standard Transfer runtime failed after acceptance: " + code)
       Err(
-        @native_remote_agent.Runtime(
-          @native_remote_runtime.CleanupPending(code)
+        @native_remote_standard.Agent(
+          @native_remote_agent.Runtime(
+            @native_remote_runtime.CleanupPending(code)
+          )
         )
       ) => fail("standard Transfer cleanup remained pending: " + code)
       Err(
-        @native_remote_agent.RuntimeObserved(
-          @native_remote_runtime.CleanupPending(code),
-          _
+        @native_remote_standard.Agent(
+          @native_remote_agent.RuntimeObserved(
+            @native_remote_runtime.CleanupPending(code),
+            _
+          )
         )
       ) => fail("standard Transfer cleanup remained pending: " + code)
       _ => fail("standard Transfer dispatch was not observed over HTTPS")
@@ -890,7 +896,7 @@ test "standard Local reads the exact committed Transfer destination" {
   let material_generation = @remote.remote_managed_output_subject_projection(
       subject,
     )[1]
-  let output_reader = runtime
+  let output_reader = component
     .open_output_reader(dispatch, material_generation, 7)
     .unwrap()
   let output_bytes : Array[Byte] = []
@@ -913,21 +919,15 @@ test "standard Local reads the exact committed Transfer destination" {
     )
     .unwrap()
   assert_eq(release_queued.status, 201)
-  guard @native_remote_agent.run_native_outbound_site_occurrence(
-      runtime,
-      remote_journal,
-      client,
-      gateway_origin +
-      "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
-      gateway_origin +
-      "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
-    )
+  guard component.poll()
     is Ok(@native_remote_agent.ReleaseObserved(released_identity, _)) else {
     fail("standard Transfer release was not observed over HTTPS")
   }
   assert_eq(released_identity, @remote.dispatch_request_identity(dispatch))
   assert_eq(captured_runs.length(), 1)
-  assert_true(runtime.close().unwrap())
+  assert_true(component.close().unwrap())
+  assert_true(component.poll() is Err(@native_remote_standard.Closed))
+  assert_false(component.close().unwrap())
   assert_true(remote_journal.close())
   assert_true(bundles.close().unwrap())
   for captured in captured_runs {

@@ -8,6 +8,8 @@ import {
   "actql/actql/execution_site",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/remote_agent",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
   "actql/actql/platform_native/remote_transfer_client",
@@ -62,6 +64,8 @@ pub fn native_remote_standard_transfer_destination_receipt_cid(NativeRemoteStand
 pub fn native_remote_standard_transfer_destination_use_id(NativeRemoteStandardTransferInput) -> String
 
 pub fn native_remote_standard_transfer_request(NativeRemoteStandardTransferInput) -> @remote_transfer.RemoteTransferRequest
+
+pub fn open_native_remote_standard_site_component(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget], @http_client.Client, String, String) -> Result[NativeRemoteStandardSiteComponent, NativeRemoteStandardSiteComponentIssue]
 
 pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteStandardHostIssue]
 
@@ -139,6 +143,18 @@ type NativeRemoteStandardPhysicalSource
 type NativeRemoteStandardRowCodec
 
 type NativeRemoteStandardRunOwner
+
+type NativeRemoteStandardSiteComponent
+pub fn NativeRemoteStandardSiteComponent::close(Self) -> Result[Bool, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteComponentIssue]
+
+pub(all) enum NativeRemoteStandardSiteComponentIssue {
+  Closed
+  Host(NativeRemoteStandardHostIssue)
+  Agent(@remote_agent.NativeRemoteAgentIssue)
+  Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+}
 
 type NativeRemoteStandardStoreRunFactory
 pub fn NativeRemoteStandardStoreRunFactory::resolve(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]

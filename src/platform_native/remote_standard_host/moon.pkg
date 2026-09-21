@@ -10,6 +10,8 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/physical_manifest" @manifest,
   "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_runtime" @runtime,
   "actql/actql/platform_native/remote_transfer_client" @transfer_client,

@@ -41,7 +41,10 @@ the native durable-Store route now install opaque factories directly; neither
 accepts a replacement input state machine from application composition. The
 native standard registry also accepts non-streaming Local and DuckDB Runs only
 through an opaque factory fixed to one exact input binding. Its earlier public
-request-resolver and raw Run-binding APIs have been removed.
+request-resolver and raw Run-binding APIs have been removed. One MoonBit Site
+component now fixes that registry, active runtime, durable journal, outbound
+client, and control endpoints before polling; application code no longer joins
+an arbitrary runtime to the Agent progression.
 
 The JavaScript retained-row parser is not a product authority after this
 change. Its tests stay as independent physical fixtures; they are not used to
