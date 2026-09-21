@@ -112,6 +112,64 @@ test "native direct client rejects altered chunks before network use" {
 }
 
 ///|
+test "streaming source verifies bounded manifest chunks in order" {
+  let chunks = [b"alpha", b"beta"]
+  let request = native_direct_request(chunks)
+  let mut reads = 0
+  let mut finished = false
+  let source = prepare_transfer_chunk_source(
+    @transfer.request_projection(request)[6],
+    @transfer.request_projection(request)[7],
+    index => {
+      if index != reads {
+        return Err("unexpected-read-order")
+      }
+      reads = reads + 1
+      Ok(chunks[index])
+    },
+    () => {
+      finished = true
+      Ok(())
+    },
+    () => Ok(()),
+  ).unwrap()
+  admit_chunk_source(request, source, "direct").unwrap()
+  assert_eq(source.read_chunk(request).unwrap(), b"alpha")
+  assert_eq(source.read_chunk(request).unwrap(), b"beta")
+  source.finish_source(request).unwrap()
+  assert_eq(reads, 2)
+  assert_true(finished)
+  assert_true(source.stopped)
+}
+
+///|
+test "streaming send failure retains only unconfirmed source cleanup" {
+  let request = native_direct_request([b"alpha"])
+  let mut close_attempts = 0
+  let source = prepare_transfer_chunk_source(
+    @transfer.request_projection(request)[6],
+    @transfer.request_projection(request)[7],
+    _ => Ok(b"alpha"),
+    () => Ok(()),
+    () => {
+      close_attempts = close_attempts + 1
+      if close_attempts == 1 {
+        Err("stop-unconfirmed")
+      } else {
+        Ok(())
+      }
+    },
+  ).unwrap()
+  let failure = failed_stream_send(SourceMismatch, source)
+  assert_true(transfer_send_failure_issue(failure) is SourceMismatch)
+  assert_true(transfer_send_failure_cleanup_pending(failure))
+  assert_true(retry_transfer_send_failure_cleanup(failure))
+  assert_false(transfer_send_failure_cleanup_pending(failure))
+  assert_false(retry_transfer_send_failure_cleanup(failure))
+  assert_eq(close_attempts, 2)
+}
+
+///|
 test "native direct failure persists confirmed remote cleanup" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
     return

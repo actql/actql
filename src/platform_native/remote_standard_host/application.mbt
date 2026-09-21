@@ -37,6 +37,8 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
   Agent(@agent.NativeRemoteAgentIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
   Journal(@journal.NativeRemoteJournalIssue)
+  Transfer(@transfer_client.NativeRemoteTransferClientIssue)
+  TransferSend(@transfer_client.NativeRemoteTransferSendFailure)
 }
 
 ///|
@@ -246,6 +248,150 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(
 }
 
 ///|
+fn NativeRemoteStandardSiteComponent::open_observed_transfer_source(
+  self : NativeRemoteStandardSiteComponent,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[
+  @transfer_client.NativeRemoteTransferChunkSource,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  let dispatch_key = @remote.dispatch_request_journal_key(dispatch)
+  let transfer_projection = @transfer.request_projection(transfer)
+  if dispatch_key.length() != 7 ||
+    transfer_projection.length() != 13 ||
+    transfer_projection[2] != dispatch_key[1] ||
+    transfer_projection[3] != dispatch_key[2] {
+    return Err(Transfer(@transfer_client.InvalidRequest))
+  }
+  let reader = match
+    self.open_observed_output_manifest_reader(
+      dispatch, completion, max_chunk_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let manifest = match reader.physical_manifest() {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(reader.close())
+      return Err(Runtime(issue))
+    }
+  }
+  let material_generation = match reader.material_generation() {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(reader.close())
+      return Err(Runtime(issue))
+    }
+  }
+  if transfer_projection[6] != material_generation ||
+    transfer_projection[7] != @manifest.manifest_cid(manifest) {
+    ignore(reader.close())
+    return Err(Transfer(@transfer_client.SourceMismatch))
+  }
+  match
+    @transfer_client.prepare_transfer_chunk_source(
+      material_generation,
+      @manifest.manifest_cid(manifest),
+      index => {
+        match reader.next() {
+          Ok(Some(chunk)) if chunk.index == index => Ok(chunk.bytes)
+          Ok(_) => Err("manifest-reader-order")
+          Err(_) => Err("manifest-reader-read")
+        }
+      },
+      () => reader.finish().map(_ => ()).map_err(_ => "manifest-reader-finish"),
+      () => reader.close().map(_ => ()).map_err(_ => "manifest-reader-close"),
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => {
+      ignore(reader.close())
+      Err(Transfer(issue))
+    }
+  }
+}
+
+///|
+/// Streams one exact observed output through the durable direct route. The
+/// common runtime reader pin remains owned by the returned failure until
+/// physical stop is confirmed.
+pub fn NativeRemoteStandardSiteComponent::send_observed_output_direct(
+  self : NativeRemoteStandardSiteComponent,
+  transfer_journal : @transfer_journal.Journal,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[
+  @transfer.RemoteTransferRecord,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let source = match
+    self.open_observed_transfer_source(
+      dispatch, completion, transfer, max_chunk_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @transfer_client.send_durable_direct_transfer_from_source(
+      transfer_journal,
+      self.client,
+      origin,
+      transfer,
+      source,
+    ) {
+    Ok(record) => Ok(record)
+    Err(failure) => Err(TransferSend(failure))
+  }
+}
+
+///|
+/// Streams one exact observed output into the durable outbound-only Store
+/// route without materializing the complete Result in application memory.
+pub fn NativeRemoteStandardSiteComponent::send_observed_output_store(
+  self : NativeRemoteStandardSiteComponent,
+  transfer_journal : @transfer_journal.Journal,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[
+  @transfer.RemoteTransferRecord,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let source = match
+    self.open_observed_transfer_source(
+      dispatch, completion, transfer, max_chunk_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @transfer_client.send_durable_store_upload_from_source(
+      transfer_journal,
+      self.client,
+      origin,
+      transfer,
+      source,
+    ) {
+    Ok(record) => Ok(record)
+    Err(failure) => Err(TransferSend(failure))
+  }
+}
+
+///|
 /// Stops new admission and closes the common runtime. Physical adapter owners
 /// remain with application composition and may be closed only after this
 /// method confirms that all runtime custody has ended.
@@ -333,6 +479,52 @@ pub fn NativeRemoteStandardSiteDistribution::open_observed_output_manifest_reade
   }
   self.component
   .open_observed_output_manifest_reader(request, completion, max_chunk_bytes)
+  .map_err(issue => Component(issue))
+}
+
+///|
+pub fn NativeRemoteStandardSiteDistribution::send_observed_output_direct(
+  self : NativeRemoteStandardSiteDistribution,
+  transfer_journal : @transfer_journal.Journal,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[
+  @transfer.RemoteTransferRecord,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .send_observed_output_direct(
+    transfer_journal, origin, dispatch, completion, transfer, max_chunk_bytes,
+  )
+  .map_err(issue => Component(issue))
+}
+
+///|
+pub fn NativeRemoteStandardSiteDistribution::send_observed_output_store(
+  self : NativeRemoteStandardSiteDistribution,
+  transfer_journal : @transfer_journal.Journal,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[
+  @transfer.RemoteTransferRecord,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .send_observed_output_store(
+    transfer_journal, origin, dispatch, completion, transfer, max_chunk_bytes,
+  )
   .map_err(issue => Component(issue))
 }
 

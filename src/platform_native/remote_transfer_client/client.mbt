@@ -12,6 +12,175 @@ pub(all) enum NativeRemoteTransferClientIssue {
 }
 
 ///|
+/// One exact bounded source for a Transfer occurrence. The common client
+/// verifies every chunk against the admitted request before physical upload.
+/// Environment callbacks perform only physical access and stop confirmation.
+struct NativeRemoteTransferChunkSource {
+  material_generation : String
+  physical_manifest_cid : String
+  next : (Int) -> Result[Bytes, String]
+  finish : () -> Result[Unit, String]
+  close : () -> Result[Unit, String]
+  mut index : Int
+  mut stopped : Bool
+}
+
+///|
+/// A failed streaming send retains its primary issue independently from an
+/// unconfirmed source stop. The caller may retry only the cleanup owner; it
+/// must not turn cleanup retry into another Transfer attempt.
+struct NativeRemoteTransferSendFailure {
+  issue : NativeRemoteTransferClientIssue
+  mut source : NativeRemoteTransferChunkSource?
+}
+
+///|
+/// Registers physical access already bound to one immutable material and
+/// manifest. This operation reads no bytes and grants no Transfer authority.
+pub fn prepare_transfer_chunk_source(
+  material_generation : String,
+  physical_manifest_cid : String,
+  next : (Int) -> Result[Bytes, String],
+  finish : () -> Result[Unit, String],
+  close : () -> Result[Unit, String],
+) -> Result[NativeRemoteTransferChunkSource, NativeRemoteTransferClientIssue] {
+  if material_generation.is_empty() || physical_manifest_cid.is_empty() {
+    return Err(InvalidRequest)
+  }
+  Ok({
+    material_generation,
+    physical_manifest_cid,
+    next,
+    finish,
+    close,
+    index: 0,
+    stopped: false,
+  })
+}
+
+///|
+pub fn transfer_send_failure_issue(
+  failure : NativeRemoteTransferSendFailure,
+) -> NativeRemoteTransferClientIssue {
+  failure.issue
+}
+
+///|
+pub fn transfer_send_failure_cleanup_pending(
+  failure : NativeRemoteTransferSendFailure,
+) -> Bool {
+  failure.source is Some(_)
+}
+
+///|
+/// Retries only physical source stop confirmation.
+pub fn retry_transfer_send_failure_cleanup(
+  failure : NativeRemoteTransferSendFailure,
+) -> Bool {
+  match failure.source {
+    None => false
+    Some(source) =>
+      match source.close_source() {
+        Ok(_) => {
+          failure.source = None
+          true
+        }
+        Err(_) => false
+      }
+  }
+}
+
+///|
+fn NativeRemoteTransferChunkSource::close_source(
+  self : NativeRemoteTransferChunkSource,
+) -> Result[Bool, String] {
+  if self.stopped {
+    return Ok(false)
+  }
+  match (self.close)() {
+    Ok(_) => {
+      self.stopped = true
+      Ok(true)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn failed_stream_send(
+  issue : NativeRemoteTransferClientIssue,
+  source : NativeRemoteTransferChunkSource,
+) -> NativeRemoteTransferSendFailure {
+  match source.close_source() {
+    Ok(_) => { issue, source: None, }
+    Err(_) => { issue, source: Some(source), }
+  }
+}
+
+///|
+fn admit_chunk_source(
+  request : @transfer.RemoteTransferRequest,
+  source : NativeRemoteTransferChunkSource,
+  route : String,
+) -> Result[Unit, NativeRemoteTransferClientIssue] {
+  let projection = @transfer.request_projection(request)
+  if source.stopped ||
+    source.index != 0 ||
+    projection[1] != route ||
+    projection[6] != source.material_generation ||
+    projection[7] != source.physical_manifest_cid {
+    return Err(SourceMismatch)
+  }
+  Ok(())
+}
+
+///|
+fn NativeRemoteTransferChunkSource::read_chunk(
+  self : NativeRemoteTransferChunkSource,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[Bytes, NativeRemoteTransferClientIssue] {
+  if self.stopped {
+    return Err(SourceMismatch)
+  }
+  let cids = @transfer.request_chunk_cids(request)
+  let lengths = @transfer.request_chunk_byte_lengths(request)
+  if self.index < 0 ||
+    self.index >= cids.length() ||
+    cids.length() != lengths.length() {
+    return Err(SourceMismatch)
+  }
+  let index = self.index
+  let bytes = match (self.next)(index) {
+    Ok(value) => value
+    Err(issue) => return Err(Consumer(issue))
+  }
+  if bytes.length().to_int64() != lengths[index] ||
+    "sha256:" + @sha.hex(bytes) != cids[index] {
+    return Err(SourceMismatch)
+  }
+  self.index += 1
+  Ok(bytes)
+}
+
+///|
+fn NativeRemoteTransferChunkSource::finish_source(
+  self : NativeRemoteTransferChunkSource,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[Unit, NativeRemoteTransferClientIssue] {
+  if self.stopped ||
+    self.index != @transfer.request_chunk_cids(request).length() {
+    return Err(SourceMismatch)
+  }
+  match (self.finish)() {
+    Ok(_) => {
+      self.stopped = true
+      Ok(())
+    }
+    Err(issue) => Err(Consumer(issue))
+  }
+}
+
+///|
 /// One exact committed Store-route destination pinned for a consumer
 /// occurrence. The durable reader pin and the Transfer's physical holding are
 /// independent: releasing this use never releases destination capacity.
@@ -82,6 +251,27 @@ pub fn admit_store_source(
   chunks : Array[Bytes],
 ) -> Result[Unit, NativeRemoteTransferClientIssue] {
   admit_source(request, chunks, "store")
+}
+
+///|
+fn array_chunk_source(
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> NativeRemoteTransferChunkSource {
+  let projection = @transfer.request_projection(request)
+  prepare_transfer_chunk_source(
+    projection[6],
+    projection[7],
+    index => {
+      if index >= 0 && index < chunks.length() {
+        Ok(chunks[index])
+      } else {
+        Err("array-source-range")
+      }
+    },
+    () => Ok(()),
+    () => Ok(()),
+  ).unwrap()
 }
 
 ///|
@@ -276,13 +466,13 @@ fn admit_store_upload(
 }
 
 ///|
-fn upload_store_transfer(
+fn upload_store_transfer_from_source(
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
-  chunks : Array[Bytes],
+  source : NativeRemoteTransferChunkSource,
 ) -> Result[Unit, NativeRemoteTransferClientIssue] {
-  match admit_store_source(request, chunks) {
+  match admit_chunk_source(request, source, "store") {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -295,13 +485,27 @@ fn upload_store_transfer(
     Err(issue) => return Err(issue)
   }
   if admitted[2] == "1" {
+    match source.close_source() {
+      Ok(_) => ()
+      Err(issue) => return Err(Consumer(issue))
+    }
     return Ok(())
   }
   let next_chunk : Int = @string.from_str(admitted[1]) catch {
     _ => return Err(Protocol(@transfer.InvalidTransfer))
   }
-  for index = next_chunk; index < chunks.length(); index = index + 1 {
-    let chunk = chunks[index]
+  let chunk_count = @transfer.request_chunk_cids(request).length()
+  if next_chunk < 0 || next_chunk > chunk_count {
+    return Err(Protocol(@transfer.InvalidTransfer))
+  }
+  for index = 0; index < chunk_count; index = index + 1 {
+    let chunk = match source.read_chunk(request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if index < next_chunk {
+      continue
+    }
     let uploaded = match
       store_upload_exchange(
         client,
@@ -321,6 +525,10 @@ fn upload_store_transfer(
     if uploaded[1] != (index + 1).to_string() || uploaded[2] != "0" {
       return Err(Protocol(@transfer.InvalidTransfer))
     }
+  }
+  match source.finish_source(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let committed = match
     store_upload_exchange(
@@ -1096,16 +1304,17 @@ fn commit_direct_destination(
 priv enum DirectSendFailure {
   DirectCopyFailed(NativeRemoteTransferClientIssue)
   DirectCommitUnknown(NativeRemoteTransferClientIssue)
+  DirectSourceStopFailed(NativeRemoteTransferClientIssue)
 }
 
 ///|
-fn send_direct_transfer_operation(
+fn send_direct_transfer_operation_from_source(
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
-  chunks : Array[Bytes],
+  source : NativeRemoteTransferChunkSource,
 ) -> Result[@transfer.RemoteTransferRecord, DirectSendFailure] {
-  match admit_direct_source(request, chunks) {
+  match admit_chunk_source(request, source, "direct") {
     Err(issue) => return Err(DirectCopyFailed(issue))
     Ok(_) => ()
   }
@@ -1118,9 +1327,18 @@ fn send_direct_transfer_operation(
     Err(issue) => return Err(DirectCopyFailed(issue))
   }
   if @transfer.record_is_destination_committed(admitted) {
+    match source.close_source() {
+      Ok(_) => ()
+      Err(issue) => return Err(DirectSourceStopFailed(Consumer(issue)))
+    }
     return Ok(admitted)
   }
-  for index, chunk in chunks {
+  let chunk_count = @transfer.request_chunk_cids(request).length()
+  for index = 0; index < chunk_count; index = index + 1 {
+    let chunk = match source.read_chunk(request) {
+      Ok(value) => value
+      Err(issue) => return Err(DirectCopyFailed(issue))
+    }
     let uploaded = transfer_exchange(
       client,
       @http.Put,
@@ -1136,6 +1354,10 @@ fn send_direct_transfer_operation(
       return Err(DirectCopyFailed(issue))
     }
   }
+  match source.finish_source(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(DirectCopyFailed(issue))
+  }
   let committed = commit_direct_destination(client, transfer_url, request)
   match committed {
     Err(issue) => Err(DirectCommitUnknown(issue))
@@ -1149,23 +1371,40 @@ fn send_direct_transfer_operation(
 }
 
 ///|
-pub fn send_direct_transfer(
+pub fn send_direct_transfer_from_source(
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
-  chunks : Array[Bytes],
-) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
-  match send_direct_transfer_operation(client, origin, request, chunks) {
+  source : NativeRemoteTransferChunkSource,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferSendFailure] {
+  match
+    send_direct_transfer_operation_from_source(client, origin, request, source) {
     Ok(record) => Ok(record)
-    Err(DirectCommitUnknown(issue)) => Err(issue)
+    Err(DirectCommitUnknown(issue)) =>
+      Err({ issue, source: if source.stopped { None } else { Some(source) }, })
+    Err(DirectSourceStopFailed(issue)) => Err(failed_stream_send(issue, source))
     Err(DirectCopyFailed(issue)) => {
       match direct_location(origin, request) {
         Ok((_, transfer_url)) =>
           ignore(direct_cancel(client, transfer_url, request))
         Err(_) => ()
       }
-      Err(issue)
+      Err(failed_stream_send(issue, source))
     }
+  }
+}
+
+///|
+pub fn send_direct_transfer(
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let source = array_chunk_source(request, chunks)
+  match send_direct_transfer_from_source(client, origin, request, source) {
+    Ok(record) => Ok(record)
+    Err(failure) => Err(failure.issue)
   }
 }
 
@@ -1192,12 +1431,12 @@ fn require_durable_record(
 }
 
 ///|
-pub fn send_durable_direct_transfer(
+fn send_durable_direct_transfer_operation(
   journal : @journal.Journal,
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
-  chunks : Array[Bytes],
+  source : NativeRemoteTransferChunkSource,
 ) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
   let (_, accepted) = match journal.accept(request) {
     Ok(value) => value
@@ -1206,6 +1445,10 @@ pub fn send_durable_direct_transfer(
   let mut record = accepted
   let mut progress = @transfer.direct_transfer_progress(record)
   if progress == @transfer.DirectTransferCommitted {
+    match source.close_source() {
+      Ok(_) => ()
+      Err(issue) => return Err(Consumer(issue))
+    }
     return Ok(record)
   }
   if progress == @transfer.DirectTransferReconciliationRequired {
@@ -1227,6 +1470,10 @@ pub fn send_durable_direct_transfer(
     progress = @transfer.direct_transfer_progress(record)
   }
   let remote = if progress == @transfer.DirectTransferSourceSettled {
+    match source.close_source() {
+      Ok(_) => ()
+      Err(issue) => return Err(Consumer(issue))
+    }
     let (base, transfer_url) = match direct_location(origin, request) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -1250,9 +1497,16 @@ pub fn send_durable_direct_transfer(
       Err(issue) => return Err(issue)
     }
     if @transfer.record_is_destination_committed(observed) {
+      match source.close_source() {
+        Ok(_) => ()
+        Err(issue) => return Err(Consumer(issue))
+      }
       Ok(observed)
     } else {
-      match send_direct_transfer_operation(client, origin, request, chunks) {
+      match
+        send_direct_transfer_operation_from_source(
+          client, origin, request, source,
+        ) {
         Ok(value) => Ok(value)
         Err(DirectCopyFailed(issue)) => {
           ignore(
@@ -1260,6 +1514,7 @@ pub fn send_durable_direct_transfer(
           )
           Err(issue)
         }
+        Err(DirectSourceStopFailed(issue)) => Err(issue)
         Err(DirectCommitUnknown(_)) => Err(ReconciliationRequired)
       }
     }
@@ -1294,6 +1549,41 @@ pub fn send_durable_direct_transfer(
   match commit_durable_transition(journal, committed) {
     Ok(_) => require_durable_record(journal, request)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn send_durable_direct_transfer_from_source(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  source : NativeRemoteTransferChunkSource,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferSendFailure] {
+  match
+    send_durable_direct_transfer_operation(
+      journal, client, origin, request, source,
+    ) {
+    Ok(record) => Ok(record)
+    Err(issue) => Err(failed_stream_send(issue, source))
+  }
+}
+
+///|
+pub fn send_durable_direct_transfer(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let source = array_chunk_source(request, chunks)
+  match
+    send_durable_direct_transfer_from_source(
+      journal, client, origin, request, source,
+    ) {
+    Ok(record) => Ok(record)
+    Err(failure) => Err(failure.issue)
   }
 }
 
@@ -1353,12 +1643,12 @@ pub fn cancel_durable_direct_transfer(
 }
 
 ///|
-pub fn send_durable_store_upload(
+fn send_durable_store_upload_operation(
   journal : @journal.Journal,
   client : @http.Client,
   origin : String,
   request : @transfer.RemoteTransferRequest,
-  chunks : Array[Bytes],
+  source : NativeRemoteTransferChunkSource,
 ) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
   let (_, accepted) = match journal.accept(request) {
     Ok(value) => value
@@ -1368,6 +1658,10 @@ pub fn send_durable_store_upload(
   let mut progress = @transfer.store_upload_progress(record)
   if progress == @transfer.StoreUploadCommitted ||
     progress == @transfer.StoreUploadSealed {
+    match source.close_source() {
+      Ok(_) => ()
+      Err(issue) => return Err(Consumer(issue))
+    }
     return Ok(record)
   }
   if progress == @transfer.StoreUploadReconciliationRequired {
@@ -1391,7 +1685,7 @@ pub fn send_durable_store_upload(
   if progress != @transfer.StoreUploadCopying {
     return Err(ReconciliationRequired)
   }
-  match upload_store_transfer(client, origin, request, chunks) {
+  match upload_store_transfer_from_source(client, origin, request, source) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -1402,6 +1696,41 @@ pub fn send_durable_store_upload(
   match commit_durable_transition(journal, settled) {
     Ok(_) => require_durable_record(journal, request)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn send_durable_store_upload_from_source(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  source : NativeRemoteTransferChunkSource,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferSendFailure] {
+  match
+    send_durable_store_upload_operation(
+      journal, client, origin, request, source,
+    ) {
+    Ok(record) => Ok(record)
+    Err(issue) => Err(failed_stream_send(issue, source))
+  }
+}
+
+///|
+pub fn send_durable_store_upload(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  chunks : Array[Bytes],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let source = array_chunk_source(request, chunks)
+  match
+    send_durable_store_upload_from_source(
+      journal, client, origin, request, source,
+    ) {
+    Ok(record) => Ok(record)
+    Err(failure) => Err(failure.issue)
   }
 }
 

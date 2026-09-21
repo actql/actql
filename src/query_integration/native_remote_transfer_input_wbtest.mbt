@@ -938,8 +938,11 @@ test "standard Local reads the exact committed Transfer destination" {
   let manifest = manifest_reader.physical_manifest().unwrap()
   assert_eq(manifest.row_count, 1)
   assert_eq(manifest.chunks.length(), 1)
+  let output_material_generation = manifest_reader
+    .material_generation()
+    .unwrap()
   assert_eq(
-    manifest_reader.material_generation().unwrap(),
+    output_material_generation,
     @remote.remote_managed_output_subject_projection(
       @native_remote_journal.recovered_site_dispatch_subject(
         remote_journal.observation(observed_dispatch).unwrap(),
@@ -961,6 +964,70 @@ test "standard Local reads the exact committed Transfer destination" {
     }
   }
   assert_eq(@utf8.decode_lossy(Bytes::from_array(output_bytes)), "[{\"id\":3}]")
+  let output_transfer = @transfer.prepare_request(
+    "native-standard-transfer-coordinator",
+    "standard-output-transfer-1",
+    @transfer.DirectStream,
+    "native-standard-transfer-site",
+    1,
+    "native-destination",
+    3,
+    output_material_generation,
+    manifest,
+    1048576L,
+    4102444800000L,
+    native_publication_cid("standard-output-source-grant"),
+    native_publication_cid("standard-output-destination-grant"),
+    native_publication_cid("standard-output-direct-route"),
+  ).unwrap()
+  let first_output_send = component.send_observed_output_direct(
+    source_journal, origin, observed_dispatch, observed_completion, output_transfer,
+    1048576,
+  )
+  guard first_output_send
+    is Err(
+      @native_remote_standard.Component(
+        @native_remote_standard.TransferSend(first_failure)
+      )
+    ) &&
+    @native_transfer.transfer_send_failure_issue(first_failure)
+    is @native_transfer.ReconciliationRequired &&
+    !@native_transfer.transfer_send_failure_cleanup_pending(first_failure) else {
+    fail("lost output commit reply was not retained for reconciliation")
+  }
+  let output_uploaded = match
+    component.send_observed_output_direct(
+      source_journal, origin, observed_dispatch, observed_completion, output_transfer,
+      1048576,
+    ) {
+    Ok(value) => value
+    Err(
+      @native_remote_standard.Component(
+        @native_remote_standard.TransferSend(failure)
+      )
+    ) =>
+      match @native_transfer.transfer_send_failure_issue(failure) {
+        @native_transfer.SourceMismatch => fail("output source mismatch")
+        @native_transfer.Consumer(code) =>
+          fail("output source failure: " + code)
+        @native_transfer.Rejected(status) =>
+          fail("output transfer rejected: " + status.to_string())
+        @native_transfer.InvalidRequest =>
+          fail("output transfer request invalid")
+        @native_transfer.ReconciliationRequired =>
+          fail("output transfer requires reconciliation")
+        @native_transfer.Physical(_) => fail("output transfer physical failure")
+        @native_transfer.Durable(_) => fail("output transfer journal failure")
+        @native_transfer.Destination(_) =>
+          fail("output transfer destination failure")
+        @native_transfer.Protocol(_) => fail("output transfer protocol failure")
+      }
+    Err(_) => fail("standard output transfer failed before streaming")
+  }
+  assert_eq(
+    @transfer.direct_transfer_progress(output_uploaded),
+    @transfer.DirectTransferCommitted,
+  )
   guard component.close()
     is Err(
       @native_remote_standard.Component(
@@ -981,9 +1048,45 @@ test "standard Local reads the exact committed Transfer destination" {
     )
     .unwrap()
   assert_eq(release_queued.status, 201)
-  guard component.poll()
+  let released_occurrence = component.poll()
+  guard released_occurrence
     is Ok(@native_remote_agent.ReleaseObserved(released_identity, _)) else {
-    fail("standard Transfer release was not observed over HTTPS")
+    match released_occurrence {
+      Err(
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.Runtime(@native_remote_runtime.Physical(code))
+          )
+        )
+      ) => fail("standard Transfer release physical failure: " + code)
+      Err(
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.Runtime(
+              @native_remote_runtime.CleanupPending(code)
+            )
+          )
+        )
+      ) => fail("standard Transfer release cleanup pending: " + code)
+      Err(
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.RuntimeObserved(
+              @native_remote_runtime.CleanupPending(code),
+              _
+            )
+          )
+        )
+      ) => fail("observed standard Transfer cleanup pending: " + code)
+      Ok(@native_remote_agent.ReleasePending(identity, revision)) =>
+        fail(
+          "standard Transfer release pending: " +
+          identity +
+          "@" +
+          revision.to_string(),
+        )
+      _ => fail("standard Transfer release was not observed over HTTPS")
+    }
   }
   assert_eq(released_identity, @remote.dispatch_request_identity(dispatch))
   assert_true(component.close().unwrap())

@@ -158,6 +158,8 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(S
 pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::send_observed_output_direct(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::send_observed_output_store(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteComponentIssue]
 
 pub(all) enum NativeRemoteStandardSiteComponentIssue {
   Closed
@@ -165,6 +167,8 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
   Agent(@remote_agent.NativeRemoteAgentIssue)
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
   Journal(@remote_journal.NativeRemoteJournalIssue)
+  Transfer(@remote_transfer_client.NativeRemoteTransferClientIssue)
+  TransferSend(@remote_transfer_client.NativeRemoteTransferSendFailure)
 }
 
 type NativeRemoteStandardSiteDistribution
@@ -173,6 +177,8 @@ pub fn NativeRemoteStandardSiteDistribution::open_observed_output_manifest_reade
 pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteDistributionIssue]
+pub fn NativeRemoteStandardSiteDistribution::send_observed_output_direct(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteDistributionIssue]
+pub fn NativeRemoteStandardSiteDistribution::send_observed_output_store(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteDistributionIssue]
 
 pub(all) enum NativeRemoteStandardSiteDistributionIssue {
   Closed
