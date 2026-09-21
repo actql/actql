@@ -7,6 +7,11 @@ priv enum ShortestPhase {
   InitializeEdges
   CopyCursors
   FillEdges
+  InitializeSortScratch
+  PrepareSortNode
+  PrepareSortMerge
+  MergeEdges
+  CopySortedEdges
   ResolveEndpoints
   StartSearch
   ScanNeighbor
@@ -43,12 +48,23 @@ priv struct ShortestState {
   mut path_cursor : Int
   mut reverse_index : Int
   mut row_column : Int
+  mut sort_node : Int
+  mut sort_width : Int
+  mut sort_left : Int
+  mut sort_middle : Int
+  mut sort_right : Int
+  mut sort_left_at : Int
+  mut sort_right_at : Int
+  mut sort_merge_at : Int
+  mut sort_copy_at : Int
   mut has_path : Bool
   degree : Array[Int]
   start : Array[Int]
   cursor : Array[Int]
   neighbor : Array[Int]
   edge : Array[Int]
+  sort_neighbor : Array[Int]
+  sort_edge : Array[Int]
   depth : Array[Int]
   predecessor : Array[Int]
   predecessor_edge : Array[Int]
@@ -86,6 +102,7 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestKeyOrder(@value.KeyOrderIssue)
   ShortestStorage(@storage.Issue)
   ShortestOutput(@execution.CaptureIssue)
   ShortestCompletion(@execution.TrustedOutputIssue)
@@ -118,13 +135,99 @@ fn shortest_workspace(nodes : Int, edges : Int, both : Bool) -> Int? {
     Some(edges)
   }
   guard directed_edges is Some(directed_edges) &&
-    checked_shortest_multiply(nodes, 8) is Some(node_slots) &&
-    checked_shortest_multiply(directed_edges, 2) is Some(edge_slots) &&
-    checked_shortest_add(node_slots, edge_slots) is Some(total) &&
-    checked_shortest_add(total, 1) is Some(total) else {
+    checked_shortest_multiply(nodes, 9) is Some(node_slots) &&
+    checked_shortest_multiply(directed_edges, 4) is Some(edge_slots) &&
+    checked_shortest_add(node_slots, edge_slots) is Some(total) else {
     return None
   }
   Some(total)
+}
+
+///|
+fn shortest_compare_values(
+  left : @value.CheckedValue,
+  right : @value.CheckedValue,
+) -> Result[Int, ShortestIssue] {
+  @value.compare_key_values(left, right).map_err(issue => {
+    ShortestKeyOrder(issue)
+  })
+}
+
+///|
+fn shortest_compare_optional_values(
+  left : @value.CheckedValue?,
+  right : @value.CheckedValue?,
+) -> Result[Int, ShortestIssue] {
+  match (left, right) {
+    (None, None) => Ok(0)
+    (None, Some(_)) => Ok(-1)
+    (Some(_), None) => Ok(1)
+    (Some(left), Some(right)) => shortest_compare_values(left, right)
+  }
+}
+
+///|
+fn shortest_compare_edges(
+  state : ShortestState,
+  left_at : Int,
+  right_at : Int,
+) -> Result[Int, ShortestIssue] {
+  let left_node = state.neighbor[left_at]
+  let right_node = state.neighbor[right_at]
+  guard @storage.node_identity(state.source, left_node) is Some(left_id) &&
+    @storage.node_identity(state.source, right_node) is Some(right_id) else {
+    return Err(ShortestInputUnavailable)
+  }
+  match shortest_compare_values(left_id, right_id) {
+    Err(issue) => Err(issue)
+    Ok(order) if order != 0 => Ok(order)
+    Ok(_) => {
+      let left_edge = state.edge[left_at]
+      let right_edge = state.edge[right_at]
+      guard @storage.edge_endpoints(state.source, left_edge)
+        is Some((left_source, left_target)) &&
+        @storage.edge_endpoints(state.source, right_edge)
+        is Some((right_source, right_target)) &&
+        @storage.node_identity(state.source, left_source)
+        is Some(left_source_id) &&
+        @storage.node_identity(state.source, right_source)
+        is Some(right_source_id) &&
+        @storage.node_identity(state.source, left_target)
+        is Some(left_target_id) &&
+        @storage.node_identity(state.source, right_target)
+        is Some(right_target_id) &&
+        @storage.edge_label(state.source, left_edge) is Some(left_label) &&
+        @storage.edge_label(state.source, right_edge) is Some(right_label) else {
+        return Err(ShortestInputUnavailable)
+      }
+      match shortest_compare_values(left_source_id, right_source_id) {
+        Err(issue) => Err(issue)
+        Ok(order) if order != 0 => Ok(order)
+        Ok(_) =>
+          match shortest_compare_values(left_target_id, right_target_id) {
+            Err(issue) => Err(issue)
+            Ok(order) if order != 0 => Ok(order)
+            Ok(_) => shortest_compare_optional_values(left_label, right_label)
+          }
+      }
+    }
+  }
+}
+
+///|
+fn shortest_emit_sorted_edge(state : ShortestState, take_left : Bool) -> Unit {
+  let at = if take_left {
+    let at = state.sort_left_at
+    state.sort_left_at += 1
+    at
+  } else {
+    let at = state.sort_right_at
+    state.sort_right_at += 1
+    at
+  }
+  state.sort_neighbor[state.sort_merge_at] = state.neighbor[at]
+  state.sort_edge[state.sort_merge_at] = state.edge[at]
+  state.sort_merge_at += 1
 }
 
 ///|
@@ -316,8 +419,103 @@ fn shortest_step(
           state.index += 1
           used += 1
         } else {
-          state.phase = ResolveEndpoints
+          state.index = 0
+          state.phase = InitializeSortScratch
         }
+      InitializeSortScratch =>
+        if state.index < shortest_edge_count(state) {
+          state.sort_neighbor.push(-1)
+          state.sort_edge.push(-1)
+          state.index += 1
+          used += 1
+        } else {
+          state.sort_node = 0
+          state.phase = PrepareSortNode
+        }
+      PrepareSortNode =>
+        if state.sort_node >= @storage.node_count(state.source) {
+          state.phase = ResolveEndpoints
+        } else {
+          let begin = state.start[state.sort_node]
+          let end = state.start[state.sort_node + 1]
+          if end - begin < 2 {
+            state.sort_node += 1
+          } else {
+            state.sort_width = 1
+            state.sort_left = begin
+            state.phase = PrepareSortMerge
+          }
+          used += 1
+        }
+      PrepareSortMerge => {
+        let begin = state.start[state.sort_node]
+        let end = state.start[state.sort_node + 1]
+        let length = end - begin
+        if state.sort_width >= length {
+          state.sort_node += 1
+          state.phase = PrepareSortNode
+        } else if state.sort_left >= end {
+          state.sort_copy_at = begin
+          state.phase = CopySortedEdges
+        } else {
+          state.sort_middle = if state.sort_left > end - state.sort_width {
+            end
+          } else {
+            state.sort_left + state.sort_width
+          }
+          state.sort_right = if state.sort_middle > end - state.sort_width {
+            end
+          } else {
+            state.sort_middle + state.sort_width
+          }
+          state.sort_left_at = state.sort_left
+          state.sort_right_at = state.sort_middle
+          state.sort_merge_at = state.sort_left
+          state.phase = MergeEdges
+        }
+        used += 1
+      }
+      MergeEdges => {
+        if state.sort_left_at < state.sort_middle &&
+          state.sort_right_at < state.sort_right {
+          match
+            shortest_compare_edges(
+              state,
+              state.sort_left_at,
+              state.sort_right_at,
+            ) {
+            Ok(order) => shortest_emit_sorted_edge(state, order <= 0)
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
+        } else if state.sort_left_at < state.sort_middle {
+          shortest_emit_sorted_edge(state, true)
+        } else if state.sort_right_at < state.sort_right {
+          shortest_emit_sorted_edge(state, false)
+        } else {
+          state.sort_left = state.sort_right
+          state.phase = PrepareSortMerge
+        }
+        used += 1
+      }
+      CopySortedEdges => {
+        let begin = state.start[state.sort_node]
+        let end = state.start[state.sort_node + 1]
+        let length = end - begin
+        if state.sort_copy_at < end {
+          state.neighbor[state.sort_copy_at] = state.sort_neighbor[state.sort_copy_at]
+          state.edge[state.sort_copy_at] = state.sort_edge[state.sort_copy_at]
+          state.sort_copy_at += 1
+          used += 1
+        } else {
+          state.sort_width = if state.sort_width > length / 2 {
+            length
+          } else {
+            state.sort_width * 2
+          }
+          state.sort_left = begin
+          state.phase = PrepareSortMerge
+        }
+      }
       ResolveEndpoints => {
         let source_node = match
           @storage.node_index(state.source, state.source_id) {
@@ -491,6 +689,8 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.cursor.clear()
   state.neighbor.clear()
   state.edge.clear()
+  state.sort_neighbor.clear()
+  state.sort_edge.clear()
   state.depth.clear()
   state.predecessor.clear()
   state.predecessor_edge.clear()
@@ -601,12 +801,23 @@ pub fn start_shortest(
     path_cursor: -1,
     reverse_index: 0,
     row_column: 0,
+    sort_node: 0,
+    sort_width: 1,
+    sort_left: 0,
+    sort_middle: 0,
+    sort_right: 0,
+    sort_left_at: 0,
+    sort_right_at: 0,
+    sort_merge_at: 0,
+    sort_copy_at: 0,
     has_path: false,
     degree: [],
     start: [],
     cursor: [],
     neighbor: [],
     edge: [],
+    sort_neighbor: [],
+    sort_edge: [],
     depth: [],
     predecessor: [],
     predecessor_edge: [],

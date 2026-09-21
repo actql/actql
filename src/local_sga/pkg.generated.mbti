@@ -389,6 +389,7 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestKeyOrder(@value_admission.KeyOrderIssue)
   ShortestStorage(@managed_graph_storage.Issue)
   ShortestOutput(@execution_relation.CaptureIssue)
   ShortestCompletion(@execution_relation.TrustedOutputIssue)
