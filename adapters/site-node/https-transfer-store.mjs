@@ -128,9 +128,15 @@ export async function startHttpsTransferObjectStore({
       typeof control.storeUseReplyJson !== 'function' ||
       typeof control.storeUseCancellationReplyJson !== 'function' ||
       typeof control.identity !== 'function' ||
+      typeof control.replyJson !== 'function' ||
       typeof control.requestProjection !== 'function' ||
       typeof control.chunks !== 'function' ||
       typeof control.activeAt !== 'function' ||
+      typeof control.open !== 'function' ||
+      typeof control.prepareStart !== 'function' ||
+      typeof control.prepareSourceSettled !== 'function' ||
+      typeof control.prepareDestinationCommit !== 'function' ||
+      typeof control.commitTransition !== 'function' ||
       typeof control.admitDestinationReceiptJson !== 'function' ||
       typeof control.destinationReceiptJson !== 'function' ||
       typeof control.destinationReceiptIdentity !== 'function' ||
@@ -154,6 +160,7 @@ export async function startHttpsTransferObjectStore({
   const base = '/v1/transfer-store';
   const uploads = new Map();
   const downloads = new Map();
+  const objects = new Map();
   let admissionClosed = false;
   let listenerClosed = false;
   let closed = false;
@@ -161,6 +168,67 @@ export async function startHttpsTransferObjectStore({
   if (storeUseControl === null || typeof storeUseControl !== 'object') {
     fail('MissingRemoteTransferStoreControl');
   }
+
+  const committedRecord = request => {
+    let record = control.open(request);
+    record = control.commitTransition(control.prepareStart(record), true);
+    record = control.commitTransition(
+      control.prepareSourceSettled(record, true, true),
+      true,
+    );
+    return control.commitTransition(
+      control.prepareDestinationCommit(record),
+      true,
+    );
+  };
+  const objectFor = request => {
+    const requestCid = control.identity(request);
+    let entry = objects.get(requestCid);
+    if (entry === undefined) {
+      entry = {
+        request,
+        holding: undefined,
+        committed: undefined,
+        holdingWaiters: new Set(),
+        completionWaiters: new Set(),
+      };
+      objects.set(requestCid, entry);
+    }
+    return entry;
+  };
+  const publish = (entry, name, value) => {
+    entry[name] = value;
+    const waiters = name === 'holding'
+      ? entry.holdingWaiters
+      : entry.completionWaiters;
+    for (const waiter of waiters) waiter.resolve(value);
+    waiters.clear();
+  };
+  const waitFor = (entry, name, request) => {
+    if (entry[name] !== undefined) return Promise.resolve(entry[name]);
+    const waiters = name === 'holding'
+      ? entry.holdingWaiters
+      : entry.completionWaiters;
+    return new Promise((resolve, reject) => {
+      const waiter = {resolve, reject};
+      const aborted = () => {
+        waiters.delete(waiter);
+        reject(Object.assign(new Error('RemoteTransferUnavailable'), {
+          code: 'RemoteTransferUnavailable',
+        }));
+      };
+      waiter.resolve = value => {
+        request.off('aborted', aborted);
+        resolve(value);
+      };
+      waiter.reject = error => {
+        request.off('aborted', aborted);
+        reject(error);
+      };
+      request.once('aborted', aborted);
+      waiters.add(waiter);
+    });
+  };
 
   const peerFor = request => {
     const certificate = request.socket.getPeerCertificate();
@@ -202,6 +270,14 @@ export async function startHttpsTransferObjectStore({
     const holding = await store.inspectPhysicalHolding(projection[1]);
     if (holding === undefined) continue;
     const state = storeUseControl.recordProjection(recovered.record);
+    const object = objectFor(recovered.request);
+    publish(object, 'holding', holding);
+    const complete = state[1] === '2';
+    if (complete) publish(
+      object,
+      'committed',
+      committedRecord(recovered.request),
+    );
     downloads.set(`${projection[1]}\n${projection[2]}`, {
       request: recovered.request,
       peer: Object.freeze({siteKey: projection[3]}),
@@ -209,7 +285,7 @@ export async function startHttpsTransferObjectStore({
       holding,
       storeUse: recovered.storeUse,
       useRecord: recovered.record,
-      complete: state[1] === '2',
+      complete,
       receipt: undefined,
       busy: false,
     });
@@ -227,10 +303,12 @@ export async function startHttpsTransferObjectStore({
       const peer = peerFor(request);
       if (request.method === 'POST' && request.url === `${base}/uploads`) {
         const accepted = await admit(request, peer, 'upload');
+        const object = objectFor(accepted.admitted);
         const existing = await store.inspectPhysicalHolding(
           accepted.claimedRequestCid,
         );
         if (existing !== undefined) {
+          publish(object, 'holding', existing);
           replyCanonical(response, 200, control.storeUploadReplyJson(
             accepted.admitted,
             'admission',
@@ -277,10 +355,15 @@ export async function startHttpsTransferObjectStore({
           fail('InvalidRemoteTransferUse');
         }
         const accepted = await admit(request, peer, 'download', useId);
-        const holding = await store.inspectPhysicalHolding(
+        const object = objectFor(accepted.admitted);
+        let holding = await store.inspectPhysicalHolding(
           accepted.claimedRequestCid,
         );
-        if (holding === undefined) fail('RemoteTransferUnavailable');
+        if (holding === undefined) {
+          holding = await waitFor(object, 'holding', request);
+        } else {
+          publish(object, 'holding', holding);
+        }
         const key = `${accepted.claimedRequestCid}\n${useId}`;
         let entry = downloads.get(key);
         if (entry === undefined) {
@@ -335,6 +418,32 @@ export async function startHttpsTransferObjectStore({
       const operation = parts[2];
       const requestCid = decodeURIComponent(parts[3]);
       if (operation === 'uploads') {
+        if (request.method === 'POST' && parts.length === 5 &&
+            parts[4] === 'completion') {
+          const accepted = await admit(request, peer, 'upload');
+          if (accepted.claimedRequestCid !== requestCid) {
+            fail('InvalidRemoteTransferEnvelope');
+          }
+          const object = objectFor(accepted.admitted);
+          let holding = await store.inspectPhysicalHolding(requestCid);
+          if (holding === undefined) {
+            holding = await waitFor(object, 'holding', request);
+          } else {
+            publish(object, 'holding', holding);
+          }
+          void holding;
+          await authorizeUse(
+            {request: object.request, useId: undefined},
+            authorize,
+            control,
+            clock,
+            'upload:completion',
+            peer,
+          );
+          const committed = await waitFor(object, 'committed', request);
+          replyCanonical(response, 200, control.replyJson(committed));
+          return;
+        }
         const entry = uploads.get(requestCid);
         if (entry === undefined || entry.peer.siteKey !== peer.siteKey) {
           fail('RemoteTransferUnavailable');
@@ -414,6 +523,9 @@ export async function startHttpsTransferObjectStore({
             physicalHolding(control, entry.request),
             entry.prepared.map(value => value.prepared),
           );
+          const holding = await store.inspectPhysicalHolding(requestCid);
+          if (holding === undefined) fail('RemoteTransferUnavailable');
+          publish(objectFor(entry.request), 'holding', holding);
           uploads.delete(requestCid);
           replyCanonical(response, 200, control.storeUploadReplyJson(
             entry.request,
@@ -529,6 +641,11 @@ export async function startHttpsTransferObjectStore({
             );
             entry.receipt = receipt;
             entry.complete = true;
+            publish(
+              objectFor(entry.request),
+              'committed',
+              committedRecord(entry.request),
+            );
           }
           replyCanonical(response, 200, control.storeUseReplyJson(
             entry.request,
@@ -597,6 +714,15 @@ export async function startHttpsTransferObjectStore({
     async close() {
       admissionClosed = true;
       if (closed) return false;
+      const closing = Object.assign(new Error('RemoteTransferUnavailable'), {
+        code: 'RemoteTransferUnavailable',
+      });
+      for (const object of objects.values()) {
+        for (const waiter of object.holdingWaiters) waiter.reject(closing);
+        for (const waiter of object.completionWaiters) waiter.reject(closing);
+        object.holdingWaiters.clear();
+        object.completionWaiters.clear();
+      }
       if (!listenerClosed) {
         await new Promise((resolve, reject) => server.close(error => {
           if (error) reject(error);
@@ -788,6 +914,55 @@ export async function uploadHttpsTransferObject({
     'commit',
   );
   return committed;
+}
+
+export async function waitForHttpsTransferDestinationCommit({
+  origin,
+  ca,
+  cert,
+  key,
+  servername = 'localhost',
+  control,
+  request,
+  signal,
+  maxResponseBytes = 16_384,
+} = {}) {
+  if (!text(origin) || ca === undefined || cert === undefined ||
+      key === undefined || !text(servername) ||
+      control === null || typeof control !== 'object' ||
+      typeof control.admissionEnvelopeJson !== 'function' ||
+      typeof control.admitReplyJson !== 'function' ||
+      typeof control.recordIsDestinationCommitted !== 'function' ||
+      typeof control.identity !== 'function' ||
+      typeof control.requestProjection !== 'function' ||
+      request === undefined || !count(maxResponseBytes) ||
+      maxResponseBytes === 0) {
+    fail('InvalidTransferObjectCompletionConfiguration');
+  }
+  const body = envelope(control, request);
+  const requestCid = control.identity(request);
+  const response = await send({
+    origin,
+    ca,
+    cert,
+    key,
+    servername,
+    signal,
+    maxResponseBytes,
+    path: `/v1/transfer-store/uploads/${encodeURIComponent(requestCid)}` +
+      '/completion',
+    method: 'POST',
+    headers: commonHeaders(control, request, body),
+    write(outgoing) { outgoing.end(body); },
+  });
+  const record = control.admitReplyJson(
+    responseWires.get(response),
+    request,
+  );
+  if (!control.recordIsDestinationCommitted(record)) {
+    fail('RemoteTransferDestinationCommitUnavailable');
+  }
+  return record;
 }
 
 async function downloadChunk({common, path, writer, expected, signal}) {

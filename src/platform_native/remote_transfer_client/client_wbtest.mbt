@@ -406,7 +406,7 @@ test "native direct retry reconciles a lost commit reply" {
 }
 
 ///|
-test "native Store upload seals once and restores without source upload" {
+test "native Store upload waits for commit and restores without source upload" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
     return
   }
@@ -441,12 +441,24 @@ test "native Store upload seals once and restores without source upload" {
   ).unwrap()
   let chunks = [b"store-alpha", @utf8.encode("保存")]
   let request = native_transfer_request(chunks, @transfer.TransferStore)
-  let record = send_durable_store_upload(
-    journal, client, origin, request, chunks,
-  ).unwrap()
+  let record = match
+    send_durable_store_upload(journal, client, origin, request, chunks) {
+    Ok(value) => value
+    Err(InvalidRequest) => fail("native Store upload: invalid request")
+    Err(SourceMismatch) => fail("native Store upload: source mismatch")
+    Err(Rejected(status)) =>
+      fail("native Store upload: rejected " + status.to_string())
+    Err(Physical(_)) => fail("native Store upload: HTTP failure")
+    Err(Durable(_)) => fail("native Store upload: journal failure")
+    Err(Destination(_)) => fail("native Store upload: destination failure")
+    Err(Protocol(_)) => fail("native Store upload: protocol failure")
+    Err(Consumer(_)) => fail("native Store upload: consumer failure")
+    Err(ReconciliationRequired) =>
+      fail("native Store upload: reconciliation required")
+  }
   assert_eq(
     @transfer.store_upload_progress(record),
-    @transfer.StoreUploadSealed,
+    @transfer.StoreUploadCommitted,
   )
   assert_true(journal.close())
   let reopened = @journal.open_journal(
@@ -455,7 +467,7 @@ test "native Store upload seals once and restores without source upload" {
   let restored = send_durable_store_upload(reopened, client, origin, request, []).unwrap()
   assert_eq(
     @transfer.store_upload_progress(restored),
-    @transfer.StoreUploadSealed,
+    @transfer.StoreUploadCommitted,
   )
   assert_true(reopened.close())
   let destination_root = @filesystem.open_root(store_root).unwrap()

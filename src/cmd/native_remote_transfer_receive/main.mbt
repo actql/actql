@@ -249,7 +249,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     println("{\"reclaimed\":true}")
     return
   }
-  if mode != "receive" {
+  if mode != "receive" && mode != "receive-output" {
     ignore(transfer_journal.close())
     stop("invalid Transfer operation")
   }
@@ -299,6 +299,23 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       ignore(transfer_journal.close())
       stop("destination receipt is unavailable")
     }
+  }
+  if mode == "receive-output" {
+    let body = match @transfer.remote_transfer_reply_json(record) {
+      Ok(value) => value
+      Err(_) => {
+        ignore(http_client.close())
+        ignore(transfer_journal.close())
+        stop("destination Transfer result is invalid")
+      }
+    }
+    let close_client = http_client.close()
+    let close_journal = transfer_journal.close()
+    if !close_client || !close_journal {
+      stop("native Transfer receiver cleanup remains pending")
+    }
+    println(body)
+    return
   }
   let input = match
     @remote_standard.prepare_native_remote_standard_transfer_input(

@@ -19,6 +19,7 @@ export function createRemoteSiteCoordinator({
   release = releaseRemoteDispatch,
   plan: planOutput,
   output: executeOutput,
+  receiveStoreOutput,
   transferControl,
 } = {}) {
   if (control === null || typeof control !== 'object' ||
@@ -39,6 +40,10 @@ export function createRemoteSiteCoordinator({
   }
   if (planOutput !== undefined && typeof planOutput !== 'function') {
     fail('InvalidRemoteSiteCoordinatorOutputPlan');
+  }
+  if (receiveStoreOutput !== undefined &&
+      typeof receiveStoreOutput !== 'function') {
+    fail('InvalidRemoteSiteCoordinatorStoreOutput');
   }
   const outputEnabled = executeOutput !== undefined ||
     transferControl !== undefined;
@@ -218,14 +223,51 @@ export function createRemoteSiteCoordinator({
       const current = store.inspectOutput(record, control);
       if (current?.progress === 2) return projectOutputRecord(record);
       try {
-        const response = await executeOutput(Object.freeze({
+        const physical = Object.freeze({
           ...request,
           payloadRequest,
           transferRequest,
-        }));
+        });
+        const transferRoute = transferControl.requestProjection(
+          transferRequest,
+        )[1];
+        if (transferRoute !== 'direct' && transferRoute !== 'store') {
+          fail('InvalidRemoteCoordinatorOutputRoute');
+        }
+        if (transferRoute === 'store' &&
+            typeof receiveStoreOutput !== 'function') {
+          fail('RemoteCoordinatorStoreOutputUnavailable');
+        }
+        const destination = transferRoute === 'store'
+          ? Promise.resolve().then(() => receiveStoreOutput(physical))
+          : Promise.resolve(undefined);
+        const [response, destinationResult] = await Promise.all([
+          executeOutput(physical),
+          destination,
+        ]);
         if (response === null || typeof response !== 'object' ||
             response.result === undefined) {
           fail('InvalidRemoteCoordinatorOutputResult');
+        }
+        if (destinationResult !== undefined) {
+          if (destinationResult === null ||
+              typeof destinationResult !== 'object' ||
+              destinationResult.record === undefined ||
+              !transferControl.recordIsDestinationCommitted(
+                destinationResult.record,
+              )) {
+            fail('InvalidRemoteCoordinatorStoreOutputResult');
+          }
+          const sourceResult = control.outputResultProjection(
+            response.result,
+            transferRequest,
+          );
+          if (sourceResult[3] !==
+              transferControl.identity(transferRequest) ||
+              Number(sourceResult[4]) !==
+              transferControl.revision(destinationResult.record)) {
+            fail('RemoteCoordinatorStoreOutputCollision');
+          }
         }
         if (store.inspectOutput(record, control)?.progress === 2) {
           return projectOutputRecord(record);

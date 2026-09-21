@@ -8,6 +8,7 @@ import {
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:https';
+import {isIP} from 'node:net';
 import {
   mkdtemp,
   mkdir,
@@ -37,6 +38,21 @@ import {pinnedEngineContracts} from
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
+}
+const nativeHttpHost = process.env.ACTQL_TEST_NATIVE_HTTP_HOST ?? '127.0.0.1';
+if (isIP(nativeHttpHost) === 0) {
+  throw new Error('ACTQL_TEST_NATIVE_HTTP_HOST must be an IP address');
+}
+const nativeSiteNamespace = process.env.ACTQL_TEST_NATIVE_SITE_NETNS;
+const nativeSiteUser = process.env.ACTQL_TEST_NATIVE_SITE_USER;
+if ((nativeSiteNamespace === undefined) !== (nativeSiteUser === undefined) ||
+    nativeSiteNamespace === '' || nativeSiteUser === '') {
+  throw new Error('native Site namespace and user must be configured together');
+}
+const applicationOutputRoute =
+  process.env.ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE ?? 'direct';
+if (!['direct', 'store'].includes(applicationOutputRoute)) {
+  throw new Error('invalid native application output route');
 }
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-http-'));
@@ -125,11 +141,47 @@ let nativeStoreTransferCid;
 let nativeStoreTransferChunks = 0;
 let nativeStoreTransferSealed = false;
 let nativeStoreTransferManifest = [];
+let nativeStoreTransferRequest;
+let nativeStoreCommittedRecord;
+let nativeStoreAutoCommit = true;
 const nativeStoreTransferBodies = [];
 const nativeStoreUses = new Map();
+const nativeStoreSealedWaiters = new Set();
+const nativeStoreCommitWaiters = new Set();
+const commitNativeStoreDestination = control => {
+  let committed = control.open(nativeStoreTransferRequest);
+  committed = control.commitTransition(
+    control.prepareStart(committed),
+    true,
+  );
+  committed = control.commitTransition(
+    control.prepareSourceSettled(committed, true, true),
+    true,
+  );
+  nativeStoreCommittedRecord = control.commitTransition(
+    control.prepareDestinationCommit(committed),
+    true,
+  );
+  for (const waiter of nativeStoreCommitWaiters) waiter();
+  nativeStoreCommitWaiters.clear();
+};
 const nativeStandardTransferCompletions = [];
+const resetNativeStoreTransfer = () => {
+  nativeStoreTransferCid = undefined;
+  nativeStoreTransferChunks = 0;
+  nativeStoreTransferSealed = false;
+  nativeStoreTransferManifest = [];
+  nativeStoreTransferRequest = undefined;
+  nativeStoreCommittedRecord = undefined;
+  nativeStoreTransferBodies.length = 0;
+  nativeStoreUses.clear();
+  nativeStoreSealedWaiters.clear();
+  nativeStoreCommitWaiters.clear();
+};
 let nativeApplicationInputRequestBody;
 let nativeApplicationInputManifestBody;
+let nativeApplicationOutputRequestBody;
+let nativeApplicationOutputManifestBody;
 let observeStalePoll;
 const stalePollObserved = new Promise(resolve => {
   observeStalePoll = resolve;
@@ -151,7 +203,7 @@ try {
   );
   await writeFile(
     join(root, 'server.ext'),
-    'subjectAltName=DNS:localhost,IP:127.0.0.1\n' +
+    `subjectAltName=DNS:localhost,IP:127.0.0.1,IP:${nativeHttpHost}\n` +
       'extendedKeyUsage=serverAuth\n',
   );
   await writeFile(
@@ -173,7 +225,7 @@ try {
     const nativeTransferRequest = request.url === nativeTransferBase ||
       request.url?.startsWith(`${nativeTransferBase}/`);
     const nativeStoreTransferBase = '/v1/transfer-store/uploads';
-    const nativeStoreTransferRequest =
+    const isNativeStoreTransferRequest =
       request.url?.startsWith('/v1/transfer-store/');
     if (request.url === '/disconnect') {
       request.socket.destroy();
@@ -208,6 +260,14 @@ try {
         '/v1/native-application/input/manifest',
         nativeApplicationInputManifestBody,
       ],
+      [
+        '/v1/native-application/output/request',
+        nativeApplicationOutputRequestBody,
+      ],
+      [
+        '/v1/native-application/output/manifest',
+        nativeApplicationOutputManifestBody,
+      ],
     ]).get(request.url);
     if (applicationInputContract !== undefined) {
       if (request.method !== 'GET') {
@@ -223,7 +283,8 @@ try {
     }
     const genericPut = request.method === 'PUT' &&
       request.url === '/generic-put';
-    if (!nativeTransferRequest && !nativeStoreTransferRequest && !genericPut &&
+    if (!nativeTransferRequest && !isNativeStoreTransferRequest &&
+        !genericPut &&
         (request.method !== 'POST' ||
         ![
           '/probe',
@@ -321,12 +382,29 @@ try {
         return;
       }
       const requestCid = request.headers['actql-transfer-cid'];
+      let admittedRequest;
+      try {
+        admittedRequest = transferControl.admitAdmissionEnvelopeJson(
+          body,
+          requestCid,
+          request.headers['actql-manifest-cid'],
+          {
+            maxChunks: 8,
+            maxManifestBytes: 4096,
+            maxReferencedBytes: 1048576n,
+          },
+        );
+      } catch {
+        response.writeHead(400).end();
+        return;
+      }
       if (nativeStoreTransferCid !== undefined &&
           nativeStoreTransferCid !== requestCid) {
         response.writeHead(409).end();
         return;
       }
       nativeStoreTransferCid = requestCid;
+      nativeStoreTransferRequest = admittedRequest;
       nativeStoreTransferManifest = manifest.chunks;
       response.writeHead(nativeStoreTransferSealed ? 200 : 201, {
         'content-type': 'application/json',
@@ -345,6 +423,40 @@ try {
       const parts = suffix.split('/');
       if (decodeURIComponent(parts[0] ?? '') !== nativeStoreTransferCid) {
         response.writeHead(404).end();
+        return;
+      }
+      if (request.method === 'POST' && parts[1] === 'completion') {
+        try {
+          transferControl.admitAdmissionEnvelopeJson(
+            body,
+            request.headers['actql-transfer-cid'],
+            request.headers['actql-manifest-cid'],
+            {
+              maxChunks: 8,
+              maxManifestBytes: 4096,
+              maxReferencedBytes: 1048576n,
+            },
+          );
+        } catch {
+          response.writeHead(400).end();
+          return;
+        }
+        if (nativeStoreCommittedRecord === undefined) {
+          await new Promise((resolve, reject) => {
+            const completed = () => {
+              request.off('aborted', aborted);
+              resolve();
+            };
+            const aborted = () => {
+              nativeStoreCommitWaiters.delete(completed);
+              reject(new Error('Store completion request aborted'));
+            };
+            nativeStoreCommitWaiters.add(completed);
+            request.once('aborted', aborted);
+          });
+        }
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(transferControl.replyJson(nativeStoreCommittedRecord));
         return;
       }
       if (request.method === 'PUT' && parts[1] === 'chunks') {
@@ -374,6 +486,11 @@ try {
           nativeStoreTransferChunks === nativeStoreTransferManifest.length &&
           body === '') {
         nativeStoreTransferSealed = true;
+        for (const waiter of nativeStoreSealedWaiters) waiter();
+        nativeStoreSealedWaiters.clear();
+        if (nativeStoreAutoCommit) {
+          commitNativeStoreDestination(transferControl);
+        }
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify({
           requestCid: nativeStoreTransferCid,
@@ -387,11 +504,25 @@ try {
     if (request.url === '/v1/transfer-store/downloads' &&
         request.method === 'POST') {
       const useId = request.headers['actql-transfer-use-id'];
-      if (!nativeStoreTransferSealed || typeof useId !== 'string' ||
+      if (typeof useId !== 'string' ||
           typeof request.headers['actql-transfer-cid'] !== 'string' ||
           request.headers['actql-transfer-cid'] !== nativeStoreTransferCid) {
         response.writeHead(404).end();
         return;
+      }
+      if (!nativeStoreTransferSealed) {
+        await new Promise((resolve, reject) => {
+          const sealed = () => {
+            request.off('aborted', aborted);
+            resolve();
+          };
+          const aborted = () => {
+            nativeStoreSealedWaiters.delete(sealed);
+            reject(new Error('Store use request aborted'));
+          };
+          nativeStoreSealedWaiters.add(sealed);
+          request.once('aborted', aborted);
+        });
       }
       if (!nativeStoreUses.has(useId)) nativeStoreUses.set(useId, false);
       response.writeHead(200, {'content-type': 'application/json'});
@@ -440,6 +571,7 @@ try {
           return;
         }
         nativeStoreUses.set(useId, true);
+        commitNativeStoreDestination(transferControl);
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify({
           requestCid: nativeStoreTransferCid,
@@ -710,12 +842,13 @@ try {
         : {}),
     }));
   });
-  server.listen(0, '127.0.0.1');
+  server.listen(0, nativeHttpHost);
   await once(server, 'listening');
   const address = server.address();
   if (address === null || typeof address === 'string') {
     throw new Error('native HTTP test listener has no TCP address');
   }
+  const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
   const moon = join(
     process.env.MOON_HOME ?? '',
     'bin',
@@ -753,6 +886,7 @@ try {
   const portableRuntime = runtimeCore(moonModule);
   const runtimeControl = portableRuntime.remoteBundleControl;
   remoteSiteControl = portableRuntime.remoteSiteControl;
+  const transferControl = portableRuntime.remoteTransferControl;
   const runtimeKeys = generateKeyPairSync('ed25519');
   const runtimeComponent = Buffer.from('native-runtime');
   const runtimeManifest = runtimeControl.prepare({
@@ -774,6 +908,7 @@ try {
   );
   const siteCertificate = await readFile(join(root, 'client.crt'));
   standardGateway = await startHttpsOutboundSiteGateway({
+    host: nativeHttpHost,
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
     ca: await readFile(join(root, 'ca.crt')),
@@ -787,7 +922,7 @@ try {
     ...process.env,
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
-    ACTQL_TEST_NATIVE_HTTP_URL: `https://127.0.0.1:${address.port}`,
+    ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
@@ -837,12 +972,7 @@ try {
     'src/query_integration',
   ]) {
     if (packagePath === 'src/query_integration') {
-      nativeStoreTransferCid = undefined;
-      nativeStoreTransferChunks = 0;
-      nativeStoreTransferSealed = false;
-      nativeStoreTransferManifest = [];
-      nativeStoreTransferBodies.length = 0;
-      nativeStoreUses.clear();
+      resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
     }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
@@ -903,9 +1033,9 @@ try {
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
     '--key', join(root, 'client.key'),
-    '--poll-url', `https://127.0.0.1:${address.port}/outbound/poll`,
+    '--poll-url', `${nativeHttpOrigin}/outbound/poll`,
     '--observation-url',
-    `https://127.0.0.1:${address.port}/outbound/observation`,
+    `${nativeHttpOrigin}/outbound/observation`,
     'poll-once',
   ]);
   assert.notEqual(rejectedDispatch.code, 0);
@@ -919,9 +1049,9 @@ try {
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
     '--key', join(root, 'client.key'),
-    '--poll-url', `https://127.0.0.1:${address.port}/outbound/poll`,
+    '--poll-url', `${nativeHttpOrigin}/outbound/poll`,
     '--observation-url',
-    `https://127.0.0.1:${address.port}/outbound/status-observation`,
+    `${nativeHttpOrigin}/outbound/status-observation`,
     'poll-once',
   ]);
   assert.equal(queried.code, 0, queried.stderr);
@@ -935,9 +1065,9 @@ try {
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
     '--key', join(root, 'client.key'),
-    '--poll-url', `https://127.0.0.1:${address.port}/outbound/stale-poll`,
+    '--poll-url', `${nativeHttpOrigin}/outbound/stale-poll`,
     '--observation-url',
-    `https://127.0.0.1:${address.port}/outbound/stale-observation`,
+    `${nativeHttpOrigin}/outbound/stale-observation`,
     'poll-once',
   ]);
   await stalePollObserved;
@@ -987,9 +1117,21 @@ try {
 
   const repositoryRoot = new URL('../', import.meta.url).pathname;
   const runCaptured = (executable_, arguments_, environment = {}) => {
-    const child = spawn(executable_, arguments_, {
+    const siteEnvironment = {PATH: '/usr/bin:/bin', LANG: 'C', ...environment};
+    const namespaced = nativeSiteNamespace !== undefined;
+    const command = namespaced ? 'sudo' : executable_;
+    const commandArguments = namespaced
+      ? [
+          'ip', 'netns', 'exec', nativeSiteNamespace,
+          'sudo', `--user=${nativeSiteUser}`, 'env',
+          ...Object.entries(siteEnvironment)
+            .map(([name, value]) => `${name}=${value}`),
+          executable_, ...arguments_,
+        ]
+      : arguments_;
+    const child = spawn(command, commandArguments, {
       cwd: repositoryRoot,
-      env: {PATH: '/usr/bin:/bin', LANG: 'C', ...environment},
+      env: namespaced ? process.env : siteEnvironment,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const stdout = [];
@@ -1034,11 +1176,16 @@ try {
     join(root, 'remote-application-publication');
   const applicationCoordinatorRoot =
     join(root, 'remote-application-coordinator');
+  const applicationOutputTransferRoot =
+    join(root, 'remote-application-output-transfer');
+  const applicationOutputTransferJournal =
+    join(root, 'remote-application-output-transfer.sqlite3');
   await Promise.all([
     mkdir(applicationRoot),
     mkdir(applicationTransferRoot),
     mkdir(applicationPublicationRoot),
     mkdir(applicationCoordinatorRoot),
+    mkdir(applicationOutputTransferRoot),
   ]);
 
   const catalogs = await readFile(join(
@@ -1110,7 +1257,6 @@ try {
   nativeStoreTransferManifest = [];
   nativeStoreTransferBodies.length = 0;
   nativeStoreUses.clear();
-  const transferControl = portableRuntime.remoteTransferControl;
   const inputChunks = [Buffer.from('{"id":3}'), Buffer.from('{"id":2}')];
   const physicalCid = value => `sha256:${createHash('sha256')
     .update(value).digest('hex')}`;
@@ -1157,7 +1303,7 @@ try {
     async consume(emit) { await emit(bytes); },
   }));
   await uploadHttpsTransferObject({
-    origin: `https://127.0.0.1:${address.port}`,
+    origin: nativeHttpOrigin,
     ca: await readFile(join(root, 'ca.crt')),
     cert: await readFile(join(root, 'client.crt')),
     key: await readFile(join(root, 'client.key')),
@@ -1177,14 +1323,14 @@ try {
     '--http-library', library,
     '--journal', applicationTransferJournal,
     '--root', applicationTransferRoot,
-    '--origin', `https://127.0.0.1:${address.port}`,
+    '--origin', nativeHttpOrigin,
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
     '--key', join(root, 'client.key'),
     '--request-url',
-    `https://127.0.0.1:${address.port}/v1/native-application/input/request`,
+    `${nativeHttpOrigin}/v1/native-application/input/request`,
     '--manifest-url',
-    `https://127.0.0.1:${address.port}/v1/native-application/input/manifest`,
+    `${nativeHttpOrigin}/v1/native-application/input/manifest`,
     '--request-cid', transferControl.identity(inputTransfer),
     '--manifest-cid', transferControl.requestProjection(inputTransfer)[7],
     '--use-id', inputUseId,
@@ -1232,6 +1378,7 @@ try {
   const coordinatorJournal = remoteSiteControl.createCoordinatorJournal(
     'native-application-coordinator',
   );
+  let applicationOutputReceiveArguments;
   const coordinator = createRemoteSiteCoordinator({
     control: remoteSiteControl,
     transferControl,
@@ -1243,6 +1390,48 @@ try {
     release: options => standardGateway.release(options),
     plan: options => standardGateway.plan(options),
     output: options => standardGateway.output(options),
+    receiveStoreOutput: async ({transferRequest}) => {
+      nativeApplicationOutputRequestBody =
+        transferControl.requestJson(transferRequest);
+      nativeApplicationOutputManifestBody =
+        transferControl.manifestJson(transferRequest);
+      applicationOutputReceiveArguments = [
+        '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+        '--http-library', library,
+        '--journal', applicationOutputTransferJournal,
+        '--root', applicationOutputTransferRoot,
+        '--origin', nativeHttpOrigin,
+        '--ca', join(root, 'ca.crt'),
+        '--cert', join(root, 'client.crt'),
+        '--key', join(root, 'client.key'),
+        '--request-url',
+        `${nativeHttpOrigin}/v1/native-application/output/request`,
+        '--manifest-url',
+        `${nativeHttpOrigin}/v1/native-application/output/manifest`,
+        '--request-cid', transferControl.identity(transferRequest),
+        '--manifest-cid',
+        transferControl.requestProjection(transferRequest)[7],
+        '--use-id', 'native-application-output-use',
+        '--max-chunks', '8',
+        '--max-manifest-bytes', '4096',
+        '--max-bytes', '1048576',
+      ];
+      const receivedOutput = runCaptured(transferReceiver, [
+        ...applicationOutputReceiveArguments,
+        '--mode', 'receive-output',
+      ]);
+      const outcome = await receivedOutput.completed;
+      assert.equal(outcome.code, 0, outcome.stderr);
+      const record = transferControl.admitReplyJson(
+        outcome.stdout.trim(),
+        transferRequest,
+      );
+      assert.equal(
+        transferControl.recordIsDestinationCommitted(record),
+        true,
+      );
+      return Object.freeze({record});
+    },
   });
   const dispatchCompletion = coordinator.dispatch({
     dispatch,
@@ -1338,6 +1527,10 @@ try {
     physicalCid('native-application-result-definition');
   const orderingEvidenceCid =
     physicalCid('native-application-ordering-evidence');
+  if (applicationOutputRoute === 'store') {
+    nativeStoreAutoCommit = false;
+    resetNativeStoreTransfer();
+  }
   const outputIntent = remoteSiteControl.prepareOutputIntent(dispatch, {
     storeAuthorityCid: publicationAuthorityCid,
     publicationAttemptCid:
@@ -1346,7 +1539,7 @@ try {
     orderingEvidenceCid,
     coordinatorAuthority: 'native-application-coordinator',
     transferAttemptId: 'native-application-output-transfer',
-    transferRoute: 'direct',
+    transferRoute: applicationOutputRoute,
     destinationSite: 'native-destination',
     destinationSiteGeneration: 3,
     transferMaxBytes: 1048576n,
@@ -1356,16 +1549,27 @@ try {
       physicalCid('native-application-output-destination-grant'),
     routeCapabilityCid:
       physicalCid('native-application-output-direct-route'),
-    transferOrigin: `https://127.0.0.1:${address.port}`,
+    transferOrigin: nativeHttpOrigin,
   });
-  const outputResult = await coordinator.output({
-    dispatch,
-    intent: outputIntent,
-    subject: dispatched.subject,
-    maxChunks: 8,
-    maxManifestBytes: 4096,
-    maxReferencedBytes: 1048576n,
-  });
+  const outputOutcome = await Promise.race([
+    coordinator.output({
+      dispatch,
+      intent: outputIntent,
+      subject: dispatched.subject,
+      maxChunks: 8,
+      maxManifestBytes: 4096,
+      maxReferencedBytes: 1048576n,
+    }).then(value => ({kind: 'output', value})),
+    applicationRun.completed.then(value => ({kind: 'application', value})),
+  ]);
+  assert.equal(
+    outputOutcome.kind,
+    'output',
+    outputOutcome.kind === 'application'
+      ? JSON.stringify(outputOutcome.value)
+      : undefined,
+  );
+  const outputResult = outputOutcome.value;
   const released = await coordinator.release({dispatch});
   assert.equal(released.state[2], 2);
   const applicationExit = await applicationRun.completed;
@@ -1413,6 +1617,17 @@ try {
   assert.equal(reclaimed.code, 0, reclaimed.stderr);
   assert.deepEqual(JSON.parse(reclaimed.stdout), {reclaimed: true});
   assert.deepEqual(await readdir(applicationTransferRoot), []);
+  if (applicationOutputRoute === 'store') {
+    assert.notEqual(applicationOutputReceiveArguments, undefined);
+    const reclaimedOutputRun = runCaptured(transferReceiver, [
+      ...applicationOutputReceiveArguments,
+      '--mode', 'reclaim',
+    ]);
+    const reclaimedOutput = await reclaimedOutputRun.completed;
+    assert.equal(reclaimedOutput.code, 0, reclaimedOutput.stderr);
+    assert.deepEqual(JSON.parse(reclaimedOutput.stdout), {reclaimed: true});
+    assert.deepEqual(await readdir(applicationOutputTransferRoot), []);
+  }
 } finally {
   releaseStalePoll?.();
   if (standardGateway !== undefined) {

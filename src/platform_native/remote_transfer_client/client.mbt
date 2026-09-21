@@ -583,6 +583,67 @@ fn upload_store_transfer_from_source(
 }
 
 ///|
+fn await_store_destination_commit(
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let (_, upload_url) = match store_upload_location(origin, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let projection = @transfer.request_projection(request)
+  let envelope = match @transfer.transfer_admission_envelope_json(request) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let committed = match
+    transfer_exchange(
+      client,
+      @http.Post,
+      upload_url + "/completion",
+      [
+        { name: "content-type", value: "application/json", },
+        { name: "content-length", value: envelope.length().to_string(), },
+        { name: "actql-transfer-cid", value: @transfer.request_cid(request), },
+        { name: "actql-manifest-cid", value: projection[7], },
+      ],
+      envelope,
+      request,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if @transfer.record_is_destination_committed(committed) {
+    Ok(committed)
+  } else {
+    Err(ReconciliationRequired)
+  }
+}
+
+///|
+fn commit_store_destination_observation(
+  journal : @journal.Journal,
+  request : @transfer.RemoteTransferRequest,
+  record : @transfer.RemoteTransferRecord,
+  observed : @transfer.RemoteTransferRecord,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  if @transfer.record_request_identity(observed) !=
+    @transfer.record_request_identity(record) ||
+    !@transfer.record_is_destination_committed(observed) {
+    return Err(ReconciliationRequired)
+  }
+  let committed = match @transfer.prepare_destination_commit(record) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match commit_durable_transition(journal, committed) {
+    Ok(_) => require_durable_record(journal, request)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 fn store_use_response(
   response : @http.NativeHttpResponse,
   request : @transfer.RemoteTransferRequest,
@@ -1709,13 +1770,26 @@ fn send_durable_store_upload_operation(
   }
   let mut record = accepted
   let mut progress = @transfer.store_upload_progress(record)
-  if progress == @transfer.StoreUploadCommitted ||
-    progress == @transfer.StoreUploadSealed {
+  if progress == @transfer.StoreUploadCommitted {
     match source.close_source() {
       Ok(_) => ()
       Err(issue) => return Err(Consumer(issue))
     }
     return Ok(record)
+  }
+  if progress == @transfer.StoreUploadSealed {
+    match source.close_source() {
+      Ok(_) => ()
+      Err(issue) => return Err(Consumer(issue))
+    }
+    let observed = match
+      await_store_destination_commit(client, origin, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    return commit_store_destination_observation(
+      journal, request, record, observed,
+    )
   }
   if progress == @transfer.StoreUploadReconciliationRequired {
     return Err(ReconciliationRequired)
@@ -1747,9 +1821,18 @@ fn send_durable_store_upload_operation(
     Err(issue) => return Err(Protocol(issue))
   }
   match commit_durable_transition(journal, settled) {
-    Ok(_) => require_durable_record(journal, request)
-    Err(issue) => Err(issue)
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
+  record = match require_durable_record(journal, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let observed = match await_store_destination_commit(client, origin, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  commit_store_destination_observation(journal, request, record, observed)
 }
 
 ///|

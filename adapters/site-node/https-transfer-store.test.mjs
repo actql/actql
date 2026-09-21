@@ -17,6 +17,7 @@ import {
   receiveHttpsTransferObject,
   startHttpsTransferObjectStore,
   uploadHttpsTransferObject,
+  waitForHttpsTransferDestinationCommit,
 } from './https-transfer-store.mjs';
 import {openSqliteTransferJournal} from './sqlite-transfer-journal.mjs';
 import {openSqliteTransferStoreJournal} from
@@ -268,6 +269,15 @@ test('outbound Store Transfer persists exact destination evidence', async t => {
   })).sealed, true);
   assert.equal(setup.sourceStore.status().activeReaders, 0);
 
+  const completion = waitForHttpsTransferDestinationCommit({
+    origin: setup.service.origin,
+    ca: setup.material.ca,
+    cert: setup.material.sourceCertificate,
+    key: setup.material.sourceKey,
+    control,
+    request: transfer,
+  });
+
   const received = await receiveHttpsTransferObject({
     origin: setup.service.origin,
     ca: setup.material.ca,
@@ -279,6 +289,8 @@ test('outbound Store Transfer persists exact destination evidence', async t => {
     journal: setup.journal,
     destinationStore: setup.destinationStore,
   });
+  const completed = await completion;
+  assert.equal(control.recordIsDestinationCommitted(completed), true);
   assert.deepEqual(
     control.recordProjection(received.record),
     [3, 2, 3, 1, 0, 1, 1, 0, 1],
@@ -388,6 +400,18 @@ test('completed download use reconciles after Transfer Store restart',
     assert.equal(await setup.service.close(), true);
     const reopened = await setup.startService();
     t.after(() => reopened.close());
+    const recoveredCompletion = await waitForHttpsTransferDestinationCommit({
+      origin: reopened.origin,
+      ca: setup.material.ca,
+      cert: setup.material.sourceCertificate,
+      key: setup.material.sourceKey,
+      control,
+      request: transfer,
+    });
+    assert.equal(
+      control.recordIsDestinationCommitted(recoveredCompletion),
+      true,
+    );
     const reconciled = await receiveHttpsTransferObject({
       origin: reopened.origin,
       ca: setup.material.ca,
