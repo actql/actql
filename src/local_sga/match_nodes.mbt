@@ -155,8 +155,7 @@ fn graph_node_property_index(
 
 ///|
 fn node_predicate_field_count(graph : @carrier.Graph) -> Int {
-  let identity = if @carrier.graph_names(graph) is Some(_) { 1 } else { 0 }
-  identity + @carrier.field_count(@carrier.graph_node_properties(graph))
+  graph_node_predicate_binding_count(graph)
 }
 
 ///|
@@ -165,28 +164,7 @@ fn node_predicate_binding(
   node : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  let mut property = index
-  match @carrier.graph_names(state.graph) {
-    Some(names) => {
-      let (identity_name, _, _, _) = @carrier.graph_row_fields(names)
-      if property == 0 {
-        return @storage.node_identity(state.source, node).map(value => {
-          (
-            @schema.reference_name(identity_name),
-            @execution.capture(value.value),
-          )
-        })
-      }
-      property -= 1
-    }
-    None => ()
-  }
-  let properties = @carrier.graph_node_properties(state.graph)
-  guard @carrier.field_at(properties, property) is Some(field) &&
-    @storage.node_property(state.source, node, property) is Some(value) else {
-    return None
-  }
-  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
+  graph_node_predicate_binding(state.graph, state.source, node, index)
 }
 
 ///|

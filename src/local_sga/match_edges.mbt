@@ -155,18 +155,7 @@ fn graph_edge_property_index(
 
 ///|
 fn edge_predicate_field_count(graph : @carrier.Graph) -> Int {
-  let aliases = match @carrier.graph_names(graph) {
-    Some(names) => {
-      let (_, _, _, label) = @carrier.graph_row_fields(names)
-      if label is Some(_) {
-        3
-      } else {
-        2
-      }
-    }
-    None => 0
-  }
-  aliases + @carrier.field_count(@carrier.graph_edge_properties(graph))
+  graph_edge_predicate_binding_count(graph)
 }
 
 ///|
@@ -175,57 +164,7 @@ fn edge_predicate_binding(
   edge : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  let mut remaining = index
-  match @carrier.graph_names(state.graph) {
-    Some(names) => {
-      let (_, source_name, target_name, label_name) = @carrier.graph_row_fields(
-        names,
-      )
-      guard @storage.edge_endpoints(state.source, edge)
-        is Some((source, target)) else {
-        return None
-      }
-      if remaining == 0 {
-        return @storage.node_identity(state.source, source).map(value => {
-          (@schema.reference_name(source_name), @execution.capture(value.value))
-        })
-      }
-      remaining -= 1
-      if remaining == 0 {
-        return @storage.node_identity(state.source, target).map(value => {
-          (@schema.reference_name(target_name), @execution.capture(value.value))
-        })
-      }
-      remaining -= 1
-      match label_name {
-        Some(name) => {
-          if remaining == 0 {
-            return match @storage.edge_label(state.source, edge) {
-              Some(Some(value)) =>
-                Some(
-                  (
-                    @schema.reference_name(name),
-                    @execution.capture(value.value),
-                  ),
-                )
-              Some(None) =>
-                Some((@schema.reference_name(name), @execution.Null))
-              None => None
-            }
-          }
-          remaining -= 1
-        }
-        None => ()
-      }
-    }
-    None => ()
-  }
-  let properties = @carrier.graph_edge_properties(state.graph)
-  guard @carrier.field_at(properties, remaining) is Some(field) &&
-    @storage.edge_property(state.source, edge, remaining) is Some(value) else {
-    return None
-  }
-  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
+  graph_edge_predicate_binding(state.graph, state.source, edge, index)
 }
 
 ///|
