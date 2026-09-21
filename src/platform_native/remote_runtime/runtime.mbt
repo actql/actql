@@ -124,6 +124,7 @@ struct NativeRemoteRuntime {
   registrations : Map[String, NativeRemoteRuntimeRegistration]
   process_holds : Map[String, Bool]
   budgets : Map[String, @remote.RemoteDispatchBudget]
+  admitting : Map[String, Bool]
   owners : Map[String, NativeRemoteRuntimeOwner]
   pending_cleanup : Map[String, NativeRemoteRuntimeOwner]
   mut closed : Bool
@@ -416,6 +417,7 @@ pub fn open_native_remote_runtime(
     registrations: installed,
     process_holds,
     budgets: provisioned,
+    admitting: Map([]),
     owners: Map([]),
     pending_cleanup: Map([]),
     closed: false,
@@ -1216,6 +1218,9 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   if self.closed {
     return Err(Closed)
   }
+  if !self.admitting.is_empty() {
+    return Err(DispatchAlreadyStarted)
+  }
   let identity = @remote.dispatch_request_identity(request)
   if self.pending_cleanup.contains(identity) {
     return Err(CleanupPending("dispatch"))
@@ -1225,10 +1230,19 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   }
   match self.owners.get(identity) {
     Some(owner) => {
-      if !observe_accepted(owner.record) {
+      self.admitting[identity] = true
+      let observed = observe_accepted(owner.record)
+      ignore(self.admitting.remove(identity))
+      if self.closed {
+        return Err(Closed)
+      }
+      if !observed {
         return Err(AcceptanceUnconfirmed)
       }
-      return native_remote_runtime_completion(owner)
+      guard self.owners.get(identity) is Some(current) else {
+        return Err(DispatchAlreadyStarted)
+      }
+      return native_remote_runtime_completion(current)
     }
     None => ()
   }
@@ -1283,8 +1297,30 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   if !@remote.remote_runtime_record_startable(record) {
     return Err(DispatchAlreadyStarted)
   }
-  if !observe_accepted(record) {
+  self.admitting[identity] = true
+  let observed = observe_accepted(record)
+  ignore(self.admitting.remove(identity))
+  if !observed {
     return Err(AcceptanceUnconfirmed)
+  }
+  if self.closed {
+    return Err(Closed)
+  }
+  if !@site.site_available(registration.site) {
+    return Err(SiteUnavailable)
+  }
+  match
+    self.bundles.verify_active_component_binding(registration.active_runtime) {
+    Ok(_) => ()
+    Err(issue) => return Err(Bundle(issue))
+  }
+  let record = match self.journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  if !@remote.dispatch_record_matches_request(record, request) ||
+    !@remote.remote_runtime_record_startable(record) {
+    return Err(DispatchAlreadyStarted)
   }
   let owner : NativeRemoteRuntimeOwner = {
     request,
@@ -1488,7 +1524,9 @@ pub fn NativeRemoteRuntime::close(
       Err(issue) => if failure is None { failure = Some(issue) }
     }
   }
-  if !self.owners.is_empty() || !self.pending_cleanup.is_empty() {
+  if !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
     match failure {
       Some(issue) => Err(issue)
       None => Err(CleanupPending("runtime"))

@@ -253,6 +253,46 @@ test "native remote runtime owns success failure and cleanup progression" {
     ).unwrap()
   }
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
+  let closing_active_runtime = bundles
+    .acquire_active_component(
+      "sha256:" + @sha.hex(component),
+      target,
+      "runtime-process:close-admission-test",
+    )
+    .unwrap()
+  let closing_registration = @runtime.install_native_remote_runtime_registry_registration(
+    site,
+    closing_active_runtime,
+    operation_capability,
+    issuer_capability,
+    [executor],
+  ).unwrap()
+  let closing_runtime = @runtime.open_native_remote_runtime(
+    journal,
+    bundles,
+    [closing_registration],
+    [budget],
+  ).unwrap()
+  let closing_request = request("dispatch-close-during-acceptance")
+  let close_observations = [0]
+  let close_blocked_by_admission = [false]
+  assert_true(
+    closing_runtime.start_after_acceptance(closing_request, input_binding, _record => {
+      close_observations[0] += 1
+      close_blocked_by_admission[0] = closing_runtime.close()
+        is Err(@runtime.CleanupPending("runtime"))
+      true
+    })
+    is Err(@runtime.Closed),
+  )
+  assert_eq(close_observations[0], 1)
+  assert_true(close_blocked_by_admission[0])
+  assert_eq(executions[0], 0)
+  let closed_site_status = @site.site_status(site)
+  assert_eq(closed_site_status[2], 0L)
+  assert_eq(closed_site_status[4], 0L)
+  assert_true(closing_runtime.close().unwrap())
+  assert_false(bundles.release("runtime-process:close-admission-test").unwrap())
   let unsupported = @remote.prepare_dispatch_request(
     "native-coordinator",
     runtime_test_cid(
@@ -285,6 +325,8 @@ test "native remote runtime owns success failure and cleanup progression" {
   let accepted = [0]
   let accepted_execution = [-1]
   let accepted_revision = [-1]
+  let same_request_reentry_rejected = [false]
+  let other_request_reentry_rejected = [false]
   assert_true(
     runtime.start_after_acceptance(first, input_binding, record => {
       accepted[0] += 1
@@ -301,10 +343,24 @@ test "native remote runtime owns success failure and cleanup progression" {
     .start_after_acceptance(first, input_binding, _record => {
       accepted[0] += 1
       accepted_execution[0] = executions[0]
+      same_request_reentry_rejected[0] = runtime.start_after_acceptance(
+          first,
+          input_binding,
+          _ => true,
+        )
+        is Err(@runtime.DispatchAlreadyStarted)
+      other_request_reentry_rejected[0] = runtime.start_after_acceptance(
+          request("dispatch-reentrant-other"),
+          input_binding,
+          _ => true,
+        )
+        is Err(@runtime.DispatchAlreadyStarted)
       true
     })
     .unwrap()
   assert_eq(accepted_execution[0], 0)
+  assert_true(same_request_reentry_rejected[0])
+  assert_true(other_request_reentry_rejected[0])
   assert_eq(
     completion.dispatch_request_cid,
     @remote.dispatch_request_identity(first),
