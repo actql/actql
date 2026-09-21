@@ -80,6 +80,8 @@ pub fn strategy_host_begin_task_success_progress(Bool, Bool) -> @physical_strate
 
 pub fn strategy_host_begin_transfer_progress(@physical_strategy.ManagedTransfer) -> @physical_strategy.ManagedTransferProgress
 
+pub fn strategy_host_carrier_managed_output_matches(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
 pub fn strategy_host_cleanup_action(@physical_strategy.HostCleanupProgress, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_host_cleanup_pending(Bool, Bool, Bool) -> Bool
@@ -109,14 +111,6 @@ pub fn strategy_host_managed_producer(@connectors_workers_async.ConfiguredComput
 pub fn strategy_host_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
 pub fn strategy_host_managed_requires_logical_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool raise NodeHostFailure
-
-pub fn strategy_host_managed_result_import_append(StrategyHostManagedResultImport, String, Int, Int, Int, Int) -> Unit raise NodeHostFailure
-
-pub fn strategy_host_managed_result_import_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostManagedResultImport raise NodeHostFailure
-
-pub fn strategy_host_managed_result_import_cancel(StrategyHostManagedResultImport) -> Unit
-
-pub fn strategy_host_managed_result_import_finish(StrategyHostManagedResultImport) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
@@ -1086,8 +1080,6 @@ pub(all) suberror NodeHostFailure {
 }
 
 // Types and methods
-type StrategyHostManagedResultImport
-
 type StrategyHostOutputExport
 
 // Type aliases

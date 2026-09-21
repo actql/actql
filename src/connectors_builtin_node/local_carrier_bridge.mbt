@@ -2,16 +2,16 @@
 #export_name("strategyModule_local_RelationOutput")
 pub fn local_managed_relation_output(
   output : @execution.ManagedCompletedOutput[Int],
-) -> @binding10.LocalManagedAvailableOutput[Int] {
-  @binding10.local_managed_relation_output(output)
+) -> @binding19.LocalManagedAvailableOutput[Int] {
+  @binding19.local_managed_relation_output(output)
 }
 
 ///|
 #export_name("strategyModule_local_CapturedRelationInput")
-pub fn local_managed_captured_relation_input() -> @binding10.LocalManagedAvailableOutput[
+pub fn local_managed_captured_relation_input() -> @binding19.LocalManagedAvailableOutput[
   Int,
 ] {
-  @binding10.local_managed_captured_relation_input()
+  @binding19.local_managed_captured_relation_input()
 }
 
 ///|
@@ -19,17 +19,17 @@ pub fn local_managed_captured_relation_input() -> @binding10.LocalManagedAvailab
 pub fn local_managed_carrier_output(
   output : @execution.CarrierManagedCompletedOutput,
   material : @carrier_runtime.Material,
-) -> @binding10.LocalManagedAvailableOutput[Int] {
-  @binding10.local_managed_carrier_output(output, material)
+) -> @binding19.LocalManagedAvailableOutput[Int] {
+  @binding19.local_managed_carrier_output(output, material)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedCarrierDispatch")
 pub fn local_managed_carrier_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
-  completed : Array[@binding10.LocalManagedAvailableOutput[Int]],
+  completed : Array[@binding19.LocalManagedAvailableOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding10.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @binding19.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -56,7 +56,7 @@ pub fn local_managed_carrier_dispatch(
 ///|
 #export_name("strategyModule_local_ManagedUsesProvider")
 pub fn local_managed_uses_provider(
-  setup : @binding10.LocalManagedDispatchConfiguration[Int],
+  setup : @binding19.LocalManagedDispatchConfiguration[Int],
 ) -> Bool {
-  @binding10.local_managed_dispatch_uses_provider(setup)
+  @binding19.local_managed_dispatch_uses_provider(setup)
 }

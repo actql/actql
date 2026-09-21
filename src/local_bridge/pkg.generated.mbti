@@ -52,6 +52,8 @@ pub fn start_completed_relation_to_rows(@bounded_execution.Control, @execution_r
 
 pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
+pub fn start_events_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int) -> Result[EventsToRowsExecution, EventsBridgeIssue]
+
 pub fn start_graph_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
 pub fn start_graph_to_rows_from_carrier_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphRowsExecution, GraphBridgeIssue]

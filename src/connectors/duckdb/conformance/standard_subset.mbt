@@ -18,7 +18,7 @@ pub fn strategy_fixture_module_subset(
       _ => abort("invalid fixture generation for task " + (i + 1).to_string())
     }
   })
-  @connector_conformance.configure_subset(f.run.unwrap(), generated, mode)
+  @connector_gate.configure_subset(f.run.unwrap(), generated, mode)
 }
 
 ///|
@@ -86,7 +86,7 @@ pub fn strategy_fixture_sga_subset(
   if !@local_connector.managed_provider_accepts(provider, generated[1]) {
     abort("SGA fixture provider rejected its graph sequence")
   }
-  @conformance.configure_subset(f.run.unwrap(), generated, 0, managed_providers=[
+  @connector_gate.configure_subset(f.run.unwrap(), generated, 0, managed_providers=[
     provider,
   ])
 }
@@ -166,7 +166,7 @@ pub fn strategy_fixture_tea_subset(
   if providers.is_empty() {
     abort("TEA fixture providers rejected every generated sequence")
   }
-  @conformance.configure_subset(
+  @connector_gate.configure_subset(
     f.run.unwrap(),
     generated,
     0,
@@ -244,7 +244,7 @@ pub fn strategy_fixture_veca_subset(
   if providers.is_empty() {
     abort("VecA fixture provider rejected every generated sequence")
   }
-  @conformance.configure_subset(
+  @connector_gate.configure_subset(
     f.run.unwrap(),
     generated,
     0,

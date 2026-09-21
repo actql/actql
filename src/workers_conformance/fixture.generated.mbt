@@ -1167,6 +1167,11 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
+  } else if variant == "bridge_only" {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"vectors\":true,\"as\":\"out\"}"
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
