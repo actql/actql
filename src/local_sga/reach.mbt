@@ -21,13 +21,20 @@ priv enum ReachPhase {
 }
 
 ///|
+priv enum ReachEdgeFilter {
+  AllReachEdges
+  NoReachEdges
+  OneReachEdgeType(String)
+}
+
+///|
 priv struct ReachState {
   input : @graph.ProducerRead
   source : @storage.Storage
   schema : @schema.Schema
   start : @value.CheckedValue
   direction : @graph_type.Direction
-  edge_type : String?
+  edge_filter : ReachEdgeFilter
   minimum_depth : Int
   max_depth : Int
   value_limits : @value.Limits
@@ -211,10 +218,14 @@ fn visit_reach_neighbor(
 
 ///|
 fn reach_edge_allowed(state : ReachState, edge : Int) -> Bool {
-  guard state.edge_type is Some(expected) else { return true }
-  match @storage.edge_label(state.source, edge) {
-    Some(Some({ value: @value.Text(actual), .. })) => actual == expected
-    _ => false
+  match state.edge_filter {
+    AllReachEdges => true
+    NoReachEdges => false
+    OneReachEdgeType(expected) =>
+      match @storage.edge_label(state.source, edge) {
+        Some(Some({ value: @value.Text(actual), .. })) => actual == expected
+        _ => false
+      }
   }
 }
 
@@ -558,7 +569,7 @@ fn start_reach_state(
   schema : @schema.Schema,
   start : @value.CheckedValue,
   direction : @graph_type.Direction,
-  edge_type : String?,
+  edge_filter : ReachEdgeFilter,
   minimum_depth : Int,
   max_depth : Int,
   max_rows : Int,
@@ -623,7 +634,7 @@ fn start_reach_state(
     schema,
     start,
     direction,
-    edge_type,
+    edge_filter,
     minimum_depth,
     max_depth,
     value_limits: {
@@ -713,7 +724,7 @@ pub fn start_reach(
     @lower.graph_reach_output_schema(prepared),
     @lower.graph_reach_start(prepared),
     @lower.graph_reach_direction(prepared),
-    None,
+    AllReachEdges,
     0,
     max_depth,
     max_rows,

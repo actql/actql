@@ -85,6 +85,7 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   @lower.graph_traverse_hop_direction(value, 0) is Some(_) &&
   (
     @lower.graph_traverse_hop_type_count(value, 0) is None ||
+    @lower.graph_traverse_hop_type_count(value, 0) == Some(0) ||
     @lower.graph_traverse_hop_type_count(value, 0) == Some(1)
   ) &&
   @lower.graph_traverse_hop_edge_predicate(value, 0) is None &&

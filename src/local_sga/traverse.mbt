@@ -49,6 +49,7 @@ pub fn start_traverse(
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     (
       @lower.graph_traverse_hop_type_count(prepared, 0) is None ||
+      @lower.graph_traverse_hop_type_count(prepared, 0) == Some(0) ||
       @lower.graph_traverse_hop_type_count(prepared, 0) == Some(1)
     ) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
@@ -60,6 +61,14 @@ pub fn start_traverse(
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()
     _ => max_rows
   }
+  let edge_filter = match @lower.graph_traverse_hop_type_count(prepared, 0) {
+    None => AllReachEdges
+    Some(0) => NoReachEdges
+    Some(_) =>
+      OneReachEdgeType(
+        @lower.graph_traverse_hop_type_at(prepared, 0, 0).unwrap(),
+      )
+  }
   start_reach_state(
     control,
     preparation,
@@ -70,7 +79,7 @@ pub fn start_traverse(
     @lower.graph_traverse_output_schema(prepared),
     start,
     direction,
-    @lower.graph_traverse_hop_type_at(prepared, 0, 0),
+    edge_filter,
     minimum.to_int(),
     maximum.to_int(),
     max_rows,

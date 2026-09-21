@@ -210,9 +210,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     }) +
     "\"," +
     (if typed_traverse {
-      "\"edge_types\":[\"" +
-      (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
-      "\"],"
+      if variant == "traverse_type_empty" {
+        "\"edge_types\":[],"
+      } else {
+        "\"edge_types\":[\"" +
+        (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
+        "\"],"
+      }
     } else {
       ""
     }) +
@@ -3513,7 +3517,8 @@ fn run_standard_host_graph_relation_path(
     obligations?=graph_obligations,
   )
   let graph_rows = local_managed_test_rows(graph_ops)
-  let expected_rows = if variant == "traverse_type_miss" {
+  let expected_rows = if variant == "traverse_type_miss" ||
+    variant == "traverse_type_empty" {
     0
   } else if variant == "graph_bounds" {
     4
@@ -3570,7 +3575,7 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
-  } else if variant == "traverse_type_miss" {
+  } else if variant == "traverse_type_miss" || variant == "traverse_type_empty" {
     ()
   } else if variant.has_prefix("traverse_") {
     assert_true(graph_rows[0].contains("\"start_id\":1"))
@@ -3740,6 +3745,7 @@ test "standard Host preserves bidirectional Graph traversal" {
 test "standard Host filters Graph traversal by edge type" {
   run_standard_host_graph_relation_path("traverse_type", publication=true)
   run_standard_host_graph_relation_path("traverse_type_miss")
+  run_standard_host_graph_relation_path("traverse_type_empty")
 }
 
 ///|
