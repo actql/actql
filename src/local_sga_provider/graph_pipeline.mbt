@@ -196,7 +196,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         ) ||
         (
           @lower.operation(node) == "SGA.diff_structural" &&
-          !@lower.graph_structural_has_property_strategies(structural)
+          @lower.graph_structural_has_only_exact_property_strategies(structural)
         )
       (current, @lower.GraphUnionStep(union)) if current < count - 1 =>
         @lower.operation(node) == "SGA.union_structural" &&

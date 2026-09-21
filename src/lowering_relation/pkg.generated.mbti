@@ -337,6 +337,10 @@ pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
 
 pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema
 
+pub fn graph_structural_has_edge_property_strategies(PreparedGraphStructural) -> Bool
+
+pub fn graph_structural_has_node_property_strategies(PreparedGraphStructural) -> Bool
+
 pub fn graph_structural_has_only_exact_property_strategies(PreparedGraphStructural) -> Bool
 
 pub fn graph_structural_has_property_strategies(PreparedGraphStructural) -> Bool

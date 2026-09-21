@@ -136,6 +136,20 @@ pub fn graph_structural_has_property_strategies(
 }
 
 ///|
+pub fn graph_structural_has_node_property_strategies(
+  value : PreparedGraphStructural,
+) -> Bool {
+  @graph.structural_strategy_count(value.checked, @schema.Left) > 0
+}
+
+///|
+pub fn graph_structural_has_edge_property_strategies(
+  value : PreparedGraphStructural,
+) -> Bool {
+  @graph.structural_strategy_count(value.checked, @schema.Right) > 0
+}
+
+///|
 pub fn graph_structural_has_only_exact_property_strategies(
   value : PreparedGraphStructural,
 ) -> Bool {

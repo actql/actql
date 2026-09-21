@@ -141,10 +141,20 @@ fn empty_graph_owner() -> @lower.BoundPrepared {
 fn subtract_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
+  exact? : Bool = false,
 ) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_with_evidence(
-      cursor("[{\"from\":\"left\",\"subtract_graphs\":{\"with\":\"right\"}}]"),
+      cursor(
+        "[{\"from\":\"left\",\"subtract_graphs\":{\"with\":\"right\"" +
+        (if exact {
+          ",\"merge\":{\"node_properties\":{\"name\":\"exact_equal\"}," +
+          "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
+        } else {
+          ""
+        }) +
+        "}}]",
+      ),
       [
         (
           "left",
@@ -666,6 +676,58 @@ test "structural subtraction removes identities and closes endpoints" {
   assert_true(@storage.node_index(result, number(2.0)).unwrap() is None)
   assert_true(@storage.node_index(result, number(3.0)).unwrap() is Some(_))
   assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
+test "structural subtraction retains explicit exact-equal properties" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let owner = subtract_owner(left_owner, right_owner, exact=true)
+  let left = one_node_graph(left_owner, 1.0, "same")
+  let right = one_node_graph(right_owner, 1.0, "same")
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(execution, 4).unwrap()
+    is GraftComplete(output, progress=2L, work=2L) else {
+    fail("exact-equal subtraction did not complete")
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(result), 1)
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.node_property(result, 0, 0).unwrap(),
+      10,
+    ),
+    Some("same"),
+  )
+  assert_eq(cleanup_graft(execution), Ok(true))
+
+  let conflict = one_node_graph(right_owner, 1.0, "different")
+  let rejected = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, conflict),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(rejected, 4).unwrap()
+    is GraftFailed(
+      GraftOutput(@graph.Storage(@storage.DuplicateNodeConflict)),
+      progress=1L,
+      work=1L
+    ),
+  )
+  assert_eq(cleanup_graft(rejected), Ok(true))
 }
 
 ///|

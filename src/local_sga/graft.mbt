@@ -21,6 +21,8 @@ priv enum GraftSource {
 priv struct GraftState {
   sources : Array[GraftSource]
   mode : StructuralMode
+  retain_shared_nodes : Bool
+  retain_shared_edges : Bool
   mut output : @graph.OutputBuilder?
   node_fields : Int
   edge_fields : Int
@@ -78,7 +80,7 @@ fn valid_graft_step(
         ) ||
         (
           @lower.operation(node) == "SGA.diff_structural" &&
-          !@lower.graph_structural_has_property_strategies(structural)
+          @lower.graph_structural_has_only_exact_property_strategies(structural)
         )
       )
     Some(@lower.GraphUnionStep(union)) =>
@@ -147,16 +149,38 @@ fn subtract_node_step(
   left : @storage.Storage,
   right : @storage.Storage,
 ) -> Result[Unit, GraftIssue] {
-  guard state.output is Some(output) &&
-    @storage.node_identity(left, state.record_index) is Some(identity) else {
+  guard state.output is Some(output) else { return Err(GraftInputUnavailable) }
+  if state.input_index == 0 {
+    guard @storage.node_identity(left, state.record_index) is Some(identity) else {
+      return Err(GraftInputUnavailable)
+    }
+    let shared = match @storage.node_index(right, identity) {
+      Ok(value) => value is Some(_)
+      Err(_) => return Err(GraftInputUnavailable)
+    }
+    if !shared || state.retain_shared_nodes {
+      match
+        copy_graph_node(left, output, state.node_fields, state.record_index) {
+        Ok(_) => ()
+        Err(Unavailable) => return Err(GraftInputUnavailable)
+        Err(GraphCopyIssue::Output(issue)) => return Err(GraftOutput(issue))
+      }
+    }
+    return Ok(())
+  }
+  if state.input_index != 1 || !state.retain_shared_nodes {
+    return Ok(())
+  }
+  guard @storage.node_identity(right, state.record_index) is Some(identity) else {
     return Err(GraftInputUnavailable)
   }
-  let shared = match @storage.node_index(right, identity) {
+  let shared = match @storage.node_index(left, identity) {
     Ok(value) => value is Some(_)
     Err(_) => return Err(GraftInputUnavailable)
   }
-  if !shared {
-    match copy_graph_node(left, output, 0, state.record_index) {
+  if shared {
+    match
+      copy_graph_node(right, output, state.node_fields, state.record_index) {
       Ok(_) => ()
       Err(Unavailable) => return Err(GraftInputUnavailable)
       Err(GraphCopyIssue::Output(issue)) => return Err(GraftOutput(issue))
@@ -171,19 +195,21 @@ fn subtract_edge_step(
   left : @storage.Storage,
   right : @storage.Storage,
 ) -> Result[Unit, GraftIssue] {
-  guard state.output is Some(output) &&
-    @storage.edge_endpoints(left, state.record_index)
+  guard state.output is Some(output) else { return Err(GraftInputUnavailable) }
+  let source = if state.input_index == 0 { left } else { right }
+  let other = if state.input_index == 0 { right } else { left }
+  guard @storage.edge_endpoints(source, state.record_index)
     is Some((source_node, target_node)) &&
-    @storage.node_identity(left, source_node) is Some(source_id) &&
-    @storage.node_identity(left, target_node) is Some(target_id) &&
-    @storage.edge_label(left, state.record_index) is Some(label) else {
+    @storage.node_identity(source, source_node) is Some(source_id) &&
+    @storage.node_identity(source, target_node) is Some(target_id) &&
+    @storage.edge_label(source, state.record_index) is Some(label) else {
     return Err(GraftInputUnavailable)
   }
-  let shared = match @storage.edge_index(right, source_id, target_id, label) {
+  let shared = match @storage.edge_index(other, source_id, target_id, label) {
     Ok(value) => value is Some(_)
     Err(_) => return Err(GraftInputUnavailable)
   }
-  if shared {
+  if state.input_index == 1 && (!state.retain_shared_edges || !shared) {
     return Ok(())
   }
   let source_present = match @graph.contains_declared_node(output, source_id) {
@@ -194,8 +220,14 @@ fn subtract_edge_step(
     Ok(value) => value
     Err(issue) => return Err(GraftOutput(issue))
   }
-  if source_present && target_present {
-    match copy_graph_edge(left, output, 0, state.record_index) {
+  let keep = if state.input_index == 0 {
+    !shared || state.retain_shared_edges
+  } else {
+    shared
+  }
+  if keep && source_present && target_present {
+    match
+      copy_graph_edge(source, output, state.edge_fields, state.record_index) {
       Ok(_) => ()
       Err(Unavailable) => return Err(GraftInputUnavailable)
       Err(GraphCopyIssue::Output(issue)) => return Err(GraftOutput(issue))
@@ -346,7 +378,12 @@ fn graft_step(
               return @bounded.Failed(GraftOutput(issue), progress, used)
           }
         } else if state.mode == Subtract {
-          state.phase = Finish
+          if state.input_index == 0 &&
+            (state.retain_shared_nodes || state.retain_shared_edges) {
+            advance_graft_source(state)
+          } else {
+            state.phase = Finish
+          }
         } else {
           advance_graft_source(state)
         }
@@ -392,6 +429,15 @@ pub fn start_graft(
   guard structural_mode(sequence, step) is Some(mode) else {
     return Err(InvalidGraftKernel)
   }
+  let (retain_shared_nodes, retain_shared_edges) = match
+    @lower.sequence_step(sequence, step) {
+    Some(@lower.GraphStructuralStep(structural)) if mode == Subtract =>
+      (
+        @lower.graph_structural_has_node_property_strategies(structural),
+        @lower.graph_structural_has_edge_property_strategies(structural),
+      )
+    _ => (false, false)
+  }
   let sources = []
   for index, input in inputs {
     guard @graph.producer_read_matches_operation_input(
@@ -406,12 +452,15 @@ pub fn start_graft(
     @storage.carrier(first) is @carrier.GraphValue(contract) else {
     return Err(GraftInputUnavailable)
   }
-  if mode == Subtract &&
-    (
-      @carrier.field_count(@carrier.graph_node_properties(contract)) != 0 ||
-      @carrier.field_count(@carrier.graph_edge_properties(contract)) != 0
-    ) {
-    return Err(InvalidGraftKernel)
+  if mode == Subtract {
+    if !retain_shared_nodes &&
+      @carrier.field_count(@carrier.graph_node_properties(contract)) != 0 {
+      return Err(InvalidGraftKernel)
+    }
+    if !retain_shared_edges &&
+      @carrier.field_count(@carrier.graph_edge_properties(contract)) != 0 {
+      return Err(InvalidGraftKernel)
+    }
   }
   if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
     return Err(InvalidGraftLimits)
@@ -431,6 +480,8 @@ pub fn start_graft(
   let state : GraftState = {
     sources,
     mode,
+    retain_shared_nodes,
+    retain_shared_edges,
     output: Some(output),
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
@@ -501,6 +552,8 @@ pub fn start_graft_views(
   let state : GraftState = {
     sources,
     mode,
+    retain_shared_nodes: false,
+    retain_shared_edges: false,
     output: Some(output),
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
