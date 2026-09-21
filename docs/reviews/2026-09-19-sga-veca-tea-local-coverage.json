@@ -1367,6 +1367,7 @@
       "canonical": ["TEA.join.interval"],
       "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
       "status": "partial",
+      "blocker": "The common managed Relation fallback drains the complete interval join synchronously inside one advance call, so the Node Host cannot deliver cancellation while pair search is running.",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -1450,6 +1451,7 @@
       "canonical": ["TEA.join.asof"],
       "variants": ["relation/events left", "left/inner", "backward/forward/nearest", "identity completion", "tie completion"],
       "status": "partial",
+      "blocker": "The common managed Relation fallback drains the complete as-of join synchronously inside one advance call, so the Node Host cannot deliver cancellation while candidate search is running.",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -2227,7 +2229,8 @@
       "output": "vector",
       "canonical": ["expression.vector_concat"],
       "variants": ["arity two/many", "dimension overflow", "null propagation", "demanded evaluation"],
-      "status": "complete",
+      "status": "partial",
+      "blocker": "The expression frame is resumable, but the outer OrderedBindings row evaluator and common managed Relation fallback still drain the complete task synchronously, so environment cancellation is not established.",
       "owner": "local-veca",
       "completed_layers": [
         "contract",
@@ -2239,7 +2242,6 @@
         "consumer_lifetime",
         "publication",
         "resources",
-        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
