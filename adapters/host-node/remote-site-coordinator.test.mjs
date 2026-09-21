@@ -35,7 +35,13 @@ const request = dispatchId => control.prepare({
   grantCid: cid('4'),
 });
 
-function outputFixture(dispatch, route = 'direct') {
+function outputFixture(dispatch, route = 'direct', overrides = {}) {
+  const {
+    sourceSite = 'site-a',
+    sourceSiteGeneration = 1,
+    materialGeneration = cid('e'),
+    ...configurationOverrides
+  } = overrides;
   const configuration = {
     storeAuthorityCid: cid('5'),
     publicationAttemptCid: cid('6'),
@@ -52,6 +58,7 @@ function outputFixture(dispatch, route = 'direct') {
     destinationGrantCid: cid('c'),
     routeCapabilityCid: cid('d'),
     transferOrigin: 'https://transfer.example.invalid/output',
+    ...configurationOverrides,
   };
   const intent = control.prepareOutputIntent(dispatch, configuration);
   const manifest = {
@@ -65,7 +72,7 @@ function outputFixture(dispatch, route = 'direct') {
   const payloadRequest = control.preparePublicationPayload({
     storeAuthorityCid: configuration.storeAuthorityCid,
     publicationAttemptCid: configuration.publicationAttemptCid,
-    materialGenerationCid: cid('e'),
+    materialGenerationCid: materialGeneration,
     resultDefinitionCid: configuration.resultDefinitionCid,
     logicalRelationCid: manifest.viewContractCid,
     resultSchemaCid: manifest.schemaContractCid,
@@ -78,22 +85,22 @@ function outputFixture(dispatch, route = 'direct') {
     coordinatorAuthority: 'coordinator-a',
     transferAttemptId: configuration.transferAttemptId,
     route,
-    sourceSite: 'site-a',
-    sourceSiteGeneration: 1,
-    destinationSite: 'site-b',
-    destinationSiteGeneration: 2,
-    sourceMaterialGeneration: cid('e'),
+    sourceSite,
+    sourceSiteGeneration,
+    destinationSite: configuration.destinationSite,
+    destinationSiteGeneration: configuration.destinationSiteGeneration,
+    sourceMaterialGeneration: materialGeneration,
     physicalManifest: manifest,
     limits: {
       maxChunks: 4,
       maxManifestBytes: 4096,
       maxReferencedBytes: 12n,
     },
-    capacityBytes: 1024n,
-    expiresAtMilliseconds: 2_000_000_000_000n,
-    sourceGrantCid: cid('9'),
-    destinationGrantCid: cid('c'),
-    routeCapabilityCid: cid('d'),
+    capacityBytes: configuration.transferMaxBytes,
+    expiresAtMilliseconds: configuration.transferExpiresAtMilliseconds,
+    sourceGrantCid: configuration.sourceGrantCid,
+    destinationGrantCid: configuration.destinationGrantCid,
+    routeCapabilityCid: configuration.routeCapabilityCid,
   });
   let transferRecord = transferControl.open(transferRequest);
   transferRecord = transferControl.commitTransition(
@@ -419,3 +426,244 @@ test('Store output waits for exact destination commit', async t => {
     transferControl.identity(fixture.transferRequest));
   assert.deepEqual(calls.sort(), ['destination', 'source']);
 });
+
+test('Store output requires the exact committed destination record',
+  async t => {
+    const cases = [
+      ['undefined', () => undefined, 'InvalidRemoteCoordinatorStoreOutputResult'],
+      ['null', () => null, 'InvalidRemoteCoordinatorStoreOutputResult'],
+      ['missing record', () => Object.freeze({}),
+        'InvalidRemoteCoordinatorStoreOutputResult'],
+      ['uncommitted', fixture => Object.freeze({
+        record: transferControl.open(fixture.transferRequest),
+      }), 'InvalidRemoteCoordinatorStoreOutputResult'],
+      ['foreign request', (_fixture, foreign) => Object.freeze({
+        record: foreign.transferRecord,
+      }), 'RemoteCoordinatorStoreOutputCollision'],
+    ];
+    for (const [name, destination, code] of cases) {
+      await t.test(name, async subtest => {
+        await mkdir(scratch, {recursive: true});
+        const root = await mkdtemp(join(scratch, 'coordinator-store-exact-'));
+        subtest.after(() => rm(root, {recursive: true, force: true}));
+        const dispatch = request(`dispatch-store-${name.replaceAll(' ', '-')}`);
+        const fixture = outputFixture(dispatch, 'store');
+        const foreign = outputFixture(dispatch, 'store', {
+          transferAttemptId: 'transfer-foreign-output',
+          destinationSite: 'site-c',
+          destinationSiteGeneration: 3,
+          materialGeneration: cid('0'),
+        });
+        const store = openSqliteCoordinatorDispatchJournal(root, {
+          coordinatorAuthority: 'coordinator-a',
+        });
+        subtest.after(() => store.close());
+        const journal = control.createCoordinatorJournal('coordinator-a');
+        const coordinator = createRemoteSiteCoordinator({
+          control,
+          transferControl,
+          journal,
+          store,
+          send: async () => Object.freeze({
+            revision: 0,
+            state: [0, 0, 0, 0, 0],
+          }),
+          output: async () => Object.freeze({result: fixture.result}),
+          receiveStoreOutput: async () => destination(fixture, foreign),
+        });
+        await coordinator.dispatch({dispatch});
+        await assert.rejects(
+          coordinator.output({dispatch, ...fixture}),
+          {code},
+        );
+        const recoveryJournal = control.createCoordinatorJournal(
+          'coordinator-a',
+        );
+        store.recoverJournal(recoveryJournal, control);
+        const recovered = store.recoverOutputs(
+          recoveryJournal,
+          control,
+          transferControl,
+        );
+        assert.equal(recovered.length, 1);
+        assert.notEqual(
+          store.inspectOutput(recovered[0].record, control).progress,
+          2,
+        );
+      });
+    }
+  });
+
+test('output owner retains a continuing sibling and prevents duplicate I/O',
+  async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'coordinator-output-owner-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const dispatch = request('dispatch-output-owner');
+    const fixture = outputFixture(dispatch, 'store');
+    const store = openSqliteCoordinatorDispatchJournal(root, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    t.after(() => store.close());
+    let sourceCalls = 0;
+    let destinationCalls = 0;
+    let settleDestination;
+    const destinationPending = new Promise(resolve => {
+      settleDestination = resolve;
+    });
+    const coordinator = createRemoteSiteCoordinator({
+      control,
+      transferControl,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store,
+      send: async () => Object.freeze({
+        revision: 0,
+        state: [0, 0, 0, 0, 0],
+      }),
+      output: async () => {
+        sourceCalls++;
+        if (sourceCalls === 1) {
+          throw Object.assign(new Error('SourceOutputFailed'), {
+            code: 'SourceOutputFailed',
+          });
+        }
+        return Object.freeze({result: fixture.result});
+      },
+      receiveStoreOutput: async () => {
+        destinationCalls++;
+        if (destinationCalls === 1) return await destinationPending;
+        return Object.freeze({record: fixture.transferRecord});
+      },
+    });
+    await coordinator.dispatch({dispatch});
+    const failure = await coordinator.output({dispatch, ...fixture}).then(
+      () => assert.fail('output should fail'),
+      error => error,
+    );
+    assert.equal(failure.code, 'SourceOutputFailed');
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    const joined = await coordinator.output({dispatch, ...fixture}).then(
+      () => assert.fail('joined output should fail'),
+      error => error,
+    );
+    assert.equal(joined, failure);
+    assert.equal(sourceCalls, 1);
+    assert.equal(destinationCalls, 1);
+    settleDestination(Object.freeze({record: fixture.transferRecord}));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    const completed = await coordinator.output({dispatch, ...fixture});
+    assert.equal(completed.resultCid, control.outputResultIdentity(fixture.result));
+    assert.equal(sourceCalls, 2);
+    assert.equal(destinationCalls, 2);
+  });
+
+test('destination failure retains a synchronously started source', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-source-owner-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const dispatch = request('dispatch-source-owner');
+  const fixture = outputFixture(dispatch, 'store');
+  const store = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  t.after(() => store.close());
+  let sourceCalls = 0;
+  let destinationCalls = 0;
+  let sourceSignal;
+  let settleSource;
+  const sourcePending = new Promise(resolve => { settleSource = resolve; });
+  const coordinator = createRemoteSiteCoordinator({
+    control,
+    transferControl,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    store,
+    send: async () => Object.freeze({
+      revision: 0,
+      state: [0, 0, 0, 0, 0],
+    }),
+    output: ({signal}) => {
+      sourceCalls++;
+      sourceSignal = signal;
+      return sourcePending;
+    },
+    receiveStoreOutput: () => {
+      destinationCalls++;
+      throw Object.assign(new Error('DestinationOutputFailed'), {
+        code: 'DestinationOutputFailed',
+      });
+    },
+  });
+  await coordinator.dispatch({dispatch});
+  const failure = await coordinator.output({dispatch, ...fixture}).then(
+    () => assert.fail('output should fail'),
+    error => error,
+  );
+  assert.equal(failure.code, 'DestinationOutputFailed');
+  assert.equal(failure.cleanupPending, true);
+  assert.equal(sourceSignal.aborted, true);
+  await coordinator.output({dispatch, ...fixture}).catch(() => {});
+  assert.equal(sourceCalls, 1);
+  assert.equal(destinationCalls, 1);
+  settleSource(Object.freeze({result: fixture.result}));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
+test('output cleanup owner retries child cleanup without new physical I/O',
+  async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'coordinator-output-cleanup-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const dispatch = request('dispatch-output-cleanup');
+    const fixture = outputFixture(dispatch, 'store');
+    const store = openSqliteCoordinatorDispatchJournal(root, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    t.after(() => store.close());
+    let sourceCalls = 0;
+    let retries = 0;
+    let cleanupPending = true;
+    const childCleanup = Object.freeze({
+      status: () => Object.freeze({pending: cleanupPending}),
+      async retry() {
+        retries++;
+        if (retries <= 2) throw new Error('StopStillPending');
+        cleanupPending = false;
+        return this.status();
+      },
+    });
+    const coordinator = createRemoteSiteCoordinator({
+      control,
+      transferControl,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store,
+      send: async () => Object.freeze({
+        revision: 0,
+        state: [0, 0, 0, 0, 0],
+      }),
+      output: async () => {
+        sourceCalls++;
+        throw Object.assign(new Error('SourceStopUnconfirmed'), {
+          code: 'SourceStopUnconfirmed',
+          cleanupPending: true,
+          cleanupHandle: childCleanup,
+        });
+      },
+      receiveStoreOutput: async () => Object.freeze({
+        record: fixture.transferRecord,
+      }),
+    });
+    await coordinator.dispatch({dispatch});
+    const failure = await coordinator.output({dispatch, ...fixture}).then(
+      () => assert.fail('output should fail'),
+      error => error,
+    );
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.equal((await failure.cleanupHandle.retry()).pending, true);
+    assert.equal((await failure.cleanupHandle.retry()).pending, true);
+    assert.equal(sourceCalls, 1);
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(retries, 3);
+  });

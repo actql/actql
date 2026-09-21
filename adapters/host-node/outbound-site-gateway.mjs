@@ -5,6 +5,7 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
+const genericResponseOperations = new Set(['dispatch', 'query', 'release']);
 
 async function readBounded(request, maxBytes) {
   const announced = request.headers['content-length'];
@@ -388,8 +389,10 @@ export async function startHttpsOutboundSiteGateway({
         return;
       }
       for (const entry of pending.values()) {
-        if (entry.binding !== binding) continue;
-        if (entry.operation === 'output') continue;
+        if (entry.binding !== binding ||
+            !genericResponseOperations.has(entry.operation)) {
+          continue;
+        }
         try {
           statusReply = entry.operation === 'query' ||
             entry.operation === 'release' || entry.acceptanceObserved;

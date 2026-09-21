@@ -357,6 +357,34 @@ test('outbound gateway admits one exact retained-output result', async t => {
   };
   const planPoll = await post(gateway.origin, `${path}/poll`, siteMaterial);
   const planOutput = control.admitPollOutputPlan(planPoll.body);
+  const site = runtime.siteControl.create({
+    key: 'site-a',
+    generation: 1,
+    runtimeRevision: cid('a'),
+    maxConcurrentOperations: 4,
+    maxConcurrentTransfers: 4,
+    maxRetainedBytes: 1_048_576n,
+    maxExecutionBytes: 1_048_576n,
+  });
+  const siteStore = openSqliteDispatchJournal(join(root, 'plan-site'), {
+    siteKey: 'site-a',
+    siteGeneration: 1,
+    runtimeRevision: cid('a'),
+  });
+  t.after(() => siteStore.close());
+  const acceptedRecord = siteStore.accept(
+    control.prepareAdmission(control.createJournal(site), request),
+    request,
+    control,
+  );
+  const wrongOperation = await post(
+    gateway.origin,
+    `${path}/observations`,
+    siteMaterial,
+    control.replyJson(acceptedRecord),
+  );
+  assert.equal(wrongOperation.status, 404);
+  assert.equal(gateway.pending(), 1);
   const plan = control.prepareOutputPlan(
     planOutput,
     subject,
