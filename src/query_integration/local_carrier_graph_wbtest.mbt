@@ -154,7 +154,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subtract = variant.has_prefix("subtract")
   let subtract_exact = variant == "subtract_exact"
   let typed_traverse = variant.has_prefix("traverse_type")
-  let relation_selector = variant.has_prefix("subgraph_relation_selector")
+  let subgraph_relation_selector = variant.has_prefix(
+    "subgraph_relation_selector",
+  )
+  let traverse_relation_selector = variant == "traverse_relation_selector"
+  let relation_selector = subgraph_relation_selector ||
+    traverse_relation_selector
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -237,6 +242,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"traverse\":{\"start\":{" +
     (if variant == "traverse_predicate" {
       "\"where\":\"true\""
+    } else if traverse_relation_selector {
+      "\"from\":\"selected\",\"id\":\"key\""
     } else {
       "\"ids\":[" +
       (if variant == "traverse_ids" { "2,1,2" } else { "1" }) +
@@ -296,7 +303,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
     "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
-  } else if relation_selector {
+  } else if subgraph_relation_selector {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
     "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
     "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
@@ -482,7 +489,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       "false"
     }) +
-    "}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    "}},\"rows\":" +
+    (if traverse_relation_selector {
+      "[{\"key\":2},{\"key\":1},{\"key\":2}]"
+    } else {
+      "[{\"key\":2},{\"key\":2}]"
+    }) +
+    "}" +
     ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
     "\"fields\":[\"key\"]}}},"
   } else {
@@ -3803,6 +3816,9 @@ fn run_standard_host_graph_relation_path(
   variant : String,
   publication? : Bool = false,
 ) -> Unit raise {
+  let relation_selector = variant.has_prefix("subgraph_relation_selector") ||
+    variant == "traverse_relation_selector"
+  let traverse_relation_selector = variant == "traverse_relation_selector"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
@@ -3810,7 +3826,7 @@ fn run_standard_host_graph_relation_path(
     ledger_limits=if variant.has_suffix("unequal") ||
       variant == "split_projection" ||
       variant.has_prefix("subtract") ||
-      variant.has_prefix("subgraph_relation_selector") {
+      relation_selector {
       Some({
         planning_work: 20000,
         attempts: 20,
@@ -3836,7 +3852,7 @@ fn run_standard_host_graph_relation_path(
   let graph_task = if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
     variant.has_prefix("subtract") ||
-    variant.has_prefix("subgraph_relation_selector") {
+    relation_selector {
     3
   } else {
     2
@@ -3918,7 +3934,7 @@ fn run_standard_host_graph_relation_path(
     [values_rows]
   }
   let other_cleanup : Ref[(() -> Unit)?] = Ref(None)
-  if variant.has_prefix("subgraph_relation_selector") {
+  if relation_selector {
     let selector_live = Ref(true)
     let (selector_ops, selector) = run_local_managed_test_task(
       installed,
@@ -3988,7 +4004,7 @@ fn run_standard_host_graph_relation_path(
     0
   } else if variant == "graph_bounds" {
     4
-  } else if variant == "traverse_ids" {
+  } else if variant == "traverse_ids" || traverse_relation_selector {
     2
   } else if variant == "traverse_predicate" {
     2
@@ -4052,7 +4068,7 @@ fn run_standard_host_graph_relation_path(
     variant == "traverse_types_miss" {
     ()
   } else if variant.has_prefix("traverse_") {
-    if variant == "traverse_ids" {
+    if variant == "traverse_ids" || traverse_relation_selector {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
       assert_true(graph_rows[0].contains("\"node_id\":2"))
       assert_true(graph_rows[1].contains("\"start_id\":2"))
@@ -4234,6 +4250,11 @@ test "standard Host traverses sorted unique literal starts" {
 ///|
 test "standard Host traverses predicate-selected starts" {
   run_standard_host_graph_relation_path("traverse_predicate")
+}
+
+///|
+test "standard Host traverses Relation-selected starts" {
+  run_standard_host_graph_relation_path("traverse_relation_selector")
 }
 
 ///|

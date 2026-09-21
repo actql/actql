@@ -294,6 +294,7 @@ fn traversal_capacity_material(
   operation : String,
   step? : Int = 1,
   output_rows? : Int64 = 2L,
+  selector_rows? : Int64? = None,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -319,15 +320,26 @@ fn traversal_capacity_material(
       step=0,
       unit="nodes",
     )
+    proofs.push(input)
+    proofs.push(graph)
+    let output_inputs = [@wire.cid(@wire.program_proof_witness(graph))]
+    if selector_rows is Some(rows) {
+      let selector = query_capacity_proof(
+        "actql.bound.values",
+        rows,
+        "{\"op\":\"source\"}",
+        step=0,
+      )
+      proofs.push(selector)
+      output_inputs.push(@wire.cid(@wire.program_proof_witness(selector)))
+    }
     let output = query_capacity_proof(
       "actql.bound.traverse-nodes",
       output_rows,
       "{\"op\":\"source\"}",
-      inputs=[@wire.cid(@wire.program_proof_witness(graph))],
+      inputs=output_inputs,
       step~,
     )
-    proofs.push(input)
-    proofs.push(graph)
     proofs.push(output)
     for proof in proofs {
       witnesses.push(@wire.program_proof_witness(proof))
@@ -355,7 +367,7 @@ fn traversal_capacity_material(
     witnesses.push(wire)
     let candidates = [wire]
     if operation == "traverse" && unit == "rows" {
-      candidates.push(@wire.program_proof_witness(proofs[2]))
+      candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
       candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
     }
     let texts = candidates.map(candidate => {
@@ -390,8 +402,8 @@ fn traversal_capacity_material(
     )
   }
   let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
-    max_entities: 10,
-    max_references: 20,
+    max_entities: 12,
+    max_references: 24,
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 30,

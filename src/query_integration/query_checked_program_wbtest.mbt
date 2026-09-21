@@ -487,10 +487,17 @@ fn query_checked_program_fixture(
         "graph",
         "traverse",
         output_rows=if local_carrier_graph_variant == "traverse_ids" ||
-          local_carrier_graph_variant == "traverse_predicate" {
+          local_carrier_graph_variant == "traverse_predicate" ||
+          local_carrier_graph_variant == "traverse_relation_selector" {
           4L
         } else {
           2L
+        },
+        selector_rows=if local_carrier_graph_variant ==
+          "traverse_relation_selector" {
+          Some(3L)
+        } else {
+          None
         },
       ),
     ]
