@@ -455,9 +455,11 @@ partial output private under cancellation. Duplicate selector identities do
 not duplicate nodes. At `87909cdf`, the registered provider carries this
 Graph result through the formal node-rows Bridge, two overlapping downstream
 Relation consumers, Named Result publication and retrieval, and final
-reclamation on JS, Wasm, and native. Relation and predicate selectors, an
-authored edge predicate, a same-Carrier downstream consumer, and environment
-cancellation delivery remain open, so `subgraph` remains partial.
+reclamation on JS, Wasm, and native. At `01e5e342`, that selected generation
+also remains live across a same-Carrier normalization consumer and the formal
+Bridge consumer; the derived Graph is reclaimed independently. Relation and
+predicate selectors, an authored edge predicate, and environment cancellation
+delivery remain open, so `subgraph` remains partial.
 
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.
