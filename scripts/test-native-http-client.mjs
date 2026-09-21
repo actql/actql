@@ -73,6 +73,14 @@ const remoteRequestBody = JSON.stringify({
 });
 const remoteRequestCid = `sha256:${createHash('sha256')
   .update(remoteRequestBody).digest('hex')}`;
+const notSeenRequestBody = JSON.stringify({
+  ...JSON.parse(remoteRequestBody),
+  dispatch_id: 'dispatch-not-seen',
+  input_binding_cid: `sha256:${'1'.repeat(64)}`,
+  task_key: 'task-native-remote-dispatch-not-seen',
+});
+const notSeenRequestCid = `sha256:${createHash('sha256')
+  .update(notSeenRequestBody).digest('hex')}`;
 const staleRemoteRequestBody = JSON.stringify({
   ...JSON.parse(remoteRequestBody),
   dispatch_id: 'dispatch-stale-process',
@@ -621,7 +629,8 @@ try {
         observation.measurement === null;
       const notSeen = observation.version ===
         'actql-remote-dispatch-not-seen/0.1' &&
-        observation.dispatch_request_cid !== remoteRequestCid;
+        (observation.dispatch_request_cid === remoteRequestCid ||
+          observation.dispatch_request_cid === notSeenRequestCid);
       if (!status && !notSeen) {
         response.writeHead(400).end();
         return;
@@ -843,7 +852,7 @@ try {
     })();
   };
   const runAgent = arguments_ => startAgent(arguments_);
-  const accepted = await runAgent([
+  const rejectedDispatch = await runAgent([
     '--http-library', library,
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
@@ -853,12 +862,12 @@ try {
     `https://127.0.0.1:${address.port}/outbound/observation`,
     'poll-once',
   ]);
-  assert.equal(accepted.code, 0, accepted.stderr);
-  assert.deepEqual(JSON.parse(accepted.stdout), {
-    kind: 'dispatch',
-    request_cid: remoteRequestCid,
-    revision: 0,
-  });
+  assert.notEqual(rejectedDispatch.code, 0);
+  assert.equal(
+    rejectedDispatch.stdout,
+    'actql-native-remote-site: dispatch requires a runtime-linked ' +
+      'Site component\n',
+  );
   const queried = await runAgent([
     '--http-library', library,
     '--ca', join(root, 'ca.crt'),
@@ -871,7 +880,7 @@ try {
   ]);
   assert.equal(queried.code, 0, queried.stderr);
   assert.deepEqual(JSON.parse(queried.stdout), {
-    kind: 'query',
+    kind: 'not-seen',
     request_cid: remoteRequestCid,
     revision: 0,
   });
@@ -892,7 +901,7 @@ try {
     '--next-runtime-revision', revisionB,
   ]);
   assert.equal(restarted.code, 0, restarted.stderr);
-  assert.deepEqual(JSON.parse(restarted.stdout), {reconciled_records: 1});
+  assert.deepEqual(JSON.parse(restarted.stdout), {reconciled_records: 0});
   releaseStalePoll();
   const fenced = await staleProcess;
   assert.notEqual(fenced.code, 0);

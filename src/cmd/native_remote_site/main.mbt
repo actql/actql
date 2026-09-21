@@ -238,21 +238,8 @@ fn poll_once(
   }
   let result = match operation {
     None => Ok("{\"kind\":\"idle\"}")
-    Some(@remote.Dispatch(dispatch)) => {
-      let request = @remote.remote_poll_dispatch_request(dispatch)
-      match
-        @client.acknowledge_acceptance(
-          journal, client, observation_url, request,
-        ) {
-        Ok(record) =>
-          poll_result_json(
-            "dispatch",
-            @remote.dispatch_request_identity(request),
-            @remote.dispatch_record_revision(record),
-          )
-        Err(issue) => Err("dispatch " + client_issue_code(issue))
-      }
-    }
+    Some(@remote.Dispatch(_)) =>
+      Err("dispatch requires a runtime-linked Site component")
     Some(@remote.Query(request)) =>
       match
         @client.acknowledge_status(journal, client, observation_url, request) {
