@@ -1179,6 +1179,8 @@ function remoteTransferControl(moon) {
       moon.strategyRemoteTransferTransitionCommit(value, durable),
     ),
     recordProjection: moon.strategyRemoteTransferRecordProjection,
+    recordRequestIdentity:
+      moon.strategyRemoteTransferRecordRequestIdentity,
     recordIsDestinationCommitted:
       moon.strategyRemoteTransferRecordIsDestinationCommitted,
     directCleanupConfirmed:

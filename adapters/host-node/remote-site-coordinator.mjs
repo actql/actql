@@ -9,6 +9,40 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+const member = (value, name) => {
+  try {
+    return value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+      ? value[name] : undefined;
+  } catch { return undefined; }
+};
+
+const cleanupState = (handle, required = false) => {
+  if (handle === undefined || typeof member(handle, 'status') !== 'function') {
+    return Object.freeze({pending: required, errors: Object.freeze([])});
+  }
+  try {
+    const status = handle.status();
+    return Object.freeze({
+      pending: status?.pending !== false,
+      errors: Object.freeze(Array.isArray(status?.errors)
+        ? [...status.errors] : []),
+    });
+  } catch (error) {
+    return Object.freeze({pending: true, errors: Object.freeze([error])});
+  }
+};
+
+const ownedOutputFailure = reason => {
+  const code = typeof member(reason, 'code') === 'string'
+    ? member(reason, 'code') : 'RemoteCoordinatorOutputFailed';
+  const failure = new Error(code, {cause: reason});
+  failure.code = code;
+  failure.primaryFailure = reason;
+  failure.cleanupErrors = Object.freeze([]);
+  return failure;
+};
+
 export function createRemoteSiteCoordinator({
   control,
   journal,
@@ -55,7 +89,8 @@ export function createRemoteSiteCoordinator({
       typeof store.advanceOutputSuccess !== 'function' ||
       typeof control.prepareCoordinatorOutput !== 'function' ||
       typeof control.prepareCoordinatorOutputUnknown !== 'function' ||
-      typeof control.prepareCoordinatorOutputSuccess !== 'function')) {
+      typeof control.prepareCoordinatorOutputSuccess !== 'function' ||
+      typeof transferControl.recordRequestIdentity !== 'function')) {
     fail('InvalidRemoteSiteCoordinatorOutput');
   }
   if (!outputEnabled && store.hasOutputOperations()) {
@@ -72,6 +107,7 @@ export function createRemoteSiteCoordinator({
   const outputKey = (dispatch, intent) =>
     `${control.identity(dispatch)}:${control.outputIntentIdentity(intent)}`;
   const outputs = new Map();
+  const outputOwners = new Map();
   for (const recoveredOutput of recoveredOutputs) {
     const key = control.coordinatorOutputRecordKey(recoveredOutput.record);
     outputs.set(`${key[4]}:${key[6]}`, recoveredOutput);
@@ -138,6 +174,195 @@ export function createRemoteSiteCoordinator({
       transferRequestCid: projection[3],
       transferRevision: Number(projection[4]),
     });
+  };
+  const startOutputOperation = ({
+    key,
+    request,
+    payloadRequest,
+    transferRequest,
+    record,
+    transferRoute,
+  }) => {
+    const existing = outputOwners.get(key);
+    if (existing !== undefined) return existing.promise;
+    const abortController = new AbortController();
+    const branches = [];
+    const cleanupErrors = [];
+    const owner = {
+      failed: false,
+      promise: undefined,
+      failure: undefined,
+      abortListener: undefined,
+    };
+    const refresh = () => {
+      const errors = [...cleanupErrors];
+      let pending = false;
+      for (const branch of branches) {
+        if (!branch.settled) pending = true;
+        const state = cleanupState(branch.cleanup, branch.cleanupRequired);
+        if (state.pending) pending = true;
+        errors.push(...state.errors);
+      }
+      if (owner.failure !== undefined) {
+        owner.failure.cleanupPending = pending;
+        owner.failure.cleanupErrors = Object.freeze(errors);
+      }
+      if (!pending && owner.failed && outputOwners.get(key) === owner) {
+        outputOwners.delete(key);
+      }
+      return Object.freeze({pending, errors: Object.freeze(errors)});
+    };
+    const cleanupHandle = Object.freeze({
+      status: refresh,
+      async retry() {
+        for (const branch of branches) {
+          const state = cleanupState(
+            branch.cleanup,
+            branch.cleanupRequired,
+          );
+          if (!state.pending ||
+              typeof member(branch.cleanup, 'retry') !== 'function') {
+            continue;
+          }
+          try { await branch.cleanup.retry(); }
+          catch (error) { cleanupErrors.push(error); }
+        }
+        await Promise.resolve();
+        return refresh();
+      },
+    });
+    const runBranch = operation => {
+      const branch = {
+        settled: false,
+        value: undefined,
+        cleanup: undefined,
+        cleanupRequired: false,
+      };
+      branches.push(branch);
+      return Promise.resolve().then(operation).then(value => {
+        branch.value = value;
+        branch.settled = true;
+        refresh();
+        return value;
+      }, reason => {
+        branch.settled = true;
+        branch.cleanupRequired = member(reason, 'cleanupPending') === true;
+        branch.cleanup = branch.cleanupRequired
+          ? member(reason, 'cleanupHandle') : undefined;
+        if (!abortController.signal.aborted) abortController.abort(reason);
+        refresh();
+        throw reason;
+      });
+    };
+    if (request.signal !== undefined &&
+        typeof request.signal.addEventListener === 'function') {
+      if (request.signal.aborted) {
+        abortController.abort(request.signal.reason);
+      } else {
+        owner.abortListener = () => abortController.abort(request.signal.reason);
+        request.signal.addEventListener(
+          'abort',
+          owner.abortListener,
+          {once: true},
+        );
+      }
+    }
+    const physical = Object.freeze({
+      ...request,
+      signal: abortController.signal,
+      payloadRequest,
+      transferRequest,
+    });
+    const source = runBranch(() => executeOutput(physical));
+    const destination = transferRoute === 'store'
+      ? runBranch(() => receiveStoreOutput(physical))
+      : Promise.resolve(undefined);
+    const operations = Promise.all([source, destination]);
+    const stopped = new Promise((_, reject) => {
+      if (abortController.signal.aborted) {
+        reject(abortController.signal.reason);
+        return;
+      }
+      abortController.signal.addEventListener(
+        'abort',
+        () => reject(abortController.signal.reason),
+        {once: true},
+      );
+    });
+    owner.promise = Promise.race([operations, stopped]).then(
+      ([response, destinationResult]) => {
+        if (response === null || typeof response !== 'object' ||
+            response.result === undefined) {
+          fail('InvalidRemoteCoordinatorOutputResult');
+        }
+        if (transferRoute === 'store') {
+          if (destinationResult === null ||
+              typeof destinationResult !== 'object' ||
+              destinationResult.record === undefined ||
+              !transferControl.recordIsDestinationCommitted(
+                destinationResult.record,
+              )) {
+            fail('InvalidRemoteCoordinatorStoreOutputResult');
+          }
+          const sourceResult = control.outputResultProjection(
+            response.result,
+            transferRequest,
+          );
+          if (sourceResult[3] !== transferControl.identity(transferRequest) ||
+              transferControl.recordRequestIdentity(
+                destinationResult.record,
+              ) !== transferControl.identity(transferRequest) ||
+              Number(sourceResult[4]) !==
+              transferControl.revision(destinationResult.record)) {
+            fail('RemoteCoordinatorStoreOutputCollision');
+          }
+        }
+        if (store.inspectOutput(record, control)?.progress !== 2) {
+          const transition = control.prepareCoordinatorOutputSuccess(
+            record,
+            response.result,
+          );
+          store.advanceOutputSuccess(
+            transition,
+            response.result,
+            record,
+            control,
+          );
+        }
+        outputOwners.delete(key);
+        return projectOutputRecord(record);
+      },
+    ).catch(reason => {
+      owner.failed = true;
+      const state = store.inspectOutput(record, control);
+      if (state?.progress === 2) {
+        outputOwners.delete(key);
+        return projectOutputRecord(record);
+      }
+      let unknownFailure;
+      try {
+        const transition = control.prepareCoordinatorOutputUnknown(record);
+        store.advanceOutputUnknown(transition, record, control);
+      } catch (error) {
+        unknownFailure = error;
+        cleanupErrors.push(error);
+      }
+      const failure = ownedOutputFailure(reason);
+      owner.failure = failure;
+      const cleanup = refresh();
+      if (cleanup.pending) failure.cleanupHandle = cleanupHandle;
+      if (unknownFailure !== undefined) {
+        failure.unknownTransitionFailure = unknownFailure;
+      }
+      throw failure;
+    }).finally(() => {
+      if (owner.abortListener !== undefined) {
+        request.signal.removeEventListener('abort', owner.abortListener);
+      }
+      refresh();
+    });
+    outputOwners.set(key, owner);
+    return owner.promise;
   };
   return Object.freeze({
     recovered,
@@ -222,74 +447,24 @@ export function createRemoteSiteCoordinator({
       }
       const current = store.inspectOutput(record, control);
       if (current?.progress === 2) return projectOutputRecord(record);
-      try {
-        const physical = Object.freeze({
-          ...request,
-          payloadRequest,
-          transferRequest,
-        });
-        const transferRoute = transferControl.requestProjection(
-          transferRequest,
-        )[1];
-        if (transferRoute !== 'direct' && transferRoute !== 'store') {
-          fail('InvalidRemoteCoordinatorOutputRoute');
-        }
-        if (transferRoute === 'store' &&
-            typeof receiveStoreOutput !== 'function') {
-          fail('RemoteCoordinatorStoreOutputUnavailable');
-        }
-        const destination = transferRoute === 'store'
-          ? Promise.resolve().then(() => receiveStoreOutput(physical))
-          : Promise.resolve(undefined);
-        const [response, destinationResult] = await Promise.all([
-          executeOutput(physical),
-          destination,
-        ]);
-        if (response === null || typeof response !== 'object' ||
-            response.result === undefined) {
-          fail('InvalidRemoteCoordinatorOutputResult');
-        }
-        if (destinationResult !== undefined) {
-          if (destinationResult === null ||
-              typeof destinationResult !== 'object' ||
-              destinationResult.record === undefined ||
-              !transferControl.recordIsDestinationCommitted(
-                destinationResult.record,
-              )) {
-            fail('InvalidRemoteCoordinatorStoreOutputResult');
-          }
-          const sourceResult = control.outputResultProjection(
-            response.result,
-            transferRequest,
-          );
-          if (sourceResult[3] !==
-              transferControl.identity(transferRequest) ||
-              Number(sourceResult[4]) !==
-              transferControl.revision(destinationResult.record)) {
-            fail('RemoteCoordinatorStoreOutputCollision');
-          }
-        }
-        if (store.inspectOutput(record, control)?.progress === 2) {
-          return projectOutputRecord(record);
-        }
-        const transition = control.prepareCoordinatorOutputSuccess(
-          record,
-          response.result,
-        );
-        store.advanceOutputSuccess(
-          transition,
-          response.result,
-          record,
-          control,
-        );
-        return projectOutputRecord(record);
-      } catch (error) {
-        const state = store.inspectOutput(record, control);
-        if (state?.progress === 2) return projectOutputRecord(record);
-        const transition = control.prepareCoordinatorOutputUnknown(record);
-        store.advanceOutputUnknown(transition, record, control);
-        throw error;
+      const transferRoute = transferControl.requestProjection(
+        transferRequest,
+      )[1];
+      if (transferRoute !== 'direct' && transferRoute !== 'store') {
+        fail('InvalidRemoteCoordinatorOutputRoute');
       }
+      if (transferRoute === 'store' &&
+          typeof receiveStoreOutput !== 'function') {
+        fail('RemoteCoordinatorStoreOutputUnavailable');
+      }
+      return await startOutputOperation({
+        key,
+        request,
+        payloadRequest,
+        transferRequest,
+        record,
+        transferRoute,
+      });
     },
     completionEvidenceAvailable(value) {
       const request = requireIntent(value);
