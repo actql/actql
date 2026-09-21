@@ -37,10 +37,22 @@ async function withManifest(t, change) {
   return run(target);
 }
 
-test("local family coverage accepts the tracked normative gaps", () => {
+test("local family coverage accepts the tracked normative gaps", async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const complete = manifest.operations.filter(
+    entry => entry.status === "complete",
+  ).length;
+  const total = manifest.operations.length;
   const result = run(manifestPath);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /39 normative entries, 26 complete, 13 open/u);
+  assert.match(
+    result.stdout,
+    new RegExp(
+      `${total} normative entries, ${complete} complete, ` +
+        `${total - complete} open`,
+      "u",
+    ),
+  );
 });
 
 test("local family coverage rejects an omitted normative operation", async t => {
@@ -94,16 +106,22 @@ test("local family coverage rejects a stale generated summary", async t => {
   const target = path.join(directory, "coverage.json");
   const gaps = path.join(directory, "gaps.md");
   await writeFile(target, await readFile(manifestPath, "utf8"));
-  await writeFile(
-    gaps,
-    (await readFile(
-      path.join(
-        root,
-        "docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md",
-      ),
-      "utf8",
-    )).replace("| complete operations | 26/39 |", "| complete operations | 25/39 |"),
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const complete = manifest.operations.filter(
+    entry => entry.status === "complete",
+  ).length;
+  const total = manifest.operations.length;
+  const currentSummary = `| complete operations | ${complete}/${total} |`;
+  const staleSummary = `| complete operations | ${complete - 1}/${total} |`;
+  const source = await readFile(
+    path.join(
+      root,
+      "docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md",
+    ),
+    "utf8",
   );
+  assert.match(source, new RegExp(currentSummary.replaceAll("|", "\\|"), "u"));
+  await writeFile(gaps, source.replace(currentSummary, staleSummary));
   const result = run(target, gaps);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /coverage summary is stale/u);

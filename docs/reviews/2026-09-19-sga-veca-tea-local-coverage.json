@@ -1635,8 +1635,7 @@
       "output": "relation",
       "canonical": ["TEA.join.asof"],
       "variants": ["relation/events left", "left/inner", "backward/forward/nearest", "identity completion", "tie completion"],
-      "status": "partial",
-      "blocker": "The common managed Relation fallback drains the complete as-of join synchronously inside one advance call, so the Node Host cannot deliver cancellation while candidate search is running.",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -1648,12 +1647,15 @@
         "consumer_lifetime",
         "publication",
         "resources",
+        "cancellation",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/asof_join_test.mbt",
         "src/execution_relation/asof_join_rows_wbtest.mbt",
-        "src/query_integration/local_managed_asof_join_wbtest.mbt"
+        "src/execution_relation/bounded_asof_join_wbtest.mbt",
+        "src/query_integration/local_managed_asof_join_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1663,6 +1665,17 @@
           "sha": "4cf40d94",
           "evidence": [
             "src/query_integration/local_managed_asof_join_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_candidate_search_and_environment_cancellation",
+          "layers": ["managed", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "a27bd31e",
+          "evidence": [
+            "src/execution_relation/bounded_asof_join_wbtest.mbt",
+            "src/query_integration/local_managed_asof_join_wbtest.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
@@ -2776,6 +2789,24 @@
         {
           "name": "portable bounded join and managed lifetime",
           "path": "src/query_integration/local_managed_interval_join_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host timer cancellation and cleanup",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "asof_join",
+      "sha": "a27bd31e",
+      "suites": [
+        {
+          "name": "portable bounded join and managed lifetime",
+          "path": "src/query_integration/local_managed_asof_join_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
         },

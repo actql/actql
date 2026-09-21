@@ -33,11 +33,11 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `standard_host` | 34/39 |
 | `consumer_lifetime` | 34/39 |
 | `resources` | 34/39 |
-| `cancellation` | 32/39 |
+| `cancellation` | 33/39 |
 | `publication` | 33/39 |
 | `three_targets` | 34/39 |
-| complete operations | 26/39 |
-| open operations | 13/39 |
+| complete operations | 27/39 |
+| open operations | 12/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -715,12 +715,12 @@ four join kinds, both temporal modes and time domains, repeated equality keys,
 projections, and resolved output guards. Interval and as-of joins execute
 through resource-bounded evaluators and the standard Host, reach two
 downstream consumers, and reclaim their retained output on all three targets.
-Their publication is established. Interval join now loads temporal values,
-searches pairs, constructs rows, and completes output through one bounded
-managed session. The Node Host delivers timer cancellation during pair search,
-observes stop, keeps partial output private, and completes cleanup. This closes
-interval join. As-of join still drains its candidate search in one `advance`
-call and remains partial until its outer Relation execution is resumable.
+Their publication is established. Each join now loads temporal values,
+searches candidates, constructs rows, and completes output through one bounded
+managed session. As-of identity validation and both stable sorts are resumable
+as well. The Node Host delivers timer cancellation during each search, observes
+stop, keeps partial output private, and completes cleanup. This closes interval
+and as-of joins.
 Sequence
 matching now has typed
 lowering and a portable bounded Relation kernel. It validates semantic event
