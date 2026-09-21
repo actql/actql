@@ -8,39 +8,145 @@ const fail = (code, cause) => {
 const method = (value, name) => value !== null &&
   typeof value === 'object' && typeof value[name] === 'function';
 
-function failureEnvelope(primary, failure, control) {
+const member = (value, name) => {
+  try {
+    return value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+      ? value[name] : undefined;
+  } catch { return undefined; }
+};
+
+const cleanupState = (handle, required) => {
+  if (!required) return {pending: false, errors: []};
+  if (!method(handle, 'status')) return {pending: true, errors: []};
+  try {
+    const state = handle.status();
+    return state !== null && typeof state === 'object' &&
+      typeof state.pending === 'boolean'
+      ? {pending: state.pending,
+        errors: Array.isArray(state.errors) ? [...state.errors] : []}
+      : {pending: true, errors: []};
+  } catch (error) {
+    return {pending: true, errors: [error]};
+  }
+};
+
+function outputCleanupFailure(primary, output) {
   const diagnostics = [];
-  const status = () => {
-    let pending = true;
+  let closed = false;
+  const close = async () => {
+    if (closed) return;
+    if (!method(output, 'close')) {
+      diagnostics.push(new Error('RemoteStandardOutputCleanupUnavailable'));
+      return;
+    }
     try {
-      pending = control.failureCleanupPending(failure) === true;
+      await output.close();
+      closed = true;
     } catch (error) {
       diagnostics.push(error);
     }
+  };
+  const failure = Object.assign(
+    new Error('RemoteStandardInputReleasePending', {cause: primary}),
+    {code: 'RemoteStandardInputReleasePending'},
+  );
+  const status = () => Object.freeze({
+    pending: !closed,
+    errors: Object.freeze([...diagnostics]),
+  });
+  const handle = Object.freeze({
+    status,
+    async retry() {
+      await close();
+      failure.cleanupPending = !closed;
+      failure.cleanupErrors = status().errors;
+      return status();
+    },
+  });
+  failure.cleanupPending = true;
+  failure.cleanupErrors = Object.freeze([]);
+  failure.cleanupHandle = handle;
+  return failure;
+}
+
+async function failureEnvelope(primary, session, control) {
+  const diagnostics = [];
+  const upstreamRequired = member(primary, 'cleanupPending') === true;
+  const upstream = upstreamRequired
+    ? member(primary, 'cleanupHandle') : undefined;
+  let inputFailure;
+  let inputOwned = true;
+  let envelope;
+  const upstreamState = () => cleanupState(upstream, upstreamRequired);
+  const inputState = () => {
+    if (inputOwned) return {pending: true, errors: []};
+    try {
+      return {
+        pending: control.failureCleanupPending(inputFailure) === true,
+        errors: [],
+      };
+    } catch (error) {
+      return {pending: true, errors: [error]};
+    }
+  };
+  const status = () => {
+    const execution = upstreamState();
+    const input = inputState();
     return Object.freeze({
-      pending,
-      errors: Object.freeze([...diagnostics]),
+      pending: execution.pending || input.pending,
+      errors: Object.freeze([
+        ...execution.errors,
+        ...input.errors,
+        ...diagnostics,
+      ]),
     });
   };
   const retry = async () => {
-    try {
-      control.retryFailureCleanup(failure);
-    } catch (error) {
-      diagnostics.push(error);
+    let execution = upstreamState();
+    if (execution.pending && method(upstream, 'retry')) {
+      try { await upstream.retry(); }
+      catch (error) { diagnostics.push(error); }
+      execution = upstreamState();
     }
-    return status();
+    if (!execution.pending && inputOwned) {
+      try {
+        inputFailure = control.cancel(session);
+        inputOwned = false;
+      } catch (error) {
+        diagnostics.push(error);
+      }
+    }
+    if (!inputOwned && inputState().pending) {
+      try { control.retryFailureCleanup(inputFailure); }
+      catch (error) { diagnostics.push(error); }
+    }
+    const state = status();
+    if (envelope !== undefined) {
+      envelope.cleanupPending = state.pending;
+      envelope.cleanupErrors = state.errors;
+    }
+    return state;
   };
-  const envelope = Object.assign(
-    new Error(control.failureCode(failure), {cause: primary}),
-    {code: control.failureCode(failure)},
+  await retry();
+  let code = typeof member(primary, 'code') === 'string'
+    ? member(primary, 'code') : 'RemoteStandardExecutionFailed';
+  if (!inputOwned) {
+    try { code = control.failureCode(inputFailure); }
+    catch (error) { diagnostics.push(error); }
+  }
+  envelope = Object.assign(
+    new Error(code, {cause: primary}),
+    {code, primaryFailure: primary},
   );
-  envelope.cleanupPending = true;
-  envelope.cleanupHandle = Object.freeze({
+  const handle = Object.freeze({
     status,
     retry,
   });
-  envelope.cleanupErrors = Object.freeze([]);
-  return Object.freeze({envelope, retry});
+  envelope.cleanupHandle = handle;
+  envelope.cleanupPending = status().pending;
+  envelope.cleanupErrors = status().errors;
+  return envelope;
 }
 
 /**
@@ -90,8 +196,16 @@ export function createRemoteStandardSourceSessionControl({
       if (source === undefined) fail('RemoteStandardInputRejected');
       const captured = portable.captured(source);
       const output = await executeCaptured(captured);
-      if (portable.release(source) !== true) {
-        fail('RemoteStandardInputReleasePending');
+      let releaseFailure;
+      try {
+        if (portable.release(source) !== true) {
+          releaseFailure = new Error('RemoteStandardInputReleasePending');
+        }
+      } catch (error) {
+        releaseFailure = error;
+      }
+      if (releaseFailure !== undefined) {
+        throw outputCleanupFailure(releaseFailure, output);
       }
       return output;
     },
@@ -163,20 +277,7 @@ export function createRemoteStandardDirectExecution({receiver, control} = {}) {
       return output;
     } catch (primary) {
       if (session === undefined || terminal) throw primary;
-      let failure;
-      try {
-        failure = control.cancel(session);
-      } catch (cancelError) {
-        throw new AggregateError(
-          [primary, cancelError],
-          'Remote standard input cancellation failed',
-        );
-      }
-      const owned = failureEnvelope(primary, failure, control);
-      const state = await owned.retry();
-      owned.envelope.cleanupPending = state.pending;
-      owned.envelope.cleanupErrors = state.errors;
-      throw owned.envelope;
+      throw await failureEnvelope(primary, session, control);
     }
   };
 }

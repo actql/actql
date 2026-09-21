@@ -261,6 +261,7 @@ test('failed asynchronous execution retains the MoonBit source owner',
     const failure = Object.freeze({kind: 'failure'});
     let pending = true;
     let releases = 0;
+    let outputCloses = 0;
     const control = createRemoteStandardSourceSessionControl({
       factory: Object.freeze({kind: 'factory'}),
       portable: Object.freeze({
@@ -288,7 +289,10 @@ test('failed asynchronous execution retains the MoonBit source owner',
           return true;
         },
       }),
-      executeCaptured: async () => Object.freeze({kind: 'output'}),
+      executeCaptured: async () => Object.freeze({
+        kind: 'output',
+        async close() { outputCloses++; },
+      }),
     });
     const receiver = Object.freeze({
       claim: () => Object.freeze({kind: 'claim'}),
@@ -307,7 +311,209 @@ test('failed asynchronous execution retains the MoonBit source owner',
     assert.equal(result.code, 'standard-source-release');
     assert.equal(result.cleanupPending, false);
     assert.equal(releases, 2);
+    assert.equal(outputCloses, 1);
   });
+
+test('execution cleanup stops before the input owner is released',
+  async () => {
+    const session = Object.freeze({kind: 'session'});
+    const source = Object.freeze({kind: 'source'});
+    const failure = Object.freeze({kind: 'input-failure'});
+    let executionPending = true;
+    let executionRetries = 0;
+    let inputPending = true;
+    let inputRetries = 0;
+    let cancels = 0;
+    const executionHandle = Object.freeze({
+      status: () => Object.freeze({
+        pending: executionPending,
+        errors: Object.freeze([]),
+      }),
+      async retry() {
+        executionRetries++;
+        if (executionRetries === 3) executionPending = false;
+        return this.status();
+      },
+    });
+    const primary = Object.freeze(Object.assign(
+      new Error('native still running'),
+      {
+        code: 'NativeStopPending',
+        cleanupPending: true,
+        cleanupHandle: executionHandle,
+      },
+    ));
+    const control = createRemoteStandardSourceSessionControl({
+      factory: Object.freeze({kind: 'factory'}),
+      portable: Object.freeze({
+        requestCid: () => 'request-a',
+        start: () => session,
+        authorize: () => true,
+        feed: () => true,
+        finish: () => source,
+        captured: () => Object.freeze({kind: 'captured'}),
+        release: () => { throw new Error('release must use cancellation'); },
+        cancel(value) {
+          assert.equal(value, session);
+          cancels++;
+          return failure;
+        },
+        failureCode: () => 'standard-source-release',
+        failureCleanupPending: () => inputPending,
+        retryFailureCleanup() {
+          inputRetries++;
+          if (inputRetries === 2) inputPending = false;
+          return !inputPending;
+        },
+      }),
+      executeCaptured: async () => { throw primary; },
+    });
+    const receiver = Object.freeze({
+      claim: () => Object.freeze({kind: 'claim'}),
+      async consume(_requestCid, authorize, accept) {
+        const claim = Object.freeze({kind: 'claim'});
+        assert.equal(authorize(claim), true);
+        await accept(0, Buffer.from('row'));
+      },
+    });
+    const execute = createRemoteStandardDirectExecution({receiver, control});
+    const result = await execute({
+      dispatch: Object.freeze({kind: 'dispatch'}),
+      inputBinding: Object.freeze({kind: 'binding'}),
+    }).catch(error => error);
+    assert.equal(result.code, 'NativeStopPending');
+    assert.equal(result.cause, primary);
+    assert.equal(result.cleanupPending, true);
+    assert.equal(executionRetries, 1);
+    assert.equal(cancels, 0);
+    assert.equal((await result.cleanupHandle.retry()).pending, true);
+    assert.equal(executionRetries, 2);
+    assert.equal(cancels, 0);
+    assert.equal((await result.cleanupHandle.retry()).pending, true);
+    assert.equal(executionRetries, 3);
+    assert.equal(cancels, 1);
+    assert.equal(inputRetries, 1);
+    assert.equal((await result.cleanupHandle.retry()).pending, false);
+    assert.equal(inputRetries, 2);
+    assert.equal(cancels, 1);
+    assert.equal((await result.cleanupHandle.retry()).pending, false);
+    assert.equal(inputRetries, 2);
+    assert.equal(cancels, 1);
+  });
+
+test('unhanded output cleanup and input cancellation remain retryable',
+  async () => {
+    const session = Object.freeze({kind: 'session'});
+    const source = Object.freeze({kind: 'source'});
+    const failure = Object.freeze({kind: 'input-failure'});
+    let outputCloseAttempts = 0;
+    let inputPending = true;
+    let inputRetries = 0;
+    let cancelAttempts = 0;
+    const output = Object.freeze({
+      kind: 'output',
+      async close() {
+        outputCloseAttempts++;
+        if (outputCloseAttempts === 1) throw new Error('output close pending');
+      },
+    });
+    const control = createRemoteStandardSourceSessionControl({
+      factory: Object.freeze({kind: 'factory'}),
+      portable: Object.freeze({
+        requestCid: () => 'request-a',
+        start: () => session,
+        authorize: () => true,
+        feed: () => true,
+        finish: () => source,
+        captured: () => Object.freeze({kind: 'captured'}),
+        release: () => false,
+        cancel(value) {
+          assert.equal(value, session);
+          cancelAttempts++;
+          if (cancelAttempts === 1) throw new Error('cancel pending');
+          return failure;
+        },
+        failureCode: () => 'standard-source-release',
+        failureCleanupPending: () => inputPending,
+        retryFailureCleanup() {
+          inputRetries++;
+          inputPending = false;
+          return true;
+        },
+      }),
+      executeCaptured: async () => output,
+    });
+    const receiver = Object.freeze({
+      claim: () => Object.freeze({kind: 'claim'}),
+      async consume(_requestCid, authorize, accept) {
+        const claim = Object.freeze({kind: 'claim'});
+        assert.equal(authorize(claim), true);
+        await accept(0, Buffer.from('row'));
+      },
+    });
+    const execute = createRemoteStandardDirectExecution({receiver, control});
+    const result = await execute({
+      dispatch: Object.freeze({kind: 'dispatch'}),
+      inputBinding: Object.freeze({kind: 'binding'}),
+    }).catch(error => error);
+    assert.equal(result.code, 'RemoteStandardInputReleasePending');
+    assert.equal(result.cleanupPending, true);
+    assert.equal(outputCloseAttempts, 1);
+    assert.equal(cancelAttempts, 0);
+    assert.equal((await result.cleanupHandle.retry()).pending, true);
+    assert.equal(outputCloseAttempts, 2);
+    assert.equal(cancelAttempts, 1);
+    assert.equal(inputRetries, 0);
+    assert.equal((await result.cleanupHandle.retry()).pending, false);
+    assert.equal(outputCloseAttempts, 2);
+    assert.equal(cancelAttempts, 2);
+    assert.equal(inputRetries, 1);
+  });
+
+test('falsy execution failures retain their exact primary cause', async () => {
+  for (const primary of [null, undefined, false, 0, '']) {
+    const session = Object.freeze({kind: 'session'});
+    const source = Object.freeze({kind: 'source'});
+    const failure = Object.freeze({kind: 'input-failure'});
+    let cancels = 0;
+    const control = createRemoteStandardSourceSessionControl({
+      factory: Object.freeze({kind: 'factory'}),
+      portable: Object.freeze({
+        requestCid: () => 'request-a',
+        start: () => session,
+        authorize: () => true,
+        feed: () => true,
+        finish: () => source,
+        captured: () => Object.freeze({kind: 'captured'}),
+        release: () => { throw new Error('release must use cancellation'); },
+        cancel() { cancels++; return failure; },
+        failureCode: () => 'standard-source-release',
+        failureCleanupPending: () => false,
+        retryFailureCleanup: () => true,
+      }),
+      executeCaptured: async () => { throw primary; },
+    });
+    const receiver = Object.freeze({
+      claim: () => Object.freeze({kind: 'claim'}),
+      async consume(_requestCid, authorize, accept) {
+        const claim = Object.freeze({kind: 'claim'});
+        assert.equal(authorize(claim), true);
+        await accept(0, Buffer.from('row'));
+      },
+    });
+    const result = await createRemoteStandardDirectExecution({receiver, control})(
+      {
+        dispatch: Object.freeze({kind: 'dispatch'}),
+        inputBinding: Object.freeze({kind: 'binding'}),
+      },
+    ).catch(error => error);
+    assert.equal(result.code, 'standard-source-release');
+    assert.equal(result.cause, primary);
+    assert.equal(result.primaryFailure, primary);
+    assert.equal(result.cleanupPending, false);
+    assert.equal(cancels, 1);
+  }
+});
 
 test('verified active bundle supplies the exact session factory', async () => {
   const bundle = Object.freeze({component: 'verified-component'});
