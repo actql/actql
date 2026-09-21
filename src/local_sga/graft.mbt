@@ -231,12 +231,10 @@ fn graft_noninterruptible_value_bytes(
   let mut node_bound = 0
   let mut edge_bound = 0
   for plan in plans {
-    guard checked_noninterruptible_add(
-        node_bound, plan.nodes.length(), unit,
-      ) is Some(next_nodes) &&
-      checked_noninterruptible_add(
-        edge_bound, plan.edges.length(), unit,
-      ) is Some(next_edges) else {
+    guard checked_noninterruptible_add(node_bound, plan.nodes.length(), unit)
+      is Some(next_nodes) &&
+      checked_noninterruptible_add(edge_bound, plan.edges.length(), unit)
+      is Some(next_edges) else {
       return None
     }
     node_bound = next_nodes
@@ -545,14 +543,7 @@ fn merge_property(
         Err(issue) => MergeFailed(issue)
       }
     Some(@graph_type.SetUnion | @graph_type.SetDifference) =>
-      merge_set_property(
-        state,
-        token,
-        left,
-        right,
-        strategy.unwrap(),
-        contract,
-      )
+      merge_set_property(state, token, left, right, strategy.unwrap(), contract)
   }
 }
 
@@ -1109,9 +1100,8 @@ fn subtract_node_step(
   }
   let fields = @carrier.graph_node_properties(plan.graph)
   let properties = match shared {
-    None => merge_result(
-      rebind_properties(left_values, fields, state.value_limits),
-    )
+    None =>
+      merge_result(rebind_properties(left_values, fields, state.value_limits))
     Some(index) => {
       guard node_properties_at(right, index, state.node_fields)
         is Some(right_values) else {
@@ -1212,9 +1202,8 @@ fn subtract_edge_step(
   }
   let fields = @carrier.graph_edge_properties(plan.graph)
   let properties = match shared {
-    None => merge_result(
-      rebind_properties(left_values, fields, state.value_limits),
-    )
+    None =>
+      merge_result(rebind_properties(left_values, fields, state.value_limits))
     Some(index) => {
       guard edge_properties_at(right, index, state.edge_fields)
         is Some(right_values) else {
@@ -1364,17 +1353,14 @@ fn graft_step(
             match subtract_node_step(state, left, right) {
               MergeReady(_) => {
                 if !finish_merge_record(state) {
-                  return @bounded.Failed(
-                    InvalidGraftKernel, progress, used,
-                  )
+                  return @bounded.Failed(InvalidGraftKernel, progress, used)
                 }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              MergePending =>
-                return @bounded.Continue(progress + 1, used + 1)
+              MergePending => return @bounded.Continue(progress + 1, used + 1)
               MergeStopped(reason) =>
                 return @bounded.Stopped(reason, progress, used)
               MergeFailed(issue) =>
@@ -1385,17 +1371,14 @@ fn graft_step(
             match union_node_step(state, source) {
               MergeReady(_) => {
                 if !finish_merge_record(state) {
-                  return @bounded.Failed(
-                    InvalidGraftKernel, progress, used,
-                  )
+                  return @bounded.Failed(InvalidGraftKernel, progress, used)
                 }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              MergePending =>
-                return @bounded.Continue(progress + 1, used + 1)
+              MergePending => return @bounded.Continue(progress + 1, used + 1)
               MergeStopped(reason) =>
                 return @bounded.Stopped(reason, progress, used)
               MergeFailed(issue) =>
@@ -1460,17 +1443,14 @@ fn graft_step(
             match subtract_edge_step(state, left, right) {
               MergeReady(_) => {
                 if !finish_merge_record(state) {
-                  return @bounded.Failed(
-                    InvalidGraftKernel, progress, used,
-                  )
+                  return @bounded.Failed(InvalidGraftKernel, progress, used)
                 }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              MergePending =>
-                return @bounded.Continue(progress + 1, used + 1)
+              MergePending => return @bounded.Continue(progress + 1, used + 1)
               MergeStopped(reason) =>
                 return @bounded.Stopped(reason, progress, used)
               MergeFailed(issue) =>
@@ -1481,17 +1461,14 @@ fn graft_step(
             match union_edge_step(state, source) {
               MergeReady(_) => {
                 if !finish_merge_record(state) {
-                  return @bounded.Failed(
-                    InvalidGraftKernel, progress, used,
-                  )
+                  return @bounded.Failed(InvalidGraftKernel, progress, used)
                 }
                 state.record_index += 1
                 used += 1
                 progress += 1
                 continue
               }
-              MergePending =>
-                return @bounded.Continue(progress + 1, used + 1)
+              MergePending => return @bounded.Continue(progress + 1, used + 1)
               MergeStopped(reason) =>
                 return @bounded.Stopped(reason, progress, used)
               MergeFailed(issue) =>
