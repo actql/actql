@@ -4,8 +4,9 @@ fn remote_transfer_input_cid(unit : String) -> String {
 }
 
 ///|
-fn remote_transfer_input_request(
+fn remote_transfer_input_request_for(
   chunks : Array[Bytes],
+  route : @transfer.RemoteTransferRoute,
 ) -> @transfer.RemoteTransferRequest {
   let mut referenced_bytes = 0L
   for chunk in chunks {
@@ -27,7 +28,7 @@ fn remote_transfer_input_request(
   @transfer.prepare_request(
     "native-coordinator",
     "standard-input-transfer-1",
-    @transfer.TransferStore,
+    route,
     "native-source",
     2,
     "native-destination",
@@ -40,6 +41,99 @@ fn remote_transfer_input_request(
     remote_transfer_input_cid("5"),
     remote_transfer_input_cid("6"),
   ).unwrap()
+}
+
+///|
+fn remote_transfer_input_request(
+  chunks : Array[Bytes],
+) -> @transfer.RemoteTransferRequest {
+  remote_transfer_input_request_for(chunks, @transfer.TransferStore)
+}
+
+///|
+test "registered direct destination uses common standard input verifier" {
+  let chunks = [@utf8.encode("{\"id\":3}"), @utf8.encode("{\"id\":2}")]
+  let request = remote_transfer_input_request_for(
+    chunks,
+    @transfer.DirectStream,
+  )
+  let receipt = @transfer.prepare_destination_receipt(
+    request,
+    remote_transfer_input_cid("7"),
+  ).unwrap()
+  let input = @native_remote_standard.prepare_native_remote_standard_transfer_input(
+    request,
+    "direct-destination-use",
+    @transfer.destination_receipt_cid(receipt),
+    131072,
+  ).unwrap()
+  let available = [true]
+  let releases = [0]
+  let physical = @native_remote_standard.register_native_remote_standard_physical_source(
+    input,
+    () => available[0],
+    (max_bytes, emit) => {
+      for index, chunk in chunks {
+        let mut offset = 0
+        while offset < chunk.length() {
+          let count = Int::min(max_bytes, chunk.length() - offset)
+          let frame = Bytes::from_array(
+            Array::makei(count, unit => chunk[offset + unit]),
+          )
+          match emit(index, frame) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          offset += count
+        }
+      }
+      Ok(())
+    },
+    () => {
+      releases[0] += 1
+      available[0] = false
+      true
+    },
+  )
+  let codec = @native_remote_standard.register_native_remote_standard_row_codec(
+    remote_transfer_input_cid("1"),
+    remote_transfer_input_cid("2"),
+    remote_transfer_input_cid("3"),
+  ).unwrap()
+  let program = query_checked_program_fixture(dag=true)
+  let source = @native_remote_standard.acquire_native_remote_standard_physical_source(
+    input,
+    physical,
+    codec,
+    query_checked_sequence(program),
+    @program_check.source_identity(program),
+    {
+      max_rows: 10,
+      max_wire_bytes: 1000,
+      max_read_bytes: 3,
+      max_entries: 100,
+      max_name_bytes: 10000,
+      values: {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 10,
+        max_work: 200000,
+      },
+      wire: {
+        max_bytes: 100,
+        max_nodes: 20,
+        max_depth: 4,
+        max_text_bytes: 100,
+      },
+    },
+  ).unwrap()
+  assert_true(
+    @native_remote_standard.finish_native_remote_standard_transfer_source(
+      source,
+    ),
+  )
+  assert_eq(releases[0], 1)
+  assert_false(available[0])
 }
 
 ///|

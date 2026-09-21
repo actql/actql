@@ -19,6 +19,8 @@ import {
 }
 
 // Values
+pub fn acquire_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
+
 pub fn acquire_native_remote_standard_transfer_source(@remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardTransferInput, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
 
 pub fn admit_native_remote_standard_transfer_input(@remote_site_protocol.RemoteInputBinding, Int, Int, Int, Int64) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
@@ -45,9 +47,13 @@ pub fn prepare_native_remote_standard_input_failure(String, () -> Bool) -> Resul
 
 pub fn prepare_native_remote_standard_transfer_input(@remote_transfer.RemoteTransferRequest, String, String, Int) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
 
+pub fn register_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, () -> Bool, (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String], () -> Bool) -> NativeRemoteStandardPhysicalSource
+
 pub fn register_native_remote_standard_row_codec(String, String, String) -> Result[NativeRemoteStandardRowCodec, NativeRemoteStandardTransferSourceIssue]
 
 pub fn reject_native_remote_standard_input(String) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
+
+pub fn resolve_native_remote_standard_physical_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
 pub fn resolve_native_remote_standard_transfer_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
@@ -62,6 +68,8 @@ pub(all) enum NativeRemoteStandardHostIssue {
 }
 
 type NativeRemoteStandardInputFailure
+
+type NativeRemoteStandardPhysicalSource
 
 type NativeRemoteStandardRowCodec
 
@@ -93,6 +101,7 @@ type NativeRemoteStandardTransferSource
 pub(all) enum NativeRemoteStandardTransferSourceIssue {
   InvalidProfile
   Limit
+  Physical(String)
   Transfer(@remote_transfer_client.NativeRemoteTransferClientIssue)
   Wire(@execution_relation.AdmittedOutputWireIssue)
   Admission(@execution_relation.CaptureIssue)

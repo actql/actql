@@ -28,8 +28,20 @@ pub(all) struct NativeRemoteStandardTransferBindingLimits {
 }
 
 ///|
+/// A trusted physical provider for one exact Transfer destination. The
+/// provider owns only physical streaming and lifetime observations; schema,
+/// row-wire, completion, and capture decisions remain in this package.
+struct NativeRemoteStandardPhysicalSource {
+  request_cid : String
+  input_binding_cid : String
+  available : () -> Bool
+  stream : (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String]
+  release : () -> Bool
+}
+
+///|
 priv struct NativeRemoteTransferSourceToken {
-  material : @transfer_client.NativeRemoteDestinationMaterialUse
+  physical : NativeRemoteStandardPhysicalSource
   mut active : Bool
 }
 
@@ -52,6 +64,7 @@ struct NativeRemoteStandardTransferSource {
 pub(all) enum NativeRemoteStandardTransferSourceIssue {
   InvalidProfile
   Limit
+  Physical(String)
   Transfer(@transfer_client.NativeRemoteTransferClientIssue)
   Wire(@execution.AdmittedOutputWireIssue)
   Admission(@execution.CaptureIssue)
@@ -94,8 +107,7 @@ pub fn register_native_remote_standard_row_codec(
 
 ///|
 fn transfer_source_live(token : NativeRemoteTransferSourceToken) -> Bool {
-  token.active &&
-  @transfer_client.destination_material_use_available(token.material)
+  token.active && (token.physical.available)()
 }
 
 ///|
@@ -106,6 +118,7 @@ fn transfer_source_failure(
   let code = match issue {
     InvalidProfile => "transfer-input-profile"
     Limit => "transfer-input-limit"
+    Physical(_) => "transfer-input-material"
     Transfer(_) => "transfer-input-material"
     Wire(_) => "transfer-input-wire"
     Admission(_) => "transfer-input-admission"
@@ -119,15 +132,74 @@ fn transfer_source_failure(
         None => true
         Some(owner) => {
           owner.active = false
-          match
-            @transfer_client.release_destination_material_use(owner.material) {
-            Ok(_) => true
-            Err(_) => false
-          }
+          (owner.physical.release)()
         }
       }
     },
   }
+}
+
+///|
+/// Registers a physical provider already bound to one admitted Transfer
+/// request. This is the provider SDK boundary for registered routes.
+/// Callers are trusted only for physical access and stop observations; they
+/// cannot supply logical rows, completion evidence, or output identity.
+pub fn register_native_remote_standard_physical_source(
+  input : NativeRemoteStandardTransferInput,
+  available : () -> Bool,
+  stream : (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String],
+  release : () -> Bool,
+) -> NativeRemoteStandardPhysicalSource {
+  {
+    request_cid: @transfer.request_cid(input.request),
+    input_binding_cid: @remote.remote_input_binding_cid(input.binding),
+    available,
+    stream,
+    release,
+  }
+}
+
+///|
+/// Pins and verifies the durable Store representation, then exposes it through
+/// the same physical-provider boundary used by other registered routes.
+fn pin_native_remote_standard_store_source(
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  input : NativeRemoteStandardTransferInput,
+) -> Result[
+  NativeRemoteStandardPhysicalSource,
+  NativeRemoteStandardTransferSourceIssue,
+] {
+  let request = input.request
+  let material = match
+    @transfer_client.pin_durable_store_destination_material(
+      journal,
+      root,
+      request,
+      input.destination_use_id,
+      @remote.remote_input_binding_cid(input.binding),
+      input.destination_receipt_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Transfer(issue))
+  }
+  Ok(
+    register_native_remote_standard_physical_source(
+      input,
+      () => @transfer_client.destination_material_use_available(material),
+      (max_bytes, emit) => {
+        @transfer_client.stream_destination_material_use(
+          material, max_bytes, emit,
+        ).map_err(_ => "store-stream")
+      },
+      () => {
+        match @transfer_client.release_destination_material_use(material) {
+          Ok(_) => true
+          Err(_) => false
+        }
+      },
+    ),
+  )
 }
 
 ///|
@@ -146,13 +218,12 @@ fn append_transfer_source_row(
 }
 
 ///|
-/// Pins, verifies and decodes one exact committed Store-route destination into
-/// a provisional output. Completion and capture are established only through
+/// Verifies and decodes one exact registered physical destination into a
+/// provisional output. Completion and capture are established only through
 /// the fixed provider verifiers below, after the full physical stream succeeds.
-pub fn acquire_native_remote_standard_transfer_source(
-  journal : @transfer_journal.Journal,
-  root : @filesystem.Root,
+pub fn acquire_native_remote_standard_physical_source(
   input : NativeRemoteStandardTransferInput,
+  physical : NativeRemoteStandardPhysicalSource,
   codec : NativeRemoteStandardRowCodec,
   sequence : @query.QuerySequence,
   program : @context.ProgramSourceIdentity,
@@ -162,58 +233,46 @@ pub fn acquire_native_remote_standard_transfer_source(
   NativeRemoteStandardInputFailure,
 ] {
   let request = input.request
+  let token : NativeRemoteTransferSourceToken = { physical, active: true, }
   if limits.max_rows < 0 ||
     limits.max_wire_bytes < 0 ||
     limits.max_read_bytes <= 0 ||
     limits.max_entries < 0 ||
     limits.max_name_bytes < 0 {
-    return Err(transfer_source_failure(None, Limit))
+    return Err(transfer_source_failure(Some(token), Limit))
   }
   if @transfer.request_schema_contract_cid(request) != codec.schema_contract_cid ||
     @transfer.request_view_contract_cid(request) != codec.view_contract_cid ||
     @transfer.request_codec_contract_cid(request) != codec.codec_contract_cid {
-    return Err(transfer_source_failure(None, InvalidProfile))
+    return Err(transfer_source_failure(Some(token), InvalidProfile))
+  }
+  if physical.request_cid != @transfer.request_cid(request) ||
+    physical.input_binding_cid !=
+    @remote.remote_input_binding_cid(input.binding) ||
+    !(physical.available)() {
+    return Err(transfer_source_failure(Some(token), InvalidProfile))
   }
   let row_count = @transfer.request_row_count(request)
   let row_counts = @transfer.request_chunk_row_counts(request)
   let byte_lengths = @transfer.request_chunk_byte_lengths(request)
   if row_count > limits.max_rows || row_counts.length() != byte_lengths.length() {
-    return Err(transfer_source_failure(None, Limit))
+    return Err(transfer_source_failure(Some(token), Limit))
   }
   let mut wire_bytes = 0L
   for index, rows in row_counts {
     if rows != 1 ||
       byte_lengths[index] < 0L ||
       byte_lengths[index] > limits.wire.max_bytes.to_int64() {
-      return Err(transfer_source_failure(None, InvalidProfile))
+      return Err(transfer_source_failure(Some(token), InvalidProfile))
     }
     wire_bytes = wire_bytes + byte_lengths[index]
     if wire_bytes > limits.max_wire_bytes.to_int64() {
-      return Err(transfer_source_failure(None, Limit))
+      return Err(transfer_source_failure(Some(token), Limit))
     }
   }
   if (row_count == 0 && !row_counts.is_empty()) ||
     row_count != row_counts.length() {
-    return Err(transfer_source_failure(None, InvalidProfile))
-  }
-  let binding = input.binding
-  let material = match
-    @transfer_client.pin_durable_store_destination_material(
-      journal,
-      root,
-      request,
-      input.destination_use_id,
-      @remote.remote_input_binding_cid(binding),
-      input.destination_receipt_cid,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(transfer_source_failure(None, Transfer(issue)))
-  }
-  let token : NativeRemoteTransferSourceToken = { material, active: true, }
-  match @transfer_client.validate_destination_material_use(material) {
-    Ok(_) => ()
-    Err(issue) =>
-      return Err(transfer_source_failure(Some(token), Transfer(issue)))
+    return Err(transfer_source_failure(Some(token), InvalidProfile))
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -228,37 +287,33 @@ pub fn acquire_native_remote_standard_transfer_source(
   }
   let mut current = -1
   let mut row : Array[Byte] = []
-  let streamed = @transfer_client.stream_destination_material_use(
-    material,
-    limits.max_read_bytes,
-    fn(index, bytes) {
-      if index != current {
-        if index != current + 1 {
-          return Err("chunk-order")
+  let streamed = (physical.stream)(limits.max_read_bytes, fn(index, bytes) {
+    if index != current {
+      if index != current + 1 {
+        return Err("chunk-order")
+      }
+      if current >= 0 {
+        match append_transfer_source_row(output, row, limits.wire) {
+          Ok(_) => ()
+          Err(_) => return Err("row-admission")
         }
-        if current >= 0 {
-          match append_transfer_source_row(output, row, limits.wire) {
-            Ok(_) => ()
-            Err(_) => return Err("row-admission")
-          }
-        }
-        current = index
-        row = []
       }
-      if row.length() + bytes.length() > limits.wire.max_bytes {
-        return Err("row-limit")
-      }
-      for byte in bytes {
-        row.push(byte)
-      }
-      Ok(())
-    },
-  )
+      current = index
+      row = []
+    }
+    if row.length() + bytes.length() > limits.wire.max_bytes {
+      return Err("row-limit")
+    }
+    for byte in bytes {
+      row.push(byte)
+    }
+    Ok(())
+  })
   match streamed {
     Ok(_) => ()
     Err(issue) => {
       ignore(@execution.cancel_admitted_output(output))
-      return Err(transfer_source_failure(Some(token), Transfer(issue)))
+      return Err(transfer_source_failure(Some(token), Physical(issue)))
     }
   }
   if current >= 0 {
@@ -324,6 +379,35 @@ pub fn acquire_native_remote_standard_transfer_source(
 }
 
 ///|
+/// Pins the exact committed Store-route destination and passes it through the
+/// common registered physical-source verifier.
+pub fn acquire_native_remote_standard_transfer_source(
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  input : NativeRemoteStandardTransferInput,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  limits : NativeRemoteStandardTransferSourceLimits,
+) -> Result[
+  NativeRemoteStandardTransferSource,
+  NativeRemoteStandardInputFailure,
+] {
+  let physical = match
+    pin_native_remote_standard_store_source(journal, root, input) {
+    Ok(value) => value
+    Err(issue) => return Err(transfer_source_failure(None, issue))
+  }
+  match
+    acquire_native_remote_standard_physical_source(
+      input, physical, codec, sequence, program, limits,
+    ) {
+    Ok(value) => Ok(value)
+    Err(failure) => Err(failure)
+  }
+}
+
+///|
 pub fn native_remote_standard_transfer_captured_source(
   owner : NativeRemoteStandardTransferSource,
 ) -> @query.CapturedInputSource {
@@ -337,50 +421,35 @@ pub fn finish_native_remote_standard_transfer_source(
   owner : NativeRemoteStandardTransferSource,
 ) -> Bool {
   owner.token.active = false
-  match
-    @transfer_client.release_destination_material_use(owner.token.material) {
-    Ok(_) => true
-    Err(_) => false
-  }
+  (owner.token.physical.release)()
 }
 
 ///|
-/// Product resolver for a registered standard task. It re-admits the canonical
-/// binding, acquires the exact Transfer destination, and gives only the verified
-/// captured source to the task-specific standard-Run factory.
-pub fn resolve_native_remote_standard_transfer_run(
+/// Product resolver for a registered physical provider. It admits only the
+/// exact dispatch-bound input and gives the provider's verified captured
+/// source to the task-specific standard-Run factory.
+pub fn resolve_native_remote_standard_physical_run(
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
-  journal : @transfer_journal.Journal,
-  root : @filesystem.Root,
+  input : NativeRemoteStandardTransferInput,
+  physical : NativeRemoteStandardPhysicalSource,
   codec : NativeRemoteStandardRowCodec,
   sequence : @query.QuerySequence,
   program : @context.ProgramSourceIdentity,
-  binding_limits : NativeRemoteStandardTransferBindingLimits,
   source_limits : NativeRemoteStandardTransferSourceLimits,
   open_run : (@query.CapturedInputSource) -> Result[
     @native_host.NativeStandardStrategyRun,
     Unit,
   ],
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
-  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
-    return Err({ code: "foreign-input-binding", cleanup: () => true, })
-  }
-  let input = match
-    admit_native_remote_standard_transfer_input(
-      binding,
-      binding_limits.max_binding_bytes,
-      binding_limits.max_chunks,
-      binding_limits.max_manifest_bytes,
-      binding_limits.max_referenced_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) =>
-      return Err({ code: "transfer-input-binding", cleanup: () => true, })
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
+    @remote.remote_input_binding_cid(input.binding) !=
+    @remote.remote_input_binding_cid(binding) {
+    return Err({ code: "foreign-input-binding", cleanup: physical.release, })
   }
   let source = match
-    acquire_native_remote_standard_transfer_source(
-      journal, root, input, codec, sequence, program, source_limits,
+    acquire_native_remote_standard_physical_source(
+      input, physical, codec, sequence, program, source_limits,
     ) {
     Ok(value) => value
     Err(failure) => return Err(failure)
@@ -415,4 +484,48 @@ pub fn resolve_native_remote_standard_transfer_run(
       })
     }
   }
+}
+
+///|
+/// Product resolver for the durable Store provider. It re-admits the canonical
+/// binding, pins the exact destination, and delegates every semantic decision
+/// to the common registered physical-source resolver.
+pub fn resolve_native_remote_standard_transfer_run(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err({ code: "foreign-input-binding", cleanup: () => true, })
+  }
+  let input = match
+    admit_native_remote_standard_transfer_input(
+      binding,
+      binding_limits.max_binding_bytes,
+      binding_limits.max_chunks,
+      binding_limits.max_manifest_bytes,
+      binding_limits.max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err({ code: "transfer-input-binding", cleanup: () => true, })
+  }
+  let physical = match
+    pin_native_remote_standard_store_source(journal, root, input) {
+    Ok(value) => value
+    Err(issue) => return Err(transfer_source_failure(None, issue))
+  }
+  resolve_native_remote_standard_physical_run(
+    request, binding, input, physical, codec, sequence, program, source_limits, open_run,
+  )
 }

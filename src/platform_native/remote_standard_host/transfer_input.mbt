@@ -1,6 +1,7 @@
 ///|
 /// Connector-owned meaning for one standard Remote dispatch input backed by
-/// an exact committed Store-route Transfer destination.
+/// an exact committed Transfer destination. The destination receipt and use
+/// identify the physical provider independently of the selected route.
 struct NativeRemoteStandardTransferInput {
   binding : @remote.RemoteInputBinding
   request : @transfer.RemoteTransferRequest
