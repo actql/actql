@@ -41,6 +41,51 @@ fn graft_owner(
 }
 
 ///|
+fn union_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor(
+        "[{\"from\":\"left\",\"union_graphs\":{" +
+        "\"with\":[\"right\",\"left\",\"right\"]}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn reordered_graft_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
@@ -112,6 +157,19 @@ fn graft_inputs(
     @graph.prepare_producer_read(owner, 0, left_owner, left).unwrap(),
     @graph.prepare_producer_read(owner, 1, right_owner, right).unwrap(),
   ]
+}
+
+///|
+fn union_inputs(
+  owner : @lower.BoundPrepared,
+  left_owner : @lower.BoundPrepared,
+  right_owner : @lower.BoundPrepared,
+  left : @graph.Completed,
+  right : @graph.Completed,
+) -> Array[@graph.ProducerRead] {
+  let left_read = @graph.prepare_producer_read(owner, 0, left_owner, left).unwrap()
+  let right_read = @graph.prepare_producer_read(owner, 1, right_owner, right).unwrap()
+  [left_read, right_read, left_read, right_read]
 }
 
 ///|
@@ -346,4 +404,49 @@ test "graft enforces output admission before a second retained node" {
   )
   assert_true(graft_stopped(execution))
   assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
+test "finite-list union enforces output admission at the exact boundary" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let owner = union_owner(left_owner, right_owner)
+  let left = one_node_graph(left_owner, 1.0, "a")
+  let right = one_node_graph(right_owner, 2.0, "b")
+  let rejected = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    union_inputs(owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_nodes: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(rejected, 4).unwrap()
+    is GraftFailed(
+      GraftOutput(@graph.Storage(@storage.NodeLimit)),
+      progress=1L,
+      work=1L
+    ),
+  )
+  assert_eq(cleanup_graft(rejected), Ok(true))
+
+  let admitted = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    union_inputs(owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_nodes: 2, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(admitted, 8).unwrap()
+    is GraftComplete(output, progress=4L, work=4L) else {
+    fail("finite-list union did not complete at the exact node limit")
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(result), 2)
+  assert_eq(@storage.input_row_count(result), 4)
+  assert_eq(cleanup_graft(admitted), Ok(true))
 }
