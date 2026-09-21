@@ -246,12 +246,34 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"from\":\"selected\",\"id\":\"key\""
     } else {
       "\"ids\":[" +
-      (if variant == "traverse_ids" { "2,1,2" } else { "1" }) +
+      (if variant == "traverse_ids" {
+        "2,1,2"
+      } else if variant.has_prefix("traverse_pattern_") &&
+        variant != "traverse_pattern_one" {
+        "2"
+      } else {
+        "1"
+      }) +
       "]"
     }) +
     "}," +
-    (if variant == "traverse_pattern_one" {
-      "\"hops\":[{\"direction\":\"out\"}],"
+    (if variant.has_prefix("traverse_pattern_") {
+      "\"hops\":[{\"direction\":\"out\"" +
+      (if variant == "traverse_pattern_predicate" ||
+        variant == "traverse_pattern_edge_predicate" {
+        ",\"edge_where\":\"weight > 10\""
+      } else if variant == "traverse_pattern_predicate_empty" {
+        ",\"edge_where\":\"weight > 100\""
+      } else {
+        ""
+      }) +
+      (if variant == "traverse_pattern_predicate" ||
+        variant == "traverse_pattern_node_predicate" {
+        ",\"node_where\":\"node_name = 'first'\""
+      } else {
+        ""
+      }) +
+      "}],"
     } else {
       "\"direction\":\"" +
       (if variant == "traverse_in" {
@@ -4004,6 +4026,7 @@ fn run_standard_host_graph_relation_path(
   let expected_rows = if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
     variant == "traverse_types_miss" ||
+    variant == "traverse_pattern_predicate_empty" ||
     variant == "subgraph_edges_false" {
     0
   } else if variant == "graph_bounds" {
@@ -4069,7 +4092,8 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[1].contains("\"depth\":1"))
   } else if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
-    variant == "traverse_types_miss" {
+    variant == "traverse_types_miss" ||
+    variant == "traverse_pattern_predicate_empty" {
     ()
   } else if variant.has_prefix("traverse_") {
     if variant == "traverse_ids" || traverse_relation_selector {
@@ -4083,6 +4107,11 @@ fn run_standard_host_graph_relation_path(
       assert_true(graph_rows[0].contains("\"depth\":1"))
       assert_true(graph_rows[1].contains("\"start_id\":2"))
       assert_true(graph_rows[1].contains("\"node_id\":1"))
+    } else if variant.has_prefix("traverse_pattern_") &&
+      variant != "traverse_pattern_one" {
+      assert_true(graph_rows[0].contains("\"start_id\":2"))
+      assert_true(graph_rows[0].contains("\"node_id\":1"))
+      assert_true(graph_rows[0].contains("\"depth\":1"))
     } else {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
       assert_true(graph_rows[0].contains("\"node_id\":2"))
@@ -4264,6 +4293,14 @@ test "standard Host traverses Relation-selected starts" {
 ///|
 test "standard Host traverses one authored hop" {
   run_standard_host_graph_relation_path("traverse_pattern_one")
+}
+
+///|
+test "standard Host evaluates authored hop predicates" {
+  run_standard_host_graph_relation_path("traverse_pattern_predicate")
+  run_standard_host_graph_relation_path("traverse_pattern_edge_predicate")
+  run_standard_host_graph_relation_path("traverse_pattern_node_predicate")
+  run_standard_host_graph_relation_path("traverse_pattern_predicate_empty")
 }
 
 ///|

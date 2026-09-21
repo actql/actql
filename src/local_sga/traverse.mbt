@@ -60,8 +60,6 @@ pub fn start_traverse(
     ) &&
     hop_count == 1 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
-    @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
-    @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
     @graph.producer_read_storage(input) is Some(source) else {
     return Err(UnsupportedTraverseKernel)
   }
@@ -118,6 +116,8 @@ pub fn start_traverse(
     starts,
     direction,
     edge_filter,
+    @lower.graph_traverse_hop_edge_predicate(prepared, 0),
+    @lower.graph_traverse_hop_node_predicate(prepared, 0),
     minimum.to_int(),
     maximum.to_int(),
     max_rows,

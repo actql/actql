@@ -4,6 +4,11 @@ priv enum ReachPhase {
   ResolveStarts
   PrepareStartPredicate
   EvaluateStartPredicate
+  PrepareHopEdgePredicate
+  EvaluateHopEdgePredicate
+  PrepareHopNodePredicate
+  EvaluateHopNodePredicate
+  VisitHopNeighbor
   CollectStarts
   InitializeNodes
   ScanDegrees
@@ -56,6 +61,8 @@ priv struct ReachState {
   starts : ReachStarts
   direction : @graph_type.Direction
   edge_filter : ReachEdgeFilter
+  edge_predicate : @lower.Expression?
+  node_predicate : @lower.Expression?
   minimum_depth : Int
   max_depth : Int
   value_limits : @value.Limits
@@ -70,6 +77,9 @@ priv struct ReachState {
   mut current_start_node : Int
   mut start_node_index : Int
   mut neighbor_index : Int
+  mut candidate_edge : Int
+  mut candidate_node : Int
+  mut neighbor_resume : ReachPhase
   mut edge_type_index : Int
   mut row_index : Int
   mut column : Int
@@ -341,6 +351,25 @@ fn visit_reach_neighbor(
     }
   }
   Ok(())
+}
+
+///|
+fn prepare_reach_neighbor_predicate(
+  state : ReachState,
+  edge : Int,
+  node : Int,
+  next_phase : ReachPhase,
+) -> Unit {
+  state.candidate_edge = edge
+  state.candidate_node = node
+  state.neighbor_resume = next_phase
+  state.predicate_field = 0
+  state.predicate_input.clear()
+  state.phase = if state.edge_predicate is Some(_) {
+    PrepareHopEdgePredicate
+  } else {
+    PrepareHopNodePredicate
+  }
 }
 
 ///|
@@ -618,8 +647,8 @@ fn reach_step(
             None => {
               let out = state.out_cursor[source]
               let incoming = state.in_cursor[target]
-              state.out_edges[out] = target
-              state.in_edges[incoming] = source
+              state.out_edges[out] = state.index
+              state.in_edges[incoming] = state.index
               state.out_cursor[source] = out + 1
               state.in_cursor[target] = incoming + 1
               state.index += 1
@@ -651,8 +680,8 @@ fn reach_step(
         if matches {
           let out = state.out_cursor[source]
           let incoming = state.in_cursor[target]
-          state.out_edges[out] = target
-          state.in_edges[incoming] = source
+          state.out_edges[out] = state.index
+          state.in_edges[incoming] = state.index
           state.out_cursor[source] = out + 1
           state.in_cursor[target] = incoming + 1
           state.index += 1
@@ -764,12 +793,19 @@ fn reach_step(
           state.neighbor_index = state.in_start[state.current_node]
           state.phase = ScanIncoming
         } else {
-          let node = state.out_edges[state.neighbor_index]
+          let edge = state.out_edges[state.neighbor_index]
           state.neighbor_index += 1
           used += 1
-          match visit_reach_neighbor(state, node) {
-            Ok(_) => ()
-            Err(issue) => return @bounded.Failed(issue, progress, used)
+          guard @storage.edge_endpoints(state.source, edge) is Some((_, node)) else {
+            return @bounded.Failed(ReachInputUnavailable, progress, used)
+          }
+          if state.edge_predicate is Some(_) || state.node_predicate is Some(_) {
+            prepare_reach_neighbor_predicate(state, edge, node, ScanOutgoing)
+          } else {
+            match visit_reach_neighbor(state, node) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
           }
         }
       }
@@ -779,13 +815,158 @@ fn reach_step(
         if !enabled || state.neighbor_index >= end {
           state.phase = PopNode
         } else {
-          let node = state.in_edges[state.neighbor_index]
+          let edge = state.in_edges[state.neighbor_index]
           state.neighbor_index += 1
           used += 1
-          match visit_reach_neighbor(state, node) {
-            Ok(_) => ()
-            Err(issue) => return @bounded.Failed(issue, progress, used)
+          guard @storage.edge_endpoints(state.source, edge) is Some((node, _)) else {
+            return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
+          if state.edge_predicate is Some(_) || state.node_predicate is Some(_) {
+            prepare_reach_neighbor_predicate(state, edge, node, ScanIncoming)
+          } else {
+            match visit_reach_neighbor(state, node) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+        }
+      }
+      PrepareHopEdgePredicate =>
+        if state.predicate_field <
+          graph_edge_predicate_binding_count(state.graph) {
+          used += 1
+          guard graph_edge_predicate_binding(
+              state.graph,
+              state.source,
+              state.candidate_edge,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(ReachInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.edge_predicate is Some(predicate) else {
+            return @bounded.Failed(InvalidReachKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(ReachPredicate(issue.kind), progress, used)
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateHopEdgePredicate
+            }
+          }
+        }
+      EvaluateHopEdgePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidReachKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(ReachPredicate(issue.kind), progress, used)
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            state.predicate_field = 0
+            state.phase = if !selected {
+              state.neighbor_resume
+            } else if state.node_predicate is Some(_) {
+              PrepareHopNodePredicate
+            } else {
+              VisitHopNeighbor
+            }
+          }
+        }
+      }
+      PrepareHopNodePredicate =>
+        if state.predicate_field <
+          graph_node_predicate_binding_count(state.graph) {
+          used += 1
+          guard graph_node_predicate_binding(
+              state.graph,
+              state.source,
+              state.candidate_node,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(ReachInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.node_predicate is Some(predicate) else {
+            state.phase = VisitHopNeighbor
+            continue
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(ReachPredicate(issue.kind), progress, used)
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateHopNodePredicate
+            }
+          }
+        }
+      EvaluateHopNodePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidReachKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(ReachPredicate(issue.kind), progress, used)
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            state.predicate_field = 0
+            state.phase = if selected {
+              VisitHopNeighbor
+            } else {
+              state.neighbor_resume
+            }
+          }
+        }
+      }
+      VisitHopNeighbor => {
+        used += 1
+        match visit_reach_neighbor(state, state.candidate_node) {
+          Ok(_) => state.phase = state.neighbor_resume
+          Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
       PrepareSort =>
@@ -946,6 +1127,8 @@ fn start_reach_state(
   starts : ReachStarts,
   direction : @graph_type.Direction,
   edge_filter : ReachEdgeFilter,
+  edge_predicate : @lower.Expression?,
+  node_predicate : @lower.Expression?,
   minimum_depth : Int,
   max_depth : Int,
   max_rows : Int,
@@ -987,10 +1170,24 @@ fn start_reach_state(
     nodes <= max_rows else {
     return Err(ReachOutputLimit)
   }
-  let predicate_fields = match starts {
+  let start_predicate_fields = match starts {
     TraversalPredicateStarts(_) => graph_node_predicate_binding_count(graph)
     _ => 0
   }
+  let edge_predicate_fields = if edge_predicate is Some(_) {
+    graph_edge_predicate_binding_count(graph)
+  } else {
+    0
+  }
+  let node_predicate_fields = if node_predicate is Some(_) {
+    graph_node_predicate_binding_count(graph)
+  } else {
+    0
+  }
+  let predicate_fields = Int::max(
+    start_predicate_fields,
+    Int::max(edge_predicate_fields, node_predicate_fields),
+  )
   guard reach_workspace(nodes, edges, @schema.field_count(schema))
     is Some(base_workspace) &&
     checked_reach_add(base_workspace, predicate_fields) is Some(workspace) &&
@@ -1033,6 +1230,8 @@ fn start_reach_state(
     starts,
     direction,
     edge_filter,
+    edge_predicate,
+    node_predicate,
     minimum_depth,
     max_depth,
     value_limits: {
@@ -1051,6 +1250,9 @@ fn start_reach_state(
     current_start_node: -1,
     start_node_index: 0,
     neighbor_index: 0,
+    candidate_edge: -1,
+    candidate_node: -1,
+    neighbor_resume: ScanOutgoing,
     edge_type_index: 0,
     row_index: 0,
     column: 0,
@@ -1135,6 +1337,8 @@ pub fn start_reach(
     SingleReachStart(@lower.graph_reach_start(prepared)),
     @lower.graph_reach_direction(prepared),
     AllReachEdges,
+    None,
+    None,
     0,
     max_depth,
     max_rows,
