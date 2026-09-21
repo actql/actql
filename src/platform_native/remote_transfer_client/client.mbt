@@ -785,9 +785,6 @@ pub fn validate_destination_material_use(
   if material.released || material.reading {
     return Err(ReconciliationRequired)
   }
-  if material.validated {
-    return Ok(())
-  }
   let cids = @transfer.request_chunk_cids(material.request)
   let lengths = @transfer.request_chunk_byte_lengths(material.request)
   if cids.length() != lengths.length() {
@@ -834,6 +831,15 @@ pub fn validate_destination_material_use(
   material.generations = generations
   material.validated = true
   Ok(())
+}
+
+///|
+/// Rechecks that an acquired reader still names the exact committed physical
+/// generations. This grants no execution or logical identity authority.
+pub fn destination_material_use_available(
+  material : NativeRemoteDestinationMaterialUse,
+) -> Bool {
+  validate_destination_material_use(material) is Ok(_)
 }
 
 ///|

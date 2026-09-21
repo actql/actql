@@ -141,6 +141,8 @@ pub fn request_chunk_row_counts(RemoteTransferRequest) -> Array[Int]
 
 pub fn request_cid(RemoteTransferRequest) -> String
 
+pub fn request_codec_contract_cid(RemoteTransferRequest) -> String
+
 pub fn request_journal_identity(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
 
 pub fn request_journal_key(RemoteTransferRequest) -> Array[String]
@@ -152,6 +154,12 @@ pub fn request_manifest_json(RemoteTransferRequest) -> Result[String, RemoteTran
 pub fn request_projection(RemoteTransferRequest) -> Array[String]
 
 pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
+
+pub fn request_row_count(RemoteTransferRequest) -> Int
+
+pub fn request_schema_contract_cid(RemoteTransferRequest) -> String
+
+pub fn request_view_contract_cid(RemoteTransferRequest) -> String
 
 pub fn restore_durable_remote_transfer_record(DurableRemoteTransferRecord) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 

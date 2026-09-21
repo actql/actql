@@ -118,6 +118,10 @@ test "canonical request and manifest wire are re-admitted together" {
   assert_eq(request_chunk_cids(restored), [transfer_cid("a"), transfer_cid("b")])
   assert_eq(request_chunk_byte_lengths(restored), [5L, 7L])
   assert_eq(request_chunk_row_counts(restored), [1, 1])
+  assert_eq(request_schema_contract_cid(restored), transfer_cid("1"))
+  assert_eq(request_view_contract_cid(restored), transfer_cid("2"))
+  assert_eq(request_codec_contract_cid(restored), transfer_cid("3"))
+  assert_eq(request_row_count(restored), 2)
   assert_true(request_active_at(restored, 1999999999999L))
   assert_false(request_active_at(restored, 2000000000000L))
 }

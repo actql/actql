@@ -350,6 +350,7 @@ test "native Store upload seals once and restores without source upload" {
     receipt_cid,
   ).unwrap()
   validate_destination_material_use(first).unwrap()
+  assert_true(destination_material_use_available(first))
   let stopped = stream_destination_material_use(first, 4, fn(_, _) {
     Err("consumer stopped")
   })
@@ -378,6 +379,7 @@ test "native Store upload seals once and restores without source upload" {
     is Err(Durable(@journal.MaterialInUse)),
   )
   assert_true(release_destination_material_use(second).unwrap())
+  assert_false(destination_material_use_available(second))
   assert_true(reclaim_durable_store_destination_material(first).unwrap())
   assert_eq(
     destination_reopened.destination_capacity_usage().unwrap().reserved_bytes,

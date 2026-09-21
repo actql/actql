@@ -552,6 +552,30 @@ pub fn request_chunk_row_counts(request : RemoteTransferRequest) -> Array[Int] {
 }
 
 ///|
+/// Exact schema contract pinned by the admitted physical manifest.
+pub fn request_schema_contract_cid(request : RemoteTransferRequest) -> String {
+  request.schema_contract_cid
+}
+
+///|
+/// Exact logical view contract pinned by the admitted physical manifest.
+pub fn request_view_contract_cid(request : RemoteTransferRequest) -> String {
+  request.view_contract_cid
+}
+
+///|
+/// Exact physical codec contract pinned by the admitted physical manifest.
+pub fn request_codec_contract_cid(request : RemoteTransferRequest) -> String {
+  request.codec_contract_cid
+}
+
+///|
+/// Exact row count pinned by the admitted physical manifest.
+pub fn request_row_count(request : RemoteTransferRequest) -> Int {
+  request.physical.row_count
+}
+
+///|
 /// The trusted clock is an environment observation. Expiry remains a portable
 /// request decision and never becomes transport-owned policy.
 pub fn request_active_at(
