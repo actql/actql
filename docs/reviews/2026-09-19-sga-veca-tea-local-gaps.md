@@ -315,7 +315,10 @@ their equality requirement. Conflicts fail atomically, right-only entities do
 not enter the result, and node and edge strategy maps remain independent.
 Property-bearing entity kinds without a complete executable map are rejected
 before output allocation. The portable kernel tests pass on JS, Wasm, and
-native. Numeric and canonical-set strategies remain open.
+native. At `00063427`, the exact-equality path also runs through the standard
+Host, two overlapping consumers, Named Result publication and retrieval, and
+final reclamation on all three targets. Numeric and canonical-set strategies
+remain open.
 
 Node Graph equality now compares two exact positioned immutable Graph inputs by
 typed node and edge identity, optional edge label, and complete payload. The
