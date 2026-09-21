@@ -110,6 +110,7 @@ fn local_values_sequence_program() -> String {
 test "standard Host runs bounded sequence matching for two consumers" {
   let (run, issuer) = captured_graph_fixture(
     local_values_sequence_chain=true,
+    managed_publication=true,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 20,
@@ -118,6 +119,11 @@ test "standard Host runs bounded sequence matching for two consumers" {
       retained_bytes: 134217728L,
       execution_bytes: 536870912L,
     }),
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -140,6 +146,7 @@ test "standard Host runs bounded sequence matching for two consumers" {
         max_bytes: 3000,
         max_nodes: 300,
         max_columns: 7,
+        max_order_work: 1000,
       },
       row: {
         max_bytes: 3000,
@@ -160,9 +167,11 @@ test "standard Host runs bounded sequence matching for two consumers" {
     [],
     1,
     events_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let event_rows = local_managed_test_rows(events_ops)
   let match_live = Ref(true)
+  let match_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (match_ops, matched) = run_local_managed_test_task(
     installed,
     run,
@@ -171,6 +180,7 @@ test "standard Host runs bounded sequence matching for two consumers" {
     [event_rows],
     2,
     match_live,
+    obligations=match_obligations,
   )
   let matched_rows = local_managed_test_rows(match_ops)
   assert_eq(matched_rows, [
@@ -178,6 +188,25 @@ test "standard Host runs bounded sequence matching for two consumers" {
     "{\"end_id\":3,\"end_time_ms\":3,\"key\":1,\"match_end_ms\":3,\"match_start_ms\":1,\"start_id\":1,\"start_time_ms\":1}",
     "{\"end_id\":4,\"end_time_ms\":4,\"key\":2,\"match_end_ms\":4,\"match_start_ms\":3,\"start_id\":5,\"start_time_ms\":3}",
   ])
+  let published = @execution.managed_obligations_identities(match_obligations).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    },
+  )
+  assert_eq(published.length(), 1)
+  match
+    @execution.managed_completed_identity_requirement_status(
+      matched,
+      published[0],
+    ) {
+    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
+      assert_eq(
+        cid, "sha256:eab1f4eaca55131b4c2875c7c8fe6556c9239a1aca4a9cd05b91e73f7e3da950",
+      )
+    }
+    _ => fail("sequence output did not establish publication identity")
+  }
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
@@ -187,6 +216,7 @@ test "standard Host runs bounded sequence matching for two consumers" {
     [matched_rows],
     3,
     first_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
@@ -197,6 +227,7 @@ test "standard Host runs bounded sequence matching for two consumers" {
     [matched_rows],
     4,
     second_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   assert_eq(local_managed_test_rows(first_ops), [
     "{\"key\":1,\"start_id\":1,\"end_id\":2}", "{\"key\":1,\"start_id\":1,\"end_id\":3}",

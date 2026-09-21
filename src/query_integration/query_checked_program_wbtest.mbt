@@ -406,6 +406,9 @@ fn query_checked_program_fixture(
       } else if local_values_interval_chain || local_values_asof_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"joined\",\"result\":\"r\"}}}}"
+      } else if local_values_sequence_chain {
+        "\"results\":{\"published\":{\"from\":{\"stage\":" +
+        "\"matched\",\"result\":\"r\"}}}}"
       } else {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"compute_b\",\"result\":\"r\"}}}}"
