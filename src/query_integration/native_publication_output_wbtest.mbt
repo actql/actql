@@ -757,7 +757,11 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     1,
     (request, binding) => {
       if @remote.remote_input_binding_body(binding) != "{}" {
-        return Err("foreign standard input")
+        return Err(
+          @native_remote_standard.reject_native_remote_standard_input(
+            "standard-input-resolve",
+          ).unwrap(),
+        )
       }
       match local_run_owner[0] {
         Some(value) => {
@@ -773,9 +777,18 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
               }
               true
             },
-          ).map_err(_ => "standard input binding")
+          ).map_err(_ => {
+            @native_remote_standard.reject_native_remote_standard_input(
+              "standard-input-binding",
+            ).unwrap()
+          })
         }
-        None => Err("standard Run already opened")
+        None =>
+          Err(
+            @native_remote_standard.reject_native_remote_standard_input(
+              "standard-run-already-opened",
+            ).unwrap(),
+          )
       }
     },
     {
@@ -792,7 +805,11 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     1,
     (request, binding) => {
       if @remote.remote_input_binding_body(binding) != "{}" {
-        return Err("foreign standard input")
+        return Err(
+          @native_remote_standard.reject_native_remote_standard_input(
+            "standard-input-resolve",
+          ).unwrap(),
+        )
       }
       match duckdb_run_owner[0] {
         Some(value) => {
@@ -808,9 +825,18 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
               }
               true
             },
-          ).map_err(_ => "standard input binding")
+          ).map_err(_ => {
+            @native_remote_standard.reject_native_remote_standard_input(
+              "standard-input-binding",
+            ).unwrap()
+          })
         }
-        None => Err("standard Run already opened")
+        None =>
+          Err(
+            @native_remote_standard.reject_native_remote_standard_input(
+              "standard-run-already-opened",
+            ).unwrap(),
+          )
       }
     },
     {
@@ -830,10 +856,40 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     (_, binding) => {
       if @remote.remote_input_binding_cid(binding) !=
         @remote.remote_input_binding_cid(foreign_binding) {
-        return Err("foreign standard input")
+        return Err(
+          @native_remote_standard.reject_native_remote_standard_input(
+            "standard-input-resolve",
+          ).unwrap(),
+        )
       }
       foreign_run_opens[0] += 1
-      Err("foreign dispatch opened a Run")
+      Err(
+        @native_remote_standard.reject_native_remote_standard_input(
+          "foreign-dispatch-opened-run",
+        ).unwrap(),
+      )
+    },
+    {
+      output_export: native_publication_export_limits(),
+      max_manifest_bytes: 65536,
+      max_retained_bytes: 1048576L,
+    },
+  ).unwrap()
+  let input_cleanup_attempts = [0]
+  let pending_input_executor = @native_remote_standard.install_native_remote_standard_task_executor(
+    run_definition_cid,
+    "task-1-pending-input",
+    1,
+    (_, _) => {
+      Err(
+        @native_remote_standard.prepare_native_remote_standard_input_failure(
+          "standard-input-pending",
+          () => {
+            input_cleanup_attempts[0] += 1
+            input_cleanup_attempts[0] >= 2
+          },
+        ).unwrap(),
+      )
     },
     {
       output_export: native_publication_export_limits(),
@@ -856,7 +912,7 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     active_runtime,
     operation_capability,
     issuer_capability,
-    [local_executor, duckdb_executor, foreign_executor],
+    [local_executor, duckdb_executor, foreign_executor, pending_input_executor],
     journal,
     bundles,
     [local_budget, duckdb_budget],
@@ -951,6 +1007,44 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   }
   assert_eq(foreign_run_opens[0], 0)
   assert_true(runtime.cleanup(foreign_request).unwrap())
+  let pending_input_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    run_definition_cid,
+    "task-1-pending-input",
+    1,
+    "native-standard-pending-input-dispatch-1",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(local_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  let pending_input_operation = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_dispatch_json(pending_input_request, input_binding).unwrap(),
+  ).unwrap()
+  guard @native_remote_agent.advance_native_outbound_operation(
+      runtime,
+      Some(pending_input_operation),
+      acknowledge_foreign_acceptance,
+      observe_foreign_status,
+    )
+    is Err(
+      @native_remote_agent.RuntimeObserved(
+        @native_remote_runtime.Physical("standard-input-pending"),
+        _
+      )
+    ) else {
+    fail("pending input cleanup did not fail through the Agent")
+  }
+  assert_eq(input_cleanup_attempts[0], 1)
+  assert_true(runtime.cleanup(pending_input_request).unwrap())
+  assert_eq(input_cleanup_attempts[0], 2)
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())

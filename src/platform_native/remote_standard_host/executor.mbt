@@ -37,6 +37,33 @@ struct NativeRemoteStandardBoundRun {
 }
 
 ///|
+/// A resolver failure that retains any input cleanup owner acquired before a
+/// standard Run could be bound. The common runtime, rather than the resolver,
+/// decides when the dispatch may settle from this physical cleanup report.
+struct NativeRemoteStandardInputFailure {
+  code : String
+  cleanup : () -> Bool
+}
+
+///|
+pub fn prepare_native_remote_standard_input_failure(
+  code : String,
+  cleanup : () -> Bool,
+) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue] {
+  if code.is_empty() || code.length() > 128 {
+    return Err(InvalidConfiguration)
+  }
+  Ok({ code, cleanup, })
+}
+
+///|
+pub fn reject_native_remote_standard_input(
+  code : String,
+) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue] {
+  prepare_native_remote_standard_input_failure(code, () => true)
+}
+
+///|
 pub fn bind_native_remote_standard_run(
   request : @remote.DispatchRequest,
   binding : @remote.RemoteInputBinding,
@@ -115,9 +142,21 @@ fn remote_standard_failure(
 
 ///|
 fn remote_standard_rejection(
-  code : String,
+  failure : NativeRemoteStandardInputFailure,
 ) -> @runtime.NativeRemotePhysicalExecution {
-  @runtime.prepare_native_remote_failure(code, false, false, true, () => true).unwrap()
+  if (failure.cleanup)() {
+    @runtime.prepare_native_remote_failure(failure.code, false, false, true, () => {
+      true
+    }).unwrap()
+  } else {
+    @runtime.prepare_native_remote_failure(
+      failure.code,
+      false,
+      true,
+      false,
+      failure.cleanup,
+    ).unwrap()
+  }
 }
 
 ///|
@@ -259,7 +298,7 @@ fn execute_native_remote_standard_task(
   expected_task : Int,
   resolve_run : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> Result[
     NativeRemoteStandardBoundRun,
-    String,
+    NativeRemoteStandardInputFailure,
   ],
   limits : NativeRemoteStandardTaskLimits,
   request : @remote.DispatchRequest,
@@ -268,12 +307,14 @@ fn execute_native_remote_standard_task(
 ) -> @runtime.NativeRemotePhysicalExecution {
   let bound = match resolve_run(request, binding) {
     Ok(value) => value
-    Err(_) => return remote_standard_rejection("standard-input-resolve")
+    Err(failure) => return remote_standard_rejection(failure)
   }
   if bound.request_cid != @remote.dispatch_request_identity(request) ||
     bound.input_binding_cid != @remote.remote_input_binding_cid(binding) {
     ignore(bound.release())
-    return remote_standard_rejection("foreign-input-binding")
+    return remote_standard_rejection(
+      reject_native_remote_standard_input("foreign-input-binding").unwrap(),
+    )
   }
   let run = bound.run
   let completion = match
@@ -461,7 +502,7 @@ pub fn install_native_remote_standard_task_executor(
   expected_task : Int,
   resolve_run : (@remote.DispatchRequest, @remote.RemoteInputBinding) -> Result[
     NativeRemoteStandardBoundRun,
-    String,
+    NativeRemoteStandardInputFailure,
   ],
   limits : NativeRemoteStandardTaskLimits,
 ) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue] {
