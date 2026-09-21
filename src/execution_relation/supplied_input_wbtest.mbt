@@ -162,3 +162,59 @@ test "supplied budgets are cumulative and invalid input target is not a values i
     0,
   )
 }
+
+///|
+test "supplied relation read retains exact input position and liveness" {
+  let owner = input_owner()
+  let rows = capture_input(
+    owner,
+    0,
+    [input_cursor("{\"s\":\"ok\",\"n\":3}")],
+    max_rows=1,
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+  ).unwrap()
+  let live = Ref(true)
+  let read = prepare_supplied_relation_read(owner, 0, rows, fn() { live.val }).unwrap()
+  assert_true(supplied_relation_read_available(read))
+  assert_true(supplied_relation_read_matches_input(read, owner, 0))
+  assert_true(supplied_relation_read_matches_operation_input(read, owner, 0, 0))
+  assert_eq(supplied_relation_read_row_count(read), 1)
+  assert_true(
+    supplied_relation_read_checked_cell(read, 0, 0, {
+      max_nodes: 10,
+      max_depth: 10,
+      max_text_bytes: 100,
+    })
+    is Some({ value: @admitted.Number(3.0), .. }),
+  )
+  let binding = supplied_relation_input_binding(read)
+  assert_true(managed_input_binding_matches_input(binding, owner, 0))
+  assert_true(managed_input_binding_matches_supplied_read(binding, read))
+  live.val = false
+  assert_false(supplied_relation_read_available(read))
+  assert_true(supplied_relation_read_cell(read, 0, 0) is None)
+  assert_false(managed_input_binding_matches_input(binding, owner, 0))
+}
+
+///|
+test "supplied relation read rejects foreign owners and input positions" {
+  let owner = input_owner()
+  let rows = capture_input(owner, 0, [], max_rows=0, {
+    max_nodes: 0,
+    max_text_bytes: 0,
+    max_depth: 0,
+    max_work: 0,
+  }).unwrap()
+  assert_true(
+    prepare_supplied_relation_read(owner, 1, rows, fn() { true })
+    is Err(InvalidProjection),
+  )
+  assert_true(
+    prepare_supplied_relation_read(input_owner(), 0, rows, fn() { true })
+    is Err(ForeignReceiver),
+  )
+  assert_true(
+    prepare_supplied_relation_read(owner, 0, rows, fn() { false })
+    is Err(ProducerUnavailable),
+  )
+}

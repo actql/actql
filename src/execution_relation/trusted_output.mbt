@@ -24,6 +24,7 @@ struct TrustedOutputInput {
 ///|
 priv enum TrustedOutputInputValue {
   RelationInput(ProducerRead)
+  SuppliedRelationInput(SuppliedRelationRead)
   CarrierInput(@managed_carrier.ProducerReadReference)
 }
 
@@ -32,6 +33,13 @@ pub fn trusted_output_relation_input(
   input : ProducerRead,
 ) -> TrustedOutputInput {
   { value: RelationInput(input), }
+}
+
+///|
+pub fn trusted_output_supplied_relation_input(
+  input : SuppliedRelationRead,
+) -> TrustedOutputInput {
+  { value: SuppliedRelationInput(input), }
 }
 
 ///|
@@ -152,13 +160,23 @@ fn validate_trusted_output_contract_with_inputs(
           }
           input_bindings.push(input.bound.identity)
         }
+        SuppliedRelationInput(input) => {
+          if !supplied_relation_read_matches_input(input, owner, index) {
+            return Err(ForeignInputs)
+          }
+          input_bindings.push(supplied_relation_read_identity(input))
+        }
         CarrierInput(input) => {
           if !@managed_carrier.producer_read_reference_matches_input(
               input, owner, index,
             ) {
             return Err(ForeignInputs)
           }
-          input_bindings.push({ input_index: index, carrier: Some(input), })
+          input_bindings.push({
+            input_index: index,
+            carrier: Some(input),
+            supplied: None,
+          })
         }
       }
     }

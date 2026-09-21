@@ -9,6 +9,7 @@ struct ManagedInputBinding {
   profile_cid : String
   available : () -> Bool
   ordinary : ProducerRead?
+  supplied : SuppliedRelationRead?
   relation : ManagedCompletionReference?
   carrier : CarrierManagedCompletionReference?
 }
@@ -29,6 +30,7 @@ pub fn ordinary_relation_input_binding(
     ),
     available: fn() { producer_read_available(value) },
     ordinary: Some(value),
+    supplied: None,
     relation: None,
     carrier: None,
   }
@@ -45,6 +47,7 @@ pub fn[T] managed_relation_input_binding(
     profile_cid: managed_execution_profile_cid(value.output.profile),
     available: fn() { managed_producer_read_available(value) },
     ordinary: None,
+    supplied: None,
     relation: Some(managed_completed_reference(value.output)),
     carrier: None,
   }
@@ -61,8 +64,28 @@ pub fn managed_carrier_input_binding(
     profile_cid: managed_execution_profile_cid(value.output.profile),
     available: fn() { carrier_managed_producer_read_available(value) },
     ordinary: None,
+    supplied: None,
     relation: None,
     carrier: Some(carrier_managed_completed_reference(value.output)),
+  }
+}
+
+///|
+pub fn supplied_relation_input_binding(
+  value : SuppliedRelationRead,
+) -> ManagedInputBinding {
+  {
+    identity: Ref(()),
+    receiver: supplied_relation_read_receiver(value),
+    input_index: supplied_relation_read_input_index(value),
+    profile_cid: managed_execution_profile_cid(
+      selected_managed_execution_profile(),
+    ),
+    available: fn() { supplied_relation_read_available(value) },
+    ordinary: None,
+    supplied: Some(value),
+    relation: None,
+    carrier: None,
   }
 }
 
@@ -117,6 +140,19 @@ pub fn managed_input_binding_matches_ordinary_read(
   value.ordinary
   .map(actual => {
     producer_read_same_binding(actual, read) &&
+    managed_input_binding_available(value)
+  })
+  .unwrap_or(false)
+}
+
+///|
+pub fn managed_input_binding_matches_supplied_read(
+  value : ManagedInputBinding,
+  read : SuppliedRelationRead,
+) -> Bool {
+  value.supplied
+  .map(actual => {
+    supplied_relation_read_same_binding(actual, read) &&
     managed_input_binding_available(value)
   })
   .unwrap_or(false)

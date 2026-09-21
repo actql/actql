@@ -457,6 +457,8 @@ pub fn managed_input_binding_matches_ordinary_read(ManagedInputBinding, Producer
 
 pub fn managed_input_binding_matches_relation_reference(ManagedInputBinding, ManagedCompletionReference) -> Bool
 
+pub fn managed_input_binding_matches_supplied_read(ManagedInputBinding, SuppliedRelationRead) -> Bool
+
 pub fn managed_input_binding_profile_cid(ManagedInputBinding) -> String
 
 pub fn managed_input_binding_same(ManagedInputBinding, ManagedInputBinding) -> Bool
@@ -665,6 +667,8 @@ pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentCont
 
 pub fn prepare_streamed_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.Target, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[FixedProducerMeasurement, FixedInputGuardIssue]
 
+pub fn prepare_supplied_relation_read(@lowering_relation.BoundPrepared, Int, CapturedRows, () -> Bool) -> Result[SuppliedRelationRead, ProducerReadIssue]
+
 pub fn[P] prepare_trusted_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> AdmittedOutputRows?, inputs? : Array[ProducerRead]) -> Result[TrustedOutputPort[P], TrustedOutputIssue]
 
 pub fn[P] prepare_trusted_output_port_with_inputs(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> AdmittedOutputRows?, inputs? : Array[TrustedOutputInput]) -> Result[TrustedOutputPort[P], TrustedOutputIssue]
@@ -789,9 +793,33 @@ pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Val
 
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
 
+pub fn supplied_relation_input_binding(SuppliedRelationRead) -> ManagedInputBinding
+
+pub fn supplied_relation_read_available(SuppliedRelationRead) -> Bool
+
+pub fn supplied_relation_read_cell(SuppliedRelationRead, Int, Int) -> @value_admission.Value?
+
+pub fn supplied_relation_read_checked_cell(SuppliedRelationRead, Int, Int, @value_admission.Limits) -> @value_admission.CheckedValue?
+
+pub fn supplied_relation_read_input_index(SuppliedRelationRead) -> Int
+
+pub fn supplied_relation_read_matches_input(SuppliedRelationRead, @lowering_relation.BoundPrepared, Int) -> Bool
+
+pub fn supplied_relation_read_matches_operation_input(SuppliedRelationRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
+pub fn supplied_relation_read_receiver(SuppliedRelationRead) -> @lowering_relation.BoundPrepared
+
+pub fn supplied_relation_read_row_count(SuppliedRelationRead) -> Int
+
+pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelationRead) -> Bool
+
+pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
+
 pub fn trusted_output_carrier_input(@managed_carrier_runtime.ProducerReadReference) -> TrustedOutputInput
 
 pub fn trusted_output_relation_input(ProducerRead) -> TrustedOutputInput
+
+pub fn trusted_output_supplied_relation_input(SuppliedRelationRead) -> TrustedOutputInput
 
 pub fn[T] try_bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> Result[ManagedIdentityIssuer[T], ManagedIdentityIssuanceIssue]
 
@@ -1634,6 +1662,8 @@ pub(all) enum StoreIssue {
   MissingInput
   Limit
 }
+
+type SuppliedRelationRead
 
 type TrustedOutputInput
 

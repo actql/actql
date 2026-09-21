@@ -15,6 +15,7 @@ struct BoundProducerInput {
 priv struct ProducerBindingIdentity {
   input_index : Int
   carrier : @managed_carrier.ProducerReadReference?
+  supplied : CapturedRows?
 }
 
 ///|
@@ -110,7 +111,7 @@ pub fn bind_completed_input(
     Ok(_) => ()
   }
   Ok({
-    identity: { input_index, carrier: None, },
+    identity: { input_index, carrier: None, supplied: None, },
     receiver,
     input_index,
     output,

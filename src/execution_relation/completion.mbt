@@ -136,6 +136,7 @@ pub fn completed_output_matches_inputs(
   // their checked port positions, not that incidental order, are authoritative.
   for identity in completion.input_bindings {
     guard identity.carrier is None &&
+      identity.supplied is None &&
       inputs.get(identity.input_index) is Some(input) &&
       physical_equal(input.bound.identity, identity) else {
       return false
