@@ -169,10 +169,12 @@ type NativeRemoteStandardRowCodec
 type NativeRemoteStandardRunOwner
 
 type NativeRemoteStandardSiteComponent
+pub fn NativeRemoteStandardSiteComponent::acknowledge_output_plan(Self, @remote_site_protocol.RemoteOutputPlan) -> Result[Unit, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::acknowledge_output_result(Self, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::close(Self) -> Result[Bool, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::inspect_observed_output_facts(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_runtime.NativeRemoteOutputFacts, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::observed_completion(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_runtime.NativeRemoteRuntimeCompletion, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::observed_output_subject(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_site_protocol.RemoteManagedOutputSubject, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
@@ -192,10 +194,12 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
 }
 
 type NativeRemoteStandardSiteDistribution
+pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_plan(Self, @remote_site_protocol.RemoteOutputPlan) -> Result[Unit, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::acknowledge_output_result(Self, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::close(Self) -> Result[Bool, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::inspect_observed_output_facts(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_runtime.NativeRemoteOutputFacts, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::observed_completion(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_runtime.NativeRemoteRuntimeCompletion, NativeRemoteStandardSiteDistributionIssue]
+pub fn NativeRemoteStandardSiteDistribution::observed_output_subject(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion) -> Result[@remote_site_protocol.RemoteManagedOutputSubject, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::open_observed_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]

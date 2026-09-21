@@ -660,6 +660,18 @@ pub fn strategy_remote_output_intent_identity(@remote_site_protocol.RemoteOutput
 
 pub fn strategy_remote_output_intent_prepare(@remote_site_protocol.DispatchRequest, String, String, String, String, String, String, Int, String, Int, Int64, Int64, String, String, String, String) -> @remote_site_protocol.RemoteOutputIntent raise NodeHostFailure
 
+pub fn strategy_remote_output_plan_admit(String, @remote_site_protocol.RemotePollOutput, @remote_site_protocol.RemoteManagedOutputSubject, Int, Int, Int64) -> @remote_site_protocol.RemoteOutputPlan raise NodeHostFailure
+
+pub fn strategy_remote_output_plan_identity(@remote_site_protocol.RemoteOutputPlan) -> String
+
+pub fn strategy_remote_output_plan_json(@remote_site_protocol.RemoteOutputPlan) -> String raise NodeHostFailure
+
+pub fn strategy_remote_output_plan_payload_request(@remote_site_protocol.RemoteOutputPlan) -> @publication_payload.PublicationPayloadRequest
+
+pub fn strategy_remote_output_plan_prepare(@remote_site_protocol.RemotePollOutput, @remote_site_protocol.RemoteManagedOutputSubject, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputPlan raise NodeHostFailure
+
+pub fn strategy_remote_output_plan_transfer_request(@remote_site_protocol.RemoteOutputPlan) -> @remote_transfer.RemoteTransferRequest
+
 pub fn strategy_remote_output_result_admit(String, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
 
 pub fn strategy_remote_output_result_identity(@remote_site_protocol.RemoteOutputResult) -> String
@@ -685,6 +697,10 @@ pub fn strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest)
 pub fn strategy_remote_poll_output_admit(String) -> @remote_site_protocol.RemotePollOutput raise NodeHostFailure
 
 pub fn strategy_remote_poll_output_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteOutputIntent) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_output_plan_admit(String) -> @remote_site_protocol.RemotePollOutput raise NodeHostFailure
+
+pub fn strategy_remote_poll_output_plan_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteOutputIntent) -> String raise NodeHostFailure
 
 pub fn strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 

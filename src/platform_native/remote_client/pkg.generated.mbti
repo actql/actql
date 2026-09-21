@@ -10,6 +10,8 @@ import {
 // Values
 pub fn acknowledge_acceptance(@remote_journal.Journal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteClientIssue]
 
+pub fn acknowledge_output_plan(@http_client.Client, String, @remote_site_protocol.RemoteOutputPlan) -> Result[Unit, NativeRemoteClientIssue]
+
 pub fn acknowledge_output_result(@http_client.Client, String, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteClientIssue]
 
 pub fn acknowledge_status(@remote_journal.Journal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord?, NativeRemoteClientIssue]

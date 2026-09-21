@@ -151,6 +151,8 @@ pub fn request_journal_key(RemoteTransferRequest) -> Array[String]
 
 pub fn request_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
 
+pub fn request_manifest(RemoteTransferRequest) -> @physical_manifest.PhysicalManifest
+
 pub fn request_manifest_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
 
 pub fn request_projection(RemoteTransferRequest) -> Array[String]
