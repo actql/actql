@@ -113,6 +113,38 @@ pub fn compare_key_values(
 }
 
 ///|
+/// Compare grouping keys in canonical ascending order with nulls first.
+pub fn compare_group_key_values(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[Int, KeyOrderIssue] {
+  if !@contract.key_comparable(left.contract, right.contract) {
+    return Err(InvalidKey)
+  }
+  match (left.value, right.value) {
+    (Null, Null) =>
+      if left.contract.nullable && right.contract.nullable {
+        Ok(0)
+      } else {
+        Err(InvalidKey)
+      }
+    (Null, _) =>
+      if left.contract.nullable {
+        compare_nonnull_order_values(right, right).map(_ => -1)
+      } else {
+        Err(InvalidKey)
+      }
+    (_, Null) =>
+      if right.contract.nullable {
+        compare_nonnull_order_values(left, left).map(_ => 1)
+      } else {
+        Err(InvalidKey)
+      }
+    _ => compare_nonnull_order_values(left, right)
+  }
+}
+
+///|
 fn same_author_order_domain(
   left : @contract.Shape,
   right : @contract.Shape,

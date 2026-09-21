@@ -1996,21 +1996,26 @@ fn direct_nullable_ranking_carrier() -> @carrier_contract.Carrier {
     @value_contract.NumberType,
     nullable=false,
   )
-  let priority = @value_contract.primitive(
+  let nullable_number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=true,
+  )
+  let nullable_text = @value_contract.primitive(
     @value_contract.StringType,
     nullable=true,
   )
   @carrier_contract.relation(
     @carrier_contract.rows(
       [
-        (@schema.Unqualified("q"), Some(number)),
+        (@schema.Unqualified("q"), Some(nullable_number)),
+        (@schema.Unqualified("segment"), Some(nullable_text)),
         (@schema.Unqualified("id"), Some(number)),
         (@schema.Unqualified("score"), Some(number)),
-        (@schema.Unqualified("priority"), Some(priority)),
+        (@schema.Unqualified("priority"), Some(nullable_text)),
       ],
       field_set=@carrier_contract.Closed,
-      max_fields=4,
-      max_name_bytes=16,
+      max_fields=5,
+      max_name_bytes=23,
     ).unwrap(),
   )
 }
@@ -2027,7 +2032,9 @@ fn direct_nullable_ranking_owner() -> @lower.BoundPrepared {
   ).unwrap()
   direct_nearest_bind(
     @pipeline.check_with_evidence(
-      input_cursor("[{\"select\":[\"q\",\"id\",\"score\",\"priority\"]}]"),
+      input_cursor(
+        "[{\"select\":[\"q\",\"segment\",\"id\",\"score\"," + "\"priority\"]}]",
+      ),
       [("rows", @pipeline.RankingInput(ranking))],
       None,
       Some(input_cursor("\"rows\"")),
@@ -2053,7 +2060,7 @@ fn direct_nullable_ranking_fusion_owner(
     @pipeline.check_with_evidence(
       input_cursor(
         "[{\"merge_rankings\":{\"with\":\"right\"," +
-        "\"by\":[\"q\"],\"candidate\":\"id\"," +
+        "\"by\":[\"q\",\"segment\"],\"candidate\":\"id\"," +
         "\"score\":\"score\",\"tie_break\":[\"priority\"]," +
         "\"k\":3,\"score_policy\":" +
         policy +
@@ -2097,7 +2104,7 @@ fn direct_nullable_ranking_fusion_owner(
 ///|
 fn direct_nullable_ranking_output(
   owner : @lower.BoundPrepared,
-  rows : Array[(Double, Double, Double, String?)],
+  rows : Array[(Double?, String?, Double, Double, String?)],
 ) -> @execution.CompletedOutput raise {
   let values = @execution.prepare_admitted_output(
     owner,
@@ -2113,26 +2120,39 @@ fn direct_nullable_ranking_output(
     let cells = Array::makei(@schema.field_count(schema), column => {
       let field = @schema.field_at(schema, column).unwrap()
       let name = @schema.reference_name(field.name)
-      if name == "priority" {
+      if name == "segment" || name == "priority" {
+        let item = if name == "segment" { row.1 } else { row.4 }
         @admitted.admit(
           field.contract,
           input_cursor(
-            match row.3 {
+            match item {
               Some(value) => "\"" + value + "\""
               None => "null"
             },
           ),
           { max_nodes: 1, max_depth: 1, max_text_bytes: 10, },
         ).unwrap()
+      } else if name == "q" {
+        @admitted.admit(
+          field.contract,
+          input_cursor(
+            match row.0 {
+              Some(value) => value.to_string()
+              None => "null"
+            },
+          ),
+          { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+        ).unwrap()
       } else {
-        let value = if name == "q" {
-          row.0
-        } else if name == "id" {
-          row.1
-        } else {
-          row.2
-        }
-        direct_ranking_number(owner, column, value)
+        direct_ranking_number(
+          owner,
+          column,
+          if name == "id" {
+            row.2
+          } else {
+            row.3
+          },
+        )
       }
     })
     @execution.append_admitted_output(values, cells).unwrap()
@@ -2257,14 +2277,18 @@ fn run_direct_nullable_ranking_provider(
   let right = direct_nullable_ranking_owner()
   let owner = direct_nullable_ranking_fusion_owner(left, right, policy)
   let left_output = direct_nullable_ranking_output(left, [
-    (1.0, 1.0, 0.8, Some("x")),
-    (1.0, 2.0, 0.6, None),
-    (1.0, 3.0, 0.6, Some("a")),
+    (None, None, 1.0, 0.8, Some("x")),
+    (None, None, 2.0, 0.6, None),
+    (None, None, 3.0, 0.6, Some("a")),
+    (None, Some("a"), 4.0, 0.9, Some("b")),
+    (Some(1.0), None, 5.0, 0.9, Some("b")),
   ])
   let right_output = direct_nullable_ranking_output(right, [
-    (1.0, 1.0, 0.6, Some("x")),
-    (1.0, 2.0, 0.4, None),
-    (1.0, 3.0, 0.4, Some("a")),
+    (None, None, 1.0, 0.6, Some("x")),
+    (None, None, 2.0, 0.4, None),
+    (None, None, 3.0, 0.4, Some("a")),
+    (None, Some("a"), 4.0, 0.7, Some("b")),
+    (Some(1.0), None, 5.0, 0.7, Some("b")),
   ])
   let inputs = [
     @execution.prepare_producer_read(
@@ -2317,8 +2341,8 @@ fn run_direct_nullable_ranking_provider(
       column,
     )
   }
-  assert_eq(@execution.completed_row_count(result), 3)
-  for row, candidate in [1.0, 3.0, 2.0] {
+  assert_eq(@execution.completed_row_count(result), 5)
+  for row, candidate in [1.0, 3.0, 2.0, 4.0, 5.0] {
     assert_true(
       @execution.completed_cell(result, row, columns.get("id").unwrap())
       is Some(Number(actual)) &&
@@ -2330,6 +2354,32 @@ fn run_direct_nullable_ranking_provider(
       actual == expected_scores[row],
     )
   }
+  for row in 0..<3 {
+    assert_true(
+      @execution.completed_cell(result, row, columns.get("q").unwrap())
+      is Some(Null),
+    )
+    assert_true(
+      @execution.completed_cell(result, row, columns.get("segment").unwrap())
+      is Some(Null),
+    )
+  }
+  assert_true(
+    @execution.completed_cell(result, 3, columns.get("q").unwrap())
+    is Some(Null),
+  )
+  assert_true(
+    @execution.completed_cell(result, 3, columns.get("segment").unwrap())
+    is Some(Text("a")),
+  )
+  assert_true(
+    @execution.completed_cell(result, 4, columns.get("q").unwrap())
+    is Some(Number(1.0)),
+  )
+  assert_true(
+    @execution.completed_cell(result, 4, columns.get("segment").unwrap())
+    is Some(Null),
+  )
   assert_true(@local_connector.managed_provider_stopped(execution))
   assert_true(
     @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
@@ -2355,10 +2405,10 @@ test "registered VecA provider authenticates weighted ranking scores" {
 
 ///|
 test "registered VecA provider orders nullable business ties" {
-  run_direct_nullable_ranking_provider("\"max\"", [0.8, 0.6, 0.6])
+  run_direct_nullable_ranking_provider("\"max\"", [0.8, 0.6, 0.6, 0.9, 0.9])
   run_direct_nullable_ranking_provider(
     "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}",
-    [0.7, 0.5, 0.5],
+    [0.7, 0.5, 0.5, 0.8, 0.8],
   )
 }
 
@@ -2628,10 +2678,14 @@ fn direct_rrf_carrier() -> @carrier_contract.Carrier {
     @value_contract.NumberType,
     nullable=false,
   )
+  let nullable_number = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=true,
+  )
   @carrier_contract.relation(
     @carrier_contract.rows(
       [
-        (@schema.Unqualified("q"), Some(number)),
+        (@schema.Unqualified("q"), Some(nullable_number)),
         (@schema.Unqualified("id"), Some(number)),
         (@schema.Unqualified("rank"), Some(number)),
       ],
@@ -2640,6 +2694,67 @@ fn direct_rrf_carrier() -> @carrier_contract.Carrier {
       max_name_bytes=7,
     ).unwrap(),
   )
+}
+
+///|
+fn direct_nullable_rrf_output(
+  owner : @lower.BoundPrepared,
+  rows : Array[(Double?, Double, Double)],
+) -> @execution.CompletedOutput raise {
+  let values = @execution.prepare_admitted_output(
+    owner,
+    @pipeline.Step(0),
+    100,
+    { max_nodes: 10000, max_text_bytes: 10000, max_depth: 10, max_work: 10000, },
+  ).unwrap()
+  let schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  for row in rows {
+    let cells = Array::makei(@schema.field_count(schema), column => {
+      let field = @schema.field_at(schema, column).unwrap()
+      let name = @schema.reference_name(field.name)
+      if name == "q" {
+        @admitted.admit(
+          field.contract,
+          input_cursor(
+            match row.0 {
+              Some(value) => value.to_string()
+              None => "null"
+            },
+          ),
+          { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+        ).unwrap()
+      } else {
+        direct_ranking_number(
+          owner,
+          column,
+          if name == "id" {
+            row.1
+          } else {
+            row.2
+          },
+        )
+      }
+    })
+    @execution.append_admitted_output(values, cells).unwrap()
+  }
+  let rows = @execution.finish_admitted_output(values).unwrap()
+  let completion = @execution.prepare_trusted_output_port(
+    task_test_completion(owner),
+    @pipeline.Step(0),
+    1000,
+    10000,
+    (proof : @execution.AdmittedOutputRows) => {
+      if physical_equal(proof, rows) {
+        Some(rows)
+      } else {
+        None
+      }
+    },
+  ).unwrap()
+  @execution.complete_trusted_output(completion, rows).unwrap()
 }
 
 ///|
@@ -2775,6 +2890,103 @@ fn run_direct_invalid_rrf(
 }
 
 ///|
+fn run_direct_nullable_rrf() -> Unit raise {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(
+        owner,
+        0,
+        left,
+        direct_nullable_rrf_output(left, [
+          (None, 1.0, 1.0),
+          (Some(1.0), 2.0, 1.0),
+        ]),
+      ).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(
+        owner,
+        1,
+        right,
+        direct_nullable_rrf_output(right, [
+          (None, 1.0, 1.0),
+          (Some(1.0), 3.0, 1.0),
+        ]),
+      ).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut output = None
+  while output is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) => fail("RRF returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("nullable RRF failed")
+      @local_connector.Stopped(..) => fail("nullable RRF stopped")
+    }
+  }
+  let result = output.unwrap()
+  let output_schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  let columns : Map[String, Int] = Map([])
+  for column in 0..<@schema.field_count(output_schema) {
+    columns.set(
+      @schema.reference_name(
+        @schema.field_at(output_schema, column).unwrap().name,
+      ),
+      column,
+    )
+  }
+  assert_eq(@execution.completed_row_count(result), 3)
+  for row, candidate in [1.0, 2.0, 3.0] {
+    assert_true(
+      @execution.completed_cell(result, row, columns.get("id").unwrap())
+      is Some(Number(actual)) &&
+      actual == candidate,
+    )
+  }
+  assert_true(
+    @execution.completed_cell(result, 0, columns.get("q").unwrap())
+    is Some(Null),
+  )
+  for row in 1..<3 {
+    assert_true(
+      @execution.completed_cell(result, row, columns.get("q").unwrap())
+      is Some(Number(1.0)),
+    )
+  }
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
 test "registered VecA provider rejects duplicate RRF candidates" {
   run_direct_invalid_rrf([(1.0, 1.0, 1.0), (1.0, 1.0, 2.0)])
 }
@@ -2782,6 +2994,11 @@ test "registered VecA provider rejects duplicate RRF candidates" {
 ///|
 test "registered VecA provider rejects noncontiguous RRF ranks" {
   run_direct_invalid_rrf([(1.0, 1.0, 1.0), (1.0, 2.0, 3.0)])
+}
+
+///|
+test "registered VecA provider groups nullable RRF keys" {
+  run_direct_nullable_rrf()
 }
 
 ///|

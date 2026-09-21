@@ -48,6 +48,8 @@ pub fn checked_timestamp_value(String, @value_contract.Contract) -> CheckedValue
 
 pub fn compare_author_order_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
+pub fn compare_group_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
+
 pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?

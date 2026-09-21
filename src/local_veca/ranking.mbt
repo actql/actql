@@ -276,7 +276,7 @@ fn ranking_values_compare(
   }
   for index in 0..<left.length() {
     let comparison = match
-      @value.compare_key_values(left[index], right[index]) {
+      @value.compare_group_key_values(left[index], right[index]) {
       Ok(value) => value
       Err(issue) => return Err(RankingKeyOrder(issue))
     }
@@ -480,7 +480,7 @@ fn finish_ranking_record(state : RankingState) -> Result[Unit, RankingIssue] {
     guard value is Some(value) else {
       return Err(InvalidRankingRecord(state.input, state.row))
     }
-    match @value.compare_key_values(value, value) {
+    match @value.compare_group_key_values(value, value) {
       Ok(_) => group.push(value)
       Err(issue) => return Err(RankingKeyOrder(issue))
     }
