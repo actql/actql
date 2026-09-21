@@ -15,6 +15,150 @@ struct PreparedGraphShortest {
 }
 
 ///|
+/// The checked Relation schema produced by this shortest-path occurrence.
+pub fn graph_shortest_output_schema(
+  value : PreparedGraphShortest,
+) -> @schema.Schema {
+  value.node.output_schema.unwrap()
+}
+
+///|
+/// The exact checked scalar endpoint, when this side uses the scalar form.
+pub fn graph_shortest_endpoint_single(
+  value : PreparedGraphShortest,
+  side : @schema.Side,
+) -> @value.CheckedValue? {
+  let endpoint = if side == @schema.Left { value.source } else { value.target }
+  match endpoint.checked {
+    @graph.Single(single) => Some(single)
+    @graph.Selected(_) => None
+  }
+}
+
+///|
+/// Number of literal identities in a selected endpoint. Other forms return
+/// zero, so the caller must also inspect the typed relation/predicate views.
+pub fn graph_shortest_endpoint_id_count(
+  value : PreparedGraphShortest,
+  side : @schema.Side,
+) -> Int {
+  let endpoint = if side == @schema.Left { value.source } else { value.target }
+  match endpoint.checked {
+    @graph.Single(_) => 0
+    @graph.Selected(selector) => @graph.selector_id_count(selector)
+  }
+}
+
+///|
+/// One checked literal endpoint identity in authored order.
+pub fn graph_shortest_endpoint_id_at(
+  value : PreparedGraphShortest,
+  side : @schema.Side,
+  index : Int,
+) -> @value.CheckedValue? {
+  let endpoint = if side == @schema.Left { value.source } else { value.target }
+  match endpoint.checked {
+    @graph.Single(_) => None
+    @graph.Selected(selector) => @graph.selector_id_at(selector, index)
+  }
+}
+
+///|
+/// The selected field for a Relation-backed endpoint selector.
+pub fn graph_shortest_endpoint_relation_field(
+  value : PreparedGraphShortest,
+  side : @schema.Side,
+) -> @schema.FieldName? {
+  let endpoint = if side == @schema.Left { value.source } else { value.target }
+  match endpoint.checked {
+    @graph.Single(_) => None
+    @graph.Selected(selector) =>
+      match @graph.selector_form(selector) {
+        @graph.RelationIds(field~, ..) => Some(field)
+        _ => None
+      }
+  }
+}
+
+///|
+/// The lowered predicate for a predicate-backed endpoint selector.
+pub fn graph_shortest_endpoint_predicate(
+  value : PreparedGraphShortest,
+  side : @schema.Side,
+) -> Expression? {
+  let endpoint = if side == @schema.Left { value.source } else { value.target }
+  endpoint.predicate
+}
+
+///|
+/// The exact operation input port for a Relation-backed endpoint selector.
+pub fn graph_shortest_endpoint_input_port(
+  value : PreparedGraphShortest,
+  side : @schema.Side,
+) -> Int? {
+  let endpoint = if side == @schema.Left { value.source } else { value.target }
+  endpoint.input_port
+}
+
+///|
+/// The checked cross-endpoint selection rule.
+pub fn graph_shortest_selection(
+  value : PreparedGraphShortest,
+) -> @graph.PathSelection {
+  @graph.shortest_selection(value.checked)
+}
+
+///|
+/// The checked traversal direction.
+pub fn graph_shortest_direction(
+  value : PreparedGraphShortest,
+) -> @graph.Direction {
+  @graph.shortest_direction(value.checked)
+}
+
+///|
+/// The positive finite integral hop limit, if representable by this runtime.
+pub fn graph_shortest_max_hops(value : PreparedGraphShortest) -> Int? {
+  let hops = @graph.shortest_max_hops(value.checked)
+  if hops <= 0.0 || hops.is_nan() || hops.is_inf() || hops > 2147483647.0 {
+    None
+  } else if hops.to_int().to_double() == hops {
+    Some(hops.to_int())
+  } else {
+    None
+  }
+}
+
+///|
+/// Number of admitted edge labels, preserving absence versus an empty list.
+pub fn graph_shortest_type_count(value : PreparedGraphShortest) -> Int? {
+  @graph.shortest_type_count(value.checked)
+}
+
+///|
+/// One admitted edge label in authored order.
+pub fn graph_shortest_type_at(
+  value : PreparedGraphShortest,
+  index : Int,
+) -> String? {
+  @graph.shortest_type_at(value.checked, index)
+}
+
+///|
+/// The checked non-null numeric edge field used as path weight.
+pub fn graph_shortest_weight(
+  value : PreparedGraphShortest,
+) -> @schema.FieldName? {
+  @graph.shortest_weight(value.checked)
+}
+
+///|
+/// The resolved optional output row guard.
+pub fn graph_shortest_output_guard(value : PreparedGraphShortest) -> Int64? {
+  value.output_guard
+}
+
+///|
 pub(all) enum GraphShortestIssue {
   InvalidGraphShortestLimits
   InvalidGraphShortestWiring
