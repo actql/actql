@@ -356,7 +356,7 @@ row order. A real timer delivers cancellation during strong-component work;
 the bounded kernel reports stop, no component result is completed, and retry
 cleanup releases all holdings and reservations. Direct portable tests cover
 the same cancellation boundary for weak and strong execution. `components`
-is complete. Commit `26292407` connects the first bounded `traverse` variant:
+is complete. Commit `235f8b41` connects the first bounded `traverse` variant:
 a literal singleton start, one homogeneous directional hop rule, node output,
 finite minimum and maximum hop counts, and the resolved output guard. The
 registered provider rejects other variants before execution. The implemented
@@ -859,7 +859,7 @@ exact Graph binding through managed Relation completion, two downstream
 computations, independent release, and Effect-free Named Result publication.
 The direct kernel and standard Host fixtures pass on JS, Wasm, and native.
 
-At `04a5d5f2`, all three direction branches run through the real Node standard
+At `f96153c8`, all three direction branches run through the real Node standard
 Host and the Effect-free publication store, where the named result is retrieved
 and checked independently. The environment event loop delivers cancellation
 to an active bounded reach walk; the kernel observes it, confirms stop, and
