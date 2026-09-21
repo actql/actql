@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/bounded_value_set"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance(Execution, Int) -> Result[Poll, Issue]
+
+pub fn cleanup(Execution) -> Result[Bool, Issue]
+
+pub fn cleanup_pending(Execution) -> Bool
+
+pub fn max_noninterruptible_value_bytes(Execution) -> Int
+
+pub fn max_noninterruptible_value_nodes(Execution) -> Int
+
+pub fn start(@bounded_execution.Control, Operation, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_contract.Contract, @value_admission.Limits, Int) -> Result[Execution, Issue]
+
+pub fn stopped(Execution) -> Bool
+
+// Errors
+
+// Types and methods
+type Execution
+
+pub(all) enum Issue {
+  InvalidSet
+  WorkspaceLimit
+  ValueLimit
+  CompleteOrder(@value_admission.CompleteOrderIssue)
+  Execution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Operation {
+  Union
+  Difference
+} derive(Eq, @debug.Debug)
+
+pub enum Poll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@value_admission.CheckedValue, progress~ : Int64, work~ : Int64)
+  Failed(Issue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+// Type aliases
+
+// Traits
