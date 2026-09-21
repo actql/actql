@@ -90,7 +90,7 @@ pub fn start_complete_equality(
   }
   Ok({
     limits,
-    frames: [CompareValue(left.value, right.value, 1)],
+    frames: [CompareValue(left.value, right.value, 0)],
     nodes: 0,
     text_bytes: 0,
     terminal: false,
@@ -136,11 +136,15 @@ pub fn advance_complete_equality(
     work += 1
     match frame {
       CompareValue(left, right, depth) => {
-        if depth > value.limits.max_depth ||
-          value.nodes >= value.limits.max_nodes {
+        if value.nodes >= value.limits.max_nodes {
           return equality_failure(value, CompleteEqualityLimit, work)
         }
         value.nodes += 1
+        let container = left is (Array(_) | Object(_) | Vector(_))
+        if container && depth >= value.limits.max_depth {
+          return equality_failure(value, CompleteEqualityLimit, work)
+        }
+        let child_depth = depth + (if container { 1 } else { 0 })
         match (left, right) {
           (Null, Null) => ()
           (Boolean(a), Boolean(b)) =>
@@ -172,9 +176,9 @@ pub fn advance_complete_equality(
             }
           }
           (Array(a), Array(b)) =>
-            value.frames.push(CompareArray(a, b, 0, depth))
+            value.frames.push(CompareArray(a, b, 0, child_depth))
           (Object(a), Object(b)) =>
-            value.frames.push(CompareObject(a, b, 0, depth))
+            value.frames.push(CompareObject(a, b, 0, child_depth))
           (Vector(a), Vector(b)) => value.frames.push(CompareVector(a, b, 0))
           (Reference(a), Reference(b)) => {
             if !reference_available(a) || !reference_available(b) {
@@ -216,7 +220,7 @@ pub fn advance_complete_equality(
             CompareValue(
               element_at(left, index).unwrap(),
               element_at(right, index).unwrap(),
-              depth + 1,
+              depth,
             ),
           )
         }
@@ -238,7 +242,7 @@ pub fn advance_complete_equality(
             return equality_result(value, false, work)
           }
           value.frames.push(CompareObject(left, right, index + 1, depth))
-          value.frames.push(CompareValue(left_value, right_value, depth + 1))
+          value.frames.push(CompareValue(left_value, right_value, depth))
         }
       }
       CompareVector(left, right, index) => {
@@ -248,6 +252,10 @@ pub fn advance_complete_equality(
           return equality_result(value, false, work)
         }
         if index < left_count {
+          if value.nodes >= value.limits.max_nodes {
+            return equality_failure(value, CompleteEqualityLimit, work)
+          }
+          value.nodes += 1
           if element_at(left, index) != element_at(right, index) {
             return equality_result(value, false, work)
           }

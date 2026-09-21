@@ -38,11 +38,12 @@ fn values_equal(
   left : CheckedValue,
   right : CheckedValue,
   limits? : Limits = { max_nodes: 1000, max_depth: 20, max_text_bytes: 10000, },
+  quantum? : Int = 1,
 ) -> Result[(Bool, Int), CompleteEqualityIssue] {
   let state = start_complete_equality(left, right, limits).unwrap()
   let mut work = 0
   while true {
-    match advance_complete_equality(state, 1) {
+    match advance_complete_equality(state, quantum) {
       EqualityContinue(work=used) => work += used
       EqualityComplete(equal~, work=used) => return Ok((equal, work + used))
       EqualityFailed(issue, work=used) => {
@@ -136,6 +137,71 @@ test "complete equality is resumable and enforces exact value limits" {
     values_equal(left, right, limits={
       max_nodes: 4,
       max_depth: 2,
+      max_text_bytes: 0,
+    }).unwrap().0,
+    true,
+  )
+}
+
+///|
+test "complete equality shares admission node and depth limits" {
+  let number = equality_contract("{\"type\":\"number\",\"nullable\":false}")
+  let scalar = equality_value(number, "1")
+  for quantum in [1, 2, 3, 4, 31, 32, 1024] {
+    assert_eq(
+      values_equal(
+        scalar,
+        scalar,
+        limits={ max_nodes: 1, max_depth: 0, max_text_bytes: 0, },
+        quantum~,
+      ).unwrap().0,
+      true,
+    )
+  }
+
+  let vector = equality_contract(
+    "{\"type\":\"vector\",\"nullable\":false," +
+    "\"dimensions\":3,\"element_type\":\"f32\"}",
+  )
+  let vector_value = equality_value(vector, "[1,2,3]")
+  for quantum in [1, 1024] {
+    assert_eq(
+      values_equal(
+        vector_value,
+        vector_value,
+        limits={ max_nodes: 3, max_depth: 1, max_text_bytes: 0, },
+        quantum~,
+      ),
+      Err(CompleteEqualityLimit),
+    )
+    assert_eq(
+      values_equal(
+        vector_value,
+        vector_value,
+        limits={ max_nodes: 4, max_depth: 1, max_text_bytes: 0, },
+        quantum~,
+      ).unwrap().0,
+      true,
+    )
+  }
+
+  let array = equality_contract(
+    "{\"type\":\"array\",\"nullable\":false," +
+    "\"items\":{\"type\":\"number\",\"nullable\":false}}",
+  )
+  let array_value = equality_value(array, "[1]")
+  assert_eq(
+    values_equal(array_value, array_value, limits={
+      max_nodes: 2,
+      max_depth: 0,
+      max_text_bytes: 0,
+    }),
+    Err(CompleteEqualityLimit),
+  )
+  assert_eq(
+    values_equal(array_value, array_value, limits={
+      max_nodes: 2,
+      max_depth: 1,
       max_text_bytes: 0,
     }).unwrap().0,
     true,
