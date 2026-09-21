@@ -118,6 +118,10 @@ pub(all) struct NativeResultDeliverySuccess {
   delivered_sha256 : String
 }
 
+type PayloadCleanupOwner
+pub fn PayloadCleanupOwner::pending(Self) -> Bool
+pub fn PayloadCleanupOwner::retry(Self) -> Result[Bool, NativePublicationStoreIssue]
+
 type PayloadDelivery
 pub fn PayloadDelivery::close(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn PayloadDelivery::finish(Self) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue]
@@ -142,6 +146,7 @@ pub fn ResultDelivery::next(Self, Int, String) -> Result[NativePublicationDelive
 pub fn ResultDelivery::terminate(Self, Int?, Bool, String, Int?, String?, String) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue]
 
 type Store
+pub fn Store::acquire_payload_cleanup(Self, @publication_payload.PublicationPayloadRequest) -> Result[PayloadCleanupOwner, NativePublicationStoreIssue]
 pub fn Store::begin_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[PayloadWriter, NativePublicationStoreIssue]
 pub fn Store::begin_result_delivery(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int64) -> Result[ResultDelivery, NativePublicationStoreIssue]
 pub fn Store::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue]

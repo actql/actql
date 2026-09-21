@@ -28,3 +28,8 @@ import {
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "actql/actql/platform_native/sqlite",
+  "moonbitlang/core/env",
+} for "wbtest"

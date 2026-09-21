@@ -31,6 +31,16 @@ struct PayloadWriter {
 }
 
 ///|
+/// Exact recovery owner for one payload request whose writer could not be
+/// returned or cancelled durably. It never scans or reclaims another active
+/// payload occurrence.
+struct PayloadCleanupOwner {
+  store : Store
+  request : @payload.PublicationPayloadRequest
+  mut complete : Bool
+}
+
+///|
 struct PayloadReader {
   store : Store
   material_generation_cid : String
@@ -516,6 +526,69 @@ fn retry_pending_writer(
       Err(issue)
     }
   }
+}
+
+///|
+/// Acquire the cleanup responsibility retained by one exact payload request.
+/// The caller must use this only after an operation reports that cleanup is
+/// pending; ordinary admission rejection grants no recovery authority.
+pub fn Store::acquire_payload_cleanup(
+  self : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[PayloadCleanupOwner, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if @payload.publication_payload_request_store_authority(request) !=
+    self.authority_cid {
+    return Err(StateCollision)
+  }
+  let key = record_key(request)
+  let current = match load_record(self, key) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if @payload.publication_payload_request_identity(
+      @payload.publication_payload_record_request(current),
+    ) !=
+    @payload.publication_payload_request_identity(request) {
+    return Err(StateCollision)
+  }
+  Ok({ store: self, request, complete: false, })
+}
+
+///|
+pub fn PayloadCleanupOwner::pending(self : PayloadCleanupOwner) -> Bool {
+  !self.complete
+}
+
+///|
+/// Retry only the exact pending writer or durable payload record fixed when
+/// this owner was acquired.
+pub fn PayloadCleanupOwner::retry(
+  self : PayloadCleanupOwner,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  if self.complete {
+    return Ok(false)
+  }
+  let key = record_key(self.request)
+  if self.store.pending_writers.contains(key) {
+    match retry_pending_writer(self.store, key) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    let current = match load_record(self.store, key) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match reclaim_record(self.store, current) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  self.complete = true
+  Ok(true)
 }
 
 ///|

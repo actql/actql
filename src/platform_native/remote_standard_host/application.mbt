@@ -47,7 +47,7 @@ struct NativeRemoteStandardPayloadFailure {
   issue : NativeRemoteStandardPayloadIssue
   mut reader : @runtime.NativeRemoteOutputReader?
   mut writer : @publication_store.PayloadWriter?
-  mut store_recovery : @publication_store.Store?
+  mut store_recovery : @publication_store.PayloadCleanupOwner?
 }
 
 ///|
@@ -113,8 +113,8 @@ pub fn retry_native_remote_standard_payload_failure_cleanup(
   }
   if failure.writer is None {
     match failure.store_recovery {
-      Some(store) =>
-        match store.recover() {
+      Some(owner) =>
+        match owner.retry() {
           Ok(_) => failure.store_recovery = None
           Err(_) => ()
         }
@@ -130,12 +130,26 @@ fn failed_payload_stream(
   reader : @runtime.NativeRemoteOutputReader?,
   writer : @publication_store.PayloadWriter?,
   store : @publication_store.Store?,
+  request : @payload.PublicationPayloadRequest?,
 ) -> NativeRemoteStandardPayloadFailure {
   let failure : NativeRemoteStandardPayloadFailure = {
     issue,
     reader,
     writer,
     store_recovery: None,
+  }
+  let acquire_store_recovery = fn() {
+    guard failure.store_recovery is None else { return }
+    guard store is Some(owner) else { return }
+    guard request is Some(exact) else { return }
+    match owner.acquire_payload_cleanup(exact) {
+      Ok(cleanup) => failure.store_recovery = Some(cleanup)
+      Err(_) => ()
+    }
+  }
+  match issue {
+    Store(@publication_store.CleanupPending) => acquire_store_recovery()
+    _ => ()
   }
   match failure.reader {
     Some(owner) =>
@@ -149,7 +163,7 @@ fn failed_payload_stream(
     Some(owner) =>
       match owner.cancel() {
         Ok(_) => failure.writer = None
-        Err(_) => failure.store_recovery = store
+        Err(_) => acquire_store_recovery()
       }
     None => ()
   }
@@ -394,28 +408,28 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
   NativeRemoteStandardPayloadFailure,
 ] {
   if self.closed || max_chunk_bytes < 1 {
-    return Err(failed_payload_stream(InvalidBinding, None, None, None))
+    return Err(failed_payload_stream(InvalidBinding, None, None, None, None))
   }
   let reader = match
     self.open_observed_output_reader(request, completion, max_chunk_bytes) {
     Ok(value) => value
     Err(Runtime(issue)) =>
-      return Err(failed_payload_stream(Runtime(issue), None, None, None))
+      return Err(failed_payload_stream(Runtime(issue), None, None, None, None))
     Err(_) =>
-      return Err(failed_payload_stream(InvalidBinding, None, None, None))
+      return Err(failed_payload_stream(InvalidBinding, None, None, None, None))
   }
   let manifest = match reader.physical_manifest() {
     Ok(value) => value
     Err(issue) =>
       return Err(
-        failed_payload_stream(Runtime(issue), Some(reader), None, None),
+        failed_payload_stream(Runtime(issue), Some(reader), None, None, None),
       )
   }
   let material_generation = match reader.material_generation() {
     Ok(value) => value
     Err(issue) =>
       return Err(
-        failed_payload_stream(Runtime(issue), Some(reader), None, None),
+        failed_payload_stream(Runtime(issue), Some(reader), None, None, None),
       )
   }
   if @payload.publication_payload_material_identity(payload_request) !=
@@ -430,12 +444,22 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
     manifest.row_count.to_int64() ||
     @payload.publication_payload_request_max_bytes(payload_request) !=
     manifest.referenced_bytes {
-    return Err(failed_payload_stream(InvalidBinding, Some(reader), None, None))
+    return Err(
+      failed_payload_stream(InvalidBinding, Some(reader), None, None, None),
+    )
   }
   let writer = match store.begin_payload(payload_request) {
     Ok(value) => value
     Err(issue) =>
-      return Err(failed_payload_stream(Store(issue), Some(reader), None, None))
+      return Err(
+        failed_payload_stream(
+          Store(issue),
+          Some(reader),
+          None,
+          Some(store),
+          Some(payload_request),
+        ),
+      )
   }
   let mut finished = false
   while !finished {
@@ -448,6 +472,7 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
             Some(reader),
             Some(writer),
             Some(store),
+            Some(payload_request),
           ),
         )
     }
@@ -460,6 +485,7 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
             Some(reader),
             Some(writer),
             Some(store),
+            Some(payload_request),
           ),
         )
     }
@@ -474,6 +500,7 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
           Some(reader),
           Some(writer),
           Some(store),
+          Some(payload_request),
         ),
       )
   }
@@ -481,7 +508,13 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
     Ok(value) => value
     Err(issue) =>
       return Err(
-        failed_payload_stream(Store(issue), None, Some(writer), Some(store)),
+        failed_payload_stream(
+          Store(issue),
+          None,
+          Some(writer),
+          Some(store),
+          Some(payload_request),
+        ),
       )
   }
   if payload.material_generation_cid != material_generation ||
@@ -492,7 +525,11 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
     payload.generation.size != manifest.referenced_bytes {
     let cleanup = match store.reclaim_payload(material_generation) {
       Ok(_) => None
-      Err(_) => Some(store)
+      Err(_) =>
+        match store.acquire_payload_cleanup(payload_request) {
+          Ok(owner) => Some(owner)
+          Err(_) => None
+        }
     }
     return Err({
       issue: InvalidBinding,
@@ -838,7 +875,7 @@ pub fn NativeRemoteStandardSiteDistribution::persist_observed_output_payload(
   NativeRemoteStandardPayloadFailure,
 ] {
   if self.closed {
-    return Err(failed_payload_stream(InvalidBinding, None, None, None))
+    return Err(failed_payload_stream(InvalidBinding, None, None, None, None))
   }
   self.component.persist_observed_output_payload(
     request, completion, payload_request, store, max_chunk_bytes,

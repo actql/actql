@@ -5,6 +5,9 @@ type Store
 type PayloadWriter
 
 ///|
+type PayloadCleanupOwner
+
+///|
 type PayloadReader
 
 ///|
@@ -33,6 +36,26 @@ pub fn Store::begin_payload(
   _self : Store,
   _request : @payload.PublicationPayloadRequest,
 ) -> Result[PayloadWriter, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::acquire_payload_cleanup(
+  _self : Store,
+  _request : @payload.PublicationPayloadRequest,
+) -> Result[PayloadCleanupOwner, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn PayloadCleanupOwner::pending(_self : PayloadCleanupOwner) -> Bool {
+  false
+}
+
+///|
+pub fn PayloadCleanupOwner::retry(
+  _self : PayloadCleanupOwner,
+) -> Result[Bool, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
 

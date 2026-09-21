@@ -301,14 +301,25 @@ test "native publication retains failed writer cleanup for Store retry" {
   )
   let writer = store.begin_payload(request).unwrap()
   writer.append(b"partial").unwrap()
+  let independent_request = native_payload_request(
+    authority,
+    "writer-cleanup-independent-" + @env.now().to_string(),
+    32L,
+  )
+  let independent = store.begin_payload(independent_request).unwrap()
+  independent.append(b"live").unwrap()
   test_fail_root_sync(store.root, 2)
   assert_true(writer.cancel() is Err(Filesystem(@filesystem.Cleanup(_))))
-  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
-  assert_true(store.recover() is Err(Filesystem(@filesystem.Cleanup(_))))
-  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  let cleanup = store.acquire_payload_cleanup(request).unwrap()
+  assert_true(cleanup.pending())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 64L)
+  assert_true(cleanup.retry() is Err(Filesystem(@filesystem.Cleanup(_))))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 64L)
   test_fail_root_sync(store.root, 0)
-  let recovered = store.recover().unwrap()
-  assert_eq(recovered.reclaimed, 0)
+  assert_true(cleanup.retry().unwrap())
+  assert_false(cleanup.pending())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  independent.cancel().unwrap()
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(store.close().unwrap())
 }
