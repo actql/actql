@@ -5,7 +5,15 @@ Date: 2026-09-19. Branch: `feat/engine-remote-site-completion`.
 This ledger records product decision owners while the Engine milestone moves
 common control out of handwritten environment code. It is not a completion
 report. A row is complete only when every product caller uses the MoonBit
-owner and the superseded decision implementation has been removed.
+owner and the superseded decision implementation has been removed. The
+current Engine milestone reached that condition on 2026-09-21; environment
+adapters listed below retain physical I/O and observation state only.
+
+The authoritative closure summary is the
+[Engine and Remote Site completion result](2026-09-21-engine-remote-site-completion-result.md).
+The detailed rows below retain the incremental migration rationale; earlier
+sentences that describe a later-closed item as open are historical, not the
+current acceptance state.
 
 | Boundary | Product owner | Adapter responsibility | Current removal condition |
 | --- | --- | --- | --- |
@@ -53,8 +61,8 @@ Site generation and capabilities, opens both durable journals, binds the real
 native DuckDB driver and Store input, and polls only through that process-owned
 distribution. Its physical configuration surface does not install another
 progression callback. A real separated-process dispatch through this
-executable, including output Transfer and publication operations before
-release, remains open. The runtime now projects immutable output facts from
+executable now includes output Transfer and publication operations before
+release. The runtime projects immutable output facts from
 the exact durable dispatch observation without opening a physical reader.
 The application owner uses those facts to derive both the publication payload
 request and the direct or Store Transfer request from one canonical
@@ -73,7 +81,7 @@ the re-admitted result through a MoonBit-owned transition. SQLite restores the
 canonical payload and Transfer requests after restart; an unknown operation
 may retry only that occurrence, while an already committed result returns
 without repeating transport or Compute. The separated-process product E2E
-before release remains open. The live Node
+uses that path before release. The live Node
 bundle boundary and the native durable-Store route now install opaque
 factories directly; neither
 accepts a replacement input state machine from application composition. The

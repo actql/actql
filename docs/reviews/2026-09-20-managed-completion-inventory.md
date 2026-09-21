@@ -53,9 +53,10 @@ that mutation.
 
 Remote evidence additionally requires the Coordinator's durable observation
 of the exact evidence, subject, and measurement identities. Site evidence by
-itself cannot reach the common task commit. Connecting the configured native
-Remote Site executor and its recovered material handle to this boundary is a
-remaining product-orchestration task, not another completion authority.
+itself cannot reach the common task commit. The configured native Remote Site
+executor and its recovered material handle now enter this boundary through the
+same durable Coordinator observation; they do not introduce another
+completion authority.
 
 The common completion boundary already verifies:
 
