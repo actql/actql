@@ -2601,6 +2601,33 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'subtract-exact',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 160,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g',
+      subtract_graphs: {
+        with: 'right_graph',
+        merge: {
+          node_properties: {node_name: 'exact_equal'},
+          edge_properties: {weight: 'exact_equal'},
+        },
+      },
+      as: 'subtracted',
+    }, {
+      from: 'subtracted', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'graphs-equal',
     rows: 2,
     advanceQuantum: 1,
