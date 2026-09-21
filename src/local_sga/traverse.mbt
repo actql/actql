@@ -42,10 +42,10 @@ pub fn start_traverse(
     @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
-    @lower.graph_traverse_start_predicate(prepared) is None &&
     (
       @lower.graph_traverse_start_id_count(prepared) > 0 ||
-      @lower.graph_traverse_start_relation_field(prepared) is Some(_)
+      @lower.graph_traverse_start_relation_field(prepared) is Some(_) ||
+      @lower.graph_traverse_start_predicate(prepared) is Some(_)
     ) &&
     @lower.graph_traverse_hop_count(prepared) == 1 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
@@ -54,9 +54,14 @@ pub fn start_traverse(
     @graph.producer_read_storage(input) is Some(source) else {
     return Err(UnsupportedTraverseKernel)
   }
-  let starts = match @lower.graph_traverse_start_relation_field(prepared) {
-    None => TraversalReachStarts(prepared)
-    Some(field) => {
+  let starts = match
+    (
+      @lower.graph_traverse_start_relation_field(prepared),
+      @lower.graph_traverse_start_predicate(prepared),
+    ) {
+    (None, None) => TraversalReachStarts(prepared)
+    (None, Some(predicate)) => TraversalPredicateStarts(predicate)
+    (Some(field), None) => {
       let mut selector = None
       for candidate in inputs {
         if @execution.producer_read_matches_operation_input(
@@ -81,6 +86,7 @@ pub fn start_traverse(
       guard column >= 0 else { return Err(UnsupportedTraverseKernel) }
       TraversalRelationStarts(selector, column)
     }
+    _ => return Err(UnsupportedTraverseKernel)
   }
   let max_rows = match @lower.graph_traverse_output_guard(prepared) {
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()

@@ -1138,6 +1138,7 @@ fn carrier_graph_traverse_owner(
   maximum : Int,
   emission? : String = "nodes",
   starts? : String = "1",
+  predicate? : String = "",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -1145,9 +1146,13 @@ fn carrier_graph_traverse_owner(
       "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
       "\"source\":\"src\",\"target\":\"dst\"," +
       "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
-      "\"from\":\"graph\",\"traverse\":{\"start\":{\"ids\":[" +
-      starts +
-      "]}," +
+      "\"from\":\"graph\",\"traverse\":{\"start\":{" +
+      (if predicate == "" {
+        "\"ids\":[" + starts + "]"
+      } else {
+        "\"where\":\"" + predicate + "\""
+      }) +
+      "}," +
       "\"direction\":\"out\",\"min_hops\":" +
       minimum.to_string() +
       ",\"max_hops\":" +
@@ -2652,6 +2657,73 @@ test "homogeneous traversal reads a Relation start selector" {
     @execution.completed_output_matches_inputs(output, [
       source_read, selector_read,
     ]),
+  )
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "homogeneous traversal evaluates a typed start predicate" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(
+    source_owner,
+    1,
+    2,
+    predicate="node_name = 'two'",
+  )
+  let generated = task_test_generated(owner)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap(),
+    "{\"depth\":1,\"node_id\":1,\"start_id\":2}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 1000, 100, 10).unwrap(),
+    "{\"depth\":1,\"node_id\":3,\"start_id\":2}",
   )
   assert_true(@graphs.discard_completed(graph))
 }

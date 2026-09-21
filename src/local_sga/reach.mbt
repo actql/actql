@@ -2,6 +2,8 @@
 priv enum ReachPhase {
   InitializeStartSelection
   ResolveStarts
+  PrepareStartPredicate
+  EvaluateStartPredicate
   CollectStarts
   InitializeNodes
   ScanDegrees
@@ -36,6 +38,7 @@ priv enum ReachStarts {
   SingleReachStart(@value.CheckedValue)
   TraversalReachStarts(@lower.PreparedGraphTraverse)
   TraversalRelationStarts(@execution.ProducerRead, Int)
+  TraversalPredicateStarts(@lower.Expression)
 }
 
 ///|
@@ -48,6 +51,7 @@ priv enum ReachEdgeFilter {
 priv struct ReachState {
   input : @graph.ProducerRead
   source : @storage.Storage
+  graph : @carrier.Graph
   schema : @schema.Schema
   starts : ReachStarts
   direction : @graph_type.Direction
@@ -84,6 +88,12 @@ priv struct ReachState {
   start_selected : Array[Bool]
   start_nodes : Array[Int]
   start_scratch : Array[Int?]
+  predicate_fields : Int
+  predicate_workspace : Int
+  mut predicate_work_remaining : Int
+  predicate_input : Map[String, @execution.Value]
+  mut predicate_execution : @execution.PredicateExpressionExecution?
+  mut predicate_field : Int
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -119,6 +129,7 @@ pub(all) enum ReachIssue {
   ReachStartMissing
   ReachOutputLimit
   ReachWorkspaceLimit
+  ReachPredicate(@execution.EvalIssueKind)
   ReachKeyOrder(@value.KeyOrderIssue)
   ReachGraph(@storage.Issue)
   ReachOutput(@execution.CaptureIssue)
@@ -164,6 +175,7 @@ fn reach_start_count(state : ReachState) -> Int {
       @lower.graph_traverse_start_id_count(prepared)
     TraversalRelationStarts(input, _) =>
       @execution.producer_read_row_count(input)
+    TraversalPredicateStarts(_) => @storage.node_count(state.source)
   }
 }
 
@@ -195,6 +207,7 @@ fn reach_start_at(
         Some(value) => Ok(value)
         None => Err(ReachInputUnavailable)
       }
+    TraversalPredicateStarts(_) => Err(InvalidReachKernel)
   }
 }
 
@@ -409,7 +422,10 @@ fn reach_step(
           used += 1
         } else {
           state.index = 0
-          state.phase = ResolveStarts
+          state.phase = match state.starts {
+            TraversalPredicateStarts(_) => PrepareStartPredicate
+            _ => ResolveStarts
+          }
         }
       ResolveStarts =>
         if state.index < reach_start_count(state) {
@@ -430,6 +446,70 @@ fn reach_step(
           state.index = 0
           state.phase = CollectStarts
         }
+      PrepareStartPredicate =>
+        if state.index >= @storage.node_count(state.source) {
+          state.index = 0
+          state.phase = CollectStarts
+        } else if state.predicate_field < state.predicate_fields {
+          used += 1
+          guard graph_node_predicate_binding(
+              state.graph,
+              state.source,
+              state.index,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(ReachInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.starts is TraversalPredicateStarts(predicate) else {
+            return @bounded.Failed(InvalidReachKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(ReachPredicate(issue.kind), progress, used)
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateStartPredicate
+            }
+          }
+        }
+      EvaluateStartPredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidReachKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(ReachPredicate(issue.kind), progress, used)
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            state.start_selected[state.index] = selected
+            state.index += 1
+            state.predicate_field = 0
+            state.phase = PrepareStartPredicate
+          }
+        }
+      }
       CollectStarts =>
         if state.index < state.start_selected.length() {
           if state.start_selected[state.index] {
@@ -848,6 +928,8 @@ fn cleanup_reach_state(state : ReachState) -> Bool {
   state.start_selected.clear()
   state.start_nodes.clear()
   state.start_scratch.clear()
+  state.predicate_input.clear()
+  state.predicate_execution = None
   state.values = []
   true
 }
@@ -883,12 +965,16 @@ fn start_reach_state(
   }
   let nodes = @storage.node_count(source)
   let edges = @storage.edge_count(source)
+  guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    return Err(InvalidReachKernel)
+  }
   let start_count = match starts {
     SingleReachStart(_) => 1
     TraversalReachStarts(prepared) =>
       @lower.graph_traverse_start_id_count(prepared)
     TraversalRelationStarts(selector, _) =>
       @execution.producer_read_row_count(selector)
+    TraversalPredicateStarts(_) => nodes
   }
   let starts_valid = match starts {
     TraversalReachStarts(_) => start_count > 0
@@ -901,8 +987,13 @@ fn start_reach_state(
     nodes <= max_rows else {
     return Err(ReachOutputLimit)
   }
+  let predicate_fields = match starts {
+    TraversalPredicateStarts(_) => graph_node_predicate_binding_count(graph)
+    _ => 0
+  }
   guard reach_workspace(nodes, edges, @schema.field_count(schema))
-    is Some(workspace) &&
+    is Some(base_workspace) &&
+    checked_reach_add(base_workspace, predicate_fields) is Some(workspace) &&
     workspace <= max_workspace_slots else {
     return Err(ReachWorkspaceLimit)
   }
@@ -937,6 +1028,7 @@ fn start_reach_state(
   let state : ReachState = {
     input,
     source,
+    graph,
     schema,
     starts,
     direction,
@@ -977,6 +1069,12 @@ fn start_reach_state(
     start_selected: [],
     start_nodes: [],
     start_scratch: [],
+    predicate_fields,
+    predicate_workspace: max_workspace_slots - workspace,
+    predicate_work_remaining: limits.max_work,
+    predicate_input: Map([]),
+    predicate_execution: None,
+    predicate_field: 0,
     width: 1,
     run_start: 0,
     middle: 0,
