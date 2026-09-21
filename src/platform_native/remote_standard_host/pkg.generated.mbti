@@ -3,9 +3,15 @@ package "actql/actql/platform_native/remote_standard_host"
 
 import {
   "actql/actql/connectors/duckdb/host_native",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/remote_transfer_client",
+  "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
@@ -13,13 +19,19 @@ import {
 }
 
 // Values
+pub fn acquire_native_remote_standard_transfer_source(@remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardTransferInput, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
+
 pub fn admit_native_remote_standard_transfer_input(@remote_site_protocol.RemoteInputBinding, Int, Int, Int, Int64) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
 
 pub fn bind_native_remote_standard_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @host_native.NativeStandardStrategyRun, () -> Bool) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardHostIssue]
 
+pub fn finish_native_remote_standard_transfer_source(NativeRemoteStandardTransferSource) -> Bool
+
 pub fn install_native_remote_standard_task_executor(String, String, Int, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure], NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
 
 pub fn native_remote_standard_transfer_binding(NativeRemoteStandardTransferInput) -> @remote_site_protocol.RemoteInputBinding
+
+pub fn native_remote_standard_transfer_captured_source(NativeRemoteStandardTransferSource) -> @execution_query.CapturedInputSource
 
 pub fn native_remote_standard_transfer_destination_receipt_cid(NativeRemoteStandardTransferInput) -> String
 
@@ -32,6 +44,8 @@ pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @
 pub fn prepare_native_remote_standard_input_failure(String, () -> Bool) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
 pub fn prepare_native_remote_standard_transfer_input(@remote_transfer.RemoteTransferRequest, String, String, Int) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
+
+pub fn register_native_remote_standard_row_codec(String, String, String) -> Result[NativeRemoteStandardRowCodec, NativeRemoteStandardTransferSourceIssue]
 
 pub fn reject_native_remote_standard_input(String) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
@@ -47,6 +61,8 @@ pub(all) enum NativeRemoteStandardHostIssue {
 
 type NativeRemoteStandardInputFailure
 
+type NativeRemoteStandardRowCodec
+
 type NativeRemoteStandardTaskExecutor
 
 pub(all) struct NativeRemoteStandardTaskLimits {
@@ -61,6 +77,28 @@ pub(all) enum NativeRemoteStandardTransferInputIssue {
   InvalidInput
   Limit
   Transfer(@remote_transfer.RemoteTransferIssue)
+}
+
+type NativeRemoteStandardTransferSource
+
+pub(all) enum NativeRemoteStandardTransferSourceIssue {
+  InvalidProfile
+  Limit
+  Transfer(@remote_transfer_client.NativeRemoteTransferClientIssue)
+  Wire(@execution_relation.AdmittedOutputWireIssue)
+  Admission(@execution_relation.CaptureIssue)
+  Completion(@execution_relation.TrustedOutputIssue)
+  Capture(@execution_query.CapturedSourceIssue)
+}
+
+pub(all) struct NativeRemoteStandardTransferSourceLimits {
+  max_rows : Int
+  max_wire_bytes : Int
+  max_read_bytes : Int
+  max_entries : Int
+  max_name_bytes : Int
+  values : @execution_relation.ValueLimits
+  wire : @execution_relation.RetainedRowDecodeLimits
 }
 
 // Type aliases

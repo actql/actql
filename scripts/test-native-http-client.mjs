@@ -80,6 +80,7 @@ let nativeTransferCommitReplyLost = false;
 let nativeStoreTransferCid;
 let nativeStoreTransferChunks = 0;
 let nativeStoreTransferSealed = false;
+let nativeStoreTransferManifest = [];
 const nativeStoreTransferBodies = [];
 const nativeStoreUses = new Map();
 let observeStalePoll;
@@ -197,6 +198,19 @@ try {
         response.writeHead(400).end();
         return;
       }
+      let manifest;
+      try { manifest = JSON.parse(envelope.manifest); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      if (!Array.isArray(manifest?.chunks) ||
+          manifest.chunks.some(chunk =>
+            typeof chunk?.cid !== 'string' ||
+            !Number.isSafeInteger(chunk?.byte_length))) {
+        response.writeHead(400).end();
+        return;
+      }
       const requestCid = request.headers['actql-transfer-cid'];
       if (nativeStoreTransferCid !== undefined &&
           nativeStoreTransferCid !== requestCid) {
@@ -204,6 +218,7 @@ try {
         return;
       }
       nativeStoreTransferCid = requestCid;
+      nativeStoreTransferManifest = manifest.chunks;
       response.writeHead(nativeStoreTransferSealed ? 200 : 201, {
         'content-type': 'application/json',
       });
@@ -225,10 +240,13 @@ try {
       }
       if (request.method === 'PUT' && parts[1] === 'chunks') {
         const index = Number(parts[2]);
-        const expected = index === 0 ? 'store-alpha' :
-          index === 1 ? '保存' : null;
-        if (nativeStoreTransferSealed || expected === null ||
-            index !== nativeStoreTransferChunks || body !== expected ||
+        const expected = nativeStoreTransferManifest[index];
+        const digest = `sha256:${createHash('sha256')
+          .update(bodyBytes).digest('hex')}`;
+        if (nativeStoreTransferSealed || expected === undefined ||
+            index !== nativeStoreTransferChunks ||
+            bodyBytes.byteLength !== expected.byte_length ||
+            digest !== expected.cid ||
             request.headers['content-type'] !==
             'application/octet-stream') {
           response.writeHead(400).end();
@@ -244,7 +262,8 @@ try {
         return;
       }
       if (request.method === 'POST' && parts[1] === 'commit' &&
-          nativeStoreTransferChunks === 2 && body === '') {
+          nativeStoreTransferChunks === nativeStoreTransferManifest.length &&
+          body === '') {
         nativeStoreTransferSealed = true;
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify({
@@ -642,7 +661,16 @@ try {
     'src/platform_native/remote_transfer_client',
     'src/platform_native/remote_client',
     'src/platform_native/credential_resource',
+    'src/query_integration',
   ]) {
+    if (packagePath === 'src/query_integration') {
+      nativeStoreTransferCid = undefined;
+      nativeStoreTransferChunks = 0;
+      nativeStoreTransferSealed = false;
+      nativeStoreTransferManifest = [];
+      nativeStoreTransferBodies.length = 0;
+      nativeStoreUses.clear();
+    }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
       env: testEnvironment,
