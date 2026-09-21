@@ -806,7 +806,7 @@ test "standard Local reads the exact committed Transfer destination" {
     "remote-standard-transfer-issuer-capability",
   )
   let budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
-  let component = @native_remote_standard.open_native_remote_standard_site_component(
+  let component = @native_remote_standard.open_native_remote_standard_site_distribution(
     site,
     active_runtime,
     operation_capability,
@@ -860,30 +860,38 @@ test "standard Local reads the exact committed Transfer destination" {
     is Ok(@native_remote_agent.DispatchObserved(dispatch_identity, _)) else {
     match occurrence {
       Err(
-        @native_remote_standard.Agent(
-          @native_remote_agent.Runtime(@native_remote_runtime.Physical(code))
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.Runtime(@native_remote_runtime.Physical(code))
+          )
         )
       ) => fail("standard Transfer runtime failed: " + code)
       Err(
-        @native_remote_standard.Agent(
-          @native_remote_agent.RuntimeObserved(
-            @native_remote_runtime.Physical(code),
-            _
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.RuntimeObserved(
+              @native_remote_runtime.Physical(code),
+              _
+            )
           )
         )
       ) => fail("standard Transfer runtime failed after acceptance: " + code)
       Err(
-        @native_remote_standard.Agent(
-          @native_remote_agent.Runtime(
-            @native_remote_runtime.CleanupPending(code)
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.Runtime(
+              @native_remote_runtime.CleanupPending(code)
+            )
           )
         )
       ) => fail("standard Transfer cleanup remained pending: " + code)
       Err(
-        @native_remote_standard.Agent(
-          @native_remote_agent.RuntimeObserved(
-            @native_remote_runtime.CleanupPending(code),
-            _
+        @native_remote_standard.Component(
+          @native_remote_standard.Agent(
+            @native_remote_agent.RuntimeObserved(
+              @native_remote_runtime.CleanupPending(code),
+              _
+            )
           )
         )
       ) => fail("standard Transfer cleanup remained pending: " + code)
@@ -910,6 +918,16 @@ test "standard Local reads the exact committed Transfer destination" {
     }
   }
   assert_eq(@utf8.decode_lossy(Bytes::from_array(output_bytes)), "[{\"id\":3}]")
+  guard component.close()
+    is Err(
+      @native_remote_standard.Component(
+        @native_remote_standard.Runtime(
+          @native_remote_runtime.CleanupPending(_)
+        )
+      )
+    ) else {
+    fail("live output reader did not retain Site shutdown ownership")
+  }
   assert_true(output_reader.finish().unwrap())
   let release_operation = @remote.remote_poll_release_json(dispatch).unwrap()
   let release_queued = client
@@ -928,8 +946,6 @@ test "standard Local reads the exact committed Transfer destination" {
   assert_true(component.close().unwrap())
   assert_true(component.poll() is Err(@native_remote_standard.Closed))
   assert_false(component.close().unwrap())
-  assert_true(remote_journal.close())
-  assert_true(bundles.close().unwrap())
   for captured in captured_runs {
     for task = @strategy.graph_task_count(graph) - 1; task > 0; task = task - 1 {
       @strategy.close_captured_task_output(captured, task)
@@ -953,5 +969,4 @@ test "standard Local reads the exact committed Transfer destination" {
   )
   assert_true(destination_journal.close())
   assert_true(source_journal.close())
-  assert_true(client.close())
 }

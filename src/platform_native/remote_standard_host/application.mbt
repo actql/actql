@@ -12,6 +12,23 @@ struct NativeRemoteStandardSiteComponent {
 }
 
 ///|
+/// Complete physical owner for one standard native Site process. Application
+/// code supplies exact task factories at construction time, then this owner
+/// fixes runtime progression and the shutdown order of every process-scoped
+/// adapter used by the component.
+struct NativeRemoteStandardSiteDistribution {
+  component : NativeRemoteStandardSiteComponent
+  journal : @journal.Journal
+  bundles : @bundle.NativeRuntimeBundleStore
+  client : @http.Client
+  mut runtime_closed : Bool
+  mut bundles_closed : Bool
+  mut journal_closed : Bool
+  mut client_closed : Bool
+  mut closed : Bool
+}
+
+///|
 /// Component composition, outbound progression, and runtime cleanup remain
 /// distinct from physical HTTP, journal, and bundle failures.
 pub(all) enum NativeRemoteStandardSiteComponentIssue {
@@ -19,6 +36,17 @@ pub(all) enum NativeRemoteStandardSiteComponentIssue {
   Host(NativeRemoteStandardHostIssue)
   Agent(@agent.NativeRemoteAgentIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
+}
+
+///|
+/// Process-owned composition failures keep common runtime progression and
+/// physical adapter shutdown distinct.
+pub(all) enum NativeRemoteStandardSiteDistributionIssue {
+  Closed
+  Component(NativeRemoteStandardSiteComponentIssue)
+  Bundle(@bundle.NativeRuntimeBundleStoreIssue)
+  JournalClose
+  ClientClose
 }
 
 ///|
@@ -53,6 +81,47 @@ pub fn open_native_remote_standard_site_component(
     Err(issue) => return Err(Host(issue))
   }
   Ok({ runtime, journal, client, poll_url, observation_url, closed: false, })
+}
+
+///|
+/// Opens the process-owned standard Site distribution. On success the
+/// distribution, rather than application composition, owns shutdown of the
+/// runtime and every physical adapter passed here.
+pub fn open_native_remote_standard_site_distribution(
+  site : @site.ExecutionSite,
+  active_runtime : @bundle.NativeActiveRuntimeBinding,
+  operation_capability_cid : String,
+  issuer_capability_cid : String,
+  tasks : Array[NativeRemoteStandardTaskExecutor],
+  journal : @journal.Journal,
+  bundles : @bundle.NativeRuntimeBundleStore,
+  budgets : Array[@remote.RemoteDispatchBudget],
+  client : @http.Client,
+  poll_url : String,
+  observation_url : String,
+) -> Result[
+  NativeRemoteStandardSiteDistribution,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  let component = match
+    open_native_remote_standard_site_component(
+      site, active_runtime, operation_capability_cid, issuer_capability_cid, tasks,
+      journal, bundles, budgets, client, poll_url, observation_url,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Component(issue))
+  }
+  Ok({
+    component,
+    journal,
+    bundles,
+    client,
+    runtime_closed: false,
+    bundles_closed: false,
+    journal_closed: false,
+    client_closed: false,
+    closed: false,
+  })
 }
 
 ///|
@@ -113,4 +182,76 @@ pub fn NativeRemoteStandardSiteComponent::close(
     }
     Err(issue) => Err(Runtime(issue))
   }
+}
+
+///|
+/// Advances one authenticated occurrence through the process-owned component.
+pub fn NativeRemoteStandardSiteDistribution::poll(
+  self : NativeRemoteStandardSiteDistribution,
+) -> Result[
+  @agent.NativeRemoteAgentOutcome,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component.poll().map_err(issue => Component(issue))
+}
+
+///|
+/// Opens a bounded output reader from the process-owned component.
+pub fn NativeRemoteStandardSiteDistribution::open_output_reader(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+  material_generation : String,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputReader,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component
+  .open_output_reader(request, material_generation, max_chunk_bytes)
+  .map_err(issue => Component(issue))
+}
+
+///|
+/// Stops runtime admission before releasing its verified component holding,
+/// then closes the bundle Store, dispatch journal, and HTTPS client in that
+/// order. A failed step remains retryable on this exact owner; later physical
+/// resources are not closed while an earlier authority still owns work.
+pub fn NativeRemoteStandardSiteDistribution::close(
+  self : NativeRemoteStandardSiteDistribution,
+) -> Result[Bool, NativeRemoteStandardSiteDistributionIssue] {
+  if self.closed {
+    return Ok(false)
+  }
+  if !self.runtime_closed {
+    match self.component.close() {
+      Ok(_) => self.runtime_closed = true
+      Err(issue) => return Err(Component(issue))
+    }
+  }
+  if !self.bundles_closed {
+    match self.bundles.close() {
+      Ok(_) => self.bundles_closed = true
+      Err(issue) => return Err(Bundle(issue))
+    }
+  }
+  if !self.journal_closed {
+    if !self.journal.close() {
+      return Err(JournalClose)
+    }
+    self.journal_closed = true
+  }
+  if !self.client_closed {
+    if !self.client.close() {
+      return Err(ClientClose)
+    }
+    self.client_closed = true
+  }
+  self.closed = true
+  Ok(true)
 }

@@ -47,7 +47,10 @@ client, and control endpoints before polling; application code no longer joins
 an arbitrary runtime to the Agent progression. The standalone journal and
 transport CLI is control-only and rejects dispatch work because it has no
 verified runtime registry. Only the runtime-linked Site component may durably
-accept a dispatch.
+accept a dispatch. The process-owned distribution additionally closes the
+common runtime before the active bundle Store, dispatch journal, and HTTPS
+client. A failed earlier authority remains retryable and prevents later
+physical owners from being closed out of order.
 
 The JavaScript retained-row parser is not a product authority after this
 change. Its tests stay as independent physical fixtures; they are not used to
