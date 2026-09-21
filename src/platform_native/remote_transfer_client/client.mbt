@@ -32,6 +32,7 @@ struct NativeRemoteTransferChunkSource {
 struct NativeRemoteTransferSendFailure {
   issue : NativeRemoteTransferClientIssue
   mut source : NativeRemoteTransferChunkSource?
+  mut cleanup : (() -> Bool)?
 }
 
 ///|
@@ -69,24 +70,38 @@ pub fn transfer_send_failure_issue(
 pub fn transfer_send_failure_cleanup_pending(
   failure : NativeRemoteTransferSendFailure,
 ) -> Bool {
-  failure.source is Some(_)
+  failure.source is Some(_) || failure.cleanup is Some(_)
 }
 
 ///|
-/// Retries only physical source stop confirmation.
+/// Retries physical source stop before any dependent durable cleanup. A
+/// successful source close is remembered, so a later journal failure never
+/// repeats physical close or data transfer.
 pub fn retry_transfer_send_failure_cleanup(
   failure : NativeRemoteTransferSendFailure,
 ) -> Bool {
+  let mut pending = false
   match failure.source {
-    None => false
-    Some(source) =>
+    None => ()
+    Some(source) => {
+      pending = true
       match source.close_source() {
-        Ok(_) => {
-          failure.source = None
-          true
-        }
-        Err(_) => false
+        Ok(_) => failure.source = None
+        Err(_) => return false
       }
+    }
+  }
+  match failure.cleanup {
+    None => pending
+    Some(cleanup) => {
+      pending = true
+      if cleanup() {
+        failure.cleanup = None
+        true
+      } else {
+        false
+      }
+    }
   }
 }
 
@@ -112,9 +127,26 @@ fn failed_stream_send(
   source : NativeRemoteTransferChunkSource,
 ) -> NativeRemoteTransferSendFailure {
   match source.close_source() {
-    Ok(_) => { issue, source: None, }
-    Err(_) => { issue, source: Some(source), }
+    Ok(_) => { issue, source: None, cleanup: None, }
+    Err(_) => { issue, source: Some(source), cleanup: None, }
   }
+}
+
+///|
+/// A durable direct failure must not release its journal responsibility until
+/// both the local source and the receiver-side temporary generation have
+/// stopped. The returned owner retries only those two cleanup facts.
+fn failed_durable_direct_stream_send(
+  issue : NativeRemoteTransferClientIssue,
+  source : NativeRemoteTransferChunkSource,
+  cleanup : () -> Bool,
+) -> NativeRemoteTransferSendFailure {
+  let failure = failed_stream_send(issue, source)
+  failure.cleanup = Some(cleanup)
+  if failure.source is None && cleanup() {
+    failure.cleanup = None
+  }
+  failure
 }
 
 ///|
@@ -1381,7 +1413,15 @@ pub fn send_direct_transfer_from_source(
     send_direct_transfer_operation_from_source(client, origin, request, source) {
     Ok(record) => Ok(record)
     Err(DirectCommitUnknown(issue)) =>
-      Err({ issue, source: if source.stopped { None } else { Some(source) }, })
+      Err({
+        issue,
+        source: if source.stopped {
+          None
+        } else {
+          Some(source)
+        },
+        cleanup: None,
+      })
     Err(DirectSourceStopFailed(issue)) => Err(failed_stream_send(issue, source))
     Err(DirectCopyFailed(issue)) => {
       match direct_location(origin, request) {
@@ -1437,6 +1477,7 @@ fn send_durable_direct_transfer_operation(
   origin : String,
   request : @transfer.RemoteTransferRequest,
   source : NativeRemoteTransferChunkSource,
+  cleanup_destination : Array[Bool],
 ) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
   let (_, accepted) = match journal.accept(request) {
     Ok(value) => value
@@ -1509,9 +1550,7 @@ fn send_durable_direct_transfer_operation(
         ) {
         Ok(value) => Ok(value)
         Err(DirectCopyFailed(issue)) => {
-          ignore(
-            cancel_durable_direct_transfer(journal, client, origin, request),
-          )
+          cleanup_destination[0] = true
           Err(issue)
         }
         Err(DirectSourceStopFailed(issue)) => Err(issue)
@@ -1560,12 +1599,26 @@ pub fn send_durable_direct_transfer_from_source(
   request : @transfer.RemoteTransferRequest,
   source : NativeRemoteTransferChunkSource,
 ) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferSendFailure] {
+  let cleanup_destination = [false]
   match
     send_durable_direct_transfer_operation(
-      journal, client, origin, request, source,
+      journal, client, origin, request, source, cleanup_destination,
     ) {
     Ok(record) => Ok(record)
-    Err(issue) => Err(failed_stream_send(issue, source))
+    Err(issue) =>
+      if cleanup_destination[0] {
+        Err(
+          failed_durable_direct_stream_send(issue, source, () => {
+            match
+              cancel_durable_direct_transfer(journal, client, origin, request) {
+              Ok(record) => @transfer.direct_transfer_cleanup_confirmed(record)
+              Err(_) => false
+            }
+          }),
+        )
+      } else {
+        Err(failed_stream_send(issue, source))
+      }
   }
 }
 

@@ -170,6 +170,44 @@ test "streaming send failure retains only unconfirmed source cleanup" {
 }
 
 ///|
+test "durable direct cleanup waits for source stop and retries persistence" {
+  let request = native_direct_request([b"alpha"])
+  let mut close_attempts = 0
+  let mut durable_attempts = 0
+  let source = prepare_transfer_chunk_source(
+    @transfer.request_projection(request)[6],
+    @transfer.request_projection(request)[7],
+    _ => Ok(b"alpha"),
+    () => Ok(()),
+    () => {
+      close_attempts = close_attempts + 1
+      if close_attempts < 3 {
+        Err("stop-unconfirmed")
+      } else {
+        Ok(())
+      }
+    },
+  ).unwrap()
+  let failure = failed_durable_direct_stream_send(SourceMismatch, source, () => {
+    durable_attempts = durable_attempts + 1
+    durable_attempts >= 2
+  })
+  assert_true(transfer_send_failure_cleanup_pending(failure))
+  assert_false(retry_transfer_send_failure_cleanup(failure))
+  assert_eq(close_attempts, 2)
+  assert_eq(durable_attempts, 0)
+  assert_false(retry_transfer_send_failure_cleanup(failure))
+  assert_eq(close_attempts, 3)
+  assert_eq(durable_attempts, 1)
+  assert_true(transfer_send_failure_cleanup_pending(failure))
+  assert_true(retry_transfer_send_failure_cleanup(failure))
+  assert_eq(close_attempts, 3)
+  assert_eq(durable_attempts, 2)
+  assert_false(transfer_send_failure_cleanup_pending(failure))
+  assert_false(retry_transfer_send_failure_cleanup(failure))
+}
+
+///|
 test "native direct failure persists confirmed remote cleanup" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
     return
@@ -217,6 +255,94 @@ test "native direct failure persists confirmed remote cleanup" {
   ).unwrap()
   assert_true(@transfer.direct_transfer_cleanup_confirmed(restored))
   assert_true(journal.close())
+  assert_true(client.close())
+}
+
+///|
+test "native direct journal waits for the local source to stop" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL") is Some(origin) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(sqlite_root) else {
+    return
+  }
+  let library = @http.load_library(path).unwrap()
+  let client = library.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let journal_path = sqlite_root + "/direct-transfer-source-stop.sqlite"
+  let journal = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  let chunks = [b"cancel-source"]
+  let request = native_direct_request(chunks)
+  let mut close_attempts = 0
+  let source = prepare_transfer_chunk_source(
+    @transfer.request_projection(request)[6],
+    @transfer.request_projection(request)[7],
+    _ => Ok(chunks[0]),
+    () => Ok(()),
+    () => {
+      close_attempts = close_attempts + 1
+      if close_attempts < 3 {
+        Err("source-still-running")
+      } else {
+        Ok(())
+      }
+    },
+  ).unwrap()
+  guard send_durable_direct_transfer_from_source(
+      journal, client, origin, request, source,
+    )
+    is Err(failure) else {
+    fail("native direct failure did not retain its cleanup owner")
+  }
+  assert_true(transfer_send_failure_cleanup_pending(failure))
+  assert_false(
+    @transfer.direct_transfer_cleanup_confirmed(
+      journal.require(request).unwrap(),
+    ),
+  )
+  assert_false(retry_transfer_send_failure_cleanup(failure))
+  assert_eq(close_attempts, 2)
+  assert_false(
+    @transfer.direct_transfer_cleanup_confirmed(
+      journal.require(request).unwrap(),
+    ),
+  )
+  assert_true(retry_transfer_send_failure_cleanup(failure))
+  assert_eq(close_attempts, 3)
+  assert_true(
+    @transfer.direct_transfer_cleanup_confirmed(
+      journal.require(request).unwrap(),
+    ),
+  )
+  assert_false(transfer_send_failure_cleanup_pending(failure))
+  assert_true(journal.close())
+  let reopened = @journal.open_journal(
+    sqlite, journal_path, 1048576L, 8, 4096, 1024L,
+  ).unwrap()
+  assert_true(
+    @transfer.direct_transfer_cleanup_confirmed(
+      reopened.require(request).unwrap(),
+    ),
+  )
+  assert_true(reopened.close())
   assert_true(client.close())
 }
 
