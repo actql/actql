@@ -371,6 +371,56 @@ test "vector concat is eager, ordered, bounded, and resumable" {
 }
 
 ///|
+test "bounded expression execution reports progress and cancels private state" {
+  let values : Map[String, Value] = {
+    "left": runtime_vector([1.0, 2.0, 3.0, 4.0]),
+    "right": runtime_vector([4.0, 3.0, 2.0, 1.0]),
+  }
+  let score = start_expression_execution(
+    lowered_vector_score("dot"),
+    values,
+    [],
+    1000,
+    10,
+    100,
+  ).unwrap()
+  let initial = expression_execution_remaining(score)
+  assert_true(advance_expression_execution(score) is Ok(ExpressionContinue))
+  assert_true(expression_execution_remaining(score) < initial)
+  let mut answer : Value? = None
+  while answer is None {
+    match advance_expression_execution(score) {
+      Ok(ExpressionContinue) => ()
+      Ok(ExpressionComplete(value)) => answer = Some(value)
+      Err(_) => fail("bounded vector score failed")
+    }
+  }
+  assert_true(answer is Some(Number(20.0)))
+  assert_true(
+    advance_expression_execution(score)
+    is Err({ kind: InvalidControlLimits, .. }),
+  )
+
+  let concat = start_expression_execution(
+    lowered_vector_concat(),
+    values,
+    [],
+    1000,
+    10,
+    100,
+  ).unwrap()
+  while concat.frame.workspace.live < 15 {
+    assert_true(advance_expression_execution(concat) is Ok(ExpressionContinue))
+  }
+  assert_true(cancel_expression_execution(concat))
+  assert_eq(concat.frame.workspace.live, 0)
+  assert_true(
+    advance_expression_execution(concat)
+    is Err({ kind: InvalidControlLimits, .. }),
+  )
+}
+
+///|
 test "expression workspace releases branch frames and case views" {
   for
     source in [

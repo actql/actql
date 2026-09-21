@@ -2,7 +2,7 @@
 /// A private expression frame exposed only as a bounded Boolean predicate.
 /// The caller owns the immutable row bindings for this execution lifetime.
 struct PredicateExpressionExecution {
-  frame : ExpressionFrame
+  inner : ExpressionExecution
   mut finished : Bool
 }
 
@@ -23,16 +23,14 @@ pub fn start_predicate_expression(
   max_frames : Int,
   max_workspace_slots : Int,
 ) -> Result[PredicateExpressionExecution, EvalIssue] {
-  let budget : ControlBudget = { remaining: max_work, max_frames, }
-  let workspace : RowWorkspace = {
-    limit: max_workspace_slots,
-    live: 0,
-    peak: 0,
-  }
-  expression_frame(expression, input, [], budget, workspace, None).map(frame => {
-    frame,
-    finished: false,
-  })
+  start_expression_execution(
+    expression,
+    input,
+    [],
+    max_work,
+    max_frames,
+    max_workspace_slots,
+  ).map(inner => { inner, finished: false, })
 }
 
 ///|
@@ -43,23 +41,26 @@ pub fn advance_predicate_expression(
   execution : PredicateExpressionExecution,
 ) -> Result[PredicateExpressionPoll, EvalIssue] {
   if execution.finished {
-    return Err({ kind: InvalidControlLimits, expression: execution.frame.root, })
+    return Err({
+      kind: InvalidControlLimits,
+      expression: execution.inner.frame.root,
+    })
   }
-  match advance_expression_frame(execution.frame) {
+  match advance_expression_execution(execution.inner) {
     Err(issue) => {
       execution.finished = true
       Err(issue)
     }
-    Ok(None) => Ok(PredicateExpressionContinue)
-    Ok(Some(result)) => {
+    Ok(ExpressionContinue) => Ok(PredicateExpressionContinue)
+    Ok(ExpressionComplete(value)) => {
       execution.finished = true
-      match result.value {
+      match value {
         Boolean(value) => Ok(PredicateExpressionComplete(value))
         Null => Ok(PredicateExpressionComplete(false))
         Number(_) | Text(_) | Captured(_) =>
           Err({
             kind: Scalar(InvalidOperand),
-            expression: execution.frame.root,
+            expression: execution.inner.frame.root,
           })
       }
     }
@@ -70,7 +71,7 @@ pub fn advance_predicate_expression(
 pub fn predicate_expression_remaining(
   execution : PredicateExpressionExecution,
 ) -> Int {
-  execution.frame.budget.remaining
+  expression_execution_remaining(execution.inner)
 }
 
 ///|
@@ -80,7 +81,7 @@ pub fn cancel_predicate_expression(
   execution : PredicateExpressionExecution,
 ) -> Bool {
   if !execution.finished {
-    close_expression_frame(execution.frame)
+    cancel_expression_execution(execution.inner) |> ignore
     execution.finished = true
   }
   true
