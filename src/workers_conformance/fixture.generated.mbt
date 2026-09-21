@@ -30,6 +30,7 @@ fn captured_graph_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
@@ -89,6 +90,7 @@ fn captured_graph_fixture(
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
     local_supplied_ranking_chain~,
+    local_supplied_ranking_policy~,
     local_vector_expression_chain~,
     local_values_analytic_chain~,
     local_values_analytic_variant~,
@@ -1443,7 +1445,7 @@ fn local_select_qualified_program() -> String {
 
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
-fn local_supplied_ranking_program() -> String {
+fn local_supplied_ranking_program(policy? : String = "\"max\"") -> String {
   let input = "{\"carrier\":\"relation\",\"schema\":{" +
     "\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"q\":{\"type\":\"number\",\"nullable\":false}," +
@@ -1463,7 +1465,9 @@ fn local_supplied_ranking_program() -> String {
   "},\"from\":\"left\",\"steps\":[{\"merge_rankings\":{" +
   "\"with\":\"right\",\"by\":[\"q\"]," +
   "\"candidate\":\"id\",\"score\":\"score\",\"k\":2," +
-  "\"score_policy\":\"max\",\"score_contract\":{" +
+  "\"score_policy\":" +
+  policy +
+  ",\"score_contract\":{" +
   "\"domain\":\"unit.v1\",\"normalization\":\"unit.v1\"," +
   "\"range\":[0,1]}},\"as\":\"out\"}],\"results\":{" +
   "\"r\":{\"from\":\"out\",\"fields\":[" +
@@ -2907,6 +2911,7 @@ fn query_checked_program_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
@@ -3003,7 +3008,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_supplied_ranking_chain {
-    local_supplied_ranking_program()
+    local_supplied_ranking_program(policy=local_supplied_ranking_policy)
   } else {
     text
   }

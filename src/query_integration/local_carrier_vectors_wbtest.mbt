@@ -26,7 +26,7 @@ fn local_supplied_ranking_schema_snapshots() -> String {
 }
 
 ///|
-fn local_supplied_ranking_program() -> String {
+fn local_supplied_ranking_program(policy? : String = "\"max\"") -> String {
   let input = "{\"carrier\":\"relation\",\"schema\":{" +
     "\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"q\":{\"type\":\"number\",\"nullable\":false}," +
@@ -46,7 +46,9 @@ fn local_supplied_ranking_program() -> String {
   "},\"from\":\"left\",\"steps\":[{\"merge_rankings\":{" +
   "\"with\":\"right\",\"by\":[\"q\"]," +
   "\"candidate\":\"id\",\"score\":\"score\",\"k\":2," +
-  "\"score_policy\":\"max\",\"score_contract\":{" +
+  "\"score_policy\":" +
+  policy +
+  ",\"score_contract\":{" +
   "\"domain\":\"unit.v1\",\"normalization\":\"unit.v1\"," +
   "\"range\":[0,1]}},\"as\":\"out\"}],\"results\":{" +
   "\"r\":{\"from\":\"out\",\"fields\":[" +
@@ -1974,167 +1976,188 @@ test "registered VecA provider preserves supplied score authority" {
 
 ///|
 test "standard Host executes supplied scored rankings through two consumers" {
-  let (run, issuer) = captured_graph_fixture(
-    local_supplied_ranking_chain=true,
-    supplied_local_rows=[
+  for
+    (policy, expected_ranked, expected_first, expected_second) in [
       (
-        1,
-        0,
+        "\"max\"",
         [
-          "{\"q\":1,\"id\":1,\"score\":0.75}", "{\"q\":1,\"id\":2,\"score\":0.5}",
+          "{\"id\":1,\"q\":1,\"rank\":1,\"score\":0.75}", "{\"id\":2,\"q\":1,\"rank\":2,\"score\":0.5}",
         ],
+        [
+          "{\"q\":1,\"id\":1,\"rank\":1,\"score\":0.75}", "{\"q\":1,\"id\":2,\"rank\":2,\"score\":0.5}",
+        ],
+        ["{\"score\":0.75,\"id\":1}", "{\"score\":0.5,\"id\":2}"],
       ),
       (
-        1,
-        1,
-        ["{\"q\":1,\"id\":1,\"score\":0.5}", "{\"q\":1,\"id\":3,\"score\":0.5}"],
+        "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}",
+        [
+          "{\"id\":1,\"q\":1,\"rank\":1,\"score\":0.625}", "{\"id\":2,\"q\":1,\"rank\":2,\"score\":0.25}",
+        ],
+        [
+          "{\"q\":1,\"id\":1,\"rank\":1,\"score\":0.625}", "{\"q\":1,\"id\":2,\"rank\":2,\"score\":0.25}",
+        ],
+        ["{\"score\":0.625,\"id\":1}", "{\"score\":0.25,\"id\":2}"],
       ),
-    ],
-  )
-  assert_true(
-    @strategy.configure_captured_managed_identity_policy(
-      run, true, false, false, false,
-    ),
-  )
-  let registry = search_registry()
-  let limits = dispatch_test_limits()
-  let sequences = dispatch_test_generated(run)
-  let provider = @local_veca_provider.provider(
-    carrier_vectors_storage_limits(),
-    4096L,
-    @execution.generated_sequence_capacity(
-      sequences[1],
-      limits.local_execution,
-      limits.guards,
-    ).unwrap(),
-  )
-  let modules = @builtin.configure_compute_modules(
-    @host_driver.open_dispatch_driver(run),
-    registry,
-    1,
-    _ => @strategy.RunIssue::ForeignCandidate,
-    with_local=Some(
-      (
-        @connector.capability_registration_at(registry, 0).unwrap(),
-        {
-          sequences,
-          managed_providers: [provider],
-          managed_capacity: limits.capacity,
-          execution: limits.local_execution,
-          measurement: limits.guards,
-          max_work: limits.candidate_work,
-        },
-        _ => @strategy.RunIssue::ForeignCandidate,
-        _ => @strategy.RunIssue::ForeignCandidate,
-      ),
-    ),
-  ).unwrap()
-  let installed = @builtin.configured_local_module(modules).unwrap()
-  @local_driver.configure_local_retained_inputs(
-    installed,
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire: {
-        ..retained_attempt_wire_limits(),
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_columns: 10,
-      },
-      row: {
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_text_bytes: 3000,
-      },
-      max_batch_bytes: 3000,
-    },
-    None,
-  ).unwrap()
-
-  assert_eq(@strategy.next_captured_task(run), Some(1))
-  let ranked_live = Ref(true)
-  let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
-  let (ranked_ops, ranked) = run_local_managed_test_task(
-    installed,
-    run,
-    1,
-    [],
-    [],
-    1,
-    ranked_live,
-    obligations~,
-  )
-  let ranked_rows = local_managed_test_rows(ranked_ops)
-  assert_eq(ranked_rows, [
-    "{\"id\":1,\"q\":1,\"rank\":1,\"score\":0.75}", "{\"id\":2,\"q\":1,\"rank\":2,\"score\":0.5}",
-  ])
-  let publication = @execution.managed_obligations_identities(obligations).filter(requirement => {
-      requirement.domain == @execution.LogicalRelation &&
-      requirement.subject == @execution.NamedResult
-    },
-  )
-  assert_eq(publication.length(), 1)
-  assert_true(
-    @execution.managed_completed_identity_requirement_status(
-      ranked,
-      publication[0],
+    ] {
+    let (run, issuer) = captured_graph_fixture(
+      local_supplied_ranking_chain=true,
+      local_supplied_ranking_policy=policy,
+      supplied_local_rows=[
+        (
+          1,
+          0,
+          [
+            "{\"q\":1,\"id\":1,\"score\":0.75}", "{\"q\":1,\"id\":2,\"score\":0.5}",
+          ],
+        ),
+        (
+          1,
+          1,
+          [
+            "{\"q\":1,\"id\":1,\"score\":0.5}", "{\"q\":1,\"id\":3,\"score\":0.5}",
+          ],
+        ),
+      ],
     )
-    is Some(@execution.EstablishedSourceRetained(_, _)),
-  )
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
+      ),
+    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    let sequences = dispatch_test_generated(run)
+    let provider = @local_veca_provider.provider(
+      carrier_vectors_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        sequences[1],
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let modules = @builtin.configure_compute_modules(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      1,
+      _ => @strategy.RunIssue::ForeignCandidate,
+      with_local=Some(
+        (
+          @connector.capability_registration_at(registry, 0).unwrap(),
+          {
+            sequences,
+            managed_providers: [provider],
+            managed_capacity: limits.capacity,
+            execution: limits.local_execution,
+            measurement: limits.guards,
+            max_work: limits.candidate_work,
+          },
+          _ => @strategy.RunIssue::ForeignCandidate,
+          _ => @strategy.RunIssue::ForeignCandidate,
+        ),
+      ),
+    ).unwrap()
+    let installed = @builtin.configured_local_module(modules).unwrap()
+    @local_driver.configure_local_retained_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values: limits.local_execution.rows.input_values,
+        wire: {
+          ..retained_attempt_wire_limits(),
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_columns: 10,
+        },
+        row: {
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_text_bytes: 3000,
+        },
+        max_batch_bytes: 3000,
+      },
+      None,
+    ).unwrap()
 
-  let first_live = Ref(true)
-  let (first_ops, first) = run_local_managed_test_task(
-    installed,
-    run,
-    2,
-    [ranked],
-    [ranked_rows],
-    2,
-    first_live,
-  )
-  let second_live = Ref(true)
-  let (second_ops, second) = run_local_managed_test_task(
-    installed,
-    run,
-    3,
-    [ranked],
-    [ranked_rows],
-    3,
-    second_live,
-  )
-  assert_eq(local_managed_test_rows(first_ops), [
-    "{\"q\":1,\"id\":1,\"rank\":1,\"score\":0.75}", "{\"q\":1,\"id\":2,\"rank\":2,\"score\":0.5}",
-  ])
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"score\":0.75,\"id\":1}", "{\"score\":0.5,\"id\":2}",
-  ])
+    assert_eq(@strategy.next_captured_task(run), Some(1))
+    let ranked_live = Ref(true)
+    let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+    let (ranked_ops, ranked) = run_local_managed_test_task(
+      installed,
+      run,
+      1,
+      [],
+      [],
+      1,
+      ranked_live,
+      obligations~,
+    )
+    let ranked_rows = local_managed_test_rows(ranked_ops)
+    assert_eq(ranked_rows, expected_ranked)
+    let publication = @execution.managed_obligations_identities(obligations).filter(requirement => {
+        requirement.domain == @execution.LogicalRelation &&
+        requirement.subject == @execution.NamedResult
+      },
+    )
+    assert_eq(publication.length(), 1)
+    assert_true(
+      @execution.managed_completed_identity_requirement_status(
+        ranked,
+        publication[0],
+      )
+      is Some(@execution.EstablishedSourceRetained(_, _)),
+    )
 
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (first_ops.close)()
-  assert_true((first_ops.cleanup_refresh)())
-  assert_false(@execution.managed_completed_output_available(first))
-  assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(ranked))
+    let first_live = Ref(true)
+    let (first_ops, first) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [ranked],
+      [ranked_rows],
+      2,
+      first_live,
+    )
+    let second_live = Ref(true)
+    let (second_ops, second) = run_local_managed_test_task(
+      installed,
+      run,
+      3,
+      [ranked],
+      [ranked_rows],
+      3,
+      second_live,
+    )
+    assert_eq(local_managed_test_rows(first_ops), expected_first)
+    assert_eq(local_managed_test_rows(second_ops), expected_second)
 
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
-  (second_ops.close)()
-  assert_true((second_ops.cleanup_refresh)())
-  ranked_live.val = false
-  @strategy.close_captured_task_output(run, 1)
-  (ranked_ops.close)()
-  assert_true((ranked_ops.cleanup_refresh)())
-  @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.reserved_execution_bytes, 0L)
-  assert_eq(usage.reserved_retention_bytes, 0L)
-  assert_eq(usage.held_bytes, 0L)
-  @mock.close_mock_query_issuer(issuer)
+    first_live.val = false
+    @strategy.close_captured_task_output(run, 2)
+    (first_ops.close)()
+    assert_true((first_ops.cleanup_refresh)())
+    assert_false(@execution.managed_completed_output_available(first))
+    assert_true(@execution.managed_completed_output_available(second))
+    assert_true(@execution.managed_completed_output_available(ranked))
+
+    second_live.val = false
+    @strategy.close_captured_task_output(run, 3)
+    (second_ops.close)()
+    assert_true((second_ops.cleanup_refresh)())
+    ranked_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (ranked_ops.close)()
+    assert_true((ranked_ops.cleanup_refresh)())
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+  }
 }
 
 ///|
