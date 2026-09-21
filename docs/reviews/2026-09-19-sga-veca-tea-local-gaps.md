@@ -33,7 +33,7 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `standard_host` | 34/39 |
 | `consumer_lifetime` | 34/39 |
 | `resources` | 34/39 |
-| `cancellation` | 33/39 |
+| `cancellation` | 34/39 |
 | `publication` | 33/39 |
 | `three_targets` | 34/39 |
 | complete operations | 27/39 |
@@ -721,9 +721,8 @@ managed session. As-of identity validation and both stable sorts are resumable
 as well. The Node Host delivers timer cancellation during each search, observes
 stop, keeps partial output private, and completes cleanup. This closes interval
 and as-of joins.
-Sequence
-matching now has typed
-lowering and a portable bounded Relation kernel. It validates semantic event
+Sequence matching now has typed lowering and a portable bounded Relation
+kernel. It validates semantic event
 identity, orders by grouping keys and `(time,id)`, evaluates each demanded
 row-pattern predicate once, and supports both overlap and contiguity policies.
 Author match guards fail atomically, and output storage is admitted before
@@ -732,11 +731,16 @@ native. A Relation input now reaches the standard Host under exact temporal
 limits, feeds two downstream computations with overlapping lifetimes, releases
 them independently, and reclaims the final ledger on all three targets. At
 `a93ea126`, the same path establishes the exact Logical Relation identity for
-its Named Result before publication on JS, Wasm, and native. The Events input
-path and environment cancellation delivery remain open, so sequence matching
-is partial. The synchronous Relation evaluator does not yet expose its bounded
-sequence state through the managed advance boundary; finalization cancellation
-is not counted as kernel cancellation. Event windows now preserve the Events
+its Named Result before publication on JS, Wasm, and native. At `1e2c48f6`,
+sequence matching runs through a bounded managed provider. Its identity checks,
+stable sorts, predicate evaluation, match construction, and output admission
+resume in finite work quanta. Empty input, global and grouped partitions, and
+all overlap and contiguity policy combinations pass on JS, Wasm, and native.
+The Node standard Host delivers timer cancellation during matching, observes
+kernel stop, publishes no partial result, completes cleanup, and returns held
+and reserved bytes to zero. The Events input path across a physical standard
+Host task boundary remains open, so sequence matching remains partial. Event
+windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
 sliding-assignment operation. Their bounded kernel validates the complete
 membership bound before output allocation, retains input occurrence order,

@@ -1698,13 +1698,16 @@
         "standard_host",
         "consumer_lifetime",
         "resources",
+        "cancellation",
         "publication",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/sequence_match_test.mbt",
         "src/execution_relation/sequence_match_rows_wbtest.mbt",
-        "src/query_integration/local_managed_sequence_wbtest.mbt"
+        "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+        "src/query_integration/local_managed_sequence_wbtest.mbt",
+        "adapters/duckdb-node/test/standard-host.test.mjs"
       ],
       "implementation_evidence": [
         {
@@ -1714,6 +1717,28 @@
           "sha": "a93ea126",
           "evidence": [
             "src/query_integration/local_managed_sequence_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_matching_and_managed_cancellation",
+          "layers": ["managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1e2c48f6",
+          "evidence": [
+            "src/execution_relation/bounded_sequence_match.mbt",
+            "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+            "src/local_tea_provider/sequence_match.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "1e2c48f6",
+          "evidence": [
+            "src/duckdb_conformance/sequence_capacity_fixture.mbt",
+            "src/duckdb_conformance/standard_subset.mbt",
+            "adapters/duckdb-node/test/standard-host.test.mjs"
           ]
         }
       ]
