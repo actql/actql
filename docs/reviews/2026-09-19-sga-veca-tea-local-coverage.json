@@ -887,8 +887,28 @@
       "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_subgraph_test.mbt"]
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+      "layer_evidence": [
+        "src/lowering_relation/graph_subgraph_test.mbt",
+        "src/local_sga/subgraph.mbt",
+        "src/local_sga/subgraph_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "literal_identity_induced_subgraph",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "87909cdf",
+          "evidence": [
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "SGA",
