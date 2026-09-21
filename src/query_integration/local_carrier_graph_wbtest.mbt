@@ -234,9 +234,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_ids" {
+  } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[2]}}," +
-    "\"as\":\"selected\"},{\"from\":\"selected\"," +
+    "\"as\":\"selected\"},{" +
+    (if variant == "subgraph_shared" {
+      "\"from\":\"selected\",\"normalize_graph\":true," +
+      "\"as\":\"same_carrier\"},{"
+    } else {
+      ""
+    }) +
+    "\"from\":\"selected\"," +
     "\"node_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
@@ -3349,7 +3356,7 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:2565b440f95c1ee69574099652dde59d535c5a390fe62c29de3b147d3ce32304"
   } else if variant == "match_nodes_predicate" {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
-  } else if variant == "subgraph_ids" {
+  } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
     "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f"
   } else if variant == "degree_both" {
     "sha256:3a537f671c5f32a7a9e97bb2e1a0edd04aeec3df32a5403bef7801958022deb0"
@@ -3535,7 +3542,7 @@ fn run_standard_host_graph_relation_path(
     4
   } else if variant.has_prefix("traverse_") ||
     variant == "subtract" ||
-    variant == "subgraph_ids" {
+    variant.has_prefix("subgraph_") {
     1
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
@@ -3599,7 +3606,7 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_nodes_predicate" {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
-  } else if variant == "subgraph_ids" {
+  } else if variant.has_prefix("subgraph_") {
     assert_true(graph_rows[0].contains("\"id\":2"))
     assert_true(graph_rows[0].contains("\"node_name\":\"second\""))
   } else if variant == "graphs_equal" ||
@@ -3762,6 +3769,7 @@ test "standard Host preserves bidirectional Graph traversal" {
 ///|
 test "standard Host selects a literal Graph subgraph" {
   run_standard_host_graph_relation_path("subgraph_ids", publication=true)
+  run_standard_host_graph_relation_path("subgraph_shared", publication=true)
 }
 
 ///|
