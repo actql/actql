@@ -182,6 +182,11 @@ pub fn contains_declared_node(
 }
 
 ///|
+pub fn output_workspace_slots(output : OutputBuilder) -> Int {
+  @storage.builder_workspace_slots(output.graph)
+}
+
+///|
 pub fn cancel_output(output : OutputBuilder) -> Bool {
   output.open = false
   let storage = @storage.cancel(output.graph)
