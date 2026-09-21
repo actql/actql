@@ -163,8 +163,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "subgraph_relation_selector",
   )
   let traverse_relation_selector = variant == "traverse_relation_selector"
+  let shortest_relation_selector = variant == "shortest_relation_selector"
   let relation_selector = subgraph_relation_selector ||
-    traverse_relation_selector
+    traverse_relation_selector ||
+    shortest_relation_selector
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
     "\"src\":{\"type\":\"number\",\"nullable\":false}," +
     "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
@@ -249,6 +251,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "reach_out" {
     "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
     "\"max_depth\":2},\"as\":\"out\""
+  } else if shortest_relation_selector {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"},\"target\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"},\"selection\":\"each_pair\"," +
+    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
+  } else if variant == "shortest_predicate" {
+    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"where\":" +
+    "\"true\"},\"target\":{\"where\":\"node_name = 'second'\"}," +
+    "\"selection\":\"each_pair\",\"direction\":\"out\"," +
+    "\"max_hops\":2},\"as\":\"out\""
   } else if variant == "shortest_ids" {
     "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1,2]}," +
     "\"target\":{\"ids\":[2,1]},\"selection\":\"each_pair\"," +
@@ -648,7 +660,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "false"
     }) +
     "}},\"rows\":" +
-    (if traverse_relation_selector {
+    (if traverse_relation_selector || shortest_relation_selector {
       "[{\"key\":2},{\"key\":1},{\"key\":2}]"
     } else {
       "[{\"key\":2},{\"key\":2}]"
@@ -4904,8 +4916,10 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:821ce11feb97033bed3e665dd44185973dab504b4d5f85ee72b24ae212b765e4"
   } else if variant == "shortest_in" {
     "sha256:2415a7a8c26f36220fb0ab8b39e12b5a875638e7c7f12c77d33cff7beb3bf3f2"
-  } else if variant == "shortest_ids" {
+  } else if variant == "shortest_ids" || variant == "shortest_relation_selector" {
     "sha256:7de829b7221d828eb4205ffbb82988aedafea600a2454a84203e4d966ff03b3c"
+  } else if variant == "shortest_predicate" {
+    "sha256:9734654c29bb6c6adc042fa640e65d87f7bd2eec43261acc3d0ae56209d7fde1"
   } else if variant.has_prefix("shortest_") {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
   } else if variant.has_prefix("traverse_") {
@@ -4925,7 +4939,8 @@ fn run_standard_host_graph_relation_path(
   publication? : Bool = false,
 ) -> Unit raise {
   let relation_selector = variant.has_prefix("subgraph_relation_selector") ||
-    variant == "traverse_relation_selector"
+    variant == "traverse_relation_selector" ||
+    variant == "shortest_relation_selector"
   let traverse_relation_selector = variant == "traverse_relation_selector"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
@@ -5120,8 +5135,10 @@ fn run_standard_host_graph_relation_path(
     4
   } else if variant == "traverse_ids" || traverse_relation_selector {
     2
-  } else if variant == "shortest_ids" {
+  } else if variant == "shortest_ids" || variant == "shortest_relation_selector" {
     4
+  } else if variant == "shortest_predicate" {
+    2
   } else if variant.has_prefix("shortest_") {
     1
   } else if variant == "traverse_predicate" {
@@ -5202,7 +5219,7 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"depth\":0"))
     assert_true(graph_rows[1].contains("\"node_id\":2"))
     assert_true(graph_rows[1].contains("\"depth\":1"))
-  } else if variant == "shortest_ids" {
+  } else if variant == "shortest_ids" || variant == "shortest_relation_selector" {
     assert_true(graph_rows[0].contains("\"source_id\":1"))
     assert_true(graph_rows[0].contains("\"target_id\":1"))
     assert_true(graph_rows[1].contains("\"source_id\":1"))
@@ -5211,6 +5228,11 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[2].contains("\"target_id\":1"))
     assert_true(graph_rows[3].contains("\"source_id\":2"))
     assert_true(graph_rows[3].contains("\"target_id\":2"))
+  } else if variant == "shortest_predicate" {
+    assert_true(graph_rows[0].contains("\"source_id\":1"))
+    assert_true(graph_rows[0].contains("\"target_id\":2"))
+    assert_true(graph_rows[1].contains("\"source_id\":2"))
+    assert_true(graph_rows[1].contains("\"target_id\":2"))
   } else if variant.has_prefix("shortest_") && expected_rows > 0 {
     assert_true(graph_rows[0].contains("\"source_id\":1"))
     if variant == "shortest_zero" {
@@ -5536,6 +5558,19 @@ test "standard Host runs a bounded scalar shortest path" {
 ///|
 test "standard Host runs explicit shortest endpoint identity sets" {
   run_standard_host_graph_relation_path("shortest_ids", publication=true)
+}
+
+///|
+test "standard Host runs Relation-selected shortest endpoint sets" {
+  run_standard_host_graph_relation_path(
+    "shortest_relation_selector",
+    publication=true,
+  )
+}
+
+///|
+test "standard Host runs predicate-selected shortest endpoint sets" {
+  run_standard_host_graph_relation_path("shortest_predicate", publication=true)
 }
 
 ///|

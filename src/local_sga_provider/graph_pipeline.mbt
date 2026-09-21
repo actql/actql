@@ -103,6 +103,30 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
 }
 
 ///|
+fn accepts_shortest_endpoint(
+  value : @lower.PreparedGraphShortest,
+  side : @schema.Side,
+) -> Bool {
+  @lower.graph_shortest_endpoint_single(value, side) is Some(_) ||
+  (
+    @lower.graph_shortest_endpoint_id_count(value, side) > 0 &&
+    @lower.graph_shortest_endpoint_relation_field(value, side) is None &&
+    @lower.graph_shortest_endpoint_predicate(value, side) is None &&
+    @lower.graph_shortest_endpoint_input_port(value, side) is None
+  ) ||
+  (
+    @lower.graph_shortest_endpoint_relation_field(value, side) is Some(_) &&
+    @lower.graph_shortest_endpoint_input_port(value, side) is Some(_) &&
+    @lower.graph_shortest_endpoint_predicate(value, side) is None
+  ) ||
+  (
+    @lower.graph_shortest_endpoint_predicate(value, side) is Some(_) &&
+    @lower.graph_shortest_endpoint_relation_field(value, side) is None &&
+    @lower.graph_shortest_endpoint_input_port(value, side) is None
+  )
+}
+
+///|
 fn fail_execution(
   value : Execution,
 ) -> Result[@local.ManagedProviderPoll, @connector.FixedComputeIssue] {
@@ -240,38 +264,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.traverse" && accepts_traverse(traverse)
       (current, @lower.GraphShortestStep(shortest)) if current == count - 1 =>
         @lower.operation(node) == "SGA.shortest_path" &&
-        (
-          @lower.graph_shortest_endpoint_single(shortest, @schema.Left)
-          is Some(_) ||
-          (
-            @lower.graph_shortest_endpoint_id_count(shortest, @schema.Left) > 0 &&
-            @lower.graph_shortest_endpoint_relation_field(
-              shortest,
-              @schema.Left,
-            )
-            is None &&
-            @lower.graph_shortest_endpoint_predicate(shortest, @schema.Left)
-            is None &&
-            @lower.graph_shortest_endpoint_input_port(shortest, @schema.Left)
-            is None
-          )
-        ) &&
-        (
-          @lower.graph_shortest_endpoint_single(shortest, @schema.Right)
-          is Some(_) ||
-          (
-            @lower.graph_shortest_endpoint_id_count(shortest, @schema.Right) > 0 &&
-            @lower.graph_shortest_endpoint_relation_field(
-              shortest,
-              @schema.Right,
-            )
-            is None &&
-            @lower.graph_shortest_endpoint_predicate(shortest, @schema.Right)
-            is None &&
-            @lower.graph_shortest_endpoint_input_port(shortest, @schema.Right)
-            is None
-          )
-        ) &&
+        accepts_shortest_endpoint(shortest, @schema.Left) &&
+        accepts_shortest_endpoint(shortest, @schema.Right) &&
         @lower.graph_shortest_selection(shortest) == @graph_type.EachPair &&
         @lower.graph_shortest_weight(shortest) is None &&
         @lower.graph_shortest_max_hops(shortest) is Some(_)

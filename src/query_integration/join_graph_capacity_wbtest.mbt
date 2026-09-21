@@ -295,6 +295,7 @@ fn traversal_capacity_material(
   step? : Int = 1,
   output_rows? : Int64 = 2L,
   selector_rows? : Int64? = None,
+  predicate_selector? : Bool = false,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -345,14 +346,50 @@ fn traversal_capacity_material(
       witnesses.push(@wire.program_proof_witness(proof))
     }
   } else if operation == "shortest_path" {
+    let output_inputs : Array[String] = []
+    if predicate_selector {
+      let input = query_capacity_proof(
+        "actql.bound.values",
+        2L,
+        "{\"op\":\"source\"}",
+        step=0,
+      )
+      let graph = query_capacity_proof(
+        "actql.bound.graph-nodes",
+        2L,
+        "{\"op\":\"source\"}",
+        inputs=[@wire.cid(@wire.program_proof_witness(input))],
+        step=0,
+        unit="nodes",
+      )
+      proofs.push(input)
+      proofs.push(graph)
+      output_inputs.push(@wire.cid(@wire.program_proof_witness(graph)))
+    } else if selector_rows is Some(rows) {
+      let selector = query_capacity_proof(
+        "actql.bound.values",
+        rows,
+        "{\"op\":\"source\"}",
+        step=0,
+      )
+      proofs.push(selector)
+      let selector_cid = @wire.cid(@wire.program_proof_witness(selector))
+      // Source and target are distinct ordered input edges even when they
+      // select the same material.
+      output_inputs.push(selector_cid)
+      output_inputs.push(selector_cid)
+    }
     let output = query_capacity_proof(
       "actql.bound.shortest-path",
       output_rows,
       "{\"op\":\"source\"}",
+      inputs=output_inputs,
       step~,
     )
     proofs.push(output)
-    witnesses.push(@wire.program_proof_witness(output))
+    for proof in proofs {
+      witnesses.push(@wire.program_proof_witness(proof))
+    }
   }
   let artifacts : Array[(Bytes, String)] = []
   for

@@ -3,6 +3,8 @@ priv enum ShortestPhase {
   InitializeEndpointSelection
   ResolveSourceEndpoints
   ResolveTargetEndpoints
+  PrepareEndpointPredicate
+  EvaluateEndpointPredicate
   CollectSourceEndpoints
   CollectTargetEndpoints
   InitializeEndpointScratch
@@ -42,6 +44,8 @@ priv enum ShortestPhase {
 priv enum ShortestEndpoints {
   SingleShortestEndpoint(@value.CheckedValue)
   LiteralShortestEndpoints
+  RelationShortestEndpoints(@execution.ProducerRead, Int)
+  PredicateShortestEndpoints(@lower.Expression)
 }
 
 ///|
@@ -96,6 +100,12 @@ priv struct ShortestState {
   source_nodes : Array[Int]
   target_nodes : Array[Int]
   endpoint_scratch : Array[Int?]
+  graph : @carrier.Graph
+  predicate_workspace : Int
+  mut predicate_work_remaining : Int
+  predicate_input : Map[String, @execution.Value]
+  mut predicate_execution : @execution.PredicateExpressionExecution?
+  mut predicate_field : Int
   depth : Array[Int]
   predecessor : Array[Int]
   predecessor_edge : Array[Int]
@@ -134,6 +144,7 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestPredicate(@execution.EvalIssueKind)
   ShortestKeyOrder(@value.KeyOrderIssue)
   ShortestStorage(@storage.Issue)
   ShortestOutput(@execution.CaptureIssue)
@@ -186,6 +197,9 @@ fn shortest_endpoint_count(state : ShortestState, side : @schema.Side) -> Int {
     SingleShortestEndpoint(_) => 1
     LiteralShortestEndpoints =>
       @lower.graph_shortest_endpoint_id_count(state.prepared, side)
+    RelationShortestEndpoints(input, _) =>
+      @execution.producer_read_row_count(input)
+    PredicateShortestEndpoints(_) => @storage.node_count(state.source)
   }
 }
 
@@ -204,6 +218,74 @@ fn shortest_endpoint_at(
     SingleShortestEndpoint(value) => if index == 0 { Some(value) } else { None }
     LiteralShortestEndpoints =>
       @lower.graph_shortest_endpoint_id_at(state.prepared, side, index)
+    RelationShortestEndpoints(input, column) =>
+      @execution.producer_read_checked_cell(
+        input,
+        index,
+        column,
+        state.value_limits,
+      )
+    PredicateShortestEndpoints(_) => None
+  }
+}
+
+///|
+fn shortest_endpoint_definition(
+  state : ShortestState,
+  side : @schema.Side,
+) -> ShortestEndpoints {
+  if side == @schema.Left {
+    state.sources
+  } else {
+    state.targets
+  }
+}
+
+///|
+fn shortest_endpoints_available(endpoints : ShortestEndpoints) -> Bool {
+  match endpoints {
+    RelationShortestEndpoints(input, _) =>
+      @execution.producer_read_available(input)
+    _ => true
+  }
+}
+
+///|
+fn shortest_endpoint_selection(state : ShortestState) -> Array[Bool] {
+  if state.endpoint_side == @schema.Left {
+    state.source_selected
+  } else {
+    state.target_selected
+  }
+}
+
+///|
+fn shortest_begin_endpoint_side(
+  state : ShortestState,
+  side : @schema.Side,
+) -> Unit {
+  state.endpoint_side = side
+  state.index = 0
+  state.predicate_field = 0
+  state.predicate_input.clear()
+  state.phase = match shortest_endpoint_definition(state, side) {
+    PredicateShortestEndpoints(_) => PrepareEndpointPredicate
+    _ =>
+      if side == @schema.Left {
+        ResolveSourceEndpoints
+      } else {
+        ResolveTargetEndpoints
+      }
+  }
+}
+
+///|
+fn shortest_finish_endpoint_side(state : ShortestState) -> Unit {
+  if state.endpoint_side == @schema.Left {
+    shortest_begin_endpoint_side(state, @schema.Right)
+  } else {
+    state.index = 0
+    state.phase = CollectSourceEndpoints
   }
 }
 
@@ -483,7 +565,9 @@ fn shortest_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !@graph.producer_read_available(state.input) ||
+      !shortest_endpoints_available(state.sources) ||
+      !shortest_endpoints_available(state.targets) {
       return @bounded.Failed(ShortestInputUnavailable, progress, used)
     }
     match state.phase {
@@ -494,8 +578,7 @@ fn shortest_step(
           state.index += 1
           used += 1
         } else {
-          state.index = 0
-          state.phase = ResolveSourceEndpoints
+          shortest_begin_endpoint_side(state, @schema.Left)
         }
       ResolveSourceEndpoints =>
         if state.index < shortest_endpoint_count(state, @schema.Left) {
@@ -503,6 +586,18 @@ fn shortest_step(
           guard shortest_endpoint_at(state, @schema.Left, state.index)
             is Some(identity) else {
             return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+          }
+          guard @value.recheck_runtime_value(
+              identity.value,
+              @carrier.graph_identity(state.graph),
+              state.value_limits,
+            )
+            is Some(identity) else {
+            return @bounded.Failed(
+              ShortestKeyOrder(@value.InvalidKey),
+              progress,
+              used,
+            )
           }
           match @storage.node_index(state.source, identity) {
             Err(issue) =>
@@ -513,8 +608,7 @@ fn shortest_step(
           }
           state.index += 1
         } else {
-          state.index = 0
-          state.phase = ResolveTargetEndpoints
+          shortest_finish_endpoint_side(state)
         }
       ResolveTargetEndpoints =>
         if state.index < shortest_endpoint_count(state, @schema.Right) {
@@ -522,6 +616,18 @@ fn shortest_step(
           guard shortest_endpoint_at(state, @schema.Right, state.index)
             is Some(identity) else {
             return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+          }
+          guard @value.recheck_runtime_value(
+              identity.value,
+              @carrier.graph_identity(state.graph),
+              state.value_limits,
+            )
+            is Some(identity) else {
+            return @bounded.Failed(
+              ShortestKeyOrder(@value.InvalidKey),
+              progress,
+              used,
+            )
           }
           match @storage.node_index(state.source, identity) {
             Err(issue) =>
@@ -532,9 +638,81 @@ fn shortest_step(
           }
           state.index += 1
         } else {
-          state.index = 0
-          state.phase = CollectSourceEndpoints
+          shortest_finish_endpoint_side(state)
         }
+      PrepareEndpointPredicate =>
+        if state.index >= @storage.node_count(state.source) {
+          shortest_finish_endpoint_side(state)
+        } else if state.predicate_field <
+          graph_node_predicate_binding_count(state.graph) {
+          used += 1
+          guard graph_node_predicate_binding(
+              state.graph,
+              state.source,
+              state.index,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(ShortestInputUnavailable, progress, used)
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard shortest_endpoint_definition(state, state.endpoint_side)
+            is PredicateShortestEndpoints(predicate) else {
+            return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                ShortestPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateEndpointPredicate
+            }
+          }
+        }
+      EvaluateEndpointPredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(UnsupportedShortestKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              ShortestPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            shortest_endpoint_selection(state)[state.index] = selected
+            state.index += 1
+            state.predicate_field = 0
+            state.predicate_input.clear()
+            state.phase = PrepareEndpointPredicate
+          }
+        }
+      }
       CollectSourceEndpoints =>
         if state.index < state.source_selected.length() {
           if state.source_selected[state.index] {
@@ -1055,6 +1233,10 @@ fn shortest_step(
 
 ///|
 fn cleanup_shortest_state(state : ShortestState) -> Bool {
+  if state.predicate_execution is Some(execution) {
+    @execution.cancel_predicate_expression(execution) |> ignore
+    state.predicate_execution = None
+  }
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -1075,6 +1257,7 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.source_nodes.clear()
   state.target_nodes.clear()
   state.endpoint_scratch.clear()
+  state.predicate_input.clear()
   state.depth.clear()
   state.predecessor.clear()
   state.predecessor_edge.clear()
@@ -1086,9 +1269,53 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
 }
 
 ///|
-/// Start the bounded unweighted shortest-path kernel for scalar endpoints or
-/// explicit finite endpoint identity sets. Relation and predicate selectors,
-/// and weighted paths, are rejected before execution.
+fn prepare_shortest_endpoints(
+  prepared : @lower.PreparedGraphShortest,
+  side : @schema.Side,
+  owner : @lower.BoundPrepared,
+  step : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[ShortestEndpoints, ShortestIssue] {
+  if @lower.graph_shortest_endpoint_single(prepared, side) is Some(value) {
+    return Ok(SingleShortestEndpoint(value))
+  }
+  if @lower.graph_shortest_endpoint_id_count(prepared, side) > 0 &&
+    @lower.graph_shortest_endpoint_relation_field(prepared, side) is None &&
+    @lower.graph_shortest_endpoint_predicate(prepared, side) is None &&
+    @lower.graph_shortest_endpoint_input_port(prepared, side) is None {
+    return Ok(LiteralShortestEndpoints)
+  }
+  if @lower.graph_shortest_endpoint_predicate(prepared, side) is Some(predicate) &&
+    @lower.graph_shortest_endpoint_relation_field(prepared, side) is None &&
+    @lower.graph_shortest_endpoint_input_port(prepared, side) is None {
+    return Ok(PredicateShortestEndpoints(predicate))
+  }
+  guard @lower.graph_shortest_endpoint_relation_field(prepared, side)
+    is Some(field) &&
+    @lower.graph_shortest_endpoint_input_port(prepared, side) is Some(port) else {
+    return Err(UnsupportedShortestKernel)
+  }
+  for input in inputs {
+    if @execution.producer_read_matches_operation_input(
+        input, owner, step, port,
+      ) {
+      let schema = @execution.producer_read_schema(input)
+      for column in 0..<@schema.field_count(schema) {
+        if @schema.field_at(schema, column).map(value => value.name) ==
+          Some(field) {
+          return Ok(RelationShortestEndpoints(input, column))
+        }
+      }
+      return Err(UnsupportedShortestKernel)
+    }
+  }
+  Err(UnsupportedShortestKernel)
+}
+
+///|
+/// Start the bounded unweighted shortest-path kernel for scalar, literal,
+/// Relation-backed, or predicate-selected endpoints. Weighted paths are
+/// rejected before execution.
 pub fn start_shortest(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -1117,43 +1344,31 @@ pub fn start_shortest(
     return Err(UnsupportedShortestKernel)
   }
   let sources = match
-    @lower.graph_shortest_endpoint_single(prepared, @schema.Left) {
-    Some(value) => SingleShortestEndpoint(value)
-    None =>
-      if @lower.graph_shortest_endpoint_id_count(prepared, @schema.Left) > 0 &&
-        @lower.graph_shortest_endpoint_relation_field(prepared, @schema.Left)
-        is None &&
-        @lower.graph_shortest_endpoint_predicate(prepared, @schema.Left) is None &&
-        @lower.graph_shortest_endpoint_input_port(prepared, @schema.Left)
-        is None {
-        LiteralShortestEndpoints
-      } else {
-        return Err(UnsupportedShortestKernel)
-      }
+    prepare_shortest_endpoints(prepared, @schema.Left, owner, step, inputs) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let targets = match
-    @lower.graph_shortest_endpoint_single(prepared, @schema.Right) {
-    Some(value) => SingleShortestEndpoint(value)
-    None =>
-      if @lower.graph_shortest_endpoint_id_count(prepared, @schema.Right) > 0 &&
-        @lower.graph_shortest_endpoint_relation_field(prepared, @schema.Right)
-        is None &&
-        @lower.graph_shortest_endpoint_predicate(prepared, @schema.Right)
-        is None &&
-        @lower.graph_shortest_endpoint_input_port(prepared, @schema.Right)
-        is None {
-        LiteralShortestEndpoints
-      } else {
-        return Err(UnsupportedShortestKernel)
-      }
+    prepare_shortest_endpoints(prepared, @schema.Right, owner, step, inputs) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let nodes = @storage.node_count(source)
   let edges = @storage.edge_count(source)
   let direction = @lower.graph_shortest_direction(prepared)
+  guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    return Err(ShortestInputUnavailable)
+  }
+  let predicate_fields = if sources is PredicateShortestEndpoints(_) ||
+    targets is PredicateShortestEndpoints(_) {
+    graph_node_predicate_binding_count(graph)
+  } else {
+    0
+  }
   guard max_rows >= 1 &&
     shortest_workspace(nodes, edges, direction == @graph_type.Both)
     is Some(workspace) &&
-    workspace <= max_workspace_slots else {
+    predicate_fields <= max_workspace_slots - workspace else {
     return Err(ShortestWorkspaceLimit)
   }
   if @lower.graph_shortest_output_guard(prepared) is Some(guard_rows) &&
@@ -1243,6 +1458,12 @@ pub fn start_shortest(
     source_nodes: [],
     target_nodes: [],
     endpoint_scratch: [],
+    graph,
+    predicate_workspace: max_workspace_slots - workspace - predicate_fields,
+    predicate_work_remaining: limits.max_work,
+    predicate_input: Map([]),
+    predicate_execution: None,
+    predicate_field: 0,
     depth: [],
     predecessor: [],
     predecessor_edge: [],

@@ -511,9 +511,20 @@ fn query_checked_program_fixture(
         "shortest_path",
         output_rows=if local_carrier_graph_variant == "shortest_ids" {
           6L
+        } else if local_carrier_graph_variant == "shortest_relation_selector" {
+          9L
+        } else if local_carrier_graph_variant == "shortest_predicate" {
+          4L
         } else {
           1L
         },
+        selector_rows=if local_carrier_graph_variant ==
+          "shortest_relation_selector" {
+          Some(3L)
+        } else {
+          None
+        },
+        predicate_selector=local_carrier_graph_variant == "shortest_predicate",
       ),
     ]
   } else if dag_join {
