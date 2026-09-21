@@ -33,6 +33,192 @@ fn interval_ordering_issue(issue : OrderingIssue) -> RowIssue {
 }
 
 ///|
+priv enum IntervalSearchPhase {
+  ComparePairs
+  EmitLeftRemainder
+  FinishSearch
+}
+
+///|
+/// Private resumable cursor for the Cartesian search. Preparation and output
+/// construction remain owned by the surrounding evaluator; this state owns
+/// only the position at which the next exact pair must be considered.
+priv struct IntervalSearchState {
+  left_count : Int
+  right_count : Int
+  kind : @join.Kind
+  overlap : Bool
+  left_starts : Array[Int64]
+  left_ends : Array[Int64]
+  right_starts : Array[Int64]
+  right_ends : Array[Int64]
+  equal_keys : (Int, Int) -> Result[Bool, RowIssue]
+  emit : (Int, Int?) -> Result[Unit, RowIssue]
+  mut phase : IntervalSearchPhase
+  mut left_row : Int
+  mut right_row : Int
+  mut matched : Bool
+}
+
+///|
+priv struct IntervalSearchExecution {
+  session : @bounded.Session[IntervalSearchState, Unit, RowIssue]
+  mut token : @bounded.Token?
+}
+
+///|
+priv enum IntervalSearchPoll {
+  IntervalSearchContinue(progress~ : Int64, work~ : Int64)
+  IntervalSearchComplete(progress~ : Int64, work~ : Int64)
+  IntervalSearchFailed(RowIssue, progress~ : Int64, work~ : Int64)
+  IntervalSearchStopped(@bounded.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+///|
+fn interval_search_step(
+  state : IntervalSearchState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[Unit, RowIssue] {
+  let mut used = 0
+  let mut progress = 0
+  while used < quantum {
+    if @bounded.stop_requested(reader) is Some(reason) {
+      return @bounded.Stopped(reason, progress, used)
+    }
+    match state.phase {
+      ComparePairs => {
+        if state.left_row >= state.left_count {
+          state.phase = FinishSearch
+          continue
+        }
+        if state.right_row >= state.right_count {
+          state.phase = EmitLeftRemainder
+          continue
+        }
+        let left_row = state.left_row
+        let right_row = state.right_row
+        let keys_match = match (state.equal_keys)(left_row, right_row) {
+          Ok(value) => value
+          Err(issue) => return @bounded.Failed(issue, progress, used + 1)
+        }
+        let temporal_match = keys_match &&
+          (if state.overlap {
+            state.left_starts[left_row] < state.right_ends[right_row] &&
+            state.right_starts[right_row] < state.left_ends[left_row]
+          } else {
+            state.right_starts[right_row] <= state.left_starts[left_row] &&
+            state.left_starts[left_row] < state.right_ends[right_row]
+          })
+        if temporal_match {
+          state.matched = true
+          if state.kind == @join.Inner || state.kind == @join.Left {
+            match (state.emit)(left_row, Some(right_row)) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used + 1)
+            }
+          }
+        }
+        state.right_row += 1
+        used += 1
+        progress += 1
+      }
+      EmitLeftRemainder => {
+        let emit = (state.kind == @join.Left && !state.matched) ||
+          (state.kind == @join.Semi && state.matched) ||
+          (state.kind == @join.Anti && !state.matched)
+        if emit {
+          match (state.emit)(state.left_row, None) {
+            Ok(_) => ()
+            Err(issue) => return @bounded.Failed(issue, progress, used + 1)
+          }
+        }
+        state.left_row += 1
+        state.right_row = 0
+        state.matched = false
+        state.phase = ComparePairs
+        used += 1
+        progress += 1
+      }
+      FinishSearch => return @bounded.Complete((), progress, used)
+    }
+  }
+  @bounded.Continue(progress, used)
+}
+
+///|
+fn start_interval_search(
+  control : @bounded.Control,
+  left_count : Int,
+  right_count : Int,
+  kind : @join.Kind,
+  overlap : Bool,
+  left_starts : Array[Int64],
+  left_ends : Array[Int64],
+  right_starts : Array[Int64],
+  right_ends : Array[Int64],
+  equal_keys : (Int, Int) -> Result[Bool, RowIssue],
+  emit : (Int, Int?) -> Result[Unit, RowIssue],
+) -> IntervalSearchExecution {
+  let state : IntervalSearchState = {
+    left_count,
+    right_count,
+    kind,
+    overlap,
+    left_starts,
+    left_ends,
+    right_starts,
+    right_ends,
+    equal_keys,
+    emit,
+    phase: ComparePairs,
+    left_row: 0,
+    right_row: 0,
+    matched: false,
+  }
+  let (session, token) = @bounded.start(
+    control,
+    state,
+    interval_search_step,
+    _ => true,
+    _ => true,
+  )
+  { session, token: Some(token), }
+}
+
+///|
+fn advance_interval_search(
+  value : IntervalSearchExecution,
+  quantum : Int,
+) -> Result[IntervalSearchPoll, RowIssue] {
+  guard value.token is Some(token) else { return Err(InvalidRows) }
+  match @bounded.advance(value.session, token, quantum) {
+    Err(_) => Err(InvalidRows)
+    Ok(@bounded.ContinueWith(next, progress~, work~)) => {
+      value.token = Some(next)
+      Ok(IntervalSearchContinue(progress~, work~))
+    }
+    Ok(@bounded.Completed(_, progress~, work~)) => {
+      value.token = None
+      Ok(IntervalSearchComplete(progress~, work~))
+    }
+    Ok(@bounded.FailedWith(issue, progress~, work~)) => {
+      value.token = None
+      Ok(IntervalSearchFailed(issue, progress~, work~))
+    }
+    Ok(@bounded.StoppedWith(reason, progress~, work~)) => {
+      value.token = None
+      Ok(IntervalSearchStopped(reason, progress~, work~))
+    }
+  }
+}
+
+///|
+fn cleanup_interval_search(value : IntervalSearchExecution) -> Bool {
+  @bounded.cleanup(value.session).unwrap_or(false)
+}
+
+///|
 fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
   kernel : @lower.PreparedIntervalJoin,
   left : L,
@@ -319,44 +505,57 @@ fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
     }
     let kind = @lower.interval_join_kind(kernel)
     let overlap = @lower.interval_join_mode(kernel) == @join.Overlap
-    for left_row in 0..<left_count {
-      let mut matched = false
-      for right_row in 0..<right_count {
+    let search_control = @bounded.control()
+    let search = start_interval_search(
+      search_control,
+      left_count,
+      right_count,
+      kind,
+      overlap,
+      left_starts,
+      left_ends,
+      right_starts,
+      right_ends,
+      fn(left_row, right_row) {
         if !spend_control(control, 1) {
-          return Err(RowLimit)
+          Err(RowLimit)
+        } else {
+          equal_keys(left_row, right_row)
         }
-        let keys_match = match equal_keys(left_row, right_row) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
+      },
+      emit,
+    )
+    let mut searching = true
+    while searching {
+      match advance_interval_search(search, 1024) {
+        Ok(IntervalSearchContinue(progress~, work~)) => {
+          ignore(progress)
+          ignore(work)
         }
-        let temporal_match = keys_match &&
-          (if overlap {
-            left_starts[left_row] < right_ends[right_row] &&
-            right_starts[right_row] < left_ends[left_row]
-          } else {
-            right_starts[right_row] <= left_starts[left_row] &&
-            left_starts[left_row] < right_ends[right_row]
-          })
-        if temporal_match {
-          matched = true
-          if kind == @join.Inner || kind == @join.Left {
-            match emit(left_row, Some(right_row)) {
-              Ok(_) => ()
-              Err(issue) => return Err(issue)
-            }
+        Ok(IntervalSearchComplete(progress~, work~)) => {
+          ignore(progress)
+          ignore(work)
+          if !cleanup_interval_search(search) {
+            return Err(InvalidRows)
           }
+          searching = false
         }
-      }
-      if kind == @join.Left && !matched {
-        match emit(left_row, None) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
+        Ok(IntervalSearchFailed(issue, progress~, work~)) => {
+          ignore(progress)
+          ignore(work)
+          cleanup_interval_search(search) |> ignore
+          return Err(issue)
         }
-      } else if (kind == @join.Semi && matched) ||
-        (kind == @join.Anti && !matched) {
-        match emit(left_row, None) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
+        Ok(IntervalSearchStopped(reason, progress~, work~)) => {
+          ignore(reason)
+          ignore(progress)
+          ignore(work)
+          cleanup_interval_search(search) |> ignore
+          return Err(InvalidRows)
+        }
+        Err(issue) => {
+          cleanup_interval_search(search) |> ignore
+          return Err(issue)
         }
       }
     }

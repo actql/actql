@@ -343,3 +343,73 @@ test "interval join uses exact canonical timestamp boundaries" {
   ).unwrap()
   assert_eq(result.rows.length(), 0)
 }
+
+///|
+test "interval search yields and observes cancellation between pairs" {
+  let control = @bounded.control()
+  let emitted : Array[(Int, Int?)] = []
+  let search = start_interval_search(
+    control,
+    2,
+    3,
+    @join.Inner,
+    false,
+    [1L, 2L],
+    [],
+    [0L, 0L, 0L],
+    [3L, 3L, 3L],
+    fn(_, _) { Ok(true) },
+    fn(left, right) {
+      emitted.push((left, right))
+      Ok(())
+    },
+  )
+  assert_true(
+    advance_interval_search(search, 1)
+    is Ok(IntervalSearchContinue(progress=1L, work=1L)),
+  )
+  assert_eq(emitted, [(0, Some(0))])
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_interval_search(search, 1)
+    is Ok(IntervalSearchStopped(@bounded.Cancelled, progress=1L, work=1L)),
+  )
+  assert_eq(emitted, [(0, Some(0))])
+  assert_true(@bounded.session_stopped(search.session))
+  assert_true(@bounded.cleanup(search.session).unwrap_or(false))
+}
+
+///|
+test "interval search resumes left unmatched output without a retry" {
+  let emitted : Array[(Int, Int?)] = []
+  let search = start_interval_search(
+    @bounded.control(),
+    2,
+    1,
+    @join.Left,
+    false,
+    [1L, 10L],
+    [],
+    [0L],
+    [5L],
+    fn(_, _) { Ok(true) },
+    fn(left, right) {
+      emitted.push((left, right))
+      Ok(())
+    },
+  )
+  let mut complete = false
+  while !complete {
+    match advance_interval_search(search, 1).unwrap() {
+      IntervalSearchContinue(_) => ()
+      IntervalSearchComplete(progress~, work~) => {
+        assert_eq((progress, work), (4L, 4L))
+        complete = true
+      }
+      IntervalSearchFailed(_, ..) => fail("interval search failed")
+      IntervalSearchStopped(_, ..) => fail("interval search stopped")
+    }
+  }
+  assert_eq(emitted, [(0, Some(0)), (1, None)])
+  assert_true(cleanup_interval_search(search))
+}
