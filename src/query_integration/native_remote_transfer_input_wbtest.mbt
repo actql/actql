@@ -226,17 +226,7 @@ test "incremental direct destination uses common standard input verifier" {
     remote_transfer_input_cid("b"),
     remote_transfer_input_cid("c"),
   ).unwrap()
-  let run_admission = @native_remote_standard.prepare_native_remote_standard_direct_run_admission(
-    dispatch,
-    binding,
-    request,
-    receipt,
-    () => run_available[0],
-    () => {
-      run_releases[0] += 1
-      run_available[0] = false
-      true
-    },
+  let direct_factory = @native_remote_standard.register_native_remote_standard_direct_run_factory(
     codec,
     query_checked_sequence(program),
     @program_check.source_identity(program),
@@ -270,6 +260,19 @@ test "incremental direct destination uses common standard input verifier" {
       Err(())
     },
   ).unwrap()
+  assert_eq(
+    @native_remote_standard.native_remote_standard_direct_run_factory_request_cid(
+      direct_factory, binding,
+    ).unwrap(),
+    @transfer.request_cid(request),
+  )
+  let run_admission = direct_factory
+    .prepare(dispatch, binding, request, receipt, () => run_available[0], () => {
+      run_releases[0] += 1
+      run_available[0] = false
+      true
+    })
+    .unwrap()
   assert_true(
     @native_remote_standard.native_remote_standard_direct_run_admission_authorizes(
       run_admission, request, receipt,

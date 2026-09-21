@@ -75,6 +75,22 @@ struct NativeRemoteStandardPhysicalRunAdmission {
 }
 
 ///|
+/// Exact checked task input factory installed by one verified runtime bundle.
+/// Environment adapters cannot replace its codec, checked sequence, Program
+/// identity, limits, or standard Run construction after registration.
+struct NativeRemoteStandardDirectRunFactory {
+  codec : NativeRemoteStandardRowCodec
+  sequence : @query.QuerySequence
+  program : @context.ProgramSourceIdentity
+  binding_limits : NativeRemoteStandardTransferBindingLimits
+  source_limits : NativeRemoteStandardTransferSourceLimits
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ]
+}
+
+///|
 priv struct NativeRemoteTransferSourceToken {
   physical : NativeRemoteStandardPhysicalSource
   mut active : Bool
@@ -674,6 +690,85 @@ pub fn prepare_native_remote_standard_direct_run_admission(
   )
   prepare_native_remote_standard_physical_run_admission(
     request, binding, input, physical, codec, sequence, program, source_limits, open_run,
+  )
+}
+
+///|
+/// Registers one exact checked task input factory. Registration is pure and
+/// performs no physical access, reservation, or Run construction.
+pub fn register_native_remote_standard_direct_run_factory(
+  codec : NativeRemoteStandardRowCodec,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+  binding_limits : NativeRemoteStandardTransferBindingLimits,
+  source_limits : NativeRemoteStandardTransferSourceLimits,
+  open_run : (@query.CapturedInputSource) -> Result[
+    @native_host.NativeStandardStrategyRun,
+    Unit,
+  ],
+) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue] {
+  if binding_limits.max_binding_bytes < 0 ||
+    binding_limits.max_chunks < 0 ||
+    binding_limits.max_manifest_bytes < 0 ||
+    binding_limits.max_referenced_bytes < 0L ||
+    source_limits.max_rows < 0 ||
+    source_limits.max_wire_bytes < 0 ||
+    source_limits.max_read_bytes <= 0 ||
+    source_limits.max_entries < 0 ||
+    source_limits.max_name_bytes < 0 {
+    return Err(InvalidConfiguration)
+  }
+  Ok({ codec, sequence, program, binding_limits, source_limits, open_run, })
+}
+
+///|
+/// Resolves the exact Transfer request selected by one registered task before
+/// the environment acquires a direct-receiver claim.
+pub fn native_remote_standard_direct_run_factory_request_cid(
+  factory : NativeRemoteStandardDirectRunFactory,
+  binding : @remote.RemoteInputBinding,
+) -> Result[String, NativeRemoteStandardInputFailure] {
+  match
+    admit_native_remote_standard_transfer_input(
+      binding,
+      factory.binding_limits.max_binding_bytes,
+      factory.binding_limits.max_chunks,
+      factory.binding_limits.max_manifest_bytes,
+      factory.binding_limits.max_referenced_bytes,
+    ) {
+    Ok(input) => Ok(@transfer.request_cid(input.request))
+    Err(_) => Err({ code: "transfer-input-binding", cleanup: () => true, })
+  }
+}
+
+///|
+/// Starts a direct input session using only the semantics fixed by the exact
+/// registered factory.
+pub fn NativeRemoteStandardDirectRunFactory::prepare(
+  self : NativeRemoteStandardDirectRunFactory,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  claimed_request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  available : () -> Bool,
+  release : () -> Bool,
+) -> Result[
+  NativeRemoteStandardPhysicalRunAdmission,
+  NativeRemoteStandardInputFailure,
+] {
+  prepare_native_remote_standard_direct_run_admission(
+    request,
+    binding,
+    claimed_request,
+    receipt,
+    available,
+    release,
+    self.codec,
+    self.sequence,
+    self.program,
+    self.binding_limits,
+    self.source_limits,
+    self.open_run,
   )
 }
 

@@ -45,6 +45,8 @@ pub fn install_native_remote_standard_task_executor(String, String, Int, (@remot
 
 pub fn native_remote_standard_direct_run_admission_authorizes(NativeRemoteStandardPhysicalRunAdmission, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Bool
 
+pub fn native_remote_standard_direct_run_factory_request_cid(NativeRemoteStandardDirectRunFactory, @remote_site_protocol.RemoteInputBinding) -> Result[String, NativeRemoteStandardInputFailure]
+
 pub fn native_remote_standard_input_failure_code(NativeRemoteStandardInputFailure) -> String
 
 pub fn native_remote_standard_transfer_binding(NativeRemoteStandardTransferInput) -> @remote_site_protocol.RemoteInputBinding
@@ -69,6 +71,8 @@ pub fn prepare_native_remote_standard_physical_run_admission(@remote_site_protoc
 
 pub fn prepare_native_remote_standard_transfer_input(@remote_transfer.RemoteTransferRequest, String, String, Int) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
 
+pub fn register_native_remote_standard_direct_run_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[@host_native.NativeStandardStrategyRun, Unit]) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue]
+
 pub fn register_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, () -> Bool, (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String], () -> Bool) -> NativeRemoteStandardPhysicalSource
 
 pub fn register_native_remote_standard_row_codec(String, String, String) -> Result[NativeRemoteStandardRowCodec, NativeRemoteStandardTransferSourceIssue]
@@ -85,6 +89,9 @@ pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardIn
 
 // Types and methods
 type NativeRemoteStandardBoundRun
+
+type NativeRemoteStandardDirectRunFactory
+pub fn NativeRemoteStandardDirectRunFactory::prepare(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, () -> Bool, () -> Bool) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]
 
 pub(all) enum NativeRemoteStandardHostIssue {
   InvalidConfiguration
