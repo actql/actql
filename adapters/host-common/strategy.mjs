@@ -825,14 +825,27 @@ export async function runInstalledStrategy(
       }
       // A callback's resolved Promise is not a completion proof. The core must
       // already have installed this exact task's retained, verified output.
-      if (result?.completed != null || result?.material != null) {
+      if (result?.completed != null || result?.material != null ||
+          result?.carrierMaterial != null) {
+        const relationOutput = result?.material != null;
+        const carrierOutput = result?.carrierMaterial != null;
+        const matches = carrierOutput
+          ? core.managedCarrierMatches?.(setup, index, result.completed)
+          : core.managedMatches?.(setup, index, result.completed);
+        if (result?.completed == null || relationOutput === carrierOutput ||
+            matches !== true) {
+          throw new StrategyHostError('InvalidManagedCompletion');
+        }
         managedOutputs.set(index, Object.freeze({
           task: index,
           completed: result.completed,
-          material: result.material,
+          material: result.material ?? result.carrierMaterial,
+          carrierMaterial: result.carrierMaterial,
           site: siteCandidate.site,
-          siteMaterial: result.siteMaterial ?? result.material,
-          materialGeneration: result.materialGeneration ?? result.material,
+          siteMaterial: result.siteMaterial ?? result.material ??
+            result.carrierMaterial,
+          materialGeneration: result.materialGeneration ?? result.material ??
+            result.carrierMaterial,
           withRows: result.withRows,
           close: siteResult?.close,
           releaseOwner: siteResult,

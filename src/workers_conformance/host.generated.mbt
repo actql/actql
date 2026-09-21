@@ -200,6 +200,24 @@ pub fn strategy_host_managed_output_matches(
 }
 
 ///|
+#export_name("strategyHostCarrierManagedOutputMatches")
+pub fn strategy_host_carrier_managed_output_matches(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  output : @execution.CarrierManagedCompletedOutput,
+) -> Bool {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    return false
+  }
+  @strategy.captured_carrier_managed_task_output_matches(
+    run, task, target, output,
+  )
+}
+
+///|
 #export_name("strategyHostManagedInputMatchesMaterial")
 pub fn strategy_host_managed_input_matches_material(
   input : @execution.ManagedProducerRead[Int],
@@ -6876,6 +6894,24 @@ pub fn async_strategy_host_managed_output_matches(
     return false
   }
   @strategy.captured_managed_task_output_matches(run, task, target, output)
+}
+
+///|
+#export_name("asyncStrategyHostCarrierManagedOutputMatches")
+pub fn async_strategy_host_carrier_managed_output_matches(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  output : @execution.CarrierManagedCompletedOutput,
+) -> Bool {
+  let run = @host_driver.dispatch_driver_run(
+    @probe.configured_host_driver(host),
+  )
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    return false
+  }
+  @strategy.captured_carrier_managed_task_output_matches(
+    run, task, target, output,
+  )
 }
 
 ///|

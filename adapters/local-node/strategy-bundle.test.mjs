@@ -815,3 +815,111 @@ test('standard Local dispatches a Carrier input to a Carrier output',
     result.close();
     assert.equal(closed, true);
   });
+
+test('standard Host retains an exact Carrier across task dispatch', async () => {
+  const setup = {};
+  const complete = new Set();
+  const sourceRegistration = {};
+  const localRegistration = {};
+  const inputCompleted = {};
+  const inputMaterial = {};
+  const outputCompleted = {};
+  const outputMaterial = {};
+  const configuration = {};
+  const wrappedInput = {};
+  let sourceClosed = false;
+  let outputClosed = false;
+  const current = () => complete.has(1) ? complete.has(2) ? -1 : 2 : 1;
+  const source = {
+    registration: sourceRegistration,
+    managedSelectionKey: 'carrier-source',
+    run() { assert.fail('Carrier source used the legacy path'); },
+    prepareNext() {
+      return current() === 1
+        ? {task: 1, inputs: [], durationMilliseconds: 0n}
+        : undefined;
+    },
+    runPrepared() {
+      complete.add(1);
+      return {
+        completed: inputCompleted,
+        carrierMaterial: inputMaterial,
+        close() { sourceClosed = true; },
+      };
+    },
+  };
+  const operations = {
+    inputs: [],
+    advance: quantum => {
+      assert.equal(quantum, 256);
+      return ok({complete: true, progress: 1n, work: 1n});
+    },
+    request_cancel: () => false,
+    execution_stopped: () => true,
+    settle: () => ok(),
+    complete_carrier: () => {
+      complete.add(2);
+      return ok(outputCompleted);
+    },
+    carrier_material: () => outputMaterial,
+    material: () => undefined,
+    storage_bytes: 32n,
+    close: () => { outputClosed = true; },
+  };
+  const local = localStrategyContribution({
+    strategyModule_local_Registration: () => localRegistration,
+    strategyHostRegistrationSelectionKey: () => 'local-carrier',
+    strategyHostNextTask: current,
+    strategyHostManagedProducers: () => current() === 2 ? [1] : [],
+    strategyHostManagedInputCount: () => current() === 2 ? 1 : 0,
+    strategyHostReleasableManagedProducers: () => [1],
+    strategyModule_local_RelationOutput: () =>
+      assert.fail('Carrier input was wrapped as a Relation'),
+    strategyModule_local_CarrierOutput: (completed, material) => {
+      assert.equal(completed, inputCompleted);
+      assert.equal(material, inputMaterial);
+      return wrappedInput;
+    },
+    strategyModule_local_ManagedCarrierDispatch: () =>
+      ok(current() === 2 ? configuration : undefined),
+    strategyModule_local_ManagedDuration: value => {
+      assert.equal(value, configuration);
+      return 0n;
+    },
+    strategyModule_local_ManagedCapacity: value => {
+      assert.equal(value, configuration);
+      return [32n, 16n];
+    },
+    strategyModule_local_ManagedStart: value => {
+      assert.equal(value, configuration);
+      return ok(operations);
+    },
+  }, setup, checked);
+  const core = {
+    siteControl,
+    count: () => 3,
+    next: () => assert.fail('Carrier fixture used the legacy path'),
+    nextTask: current,
+    managedProducers: () => current() === 2 ? [1] : [],
+    selectManaged: () => true,
+    managedMatches: () => assert.fail('Carrier used Relation completion'),
+    managedCarrierMatches: (_owner, task, completed) =>
+      task === 1
+        ? completed === inputCompleted
+        : task === 2 && completed === outputCompleted,
+    taskCapacity: () => [0n, 0n],
+    completed: (_owner, task) => complete.has(task),
+    finished: () => complete.has(2),
+    stop() {},
+    closeOutputs() {},
+    output: () => undefined,
+    usage: () => ({}),
+    explain: () => ({}),
+  };
+  const result = await runInstalledStrategy(setup, core, [source, local]);
+  assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+  assert.equal(sourceClosed, true);
+  assert.equal(outputClosed, false);
+  await result.close();
+  assert.equal(outputClosed, true);
+});

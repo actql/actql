@@ -2731,6 +2731,7 @@ export function runtimeCore(moon) {
     managedProducer: moon.strategyHostManagedProducer,
     managedProducers: moon.strategyHostManagedProducers,
     managedMatches: moon.strategyHostManagedOutputMatches,
+    managedCarrierMatches: moon.strategyHostCarrierManagedOutputMatches,
     managedInputMatches: moon.strategyHostManagedInputMatchesMaterial,
     selectManaged: moon.strategyHostSelectManagedRegistration,
     task: moon.strategyHostTask,

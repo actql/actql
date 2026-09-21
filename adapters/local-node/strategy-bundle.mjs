@@ -170,7 +170,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         task,
         durationMilliseconds:
           moon.strategyModule_local_ManagedDuration(managedConfiguration),
-        acceptsSiteTransfer: true,
+        acceptsSiteTransfer: inputs.every(
+          input => input.carrierMaterial == null,
+        ),
         siteCapacity: Object.freeze({
           retainedBytes: siteCapacity[0],
           executionBytes: siteCapacity[1],
@@ -210,14 +212,31 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         const transfers = operations.inputs;
         const relationInputs = dispatchInputs.filter(input =>
           input.carrierMaterial == null && input.capturedRelation !== true);
+        const siteInputs = dispatchInputs.filter(
+          input => input.capturedRelation !== true,
+        );
         if (!Array.isArray(transfers) ||
             transfers.length !== relationInputs.length) {
           throw new Error('InvalidLocalManagedInputCount');
         }
         const resolved = typeof prepared.resolveSiteInputs === 'function'
-          ? await prepared.resolveSiteInputs(
-            transfers.map(transfer => transfer.input), signal,
-          )
+          ? await prepared.resolveSiteInputs((() => {
+            let relation = 0;
+            return siteInputs.map(input => input.carrierMaterial == null
+              ? transfers[relation++].input
+              : undefined);
+          })(), signal).then(value => {
+            const materials = [];
+            for (let index = 0; index < siteInputs.length; index++) {
+              if (siteInputs[index].carrierMaterial == null) {
+                materials.push(value.materials[index]);
+              }
+            }
+            return Object.freeze({
+              materials: Object.freeze(materials),
+              records: value.records,
+            });
+          })
           : Object.freeze({
             materials: Object.freeze(relationInputs.map(input =>
               input.siteMaterial ?? input.material)),
