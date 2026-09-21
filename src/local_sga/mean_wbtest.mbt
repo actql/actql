@@ -301,6 +301,17 @@ fn mean_numeric_owner(
   second : @lower.BoundPrepared,
   third : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
+  mean_numeric_policy_owner(first, second, third, "zero", "zero")
+}
+
+///|
+fn mean_numeric_policy_owner(
+  first : @lower.BoundPrepared,
+  second : @lower.BoundPrepared,
+  third : @lower.BoundPrepared,
+  missing : String,
+  nulls : String,
+) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_with_evidence(
       cursor(
@@ -309,7 +320,70 @@ fn mean_numeric_owner(
         "\"weights\":[1,2,3]," +
         "\"support\":{\"nodes\":0.5,\"edges\":1}," +
         "\"properties\":{\"nodes\":{\"score\":{" +
-        "\"mean\":{\"missing\":\"zero\",\"nulls\":\"zero\"}}}," +
+        "\"mean\":{\"missing\":\"" +
+        missing +
+        "\",\"nulls\":\"" +
+        nulls +
+        "\"}}}," +
+        "\"edges\":{\"score\":\"exact_equal\"}}},\"as\":\"m\"}]",
+      ),
+      [
+        (
+          "a",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(first)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "b",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(second)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "c",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(third)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn mean_exact_owner(
+  first : @lower.BoundPrepared,
+  second : @lower.BoundPrepared,
+  third : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor(
+        "[{\"mean_graphs\":{" +
+        "\"with\":[\"a\",\"b\",\"c\"]," +
+        "\"weights\":[1,2,3]," +
+        "\"support\":{\"nodes\":0.5,\"edges\":1}," +
+        "\"properties\":{\"nodes\":{\"score\":\"exact_equal\"}," +
         "\"edges\":{\"score\":\"exact_equal\"}}},\"as\":\"m\"}]",
       ),
       [
@@ -384,6 +458,19 @@ fn mean_numeric_graph(
 }
 
 ///|
+fn mean_numeric_views(
+  owner : @lower.BoundPrepared,
+  owners : Array[@lower.BoundPrepared],
+  graphs : Array[@graph.Completed],
+) -> Array[@lifecycle.ProducerView] {
+  Array::makei(3, index => {
+    @graph.producer_read_view(
+      @graph.prepare_producer_read(owner, index, owners[index], graphs[index]).unwrap(),
+    ).unwrap()
+  })
+}
+
+///|
 test "graph mean applies exact missing and null numeric policies" {
   let first_owner = mean_numeric_source_owner()
   let second_owner = mean_numeric_source_owner()
@@ -420,6 +507,94 @@ test "graph mean applies exact missing and null numeric policies" {
     ),
     Some("1"),
   )
+  assert_eq(cleanup_mean(execution), Ok(true))
+}
+
+///|
+test "graph mean distinguishes null exclusion from null failure" {
+  let first_owner = mean_numeric_source_owner()
+  let second_owner = mean_numeric_source_owner()
+  let third_owner = mean_numeric_source_owner()
+  let owners = [first_owner, second_owner, third_owner]
+  let graphs = [
+    mean_numeric_graph(first_owner, Some(mean_numeric_value("6"))),
+    mean_numeric_graph(second_owner, Some(mean_numeric_value("null"))),
+    mean_numeric_graph(third_owner, None),
+  ]
+  let exclude_owner = mean_numeric_policy_owner(
+    first_owner, second_owner, third_owner, "exclude", "exclude",
+  )
+  let exclude = start_mean_views(
+    @bounded.control(),
+    sequence(exclude_owner),
+    0,
+    mean_numeric_views(exclude_owner, owners, graphs),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  let completed = finish_mean(exclude)
+  let storage = @graph.completed_storage(completed).unwrap()
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.node_property(storage, 0, 0).unwrap(),
+      10,
+    ),
+    Some("6"),
+  )
+  assert_eq(cleanup_mean(exclude), Ok(true))
+  let fail_owner = mean_numeric_policy_owner(
+    first_owner, second_owner, third_owner, "exclude", "fail",
+  )
+  let failing = start_mean_views(
+    @bounded.control(),
+    sequence(fail_owner),
+    0,
+    mean_numeric_views(fail_owner, owners, graphs),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(failing, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanFailed(MeanPropertyValue, ..) => break
+      _ => abort("null-fail mean did not report its property failure")
+    }
+  }
+  assert_eq(cleanup_mean(failing), Ok(true))
+}
+
+///|
+test "graph mean rejects conflicting exact properties" {
+  let first_owner = mean_numeric_source_owner()
+  let second_owner = mean_numeric_source_owner()
+  let third_owner = mean_numeric_source_owner()
+  let owner = mean_exact_owner(first_owner, second_owner, third_owner)
+  let graphs = [
+    mean_numeric_graph(first_owner, Some(mean_numeric_value("2"))),
+    mean_numeric_graph(second_owner, Some(mean_numeric_value("4"))),
+    mean_numeric_graph(third_owner, Some(mean_numeric_value("2"))),
+  ]
+  let execution = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_numeric_views(owner, [first_owner, second_owner, third_owner], graphs),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(execution, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanFailed(MeanPropertyConflict, ..) => break
+      _ => abort("conflicting exact mean did not fail")
+    }
+  }
   assert_eq(cleanup_mean(execution), Ok(true))
 }
 
