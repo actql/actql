@@ -17,6 +17,7 @@ struct ManagedProvider {
 /// into Relation rows or family storage handles.
 pub enum ManagedProviderInput {
   RelationInput(@execution.ProducerRead)
+  SuppliedRelationInput(@execution.SuppliedRelationRead)
   CarrierInput(@carrier_runtime.ProducerView)
 }
 
@@ -25,6 +26,13 @@ pub fn managed_provider_relation_input(
   value : @execution.ProducerRead,
 ) -> ManagedProviderInput {
   RelationInput(value)
+}
+
+///|
+pub fn managed_provider_supplied_relation_input(
+  value : @execution.SuppliedRelationRead,
+) -> ManagedProviderInput {
+  SuppliedRelationInput(value)
 }
 
 ///|
@@ -118,7 +126,8 @@ pub fn managed_provider(
     for input in inputs {
       match input {
         RelationInput(value) => relations.push(value)
-        CarrierInput(_) => return Err(@connector.Execution(@execution.InputSet))
+        SuppliedRelationInput(_) | CarrierInput(_) =>
+          return Err(@connector.Execution(@execution.InputSet))
       }
     }
     start(sequence, relations, rows, bytes)

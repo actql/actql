@@ -25,11 +25,19 @@ struct LocalManagedDispatchConfiguration[T] {
 ///|
 pub enum LocalManagedAvailableOutput[T] {
   CapturedRelationInput
+  SuppliedRelationInput
   RelationOutput(@execution.ManagedCompletedOutput[T])
   CarrierOutput(
     @execution.CarrierManagedCompletedOutput,
     @carrier_runtime.Material
   )
+}
+
+///|
+pub fn[T] local_managed_supplied_relation_input() -> LocalManagedAvailableOutput[
+  T,
+] {
+  SuppliedRelationInput
 }
 
 ///|
@@ -57,12 +65,14 @@ pub fn[T] local_managed_carrier_output(
 ///|
 priv enum LocalManagedPreparedInput {
   PreparedRelation(Int)
+  PreparedSupplied(@execution.SuppliedRelationRead)
   PreparedCarrier(@carrier_runtime.ProducerView)
 }
 
 ///|
 priv enum LocalManagedRelationInput[T] {
   OrdinaryRelationInput(@execution.ProducerRead)
+  SuppliedRelationInput(@execution.SuppliedRelationRead)
   ManagedRelationInput(@execution.ManagedProducerRead[T])
 }
 
@@ -184,6 +194,26 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
           @execution.ordinary_relation_input_binding(value),
         )
       }
+      SuppliedRelationInput => {
+        let value = match
+          @strategy.captured_supplied_task_input(
+            installed.run,
+            task,
+            input_index=index,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Execution(issue))
+        }
+        if @execution.supplied_relation_read_row_count(value) >
+          @local.local_module_managed_capacity(installed.implementation).max_rows {
+          return Err(Configuration(CommonInputRows))
+        }
+        relation_inputs.push(SuppliedRelationInput(value))
+        provider_inputs.push(PreparedSupplied(value))
+        completion_inputs.push(
+          @execution.supplied_relation_input_binding(value),
+        )
+      }
       RelationOutput(output) =>
         match
           @strategy.captured_managed_task_input(
@@ -258,7 +288,9 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   let request_result = if provider_inputs.any(input => {
       input is PreparedCarrier(_)
     }) ||
-    relation_inputs.any(input => input is OrdinaryRelationInput(_)) {
+    relation_inputs.any(input => {
+      input is OrdinaryRelationInput(_) || input is SuppliedRelationInput(_)
+    }) {
     @connector.prepare_managed_fixed_compute_request_for_bindings(
       owner,
       completion_inputs,
@@ -271,7 +303,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       relation_inputs.filter_map(input => {
         match input {
           ManagedRelationInput(value) => Some(value)
-          OrdinaryRelationInput(_) => None
+          OrdinaryRelationInput(_) | SuppliedRelationInput(_) => None
         }
       }),
       @local.local_module_managed_capacity(installed.implementation),
@@ -295,6 +327,8 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         match input {
           OrdinaryRelationInput(value) =>
             @execution.producer_read_row_count(value)
+          SuppliedRelationInput(value) =>
+            @execution.supplied_relation_read_row_count(value)
           ManagedRelationInput(value) =>
             @execution.managed_producer_read_row_count(value)
         }
@@ -585,6 +619,7 @@ pub fn[T] start_local_managed_dispatch(
               bridges.push(bridge)
               reads.push(None)
             }
+            SuppliedRelationInput(_) => reads.push(None)
           }
         }
         let operations : @connector.ManagedExecutionOperations[
@@ -739,8 +774,10 @@ pub fn[T] start_local_managed_dispatch(
     if execution_finished.val {
       return Ok({ complete: true, progress: 0L, work: 0L, })
     }
-    if reads.any(value => value is None) {
-      return Err(Configuration(InputUnavailable))
+    for index, input in relation_inputs {
+      if !(input is SuppliedRelationInput(_)) && reads[index] is None {
+        return Err(Configuration(InputUnavailable))
+      }
     }
     // Disposal prevents starting work, but an already-started bounded
     // provider must still receive one final advance after cancellation so it
@@ -748,7 +785,7 @@ pub fn[T] start_local_managed_dispatch(
     if (!live.val || disposed.val) && provider_execution.val is None {
       return Err(Configuration(InputUnavailable))
     }
-    let exact = reads.map(value => value.unwrap())
+    let exact = reads.filter_map(value => value)
     match setup.provider {
       Some(provider) => {
         let active = match provider_execution.val {
@@ -761,7 +798,11 @@ pub fn[T] start_local_managed_dispatch(
                 setup.provider_inputs.map(input => {
                   match input {
                     PreparedRelation(index) =>
-                      @local.managed_provider_relation_input(exact[index])
+                      @local.managed_provider_relation_input(
+                        reads[index].unwrap(),
+                      )
+                    PreparedSupplied(read) =>
+                      @local.managed_provider_supplied_relation_input(read)
                     PreparedCarrier(view) =>
                       @local.managed_provider_carrier_input(view)
                   }
@@ -827,7 +868,9 @@ pub fn[T] start_local_managed_dispatch(
       }
       None => {
         if setup.provider_inputs.length() != exact.length() ||
-          setup.provider_inputs.any(input => input is PreparedCarrier(_)) {
+          setup.provider_inputs.any(input => {
+            input is PreparedSupplied(_) || input is PreparedCarrier(_)
+          }) {
           execution_finished.val = true
           return Err(Configuration(UnsupportedInputShape))
         }

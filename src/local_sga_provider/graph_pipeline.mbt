@@ -1412,6 +1412,8 @@ pub fn provider(
       for input in inputs {
         match input {
           @local.RelationInput(value) => relations.push(value)
+          @local.SuppliedRelationInput(_) =>
+            return Err(@connector.Execution(@execution.InputSet))
           @local.CarrierInput(value) => carriers.push(value)
         }
       }

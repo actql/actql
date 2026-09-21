@@ -384,6 +384,39 @@ test('Local delegates zero-input and identity applicability to MoonBit', async (
   assert.deepEqual(seen, [[]]);
 });
 
+test('Local keeps supplied inputs inside the MoonBit Run boundary', async () => {
+  const setup = {}, registration = {}, configuration = {}, marker = {};
+  const entry = localStrategyContribution({
+    strategyModule_local_Registration: () => registration,
+    strategyHostRegistrationSelectionKey: () => 'local',
+    strategyHostNextTask: () => 1,
+    strategyHostManagedProducers: () => [-1],
+    strategyHostManagedInputCount: () => 1,
+    strategyHostReleasableManagedProducers: () => [],
+    strategyModule_local_RelationOutput: () => assert.fail('relation output'),
+    strategyModule_local_CarrierOutput: () => assert.fail('carrier output'),
+    strategyModule_local_CapturedRelationInput: () =>
+      assert.fail('acquisition input'),
+    strategyModule_local_SuppliedRelationInput: () => marker,
+    strategyModule_local_ManagedCarrierDispatch: (owner, inputs, bytes) => {
+      assert.equal(owner, setup);
+      assert.deepEqual(inputs, [marker]);
+      assert.equal(bytes, 0n);
+      return ok(configuration);
+    },
+    strategyModule_local_ManagedUsesProvider: value => {
+      assert.equal(value, configuration);
+      return true;
+    },
+    strategyModule_local_ManagedDuration: () => 1n,
+    strategyModule_local_ManagedCapacity: () => [0n, 0n],
+  }, setup, checked);
+  const prepared = await entry.prepareNext(new Map());
+  assert.equal(prepared.configuration, configuration);
+  assert.deepEqual(prepared.inputs, []);
+  assert.equal(prepared.dispatchInputs[0].suppliedRelation, true);
+});
+
 test('bounded Local yields so cancellation reaches the active kernel',
   async () => {
     const setup = {}, registration = {}, configuration = {};

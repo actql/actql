@@ -66,7 +66,11 @@ pub fn ranking_max_noninterruptible_value_bytes(RankingExecution) -> Int
 
 pub fn ranking_max_noninterruptible_value_nodes(RankingExecution) -> Int
 
+pub fn ranking_producer_input(@execution_relation.ProducerRead) -> RankingInput
+
 pub fn ranking_stopped(RankingExecution) -> Bool
+
+pub fn ranking_supplied_input(@execution_relation.SuppliedRelationRead) -> RankingInput
 
 pub fn score_cleanup_pending(ScoreExecution) -> Bool
 
@@ -85,6 +89,8 @@ pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSe
 pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
 pub fn start_ranking(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[RankingExecution, RankingIssue]
+
+pub fn start_ranking_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[RankingInput], Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[RankingExecution, RankingIssue]
 
 pub fn start_relation_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
@@ -166,6 +172,11 @@ pub enum PoolPoll {
 }
 
 type RankingExecution
+
+pub enum RankingInput {
+  RankingProducer(@execution_relation.ProducerRead)
+  RankingSupplied(@execution_relation.SuppliedRelationRead)
+}
 
 pub(all) enum RankingIssue {
   InvalidRankingKernel

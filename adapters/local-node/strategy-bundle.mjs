@@ -105,6 +105,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         return undefined;
       }
       const inputs = producers.map(producer => {
+        if (producer === -1) return Object.freeze({
+          task: producer,
+          suppliedRelation: true,
+        });
         const managed = outputs.get(producer);
         if (managed != null) return managed;
         // Producer zero is the checked Acquisition boundary. Other ordinary
@@ -117,7 +121,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       });
       if (inputs.some(input => input == null)) return undefined;
       const relationInputs = inputs.filter(input =>
-        input.carrierMaterial == null && input.capturedRelation !== true);
+        input.carrierMaterial == null &&
+        input.capturedRelation !== true &&
+        input.suppliedRelation !== true);
       const rowPlan = planManagedInputRows(relationInputs.map(input =>
         input.siteMaterial ?? input.material));
       if (rowPlan === undefined) return undefined;
@@ -130,12 +136,19 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             'function') {
         return undefined;
       }
+      if (inputs.some(input => input.suppliedRelation === true) &&
+          typeof moon.strategyModule_local_SuppliedRelationInput !==
+            'function') {
+        return undefined;
+      }
       if (!carrierAware && inputs.some(input => input.carrierMaterial != null)) {
         return undefined;
       }
       const managedOutputs = carrierAware
         ? inputs.map(input => input.capturedRelation === true
           ? moon.strategyModule_local_CapturedRelationInput()
+          : input.suppliedRelation === true
+          ? moon.strategyModule_local_SuppliedRelationInput()
           : input.carrierMaterial == null
           ? moon.strategyModule_local_RelationOutput(input.completed)
           : moon.strategyModule_local_CarrierOutput(
@@ -178,7 +191,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           executionBytes: siteCapacity[1],
         }),
         inputs: Object.freeze(inputs.filter(input =>
-          input.capturedRelation !== true)),
+          input.capturedRelation !== true &&
+          input.suppliedRelation !== true)),
         dispatchInputs: Object.freeze(inputs),
         outputs,
         releasableProducers: Object.freeze(
@@ -191,7 +205,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       signal?.throwIfAborted();
       const dispatchInputs = prepared.dispatchInputs ?? prepared.inputs;
       const plannedMaterials = dispatchInputs.map(input =>
-        input.carrierMaterial == null && input.capturedRelation !== true
+        input.carrierMaterial == null &&
+        input.capturedRelation !== true &&
+        input.suppliedRelation !== true
           ? input.siteMaterial ?? input.material
           : undefined).filter(material => material !== undefined);
       const preparedRowPlan = prepared.rowPlan ??
@@ -211,9 +227,12 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       try {
         const transfers = operations.inputs;
         const relationInputs = dispatchInputs.filter(input =>
-          input.carrierMaterial == null && input.capturedRelation !== true);
+          input.carrierMaterial == null &&
+          input.capturedRelation !== true &&
+          input.suppliedRelation !== true);
         const siteInputs = dispatchInputs.filter(
-          input => input.capturedRelation !== true,
+          input => input.capturedRelation !== true &&
+            input.suppliedRelation !== true,
         );
         if (!Array.isArray(transfers) ||
             transfers.length !== relationInputs.length) {

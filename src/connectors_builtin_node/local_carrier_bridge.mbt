@@ -15,6 +15,14 @@ pub fn local_managed_captured_relation_input() -> @binding19.LocalManagedAvailab
 }
 
 ///|
+#export_name("strategyModule_local_SuppliedRelationInput")
+pub fn local_managed_supplied_relation_input() -> @binding10.LocalManagedAvailableOutput[
+  Int,
+] {
+  @binding10.local_managed_supplied_relation_input()
+}
+
+///|
 #export_name("strategyModule_local_CarrierOutput")
 pub fn local_managed_carrier_output(
   output : @execution.CarrierManagedCompletedOutput,

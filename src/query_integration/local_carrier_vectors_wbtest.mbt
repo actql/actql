@@ -1589,6 +1589,72 @@ fn direct_ranking_fusion_owner(
 }
 
 ///|
+fn supplied_ranking_fusion_owner(policy : String) -> @lower.BoundPrepared {
+  let contract = "{\"domain\":\"unit.v1\",\"range\":[0,1]," +
+    "\"normalization\":\"unit.v1\"}"
+  let ranking = @vector.declare_ranking_score(
+    input_cursor(contract),
+    direct_ranking_carrier(),
+    @schema.Unqualified("score"),
+    { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"merge_rankings\":{\"with\":\"right\"," +
+        "\"by\":[\"q\"],\"candidate\":\"id\"," +
+        "\"score\":\"score\",\"k\":2,\"score_policy\":" +
+        policy +
+        ",\"score_contract\":{\"domain\":\"unit.v1\"," +
+        "\"range\":[0,1],\"normalization\":\"unit.v1\"}}}]",
+      ),
+      [
+        ("left", @pipeline.RankingInput(ranking)),
+        ("right", @pipeline.RankingInput(ranking)),
+      ],
+      None,
+      Some(input_cursor("\"left\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn supplied_ranking_rows(
+  owner : @lower.BoundPrepared,
+  input : Int,
+  rows : Array[(Double, Double, Double)],
+) -> @execution.SuppliedRelationRead {
+  let captured = @execution.capture_input(
+    owner,
+    input,
+    rows.map(row => {
+      input_cursor(
+        "{\"q\":" +
+        row.0.to_string() +
+        ",\"id\":" +
+        row.1.to_string() +
+        ",\"score\":" +
+        row.2.to_string() +
+        "}",
+      )
+    }),
+    max_rows=100,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+  ).unwrap()
+  @execution.prepare_supplied_relation_read(owner, input, captured, fn() {
+    true
+  }).unwrap()
+}
+
+///|
 fn direct_ranking_number(
   owner : @lower.BoundPrepared,
   column : Int,
@@ -1763,6 +1829,80 @@ test "registered VecA provider authenticates weighted ranking scores" {
     "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}",
     [(1.0, 1.0, 1.0, 0.625), (1.0, 2.0, 2.0, 0.25), (2.0, 1.0, 1.0, 0.5)],
   )
+}
+
+///|
+test "registered VecA provider preserves supplied score authority" {
+  for policy in ["\"max\"", "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"] {
+    let owner = supplied_ranking_fusion_owner(policy)
+    let inputs = [
+      supplied_ranking_rows(owner, 0, [(1.0, 1.0, 0.75), (1.0, 2.0, 0.5)]),
+      supplied_ranking_rows(owner, 1, [(1.0, 1.0, 0.5), (1.0, 3.0, 0.5)]),
+    ]
+    let generated = task_test_generated(owner)
+    let limits = dispatch_test_limits()
+    let provider = @local_veca_provider.provider(
+      carrier_vectors_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let execution = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      inputs.map(@local_connector.managed_provider_supplied_relation_input),
+      10,
+      1000,
+    ).unwrap()
+    let mut output = None
+    while output is None {
+      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.Complete(value, ..) => output = Some(value)
+        @local_connector.CarrierComplete(_, ..) => fail("ranking Carrier")
+        @local_connector.Failed(_, ..) => fail("ranking failed")
+        @local_connector.Stopped(..) => fail("ranking stopped")
+      }
+    }
+    let result = output.unwrap()
+    assert_eq(@execution.completed_row_count(result), 2)
+    let output_schema = @pipeline.schema_at(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+      @pipeline.Step(0),
+    ).unwrap()
+    let columns : Map[String, Int] = Map([], capacity=4)
+    for column in 0..<@schema.field_count(output_schema) {
+      columns.set(
+        @schema.reference_name(
+          @schema.field_at(output_schema, column).unwrap().name,
+        ),
+        column,
+      )
+    }
+    let scores = if policy == "\"max\"" { [0.75, 0.5] } else { [0.625, 0.25] }
+    for row in 0..<2 {
+      for
+        (name, expected) in [
+          ("q", 1.0),
+          ("id", (row + 1).to_double()),
+          ("rank", (row + 1).to_double()),
+          ("score", scores[row]),
+        ] {
+        assert_true(
+          @execution.completed_cell(result, row, columns.get(name).unwrap())
+          is Some(Number(actual)) &&
+          actual == expected,
+        )
+      }
+    }
+    assert_true(@local_connector.managed_provider_stopped(execution))
+    assert_true(
+      @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+    )
+  }
 }
 
 ///|

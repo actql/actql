@@ -31,6 +31,14 @@ priv enum RankingRecordOrder {
 }
 
 ///|
+/// Exact Relation input for ranking execution. Supplied Local rows retain
+/// their own binding and are never represented as a completed producer.
+pub enum RankingInput {
+  RankingProducer(@execution.ProducerRead)
+  RankingSupplied(@execution.SuppliedRelationRead)
+}
+
+///|
 priv enum RankingPhase {
   BeginRecord
   ReadField
@@ -55,7 +63,7 @@ priv enum RankingPhase {
 
 ///|
 priv struct RankingState {
-  inputs : Array[@execution.ProducerRead]
+  inputs : Array[RankingInput]
   output_schema : @schema.Schema
   mut output : @execution.AdmittedOutput?
   rows : Ref[@execution.AdmittedOutputRows?]
@@ -105,6 +113,83 @@ priv struct RankingState {
   mut emit_index : Int
   mut emit_rank : Int
   mut emitted_group : Array[@value.CheckedValue]?
+}
+
+///|
+pub fn ranking_producer_input(value : @execution.ProducerRead) -> RankingInput {
+  RankingProducer(value)
+}
+
+///|
+pub fn ranking_supplied_input(
+  value : @execution.SuppliedRelationRead,
+) -> RankingInput {
+  RankingSupplied(value)
+}
+
+///|
+fn ranking_input_available_value(value : RankingInput) -> Bool {
+  match value {
+    RankingProducer(read) => @execution.producer_read_available(read)
+    RankingSupplied(read) => @execution.supplied_relation_read_available(read)
+  }
+}
+
+///|
+fn ranking_input_matches_operation(
+  value : RankingInput,
+  owner : @lower.BoundPrepared,
+  step : Int,
+  edge : Int,
+) -> Bool {
+  match value {
+    RankingProducer(read) =>
+      @execution.producer_read_matches_operation_input(read, owner, step, edge)
+    RankingSupplied(read) =>
+      @execution.supplied_relation_read_matches_operation_input(
+        read, owner, step, edge,
+      )
+  }
+}
+
+///|
+fn ranking_input_schema(value : RankingInput) -> @schema.Schema {
+  match value {
+    RankingProducer(read) => @execution.producer_read_schema(read)
+    RankingSupplied(read) => @execution.supplied_relation_read_schema(read)
+  }
+}
+
+///|
+fn ranking_input_row_count(value : RankingInput) -> Int {
+  match value {
+    RankingProducer(read) => @execution.producer_read_row_count(read)
+    RankingSupplied(read) => @execution.supplied_relation_read_row_count(read)
+  }
+}
+
+///|
+fn ranking_input_checked_cell(
+  value : RankingInput,
+  row : Int,
+  column : Int,
+  limits : @value.Limits,
+) -> @value.CheckedValue? {
+  match value {
+    RankingProducer(read) =>
+      @execution.producer_read_checked_cell(read, row, column, limits)
+    RankingSupplied(read) =>
+      @execution.supplied_relation_read_checked_cell(read, row, column, limits)
+  }
+}
+
+///|
+fn ranking_trusted_input(value : RankingInput) -> @execution.TrustedOutputInput {
+  match value {
+    RankingProducer(read) => @execution.trusted_output_relation_input(read)
+    RankingSupplied(read) =>
+      @execution.trusted_output_supplied_relation_input(read)
+  }
 }
 
 ///|
@@ -310,7 +395,7 @@ fn ranking_output_value(
 ///|
 fn ranking_input_available(state : RankingState) -> RankingIssue? {
   for index, input in state.inputs {
-    if !@execution.producer_read_available(input) {
+    if !ranking_input_available_value(input) {
       return Some(RankingInputUnavailable(index))
     }
   }
@@ -331,14 +416,9 @@ fn begin_ranking_record(state : RankingState) -> Unit {
 ///|
 fn read_ranking_field(state : RankingState) -> Result[Unit, RankingIssue] {
   let read = state.inputs[state.input]
-  let schema = @execution.producer_read_schema(read)
+  let schema = ranking_input_schema(read)
   guard @schema.field_at(schema, state.field) is Some(field) &&
-    @execution.producer_read_checked_cell(
-      read,
-      state.row,
-      state.field,
-      state.value_limits,
-    )
+    ranking_input_checked_cell(read, state.row, state.field, state.value_limits)
     is Some(value) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
@@ -901,15 +981,14 @@ fn ranking_step(
       BeginRecord =>
         if state.input >= state.inputs.length() {
           start_ranking_record_sort(state, InputCandidateOrder)
-        } else if state.row <
-          @execution.producer_read_row_count(state.inputs[state.input]) {
+        } else if state.row < ranking_input_row_count(state.inputs[state.input]) {
           begin_ranking_record(state)
         } else {
           state.input += 1
           state.row = 0
         }
       ReadField => {
-        let schema = @execution.producer_read_schema(state.inputs[state.input])
+        let schema = ranking_input_schema(state.inputs[state.input])
         if state.field < @schema.field_count(schema) {
           used += 1
           match read_ranking_field(state) {
@@ -1148,6 +1227,33 @@ pub fn start_ranking(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[RankingExecution, RankingIssue] {
+  start_ranking_inputs(
+    control,
+    preparation,
+    sequence,
+    step,
+    inputs.map(ranking_producer_input),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
+pub fn start_ranking_inputs(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  inputs : Array[RankingInput],
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[RankingExecution, RankingIssue] {
   if max_rows < 0 ||
     max_workspace_slots < 0 ||
     max_entries < 0 ||
@@ -1184,13 +1290,11 @@ pub fn start_ranking(
     is Some(output_schema) else {
     return Err(InvalidRankingKernel)
   }
-  let occurrence_inputs : Array[@execution.ProducerRead] = []
+  let occurrence_inputs : Array[RankingInput] = []
   for edge in 0..<input_count {
     let mut matched = None
     for input in inputs {
-      if @execution.producer_read_matches_operation_input(
-          input, owner, step, edge,
-        ) {
+      if ranking_input_matches_operation(input, owner, step, edge) {
         if matched is Some(_) {
           return Err(InvalidRankingKernel)
         }
@@ -1203,9 +1307,7 @@ pub fn start_ranking(
   for input in inputs {
     let mut matched = false
     for edge in 0..<input_count {
-      if @execution.producer_read_matches_operation_input(
-          input, owner, step, edge,
-        ) {
+      if ranking_input_matches_operation(input, owner, step, edge) {
         matched = true
       }
     }
@@ -1222,10 +1324,7 @@ pub fn start_ranking(
   }
   let mut total_rows = 0
   for input in occurrence_inputs {
-    guard ranking_checked_add(
-        total_rows,
-        @execution.producer_read_row_count(input),
-      )
+    guard ranking_checked_add(total_rows, ranking_input_row_count(input))
       is Some(next) else {
       return Err(RankingWorkspaceLimit)
     }
@@ -1250,13 +1349,13 @@ pub fn start_ranking(
   let live = Ref(true)
   let accepted = Ref(false)
   let port = match
-    @execution.prepare_trusted_output_port(
+    @execution.prepare_trusted_output_port_with_inputs(
       preparation,
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
+      inputs=inputs.map(ranking_trusted_input),
     ) {
     Ok(value) => value
     Err(issue) => {

@@ -51,6 +51,8 @@ pub fn local_managed_relation_output(@execution_relation.ManagedCompletedOutput[
 
 pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 
+pub fn local_managed_supplied_relation_input() -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]
+
 pub fn local_managed_uses_provider(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Bool
 
 pub fn local_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration

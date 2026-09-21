@@ -810,6 +810,8 @@ pub fn provider(
       for input in inputs {
         match input {
           @local.RelationInput(value) => relations.push(value)
+          @local.SuppliedRelationInput(_) =>
+            return Err(@connector.Execution(@execution.InputSet))
           @local.CarrierInput(value) =>
             if carrier_input is Some(_) {
               return Err(@connector.InvalidLimits)

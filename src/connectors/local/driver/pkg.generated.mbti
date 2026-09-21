@@ -48,6 +48,8 @@ pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration
 
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 
+pub fn[T] local_managed_supplied_relation_input() -> LocalManagedAvailableOutput[T]
+
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
 
 pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
@@ -148,6 +150,7 @@ pub(all) struct LocalManagedAdvance {
 
 pub enum LocalManagedAvailableOutput[T] {
   CapturedRelationInput
+  SuppliedRelationInput
   RelationOutput(@execution_relation.ManagedCompletedOutput[T])
   CarrierOutput(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material)
 }
