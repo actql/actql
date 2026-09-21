@@ -825,6 +825,45 @@ pub fn Store::inspect_payload(
 }
 
 ///|
+/// Reconcile one exact payload request without creating a second writer.
+/// Absence is distinct from an unresolved or conflicting durable occurrence.
+pub fn Store::reconcile_payload(
+  self : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if @payload.publication_payload_request_store_authority(request) !=
+    self.authority_cid {
+    return Err(StateCollision)
+  }
+  let key = record_key(request)
+  let record = match load_record(self, key) {
+    Ok(value) => value
+    Err(Database(@sqlite.NotFound)) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  if @payload.publication_payload_request_identity(
+      @payload.publication_payload_record_request(record),
+    ) !=
+    @payload.publication_payload_request_identity(request) {
+    return Err(StateCollision)
+  }
+  if @payload.publication_payload_record_state(record) != @payload.Sealed {
+    return Err(RecoveryRequired)
+  }
+  let info = match payload_info(record) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !self.root.verify_generation(info.object_name, info.generation) {
+    return Err(Filesystem(@filesystem.GenerationMismatch))
+  }
+  Ok(Some(info))
+}
+
+///|
 pub fn Store::open_payload_reader(
   self : Store,
   material_generation_cid : String,

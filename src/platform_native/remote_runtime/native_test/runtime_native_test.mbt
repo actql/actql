@@ -401,6 +401,12 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_eq(accepted[0], 2)
   assert_eq(executions[0], 1)
   assert_eq(observed_budget[0], (128L, 128L))
+  let reconciled_completion = runtime.observed_completion(first).unwrap()
+  assert_eq(
+    reconciled_completion.dispatch_request_cid,
+    completion.dispatch_request_cid,
+  )
+  assert_eq(reconciled_completion.evidence_cid, completion.evidence_cid)
   assert_true(
     runtime.start_after_acceptance(first, input_binding, _record => {
       accepted[0] += 1
@@ -468,6 +474,9 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_true(cancelled_reader.close().unwrap())
   assert_true(runtime.release(first) is Err(@runtime.CleanupPending("output")))
   assert_true(runtime.release(first).unwrap())
+  assert_true(
+    runtime.observed_completion(first) is Err(@runtime.OutputReaderUnavailable),
+  )
   assert_eq(released[0], 2)
   let second = request("dispatch-b")
   assert_true(

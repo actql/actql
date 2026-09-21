@@ -102,19 +102,39 @@ fn load_text(
 ///|
 fn poll_outcome_json(
   outcome : @application.NativeRemoteApplicationSite,
+  publication_store : @publication_store.Store,
+  max_chunk_bytes : Int,
 ) -> Result[String, String] {
   match outcome.poll() {
     Ok(@agent.Idle) => Ok("{\"kind\":\"idle\"}")
     Ok(@agent.OutputRequested(output)) => {
       let request = @remote.remote_poll_output_request(output)
       let intent = @remote.remote_poll_output_intent(output)
-      Ok(
-        "{\"kind\":\"output-requested\",\"request_cid\":\"" +
-        @remote.dispatch_request_identity(request) +
-        "\",\"intent_cid\":\"" +
-        @remote.remote_output_intent_identity(intent) +
-        "\"}",
-      )
+      match outcome.execute_output(output, publication_store, max_chunk_bytes) {
+        Ok(result) =>
+          Ok(
+            "{\"kind\":\"output\",\"request_cid\":\"" +
+            @remote.dispatch_request_identity(request) +
+            "\",\"intent_cid\":\"" +
+            @remote.remote_output_intent_identity(intent) +
+            "\",\"payload_digest\":\"" +
+            result.payload.physical_digest +
+            "\",\"transfer_request_cid\":\"" +
+            @transfer.record_request_identity(result.transfer) +
+            "\",\"transfer_revision\":" +
+            @transfer.record_revision(result.transfer).to_string() +
+            "}",
+          )
+        Err(issue) => {
+          ignore(issue)
+          ignore(outcome.retry_output_cleanup())
+          if outcome.output_cleanup_pending() {
+            Err("remote output cleanup remains pending")
+          } else {
+            Err("remote output operation failed")
+          }
+        }
+      }
     }
     Ok(@agent.DispatchObserved(request, completion, revision)) =>
       Ok(
@@ -300,6 +320,8 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("duckdb-library", required=true),
       @argparse.OptionArg("application-root", required=true),
       @argparse.OptionArg("transfer-root", required=true),
+      @argparse.OptionArg("publication-root", required=true),
+      @argparse.OptionArg("publication-authority-cid", required=true),
       @argparse.OptionArg("runtime-root", required=true),
       @argparse.OptionArg("transfer-journal", required=true),
       @argparse.OptionArg("dispatch-journal", required=true),
@@ -334,6 +356,7 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("max-record-bytes", default_values=["1048576"]),
       @argparse.OptionArg("max-operations", default_values=["64"]),
       @argparse.OptionArg("max-transfers", default_values=["64"]),
+      @argparse.OptionArg("output-chunk-bytes", default_values=["65536"]),
     ],
   )
 }
@@ -349,6 +372,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let generation = required_int(matches, "site-generation")
   let max_operations = required_int(matches, "max-operations")
   let max_transfers = required_int(matches, "max-transfers")
+  let output_chunk_bytes = required_int(matches, "output-chunk-bytes")
   if max_rows < 1 ||
     max_bytes < 1L ||
     max_bytes > 2147483647L ||
@@ -358,7 +382,9 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     expected_task < 1 ||
     generation < 0 ||
     max_operations < 1 ||
-    max_transfers < 1 {
+    max_transfers < 1 ||
+    output_chunk_bytes < 1 ||
+    output_chunk_bytes.to_int64() > max_bytes {
     stop("invalid application Site limits")
   }
   let sqlite_path = required(matches, "sqlite-library")
@@ -367,7 +393,14 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let duckdb_path = required(matches, "duckdb-library")
   let application_root = required(matches, "application-root")
   let transfer_root_path = required(matches, "transfer-root")
+  let publication_root_path = required(matches, "publication-root")
+  let publication_authority = required(matches, "publication-authority-cid")
   let runtime_root = required(matches, "runtime-root")
+  if publication_root_path == transfer_root_path ||
+    publication_root_path == runtime_root ||
+    transfer_root_path == runtime_root {
+    stop("application Site roots must be distinct")
+  }
   let transfer_journal_path = required(matches, "transfer-journal")
   let dispatch_journal_path = required(matches, "dispatch-journal")
   let database_path = required(matches, "database-path")
@@ -574,6 +607,25 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       stop("dispatch budget admission failed")
     }
   }
+  let publication_store = match
+    @publication_store.open_store(
+      sqlite_library,
+      publication_root_path,
+      publication_authority,
+      max_bytes,
+      max_transfers.to_int64(),
+      max_record_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => {
+      ignore(client.close())
+      ignore(transfer_journal.close())
+      ignore(dispatch_journal.close())
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("publication Store open failed")
+    }
+  }
   let application_site = match
     @application.open_native_remote_application_store_site_distribution(
       app,
@@ -599,6 +651,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     ) {
     Ok(value) => value
     Err(_) => {
+      ignore(publication_store.close())
       ignore(client.close())
       ignore(transfer_journal.close())
       ignore(dispatch_journal.close())
@@ -612,7 +665,8 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let mut closed = false
   while !closed && (max_polls == 0 || polls < max_polls) {
     polls += 1
-    match poll_outcome_json(application_site) {
+    match
+      poll_outcome_json(application_site, publication_store, output_chunk_bytes) {
       Ok(result) => {
         println(result)
         if result == "{\"kind\":\"idle\"}" {
@@ -636,11 +690,25 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       Err(_) => Some("application Site cleanup remains pending")
     }
   }
-  match (poll_failure, close_failure) {
-    (None, None) => ()
-    (Some(primary), None) => stop(primary)
-    (None, Some(cleanup)) => stop(cleanup)
-    (Some(primary), Some(cleanup)) => stop(primary + "; " + cleanup)
+  let publication_close_failure = match publication_store.close() {
+    Ok(_) => None
+    Err(_) => Some("publication Store cleanup remains pending")
+  }
+  let failures : Array[String] = []
+  match poll_failure {
+    Some(value) => failures.push(value)
+    None => ()
+  }
+  match close_failure {
+    Some(value) => failures.push(value)
+    None => ()
+  }
+  match publication_close_failure {
+    Some(value) => failures.push(value)
+    None => ()
+  }
+  if !failures.is_empty() {
+    stop(failures.join("; "))
   }
 }
 

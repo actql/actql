@@ -348,6 +348,35 @@ pub fn NativeRemoteStandardSiteComponent::inspect_observed_output_facts(
 }
 
 ///|
+/// Reconcile one retained completion from the exact durable Site observation.
+/// The environment cannot manufacture evidence or material identities here.
+pub fn NativeRemoteStandardSiteComponent::observed_completion(
+  self : NativeRemoteStandardSiteComponent,
+  request : @remote.DispatchRequest,
+) -> Result[
+  @runtime.NativeRemoteRuntimeCompletion,
+  NativeRemoteStandardSiteComponentIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let completion = match self.runtime.observed_completion(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Runtime(issue))
+  }
+  let record = @journal.recovered_site_dispatch_record(observed)
+  if !@remote.dispatch_record_matches_request(record, request) ||
+    @remote.dispatch_record_revision(record) != completion.revision {
+    return Err(Runtime(@runtime.OutputReaderUnavailable))
+  }
+  Ok(completion)
+}
+
+///|
 /// Stream one exact observed output into the native publication Store. The
 /// caller supplies a payload request already admitted by common publication
 /// control; this boundary checks every physical and logical representation
@@ -748,6 +777,21 @@ pub fn NativeRemoteStandardSiteDistribution::inspect_observed_output_facts(
   self.component
   .inspect_observed_output_facts(request, completion)
   .map_err(issue => Component(issue))
+}
+
+///|
+/// Reconcile a retained completion through the process-owned distribution.
+pub fn NativeRemoteStandardSiteDistribution::observed_completion(
+  self : NativeRemoteStandardSiteDistribution,
+  request : @remote.DispatchRequest,
+) -> Result[
+  @runtime.NativeRemoteRuntimeCompletion,
+  NativeRemoteStandardSiteDistributionIssue,
+] {
+  if self.closed {
+    return Err(Closed)
+  }
+  self.component.observed_completion(request).map_err(issue => Component(issue))
 }
 
 ///|

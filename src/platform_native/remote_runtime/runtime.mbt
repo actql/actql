@@ -759,6 +759,32 @@ fn native_remote_runtime_completion(
 }
 
 ///|
+/// Reconcile the current retained completion for one exact dispatch. This
+/// does not open an output reader and cannot recreate an execution whose
+/// physical owner or Site authority is no longer available.
+pub fn NativeRemoteRuntime::observed_completion(
+  self : NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let identity = @remote.dispatch_request_identity(request)
+  guard self.owners.get(identity) is Some(owner) else {
+    return Err(OutputReaderUnavailable)
+  }
+  if !@remote.dispatch_record_matches_request(owner.record, request) ||
+    !@site.site_available(owner.registration.site) ||
+    !@remote.remote_runtime_custody_output_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_output_released(owner.custody) ||
+    !@remote.remote_runtime_custody_holding_acquired(owner.custody) ||
+    @remote.remote_runtime_custody_holding_released(owner.custody) {
+    return Err(OutputReaderUnavailable)
+  }
+  native_remote_runtime_completion(owner)
+}
+
+///|
 fn NativeRemoteRuntime::run_success(
   self : NativeRemoteRuntime,
   owner : NativeRemoteRuntimeOwner,

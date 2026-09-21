@@ -67,6 +67,14 @@ pub fn Store::inspect_payload(
 }
 
 ///|
+pub fn Store::reconcile_payload(
+  _self : Store,
+  _request : @payload.PublicationPayloadRequest,
+) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::open_payload_reader(
   _self : Store,
   _material_generation_cid : String,

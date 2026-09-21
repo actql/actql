@@ -81,6 +81,7 @@ pub fn NativeRemoteRuntime::cleanup(Self, @remote_site_protocol.DispatchRequest)
 pub fn NativeRemoteRuntime::cleanup_pending(Self) -> Bool
 pub fn NativeRemoteRuntime::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::inspect_output_facts(Self, @remote_site_protocol.DispatchRequest, String) -> Result[NativeRemoteOutputFacts, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::observed_completion(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::open_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputManifestReader, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputReader, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::release(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]

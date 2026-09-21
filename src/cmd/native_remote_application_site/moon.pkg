@@ -8,6 +8,7 @@ import {
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/remote_application_profile" @application,
   "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/platform_native/remote_journal" @journal,
@@ -17,6 +18,7 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_transfer" @transfer,
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
 }

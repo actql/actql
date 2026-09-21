@@ -83,10 +83,16 @@ test "native publication payload streams, verifies and reclaims exactly" {
     return
   }
   let request = native_payload_request(authority, @env.now().to_string(), 16L)
+  assert_true(store.reconcile_payload(request).unwrap() is None)
   let writer = store.begin_payload(request).unwrap()
   writer.append(b"abc").unwrap()
   writer.append(b"def").unwrap()
   let info = writer.seal().unwrap()
+  guard store.reconcile_payload(request).unwrap() is Some(reconciled) else {
+    fail("sealed payload was not reconciled")
+  }
+  assert_eq(reconciled.physical_digest, info.physical_digest)
+  assert_eq(reconciled.generation, info.generation)
   assert_eq(info.generation.size, 6L)
   assert_eq(info.row_count, 2L)
   let usage = store.capacity_usage().unwrap()
@@ -141,6 +147,10 @@ test "native publication payload survives restart and recovers cancellation" {
   let recovery = reopened.recover().unwrap()
   assert_eq(recovery.retained, 1)
   assert_eq(recovery.reclaimed, 0)
+  guard reopened.reconcile_payload(first_request).unwrap() is Some(reconciled) else {
+    fail("restarted payload was not reconciled")
+  }
+  assert_eq(reconciled.physical_digest, retained.physical_digest)
   let reader = reopened
     .open_payload_reader(retained.material_generation_cid)
     .unwrap()

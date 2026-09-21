@@ -57,11 +57,16 @@ executable, including output Transfer and publication operations before
 release, remains open. The runtime now projects immutable output facts from
 the exact durable dispatch observation without opening a physical reader.
 The application owner uses those facts to derive both the publication payload
-request and the direct or Store Transfer request from one Coordinator intent.
+request and the direct or Store Transfer request from one canonical
+Coordinator intent. The authenticated polling protocol carries that intent as
+an operation distinct from dispatch, query, and release. The application Site
+reconciles the retained completion, reuses an exact sealed publication payload
+on retry, and drives the selected durable Transfer route without rerunning
+Compute.
 The observed generation, physical manifest, logical view, schema, codec, and
-source Site generation cannot be replaced by the executable adapter. Carrying
-that intent through the authenticated outbound protocol and executing both
-physical operations before an admitted release remain open. The live Node
+source Site generation cannot be replaced by the executable adapter. Durable
+output-result acknowledgement, Coordinator admission, and the separated-
+process product E2E before release remain open. The live Node
 bundle boundary and the native durable-Store route now install opaque
 factories directly; neither
 accepts a replacement input state machine from application composition. The

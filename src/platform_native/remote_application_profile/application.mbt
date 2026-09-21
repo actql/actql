@@ -72,6 +72,14 @@ pub(all) struct NativeRemoteApplicationOutputPlan {
 }
 
 ///|
+/// Durable physical results from one admitted output operation. Publication
+/// commit and destination completion remain separate Coordinator decisions.
+pub(all) struct NativeRemoteApplicationOutputResult {
+  payload : @publication_store.NativePublicationPayloadInfo
+  transfer : @transfer.RemoteTransferRecord
+}
+
+///|
 /// Output planning fails before any publication writer or Transfer reader is
 /// opened.
 pub(all) enum NativeRemoteApplicationOutputPlanIssue {
@@ -82,11 +90,60 @@ pub(all) enum NativeRemoteApplicationOutputPlanIssue {
 }
 
 ///|
+pub(all) enum NativeRemoteApplicationOutputIssue {
+  InvalidOperation
+  Observation(NativeRemoteApplicationSiteIssue)
+  Plan(NativeRemoteApplicationOutputPlanIssue)
+  PayloadStore(@publication_store.NativePublicationStoreIssue)
+  PayloadStream(@remote_standard.NativeRemoteStandardPayloadFailure)
+  Transfer(NativeRemoteApplicationSiteIssue)
+}
+
+///|
+pub fn native_remote_application_output_cleanup_pending(
+  issue : NativeRemoteApplicationOutputIssue,
+) -> Bool {
+  match issue {
+    PayloadStream(failure) =>
+      @remote_standard.native_remote_standard_payload_failure_cleanup_pending(
+        failure,
+      )
+    Transfer(
+      Distribution(
+        @remote_standard.Component(@remote_standard.TransferSend(failure))
+      )
+    ) => @transfer_client.transfer_send_failure_cleanup_pending(failure)
+    _ => false
+  }
+}
+
+///|
+/// Retry only physical cleanup retained by one failed output occurrence.
+/// This never repeats payload creation, Transfer, or Compute.
+pub fn retry_native_remote_application_output_cleanup(
+  issue : NativeRemoteApplicationOutputIssue,
+) -> Bool {
+  match issue {
+    PayloadStream(failure) =>
+      @remote_standard.retry_native_remote_standard_payload_failure_cleanup(
+        failure,
+      )
+    Transfer(
+      Distribution(
+        @remote_standard.Component(@remote_standard.TransferSend(failure))
+      )
+    ) => @transfer_client.retry_transfer_send_failure_cleanup(failure)
+    _ => false
+  }
+}
+
+///|
 /// Composition failures keep task registration distinct from process-owned
 /// Site distribution failures.
 pub(all) enum NativeRemoteApplicationSiteIssue {
   Host(@remote_standard.NativeRemoteStandardHostIssue)
   Distribution(@remote_standard.NativeRemoteStandardSiteDistributionIssue)
+  OutputCleanupPending
   TransferJournalClose
 }
 
@@ -98,6 +155,7 @@ struct NativeRemoteApplicationSite {
   site : @site.ExecutionSite
   distribution : @remote_standard.NativeRemoteStandardSiteDistribution
   transfer_journal : @transfer_journal.Journal
+  mut pending_output : NativeRemoteApplicationOutputIssue?
   mut distribution_closed : Bool
   mut transfer_journal_closed : Bool
   mut closed : Bool
@@ -464,6 +522,7 @@ pub fn open_native_remote_application_store_site_distribution(
     site,
     distribution,
     transfer_journal,
+    pending_output: None,
     distribution_closed: false,
     transfer_journal_closed: false,
     closed: false,
@@ -556,6 +615,133 @@ pub fn NativeRemoteApplicationSite::poll(
     return Err(Distribution(@remote_standard.Closed))
   }
   self.distribution.poll().map_err(issue => Distribution(issue))
+}
+
+///|
+/// Execute one output operation selected by the Coordinator. The Site first
+/// reconciles the exact retained completion, then derives both physical
+/// requests from that observation. An exact retry reuses a sealed publication
+/// payload and the durable Transfer journal instead of rerunning Compute.
+pub fn NativeRemoteApplicationSite::execute_output(
+  self : NativeRemoteApplicationSite,
+  output : @remote.RemotePollOutput,
+  store : @publication_store.Store,
+  max_chunk_bytes : Int,
+) -> Result[
+  NativeRemoteApplicationOutputResult,
+  NativeRemoteApplicationOutputIssue,
+] {
+  if self.closed || max_chunk_bytes < 1 {
+    return Err(InvalidOperation)
+  }
+  if self.pending_output is Some(_) {
+    return Err(InvalidOperation)
+  }
+  let request = @remote.remote_poll_output_request(output)
+  let remote_intent = @remote.remote_poll_output_intent(output)
+  if !@remote.remote_output_intent_matches_dispatch(remote_intent, request) {
+    return Err(InvalidOperation)
+  }
+  let completion = match self.distribution.observed_completion(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Observation(Distribution(issue)))
+  }
+  let projection = @remote.remote_output_intent_projection(remote_intent)
+  let intent : NativeRemoteApplicationOutputIntent = {
+    store_authority_cid: projection.store_authority_cid,
+    publication_attempt_cid: projection.publication_attempt_cid,
+    result_definition_cid: projection.result_definition_cid,
+    ordering_evidence_cid: projection.ordering_evidence_cid,
+    coordinator_authority: projection.coordinator_authority,
+    transfer_attempt: projection.transfer_attempt,
+    transfer_route: projection.transfer_route,
+    destination_site_key: projection.destination_site_key,
+    destination_site_generation: projection.destination_site_generation,
+    transfer_max_bytes: projection.transfer_max_bytes,
+    transfer_expires_unix_ms: projection.transfer_expires_unix_ms,
+    source_grant_cid: projection.source_grant_cid,
+    destination_grant_cid: projection.destination_grant_cid,
+    route_capability_cid: projection.route_capability_cid,
+  }
+  let plan = match
+    self.prepare_observed_output_plan(request, completion, intent) {
+    Ok(value) => value
+    Err(issue) => return Err(Plan(issue))
+  }
+  let payload = match store.reconcile_payload(plan.payload) {
+    Ok(Some(value)) => value
+    Ok(None) =>
+      match
+        self.persist_observed_output_payload(
+          request,
+          completion,
+          plan.payload,
+          store,
+          max_chunk_bytes,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          let failure = PayloadStream(issue)
+          if native_remote_application_output_cleanup_pending(failure) {
+            self.pending_output = Some(failure)
+          }
+          return Err(failure)
+        }
+      }
+    Err(issue) => return Err(PayloadStore(issue))
+  }
+  let transfer = match projection.transfer_route {
+    @transfer.DirectStream =>
+      self.send_observed_output_direct(
+        projection.transfer_origin,
+        request,
+        completion,
+        plan.transfer,
+        max_chunk_bytes,
+      )
+    @transfer.TransferStore =>
+      self.send_observed_output_store(
+        projection.transfer_origin,
+        request,
+        completion,
+        plan.transfer,
+        max_chunk_bytes,
+      )
+  }
+  match transfer {
+    Ok(value) => Ok({ payload, transfer: value, })
+    Err(issue) => {
+      let failure = NativeRemoteApplicationOutputIssue::Transfer(issue)
+      if native_remote_application_output_cleanup_pending(failure) {
+        self.pending_output = Some(failure)
+      }
+      Err(failure)
+    }
+  }
+}
+
+///|
+pub fn NativeRemoteApplicationSite::output_cleanup_pending(
+  self : NativeRemoteApplicationSite,
+) -> Bool {
+  self.pending_output is Some(issue) &&
+  native_remote_application_output_cleanup_pending(issue)
+}
+
+///|
+/// Retry the exact physical output owner retained by this Site. Completion of
+/// this cleanup does not turn the failed output operation into success.
+pub fn NativeRemoteApplicationSite::retry_output_cleanup(
+  self : NativeRemoteApplicationSite,
+) -> Bool {
+  guard self.pending_output is Some(issue) else { return false }
+  ignore(retry_native_remote_application_output_cleanup(issue))
+  if native_remote_application_output_cleanup_pending(issue) {
+    false
+  } else {
+    self.pending_output = None
+    true
+  }
 }
 
 ///|
@@ -695,6 +881,12 @@ pub fn NativeRemoteApplicationSite::close(
 ) -> Result[Bool, NativeRemoteApplicationSiteIssue] {
   if self.closed {
     return Ok(false)
+  }
+  if self.pending_output is Some(_) {
+    ignore(self.retry_output_cleanup())
+    if self.output_cleanup_pending() {
+      return Err(OutputCleanupPending)
+    }
   }
   if !self.distribution_closed {
     match self.distribution.close() {
