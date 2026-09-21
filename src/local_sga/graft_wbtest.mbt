@@ -118,6 +118,379 @@ fn empty_graph_contract() -> @carrier.Carrier {
 }
 
 ///|
+fn numeric_graph_contract() -> @carrier.Carrier {
+  let number = @contract.primitive(@contract.NumberType, nullable=false)
+  let node = @carrier.rows(
+    [(@schema.Unqualified("score"), Some(number))],
+    field_set=@carrier.Closed,
+    max_fields=1,
+    max_name_bytes=5,
+  ).unwrap()
+  let edge = @carrier.rows(
+    [(@schema.Unqualified("score"), Some(number))],
+    field_set=@carrier.Closed,
+    max_fields=1,
+    max_name_bytes=5,
+  ).unwrap()
+  @carrier.graph(
+    number,
+    node,
+    edge,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn numeric_graph_owner() -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_carriers(
+      cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
+      [("g", numeric_graph_contract())],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn numeric_structural_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+  operation : String,
+  strategy : String,
+) -> @lower.BoundPrepared {
+  let body = if operation == "union_graphs" {
+    "{\"with\":[\"right\"],\"merge\":{\"node_properties\":" +
+    "{\"score\":\"" +
+    strategy +
+    "\"}}}"
+  } else {
+    "{\"with\":\"right\",\"merge\":{\"node_properties\":" +
+    "{\"score\":\"" +
+    strategy +
+    "\"}}}"
+  }
+  bind(
+    @pipeline.check_with_evidence(
+      cursor("[{\"from\":\"left\",\"" + operation + "\":" + body + "}]"),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn numeric_union_list_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+  third : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor(
+        "[{\"from\":\"left\",\"union_graphs\":{" +
+        "\"with\":[\"right\",\"third\"],\"merge\":{" +
+        "\"node_properties\":{\"score\":\"number_mean\"}}}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "third",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(third)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn one_numeric_node_graph(
+  owner : @lower.BoundPrepared,
+  identity : Double,
+  score : Double,
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  @graph.append_node(output, number(identity), [number(score)]).unwrap()
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+fn numeric_both_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_with_evidence(
+      cursor(
+        "[{\"from\":\"left\",\"union_graphs\":{" +
+        "\"with\":[\"right\"],\"merge\":{" +
+        "\"node_properties\":{\"score\":\"number_sum\"}," +
+        "\"edge_properties\":{\"score\":\"number_sum\"}}}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn numeric_edge_graph(
+  owner : @lower.BoundPrepared,
+  node_score : Double,
+  edge_score : Double,
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  @graph.append_node(output, number(1.0), [number(node_score)]).unwrap()
+  @graph.append_node(output, number(2.0), [number(node_score)]).unwrap()
+  @graph.append_edge(output, number(1.0), number(2.0), None, [
+    number(edge_score),
+  ]).unwrap()
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+fn set_graph_contract(nullable? : Bool = false) -> @carrier.Carrier {
+  let number = @contract.primitive(@contract.NumberType, nullable=false)
+  let item = @contract.primitive(@contract.StringType, nullable=true)
+  let tags = @contract.array_contract(item, nullable~, max_items=Some(10L)).unwrap()
+  let node = @carrier.rows(
+    [(@schema.Unqualified("tags"), Some(tags))],
+    field_set=@carrier.Closed,
+    max_fields=1,
+    max_name_bytes=4,
+  ).unwrap()
+  let edge = @carrier.rows(
+    [],
+    field_set=@carrier.Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  @carrier.graph(
+    number,
+    node,
+    edge,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn set_graph_owner(nullable? : Bool = false) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_carriers(
+      cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
+      [("g", set_graph_contract(nullable~))],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn set_structural_owner(
+  left : @lower.BoundPrepared,
+  right : @lower.BoundPrepared,
+  operation : String,
+  strategy : String,
+) -> @lower.BoundPrepared {
+  let body = if operation == "union_graphs" {
+    "{\"with\":[\"right\"],\"merge\":{\"node_properties\":" +
+    "{\"tags\":\"" +
+    strategy +
+    "\"}}}"
+  } else {
+    "{\"with\":\"right\",\"merge\":{\"node_properties\":" +
+    "{\"tags\":\"" +
+    strategy +
+    "\"}}}"
+  }
+  bind(
+    @pipeline.check_with_evidence(
+      cursor("[{\"from\":\"left\",\"" + operation + "\":" + body + "}]"),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "right",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(right)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn set_value(text : String, nullable? : Bool = false) -> @value.CheckedValue {
+  let item = @contract.primitive(@contract.StringType, nullable=true)
+  let contract = @contract.array_contract(item, nullable~, max_items=Some(10L)).unwrap()
+  @value.admit(contract, cursor(text), {
+    max_nodes: 100,
+    max_depth: 10,
+    max_text_bytes: 1000,
+  }).unwrap()
+}
+
+///|
+fn one_set_node_graph(
+  owner : @lower.BoundPrepared,
+  tags : @value.CheckedValue,
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  @graph.append_node(output, number(1.0), [tags]).unwrap()
+  @graph.finish_output(output).unwrap()
+}
+
+///|
 fn empty_graph_owner() -> @lower.BoundPrepared {
   bind(
     @pipeline.check_carriers(
@@ -720,11 +1093,7 @@ test "finite-list union applies explicit exact equality at every fold" {
   ).unwrap()
   assert_true(
     advance_graft(rejected, 8).unwrap()
-    is GraftFailed(
-      GraftOutput(@graph.Storage(@storage.DuplicateNodeConflict)),
-      progress=1L,
-      work=1L
-    ),
+    is GraftFailed(GraftPropertyConflict, progress=0L, work=0L),
   )
   assert_eq(cleanup_graft(rejected), Ok(true))
 }
@@ -820,11 +1189,290 @@ test "structural subtraction retains explicit exact-equal properties" {
   ).unwrap()
   assert_true(
     advance_graft(rejected, 4).unwrap()
-    is GraftFailed(
-      GraftOutput(@graph.Storage(@storage.DuplicateNodeConflict)),
-      progress=1L,
-      work=1L
+    is GraftFailed(GraftPropertyConflict, progress=0L, work=0L),
+  )
+  assert_eq(cleanup_graft(rejected), Ok(true))
+}
+
+///|
+test "structural folds apply every finite numeric property strategy" {
+  let left_owner = numeric_graph_owner()
+  let right_owner = numeric_graph_owner()
+  let left = one_numeric_node_graph(left_owner, 1.0, 2.0)
+  let right = one_numeric_node_graph(right_owner, 1.0, 4.0)
+  for
+    (strategy, expected) in [
+      ("number_sum", "6"),
+      ("number_mean", "3"),
+      ("number_min", "2"),
+      ("number_max", "4"),
+    ] {
+    let owner = numeric_structural_owner(
+      left_owner, right_owner, "union_graphs", strategy,
+    )
+    let execution = start_graft(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      graft_inputs(owner, left_owner, right_owner, left, right),
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    guard advance_graft(execution, 4).unwrap()
+      is GraftComplete(output, progress=2L, work=2L) else {
+      fail("numeric structural union did not complete")
+    }
+    let result = @graph.completed_storage(output).unwrap()
+    assert_eq(@storage.node_count(result), 1)
+    assert_eq(@storage.input_row_count(result), 2)
+    assert_eq(
+      @value.canonical_scalar_text(
+        @storage.node_property(result, 0, 0).unwrap(),
+        20,
+      ),
+      Some(expected),
+    )
+    assert_eq(cleanup_graft(execution), Ok(true))
+  }
+
+  let subtract = numeric_structural_owner(
+    left_owner, right_owner, "subtract_graphs", "number_sum",
+  )
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(subtract),
+    0,
+    graft_inputs(subtract, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(execution, 4).unwrap()
+    is GraftComplete(output, progress=2L, work=2L) else {
+    fail("numeric structural subtraction did not complete")
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(result), 1)
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.node_property(result, 0, 0).unwrap(),
+      20,
     ),
+    Some("6"),
+  )
+  assert_eq(cleanup_graft(execution), Ok(true))
+
+  let both = numeric_both_owner(left_owner, right_owner)
+  let left_graph = numeric_edge_graph(left_owner, 2.0, 5.0)
+  let right_graph = numeric_edge_graph(right_owner, 4.0, 7.0)
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(both),
+    0,
+    graft_inputs(both, left_owner, right_owner, left_graph, right_graph),
+    storage_limits(),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(execution, 8).unwrap()
+    is GraftComplete(output, progress=6L, work=6L) else {
+    fail("numeric node and edge fold did not complete")
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(result), 2)
+  assert_eq(@storage.edge_count(result), 1)
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.edge_property(result, 0, 0).unwrap(),
+      20,
+    ),
+    Some("12"),
+  )
+  assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
+test "finite structural mean folds in authored input order" {
+  let left_owner = numeric_graph_owner()
+  let right_owner = numeric_graph_owner()
+  let third_owner = numeric_graph_owner()
+  let owner = numeric_union_list_owner(left_owner, right_owner, third_owner)
+  let left = one_numeric_node_graph(left_owner, 1.0, 2.0)
+  let right = one_numeric_node_graph(right_owner, 1.0, 4.0)
+  let third = one_numeric_node_graph(third_owner, 1.0, 8.0)
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    [
+      @graph.prepare_producer_read(owner, 0, left_owner, left).unwrap(),
+      @graph.prepare_producer_read(owner, 1, right_owner, right).unwrap(),
+      @graph.prepare_producer_read(owner, 2, third_owner, third).unwrap(),
+    ],
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  guard advance_graft(execution, 6).unwrap()
+    is GraftComplete(output, progress=3L, work=3L) else {
+    fail("finite numeric fold did not complete")
+  }
+  let result = @graph.completed_storage(output).unwrap()
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.node_property(result, 0, 0).unwrap(),
+      20,
+    ),
+    Some("5.5"),
+  )
+  assert_eq(@storage.input_row_count(result), 3)
+  assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
+test "structural strategies consume exact common Graph views" {
+  let left_owner = numeric_graph_owner()
+  let right_owner = numeric_graph_owner()
+  let left = one_numeric_node_graph(left_owner, 1.0, 2.0)
+  let right = one_numeric_node_graph(right_owner, 1.0, 4.0)
+  for operation in ["union_graphs", "subtract_graphs"] {
+    let owner = numeric_structural_owner(
+      left_owner, right_owner, operation, "number_sum",
+    )
+    let views = graft_inputs(owner, left_owner, right_owner, left, right).map(input => {
+      @graph.producer_read_view(input).unwrap()
+    })
+    let execution = start_graft_views(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      views,
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    guard advance_graft(execution, 4).unwrap()
+      is GraftComplete(output, progress=2L, work=2L) else {
+      fail("structural view strategy did not complete")
+    }
+    let result = @graph.completed_storage(output).unwrap()
+    assert_eq(@storage.node_count(result), 1)
+    assert_eq(@storage.input_row_count(result), 2)
+    assert_eq(
+      @value.canonical_scalar_text(
+        @storage.node_property(result, 0, 0).unwrap(),
+        20,
+      ),
+      Some("6"),
+    )
+    assert_eq(cleanup_graft(execution), Ok(true))
+  }
+}
+
+///|
+test "structural folds canonicalize typed set strategies" {
+  let left_owner = set_graph_owner()
+  let right_owner = set_graph_owner()
+  let left = one_set_node_graph(
+    left_owner,
+    set_value("[\"b\",\"a\",null,\"a\"]"),
+  )
+  let right = one_set_node_graph(right_owner, set_value("[\"c\",null,\"b\"]"))
+  for
+    (operation, strategy, expected) in [
+      ("union_graphs", "set_union", ["null", "a", "b", "c"]),
+      ("subtract_graphs", "set_difference", ["a"]),
+    ] {
+    let owner = set_structural_owner(
+      left_owner, right_owner, operation, strategy,
+    )
+    let execution = start_graft(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      graft_inputs(owner, left_owner, right_owner, left, right),
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    guard advance_graft(execution, 4).unwrap()
+      is GraftComplete(output, progress=2L, work=2L) else {
+      fail("set structural fold did not complete")
+    }
+    let result = @graph.completed_storage(output).unwrap()
+    guard @storage.node_property(result, 0, 0).unwrap().value
+      is @value.Array(values) else {
+      fail("set result was not an array")
+    }
+    let actual = @value.elements(values).map(value => {
+      match value {
+        @value.Null => "null"
+        @value.Text(text) => text
+        _ => "unexpected"
+      }
+    })
+    assert_eq(actual, expected)
+    assert_eq(cleanup_graft(execution), Ok(true))
+  }
+
+  let bounded_owner = set_structural_owner(
+    left_owner, right_owner, "union_graphs", "set_union",
+  )
+  let exact = start_graft(
+    @bounded.control(),
+    sequence(bounded_owner),
+    0,
+    graft_inputs(bounded_owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_workspace_slots: 64, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_graft(exact, 4).unwrap() is GraftComplete(_))
+  assert_eq(cleanup_graft(exact), Ok(true))
+
+  let one_short = start_graft(
+    @bounded.control(),
+    sequence(bounded_owner),
+    0,
+    graft_inputs(bounded_owner, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_workspace_slots: 63, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(one_short, 4).unwrap()
+    is GraftFailed(GraftWorkspaceLimit, progress=0L, work=0L),
+  )
+  assert_eq(cleanup_graft(one_short), Ok(true))
+
+  let nullable_left_owner = set_graph_owner(nullable=true)
+  let nullable_right_owner = set_graph_owner(nullable=true)
+  let nullable_left = one_set_node_graph(
+    nullable_left_owner,
+    set_value("null", nullable=true),
+  )
+  let nullable_right = one_set_node_graph(
+    nullable_right_owner,
+    set_value("[\"a\"]", nullable=true),
+  )
+  let nullable_union = set_structural_owner(
+    nullable_left_owner, nullable_right_owner, "union_graphs", "set_union",
+  )
+  let rejected = start_graft(
+    @bounded.control(),
+    sequence(nullable_union),
+    0,
+    graft_inputs(
+      nullable_union, nullable_left_owner, nullable_right_owner, nullable_left, nullable_right,
+    ),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    advance_graft(rejected, 4).unwrap()
+    is GraftFailed(GraftPropertyValue, progress=0L, work=0L),
   )
   assert_eq(cleanup_graft(rejected), Ok(true))
 }

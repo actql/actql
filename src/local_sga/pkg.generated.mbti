@@ -180,6 +180,10 @@ pub(all) enum GraftIssue {
   InvalidGraftKernel
   InvalidGraftLimits
   GraftInputUnavailable
+  GraftPropertyConflict
+  GraftPropertyValue
+  GraftWorkspaceLimit
+  GraftValue(@value_admission.CompleteEqualityIssue)
   GraftOutput(@managed_graph_runtime.Issue)
   GraftExecutionIssue(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)
