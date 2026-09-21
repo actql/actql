@@ -16,6 +16,8 @@ struct CapturedDAG {
   aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]]
   analytic_envelopes : Array[Array[@connector.AnalyticEnvelope]]
   inputs : Array[Array[@execution.ProducerRead?]]
+  supplied : Array[Array[@execution.CapturedRows?]]
+  supplied_reads : Array[Array[@execution.SuppliedRelationRead?]]
   mut running : (Int, TaskExecution)?
   executions : Array[TaskExecution?]
   mut resident_environments : Array[ResidentEnvironment]
@@ -144,6 +146,7 @@ fn analytic_envelopes_satisfied(
 fn ordered_data_inputs_complete(
   input_counts : Array[Int],
   data : Array[DataEdge],
+  supplied_slots? : Array[LocalInputSlot] = [],
 ) -> Bool {
   if input_counts.is_empty() {
     return false
@@ -166,6 +169,16 @@ fn ordered_data_inputs_complete(
     }
     inputs[edge.input] = true
   }
+  for input in supplied_slots {
+    if input.consumer <= 0 || input.consumer >= input_counts.length() {
+      return false
+    }
+    let inputs = seen[input.consumer]
+    if input.input < 0 || input.input >= inputs.length() || inputs[input.input] {
+      return false
+    }
+    inputs[input.input] = true
+  }
   for task in 1..<input_counts.length() {
     if input_counts[task] < 0 {
       return false
@@ -187,6 +200,7 @@ pub fn open_captured_dag(
   graph : CheckedDAG,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
+  supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
@@ -219,8 +233,39 @@ pub fn open_captured_dag(
     count,
     _ => [],
   )
-  if !ordered_data_inputs_complete(input_counts, graph.data) {
+  if !ordered_data_inputs_complete(
+      input_counts,
+      graph.data,
+      supplied_slots=graph.supplied_slots,
+    ) {
     return Err(UnsupportedGraph)
+  }
+  if supplied.length() != graph.supplied_slots.length() {
+    return Err(UnsupportedGraph)
+  }
+  let supplied_inputs : Array[Array[@execution.CapturedRows?]] = Array::makei(
+    count,
+    task => Array::make(input_counts[task], None),
+  )
+  for rows in supplied {
+    let mut matched = false
+    for input in graph.supplied_slots {
+      guard graph.owners.get(input.consumer) is Some(owner) else {
+        return Err(UnsupportedGraph)
+      }
+      if physical_equal(@execution.captured_owner(rows), owner) &&
+        @execution.captured_origin(rows) is @execution.SuppliedInput(index) &&
+        index == input.input {
+        if matched || supplied_inputs[input.consumer][input.input] is Some(_) {
+          return Err(ForeignCapture)
+        }
+        supplied_inputs[input.consumer][input.input] = Some(rows)
+        matched = true
+      }
+    }
+    if !matched {
+      return Err(ForeignCapture)
+    }
   }
   for index in 1..<count {
     let pipeline = @lower.pipeline(
@@ -459,6 +504,10 @@ pub fn open_captured_dag(
         },
         None,
       )
+    }),
+    supplied: supplied_inputs,
+    supplied_reads: Array::makei(count, task => {
+      Array::make(input_counts[task], None)
     }),
     stopped: false,
     failure: None,
@@ -771,6 +820,53 @@ pub fn captured_task_input(
 }
 
 ///|
+/// Bind one Host-supplied Local input without manufacturing a producer task.
+/// The read remains live only while its receiving task is pending in this Run.
+pub fn captured_supplied_task_input(
+  run : CapturedDAG,
+  task : Int,
+  input_index? : Int = 0,
+) -> Result[@execution.SuppliedRelationRead, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) ||
+    input_index < 0 ||
+    input_index >= run.supplied[task].length() {
+    return Err(NotReady)
+  }
+  if run.supplied_reads[task][input_index] is Some(read) {
+    if !@execution.supplied_relation_read_available(read) {
+      let issue = RunIssue::Read(@execution.ProducerUnavailable)
+      fail_captured_task(run, task, issue)
+      return Err(issue)
+    }
+    return Ok(read)
+  }
+  guard run.supplied[task][input_index] is Some(rows) else {
+    return Err(NotReady)
+  }
+  let lifetime = run.lifetimes[task]
+  match
+    @execution.prepare_supplied_relation_read(
+      run.graph.owners[task],
+      input_index,
+      rows,
+      fn() { lifetime.live && !run.done[task] && !run.stopped },
+    ) {
+    Ok(read) => {
+      run.supplied_reads[task][input_index] = Some(read)
+      Ok(read)
+    }
+    Err(issue) => {
+      let failure = RunIssue::Read(issue)
+      fail_captured_task(run, task, failure)
+      Err(failure)
+    }
+  }
+}
+
+///|
 /// Prepare one typed managed input at the exact ready graph edge. The caller
 /// must supply the concrete Host-owned output that matches the graph's opaque
 /// completed occurrence. This creates a use-site binding only; dispatch still
@@ -897,7 +993,7 @@ pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
   guard next_captured_task(run) is Some(task) && !run.inputs[task].is_empty() else {
     return []
   }
-  let producers = Array::make(run.inputs[task].length(), -1)
+  let producers = Array::make(run.inputs[task].length(), -2)
   for edge in run.graph.data {
     if edge.consumer == task &&
       edge.input >= 0 &&
@@ -906,7 +1002,16 @@ pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
       producers[edge.input] = edge.producer
     }
   }
-  if producers.any(producer => producer < 0) {
+  for input in run.graph.supplied_slots {
+    if input.consumer == task &&
+      input.input >= 0 &&
+      input.input < producers.length() &&
+      producers[input.input] == -2 {
+      // -1 is the explicit Host-supplied Local input marker. It is not a task.
+      producers[input.input] = -1
+    }
+  }
+  if producers.any(producer => producer < -1) {
     []
   } else {
     producers
@@ -1260,7 +1365,19 @@ fn captured_mixed_managed_inputs_match(
         break
       }
     }
-    guard selected is Some(edge) && edge.producer >= 0 else { return false }
+    let supplied_matches = run.supplied_reads[task][port]
+      .map(read => {
+        @execution.managed_input_binding_matches_supplied_read(input, read)
+      })
+      .unwrap_or(false)
+    if selected is None {
+      if !supplied_matches {
+        return false
+      }
+      continue
+    }
+    let edge = selected.unwrap()
+    guard edge.producer >= 0 else { return false }
     let ordinary_matches = run.inputs[task][port]
       .map(read => {
         @execution.managed_input_binding_matches_ordinary_read(input, read)
@@ -1284,7 +1401,8 @@ fn captured_mixed_managed_inputs_match(
       .unwrap_or(false)
     let matches = (if ordinary_matches { 1 } else { 0 }) +
       (if relation_matches { 1 } else { 0 }) +
-      (if carrier_matches { 1 } else { 0 })
+      (if carrier_matches { 1 } else { 0 }) +
+      (if supplied_matches { 1 } else { 0 })
     if matches != 1 {
       return false
     }

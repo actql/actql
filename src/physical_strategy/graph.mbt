@@ -15,10 +15,19 @@ pub struct ControlEdge {
 }
 
 ///|
+/// One checked Local input position. It has no producer task and must be
+/// supplied by the Host under the exact bound preparation before execution.
+priv struct LocalInputSlot {
+  consumer : Int
+  input : Int
+}
+
+///|
 struct CheckedDAG {
   program : @checked.CheckedProgram
   owners : Array[@lower.BoundPrepared]
   data : Array[DataEdge]
+  supplied_slots : Array[LocalInputSlot]
   control : Array[ControlEdge]
   operations : Array[Array[TaskOperationRequirement]]
   numeric : Array[Array[TaskNumericObservation]]
@@ -155,6 +164,7 @@ pub fn prepare_checked_dag(
     stages.push(source)
   }
   let data = []
+  let supplied_slots = []
   let control = []
   for stage in 0..<count {
     let gate_count = @context.program_incoming_gates_count(gates, stage).unwrap()
@@ -253,6 +263,20 @@ pub fn prepare_checked_dag(
         consumer: stage,
         input,
       })
+    }
+    let input_count = @pipeline.input_count(pipeline)
+    if input_count > work {
+      return Err(WorkLimit)
+    }
+    work -= input_count
+    for input in 0..<input_count {
+      guard @checked.unit_input_completeness(program, stage, input)
+        is Some(requirement) else {
+        return Err(MissingProducer(stage, input))
+      }
+      if requirement.binding is @checked.Local(_) {
+        supplied_slots.push({ consumer: stage, input, })
+      }
     }
   }
   // Charge the snapshot copy before allocating; later caller array edits cannot
@@ -411,6 +435,7 @@ pub fn prepare_checked_dag(
     program,
     owners: owners.copy(),
     data,
+    supplied_slots,
     control,
     operations,
     numeric,

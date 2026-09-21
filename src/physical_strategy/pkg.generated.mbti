@@ -86,6 +86,8 @@ pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
+pub fn captured_supplied_task_input(CapturedDAG, Int, input_index? : Int) -> Result[@execution_relation.SuppliedRelationRead, RunIssue]
+
 pub fn captured_task_aggregate_output_at(CapturedDAG, Int, Int) -> @connector_sdk.AggregateOutputCeiling?
 
 pub fn captured_task_aggregate_output_count(CapturedDAG, Int) -> Int?
@@ -216,7 +218,7 @@ pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
 
 pub fn next_captured_task(CapturedDAG) -> Int?
 
-pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
