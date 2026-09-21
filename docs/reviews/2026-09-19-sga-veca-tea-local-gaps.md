@@ -17,7 +17,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; 27/39 entries record operation-specific cancellation evidence | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 30/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | The Effect-free path publishes and retrieves managed vector expressions, Graph projections, equality, reach, bounded homogeneous traversal, literal or predicate induced subgraphs, bounded Events transforms, normalized, grafted, unioned, property-free subtracted, scored, pooled, or nearest Vectors projections, and RRF output; 30/39 entries record publication evidence | Connect every remaining applicable Relation result and Carrier projection through the formal path |
 
 Manifest snapshot at this revision: contract/checker/lowering 39/39,
 kernel/managed/resources/three-target evidence 33/39, standard Host
@@ -458,8 +458,8 @@ Relation consumers, Named Result publication and retrieval, and final
 reclamation on JS, Wasm, and native. At `0c359fda`, that selected generation
 also remains live across a same-Carrier normalization consumer and the formal
 Bridge consumer; the derived Graph is reclaimed independently. Relation and
-predicate selectors and a nonliteral authored edge predicate remain open, so
-`subgraph` remains partial. At
+predicate selectors remained open at that revision, so `subgraph` remained
+partial. At
 `0a769228`, explicit literal true and false edge predicates are distinguished;
 the false branch preserves selected nodes while publishing an empty formal
 edge Relation on all three portable targets. At `bf716212`, the real Node
@@ -467,6 +467,16 @@ standard Host delivers timer cancellation after Graph construction enters the
 bounded subgraph kernel, observes stop independently from cleanup, and returns
 all ledger holdings and reservations to zero. The generated Workers fixture is
 current and all 24 Workers tests pass.
+
+At `53cc2e95`, node and edge predicates use the same typed Graph bindings and
+resumable expression evaluator as the standalone match operations. Predicate
+input construction, expression evaluation, output construction, and cleanup
+remain bounded phases. At `2cbc57bf`, both predicate forms run from the
+standard Host through the registered provider, formal Bridge, two downstream
+Relation consumers, Named Result publication and retrieval, and final
+reclamation on JS, Wasm, and native. The Relation selector form remains open,
+so `subgraph` is still partial; the existing environment cancellation fixture
+currently covers the literal selector path.
 
 Graph projection already defines evidence laws; execution must consume rather
 than recreate them.

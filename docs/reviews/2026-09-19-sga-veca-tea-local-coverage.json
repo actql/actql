@@ -939,6 +939,19 @@
             "adapters/duckdb-node/test/standard-host.test.mjs",
             "src/workers_conformance/fixture.generated.mbt"
           ]
+        },
+        {
+          "scope": "node_and_edge_predicate_induced_subgraph",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "2cbc57bf",
+          "evidence": [
+            "src/local_sga/predicate_bindings.mbt",
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
