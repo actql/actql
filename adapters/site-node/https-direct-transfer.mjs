@@ -1,4 +1,5 @@
 import {once} from 'node:events';
+import {randomUUID} from 'node:crypto';
 import {createServer, request as httpsRequest} from 'node:https';
 
 const fail = (code, cause, details = {}) => {
@@ -149,6 +150,8 @@ export async function startHttpsDirectTransferReceiver({
       typeof control.directCleanupConfirmed !== 'function' ||
       typeof control.directTransferProgress !== 'function' ||
       typeof control.directCancelDecision !== 'function' ||
+      typeof control.prepareDestinationReceipt !== 'function' ||
+      typeof control.destinationReceiptIdentity !== 'function' ||
       typeof control.replyJson !== 'function' ||
       journal === null || typeof journal !== 'object' ||
       typeof journal.accept !== 'function' ||
@@ -280,6 +283,8 @@ export async function startHttpsDirectTransferReceiver({
           operationInFlight: false,
           cleanupInFlight: undefined,
           cleanupError: undefined,
+          materialGeneration: `direct:${randomUUID()}`,
+          receipt: undefined,
         };
         entries.set(claimedRequestCid, entry);
         try {
@@ -393,6 +398,10 @@ export async function startHttpsDirectTransferReceiver({
         if (progress !== 3) {
           fail('RemoteTransferReconciliationRequired');
         }
+        entry.receipt ??= control.prepareDestinationReceipt(
+          entry.request,
+          entry.materialGeneration,
+        );
         replyCanonical(response, 200, stateReply(entry));
         return;
       }
@@ -445,18 +454,62 @@ export async function startHttpsDirectTransferReceiver({
     fail('DirectTransferReceiverAddressUnavailable');
   }
 
+  const claim = requestCid => {
+    const entry = entries.get(requestCid);
+    if (entry === undefined ||
+        control.recordProjection(entry.record)[1] !== 2 ||
+        entry.receipt === undefined) {
+      fail('RemoteTransferUnavailable');
+    }
+    return Object.freeze({
+      request: entry.request,
+      bodies: Object.freeze([...entry.bodies]),
+      materialGeneration: entry.materialGeneration,
+      destinationReceipt: entry.receipt,
+      destinationReceiptCid:
+        control.destinationReceiptIdentity(entry.receipt),
+    });
+  };
+
   return Object.freeze({
     origin: `https://${host}:${address.port}`,
     port: address.port,
-    claim(requestCid) {
+    claim,
+    async consume(requestCid, authorizeConsumer, accept, signal) {
+      if (typeof authorizeConsumer !== 'function' ||
+          typeof accept !== 'function') {
+        fail('InvalidRemoteTransferConsumer');
+      }
       const entry = entries.get(requestCid);
-      if (entry === undefined || control.recordProjection(entry.record)[1] !== 2) {
+      if (entry === undefined) fail('RemoteTransferUnavailable');
+      const peer = Object.freeze({sourceSite: entry.sourceSite});
+      await authorizeUse(
+        entry, authorize, control, clock, 'consume', peer,
+      );
+      const claimed = claim(requestCid);
+      if (await authorizeConsumer(claimed) !== true) {
+        fail('RemoteTransferUnauthorized');
+      }
+      for (let index = 0; index < claimed.bodies.length; index++) {
+        signal?.throwIfAborted();
+        await claimed.bodies[index].consume(async frame => {
+          signal?.throwIfAborted();
+          await accept(index, frame);
+        }, signal);
+      }
+      signal?.throwIfAborted();
+      await authorizeUse(
+        entry, authorize, control, clock, 'consume', peer,
+      );
+      const current = claim(requestCid);
+      if (current.materialGeneration !== claimed.materialGeneration ||
+          current.destinationReceiptCid !== claimed.destinationReceiptCid) {
         fail('RemoteTransferUnavailable');
       }
-      return Object.freeze({
-        request: entry.request,
-        bodies: Object.freeze([...entry.bodies]),
-      });
+      if (await authorizeConsumer(current) !== true) {
+        fail('RemoteTransferUnauthorized');
+      }
+      return claimed;
     },
     async release(requestCid) {
       const entry = entries.get(requestCid);

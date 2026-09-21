@@ -269,8 +269,32 @@ test('mTLS direct Transfer preserves ordered chunks without a bulk relay',
     assert.equal(result.requestCid, control.identity(request));
     assert.deepEqual(result.state, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
     const claimed = setup.receiver.claim(control.identity(request));
+    assert.equal(claimed.materialGeneration,
+      control.destinationReceiptProjection(claimed.destinationReceipt)[4]);
+    assert.equal(claimed.destinationReceiptCid,
+      control.destinationReceiptIdentity(claimed.destinationReceipt));
+    assert.equal(
+      control.destinationReceiptProjection(claimed.destinationReceipt)[1],
+      control.identity(request),
+    );
     assert.equal(await contents(claimed.bodies[0]), 'alpha');
     assert.equal(await contents(claimed.bodies[1]), '日本語');
+    await assert.rejects(setup.receiver.consume(
+      control.identity(request),
+      () => false,
+      async () => assert.fail('unauthorized consumer received bytes'),
+    ), {code: 'RemoteTransferUnauthorized'});
+    const streamed = [[], []];
+    const consumed = await setup.receiver.consume(
+      control.identity(request),
+      value => value.destinationReceiptCid ===
+        claimed.destinationReceiptCid,
+      async (index, frame) => streamed[index].push(Buffer.from(frame)),
+    );
+    assert.equal(consumed.destinationReceiptCid,
+      claimed.destinationReceiptCid);
+    assert.deepEqual(streamed.map(chunks => Buffer.concat(chunks).toString()),
+      ['alpha', '日本語']);
     assert.equal(setup.destinationStore.status().reservedBytes, 14);
     assert.equal(setup.sourceStore.status().activeReaders, 0);
     assert.equal(await setup.receiver.release(control.identity(request)), true);

@@ -51,7 +51,7 @@ fn remote_transfer_input_request(
 }
 
 ///|
-test "registered direct destination uses common standard input verifier" {
+test "incremental direct destination uses common standard input verifier" {
   let chunks = [@utf8.encode("{\"id\":3}"), @utf8.encode("{\"id\":2}")]
   let request = remote_transfer_input_request_for(
     chunks,
@@ -72,23 +72,7 @@ test "registered direct destination uses common standard input verifier" {
   let physical = @native_remote_standard.register_native_remote_standard_physical_source(
     input,
     () => available[0],
-    (max_bytes, emit) => {
-      for index, chunk in chunks {
-        let mut offset = 0
-        while offset < chunk.length() {
-          let count = Int::min(max_bytes, chunk.length() - offset)
-          let frame = Bytes::from_array(
-            Array::makei(count, unit => chunk[offset + unit]),
-          )
-          match emit(index, frame) {
-            Ok(_) => ()
-            Err(issue) => return Err(issue)
-          }
-          offset += count
-        }
-      }
-      Ok(())
-    },
+    (_max_bytes, _emit) => Err("incremental-provider-only"),
     () => {
       releases[0] += 1
       available[0] = false
@@ -101,7 +85,7 @@ test "registered direct destination uses common standard input verifier" {
     remote_transfer_input_cid("3"),
   ).unwrap()
   let program = query_checked_program_fixture(dag=true)
-  let source = @native_remote_standard.acquire_native_remote_standard_physical_source(
+  let admission = @native_remote_standard.prepare_native_remote_standard_physical_admission(
     input,
     physical,
     codec,
@@ -127,6 +111,22 @@ test "registered direct destination uses common standard input verifier" {
       },
     },
   ).unwrap()
+  for index, chunk in chunks {
+    let mut offset = 0
+    while offset < chunk.length() {
+      let count = Int::min(3, chunk.length() - offset)
+      let frame = Bytes::from_array(
+        Array::makei(count, unit => chunk[offset + unit]),
+      )
+      @native_remote_standard.feed_native_remote_standard_physical_admission(
+        admission, index, frame,
+      ).unwrap()
+      offset += count
+    }
+  }
+  let source = @native_remote_standard.finish_native_remote_standard_physical_admission(
+    admission,
+  ).unwrap()
   assert_true(
     @native_remote_standard.finish_native_remote_standard_transfer_source(
       source,
@@ -134,6 +134,72 @@ test "registered direct destination uses common standard input verifier" {
   )
   assert_eq(releases[0], 1)
   assert_false(available[0])
+
+  let failed_available = [true]
+  let failed_releases = [0]
+  let failed_physical = @native_remote_standard.register_native_remote_standard_physical_source(
+    input,
+    () => failed_available[0],
+    (_max_bytes, _emit) => Err("incremental-provider-only"),
+    () => {
+      failed_releases[0] += 1
+      failed_available[0] = false
+      true
+    },
+  )
+  let failed = @native_remote_standard.prepare_native_remote_standard_physical_admission(
+    input,
+    failed_physical,
+    codec,
+    query_checked_sequence(program),
+    @program_check.source_identity(program),
+    {
+      max_rows: 10,
+      max_wire_bytes: 1000,
+      max_read_bytes: 3,
+      max_entries: 100,
+      max_name_bytes: 10000,
+      values: {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 10,
+        max_work: 200000,
+      },
+      wire: {
+        max_bytes: 100,
+        max_nodes: 20,
+        max_depth: 4,
+        max_text_bytes: 100,
+      },
+    },
+  ).unwrap()
+  @native_remote_standard.feed_native_remote_standard_physical_admission(
+    failed,
+    0,
+    Bytes::from_array([chunks[0][0]]),
+  ).unwrap()
+  assert_true(
+    @native_remote_standard.feed_native_remote_standard_physical_admission(
+      failed,
+      1,
+      Bytes::from_array([chunks[1][0]]),
+    )
+    is Err(_),
+  )
+  let failure = @native_remote_standard.cancel_native_remote_standard_physical_admission(
+    failed,
+  )
+  assert_eq(
+    @native_remote_standard.native_remote_standard_input_failure_code(failure),
+    "transfer-input-material",
+  )
+  assert_true(
+    @native_remote_standard.retry_native_remote_standard_input_failure_cleanup(
+      failure,
+    ),
+  )
+  assert_eq(failed_releases[0], 1)
+  assert_false(failed_available[0])
 }
 
 ///|
@@ -474,17 +540,39 @@ test "standard Local reads the exact committed Transfer destination" {
     )
     .unwrap()
   assert_eq(queued.status, 201)
-  guard @native_remote_agent.run_native_outbound_site_occurrence(
-      runtime,
-      remote_journal,
-      client,
-      gateway_origin +
-      "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
-      gateway_origin +
-      "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
-    )
+  let occurrence = @native_remote_agent.run_native_outbound_site_occurrence(
+    runtime,
+    remote_journal,
+    client,
+    gateway_origin +
+    "/v1/sites/native-standard-transfer-site/generations/1/outbound/poll",
+    gateway_origin +
+    "/v1/sites/native-standard-transfer-site/generations/1/outbound/observations",
+  )
+  guard occurrence
     is Ok(@native_remote_agent.DispatchObserved(dispatch_identity, _)) else {
-    fail("standard Transfer dispatch was not observed over HTTPS")
+    match occurrence {
+      Err(@native_remote_agent.Runtime(@native_remote_runtime.Physical(code))) =>
+        fail("standard Transfer runtime failed: " + code)
+      Err(
+        @native_remote_agent.RuntimeObserved(
+          @native_remote_runtime.Physical(code),
+          _
+        )
+      ) => fail("standard Transfer runtime failed after acceptance: " + code)
+      Err(
+        @native_remote_agent.Runtime(
+          @native_remote_runtime.CleanupPending(code)
+        )
+      ) => fail("standard Transfer cleanup remained pending: " + code)
+      Err(
+        @native_remote_agent.RuntimeObserved(
+          @native_remote_runtime.CleanupPending(code),
+          _
+        )
+      ) => fail("standard Transfer cleanup remained pending: " + code)
+      _ => fail("standard Transfer dispatch was not observed over HTTPS")
+    }
   }
   assert_eq(dispatch_identity, @remote.dispatch_request_identity(dispatch))
   let observed = remote_journal.observation(dispatch).unwrap()

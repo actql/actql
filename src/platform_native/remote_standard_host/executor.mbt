@@ -46,6 +46,23 @@ struct NativeRemoteStandardInputFailure {
 }
 
 ///|
+/// Stable diagnostic category for an input resolver failure. It is not a
+/// substitute for retrying the attached physical cleanup owner.
+pub fn native_remote_standard_input_failure_code(
+  failure : NativeRemoteStandardInputFailure,
+) -> String {
+  failure.code
+}
+
+///|
+/// Retry the exact physical owner retained by an input resolver failure.
+pub fn retry_native_remote_standard_input_failure_cleanup(
+  failure : NativeRemoteStandardInputFailure,
+) -> Bool {
+  (failure.cleanup)()
+}
+
+///|
 pub fn prepare_native_remote_standard_input_failure(
   code : String,
   cleanup : () -> Bool,
