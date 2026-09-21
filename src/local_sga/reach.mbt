@@ -27,6 +27,7 @@ priv struct ReachState {
   schema : @schema.Schema
   start : @value.CheckedValue
   direction : @graph_type.Direction
+  minimum_depth : Int
   max_depth : Int
   value_limits : @value.Limits
   mut output : @execution.AdmittedOutput?
@@ -196,10 +197,13 @@ fn visit_reach_neighbor(
     return Err(ReachInputUnavailable)
   }
   if depth < 0 {
-    state.depth[node] = parent_depth + 1
+    let next_depth = parent_depth + 1
+    state.depth[node] = next_depth
     state.queue.push(node)
-    state.selected.push(node)
-    state.scratch.push(None)
+    if next_depth >= state.minimum_depth {
+      state.selected.push(node)
+      state.scratch.push(None)
+    }
   }
   Ok(())
 }
@@ -331,8 +335,10 @@ fn reach_step(
             Ok(0) => {
               state.depth[state.index] = 0
               state.queue.push(state.index)
-              state.selected.push(state.index)
-              state.scratch.push(None)
+              if state.minimum_depth == 0 {
+                state.selected.push(state.index)
+                state.scratch.push(None)
+              }
               state.index = 0
               state.phase = PopNode
             }
@@ -528,12 +534,18 @@ fn cleanup_reach_state(state : ReachState) -> Bool {
 }
 
 ///|
-pub fn start_reach(
+fn start_reach_state(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
   input : @graph.ProducerRead,
+  source : @storage.Storage,
+  schema : @schema.Schema,
+  start : @value.CheckedValue,
+  direction : @graph_type.Direction,
+  minimum_depth : Int,
+  max_depth : Int,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_workspace_slots : Int,
@@ -546,17 +558,17 @@ pub fn start_reach(
       @execution.completion_preparation_owner(preparation),
       owner,
     ) &&
-    @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphReachStep(prepared)) &&
-    @lower.graph_reach_max_depth(prepared) is Some(max_depth) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) else {
+    @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidReachKernel)
   }
   let nodes = @storage.node_count(source)
   let edges = @storage.edge_count(source)
-  let schema = @lower.graph_reach_output_schema(prepared)
-  guard max_rows >= 0 && nodes <= max_rows else { return Err(ReachOutputLimit) }
+  guard minimum_depth >= 0 &&
+    max_depth >= minimum_depth &&
+    max_rows >= 0 &&
+    nodes <= max_rows else {
+    return Err(ReachOutputLimit)
+  }
   guard reach_workspace(nodes, edges, @schema.field_count(schema))
     is Some(workspace) &&
     workspace <= max_workspace_slots else {
@@ -594,8 +606,9 @@ pub fn start_reach(
     input,
     source,
     schema,
-    start: @lower.graph_reach_start(prepared),
-    direction: @lower.graph_reach_direction(prepared),
+    start,
+    direction,
+    minimum_depth,
     max_depth,
     value_limits: {
       max_nodes: limits.max_nodes,
@@ -652,6 +665,47 @@ pub fn start_reach(
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
+}
+
+///|
+pub fn start_reach(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[ReachExecution, ReachIssue] {
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphReachStep(prepared)) &&
+    @lower.graph_reach_max_depth(prepared) is Some(max_depth) &&
+    @graph.producer_read_storage(input) is Some(source) else {
+    return Err(InvalidReachKernel)
+  }
+  start_reach_state(
+    control,
+    preparation,
+    sequence,
+    step,
+    input,
+    source,
+    @lower.graph_reach_output_schema(prepared),
+    @lower.graph_reach_start(prepared),
+    @lower.graph_reach_direction(prepared),
+    0,
+    max_depth,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  )
 }
 
 ///|

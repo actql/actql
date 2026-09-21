@@ -798,6 +798,60 @@ fn carrier_graph_reach_owner_with_depth(
 }
 
 ///|
+fn carrier_graph_traverse_owner(
+  source : @lower.BoundPrepared,
+  minimum : Int,
+  maximum : Int,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
+      "\"from\":\"graph\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+      "\"direction\":\"out\",\"min_hops\":" +
+      minimum.to_string() +
+      ",\"max_hops\":" +
+      maximum.to_string() +
+      ",\"emit\":\"nodes\",\"max_output_rows\":4}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_storage_limits() -> @graph_storage.Limits {
   {
     max_input_rows: 20,
@@ -971,6 +1025,34 @@ fn finish_reach(
     }
   }
   Err(@local_sga.ReachExecutionIssue(@bounded.Terminal))
+}
+
+///|
+fn finish_traverse(
+  execution : @local_sga.TraverseExecution,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] {
+  while true {
+    let poll = match @local_sga.advance_traverse(execution, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      @local_sga.TraverseContinue(..) => ()
+      @local_sga.TraverseComplete(output, ..) => return Ok(output)
+      @local_sga.TraverseFailed(issue, ..) => return Err(issue)
+      @local_sga.TraverseStopped(_, ..) =>
+        return Err(
+          @local_sga.TraverseReachIssue(
+            @local_sga.ReachExecutionIssue(@bounded.Terminal),
+          ),
+        )
+    }
+  }
+  Err(
+    @local_sga.TraverseReachIssue(
+      @local_sga.ReachExecutionIssue(@bounded.Terminal),
+    ),
+  )
 }
 
 ///|
@@ -1942,6 +2024,86 @@ test "reach preserves direction depth bounds and cancellation" {
   assert_eq(@local_sga.cleanup_reach(cancelled), Ok(true))
   assert_false(@local_sga.reach_cleanup_pending(cancelled))
   assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "homogeneous traversal enforces minimum depth and cancellation" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(source_owner, 1, 2)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(
+    @execution.completed_cell(output, 0, 0) is Some(Number(1.0)) &&
+    @execution.completed_cell(output, 0, 1) is Some(Number(2.0)) &&
+    @execution.completed_cell(output, 0, 2) is Some(Number(1.0)),
+  )
+  assert_true(@execution.completed_cell(output, 1, 1) is Some(Number(3.0)))
+  assert_true(
+    @execution.completed_cell(output, 1, 0) is Some(Number(2.0)) &&
+    @execution.completed_cell(output, 1, 2) is Some(Number(1.0)),
+  )
+  assert_true(@execution.completed_output_matches_inputs(output, [external]))
+
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_traverse(cancelled, 1).unwrap()
+    is @local_sga.TraverseStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.traverse_stopped(cancelled))
+  assert_true(@local_sga.traverse_cleanup_pending(cancelled))
+  assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
+  assert_false(@local_sga.traverse_cleanup_pending(cancelled))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
 }
 
 ///|

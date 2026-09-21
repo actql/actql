@@ -31,6 +31,8 @@ pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, Norma
 
 pub fn advance_reach(ReachExecution, Int) -> Result[ReachPoll, ReachIssue]
 
+pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
+
 pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
 
 pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
@@ -48,6 +50,8 @@ pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
 pub fn cleanup_reach(ReachExecution) -> Result[Bool, ReachIssue]
+
+pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
 
 pub fn components_cleanup_pending(ComponentsExecution) -> Bool
 
@@ -130,6 +134,12 @@ pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.Complet
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
 pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ReachExecution, ReachIssue]
+
+pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
+
+pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
+
+pub fn traverse_stopped(TraverseExecution) -> Bool
 
 // Errors
 
@@ -297,6 +307,20 @@ pub enum ReachPoll {
   ReachComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   ReachFailed(ReachIssue, progress~ : Int64, work~ : Int64)
   ReachStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type TraverseExecution
+
+pub(all) enum TraverseIssue {
+  UnsupportedTraverseKernel
+  TraverseReachIssue(ReachIssue)
+} derive(Eq, @debug.Debug)
+
+pub enum TraversePoll {
+  TraverseContinue(progress~ : Int64, work~ : Int64)
+  TraverseComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  TraverseFailed(TraverseIssue, progress~ : Int64, work~ : Int64)
+  TraverseStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 // Type aliases
