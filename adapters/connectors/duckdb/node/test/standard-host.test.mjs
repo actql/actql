@@ -2572,6 +2572,46 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'subgraph-node-predicate',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {where: "node_name = 'node-40'"}},
+      as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'subgraph-edge-predicate',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {ids: [1, 2]}, edges: 'weight > 10'},
+      as: 'selected',
+    }, {
+      from: 'selected', edge_rows: true, as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+  }, {
+    name: 'subgraph-relation-selector',
+    relationSelector: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {from: 'selected', id: 'id'}},
+      as: 'selected_graph',
+    }, {
+      from: 'selected_graph', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'graft',
     rows: 40,
     advanceQuantum: 1,
@@ -3287,6 +3327,12 @@ async function exerciseStrategyGraph(
             results: {published: {from: {stage: 'vectors', result: 'r'}}},
           }
           : structuredClone(graphProgramBase);
+    if (graphFamily && cancellationCase.relationSelector === true) {
+      graphCancellationProgram.stages[2].inputs.selected = {
+        result: {stage: 'values', result: 'r'},
+      };
+    }
+    const graphStageIndex = 2;
     if (graphFamily && !unsizedGraph) {
       graphCancellationProgram.stages[1].steps[0].values.rows =
         Array.from({length: cancellationCase.rows}, (_, index) => ({
@@ -3299,13 +3345,13 @@ async function exerciseStrategyGraph(
     }
     if (graphFamily) {
       if (cancellationCase.concise === true) {
-        graphCancellationProgram.stages[2].steps[0] = {
+        graphCancellationProgram.stages[graphStageIndex].steps[0] = {
           from: 'rows',
           graph: {source: 'src', target: 'dst'},
           as: 'g',
         };
       }
-      graphCancellationProgram.stages[2].steps.splice(
+      graphCancellationProgram.stages[graphStageIndex].steps.splice(
         1,
         1,
         ...(cancellationCase.steps ?? [cancellationCase.step]),
@@ -3313,19 +3359,22 @@ async function exerciseStrategyGraph(
     }
     const graphFields = cancellationCase.fields;
     if (graphFamily) {
-      graphCancellationProgram.stages[2].results.r.fields = graphFields;
-      graphCancellationProgram.stages[3].steps[0].select = graphFields;
-      graphCancellationProgram.stages[3].results.r.fields = graphFields;
+      graphCancellationProgram.stages[graphStageIndex].results.r.fields =
+        graphFields;
+      graphCancellationProgram.stages[graphStageIndex + 1].steps[0].select =
+        graphFields;
+      graphCancellationProgram.stages[graphStageIndex + 1].results.r.fields =
+        graphFields;
       const graphSecondFields = unsizedGraph
         ? graphFields
         : graphFields.slice(1);
-      graphCancellationProgram.stages[4].steps[0].select =
+      graphCancellationProgram.stages[graphStageIndex + 2].steps[0].select =
         graphSecondFields;
-      graphCancellationProgram.stages[4].results.r.fields =
+      graphCancellationProgram.stages[graphStageIndex + 2].results.r.fields =
         graphSecondFields;
-      graphCancellationProgram.stages[5].steps[0].select =
+      graphCancellationProgram.stages[graphStageIndex + 3].steps[0].select =
         [graphFields[0]];
-      graphCancellationProgram.stages[5].results.r.fields =
+      graphCancellationProgram.stages[graphStageIndex + 3].results.r.fields =
         [graphFields[0]];
     }
     if (cancellationCase.resultAliases === 2) {

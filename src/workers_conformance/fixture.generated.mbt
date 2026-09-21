@@ -742,6 +742,18 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
     "\"edges\":\"false\"},\"as\":\"selected\"},{" +
     "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_node_predicate" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
+    "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_relation_selector" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
+    "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
+    "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "subgraph_edge_predicate" {
+    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
+    "\"edges\":\"weight > 10\"},\"as\":\"selected\"},{" +
+    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -828,7 +840,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
-    variant == "subgraph_edges_false" {
+    variant == "subgraph_edges_false" ||
+    variant == "subgraph_edge_predicate" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
@@ -850,7 +863,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
-    variant == "subgraph_edges_false" {
+    variant == "subgraph_edges_false" ||
+    variant == "subgraph_edge_predicate" {
     "\"weight\",\"src\""
   } else if variant == "graph_bounds" {
     "\"kind\",\"node_id\""
@@ -909,6 +923,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
+  let selector_stage = if variant == "subgraph_relation_selector" {
+    "{\"id\":\"selector_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
+    "\"nullable\":false}},\"rows\":[{\"key\":2},{\"key\":2}]}" +
+    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+    "\"fields\":[\"key\"]}}},"
+  } else {
+    ""
+  }
   let graph_inputs = if subtract {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
@@ -920,6 +943,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_suffix("unequal") {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if variant == "subgraph_relation_selector" {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"selected\":{\"result\":{\"stage\":\"selector_values\"," +
     "\"result\":\"r\"}}"
   } else {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
@@ -948,6 +975,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }) +
   "]}}}," +
   other_stage +
+  selector_stage +
   "{\"id\":\"graph\",\"inputs\":{" +
   graph_inputs +
   "},\"steps\":[{" +
