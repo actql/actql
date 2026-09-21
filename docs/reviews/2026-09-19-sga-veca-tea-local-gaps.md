@@ -641,13 +641,16 @@ the rank window, folds contributions in occurrence order, and emits fresh
 contiguous ranks. The standard Host fixture covers two distinct inputs and one
 material repeated at two authored positions. Both reach two downstream
 Relation computations, independent release, and final ledger reclamation on
-JS, Wasm, and native. Maximum and weighted-sum now authenticate owner-bound
-score declarations through the registered provider and cover stable candidate
-ties on all three targets. They still need product standard Host,
-two-consumer, publication, and cancellation evidence. The registered provider
-now rejects duplicate candidates and noncontiguous RRF ranks while preserving
-both completed inputs through cleanup. Ranking merge remains partial because
-the scored policies have not reached the product standard Host lifecycle.
+JS, Wasm, and native. Maximum and weighted-sum authenticate owner-bound score
+declarations through the registered provider and cover stable candidate ties
+on all three targets. Both policies reach the product standard Host, two
+overlapping downstream computations, Named Result publication, timer
+cancellation, stop confirmation, and final reclamation. The registered
+provider rejects duplicate candidates and noncontiguous RRF ranks while
+preserving both completed inputs through cleanup. Nullable query-group keys
+use canonical NULLS FIRST grouping independently from nullable business tie
+keys, which use the authored NULLS FIRST or NULLS LAST order. These fixtures
+pass on JS, Wasm, and native, so ranking merge is complete.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
