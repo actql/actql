@@ -414,6 +414,13 @@ types and predicates, patterned hops, and path output remain open, so
 `traverse` remains partial. The remaining SGA operations still lack portable
 Local kernels.
 
+At `d08a946c`, the standard Host fixture also exercises inbound and
+bidirectional traversal. Both directions preserve the same managed lifetime,
+two-consumer, publication, and three-target guarantees as the original
+outbound fixture. Direction is no longer an untested formal branch. Selector
+relations and predicates, repeated starts, typed or predicate-constrained
+hops, hop patterns, and path output remain open.
+
 At `4a72ee83`, the real Node standard Host delivers cancellation while the
 bounded homogeneous traversal is active. The fixture supplies the authored
 traversal proof instead of reusing reach evidence, observes kernel stop, and
