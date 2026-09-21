@@ -28,6 +28,17 @@ pub fn graph_subgraph_literal_id_at(
 }
 
 ///|
+pub fn graph_subgraph_relation_selector_field(
+  value : PreparedGraphSubgraph,
+) -> @schema.FieldName? {
+  let selector = @graph.subgraph_nodes(value.checked)
+  match @graph.selector_form(selector) {
+    @graph.RelationIds(field~, ..) => Some(field)
+    _ => None
+  }
+}
+
+///|
 pub fn graph_subgraph_has_edge_predicate(value : PreparedGraphSubgraph) -> Bool {
   value.edge_predicate is Some(_)
 }

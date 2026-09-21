@@ -192,6 +192,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.subgraph" &&
         (
           @lower.graph_subgraph_literal_id_count(subgraph) is Some(_) ||
+          @lower.graph_subgraph_relation_selector_field(subgraph) is Some(_) ||
           @lower.graph_subgraph_node_predicate(subgraph) is Some(_)
         ) &&
         (
@@ -619,6 +620,7 @@ fn advance_execution(
                 value.sequence,
                 value.kernel_step,
                 input,
+                input_at(value, value.kernel_step, 1),
                 value.limits,
                 value.storage_bytes,
                 fn() { true },

@@ -1,8 +1,10 @@
 ///|
 priv enum SubgraphPhase {
   InitializeSelection
+  InitializeSelector
   BeginNode
   CompareNodeIdentity
+  VerifySelector
   PrepareNodePredicate
   EvaluateNodePredicate
   BeginEdge
@@ -14,11 +16,14 @@ priv enum SubgraphPhase {
 ///|
 priv struct SubgraphState {
   input : @graph.ProducerRead
+  selector_input : @execution.ProducerRead?
   source : @storage.Storage
   graph : @carrier.Graph
   prepared : @lower.PreparedGraphSubgraph
   mut output : @graph.OutputBuilder?
   selected : Array[Bool]
+  selector_values : Array[@value.CheckedValue]
+  selector_found : Array[Bool]
   node_fields : Int
   edge_fields : Int
   node_predicate : @lower.Expression?
@@ -32,6 +37,9 @@ priv struct SubgraphState {
   mut phase : SubgraphPhase
   mut node : Int
   mut selector : Int
+  mut selector_row : Int
+  selector_column : Int
+  mut node_selected : Bool
   mut edge : Int
   mut predicate_field : Int
 }
@@ -56,6 +64,7 @@ pub(all) enum SubgraphIssue {
   InvalidSubgraphKernel
   InvalidSubgraphLimits
   SubgraphInputUnavailable
+  MissingSubgraphNodeIdentity(Int)
   SubgraphPredicate(@execution.EvalIssueKind)
   SubgraphKeyOrder(@value.KeyOrderIssue)
   SubgraphOutput(@graph.Issue)
@@ -132,7 +141,11 @@ fn subgraph_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    let selector_unavailable = match state.selector_input {
+      Some(input) => !@execution.producer_read_available(input)
+      None => false
+    }
+    if !@graph.producer_read_available(state.input) || selector_unavailable {
       return @bounded.Failed(SubgraphInputUnavailable, progress, used)
     }
     match state.phase {
@@ -141,9 +154,56 @@ fn subgraph_step(
           state.selected.push(false)
           used += 1
         } else {
-          state.phase = BeginNode
+          state.phase = InitializeSelector
           state.node = 0
         }
+      InitializeSelector => {
+        let count = match state.selector_input {
+          Some(input) => @execution.producer_read_row_count(input)
+          None =>
+            @lower.graph_subgraph_literal_id_count(state.prepared).unwrap_or(0)
+        }
+        if state.selector_row < count {
+          used += 1
+          let value = match state.selector_input {
+            Some(input) =>
+              match
+                @execution.producer_read_checked_cell(
+                  input,
+                  state.selector_row,
+                  state.selector_column,
+                  state.value_limits,
+                ) {
+                Some(value) => value
+                None =>
+                  return @bounded.Failed(
+                    SubgraphInputUnavailable,
+                    progress,
+                    used,
+                  )
+              }
+            None =>
+              match
+                @lower.graph_subgraph_literal_id_at(
+                  state.prepared,
+                  state.selector_row,
+                ) {
+                Some(value) => value
+                None =>
+                  return @bounded.Failed(
+                    SubgraphInputUnavailable,
+                    progress,
+                    used,
+                  )
+              }
+          }
+          state.selector_values.push(value)
+          state.selector_found.push(false)
+          state.selector_row += 1
+        } else {
+          state.phase = BeginNode
+        }
+      }
       BeginNode =>
         if state.node < @storage.node_count(state.source) {
           match state.node_predicate {
@@ -154,44 +214,58 @@ fn subgraph_step(
             }
             None => {
               state.selector = 0
+              state.node_selected = false
               state.phase = CompareNodeIdentity
             }
           }
         } else {
+          state.selector = 0
+          state.phase = VerifySelector
+        }
+      CompareNodeIdentity => {
+        let selector_count = state.selector_values.length()
+        if state.selector >= selector_count {
+          match select_subgraph_node(state, state.node_selected) {
+            Ok(_) => if state.node_selected { progress += 1 }
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
+        } else {
+          guard @storage.node_identity(state.source, state.node)
+            is Some(identity) else {
+            return @bounded.Failed(SubgraphInputUnavailable, progress, used)
+          }
+          used += 1
+          match
+            @value.compare_key_values(
+              identity,
+              state.selector_values[state.selector],
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(SubgraphKeyOrder(issue), progress, used)
+            Ok(0) => {
+              state.selector_found[state.selector] = true
+              state.node_selected = true
+            }
+            Ok(_) => ()
+          }
+          state.selector += 1
+        }
+      }
+      VerifySelector =>
+        if state.selector < state.selector_found.length() {
+          used += 1
+          if !state.selector_found[state.selector] {
+            return @bounded.Failed(
+              MissingSubgraphNodeIdentity(state.selector),
+              progress,
+              used,
+            )
+          }
+          state.selector += 1
+        } else {
           state.edge = 0
           state.phase = BeginEdge
         }
-      CompareNodeIdentity => {
-        guard @lower.graph_subgraph_literal_id_count(state.prepared)
-          is Some(selector_count) &&
-          @storage.node_identity(state.source, state.node) is Some(identity) else {
-          return @bounded.Failed(SubgraphInputUnavailable, progress, used)
-        }
-        if state.selector >= selector_count {
-          state.node += 1
-          state.phase = BeginNode
-          continue
-        }
-        guard @lower.graph_subgraph_literal_id_at(
-            state.prepared,
-            state.selector,
-          )
-          is Some(selected_identity) else {
-          return @bounded.Failed(SubgraphInputUnavailable, progress, used)
-        }
-        state.selector += 1
-        used += 1
-        match @value.compare_key_values(identity, selected_identity) {
-          Err(issue) =>
-            return @bounded.Failed(SubgraphKeyOrder(issue), progress, used)
-          Ok(0) =>
-            match select_subgraph_node(state, true) {
-              Ok(_) => progress += 1
-              Err(issue) => return @bounded.Failed(issue, progress, used)
-            }
-          Ok(_) => ()
-        }
-      }
       PrepareNodePredicate =>
         if state.predicate_field <
           graph_node_predicate_binding_count(state.graph) {
@@ -386,6 +460,8 @@ fn cleanup_subgraph_state(state : SubgraphState) -> Bool {
     state.output = None
   }
   state.selected.clear()
+  state.selector_values.clear()
+  state.selector_found.clear()
   state.predicate_input.clear()
   true
 }
@@ -396,6 +472,7 @@ pub fn start_subgraph(
   sequence : @lower.PreparedSequence,
   step : Int,
   input : @graph.ProducerRead,
+  selector_input : @execution.ProducerRead?,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
@@ -405,6 +482,7 @@ pub fn start_subgraph(
     is Some(@lower.GraphSubgraphStep(prepared)) &&
     (
       @lower.graph_subgraph_literal_id_count(prepared) is Some(_) ||
+      @lower.graph_subgraph_relation_selector_field(prepared) is Some(_) ||
       @lower.graph_subgraph_node_predicate(prepared) is Some(_)
     ) &&
     (
@@ -414,6 +492,27 @@ pub fn start_subgraph(
     @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidSubgraphKernel)
   }
+  let relation_field = @lower.graph_subgraph_relation_selector_field(prepared)
+  let mut selector_column = -1
+  match (relation_field, selector_input) {
+    (Some(field), Some(selector)) => {
+      let schema = @execution.producer_read_schema(selector)
+      for column in 0..<@schema.field_count(schema) {
+        if @schema.field_at(schema, column).map(value => value.name) ==
+          Some(field) {
+          selector_column = column
+        }
+      }
+      if !@execution.producer_read_matches_operation_input(
+          selector, owner, step, 1,
+        ) ||
+        selector_column < 0 {
+        return Err(InvalidSubgraphKernel)
+      }
+    }
+    (None, None) => ()
+    _ => return Err(InvalidSubgraphKernel)
+  }
   guard @graph.producer_read_storage(input) is Some(source) &&
     @storage.carrier(source) is @carrier.GraphValue(contract) else {
     return Err(SubgraphInputUnavailable)
@@ -422,6 +521,10 @@ pub fn start_subgraph(
     return Err(InvalidSubgraphLimits)
   }
   let nodes = @storage.node_count(source)
+  let selector_count = match selector_input {
+    Some(selector) => @execution.producer_read_row_count(selector)
+    None => @lower.graph_subgraph_literal_id_count(prepared).unwrap_or(0)
+  }
   let node_predicate = @lower.graph_subgraph_node_predicate(prepared)
   let edge_literal = @lower.graph_subgraph_literal_edge_predicate(prepared)
   let edge_predicate = if edge_literal is Some(_) {
@@ -442,7 +545,8 @@ pub fn start_subgraph(
     },
   )
   if nodes > limits.max_workspace_slots ||
-    predicate_fields > limits.max_workspace_slots - nodes {
+    selector_count > (limits.max_workspace_slots - nodes) / 2 ||
+    predicate_fields > limits.max_workspace_slots - nodes - selector_count * 2 {
     return Err(InvalidSubgraphLimits)
   }
   let output = match
@@ -459,11 +563,14 @@ pub fn start_subgraph(
   }
   let state : SubgraphState = {
     input,
+    selector_input,
     source,
     graph: contract,
     prepared,
     output: Some(output),
     selected: [],
+    selector_values: [],
+    selector_found: [],
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
     node_predicate,
@@ -474,13 +581,19 @@ pub fn start_subgraph(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
-    predicate_workspace: limits.max_workspace_slots - nodes - predicate_fields,
+    predicate_workspace: limits.max_workspace_slots -
+    nodes -
+    selector_count * 2 -
+    predicate_fields,
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),
     predicate_execution: None,
     phase: InitializeSelection,
     node: 0,
     selector: 0,
+    selector_row: 0,
+    selector_column,
+    node_selected: false,
     edge: 0,
     predicate_field: 0,
   }

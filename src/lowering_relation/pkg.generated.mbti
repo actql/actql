@@ -357,6 +357,8 @@ pub fn graph_subgraph_literal_id_count(PreparedGraphSubgraph) -> Int?
 
 pub fn graph_subgraph_node_predicate(PreparedGraphSubgraph) -> Expression?
 
+pub fn graph_subgraph_relation_selector_field(PreparedGraphSubgraph) -> @relation_schema.FieldName?
+
 pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
 
 pub fn graph_traverse_emits_paths(PreparedGraphTraverse) -> Bool

@@ -117,6 +117,7 @@ test "subgraph selects literal nodes and induced edges in bounded steps" {
     sequence(owner),
     0,
     input,
+    None,
     storage_limits(),
     4096L,
     fn() { true },
@@ -170,6 +171,7 @@ test "subgraph cancellation reclaims unpublished output" {
     sequence(owner),
     0,
     input,
+    None,
     storage_limits(),
     4096L,
     fn() { true },
@@ -186,6 +188,32 @@ test "subgraph cancellation reclaims unpublished output" {
 }
 
 ///|
+test "subgraph rejects a selected identity missing from the graph" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[4]")
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    @graph.prepare_producer_read(owner, 0, producer, source).unwrap(),
+    None,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut failed = false
+  while !failed {
+    match advance_subgraph(execution, 1).unwrap() {
+      SubgraphContinue(_) => ()
+      SubgraphFailed(MissingSubgraphNodeIdentity(0), ..) => failed = true
+      _ => fail("missing subgraph identity was accepted")
+    }
+  }
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+}
+
+///|
 test "subgraph preserves a literal false edge predicate" {
   let producer = source_owner()
   let source = subgraph_source_graph(producer, Ref(true))
@@ -196,6 +224,7 @@ test "subgraph preserves a literal false edge predicate" {
     sequence(owner),
     0,
     input,
+    None,
     storage_limits(),
     4096L,
     fn() { true },
@@ -229,6 +258,7 @@ test "subgraph evaluates node and edge predicates" {
     sequence(node_owner),
     0,
     @graph.prepare_producer_read(node_owner, 0, producer, source).unwrap(),
+    None,
     storage_limits(),
     4096L,
     fn() { true },
@@ -257,6 +287,7 @@ test "subgraph evaluates node and edge predicates" {
     sequence(edge_owner),
     0,
     @graph.prepare_producer_read(edge_owner, 0, producer, source).unwrap(),
+    None,
     storage_limits(),
     4096L,
     fn() { true },

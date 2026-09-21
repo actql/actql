@@ -139,7 +139,7 @@ pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSe
 
 pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ReachExecution, ReachIssue]
 
-pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[SubgraphExecution, SubgraphIssue]
+pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[SubgraphExecution, SubgraphIssue]
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
@@ -325,6 +325,7 @@ pub(all) enum SubgraphIssue {
   InvalidSubgraphKernel
   InvalidSubgraphLimits
   SubgraphInputUnavailable
+  MissingSubgraphNodeIdentity(Int)
   SubgraphPredicate(@execution_relation.EvalIssueKind)
   SubgraphKeyOrder(@value_admission.KeyOrderIssue)
   SubgraphOutput(@managed_graph_runtime.Issue)
