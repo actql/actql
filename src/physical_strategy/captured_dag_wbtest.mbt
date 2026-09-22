@@ -1,11 +1,29 @@
 ///|
 fn data_edge(producer : Int, consumer : Int, input : Int) -> DataEdge {
-  { producer, target: @pipeline.Step(0), consumer, input, }
+  {
+    producer,
+    target: @pipeline.Step(0),
+    consumer,
+    input,
+    operation_input: None,
+  }
 }
 
 ///|
 fn local_input_slot(consumer : Int, input : Int) -> LocalInputSlot {
   { consumer, input, }
+}
+
+///|
+test "physical data edges distinguish pipeline and operation positions" {
+  let pipeline = data_edge(0, 1, 0)
+  let operation : DataEdge = {
+    ..pipeline,
+    input: 1,
+    operation_input: Some((3, 1)),
+  }
+  assert_eq(data_edge_operation_input(pipeline), None)
+  assert_eq(data_edge_operation_input(operation), Some((3, 1)))
 }
 
 ///|

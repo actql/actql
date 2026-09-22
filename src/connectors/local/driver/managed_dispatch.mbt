@@ -259,10 +259,21 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
           is Some(producer) else {
           return Err(Execution(ForeignCandidate))
         }
-        let view = match
-          @carrier_runtime.material_prepare_view(
-            material, receiver, index, producer,
-          ) {
+        let operation = @strategy.captured_next_managed_operation_input(
+          installed.run,
+          index,
+        )
+        let view_result = match operation {
+          Some((consumer_step, operation_input)) =>
+            @carrier_runtime.material_prepare_operation_view(
+              material, receiver, consumer_step, operation_input, producer,
+            )
+          None =>
+            @carrier_runtime.material_prepare_view(
+              material, receiver, index, producer,
+            )
+        }
+        let view = match view_result {
           Ok(value) => value
           Err(_) => return Err(Configuration(InputUnavailable))
         }

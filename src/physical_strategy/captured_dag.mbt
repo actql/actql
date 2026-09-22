@@ -213,10 +213,7 @@ pub fn open_captured_dag(
     ) {
     return Err(ForeignCapture)
   }
-  let input_counts = Array::makei(count, task => {
-    let pipeline = @lower.pipeline(@lower.bound_preparation(graph.owners[task]))
-    @pipeline.input_count(pipeline)
-  })
+  let input_counts = Array::makei(count, task => graph.input_counts[task])
   let join_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => [])
   let interval_search_limits : Array[Array[(Int, Int64)]] = Array::makei(
     count,
@@ -494,16 +491,7 @@ pub fn open_captured_dag(
     aggregate_limits,
     analytic_envelopes,
     inputs: Array::makei(count, task => {
-      Array::make(
-        if task == 0 {
-          0
-        } else {
-          @pipeline.input_count(
-            @lower.pipeline(@lower.bound_preparation(graph.owners[task])),
-          )
-        },
-        None,
-      )
+      Array::make(if task == 0 { 0 } else { graph.input_counts[task] }, None)
     }),
     supplied: supplied_inputs,
     supplied_reads: Array::makei(count, task => {
@@ -688,10 +676,7 @@ pub fn captured_task_target(run : CapturedDAG, task : Int) -> @pipeline.Target? 
   if task <= 0 || task >= run.graph.owners.length() {
     return None
   }
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(run.graph.owners[task]),
-  )
-  Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
+  run.graph.targets[task]
 }
 
 ///|
@@ -967,14 +952,26 @@ pub fn captured_carrier_managed_task_input(
     fail_captured_task(run, task, issue)
     return Err(issue)
   }
-  match
-    @execution.prepare_carrier_managed_producer_read(
-      run.graph.owners[task],
-      input_index,
-      run.graph.owners[edge.producer],
-      output,
-      carrier_read,
-    ) {
+  let prepared = match edge.operation_input {
+    Some((consumer_step, operation_input)) =>
+      @execution.prepare_carrier_managed_operation_read(
+        run.graph.owners[task],
+        consumer_step,
+        operation_input,
+        run.graph.owners[edge.producer],
+        output,
+        carrier_read,
+      )
+    None =>
+      @execution.prepare_carrier_managed_producer_read(
+        run.graph.owners[task],
+        input_index,
+        run.graph.owners[edge.producer],
+        output,
+        carrier_read,
+      )
+  }
+  match prepared {
     Ok(read) => Ok(read)
     Err(_) => {
       let failure = RunIssue::ForeignCandidate
@@ -1019,15 +1016,27 @@ pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
 }
 
 ///|
+/// Original checked operation coordinate for one next-task physical input.
+pub fn captured_next_managed_operation_input(
+  run : CapturedDAG,
+  input_index : Int,
+) -> (Int, Int)? {
+  guard next_captured_task(run) is Some(task) else { return None }
+  for edge in run.graph.data {
+    if edge.consumer == task && edge.input == input_index {
+      return edge.operation_input
+    }
+  }
+  None
+}
+
+///|
 /// Exact checked input-port count for the next managed task. Unlike the
 /// producer list, zero distinguishes a legitimate source-free operation from
 /// an incomplete topology for a task that requires inputs.
 pub fn captured_next_managed_input_count(run : CapturedDAG) -> Int? {
-  guard next_captured_task(run) is Some(task) &&
-    run.graph.owners.get(task) is Some(owner) else {
-    return None
-  }
-  Some(@pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))))
+  guard next_captured_task(run) is Some(task) else { return None }
+  run.graph.input_counts.get(task)
 }
 
 ///|

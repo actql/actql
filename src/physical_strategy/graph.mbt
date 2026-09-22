@@ -5,6 +5,7 @@ pub struct DataEdge {
   target : @pipeline.Target
   consumer : Int
   input : Int
+  operation_input : (Int, Int)?
 }
 
 ///|
@@ -26,6 +27,9 @@ priv struct LocalInputSlot {
 struct CheckedDAG {
   program : @checked.CheckedProgram
   owners : Array[@lower.BoundPrepared]
+  targets : Array[@pipeline.Target?]
+  input_counts : Array[Int]
+  selected_steps : Array[Int?]
   data : Array[DataEdge]
   supplied_slots : Array[LocalInputSlot]
   control : Array[ControlEdge]
@@ -262,6 +266,7 @@ pub fn prepare_checked_dag(
         target: @pipeline.producer_target(producer),
         consumer: stage,
         input,
+        operation_input: None,
       })
     }
     let input_count = @pipeline.input_count(pipeline)
@@ -434,6 +439,20 @@ pub fn prepare_checked_dag(
   Ok({
     program,
     owners: owners.copy(),
+    targets: Array::makei(count, task => {
+      if task == 0 {
+        None
+      } else {
+        let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
+        Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
+      }
+    }),
+    input_counts: Array::makei(count, task => {
+      @pipeline.input_count(
+        @lower.pipeline(@lower.bound_preparation(owners[task])),
+      )
+    }),
+    selected_steps: Array::make(count, None),
     data,
     supplied_slots,
     control,
@@ -582,6 +601,21 @@ pub fn graph_task_owner(
 }
 
 ///|
+pub fn graph_task_target(graph : CheckedDAG, index : Int) -> @pipeline.Target? {
+  graph.targets.get(index).bind(value => value)
+}
+
+///|
+pub fn graph_task_input_count(graph : CheckedDAG, index : Int) -> Int? {
+  graph.input_counts.get(index)
+}
+
+///|
+pub fn graph_task_selected_step(graph : CheckedDAG, index : Int) -> Int? {
+  graph.selected_steps.get(index).bind(value => value)
+}
+
+///|
 pub fn graph_data_count(graph : CheckedDAG) -> Int {
   graph.data.length()
 }
@@ -589,6 +623,13 @@ pub fn graph_data_count(graph : CheckedDAG) -> Int {
 ///|
 pub fn graph_data_at(graph : CheckedDAG, index : Int) -> DataEdge? {
   graph.data.get(index)
+}
+
+///|
+/// Original checked operation coordinate for an internal physical edge.
+/// Author-visible pipeline inputs return none.
+pub fn data_edge_operation_input(value : DataEdge) -> (Int, Int)? {
+  value.operation_input
 }
 
 ///|

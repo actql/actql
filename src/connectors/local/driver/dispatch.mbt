@@ -55,21 +55,31 @@ pub fn prepare_local_dispatch_module(
   if sequences.length() != @strategy.graph_task_count(graph) - 1 {
     return Err(Configuration(ForeignPreparation))
   }
+  let physical_sequences = []
   for index, sequence in sequences {
     if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
       physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
       return Err(Configuration(ForeignPreparation))
     }
+    let physical = match @strategy.graph_task_selected_step(graph, index + 1) {
+      Some(step) =>
+        match @execution.select_generated_sequence_step(sequence, step) {
+          Some(value) => value
+          None => return Err(Configuration(ForeignPreparation))
+        }
+      None => sequence
+    }
+    physical_sequences.push(physical)
   }
   let implementation = match
     @local.prepare_local_compute_module(
       registry,
       registration,
-      sequences,
+      physical_sequences,
       execution,
       measurement,
       max_work,
-      sequences.length(),
+      physical_sequences.length(),
       managed_capacity?,
       managed_providers~,
     ) {

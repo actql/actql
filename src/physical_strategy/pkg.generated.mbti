@@ -76,6 +76,8 @@ pub fn captured_next_managed_input_count(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_obligations(CapturedDAG, Int) -> Result[@execution_relation.ManagedObligations, @execution_relation.ManagedObligationIssue]
 
+pub fn captured_next_managed_operation_input(CapturedDAG, Int) -> (Int, Int)?
+
 pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
@@ -162,6 +164,8 @@ pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> 
 
 pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
 
+pub fn data_edge_operation_input(DataEdge) -> (Int, Int)?
+
 pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
 
 pub fn execute_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?
@@ -190,6 +194,8 @@ pub fn graph_result_task(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_count(CheckedDAG) -> Int
 
+pub fn graph_task_input_count(CheckedDAG, Int) -> Int?
+
 pub fn graph_task_numeric_observation_at(CheckedDAG, Int, Int) -> TaskNumericObservation?
 
 pub fn graph_task_numeric_observation_count(CheckedDAG, Int) -> Int?
@@ -199,6 +205,10 @@ pub fn graph_task_operation_at(CheckedDAG, Int, Int) -> TaskOperationRequirement
 pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
+
+pub fn graph_task_selected_step(CheckedDAG, Int) -> Int?
+
+pub fn graph_task_target(CheckedDAG, Int) -> @pipeline_typing.Target?
 
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
@@ -468,6 +478,7 @@ pub struct DataEdge {
   target : @pipeline_typing.Target
   consumer : Int
   input : Int
+  operation_input : (Int, Int)?
 }
 
 pub(all) enum GraphIssue {
