@@ -12,6 +12,25 @@ priv struct CapturedRunTestChain {
 }
 
 ///|
+fn captured_test_value(wire : String) -> @json.CanonicalValue {
+  let parsed = @source.parse_json(wire, {
+    max_input_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 32,
+  }).unwrap()
+  @json.from_source(parsed, 4096, 32, 65536) catch {
+    _ => abort("Invalid captured test value")
+  }
+}
+
+///|
+fn captured_test_wire(value : @json.CanonicalValue) -> String {
+  @json.stringify_value(value, 65536, 4096, 32) catch {
+    _ => abort("Invalid captured test encoding")
+  }
+}
+
+///|
 fn captured_run_test_chain(with_model? : Bool = false) -> CapturedRunTestChain {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
@@ -162,6 +181,97 @@ test "Captured Run issuer binds exact Result values and field order" {
     publication_contract_json(captured).contains(
       "\"result_values\":{\"answer\":[{\"value\":7}]}",
     ),
+  )
+}
+
+///|
+test "a self-identified Receipt cannot publish an unauthorized decision" {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let authorization = @json.object_field(
+    captured_test_value(publication_contract_json(chain.receipt)),
+    "run_authorization",
+  ).unwrap()
+  let authorization_body = @json.object_without_field(
+    authorization, "run_authorization_cid",
+  ).unwrap()
+  let authorization_body_wire = captured_test_wire(authorization_body)
+  let unauthorized = seal_run_evidence_value(
+    "run_authorization",
+    authorization_body_wire.replace(
+      old="\"decision\":\"allowed\"",
+      new="\"decision\":\"approved\"",
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let original_authorization_wire = captured_test_wire(authorization)
+  let receipt_body = @json.object_without_field(
+    captured_test_value(publication_contract_json(chain.receipt)),
+    "receipt_identity_cid",
+  ).unwrap()
+  let forged_receipt = seal_publication_contract(
+    "run_receipt",
+    captured_test_wire(receipt_body).replace(
+      old=original_authorization_wire,
+      new=run_evidence_value_json(unauthorized),
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured_body = @json.object_without_field(
+    captured_test_value(publication_contract_json(captured)),
+    "captured_run_cid",
+  ).unwrap()
+  let forged_capture = seal_publication_contract(
+    "captured_run",
+    captured_test_wire(captured_body).replace(
+      old=publication_contract_json(chain.receipt),
+      new=publication_contract_json(forged_receipt),
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    validate_effect_free_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      forged_receipt,
+      forged_capture,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceReferenceMismatch("run_authorization")),
   )
 }
 

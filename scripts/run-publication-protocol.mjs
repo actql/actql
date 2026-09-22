@@ -86,11 +86,45 @@ function patternTag(schema) {
 }
 
 const nodes = [];
+const supportedKeywords = new Set([
+  '$schema', '$id', 'title', 'description', '$comment', 'examples',
+  'default', 'deprecated', 'readOnly', 'writeOnly', 'type', 'const',
+  'enum', 'oneOf', 'pattern', 'format', 'minLength', 'minimum',
+  'maximum', 'properties', 'required', 'additionalProperties',
+  'minProperties', 'propertyNames', 'items', 'minItems', 'uniqueItems',
+]);
+const annotationKeywords = new Set([
+  '$schema', '$id', 'title', 'description', '$comment', 'examples',
+  'default', 'deprecated', 'readOnly', 'writeOnly',
+]);
+
+function inferredType(value) {
+  if (value === null) return 'null';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'boolean') return 'boolean';
+  if (Number.isSafeInteger(value)) return 'integer';
+  if (typeof value === 'number') return 'number';
+  throw new Error('Unsupported publication schema literal');
+}
+
 function emitSchema(schema) {
+  for (const key of Object.keys(schema)) {
+    if (!supportedKeywords.has(key)) {
+      throw new Error(`Unsupported publication schema keyword: ${key}`);
+    }
+  }
   if (schema.oneOf !== undefined) {
     const alternatives = schema.oneOf.map(emitSchema);
     nodes.push(`protocol_one_of_rule([${alternatives.join(', ')}])`);
-    return nodes.length - 1;
+    const alternativeIndex = nodes.length - 1;
+    const siblings = {...schema};
+    delete siblings.oneOf;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      const siblingIndex = emitSchema(siblings);
+      nodes.push(`AllOfRule([${alternativeIndex}, ${siblingIndex}])`);
+      return nodes.length - 1;
+    }
+    return alternativeIndex;
   }
   if (Array.isArray(schema.type)) {
     const alternatives = schema.type.map(type => emitSchema({...schema, type}));
@@ -98,6 +132,19 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === undefined) {
+    if (schema.const !== undefined) {
+      return emitSchema({...schema, type: inferredType(schema.const)});
+    }
+    if (schema.enum !== undefined) {
+      const types = new Set(schema.enum.map(inferredType));
+      if (types.size !== 1) {
+        throw new Error('Mixed-type publication schema enum is unsupported');
+      }
+      return emitSchema({...schema, type: [...types][0]});
+    }
+    if (Object.keys(schema).some(key => !annotationKeywords.has(key))) {
+      throw new Error('Unsupported typeless publication schema constraint');
+    }
     nodes.push('protocol_any_rule()');
     return nodes.length - 1;
   }
@@ -106,6 +153,9 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === 'boolean') {
+    if (schema.enum !== undefined) {
+      throw new Error('Boolean publication schema enum is unsupported');
+    }
     nodes.push(`protocol_bool_rule(${optionBool(schema.const)})`);
     return nodes.length - 1;
   }
@@ -119,9 +169,17 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === 'integer') {
+    if (schema.enum !== undefined) {
+      throw new Error('Integer publication schema enum is unsupported');
+    }
+    if (schema.const !== undefined &&
+        (schema.minimum !== undefined && schema.const < schema.minimum ||
+         schema.maximum !== undefined && schema.const > schema.maximum)) {
+      throw new Error('Conflicting integer publication schema constraints');
+    }
     nodes.push(
-      `protocol_integer_rule(${optionInt64(schema.minimum)}, ` +
-      `${optionInt64(schema.maximum)})`,
+      `protocol_integer_rule(${optionInt64(schema.const ?? schema.minimum)}, ` +
+      `${optionInt64(schema.const ?? schema.maximum)})`,
     );
     return nodes.length - 1;
   }

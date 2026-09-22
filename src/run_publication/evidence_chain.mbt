@@ -411,6 +411,10 @@ pub fn validate_effect_free_run_evidence_chain(
     evidence_string(prepared, "host_policy_cid") {
     return Err(EvidenceReferenceMismatch("run_authorization"))
   }
+  if evidence_string(prepared, "policy_decision") != Some("allow") ||
+    evidence_string(authorization, "decision") != Some("allowed") {
+    return Err(EvidenceReferenceMismatch("run_authorization"))
+  }
   let observation = match evidence_object(receipt_value, "observation_set") {
     Ok(value) => value
     Err(issue) => return Err(issue)

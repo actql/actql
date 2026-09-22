@@ -919,6 +919,25 @@ fn validate_bounded_contract(
   max_depth : Int,
 ) -> Result[Unit, PublicationContractIssue] {
   if generated_protocol_schema_root(spec.name, complete) is Some(_) {
+    let fields = match object_fields(value) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    guard field_value(fields, "version") is Some(version) else {
+      return Err(MissingField("version"))
+    }
+    if !validate_rule(version, Exact(spec.version)) {
+      return Err(InvalidField("version"))
+    }
+    match field_value(fields, spec.identity) {
+      Some(_) if !complete => return Err(IdentityAlreadyPresent)
+      None if complete => return Err(IdentityMissing)
+      Some(identity) =>
+        if !validate_rule(identity, Cid) {
+          return Err(InvalidField(spec.identity))
+        }
+      None => ()
+    }
     if validate_generated_protocol_shape(
         spec.name,
         value,

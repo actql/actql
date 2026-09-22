@@ -9,6 +9,7 @@ priv enum ProtocolSchemaRule {
   ArrayRule(Int, Int, Bool)
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?)
   OneOfRule(Array[Int])
+  AllOfRule(Array[Int])
 }
 
 ///|
@@ -275,8 +276,17 @@ fn validate_protocol_node(
         if validate_protocol_node(value, alternative, nodes, branch_budget) {
           matches += 1
         }
+        budget.remaining = branch_budget.remaining
       }
       matches == 1
+    }
+    AllOfRule(conditions) => {
+      for condition in conditions {
+        if !validate_protocol_node(value, condition, nodes, budget) {
+          return false
+        }
+      }
+      true
     }
   }
 }
