@@ -125,6 +125,20 @@ pub fn bound_preparation(BoundPrepared) -> Prepared
 
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
 
+pub fn carrier_handoff_at(CarrierHandoffIndex, Int) -> CarrierHandoff?
+
+pub fn carrier_handoff_carrier(CarrierHandoff) -> @carrier_contract.Carrier
+
+pub fn carrier_handoff_consumer(CarrierHandoff) -> Int
+
+pub fn carrier_handoff_count(CarrierHandoffIndex) -> Int
+
+pub fn carrier_handoff_input(CarrierHandoff) -> Int
+
+pub fn carrier_handoff_producer(CarrierHandoff) -> Int
+
+pub fn carrier_handoff_sequence(CarrierHandoffIndex) -> PreparedSequence
+
 pub fn carrier_projection_input_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier
 
 pub fn carrier_projection_operation(PreparedCarrierProjection) -> @carrier_projection.Operation
@@ -771,6 +785,8 @@ pub fn prepare_analytic(BoundPrepared, Int, Int, Int, ExpressionLimits) -> Resul
 
 pub fn prepare_append_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedAppendKernel, AppendIssue]
 
+pub fn prepare_carrier_handoffs(PreparedSequence, Int, Int) -> Result[CarrierHandoffIndex, CarrierHandoffIssue]
+
 pub fn prepare_count_group(@relation_typing.CheckedOperation, Int, Int) -> Result[PreparedCountGroup, CountGroupIssue]
 
 pub fn prepare_cross_join_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedCrossJoinKernel, CrossJoinIssue]
@@ -1079,6 +1095,17 @@ pub struct CanonicalOccurrence {
   id : String
   operation : String
 }
+
+type CarrierHandoff
+
+type CarrierHandoffIndex
+
+pub(all) enum CarrierHandoffIssue {
+  InvalidCarrierHandoffLimits
+  CarrierHandoffWorkLimit
+  CarrierHandoffEdgeLimit
+  InvalidCarrierHandoff(Int, Int)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum CarrierProjectionIssue {
   InvalidCarrierProjection
