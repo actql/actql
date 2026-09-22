@@ -1,4 +1,40 @@
 ///|
+fn fixture_max_capacity(
+  generated : Array[@execution.GeneratedSequence],
+  execution : @execution.SequenceExecutionLimits,
+) -> @execution.ExecutionCapacity {
+  let mut retained = 0L
+  let mut active = 0L
+  for sequence in generated {
+    let capacity = @execution.generated_sequence_capacity(sequence, execution, {
+      max_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }).unwrap()
+    retained = retained.max(
+      @execution.execution_capacity_retained_bytes(capacity),
+    )
+    active = active.max(@execution.execution_capacity_execution_bytes(capacity))
+  }
+  @execution.execution_capacity(retained, active).unwrap()
+}
+
+///|
+fn register_used_provider(
+  providers : Array[@local_connector.ManagedProvider],
+  provider : @local_connector.ManagedProvider,
+  generated : Array[@execution.GeneratedSequence],
+) -> Unit {
+  for sequence in generated {
+    if @local_connector.managed_provider_accepts(provider, sequence) {
+      providers.push(provider)
+      return
+    }
+  }
+}
+
+///|
 /// Fixture setup only; the standard generated bridge and installed modules own
 /// every execution operation. No unused Compute provider configuration is built.
 #export_name("strategyFixtureModuleSubset")
@@ -145,38 +181,32 @@ pub fn strategy_fixture_tea_subset(
     max_workspace_slots: 10000,
   }
   let providers = []
-  for sequence in generated {
-    let capacity = @execution.generated_sequence_capacity(sequence, execution, {
-      max_work: 10000,
-      max_bytes: 10000,
-      max_nodes: 10000,
-      max_depth: 100,
-    }).unwrap()
-    let events = @local_tea_provider.provider(storage, 100000L, capacity)
-    if @local_connector.managed_provider_accepts(events, sequence) {
-      providers.push(events)
-    }
-    let time_series = @local_tea_provider.time_series_provider(
-      storage, capacity,
-    )
-    if @local_connector.managed_provider_accepts(time_series, sequence) {
-      providers.push(time_series)
-    }
-    let interval = @local_tea_provider.interval_join_provider(storage, capacity)
-    if @local_connector.managed_provider_accepts(interval, sequence) {
-      providers.push(interval)
-    }
-    let asof = @local_tea_provider.asof_join_provider(storage, capacity)
-    if @local_connector.managed_provider_accepts(asof, sequence) {
-      providers.push(asof)
-    }
-    let sequence_match = @local_tea_provider.sequence_match_provider(
-      storage, capacity,
-    )
-    if @local_connector.managed_provider_accepts(sequence_match, sequence) {
-      providers.push(sequence_match)
-    }
-  }
+  let capacity = fixture_max_capacity(generated, execution)
+  register_used_provider(
+    providers,
+    @local_tea_provider.provider(storage, 100000L, capacity),
+    generated,
+  )
+  register_used_provider(
+    providers,
+    @local_tea_provider.time_series_provider(storage, capacity),
+    generated,
+  )
+  register_used_provider(
+    providers,
+    @local_tea_provider.interval_join_provider(storage, capacity),
+    generated,
+  )
+  register_used_provider(
+    providers,
+    @local_tea_provider.asof_join_provider(storage, capacity),
+    generated,
+  )
+  register_used_provider(
+    providers,
+    @local_tea_provider.sequence_match_provider(storage, capacity),
+    generated,
+  )
   if providers.is_empty() {
     abort("TEA fixture providers rejected every generated sequence")
   }
@@ -243,18 +273,12 @@ pub fn strategy_fixture_veca_subset(
     max_workspace_slots: 10000,
   }
   let providers = []
-  for sequence in generated {
-    let capacity = @execution.generated_sequence_capacity(sequence, execution, {
-      max_work: 10000,
-      max_bytes: 10000,
-      max_nodes: 10000,
-      max_depth: 100,
-    }).unwrap()
-    let provider = @local_veca_provider.provider(storage, 100000L, capacity)
-    if @local_connector.managed_provider_accepts(provider, sequence) {
-      providers.push(provider)
-    }
-  }
+  let capacity = fixture_max_capacity(generated, execution)
+  register_used_provider(
+    providers,
+    @local_veca_provider.provider(storage, 100000L, capacity),
+    generated,
+  )
   if providers.is_empty() {
     abort("VecA fixture provider rejected every generated sequence")
   }

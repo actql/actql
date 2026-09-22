@@ -8,6 +8,13 @@ import { DuckDBInstance } from '@duckdb/node-api';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
+function logicalGroupRows(rows, names) {
+  return rows.map(row => Object.fromEntries(names.map((name, index) => [
+    name,
+    row[`__actql_output_${index}`],
+  ])));
+}
+
 test('main canonical group vectors agree with Local and real DuckDB ordering', async () => {
   const corpus = JSON.parse(await readFile(new URL('../../../../../portability/corpus/group-canonical-order.json', import.meta.url), 'utf8'));
   const { stdout } = await promisify(execFile)('moon', [
@@ -37,7 +44,14 @@ test('main canonical group vectors agree with Local and real DuckDB ordering', a
           await connection.run(`INSERT INTO fixed VALUES ${rows.map(row =>
             `(${names.map(n => row[n] === null ? 'NULL' : String(row[n])).join(',')})`).join(',')}`);
         }
-        assert.deepEqual((await connection.runAndReadAll(sql)).getRowObjects(), expected, c.id);
+        assert.deepEqual(
+          logicalGroupRows(
+            (await connection.runAndReadAll(sql)).getRowObjects(),
+            c.by.length ? [...names, 'n'] : ['n'],
+          ),
+          expected,
+          c.id,
+        );
       }
     } finally { connection.closeSync(); db.closeSync(); }
   }
@@ -56,7 +70,10 @@ test('main canonical group vectors agree with Local and real DuckDB ordering', a
       (NULL,NULL),(NULL,NULL),(NULL,'A'),('A',chr(65536)),
       ('a',chr(55295)),('a',chr(65536)),('a',chr(57344))`);
     assert.deepEqual(
-      (await connection.runAndReadAll(textFixture.sql)).getRowObjects(),
+      logicalGroupRows(
+        (await connection.runAndReadAll(textFixture.sql)).getRowObjects(),
+        ['a', 'b', 'n'],
+      ),
       [
         {a: null, b: null, n: 2},
         {a: null, b: 'A', n: 1},

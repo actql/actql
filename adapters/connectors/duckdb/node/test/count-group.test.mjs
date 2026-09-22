@@ -7,6 +7,14 @@ import { DuckDBInstance } from '@duckdb/node-api';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
+function logicalGroupRows(rows) {
+  return rows.map(row => ({
+    k: row.__actql_output_0,
+    n: row.__actql_output_1,
+    p: row.__actql_output_2,
+  }));
+}
+
 test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckDB', async () => {
   const { stdout } = await promisify(execFile)('moon', [
     'test', '--target', 'js', 'src/query_integration/duckdb_count_group_wbtest.mbt',
@@ -42,9 +50,14 @@ test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckD
       await connection.run(`CREATE TABLE fixed(k ${c.type})`);
       await connection.run(`INSERT INTO fixed VALUES ${c.values}`);
       const result = await connection.runAndReadAll(fixture.sql);
-      assert.deepEqual(result.getRowObjects(), c.expected);
+      assert.deepEqual(logicalGroupRows(result.getRowObjects()), c.expected);
       await connection.run('DELETE FROM fixed');
-      assert.deepEqual((await connection.runAndReadAll(fixture.sql)).getRowObjects(), []);
+      assert.deepEqual(
+        logicalGroupRows(
+          (await connection.runAndReadAll(fixture.sql)).getRowObjects(),
+        ),
+        [],
+      );
     } finally {
       connection.closeSync();
       db.closeSync();

@@ -1978,7 +1978,8 @@ async function exerciseStrategyGraph(
       );
       assert.deepEqual(
         sgaPublicationOwner.execution.completed.map(value => value.realization),
-        Array(5).fill('local-managed'),
+        Array(publicationCase.name === 'node-rows' ? 6 : 5)
+          .fill('local-managed'),
       );
       const occurrence =
         sgaPublicationOwner.execution.publicationInventory.occurrences[0];
@@ -3172,6 +3173,8 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 40,
+    managedStarts: 3,
+    completedTasks: [1, 2],
     fields: [
       'event_id',
       'occurred_at',
@@ -4292,6 +4295,7 @@ async function exerciseStrategyGraph(
         managedStarts,
         cancellationCase.managedStarts ??
           (cancellationCase.family === 'time-series' ? 1 : 2),
+        cancellationCase.name,
       );
       assert.equal(
         constructionProgress,

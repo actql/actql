@@ -494,7 +494,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 fixture.managedFixedQueryInputFileSql(nativeQuery), file.path);
               return (await connection.runAndReadAll(querySql)).getRowObjects();
             }, undefined, bytes => { integrityBytes += bytes; });
-          assert.deepEqual(rows, [{n: empty ? 0 : 3}]);
+          assert.deepEqual(rows, [
+            {__actql_output_0: empty ? 0 : 3},
+          ]);
           assert.equal(integrityBytes, body.bytes);
           assert.equal(store.status().activeReaders, 0);
           if (empty) {
@@ -527,7 +529,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             }
           }
           // Only this awaited exact native query supplies the downstream values.
-          const columns = [[exportPhysicalValue(rows[0].n, {id: 'DOUBLE'})]];
+          const countValue = rows[0].__actql_output_0;
+          const columns = [[exportPhysicalValue(countValue, {id: 'DOUBLE'})]];
           checked(moon.managedOutputAccept(downstreamOutput, 1, JSON.stringify(columns)));
           checked(moon.managedOutputFinish(downstreamOutput));
           assert.deepEqual(checked(moon.managedOutputReusedMeasurements(downstreamOutput)),
@@ -745,7 +748,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             const countRead = fixture.managedCountRead(nativeQuery, downstreamCompleted);
             const frame = await withManagedInputFile(countMaterial, countRead, countCodec, () => true,
               async file => JSON.parse(await readFile(file.path, 'utf8')));
-            assert.deepEqual(frame, {c0: [rows[0].n], o: [0]});
+            assert.deepEqual(frame, {c0: [countValue], o: [0]});
             assert.equal(store.status().activeReaders, 0);
           }
         } finally { connection.closeSync(); database.closeSync(); }
