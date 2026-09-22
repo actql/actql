@@ -5,6 +5,7 @@ import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {registeredDuckdbRelAOperations} from './rela-physical-capabilities.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/check-rela-differential-coverage.mjs');
@@ -51,4 +52,53 @@ test('RelA differential gate rejects missing observation coverage', () => {
   assert.match(run(value => {
     value.required_observations.push('uncovered-observation');
   }), /missing observation coverage/);
+});
+
+test('a new registered DuckDB branch creates a new overlap', () => {
+  const takeCompiler = readFileSync(join(
+    root, 'src/connectors/duckdb/adapter/managed_take_query.mbt',
+  ), 'utf8');
+  const nativeQuery = readFileSync(join(
+    root, 'src/connectors/duckdb/adapter/native_query.mbt',
+  ), 'utf8');
+  const fixedQuery = readFileSync(join(
+    root, 'src/connectors/duckdb/adapter/fixed_query.mbt',
+  ), 'utf8');
+  const failures = [];
+  const source = {takeCompiler, nativeQuery, fixedQuery};
+  const current = registeredDuckdbRelAOperations(source, failure => {
+    failures.push(failure);
+  });
+  assert.equal(current.has('distinct'), false);
+  const added = registeredDuckdbRelAOperations({
+    ...source,
+    takeCompiler: takeCompiler.replace(
+      '      _ => return Err(UnsupportedShape)',
+      '      @lower.DistinctRows => shape_changed = true\n' +
+        '      _ => return Err(UnsupportedShape)',
+    ),
+  }, failure => failures.push(failure));
+  assert.equal(added.has('distinct'), true);
+  assert.deepEqual(failures, []);
+});
+
+test('an unclassified DuckDB compiler branch fails capability discovery', () => {
+  const source = {
+    takeCompiler: readFileSync(join(
+      root, 'src/connectors/duckdb/adapter/managed_take_query.mbt',
+    ), 'utf8').replace(
+      '      _ => return Err(UnsupportedShape)',
+      '      @lower.FutureBody(_) => shape_changed = true\n' +
+        '      _ => return Err(UnsupportedShape)',
+    ),
+    nativeQuery: readFileSync(join(
+      root, 'src/connectors/duckdb/adapter/native_query.mbt',
+    ), 'utf8'),
+    fixedQuery: readFileSync(join(
+      root, 'src/connectors/duckdb/adapter/fixed_query.mbt',
+    ), 'utf8'),
+  };
+  const failures = [];
+  registeredDuckdbRelAOperations(source, failure => failures.push(failure));
+  assert.match(failures.join('\n'), /unclassified DuckDB take compiler body: FutureBody/);
 });

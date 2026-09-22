@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
+import {registeredDuckdbRelAOperations} from './rela-physical-capabilities.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = process.env.ACTQL_RELA_DIFFERENTIAL_MANIFEST
@@ -18,7 +19,47 @@ const normative = readJson(normativePath);
 const errors = [];
 const fail = message => errors.push(message);
 const allowedSupport = new Set(['overlap', 'no_registered_overlap']);
-const expectedOverlap = new Set(['filter', 'select', 'sort', 'take', 'join', 'group']);
+const source = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+const localCapability = source('src/connectors/local/compute.mbt')
+  .split('pub fn local_managed_sequence_supported(')[1]
+  ?.split('pub fn[T] execute_local_managed_fixed_compute(')[0] ?? '';
+const localBodies = new Map([
+  ['filter', 'Filter('], ['select', 'Select('], ['rename', 'Select('],
+  ['drop', 'Select('], ['derive', 'SnapshotMap('],
+  ['sort', 'StableSort('], ['take', 'Limit('], ['top_k', 'TopK('],
+  ['top_k_by', 'PartitionedTopK('], ['row_window', 'WindowStep('],
+  ['window_group', 'WindowStep('], ['lag', 'Lag('],
+  ['watermark_rows', 'Watermark('], ['pivot', 'Pivot('],
+  ['unpivot', 'Unpivot('], ['json_pick', 'JsonPick('],
+  ['unnest', 'Unnest('], ['join', 'JoinStep('], ['nest', 'NestStep('],
+  ['group', 'Groups('], ['distinct', 'DistinctRows'],
+  ['dedupe_rows', 'DedupeRows'], ['assert_rows', 'AssertAll('],
+  ['append', 'AppendStep('], ['values', 'ValuesStep('],
+  ['except', 'SetStep('], ['intersect', 'SetStep('],
+  ['cross_join', 'CrossJoinStep('], ['analytic', 'AnalyticRows('],
+]);
+const localRegisteredOperations = new Set();
+for (const entry of normative.operations) {
+  const marker = localBodies.get(entry.operation);
+  if (!marker || !localCapability.includes(marker)) {
+    fail(`${entry.operation}: missing registered Local implementation branch`);
+  } else {
+    localRegisteredOperations.add(entry.operation);
+  }
+}
+
+// Read the physical compiler's accepted bodies, not the differential manifest.
+// A new DuckDB branch must therefore acquire differential evidence in CI.
+const duckdbRegisteredOperations = registeredDuckdbRelAOperations({
+  takeCompiler: source('src/connectors/duckdb/adapter/managed_take_query.mbt'),
+  nativeQuery: source('src/connectors/duckdb/adapter/native_query.mbt'),
+  fixedQuery: source('src/connectors/duckdb/adapter/fixed_query.mbt'),
+}, fail);
+const expectedOverlap = new Set(
+  [...localRegisteredOperations].filter(
+    operation => duckdbRegisteredOperations.has(operation),
+  ),
+);
 const requiredRoles = [
   role => role.includes('independent_expectation'),
   role => role.includes('canonical_comparison') || role.includes('all_placements'),
