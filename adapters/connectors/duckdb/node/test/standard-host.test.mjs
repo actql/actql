@@ -20,7 +20,8 @@ import {runCapturedInternalStrategy,
 import {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
-import {localStrategyContribution} from '../../local-node/strategy-bundle.mjs';
+import {localStrategyContribution} from
+  '../../../../local-node/strategy-bundle.mjs';
 import {
   prepareManagedIdentityPolicy,
 } from '../../../../host-node/managed-identity-policy.mjs';
