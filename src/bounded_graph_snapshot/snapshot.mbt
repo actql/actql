@@ -90,6 +90,11 @@ fn required_workspace(storage : @storage.Storage) -> Int? {
 }
 
 ///|
+pub fn workspace_slots(storage : @storage.Storage) -> Int? {
+  required_workspace(storage)
+}
+
+///|
 fn graph(value : @storage.Storage) -> @carrier.Graph? {
   match @storage.carrier(value) {
     @carrier.GraphValue(graph) => Some(graph)
@@ -455,6 +460,11 @@ pub fn node_at(value : Snapshot, index : Int) -> Int? {
 }
 
 ///|
+pub fn node_key_at(value : Snapshot, index : Int) -> String? {
+  @sort.key_component_at(value.node_sort, index, 0)
+}
+
+///|
 pub fn edge_count(value : Snapshot) -> Int {
   @sort.count(value.edge_sort)
 }
@@ -462,6 +472,16 @@ pub fn edge_count(value : Snapshot) -> Int {
 ///|
 pub fn edge_at(value : Snapshot, index : Int) -> Int? {
   @sort.index_at(value.edge_sort, index)
+}
+
+///|
+pub fn edge_key_at(value : Snapshot, index : Int) -> (String, String, String)? {
+  guard @sort.key_component_at(value.edge_sort, index, 0) is Some(source) &&
+    @sort.key_component_at(value.edge_sort, index, 1) is Some(target) &&
+    @sort.key_component_at(value.edge_sort, index, 2) is Some(label) else {
+    return None
+  }
+  Some((source, target, label))
 }
 
 ///|

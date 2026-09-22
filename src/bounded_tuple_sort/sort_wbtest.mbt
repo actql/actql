@@ -18,6 +18,9 @@ test "tuple sort initializes and merges within the supplied quantum" {
   assert_eq(index_at(sort, 1), Some(1))
   assert_eq(index_at(sort, 2), Some(0))
   assert_eq(index_at(sort, 3), Some(3))
+  assert_eq(key_component_at(sort, 0, 0), Some("a"))
+  assert_eq(key_component_at(sort, 0, 1), Some("a"))
+  assert_eq(key_component_at(sort, 4, 0), None)
 }
 
 ///|

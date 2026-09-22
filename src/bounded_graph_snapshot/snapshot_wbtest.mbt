@@ -115,8 +115,10 @@ test "snapshot advances canonically with quantum one" {
   )
   assert_eq(node_count(snapshot), 1)
   assert_eq(node_at(snapshot, 0), Some(0))
+  assert_true(node_key_at(snapshot, 0) is Some(_))
   assert_eq(edge_count(snapshot), 1)
   assert_eq(edge_at(snapshot, 0), Some(0))
+  assert_true(edge_key_at(snapshot, 0) is Some(_))
 }
 
 ///|

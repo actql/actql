@@ -208,6 +208,16 @@ pub fn index_at(value : Sort, index : Int) -> Int? {
 }
 
 ///|
+pub fn key_component_at(value : Sort, index : Int, component : Int) -> String? {
+  guard value.phase == Finished &&
+    value.source.get(index) is Some(source) &&
+    value.keys.get(source) is Some(key) else {
+    return None
+  }
+  key.get(component)
+}
+
+///|
 pub fn cleanup(value : Sort) -> Bool {
   value.source.clear()
   value.target.clear()
