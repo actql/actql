@@ -72,4 +72,9 @@ test "bounded array and canonical object builders seal owned backing" {
   assert_true(append_object_field(invalid, "z", null_value()))
   assert_false(append_object_field(invalid, "a", null_value()))
   assert_true(finish_object_value(invalid) is None)
+
+  let cancelled = prepare_array_value(2).unwrap()
+  assert_true(append_array_item(cancelled, null_value()))
+  assert_true(cancel_array_value(cancelled))
+  assert_false(append_array_item(cancelled, null_value()))
 }

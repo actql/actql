@@ -108,6 +108,17 @@ pub fn finish_bounded_array_value(builder : ArrayBuilder) -> Value? {
 }
 
 ///|
+pub fn cancel_array_value(builder : ArrayBuilder) -> Bool {
+  if !builder.open {
+    false
+  } else {
+    builder.open = false
+    builder.values.clear()
+    true
+  }
+}
+
+///|
 pub fn prepare_object_value(length : Int) -> ObjectBuilder? {
   if length < 0 {
     None
