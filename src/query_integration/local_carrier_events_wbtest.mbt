@@ -1552,7 +1552,7 @@ test "standard Host runs registered bounded Events provider" {
   for
     variant in [
       "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
-      "session", "session_global", "session_parameter", "session_ties", "session_relation",
+      "session_relation",
     ] {
     let publication = variant != "session_ties"
     let (run, issuer) = captured_graph_fixture(
@@ -1795,6 +1795,191 @@ test "standard Host runs registered bounded Events provider" {
     assert_false((events_ops.cleanup_refresh)())
     assert_true((events_ops.cleanup_refresh)())
     assert_eq(cleanup_attempts.val, 2)
+    values_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (values_ops.close)()
+    (values_ops.cleanup_refresh)() |> ignore
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+  }
+}
+
+///|
+test "standard Host retains Events across physical task boundaries" {
+  for
+    variant in [
+      "session", "session_global", "session_parameter", "session_ties",
+    ] {
+    let (run, issuer) = captured_graph_fixture(
+      local_carrier_events_chain=true,
+      local_carrier_events_variant=variant,
+      managed_publication=true,
+      parameter_json=if variant == "session_parameter" {
+        "{\"minimum\":2}"
+      } else {
+        "{\"minimum\":1}"
+      },
+    )
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
+      ),
+    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    let sequences = dispatch_test_generated(run)
+    let provider = @local_tea_provider.provider(
+      carrier_events_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        sequences[1],
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let modules = @builtin.configure_compute_modules(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      1,
+      _ => @strategy.RunIssue::ForeignCandidate,
+      with_local=Some(
+        (
+          @connector.capability_registration_at(registry, 0).unwrap(),
+          {
+            sequences,
+            managed_providers: [provider],
+            managed_capacity: limits.capacity,
+            execution: limits.local_execution,
+            measurement: limits.guards,
+            max_work: limits.candidate_work,
+          },
+          _ => @strategy.RunIssue::ForeignCandidate,
+          _ => @strategy.RunIssue::ForeignCandidate,
+        ),
+      ),
+    ).unwrap()
+    let installed = @builtin.configured_local_module(modules).unwrap()
+    @local_driver.configure_local_retained_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values: limits.local_execution.rows.input_values,
+        wire: {
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_columns: 10,
+          max_order_work: 1000,
+        },
+        row: {
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_text_bytes: 3000,
+        },
+        max_batch_bytes: 3000,
+      },
+      None,
+    ).unwrap()
+
+    let values_live = Ref(true)
+    let (values_ops, values) = run_local_managed_test_task(
+      installed,
+      run,
+      1,
+      [],
+      [],
+      1,
+      values_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let values_rows = local_managed_test_rows(values_ops)
+    let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      2,
+      [@local_driver.local_managed_relation_output(values)],
+      [values_rows],
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let (session_ops, session, session_material) = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      3,
+      [@local_driver.local_managed_carrier_output(bridge, bridge_material)],
+      [],
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let events_live = Ref(true)
+    let (events_ops, events) = run_local_managed_test_task(
+      installed,
+      run,
+      4,
+      [],
+      [],
+      4,
+      events_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+      carrier_inputs=[(session, session_material)],
+    )
+    let event_rows = local_managed_test_rows(events_ops)
+    assert_eq(event_rows.length(), 3)
+    assert_true(event_rows[0].contains("\"session_start_ms\":1"))
+    assert_true(event_rows[2].contains("\"session_start_ms\":13"))
+
+    let first_live = Ref(true)
+    let (first_ops, first) = run_local_managed_test_task(
+      installed,
+      run,
+      5,
+      [events],
+      [event_rows],
+      5,
+      first_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let second_live = Ref(true)
+    let (second_ops, second) = run_local_managed_test_task(
+      installed,
+      run,
+      6,
+      [events],
+      [event_rows],
+      6,
+      second_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    assert_eq(local_managed_test_rows(first_ops).length(), 3)
+    assert_eq(local_managed_test_rows(second_ops).length(), 3)
+
+    first_live.val = false
+    @strategy.close_captured_task_output(run, 5)
+    (first_ops.close)()
+    (first_ops.cleanup_refresh)() |> ignore
+    assert_false(@execution.managed_completed_output_available(first))
+    assert_true(@execution.managed_completed_output_available(second))
+    assert_true(@execution.managed_completed_output_available(events))
+
+    second_live.val = false
+    @strategy.close_captured_task_output(run, 6)
+    (second_ops.close)()
+    (second_ops.cleanup_refresh)() |> ignore
+    events_live.val = false
+    @strategy.close_captured_task_output(run, 4)
+    (events_ops.close)()
+    (events_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 3)
+    (session_ops.close)()
+    (session_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 2)
+    (bridge_ops.close)()
+    (bridge_ops.cleanup_refresh)() |> ignore
     values_live.val = false
     @strategy.close_captured_task_output(run, 1)
     (values_ops.close)()

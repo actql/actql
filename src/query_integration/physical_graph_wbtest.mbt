@@ -77,14 +77,9 @@ test "physical DAG segments Carrier-only internal operation edges" {
     local_carrier_events_variant="session",
   )
   let owners = physical_graph_owners(program)
-  let logical = @strategy.prepare_checked_dag(
+  let physical = @strategy.prepare_checked_dag(
     program,
     owners,
-    @program_check.unit_count(program) + 10,
-    10000,
-  ).unwrap()
-  let physical = @strategy.expand_internal_carrier_tasks(
-    logical,
     @program_check.unit_count(program) + 10,
     10000,
   ).unwrap()
@@ -119,29 +114,20 @@ test "physical DAG admits Carrier segmentation before allocation" {
     local_carrier_events_variant="session",
   )
   let owners = physical_graph_owners(program)
-  let logical = @strategy.prepare_checked_dag(
+  let expanded = @strategy.prepare_checked_dag(
     program,
     owners,
     @program_check.unit_count(program) + 10,
     10000,
   ).unwrap()
-  let expanded = @strategy.expand_internal_carrier_tasks(
-    logical,
-    @program_check.unit_count(program) + 10,
-    10000,
-  ).unwrap()
   let required = @strategy.graph_task_count(expanded)
   assert_true(
-    @strategy.expand_internal_carrier_tasks(logical, required - 1, 10000)
+    @strategy.prepare_checked_dag(program, owners, required - 1, 10000)
     is Err(@strategy.TaskLimit),
   )
   assert_true(
-    @strategy.expand_internal_carrier_tasks(logical, required, 1)
-    is Err(@strategy.WorkLimit),
-  )
-  assert_eq(
-    @strategy.graph_task_count(logical),
-    @program_check.unit_count(program),
+    @strategy.expand_internal_carrier_tasks(expanded, required - 1, 10000)
+    is Ok(_),
   )
 }
 
@@ -265,7 +251,7 @@ fn captured_graph_fixture(
   let graph = @strategy.prepare_checked_dag(
     program,
     owners,
-    @program_check.unit_count(program),
+    @program_check.unit_count(program) + 100,
     1000,
   ).unwrap()
   let requirement = @planning.prepare_query_requirement(

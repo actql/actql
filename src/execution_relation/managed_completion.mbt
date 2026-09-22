@@ -274,13 +274,25 @@ pub fn[P, T] prepare_managed_completion_port(
       return Err(Limit)
     }
     let owner = completion_preparation_owner(preparation)
-    if selected_common_inputs.length() !=
-      @lower.preparation_input_count(@lower.bound_preparation(owner)) {
+    let expected_input_count = match preparation.selected_step {
+      Some(step) =>
+        @lower.node_at(@lower.bound_preparation(owner), step)
+        .map(node => @lower.node_input_count(node))
+        .unwrap_or(-1)
+      None => @lower.preparation_input_count(@lower.bound_preparation(owner))
+    }
+    if selected_common_inputs.length() != expected_input_count {
       return Err(ForeignInputs)
     }
     for index, input in selected_common_inputs {
-      if !managed_input_binding_matches_input(input, owner, index) ||
-        managed_input_binding_profile_cid(input) != profile.cid {
+      let exact = match preparation.selected_step {
+        Some(step) =>
+          managed_input_binding_matches_operation_input(
+            input, owner, step, index,
+          )
+        None => managed_input_binding_matches_input(input, owner, index)
+      }
+      if !exact || managed_input_binding_profile_cid(input) != profile.cid {
         return Err(ForeignInputs)
       }
     }

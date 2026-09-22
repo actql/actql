@@ -9,6 +9,9 @@ fn run_local_managed_test_task(
   available : Ref[Bool],
   obligations? : @execution.ManagedObligations,
   finalization_quantum? : Int = 16,
+  carrier_inputs? : Array[
+    (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
+  ] = [],
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -17,7 +20,7 @@ fn run_local_managed_test_task(
     @strategy.captured_dag_graph(run),
     task,
   ).unwrap()
-  let setup = match
+  let prepared = if carrier_inputs.is_empty() {
     @local_driver.prepare_local_managed_dispatch(
       installed,
       inputs,
@@ -25,7 +28,22 @@ fn run_local_managed_test_task(
         @execution.process_managed_obligations(owner)
       }),
       0L,
-    ) {
+    )
+  } else if inputs.is_empty() {
+    @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      carrier_inputs.map(pair => {
+        @local_driver.local_managed_carrier_output(pair.0, pair.1)
+      }),
+      obligations.unwrap_or_else(() => {
+        @execution.process_managed_obligations(owner)
+      }),
+      0L,
+    )
+  } else {
+    Err(@local_driver.Configuration(@connector.InputUnavailable))
+  }
+  let setup = match prepared {
     Ok(Some(value)) => value
     Ok(None) => fail("Local managed candidate was not applicable")
     Err(Configuration(_)) => fail("Local managed configuration failed")
@@ -206,7 +224,29 @@ fn run_local_managed_test_task(
   }).unwrap()
   let mut finalization_progress = -1L
   while true {
-    let observation = (operations.advance_finalization)(finalization_quantum).unwrap()
+    let observation = match
+      (operations.advance_finalization)(finalization_quantum) {
+      Ok(value) => value
+      Err(Configuration(LogicalIdentityUnsupported)) =>
+        fail("Local managed finalization lacked logical identity support")
+      Err(Configuration(InvalidLimits)) =>
+        fail("Local managed finalization rejected its limits")
+      Err(Configuration(_)) =>
+        fail("Local managed finalization configuration failed")
+      Err(Preparation(_)) =>
+        fail("Local managed finalization preparation failed")
+      Err(Dispatch(_)) => fail("Local managed finalization dispatch failed")
+      Err(Execution(_)) => fail("Local managed finalization execution failed")
+      Err(Search(_)) => fail("Local managed finalization search failed")
+      Err(ManagedValues(_)) =>
+        fail("Local managed finalization value setup failed")
+      Err(ManagedCopy(_)) =>
+        fail("Local managed finalization copy setup failed")
+      Err(ManagedRetention(_)) =>
+        fail("Local managed finalization retention failed")
+      Err(ManagedCompletion(_)) =>
+        fail("Local managed finalization completion failed")
+    }
     assert_true(observation.progress >= finalization_progress)
     assert_true(observation.work >= 0L)
     assert_true(observation.work <= finalization_quantum.to_int64())
@@ -248,6 +288,56 @@ fn local_managed_test_rows(
   Array::makei((operations.output_rows)(), index => {
     (operations.output_row)(index).unwrap()
   })
+}
+
+///|
+fn run_local_managed_carrier_test_task(
+  installed : @local_driver.LocalDispatchModule,
+  run : @strategy.CapturedDAG,
+  task : Int,
+  inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]],
+  rows : Array[Array[String]],
+  obligations? : @execution.ManagedObligations,
+) -> (
+  @local_driver.LocalManagedDispatchOperations[Int],
+  @execution.CarrierManagedCompletedOutput,
+  @carrier_runtime.Material,
+) raise {
+  let owner = @strategy.graph_task_owner(
+    @strategy.captured_dag_graph(run),
+    task,
+  ).unwrap()
+  let setup = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      inputs,
+      obligations.unwrap_or_else(() => {
+        @execution.process_managed_obligations(owner)
+      }),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  assert_eq(operations.inputs.length(), rows.length())
+  for index, transfer in operations.inputs {
+    for row in rows[index] {
+      (transfer.append)(row).unwrap()
+    }
+    (transfer.finish)().unwrap()
+  }
+  (operations.execute)().unwrap()
+  (operations.settle)().unwrap()
+  let completed = (operations.complete_carrier)().unwrap()
+  let material = (operations.carrier_material)().unwrap()
+  assert_true(
+    @strategy.captured_carrier_managed_task_output_matches(
+      run,
+      task,
+      @strategy.captured_task_target(run, task).unwrap(),
+      completed,
+    ),
+  )
+  (operations, completed, material)
 }
 
 ///|

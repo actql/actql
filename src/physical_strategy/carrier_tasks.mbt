@@ -6,6 +6,9 @@ fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
   if stage <= 0 || stage >= graph.owners.length() {
     return false
   }
+  if graph.selected_steps[stage] is Some(_) {
+    return false
+  }
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
   let count = @pipeline.step_count(pipeline)

@@ -469,7 +469,7 @@ pub fn prepare_checked_dag(
     numeric,
     results,
   }
-  Ok(logical)
+  expand_internal_carrier_tasks(logical, max_tasks, work)
 }
 
 ///|
