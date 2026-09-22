@@ -8,10 +8,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "duckdb_environment_settings.generated.h"
+
 typedef const char *(*actql_duckdb_library_version_fn)(void);
-typedef duckdb_state (*actql_duckdb_open_fn)(
-  const char *, duckdb_database *
+typedef duckdb_state (*actql_duckdb_open_ext_fn)(
+  const char *, duckdb_database *, duckdb_config, char **
 );
+typedef duckdb_state (*actql_duckdb_create_config_fn)(duckdb_config *);
+typedef duckdb_state (*actql_duckdb_set_config_fn)(
+  duckdb_config, const char *, const char *
+);
+typedef void (*actql_duckdb_destroy_config_fn)(duckdb_config *);
+typedef void (*actql_duckdb_free_fn)(void *);
 typedef void (*actql_duckdb_close_fn)(duckdb_database *);
 typedef duckdb_state (*actql_duckdb_connect_fn)(
   duckdb_database, duckdb_connection *
@@ -84,7 +92,11 @@ typedef struct {
   void *dynamic_library;
   char *error;
   actql_duckdb_library_version_fn library_version;
-  actql_duckdb_open_fn open;
+  actql_duckdb_open_ext_fn open_ext;
+  actql_duckdb_create_config_fn create_config;
+  actql_duckdb_set_config_fn set_config;
+  actql_duckdb_destroy_config_fn destroy_config;
+  actql_duckdb_free_fn duckdb_free;
   actql_duckdb_close_fn close;
   actql_duckdb_connect_fn connect;
   actql_duckdb_disconnect_fn disconnect;
@@ -478,7 +490,11 @@ void *actql_native_duckdb_load_library(
     return library;
   }
   if (!ACTQL_LOAD(library, library_version, "duckdb_library_version") ||
-      !ACTQL_LOAD(library, open, "duckdb_open") ||
+      !ACTQL_LOAD(library, open_ext, "duckdb_open_ext") ||
+      !ACTQL_LOAD(library, create_config, "duckdb_create_config") ||
+      !ACTQL_LOAD(library, set_config, "duckdb_set_config") ||
+      !ACTQL_LOAD(library, destroy_config, "duckdb_destroy_config") ||
+      !ACTQL_LOAD(library, duckdb_free, "duckdb_free") ||
       !ACTQL_LOAD(library, close, "duckdb_close") ||
       !ACTQL_LOAD(library, connect, "duckdb_connect") ||
       !ACTQL_LOAD(library, disconnect, "duckdb_disconnect") ||
@@ -593,11 +609,70 @@ void *actql_native_duckdb_open_database(
     return database;
   }
   const char *database_path = length == 0 ? NULL : path_text;
-  if (library->open(database_path, &database->database) != DuckDBSuccess) {
-    actql_replace_error(&database->error, "DuckDB database open failed");
+  duckdb_config config = NULL;
+  if (library->create_config(&config) != DuckDBSuccess) {
+    actql_replace_error(&database->error, "DuckDB configuration failed");
     free(path_text);
     return database;
   }
+  static const char *native_settings[][2] = {
+    {"access_mode", "READ_WRITE"},
+    {"enable_external_access", "false"},
+    {"threads", "1"},
+  };
+  size_t native_setting_count =
+    sizeof(native_settings) / sizeof(native_settings[0]);
+  for (size_t index = 0; index < native_setting_count; index++) {
+    if (library->set_config(
+          config,
+          native_settings[index][0],
+          native_settings[index][1]
+        ) != DuckDBSuccess) {
+      library->destroy_config(&config);
+      actql_replace_error(
+        &database->error,
+        "Native DuckDB setting was rejected"
+      );
+      free(path_text);
+      return database;
+    }
+  }
+  for (size_t index = 0;
+       index < actql_duckdb_environment_setting_count;
+       index++) {
+    if (library->set_config(
+          config,
+          actql_duckdb_environment_settings[index][0],
+          actql_duckdb_environment_settings[index][1]
+        ) !=
+        DuckDBSuccess) {
+      library->destroy_config(&config);
+      actql_replace_error(
+        &database->error,
+        "Canonical DuckDB setting was rejected"
+      );
+      free(path_text);
+      return database;
+    }
+  }
+  char *open_error = NULL;
+  duckdb_state opened = library->open_ext(
+    database_path,
+    &database->database,
+    config,
+    &open_error
+  );
+  library->destroy_config(&config);
+  if (opened != DuckDBSuccess) {
+    actql_replace_error(
+      &database->error,
+      open_error == NULL ? "DuckDB database open failed" : open_error
+    );
+    if (open_error != NULL) library->duckdb_free(open_error);
+    free(path_text);
+    return database;
+  }
+  if (open_error != NULL) library->duckdb_free(open_error);
   free(path_text);
   if (library->connect(database->database, &database->connection) !=
       DuckDBSuccess) {

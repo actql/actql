@@ -92,6 +92,32 @@ test "native DuckDB streams bounded physical column batches" {
 }
 
 ///|
+test "native DuckDB reads back canonical semantic settings" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
+    return
+  }
+  let database = load_library(path).unwrap().open_database().unwrap()
+  let query = database
+    .stream_query(
+      "SELECT current_setting('default_collation'), " +
+      "current_setting('preserve_insertion_order'), " +
+      "current_setting('enable_external_access')",
+      3,
+      1L,
+      1,
+      256,
+    )
+    .unwrap()
+  assert_eq(
+    query.next().unwrap(),
+    Some({ row_count: 1, columns_json: "[[\"binary\"],[true],[false]]", }),
+  )
+  assert_eq(query.next().unwrap(), None)
+  assert_true(query.close())
+  database.close()
+}
+
+///|
 test "native DuckDB binds exact admitted physical parameters" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return

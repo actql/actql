@@ -33,6 +33,10 @@ test('native file grants permit exact files while external access remains disabl
     const parameter = path => [{type: {id: 'VARCHAR'}, value: path}];
     const result = await withComputeDatabase(limits, async session => {
       assert.deepEqual(await rows(session, "SELECT current_setting('enable_external_access')"), [[false]]);
+      assert.deepEqual(
+        await rows(session, "SELECT current_setting('default_collation')"),
+        [['binary']],
+      );
       return rows(session, query, parameter(allowed));
     }, undefined, undefined, [allowed]);
     assert.deepEqual(result.value, [['3ff0000000000000'], ['4000000000000000']]);

@@ -7,6 +7,7 @@ import { bindPhysicalValue, exportPhysicalValue, physicalType } from './physical
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
 import {assertBoundedVectorRuntime, boundedVectorItem} from './bounded-vector.mjs';
+import environmentContract from '../environment-contract.json' with {type: 'json'};
 export { DuckDBTransportError, validateLimits } from './configuration.mjs';
 
 const files = new WeakMap();
@@ -439,11 +440,10 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
 
 function createInstance(path, readonly, limits, inputFiles = []) {
   return DuckDBInstance.create(path, {
+    ...environmentContract.settings,
     access_mode: readonly ? 'READ_ONLY' : 'READ_WRITE',
     threads: String(limits.threads), memory_limit: `${limits.memoryBytes}B`,
-    max_temp_directory_size: '0B', preserve_insertion_order: 'true',
-    enable_external_access: inputFiles.length ? 'true' : 'false', autoinstall_known_extensions: 'false',
-    autoload_known_extensions: 'false', allow_unsigned_extensions: 'false',
+    enable_external_access: inputFiles.length ? 'true' : 'false',
   });
 }
 
