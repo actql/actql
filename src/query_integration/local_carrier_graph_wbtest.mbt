@@ -235,6 +235,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\":20}]"
   }
   let graph_equality = is_graph_equality_variant(variant)
+  let graph_diff = variant == "graph_diff"
   let projection = if concise {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "match_nodes" {
@@ -544,6 +545,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       "\"node_rows\":true,\"as\":\"out\""
     })
+  } else if graph_diff {
+    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"graph_diff\":{\"with\":\"right_graph\"}," +
+    "\"as\":\"out\""
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
       ""
@@ -610,6 +618,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"start_id\",\"end_id\",\"hop_count\",\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
+  } else if graph_diff {
+    "\"delta\""
   } else if graph_equality {
     "\"equal\""
   } else {
@@ -642,6 +652,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"start_id\",\"end_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
+  } else if graph_diff {
+    "\"delta\""
   } else if graph_equality {
     "\"equal\""
   } else {
@@ -6154,7 +6166,7 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
     1
-  } else if is_graph_equality_variant(variant) {
+  } else if is_graph_equality_variant(variant) || variant == "graph_diff" {
     1
   } else {
     2
@@ -6367,6 +6379,11 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"equal\":true"))
   } else if variant.has_suffix("unequal") {
     assert_true(graph_rows[0].contains("\"equal\":false"))
+  } else if variant == "graph_diff" {
+    assert_true(graph_rows[0].contains("\"version\":\"actql-graph-delta/0.1\""))
+    assert_true(graph_rows[0].contains("\"add\":[]"))
+    assert_true(graph_rows[0].contains("\"remove\":[]"))
+    assert_true(graph_rows[0].contains("\"update\":[]"))
   } else if variant == "concise_projection" {
     assert_true(graph_rows[0].contains("\"src\":1"))
     assert_true(graph_rows[0].contains("\"dst\":2"))
@@ -6499,6 +6516,7 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_nullable_null_equal")
   run_standard_host_graph_relation_path("graphs_unequal")
   run_standard_host_graph_relation_path("graphs_payload_unequal")
+  run_standard_host_graph_relation_path("graph_diff")
 }
 
 ///|

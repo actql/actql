@@ -30,6 +30,7 @@ priv enum RelationExecution {
   TraverseExecution(@sga.TraverseExecution)
   ShortestExecution(@sga.ShortestExecution)
   GraphsEqualExecution(@sga.GraphsEqualExecution)
+  GraphDiffExecution(@sga.GraphDiffExecution)
 }
 
 ///|
@@ -293,8 +294,16 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           )
         )
       (current, @lower.GraphRelationStep(relation)) if current == count - 1 =>
-        @lower.operation(node) == "SGA.equal" &&
-        @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation &&
+        (
+          (
+            @lower.operation(node) == "SGA.equal" &&
+            @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation
+          ) ||
+          (
+            @lower.operation(node) == "SGA.diff" &&
+            @lower.graph_relation_kind(relation) == @lower.GraphDiffRelation
+          )
+        ) &&
         @lower.graph_relation_input_step(relation, 0) is Some(left) &&
         @lower.graph_relation_input_step(relation, 1) is Some(right) &&
         left >= 0 &&
@@ -1195,8 +1204,11 @@ fn advance_execution(
             }
           }
           Some(@lower.GraphRelationStep(relation)) => {
-            guard @lower.graph_relation_kind(relation) ==
-              @lower.GraphsEqualRelation &&
+            guard (
+                @lower.graph_relation_kind(relation) ==
+                @lower.GraphsEqualRelation ||
+                @lower.graph_relation_kind(relation) == @lower.GraphDiffRelation
+              ) &&
               @lower.graph_relation_input_step(relation, 0) is Some(left) &&
               @lower.graph_relation_input_step(relation, 1) is Some(right) &&
               value.graphs.get(left) is Some(left_graph) &&
@@ -1216,27 +1228,55 @@ fn advance_execution(
                 Err(_) => return fail_execution(value)
               }
             }
-            match
-              @sga.start_graphs_equal(
-                value.control,
-                @execution.generated_completion_preparation(value.generated),
-                value.sequence,
-                value.projection_step,
-                reads[0],
-                reads[1],
-                value.max_rows,
-                {
-                  max_nodes: value.limits.max_value_nodes,
-                  max_text_bytes: value.max_value_bytes,
-                  max_depth: value.limits.max_value_depth,
-                  max_work: value.limits.max_work,
-                },
-                value.limits.max_value_bytes,
-                value.limits.max_value_bytes,
-                value.inputs,
-              ) {
-              Ok(execution) => GraphsEqualExecution(execution)
-              Err(_) => return fail_execution(value)
+            match @lower.graph_relation_kind(relation) {
+              @lower.GraphsEqualRelation =>
+                match
+                  @sga.start_graphs_equal(
+                    value.control,
+                    @execution.generated_completion_preparation(value.generated),
+                    value.sequence,
+                    value.projection_step,
+                    reads[0],
+                    reads[1],
+                    value.max_rows,
+                    {
+                      max_nodes: value.limits.max_value_nodes,
+                      max_text_bytes: value.max_value_bytes,
+                      max_depth: value.limits.max_value_depth,
+                      max_work: value.limits.max_work,
+                    },
+                    value.limits.max_value_bytes,
+                    value.limits.max_value_bytes,
+                    value.inputs,
+                  ) {
+                  Ok(execution) => GraphsEqualExecution(execution)
+                  Err(_) => return fail_execution(value)
+                }
+              @lower.GraphDiffRelation =>
+                match
+                  @sga.start_graph_diff(
+                    value.control,
+                    @execution.generated_completion_preparation(value.generated),
+                    value.sequence,
+                    value.projection_step,
+                    reads[0],
+                    reads[1],
+                    value.max_rows,
+                    {
+                      max_nodes: value.limits.max_value_nodes,
+                      max_text_bytes: value.max_value_bytes,
+                      max_depth: value.limits.max_value_depth,
+                      max_work: value.limits.max_work,
+                    },
+                    value.limits.max_workspace_slots,
+                    value.limits.max_value_bytes,
+                    value.limits.max_value_bytes,
+                    value.inputs,
+                  ) {
+                  Ok(execution) => GraphDiffExecution(execution)
+                  Err(_) => return fail_execution(value)
+                }
+              _ => return fail_execution(value)
             }
           }
           _ => return fail_execution(value)
@@ -1370,6 +1410,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          GraphDiffExecution(execution) =>
+            match @sga.advance_graph_diff(execution, quantum) {
+              Ok(@sga.GraphDiffContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.GraphDiffComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.GraphDiffFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.GraphDiffStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
         }
         match poll {
           Err(_) => return fail_execution(value)
@@ -1487,6 +1539,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      GraphDiffExecution(execution) =>
+        match @sga.cleanup_graph_diff(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   if value.kernel is Some(active) {
@@ -1544,6 +1601,7 @@ fn cleanup_execution(
     Some(ShortestExecution(active)) => @sga.shortest_cleanup_pending(active)
     Some(GraphsEqualExecution(active)) =>
       @sga.graphs_equal_cleanup_pending(active)
+    Some(GraphDiffExecution(active)) => @sga.graph_diff_cleanup_pending(active)
     None => false
   }
   let kernel_pending = match value.kernel {

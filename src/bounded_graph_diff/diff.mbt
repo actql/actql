@@ -1011,3 +1011,33 @@ pub fn base_cid(delta : Delta) -> String {
 pub fn target_cid(delta : Delta) -> String {
   delta.target_cid
 }
+
+///|
+pub fn cleanup(value : Preparation) -> Bool {
+  if value.left_snapshot is Some(snapshot) {
+    @snapshot.cleanup(snapshot) |> ignore
+    value.left_snapshot = None
+  }
+  if value.right_snapshot is Some(snapshot) {
+    @snapshot.cleanup(snapshot) |> ignore
+    value.right_snapshot = None
+  }
+  if value.phase != Finished {
+    for
+      builder in [
+        value.node_add,
+        value.node_remove,
+        value.node_update,
+        value.edge_add,
+        value.edge_remove,
+        value.edge_update,
+      ] {
+      @value.cancel_array_value(builder) |> ignore
+    }
+    if value.properties is Some(properties) {
+      @value.cancel_object_value(properties) |> ignore
+      value.properties = None
+    }
+  }
+  true
+}

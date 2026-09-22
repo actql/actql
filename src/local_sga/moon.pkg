@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/bounded_execution" @bounded,
+  "actql/actql/bounded_graph_diff" @diff,
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
   "actql/actql/lowering_relation" @lower,
