@@ -30,14 +30,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `contract` | 39/39 |
 | `checker` | 39/39 |
 | `lowering` | 39/39 |
-| `kernel` | 38/39 |
-| `managed` | 38/39 |
+| `kernel` | 39/39 |
+| `managed` | 39/39 |
 | `standard_host` | 38/39 |
 | `consumer_lifetime` | 38/39 |
-| `resources` | 38/39 |
-| `cancellation` | 38/39 |
+| `resources` | 39/39 |
+| `cancellation` | 39/39 |
 | `publication` | 38/39 |
-| `three_targets` | 38/39 |
+| `three_targets` | 39/39 |
 | complete operations | 34/39 |
 | open operations | 5/39 |
 <!-- local-family-coverage-summary:end -->
@@ -371,6 +371,22 @@ native. The same path establishes the independently derived Named Result
 identity. Cancellation after partial snapshot work confirms stop separately
 from cleanup and reclaims the unpublished output without revoking either
 input.
+
+Commits `e97504c30`, `b13773456`, and `17973713a` add the atomic
+`apply_graph_delta` kernel and its managed provider path. Lowering retains the
+typed delta field and Graph contract identity. The kernel verifies the exact
+base snapshot CID, Graph contract CID, ordered unique actions, before-value
+preconditions, and target snapshot CID before exposing a completed Graph.
+Empty and nonempty node, edge, and property changes run with single-work
+quanta on JS, Wasm, and native; cancellation stops independently of cleanup.
+
+This does not close the operation. The standard Host Graph pipeline currently
+finishes an internal `graph_diff` Relation as a terminal output and cannot
+retain it as the exact second input of a following Graph apply step. A direct
+managed-provider fixture proves the physical kernel boundary, but it does not
+substitute for Host scheduling. The remaining closure is the typed internal
+Relation handoff followed by two downstream Relation consumers, formal Named
+Result publication, and final Host-owned reclamation.
 Reach retains its typed start identity, direction, and finite depth.
 Subgraph retains explicit, predicate, and Relation selectors as distinct typed
 forms and preserves its optional edge predicate.

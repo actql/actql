@@ -1658,8 +1658,43 @@
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
       "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_relation_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_relation_test.mbt",
+        "src/bounded_graph_snapshot/snapshot.mbt",
+        "src/local_sga/graph_apply.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "atomic_delta_kernel_and_managed_provider",
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "17973713a",
+          "evidence": [
+            "src/local_sga/graph_apply.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ],
+      "blocker": "The standard Host cannot yet retain an internal graph_diff Relation output as the exact second input of the following apply step; two consumers, formal publication, and final Host-owned reclamation remain open."
     },
     {
       "family": "SGA",
