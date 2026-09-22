@@ -23,8 +23,12 @@ if (manifest.version !== 'actql-local-resource-accounting-audit/0.1') {
 const inventoryPaths = manifest.inventories ?? {};
 const relaPath = path.join(root, inventoryPaths.rela ?? '');
 const familyPath = path.join(root, inventoryPaths.families ?? '');
+const routesPath = path.resolve(root, manifest.production_routes ?? '');
 if (!fs.existsSync(relaPath) || !fs.existsSync(familyPath)) {
   fail('both authoritative operation inventories must exist');
+}
+if (!manifest.production_routes || !fs.existsSync(routesPath)) {
+  fail('production route inventory must exist');
 }
 const rela = fs.existsSync(relaPath) ? readJson(relaPath) : {operations: []};
 const families = fs.existsSync(familyPath)
@@ -166,6 +170,84 @@ if (actualKeys.length !== expectedKeys.length ||
   fail('bindings must exactly preserve both authoritative inventories');
 }
 
+const routes = fs.existsSync(routesPath)
+  ? readJson(routesPath)
+  : {routes: []};
+if (routes.version !== 'actql-local-resource-production-routes/0.1') {
+  fail(`unexpected production route version: ${routes.version}`);
+}
+const routeEntries = routes.routes ?? [];
+const routeKeys = routeEntries.map(
+  entry => `${entry.inventory}:${entry.family}:${entry.operation}`,
+);
+if (routeKeys.length !== actualKeys.length ||
+  actualKeys.some((key, index) => routeKeys[index] !== key) ||
+  new Set(routeKeys).size !== routeKeys.length) {
+  fail('production routes must exactly preserve both authoritative inventories');
+}
+for (const [index, route] of routeEntries.entries()) {
+  const binding = actual[index];
+  const label = `${route.family} ${route.operation}`;
+  if (binding?.profile !== route.profile || !profiles[route.profile]) {
+    fail(`${label}: production route profile differs from binding`);
+  }
+  const dispatch = route.dispatch ?? {};
+  const entrypoint = route.entrypoint ?? {};
+  for (const [role, value] of [['dispatch', dispatch], ['entrypoint', entrypoint]]) {
+    if (typeof value.path !== 'string' ||
+      !value.path.startsWith('src/') ||
+      value.path.split('/').includes('..') ||
+      /(?:_test|_wbtest|\.generated)\./u.test(value.path)) {
+      fail(`${label}: ${role} must bind a production source`);
+      continue;
+    }
+    const file = path.join(root, value.path);
+    if (!fs.existsSync(file)) {
+      fail(`${label}: missing ${role} production source ${value.path}`);
+      continue;
+    }
+    const sourceText = fs.readFileSync(file, 'utf8');
+    if (role === 'dispatch' &&
+      (typeof value.marker !== 'string' || !sourceText.includes(value.marker))) {
+      fail(`${label}: dispatch marker does not reach production source`);
+    }
+    if (role === 'entrypoint' &&
+      (typeof value.symbol !== 'string' ||
+        !/^[a-z][a-z0-9_]*$/u.test(value.symbol) ||
+        !new RegExp(`(?:^|\\n)(?:pub )?fn(?:\\[[^\\]]+\\])?\\s+${value.symbol}\\s*\\(`, 'u')
+          .test(sourceText))) {
+      fail(`${label}: production entrypoint symbol is missing`);
+    }
+  }
+  const boundaryTests = route.boundary_tests ?? [];
+  const boundaryRoles = new Set();
+  for (const item of boundaryTests) {
+    if (typeof item.role !== 'string' || boundaryRoles.has(item.role)) {
+      fail(`${label}: boundary roles must be named and unique`);
+    }
+    boundaryRoles.add(item.role);
+    if (item.suite !== 'moon:query_integration' ||
+      JSON.stringify(item.targets) !== JSON.stringify(['js', 'wasm', 'native']) ||
+      typeof item.path !== 'string' ||
+      !item.path.startsWith('src/query_integration/') ||
+      !item.path.endsWith('_wbtest.mbt') ||
+      typeof item.fixture !== 'string') {
+      fail(`${label}: boundary evidence must be suite-connected on all targets`);
+      continue;
+    }
+    const file = path.join(root, item.path);
+    if (!fs.existsSync(file) ||
+      !fs.readFileSync(file, 'utf8').includes(`test "${item.fixture}"`)) {
+      fail(`${label}: missing operation boundary fixture ${item.fixture}`);
+    }
+  }
+  if (['traverse', 'apply_graph_delta'].includes(route.operation) &&
+    route.family === 'SGA' &&
+    !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
+    fail(`${label}: reviewed exact/cancel boundary fixture is missing`);
+  }
+}
+
 for (const entry of rela.operations) {
   if (entry.layers?.performance !== 'complete' ||
     (entry.evidence?.performance ?? []).length === 0) {
@@ -186,6 +268,7 @@ if (errors.length > 0) {
 } else {
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
-    `${Object.keys(profiles).length} implementation profiles gated.`,
+    `${Object.keys(profiles).length} implementation profiles, ` +
+    `${routeEntries.length} production routes gated.`,
   );
 }

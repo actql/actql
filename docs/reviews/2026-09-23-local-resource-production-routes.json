@@ -1,0 +1,1003 @@
+{
+  "version": "actql-local-resource-production-routes/0.1",
+  "routes": [
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "filter",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Filter("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "select",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Select("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "rename",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Select("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "drop",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Select("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "derive",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "SnapshotMap("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "sort",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "StableSort("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "take",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Limit("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "top_k",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "TopK("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "top_k_by",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "PartitionedTopK("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "row_window",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "WindowStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "window_group",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "WindowStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "lag",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Lag("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "watermark_rows",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Watermark("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "pivot",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Pivot("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "unpivot",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Unpivot("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "json_pick",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "JsonPick("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "unnest",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Unnest("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "join",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "JoinStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "nest",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "NestStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "group",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "Groups("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "distinct",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "DistinctRows"
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "dedupe_rows",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "DedupeRows"
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "assert_rows",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "AssertAll("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "append",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "AppendStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "values",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "ValuesStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "except",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "SetStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "intersect",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "SetStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "cross_join",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "CrossJoinStep("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "rela",
+      "family": "RelA",
+      "operation": "analytic",
+      "profile": "rela_rows",
+      "dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "AnalyticRows("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/generated_sequence.mbt",
+        "symbol": "execute_generated_sequence"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "normalize_graph",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_normalize("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/normalize.mbt",
+        "symbol": "start_normalize"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "match_nodes",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_match_nodes("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/match_nodes.mbt",
+        "symbol": "start_match_nodes"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "match_edges",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_match_edges("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/match_edges.mbt",
+        "symbol": "start_match_edges"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "traverse",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_traverse("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/traverse.mbt",
+        "symbol": "start_traverse"
+      },
+      "boundary_tests": [
+        {
+          "role": "exact_one_short_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "path traversal charges overlapping start selector and indices"
+        },
+        {
+          "role": "quantum_and_empty_selector",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "sparse and zero-hop path selectors are independent of resume quantum"
+        }
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "shortest_path",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_shortest("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/shortest.mbt",
+        "symbol": "start_shortest"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "components",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_components("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/components.mbt",
+        "symbol": "start_components"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "reach",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_reach("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/reach.mbt",
+        "symbol": "start_reach"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "graph_bounds",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_bounds("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_bounds.mbt",
+        "symbol": "start_graph_bounds"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "degree",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_degree("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_bounds.mbt",
+        "symbol": "start_graph_degree"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "graph_diff",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_diff("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_diff.mbt",
+        "symbol": "start_graph_diff"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "graft_graph",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graft("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graft.mbt",
+        "symbol": "start_graft"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "union_graphs",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graft_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graft.mbt",
+        "symbol": "start_graft_views"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "subtract_graphs",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graft_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graft.mbt",
+        "symbol": "start_graft_views"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "subgraph",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_subgraph("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/subgraph.mbt",
+        "symbol": "start_subgraph"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "graphs_equal",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graphs_equal("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graphs_equal.mbt",
+        "symbol": "start_graphs_equal"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "apply_graph_delta",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_apply("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_apply.mbt",
+        "symbol": "start_graph_apply"
+      },
+      "boundary_tests": [
+        {
+          "role": "exact_one_short_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta atomically applies node edge and property changes"
+        },
+        {
+          "role": "many_action_and_empty_base",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta admits many additions and removals before scratch allocation"
+        },
+        {
+          "role": "wide_property",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta reserves wide property reference containers before action storage"
+        },
+        {
+          "role": "utf8_key",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta accounts UTF-8 action keys apart from structural entries"
+        }
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "operation": "mean_graphs",
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_mean_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/mean.mbt",
+        "symbol": "start_mean_views"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "window_events",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/events_pipeline.mbt",
+        "marker": "@tea.start_event_window("
+      },
+      "entrypoint": {
+        "path": "src/local_tea/window.mbt",
+        "symbol": "start_event_window"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "watermark_events",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/events_pipeline.mbt",
+        "marker": "@tea.start_watermark("
+      },
+      "entrypoint": {
+        "path": "src/local_tea/watermark.mbt",
+        "symbol": "start_watermark"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "session",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/events_pipeline.mbt",
+        "marker": "@tea.start_session("
+      },
+      "entrypoint": {
+        "path": "src/local_tea/session.mbt",
+        "symbol": "start_session"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "time_series",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/time_series.mbt",
+        "marker": "@tea.start_time_series("
+      },
+      "entrypoint": {
+        "path": "src/local_tea/time_series.mbt",
+        "symbol": "start_time_series"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "interval_join",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/interval_join.mbt",
+        "marker": "@execution.start_bounded_interval_join("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/bounded_interval_join.mbt",
+        "symbol": "start_bounded_interval_join"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "dedupe_events",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/events_pipeline.mbt",
+        "marker": "@tea.start_dedupe("
+      },
+      "entrypoint": {
+        "path": "src/local_tea/dedupe.mbt",
+        "symbol": "start_dedupe"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "asof_join",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/asof_join.mbt",
+        "marker": "@execution.start_bounded_asof_join("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/bounded_asof_join.mbt",
+        "symbol": "start_bounded_asof_join"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "operation": "sequence",
+      "profile": "tea_events",
+      "dispatch": {
+        "path": "src/local_tea_provider/sequence_match.mbt",
+        "marker": "@execution.start_bounded_sequence_match("
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/bounded_sequence_match.mbt",
+        "symbol": "start_bounded_sequence_match"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecA",
+      "operation": "normalize_vectors",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_normalize("
+      },
+      "entrypoint": {
+        "path": "src/local_veca/normalize.mbt",
+        "symbol": "start_normalize"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecA",
+      "operation": "score_vectors",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_score("
+      },
+      "entrypoint": {
+        "path": "src/local_veca/score.mbt",
+        "symbol": "start_score"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecA",
+      "operation": "nearest",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_nearest_inputs("
+      },
+      "entrypoint": {
+        "path": "src/local_veca/nearest.mbt",
+        "symbol": "start_nearest_inputs"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecA",
+      "operation": "pool_vectors",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_pool("
+      },
+      "entrypoint": {
+        "path": "src/local_veca/pool.mbt",
+        "symbol": "start_pool"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecA",
+      "operation": "merge_rankings",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_ranking_inputs("
+      },
+      "entrypoint": {
+        "path": "src/local_veca/ranking.mbt",
+        "symbol": "start_ranking_inputs"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "graph",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_rows_to_graph("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/graph.mbt",
+        "symbol": "start_rows_to_graph"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "node_rows",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/graph.mbt",
+        "symbol": "start_graph_to_rows"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "edge_rows",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/graph.mbt",
+        "symbol": "start_graph_to_rows"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "to_events",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_tea_provider/events_pipeline.mbt",
+        "marker": "@bridge.start_rows_to_events("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/events.mbt",
+        "symbol": "start_rows_to_events"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "events",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_tea_provider/events_pipeline.mbt",
+        "marker": "@bridge.start_events_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/events.mbt",
+        "symbol": "start_events_to_rows"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "to_vectors",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@bridge.start_rows_to_vectors("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/vectors.mbt",
+        "symbol": "start_rows_to_vectors"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "vectors",
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@bridge.start_vectors_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/vectors.mbt",
+        "symbol": "start_vectors_to_rows"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecAExpression",
+      "operation": "vector_score",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/execution_relation/expression.mbt",
+        "marker": "VectorScore(metric, left, right)"
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/expression.mbt",
+        "symbol": "evaluate_expression_impl"
+      }
+    },
+    {
+      "inventory": "families",
+      "family": "VecAExpression",
+      "operation": "vector_concat",
+      "profile": "veca_vectors",
+      "dispatch": {
+        "path": "src/execution_relation/expression.mbt",
+        "marker": "VectorConcat(children)"
+      },
+      "entrypoint": {
+        "path": "src/execution_relation/expression.mbt",
+        "symbol": "evaluate_expression_impl"
+      }
+    }
+  ]
+}

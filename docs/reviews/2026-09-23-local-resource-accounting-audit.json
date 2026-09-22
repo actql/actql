@@ -4,6 +4,7 @@
     "rela": "docs/reviews/2026-09-18-local-compute-coverage.json",
     "families": "docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json"
   },
+  "production_routes": "docs/reviews/2026-09-23-local-resource-production-routes.json",
   "required_facets": [
     "admission_before_allocation",
     "charged_bounded_work",
@@ -89,7 +90,8 @@
         "src/local_sga/normalize.mbt",
         "src/local_sga/graft.mbt",
         "src/local_sga/mean.mbt",
-        "src/local_sga/traverse_paths.mbt"
+        "src/local_sga/traverse_paths.mbt",
+        "src/local_sga/graph_apply.mbt"
       ],
       "evidence": [
         {
@@ -106,6 +108,26 @@
           "facets": ["finite_stop_observation", "cleanup_owner"],
           "path": "src/local_sga/normalize_wbtest.mbt",
           "fixture": "normalize confirms cancellation before reclaiming partial output"
+        },
+        {
+          "facets": ["admission_before_allocation", "temporary_retained_peak_scope", "cleanup_owner"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta admits many additions and removals before scratch allocation"
+        },
+        {
+          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta reserves wide property reference containers before action storage"
+        },
+        {
+          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph delta accounts UTF-8 action keys apart from structural entries"
+        },
+        {
+          "facets": ["temporary_retained_peak_scope", "finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "path traversal charges overlapping start selector and indices"
         }
       ]
     },
