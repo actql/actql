@@ -146,4 +146,31 @@ test "empty nest observes the exact metadata workspace boundary" {
   let (short, short_peak) = nest_empty_workspace_attempt(peak - 1)
   assert_true(short is Err(RowLimit))
   assert_true(short_peak <= peak - 1)
+
+  let generated = nest_sequence(3)
+  guard @lower.sequence_step(generated.sequence, 2)
+    is Some(@lower.NestStep(kernel)) else {
+    fail("nest kernel")
+  }
+  let owner = @lower.nest_kernel_owner(kernel)
+  let parents = table_from_capture(
+    capture_values(owner, 0, max_rows=4, run_limits().input_values).unwrap(),
+  )
+  let children = table_from_capture(
+    capture_values(owner, 1, max_rows=3, run_limits().input_values).unwrap(),
+  )
+  assert_kernel_budget_sweep("nest", (control, workspace) => {
+    evaluate_nest_rows(
+      kernel,
+      parents,
+      children,
+      4,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+      selected_item_limit=Some(3L),
+      grouped_byte_limit=Some(10000L),
+      attached_byte_limit=Some(10000L),
+    )
+  })
 }

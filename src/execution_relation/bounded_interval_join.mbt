@@ -303,7 +303,7 @@ fn bounded_interval_step(
             }
             Err(issue) =>
               return bounded_interval_failure(
-                Rows(interval_ordering_issue(issue)),
+                Rows(ordering_row_issue(issue)),
                 progress,
                 used + 1,
               )

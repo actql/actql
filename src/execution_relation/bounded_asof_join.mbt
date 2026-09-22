@@ -165,7 +165,7 @@ fn bounded_asof_compare_columns(
     match compare_complete_value(left, right, control) {
       Ok(0) => ()
       Ok(value) => return Ok(value)
-      Err(issue) => return Err(asof_ordering_issue(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
   }
   Ok(0)
@@ -452,7 +452,7 @@ fn bounded_asof_step(
             }
             Err(issue) =>
               return bounded_asof_failure(
-                Rows(asof_ordering_issue(issue)),
+                Rows(ordering_row_issue(issue)),
                 progress,
                 used + 1,
               )
@@ -540,7 +540,7 @@ fn bounded_asof_step(
             Ok(value) => value
             Err(issue) =>
               return bounded_asof_failure(
-                Rows(asof_ordering_issue(issue)),
+                Rows(ordering_row_issue(issue)),
                 progress,
                 used + 1,
               )

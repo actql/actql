@@ -159,6 +159,29 @@ fn charge_named(control : ControlBudget, name : String) -> Bool {
 }
 
 ///|
+/// Resolve one checked field against physical column names. Every inspected
+/// candidate is charged before comparing it, so callers cannot accidentally
+/// turn a wide schema scan into unbounded control work.
+fn resolve_column(
+  names : Array[String],
+  field : @schema.FieldName,
+  control : ControlBudget,
+) -> Result[Int, RowIssue] {
+  let reference = @schema.reference_name(field)
+  for index, name in names {
+    if !spend_control(control, 1) ||
+      !spend_control_text(control, reference) ||
+      !spend_control_text(control, name) {
+      return Err(RowLimit)
+    }
+    if name == reference {
+      return Ok(index)
+    }
+  }
+  Err(InvalidRows)
+}
+
+///|
 /// Charge the complete UTF-8 size before allocating a derived label.
 fn charge_text_append(
   control : ControlBudget,

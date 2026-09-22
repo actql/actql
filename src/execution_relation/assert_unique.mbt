@@ -34,18 +34,14 @@ fn[T : RelationRows] validate_unique_rows(
     }
     let sorted = match stable_order_indices(input, order, control, workspace) {
       Ok(indices) => indices
-      Err(InvalidInput) => return Err(InvalidRows)
-      Err(Limit) => return Err(RowLimit)
-      Err(Scalar(issue)) => return Err(Comparison(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
     for i = 1; i < sorted.length(); i = i + 1 {
       match
         compare_row_indices(input, sorted[i - 1], sorted[i], order, control) {
         Ok(0) => return Err(AssertionDuplicate(sorted[i - 1], sorted[i]))
         Ok(_) => ()
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
     }
     Ok(())

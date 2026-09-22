@@ -49,9 +49,7 @@ fn[T : IndexedRows] pivot_groups(
         control,
       ) {
       Ok(comparison) => comparison != 0
-      Err(InvalidInput) => return Err(InvalidRows)
-      Err(Limit) => return Err(RowLimit)
-      Err(Scalar(issue)) => return Err(Comparison(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
     if different {
       if !add(Some(indices[start]), start, position) {
@@ -310,9 +308,7 @@ fn[T : RelationRows] evaluate_pivot_rows(
   }
   let indices = match stable_order_indices(input, order, control, workspace) {
     Ok(value) => value
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let groups = match
     pivot_groups(input, indices, order, max_rows, control, workspace) {

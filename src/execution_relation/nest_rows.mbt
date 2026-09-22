@@ -131,23 +131,6 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
   let baseline = workspace.live
   let mut retained = 0
   let run = fn() -> Result[Table, RowIssue] {
-    let resolve = fn(
-      names : Array[String],
-      field : @schema.FieldName,
-    ) -> Result[Int, RowIssue] {
-      let reference = @schema.reference_name(field)
-      for index, name in names {
-        if !spend_control(control, 1) ||
-          !spend_control_text(control, reference) ||
-          !spend_control_text(control, name) {
-          return Err(RowLimit)
-        }
-        if name == reference {
-          return Ok(index)
-        }
-      }
-      Err(InvalidRows)
-    }
     let parent_names = parent.field_names()
     let child_names = child.field_names()
     let keys : Array[(Int, Int)] = []
@@ -156,11 +139,11 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
         return Err(RowLimit)
       }
       let pair = @lower.nest_kernel_key_at(kernel, index).unwrap()
-      let left = match resolve(parent_names, pair.left) {
+      let left = match resolve_column(parent_names, pair.left, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      let right = match resolve(child_names, pair.right) {
+      let right = match resolve_column(child_names, pair.right, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -172,7 +155,7 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
         return Err(RowLimit)
       }
       let term = @lower.nest_kernel_order_at(kernel, index).unwrap()
-      let column = match resolve(child_names, term.field) {
+      let column = match resolve_column(child_names, term.field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -203,7 +186,7 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
         return Err(RowLimit)
       }
       let field = @lower.nest_kernel_field_at(kernel, index).unwrap()
-      let column = match resolve(child_names, field.input) {
+      let column = match resolve_column(child_names, field.input, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -227,7 +210,7 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
         if field == @schema.Unqualified(into) {
           output_columns.push(None)
         } else {
-          let column = match resolve(parent_names, field) {
+          let column = match resolve_column(parent_names, field, control) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }

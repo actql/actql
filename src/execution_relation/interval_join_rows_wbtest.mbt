@@ -112,6 +112,25 @@ fn interval_rows(kind : String, mode : String) -> Result[Table, RowIssue] raise 
 }
 
 ///|
+test "interval join passes the common kernel budget sweep" {
+  let (owner, kernel) = interval_join_test_kernel("inner", "point_in_interval")
+  let left = interval_numeric_left(owner, kernel)
+  let right = interval_numeric_right(owner, kernel)
+  assert_kernel_budget_sweep("interval_join", (control, workspace) => {
+    evaluate_interval_join_rows(
+      kernel,
+      left,
+      right,
+      20,
+      12L,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
+}
+
+///|
 fn interval_generated() -> GeneratedSequence raise {
   let schema = "{\"key\":{\"type\":\"number\",\"nullable\":true}," +
     "\"start\":{\"type\":\"number\",\"nullable\":false}," +

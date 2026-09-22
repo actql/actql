@@ -115,7 +115,7 @@ fn advance_ordered_bindings_execution(
     match advance_expression_frame(frame) {
       Err(issue) => {
         cancel_ordered_bindings_execution(execution)
-        return Err(Evaluation(execution.row, execution.slot, issue))
+        return Err(evaluation_row_issue(execution.row, execution.slot, issue))
       }
       Ok(None) => return Ok(OrderedBindingsContinue)
       Ok(Some(evaluated)) => {
@@ -173,7 +173,7 @@ fn advance_ordered_bindings_execution(
     Err(issue) => {
       release_slots(execution.workspace, 2)
       cancel_ordered_bindings_execution(execution)
-      return Err(Evaluation(execution.row, execution.slot, issue))
+      return Err(evaluation_row_issue(execution.row, execution.slot, issue))
     }
   }
   Ok(OrderedBindingsContinue)

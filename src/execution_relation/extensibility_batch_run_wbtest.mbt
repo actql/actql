@@ -332,7 +332,7 @@ fn ext_run_batch_chunk(
       let detached = match evaluated {
         Err(e) => {
           cleanup_expression_roots(expression_scope)
-          return Err(Evaluation(row, slot, e))
+          return Err(evaluation_row_issue(row, slot, e))
         }
         Ok(value) => {
           guard value.root is Some(root) else {

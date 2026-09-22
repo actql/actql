@@ -310,9 +310,7 @@ fn distinct_aggregate_values(
     for previous in bucket {
       let comparison = match compare_complete_value(previous, value, control) {
         Ok(comparison) => comparison
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
       if comparison == 0 {
         duplicate = true
@@ -376,9 +374,7 @@ fn[T : IndexedRows] ordered_aggregate_values(
   }
   let ordered = match stable_order_indices(members, order, control, workspace) {
     Ok(ordered) => ordered
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let values : Array[Value] = []
   for position in ordered {
@@ -505,16 +501,8 @@ fn sort_aggregate_values(
     }
     match compare_complete_value(left, right, control) {
       Ok(comparison) => comparison
-      Err(InvalidInput) => {
-        issue = Some(InvalidRows)
-        0
-      }
-      Err(Limit) => {
-        issue = Some(RowLimit)
-        0
-      }
-      Err(Scalar(value)) => {
-        issue = Some(Comparison(value))
+      Err(value) => {
+        issue = Some(ordering_row_issue(value))
         0
       }
     }
@@ -748,9 +736,7 @@ fn[T : IndexedRows] aggregate_group_ranges(
           control,
         ) {
         Ok(comparison) => comparison != 0
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
     }
     if boundary {
@@ -813,7 +799,7 @@ fn[T : IndexedRows] aggregate_expression_value(
       logical_work=Some(value.budget),
     ) {
     Ok(value) => Ok(value)
-    Err(issue) => Err(Evaluation(row, aggregate, issue))
+    Err(issue) => Err(evaluation_row_issue(row, aggregate, issue))
   }
   release_slots(workspace, workspace.live - baseline)
   result
@@ -889,9 +875,7 @@ fn[T : IndexedRows] evaluate_dynamic_aggregate(
   } else {
     match stable_order_indices(contributors, order, control, workspace) {
       Ok(value) => value
-      Err(InvalidInput) => return Err(InvalidRows)
-      Err(Limit) => return Err(RowLimit)
-      Err(Scalar(issue)) => return Err(Comparison(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
   }
   if !reserve_slots(workspace, values.length()) {
@@ -1000,9 +984,7 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
     let ordered = match
       stable_order_indices(members, order, control, workspace) {
       Ok(ordered) => ordered
-      Err(InvalidInput) => return Err(InvalidRows)
-      Err(Limit) => return Err(RowLimit)
-      Err(Scalar(issue)) => return Err(Comparison(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
     for offset = 0; offset < ordered.length(); offset = offset + 1 {
       if !spend_control(control, 1) {
@@ -1131,9 +1113,7 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
         let comparison = match
           compare_complete_value(values[i], selected, control) {
           Ok(comparison) => comparison
-          Err(InvalidInput) => return Err(InvalidRows)
-          Err(Limit) => return Err(RowLimit)
-          Err(Scalar(issue)) => return Err(Comparison(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
         if (function is @relation.Min && comparison < 0) ||
           (function is @relation.Max && comparison > 0) {
@@ -1314,9 +1294,7 @@ fn[T : RelationRows] evaluate_group_into(
   }
   let indices = match stable_order_indices(input, order, control, workspace) {
     Ok(indices) => indices
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let groups = match
     aggregate_group_ranges(input, indices, order, max_rows, control, workspace) {

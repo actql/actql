@@ -53,6 +53,33 @@ fn row_window_scale_sample(count : Int, sliding : Bool) -> (Int, Int) raise {
 }
 
 ///|
+test "row window passes the common kernel budget sweep" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":0,\"id\":0}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"sliding\",\"time\":\"at\",\"size\":10,\"step\":5}}]",
+  )
+  guard @lower.sequence_step(prepared_sequence(owner), 1)
+    is Some(@lower.WindowStep(window)) else {
+    fail("row window lowering")
+  }
+  let input : Table = {
+    owner,
+    id: "values_0",
+    names: ["at", "id"],
+    rows: [[Number(0), Number(0)], [Number(1), Number(1)]],
+  }
+  assert_kernel_budget_sweep("window", (control, workspace) => {
+    evaluate_window_rows(
+      window,
+      input,
+      4,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
+}
+
+///|
 test "row windows scale with input rows and emitted memberships" {
   for count in [128, 1024, 8192] {
     for sliding in [false, true] {

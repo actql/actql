@@ -43,23 +43,6 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
     return Err(RowLimit)
   }
   let profile = @lower.join_kernel_profile(kernel)
-  let resolve = fn(
-    names : Array[String],
-    field : @schema.FieldName,
-  ) -> Result[Int, RowIssue] {
-    let reference = @schema.reference_name(field)
-    for index, name in names {
-      if !spend_control(control, 1) ||
-        !spend_control_text(control, reference) ||
-        !spend_control_text(control, name) {
-        return Err(RowLimit)
-      }
-      if name == reference {
-        return Ok(index)
-      }
-    }
-    Err(InvalidRows)
-  }
   let mut retained = 0
   let run = fn() -> Result[Table, RowIssue] {
     let keys : Array[(Int, Int)] = []
@@ -72,11 +55,11 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
         return Err(RowLimit)
       }
       let (lf, rf) = @lower.inner_join_key_at(profile, index).unwrap()
-      let lc = match resolve(left.field_names(), lf) {
+      let lc = match resolve_column(left.field_names(), lf, control) {
         Ok(v) => v
         Err(e) => return Err(e)
       }
-      let rc = match resolve(right.field_names(), rf) {
+      let rc = match resolve_column(right.field_names(), rf, control) {
         Ok(v) => v
         Err(e) => return Err(e)
       }
@@ -127,13 +110,14 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
         _ => return Err(InvalidRows)
       }
       let column = match
-        resolve(
+        resolve_column(
           if on_left {
             left.field_names()
           } else {
             right.field_names()
           },
           source,
+          control,
         ) {
         Ok(v) => v
         Err(e) => return Err(e)

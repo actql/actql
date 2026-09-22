@@ -59,9 +59,7 @@ fn[T : RelationRows] evaluate_distinct_selection(
   let columns = Array::makei(width, i => i)
   let indices = match distinct_indices(input, columns, control, workspace) {
     Ok(v) => v
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(e)) => return Err(Comparison(e))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   if !reserve_slots(workspace, indices.length()) ||
     !reserve_slots(workspace, width) ||

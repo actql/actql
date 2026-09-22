@@ -28,15 +28,6 @@ fn interval_clock(
 }
 
 ///|
-fn interval_ordering_issue(issue : OrderingIssue) -> RowIssue {
-  match issue {
-    InvalidInput => InvalidRows
-    Limit => RowLimit
-    Scalar(issue) => Comparison(issue)
-  }
-}
-
-///|
 priv enum IntervalSearchPhase {
   ComparePairs
   EmitLeftRemainder
@@ -259,23 +250,6 @@ fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
     left_count.to_int64() > max_search_visits / right_count.to_int64() {
     return Err(RowLimit)
   }
-  let resolve = fn(
-    names : Array[String],
-    field : @schema.FieldName,
-  ) -> Result[Int, RowIssue] {
-    let reference = @schema.reference_name(field)
-    for index, name in names {
-      if !spend_control(control, 1) ||
-        !spend_control_text(control, reference) ||
-        !spend_control_text(control, name) {
-        return Err(RowLimit)
-      }
-      if name == reference {
-        return Ok(index)
-      }
-    }
-    Err(InvalidRows)
-  }
   let mut retained = 0
   let run = fn() -> Result[Table, RowIssue] {
     let keys : Array[(Int, Int)] = []
@@ -284,11 +258,13 @@ fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
         return Err(RowLimit)
       }
       let (left_field, right_field) = @lower.interval_join_key_at(kernel, index).unwrap()
-      let left_column = match resolve(left.field_names(), left_field) {
+      let left_column = match
+        resolve_column(left.field_names(), left_field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      let right_column = match resolve(right.field_names(), right_field) {
+      let right_column = match
+        resolve_column(right.field_names(), right_field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -300,34 +276,37 @@ fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
     ) -> Result[(Int, Int?), RowIssue] {
       match operand {
         @join.Point(time) =>
-          resolve(
+          resolve_column(
             if on_left {
               left.field_names()
             } else {
               right.field_names()
             },
             time,
+            control,
           ).map(column => (column, None))
         @join.Interval(start, end) => {
           let start_column = match
-            resolve(
+            resolve_column(
               if on_left {
                 left.field_names()
               } else {
                 right.field_names()
               },
               start,
+              control,
             ) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
-          resolve(
+          resolve_column(
             if on_left {
               left.field_names()
             } else {
               right.field_names()
             },
             end,
+            control,
           ).map(end_column => (start_column, Some(end_column)))
         }
       }
@@ -436,13 +415,14 @@ fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
         _ => return Err(InvalidRows)
       }
       let column = match
-        resolve(
+        resolve_column(
           if on_left {
             left.field_names()
           } else {
             right.field_names()
           },
           source,
+          control,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -502,7 +482,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_interval_join_rows(
         match compare_complete_value(left_value, right_value, control) {
           Ok(0) => ()
           Ok(_) => return Ok(false)
-          Err(issue) => return Err(interval_ordering_issue(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
       }
       Ok(true)

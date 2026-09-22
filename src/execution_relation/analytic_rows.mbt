@@ -275,7 +275,7 @@ fn[T : IndexedRows] analytic_expression_value(
       logical_work=scope.map(value => value.budget),
     ) {
     Ok(value) => Ok(value)
-    Err(issue) => Err(Evaluation(row, call, issue))
+    Err(issue) => Err(evaluation_row_issue(row, call, issue))
   }
   release_slots(workspace, workspace.live - baseline)
   result
@@ -506,9 +506,7 @@ fn[T : RelationRows] evaluate_analytic_into(
   }
   let sorted = match stable_order_indices(input, complete, control, workspace) {
     Ok(indices) => indices
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let ranges : Array[AnalyticPartitionRange] = []
   let mut start = 0
@@ -527,9 +525,7 @@ fn[T : RelationRows] evaluate_analytic_into(
           control,
         ) {
         Ok(value) => value != 0
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
     }
     if boundary {
@@ -692,9 +688,7 @@ fn[T : RelationRows] evaluate_analytic_into(
             control,
           ) {
           Ok(value) => value == 0
-          Err(InvalidInput) => return Err(InvalidRows)
-          Err(Limit) => return Err(RowLimit)
-          Err(Scalar(issue)) => return Err(Comparison(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
         if !same_peer {
           peer_start = position

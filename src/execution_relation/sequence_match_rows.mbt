@@ -4,15 +4,6 @@ priv struct SequencePartial {
 }
 
 ///|
-fn sequence_ordering_issue(issue : OrderingIssue) -> RowIssue {
-  match issue {
-    InvalidInput => InvalidRows
-    Limit => RowLimit
-    Scalar(issue) => Comparison(issue)
-  }
-}
-
-///|
 fn[T : RelationRows] evaluate_sequence_match_rows(
   kernel : @lower.PreparedSequenceMatch,
   input : T,
@@ -41,26 +32,12 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
   let mut retained = 0
   let run = fn() -> Result[Table, RowIssue] {
     let input_names = input.field_names()
-    let resolve = fn(field : @schema.FieldName) -> Result[Int, RowIssue] {
-      let reference = @schema.reference_name(field)
-      for index, name in input_names {
-        if !spend_control(control, 1) ||
-          !spend_control_text(control, reference) ||
-          !spend_control_text(control, name) {
-          return Err(RowLimit)
-        }
-        if name == reference {
-          return Ok(index)
-        }
-      }
-      Err(InvalidRows)
-    }
     let key_columns : Array[Int] = []
     let key_fields : Array[@schema.FieldName] = []
     let order : Array[ColumnOrder] = []
     for index in 0..<@lower.sequence_match_key_count(kernel) {
       let field = @lower.sequence_match_key_at(kernel, index).unwrap()
-      let column = match resolve(field) {
+      let column = match resolve_column(input_names, field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -72,11 +49,13 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
       order.push({ column, descending: false, nulls_first: true, })
     }
     let identity_field = @lower.sequence_match_identity(kernel)
-    let identity_column = match resolve(identity_field) {
+    let identity_column = match
+      resolve_column(input_names, identity_field, control) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let time_column = match resolve(@lower.sequence_match_time(kernel)) {
+    let time_column = match
+      resolve_column(input_names, @lower.sequence_match_time(kernel), control) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -121,7 +100,7 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
     }
     let ordered = match stable_order_indices(input, order, control, workspace) {
       Ok(value) => value
-      Err(issue) => return Err(sequence_ordering_issue(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
     let pattern_count = @lower.sequence_match_pattern_count(kernel)
     if pattern_count < 2 ||
@@ -161,7 +140,7 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
         Ok(value) => value
         Err(issue) => {
           release_slots(workspace, snapshot.length())
-          return Err(Evaluation(row, pattern, issue))
+          return Err(evaluation_row_issue(row, pattern, issue))
         }
       }
       release_slots(workspace, snapshot.length())
@@ -188,7 +167,7 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
           ) {
           Ok(0) => ()
           Ok(_) => return Ok(false)
-          Err(issue) => return Err(sequence_ordering_issue(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
       }
       Ok(true)

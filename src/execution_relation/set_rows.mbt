@@ -59,16 +59,12 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
   let left_order = match
     stable_complete_order_indices(left, left_columns, control, workspace) {
     Ok(value) => value
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let right_order = match
     stable_complete_order_indices(right, right_columns, control, workspace) {
     Ok(value) => value
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   if !reserve_slots(workspace, IndexedRows::row_count(left)) ||
     !spend_control(control, IndexedRows::row_count(left)) {
@@ -89,9 +85,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
           control,
         ) {
         Ok(value) => value
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
       if comparison != 0 {
         break
@@ -110,9 +104,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
           control,
         ) {
         Ok(value) => value
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
       if comparison <= 0 {
         break
@@ -128,9 +120,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
             control,
           ) {
           Ok(value) => value == 0
-          Err(InvalidInput) => return Err(InvalidRows)
-          Err(Limit) => return Err(RowLimit)
-          Err(Scalar(issue)) => return Err(Comparison(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
         if !grouped {
           break
@@ -152,9 +142,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
           control,
         ) {
         Ok(value) => value
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
       if comparison == 0 {
         let mut right_end = right_position + 1
@@ -168,9 +156,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
               control,
             ) {
             Ok(value) => value == 0
-            Err(InvalidInput) => return Err(InvalidRows)
-            Err(Limit) => return Err(RowLimit)
-            Err(Scalar(issue)) => return Err(Comparison(issue))
+            Err(issue) => return Err(ordering_row_issue(issue))
           }
           if !grouped {
             break

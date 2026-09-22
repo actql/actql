@@ -14,6 +14,17 @@ priv enum OrderingIssue {
 }
 
 ///|
+/// Preserve the distinction between exhausted resources and invalid semantic
+/// input at every ordering call site.
+fn ordering_row_issue(issue : OrderingIssue) -> RowIssue {
+  match issue {
+    InvalidInput => InvalidRows
+    Limit => RowLimit
+    Scalar(issue) => Comparison(issue)
+  }
+}
+
+///|
 fn[T : IndexedRows] compare_row_indices(
   table : T,
   a : Int,

@@ -83,9 +83,7 @@ fn[T : RelationRows] evaluate_top_k_selection(
   let sorted = match
     stable_order_indices(input, complete_order, control, workspace) {
     Ok(indices) => indices
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let selected : Array[Int] = []
   let mut leader = -1
@@ -99,9 +97,7 @@ fn[T : RelationRows] evaluate_top_k_selection(
       match
         compare_row_indices(input, leader, index, partition_order, control) {
         Ok(comparison) => comparison != 0
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
     }
     if new_partition {

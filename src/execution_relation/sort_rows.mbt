@@ -83,9 +83,7 @@ fn[T : RelationRows] evaluate_sort_selection(
   }
   let indices = match stable_order_indices(input, order, control, workspace) {
     Ok(indices) => indices
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(e)) => return Err(Comparison(e))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   if !reserve_slots(workspace, indices.length()) ||
     !reserve_slots(workspace, width) ||

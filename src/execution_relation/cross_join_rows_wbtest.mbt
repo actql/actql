@@ -260,6 +260,17 @@ test "cross join releases unpublished workspace after a bounded failure" {
   )
   assert_eq(workspace.live, 0)
   assert_true(workspace.peak > 0)
+  assert_kernel_budget_sweep("cross_join", (control, swept_workspace) => {
+    evaluate_cross_join_rows(
+      kernel,
+      left,
+      right,
+      4,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      swept_workspace,
+    )
+  })
 }
 
 ///|

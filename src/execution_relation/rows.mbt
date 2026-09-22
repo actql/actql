@@ -54,6 +54,16 @@ pub(all) enum NestEnvelopeScope {
 } derive(Eq, Debug)
 
 ///|
+/// Keep execution-resource exhaustion distinct from semantic expression
+/// failures at every row-kernel boundary.
+fn evaluation_row_issue(row : Int, slot : Int, issue : EvalIssue) -> RowIssue {
+  match issue.kind {
+    ControlLimit | WorkspaceLimit => RowLimit
+    _ => Evaluation(row, slot, issue)
+  }
+}
+
+///|
 fn table_from_capture_bounded(
   input : CapturedRows,
   control : ControlBudget,
@@ -751,7 +761,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
             logical_work=scope.map(s => s.budget),
           ) {
           Ok(v) => v
-          Err(e) => return Err(Evaluation(row_index, 0, e))
+          Err(e) => return Err(evaluation_row_issue(row_index, 0, e))
         }
         match value {
           Boolean(true) =>
@@ -788,7 +798,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
             logical_work=scope.map(s => s.budget),
           ) {
           Ok(v) => v
-          Err(e) => return Err(Evaluation(row_index, 0, e))
+          Err(e) => return Err(evaluation_row_issue(row_index, 0, e))
         }
         match value {
           Boolean(true) => ()
@@ -871,7 +881,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
               }
               row.push(v.value)
             }
-            Err(e) => return Err(Evaluation(row_index, slot, e))
+            Err(e) => return Err(evaluation_row_issue(row_index, slot, e))
           }
         }
       }

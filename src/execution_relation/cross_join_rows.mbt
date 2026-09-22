@@ -51,23 +51,6 @@ fn[L : RelationRows, R : RelationRows] evaluate_cross_join_rows(
   if right_count != 0 && left_count > ceiling / right_count {
     return Err(RowLimit)
   }
-  let resolve = fn(
-    names : Array[String],
-    field : @schema.FieldName,
-  ) -> Result[Int, RowIssue] {
-    let reference = @schema.reference_name(field)
-    for index, name in names {
-      if !spend_control(control, 1) ||
-        !spend_control_text(control, reference) ||
-        !spend_control_text(control, name) {
-        return Err(RowLimit)
-      }
-      if name == reference {
-        return Ok(index)
-      }
-    }
-    Err(InvalidRows)
-  }
   let width = @lower.cross_join_field_count(profile)
   let mut retained = 0
   let run = fn() -> Result[Table, RowIssue] {
@@ -90,13 +73,14 @@ fn[L : RelationRows, R : RelationRows] evaluate_cross_join_rows(
         _ => return Err(InvalidRows)
       }
       let column = match
-        resolve(
+        resolve_column(
           if on_left {
             left.field_names()
           } else {
             right.field_names()
           },
           source,
+          control,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)

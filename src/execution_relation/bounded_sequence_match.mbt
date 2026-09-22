@@ -257,7 +257,7 @@ fn bounded_sequence_compare_value(
     return Err(InvalidExecution)
   }
   compare_complete_value(a, b, state.control).map_err(issue => {
-    Rows(sequence_ordering_issue(issue))
+    Rows(ordering_row_issue(issue))
   })
 }
 

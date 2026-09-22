@@ -98,9 +98,7 @@ fn[T : RelationRows] evaluate_count_group_into(
   let groups = match
     count_groups(input, order, columns, max_rows, control, workspace) {
     Ok(groups) => groups
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(e)) => return Err(Comparison(e))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   for group in groups {
     if !spend_control(control, 1) ||

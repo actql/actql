@@ -549,11 +549,21 @@ The bounded kernel convention is uniform:
 - every terminal outcome performs its cleanup obligation even when the caller
   keeps the terminal handle.
 
-`charge_row`, `charge_named`, and `with_scoped_slots` are the common primitives
-for these rules. Resource exhaustion is the canonical `RowLimit` family;
-semantic errors such as `InvalidRows`, `InputMismatch`, and `WindowTime` must not
-hide a failed charge. Adapters may impose stricter physical limits, but they do
-not reinterpret these portable outcomes.
+`charge_row`, `charge_named`, `resolve_column`, and `with_scoped_slots` are the
+common primitives for these rules. Ordering and expression boundaries use
+shared error converters rather than reconstructing resource outcomes in each
+kernel. Resource exhaustion is the canonical `RowLimit` family; semantic errors
+such as `InvalidRows`, `InputMismatch`, and `WindowTime` must not hide a failed
+charge. Adapters may impose stricter physical limits, but they do not reinterpret
+these portable outcomes.
+
+The common kernel conformance gate measures a successful fixture's exact work
+and workspace peak. For every production kernel family it sweeps every slot limit
+from zero through `peak + 1` and every work limit from zero through `used + 1`.
+A limit below the measured requirement must fail as `RowLimit`, an
+admitted limit must succeed, and every failed attempt must restore
+`workspace.live` to zero. This makes monotonicity and cleanup a shared invariant
+rather than an optional collection of kernel-specific examples.
 
 Independent fixed boundary tests count a two-column/two-row projection at 22
 slots (21 fails), a fully rejecting filter at peak 15/live 12 (including its

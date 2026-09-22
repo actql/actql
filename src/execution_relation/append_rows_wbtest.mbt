@@ -31,6 +31,27 @@ test "checked append aligns columns and preserves left then right order" {
   assert_true(table.rows[0][1] is Text("left"))
   assert_true(table.rows[1][0] is Number(2))
   assert_true(table.rows[1][1] is Text("right"))
+
+  guard @lower.sequence_step(sequence, 2) is Some(@lower.AppendStep(kernel)) else {
+    fail("append kernel")
+  }
+  let left = table_from_capture(
+    capture_values(owner, 0, max_rows=1, run_limits().input_values).unwrap(),
+  )
+  let right = table_from_capture(
+    capture_values(owner, 1, max_rows=1, run_limits().input_values).unwrap(),
+  )
+  assert_kernel_budget_sweep("append", (control, workspace) => {
+    evaluate_append_rows(
+      kernel,
+      left,
+      right,
+      2,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
 }
 
 ///|

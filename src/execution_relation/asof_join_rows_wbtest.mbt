@@ -87,6 +87,25 @@ fn asof_evaluate(
 }
 
 ///|
+test "as-of join passes the common kernel budget sweep" {
+  let (owner, kernel) = asof_test_kernel("left", "nearest")
+  let left = asof_left(owner, kernel)
+  let right = asof_right(owner, kernel)
+  assert_kernel_budget_sweep("asof_join", (control, workspace) => {
+    evaluate_asof_join_rows(
+      kernel,
+      left,
+      right,
+      20,
+      12L,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
+}
+
+///|
 test "as-of join selects every direction and orders by left clock identity" {
   assert_true(
     join_numeric_rows_equal(asof_evaluate("left", "backward").unwrap().rows, [

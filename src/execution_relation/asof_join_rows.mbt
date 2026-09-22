@@ -1,13 +1,4 @@
 ///|
-fn asof_ordering_issue(issue : OrderingIssue) -> RowIssue {
-  match issue {
-    InvalidInput => InvalidRows
-    Limit => RowLimit
-    Scalar(issue) => Comparison(issue)
-  }
-}
-
-///|
 fn asof_null(value : Value) -> Bool {
   value is Null || value is Captured(@admitted.Null)
 }
@@ -49,34 +40,17 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
     left_count.to_int64() > max_search_visits / right_count.to_int64() {
     return Err(RowLimit)
   }
-  let resolve = fn(
-    names : Array[String],
-    field : @schema.FieldName,
-  ) -> Result[Int, RowIssue] {
-    let reference = @schema.reference_name(field)
-    for index, name in names {
-      if !spend_control(control, 1) ||
-        !spend_control_text(control, reference) ||
-        !spend_control_text(control, name) {
-        return Err(RowLimit)
-      }
-      if name == reference {
-        return Ok(index)
-      }
-    }
-    Err(InvalidRows)
-  }
   let mut retained = 0
   let run = fn() -> Result[Table, RowIssue] {
     let left_names = left.field_names()
     let right_names = right.field_names()
     let left_time = match
-      resolve(left_names, @lower.asof_join_time(kernel, true)) {
+      resolve_column(left_names, @lower.asof_join_time(kernel, true), control) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
     let right_time = match
-      resolve(right_names, @lower.asof_join_time(kernel, false)) {
+      resolve_column(right_names, @lower.asof_join_time(kernel, false), control) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -86,11 +60,12 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
         return Err(RowLimit)
       }
       let (left_field, right_field) = @lower.asof_join_key_at(kernel, index).unwrap()
-      let left_column = match resolve(left_names, left_field) {
+      let left_column = match resolve_column(left_names, left_field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      let right_column = match resolve(right_names, right_field) {
+      let right_column = match
+        resolve_column(right_names, right_field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -108,7 +83,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
       guard @lower.asof_join_identity_at(kernel, index) is Some(field) else {
         return Err(InvalidRows)
       }
-      let column = match resolve(left_names, field) {
+      let column = match resolve_column(left_names, field, control) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -133,7 +108,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
       if !reserve_slots(workspace, 1) {
         return Err(RowLimit)
       }
-      match resolve(right_names, field) {
+      match resolve_column(right_names, field, control) {
         Ok(column) => ties.push(column)
         Err(issue) => return Err(issue)
       }
@@ -169,7 +144,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
     let ordered_left = match
       stable_order_indices(left, identity_order, control, workspace) {
       Ok(value) => value
-      Err(issue) => return Err(asof_ordering_issue(issue))
+      Err(issue) => return Err(ordering_row_issue(issue))
     }
     let names : Array[String] = []
     let columns : Array[(Bool, Int)] = []
@@ -190,7 +165,15 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
         _ => return Err(InvalidRows)
       }
       let column = match
-        resolve(if on_left { left_names } else { right_names }, source) {
+        resolve_column(
+          if on_left {
+            left_names
+          } else {
+            right_names
+          },
+          source,
+          control,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -223,7 +206,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
         match compare_complete_value(left_value, right_value, control) {
           Ok(0) => ()
           Ok(_) => return Ok(false)
-          Err(issue) => return Err(asof_ordering_issue(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
       }
       Ok(true)
@@ -245,7 +228,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
         match compare_complete_value(first_value, second_value, control) {
           Ok(0) => ()
           Ok(value) => return Ok(value)
-          Err(issue) => return Err(asof_ordering_issue(issue))
+          Err(issue) => return Err(ordering_row_issue(issue))
         }
       }
       Ok(0)

@@ -34,6 +34,38 @@ fn set_test_sequence(
 }
 
 ///|
+test "set operation passes the common kernel budget sweep" {
+  let generated = set_test_sequence(
+    "except",
+    "all",
+    left="[{\"k\":1,\"payload\":[1]}]",
+    right="[]",
+  )
+  guard @lower.sequence_step(generated.sequence, 2)
+    is Some(@lower.SetStep(kernel)) else {
+    fail("set kernel")
+  }
+  let owner = @lower.set_kernel_owner(kernel)
+  let left = table_from_capture(
+    capture_values(owner, 0, max_rows=1, run_limits().input_values).unwrap(),
+  )
+  let right = table_from_capture(
+    capture_values(owner, 1, max_rows=1, run_limits().input_values).unwrap(),
+  )
+  assert_kernel_budget_sweep("set", (control, workspace) => {
+    evaluate_set_rows(
+      kernel,
+      left,
+      right,
+      1,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
+}
+
+///|
 fn set_keys(output : CompletedOutput) -> Array[Value] {
   let values = []
   for row in 0..<completed_row_count(output) {

@@ -57,6 +57,22 @@ fn sequence_test_evaluate(
 }
 
 ///|
+test "sequence match passes the common kernel budget sweep" {
+  let (owner, kernel) = sequence_test_kernel("allow", "subsequence")
+  let input = sequence_test_input(owner, kernel)
+  assert_kernel_budget_sweep("sequence_match", (control, workspace) => {
+    evaluate_sequence_match_rows(
+      kernel,
+      input,
+      100,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
+}
+
+///|
 test "sequence allow returns every bounded match in canonical group order" {
   let table = sequence_test_evaluate("allow", "subsequence").unwrap()
   assert_eq(table.names, [

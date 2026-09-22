@@ -599,7 +599,7 @@ test "row workspace releases discarded filter snapshots and bounds retained rows
       row_output(),
       { limit: 14, live: 0, peak: 0, },
     )
-    is Err(Evaluation(0, 0, { kind: WorkspaceLimit, .. })),
+    is Err(RowLimit),
   )
   let map_owner = row_owner(",{\"derive\":{}}")
   // Empty map still preserves both rows. Retained output entries accumulate,

@@ -40,6 +40,35 @@ fn join_test_sequence(
 }
 
 ///|
+test "equality join passes the common kernel budget sweep" {
+  let generated = join_test_sequence(
+    "[{\"id\":1,\"v\":10}]", "[{\"id\":1,\"v\":20}]",
+  )
+  guard @lower.sequence_step(generated.sequence, 2)
+    is Some(@lower.JoinStep(kernel)) else {
+    fail("join kernel")
+  }
+  let owner = @lower.join_kernel_owner(kernel)
+  let left = table_from_capture(
+    capture_values(owner, 0, max_rows=1, run_limits().input_values).unwrap(),
+  )
+  let right = table_from_capture(
+    capture_values(owner, 1, max_rows=1, run_limits().input_values).unwrap(),
+  )
+  assert_kernel_budget_sweep("join", (control, workspace) => {
+    evaluate_join_rows(
+      kernel,
+      left,
+      right,
+      1,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+  })
+}
+
+///|
 fn join_numeric_rows_equal(
   actual : Array[Array[Value]],
   expected : Array[Array[Value]],

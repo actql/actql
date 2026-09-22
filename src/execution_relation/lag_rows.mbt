@@ -82,9 +82,7 @@ fn[T : RelationRows] evaluate_lag_rows(
   }
   let sorted = match stable_order_indices(input, complete, control, workspace) {
     Ok(indices) => indices
-    Err(InvalidInput) => return Err(InvalidRows)
-    Err(Limit) => return Err(RowLimit)
-    Err(Scalar(issue)) => return Err(Comparison(issue))
+    Err(issue) => return Err(ordering_row_issue(issue))
   }
   let lagged = Array::make(count, Null)
   let mut start = 0
@@ -102,9 +100,7 @@ fn[T : RelationRows] evaluate_lag_rows(
           control,
         ) {
         Ok(value) => value == 0
-        Err(InvalidInput) => return Err(InvalidRows)
-        Err(Limit) => return Err(RowLimit)
-        Err(Scalar(issue)) => return Err(Comparison(issue))
+        Err(issue) => return Err(ordering_row_issue(issue))
       }
       if !same {
         start = position
