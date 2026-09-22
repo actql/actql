@@ -22,8 +22,10 @@ pub fn Library::version(_self : Library) -> String {
 ///|
 pub fn Library::open_database(
   _self : Library,
+  limits : NativeDuckDBOpenLimits,
   path? : String = "",
 ) -> Result[Database, NativeDuckDBIssue] {
+  ignore(limits)
   ignore(path)
   Err(UnsupportedTarget)
 }

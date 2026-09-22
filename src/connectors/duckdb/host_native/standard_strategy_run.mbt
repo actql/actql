@@ -9,7 +9,7 @@ struct NativeStandardStrategyRun {
   runtimes : NativeStrategyComputeRun
   import_limits : NativeComputeImportLimits
   transfer_bytes : Int64
-  execution_bytes : Int64
+  database_memory_bytes : Int64
   database_path : String
   mut accepting : Bool
   mut complete : Bool
@@ -57,7 +57,7 @@ pub fn open_native_standard_strategy_run(
   library? : @native_duckdb.Library? = None,
   database_path? : String = "",
 ) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue] {
-  if transfer_bytes < 0 || execution_bytes < 0 {
+  if transfer_bytes < 0 || execution_bytes <= 0 {
     return Err(InvalidSelection)
   }
   Ok({
@@ -66,7 +66,7 @@ pub fn open_native_standard_strategy_run(
     runtimes: open_native_strategy_compute_run(),
     import_limits,
     transfer_bytes,
-    execution_bytes,
+    database_memory_bytes: execution_bytes,
     database_path,
     accepting: true,
     complete: false,
@@ -170,7 +170,18 @@ pub fn execute_next_native_standard_strategy_task(
     run.stop_dispatch()
     return Err(DuckDBUnavailable)
   }
-  let database = match library.open_database(path=run.database_path) {
+  // The driver reserves this engine budget plus its separately measured
+  // transport/receiving scratch through the common execution ledger.
+  let database = match
+    library.open_database(
+      {
+        memory_bytes: run.database_memory_bytes,
+        threads: 1,
+        external_access: false,
+        read_only: false,
+      },
+      path=run.database_path,
+    ) {
     Ok(value) => value
     Err(issue) => {
       run.accepting = false
@@ -185,7 +196,7 @@ pub fn execute_next_native_standard_strategy_task(
       database,
       run.import_limits,
       run.transfer_bytes,
-      run.execution_bytes,
+      run.database_memory_bytes,
     ) {
     Ok(output) => Ok(Some({ task: task_index, output, }))
     Err(issue) => {

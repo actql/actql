@@ -787,6 +787,16 @@ logical guards and cost estimates. DuckDB's memory setting is not a hard bound
 on total process RSS. Process isolation, forced-stop deadlines and durable
 crash recovery are outside this initial increment.
 
+The native standard Host treats `execution_bytes` as the DuckDB engine share,
+not as the entire execution reservation. The common driver reserves that
+share plus its separately derived import and transport scratch. The selected
+engine share must be set as DuckDB's `memory_limit` before opening the
+database; native and Node use the same canonical semantic settings and the
+same physical capacity rule. `threads`, external access and access mode are
+also explicit open limits. A successful ledger reservation does not imply a
+process-wide RSS cap: the DuckDB allocator, transport scratch and other
+process allocations remain distinct physical measurements.
+
 The Node source-acquisition lifecycle retains an opaque completion relationship
 between the exact Host file grant, one-shot port, read-view discriminator and
 actual closed session. That relationship becomes available only after successful

@@ -10,6 +10,11 @@ const headerUrl = new URL(
     'duckdb_environment_settings.generated.h',
   import.meta.url,
 );
+const readbackUrl = new URL(
+  '../src/connectors/duckdb/adapters/native/' +
+    'duckdb_environment_readback.generated_wbtest.mbt',
+  import.meta.url,
+);
 const contract = JSON.parse(await readFile(contractUrl, 'utf8'));
 assert.equal(contract.version, 'actql-duckdb-environment/0.1');
 assert.equal(typeof contract.settings, 'object');
@@ -36,3 +41,17 @@ const generated = [
   '',
 ].join('\n');
 assert.equal(await readFile(headerUrl, 'utf8'), generated);
+
+const readback = [
+  '///|',
+  '// Generated from adapters/connectors/duckdb/environment-contract.json.',
+  'fn canonical_environment_readback() -> Array[(String, String)] {',
+  '  [',
+  ...entries.map(([name, value]) =>
+    `    ("${name}", "${name === 'max_temp_directory_size' && value === '0B'
+      ? '0 bytes' : value}"),`),
+  '  ]',
+  '}',
+  '',
+].join('\n');
+assert.equal(await readFile(readbackUrl, 'utf8'), readback);

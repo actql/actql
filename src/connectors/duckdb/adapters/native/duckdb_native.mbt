@@ -36,6 +36,10 @@ extern "C" fn open_database_ffi(
   library : Library,
   path : Bytes,
   length : Int,
+  memory_bytes : Int64,
+  threads : Int,
+  external_access : Bool,
+  read_only : Bool,
 ) -> Database = "actql_native_duckdb_open_database"
 
 ///|
@@ -190,10 +194,24 @@ pub fn Library::version(self : Library) -> String {
 ///|
 pub fn Library::open_database(
   self : Library,
+  limits : NativeDuckDBOpenLimits,
   path? : String = "",
 ) -> Result[Database, NativeDuckDBIssue] {
+  if limits.memory_bytes <= 0L ||
+    limits.threads <= 0 ||
+    (limits.read_only && path == "") {
+    return Err(InvalidLimits)
+  }
   let encoded = @utf8.encode(path)
-  let database = open_database_ffi(self, encoded, encoded.length())
+  let database = open_database_ffi(
+    self,
+    encoded,
+    encoded.length(),
+    limits.memory_bytes,
+    limits.threads,
+    limits.external_access,
+    limits.read_only,
+  )
   if database_ready_ffi(database) {
     Ok(database)
   } else {

@@ -14,6 +14,7 @@ options(
     "duckdb_native.mbt": [ "native" ],
     "duckdb_unsupported.mbt": [ "not", "native" ],
     "duckdb_wbtest.mbt": [ "native" ],
+    "duckdb_environment_readback.generated_wbtest.mbt": [ "native" ],
     "duckdb_unsupported_wbtest.mbt": [ "not", "native" ],
   },
 )

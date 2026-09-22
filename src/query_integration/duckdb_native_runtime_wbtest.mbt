@@ -63,7 +63,9 @@ test "native DuckDB executes the portable acquisition Host without Node" {
     return
   }
   let library = @native_duckdb.load_library(path).unwrap()
-  let database = library.open_database().unwrap()
+  let database = library
+    .open_database(@native_duckdb.restricted_open_limits(134217728L))
+    .unwrap()
   native_runtime_command(database, "CREATE TABLE records(id DOUBLE)")
   native_runtime_command(
     database, "INSERT INTO records VALUES (3.0), (1.0), (2.0)",
@@ -93,7 +95,7 @@ test "native acquisition failure rolls back before releasing its Host attempt" {
   }
   let database = @native_duckdb.load_library(path)
     .unwrap()
-    .open_database()
+    .open_database(@native_duckdb.restricted_open_limits(134217728L))
     .unwrap()
   let limits = native_runtime_limits()
   let runtime = @native_host.start_native_acquisition_runtime(

@@ -590,7 +590,11 @@ moonbit_bytes_t actql_native_duckdb_library_version(
 void *actql_native_duckdb_open_database(
   actql_native_duckdb_library *library,
   moonbit_bytes_t path,
-  int32_t length
+  int32_t length,
+  int64_t memory_bytes,
+  int32_t threads,
+  bool external_access,
+  bool readonly
 ) {
   actql_native_duckdb_database *database = moonbit_make_external_object(
     actql_native_duckdb_database_finalize,
@@ -601,6 +605,10 @@ void *actql_native_duckdb_open_database(
   moonbit_incref(library);
   if (library->dynamic_library == NULL) {
     actql_replace_error(&database->error, "DuckDB library is unavailable");
+    return database;
+  }
+  if (memory_bytes <= 0 || threads <= 0 || (readonly && length == 0)) {
+    actql_replace_error(&database->error, "Invalid DuckDB open limits");
     return database;
   }
   char *path_text = actql_copy_text(path, length);
@@ -615,10 +623,26 @@ void *actql_native_duckdb_open_database(
     free(path_text);
     return database;
   }
-  static const char *native_settings[][2] = {
-    {"access_mode", "READ_WRITE"},
-    {"enable_external_access", "false"},
-    {"threads", "1"},
+  char memory_setting[32];
+  char thread_setting[16];
+  int memory_length = snprintf(
+    memory_setting, sizeof(memory_setting), "%lldB", (long long)memory_bytes
+  );
+  int thread_length = snprintf(
+    thread_setting, sizeof(thread_setting), "%d", threads
+  );
+  if (memory_length <= 0 || (size_t)memory_length >= sizeof(memory_setting) ||
+      thread_length <= 0 || (size_t)thread_length >= sizeof(thread_setting)) {
+    library->destroy_config(&config);
+    actql_replace_error(&database->error, "DuckDB open limits overflow");
+    free(path_text);
+    return database;
+  }
+  const char *native_settings[][2] = {
+    {"access_mode", readonly ? "READ_ONLY" : "READ_WRITE"},
+    {"enable_external_access", external_access ? "true" : "false"},
+    {"threads", thread_setting},
+    {"memory_limit", memory_setting},
   };
   size_t native_setting_count =
     sizeof(native_settings) / sizeof(native_settings[0]);

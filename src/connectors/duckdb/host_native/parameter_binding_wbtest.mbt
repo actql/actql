@@ -22,7 +22,7 @@ test "native bridge binds Connector-admitted parameters without reinterpretation
   }
   let database = @native_duckdb.load_library(path)
     .unwrap()
-    .open_database()
+    .open_database(@native_duckdb.restricted_open_limits(134217728L))
     .unwrap()
   let query = database
     .prepare_stream_query(

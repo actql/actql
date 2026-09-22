@@ -11,8 +11,17 @@ test "native DuckDB executes through the selected C API library" {
     return
   }
   let library = load_library(path).unwrap()
+  assert_true(
+    library.open_database(restricted_open_limits(0L)) is Err(InvalidLimits),
+  )
+  assert_true(
+    library.open_database({ ..restricted_open_limits(134217728L), threads: 0, })
+    is Err(InvalidLimits),
+  )
   assert_true(library.version().has_prefix("v"))
-  let database = library.open_database().unwrap()
+  let database = library
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
   guard database.query_i64("select 42::bigint") is Ok(42L) else {
     fail("native DuckDB scalar result did not match")
   }
@@ -31,7 +40,10 @@ test "native DuckDB exposes an exact transaction boundary" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
   }
-  let database = load_library(path).unwrap().open_database().unwrap()
+  let database = load_library(path)
+    .unwrap()
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
   database.begin_transaction().unwrap()
   assert_true(database.begin_transaction() is Err(Query(_)))
   assert_eq(database.query_i64("SELECT 42::BIGINT"), Ok(42L))
@@ -48,7 +60,10 @@ test "native DuckDB streams bounded physical column batches" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
   }
-  let database = load_library(path).unwrap().open_database().unwrap()
+  let database = load_library(path)
+    .unwrap()
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
   let query = database
     .stream_query(
       "SELECT * FROM (VALUES " +
@@ -96,12 +111,32 @@ test "native DuckDB reads back canonical semantic settings" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
   }
-  let database = load_library(path).unwrap().open_database().unwrap()
+  let database = load_library(path)
+    .unwrap()
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
+  for (setting, expected) in canonical_environment_readback() {
+    let query = database
+      .stream_query(
+        "SELECT CAST(current_setting('" + setting + "') AS VARCHAR)",
+        1,
+        1L,
+        1,
+        256,
+      )
+      .unwrap()
+    assert_eq(
+      query.next().unwrap(),
+      Some({ row_count: 1, columns_json: "[[\"" + expected + "\"]]", }),
+    )
+    assert_eq(query.next().unwrap(), None)
+    assert_true(query.close())
+  }
   let query = database
     .stream_query(
-      "SELECT current_setting('default_collation'), " +
-      "current_setting('preserve_insertion_order'), " +
-      "current_setting('enable_external_access')",
+      "SELECT CAST(current_setting('enable_external_access') AS VARCHAR), " +
+      "CAST(current_setting('memory_limit') AS VARCHAR), " +
+      "CAST(current_setting('threads') AS VARCHAR)",
       3,
       1L,
       1,
@@ -110,10 +145,43 @@ test "native DuckDB reads back canonical semantic settings" {
     .unwrap()
   assert_eq(
     query.next().unwrap(),
-    Some({ row_count: 1, columns_json: "[[\"binary\"],[true],[false]]", }),
+    Some({
+      row_count: 1,
+      columns_json: "[[\"false\"],[\"128.0 MiB\"],[\"1\"]]",
+    }),
   )
   assert_eq(query.next().unwrap(), None)
   assert_true(query.close())
+  database.close()
+}
+
+///|
+test "native DuckDB enforces the selected engine memory budget" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
+    return
+  }
+  let library = load_library(path).unwrap()
+  let database = library
+    .open_database(restricted_open_limits(16777216L))
+    .unwrap()
+  let setting = database
+    .stream_query(
+      "SELECT CAST(current_setting('memory_limit') AS VARCHAR)", 1, 1L, 1, 128,
+    )
+    .unwrap()
+  assert_eq(
+    setting.next().unwrap(),
+    Some({ row_count: 1, columns_json: "[[\"16.0 MiB\"]]", }),
+  )
+  assert_eq(setting.next().unwrap(), None)
+  assert_true(setting.close())
+  assert_true(
+    database.query_i64(
+      "SELECT count(*) FROM (SELECT i % 1000000 AS k, count(*) " +
+      "FROM range(5000000) t(i) GROUP BY k)",
+    )
+    is Err(Query(_)),
+  )
   database.close()
 }
 
@@ -122,7 +190,10 @@ test "native DuckDB binds exact admitted physical parameters" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
   }
-  let database = load_library(path).unwrap().open_database().unwrap()
+  let database = load_library(path)
+    .unwrap()
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
   let query = database
     .prepare_stream_query(
       "SELECT ?::BOOLEAN AS b, ?::DOUBLE AS d, ?::VARCHAR AS s, " +
@@ -178,7 +249,10 @@ test "native DuckDB rejects incomplete and contradictory parameter binding" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
   }
-  let database = load_library(path).unwrap().open_database().unwrap()
+  let database = load_library(path)
+    .unwrap()
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
   let incomplete = database
     .prepare_stream_query("SELECT ?::INTEGER", 1, 1L, 1, 128)
     .unwrap()
@@ -205,7 +279,10 @@ test "native DuckDB rejects physical results before crossing hard bounds" {
   guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
     return
   }
-  let database = load_library(path).unwrap().open_database().unwrap()
+  let database = load_library(path)
+    .unwrap()
+    .open_database(restricted_open_limits(134217728L))
+    .unwrap()
   assert_true(
     database.stream_query("SELECT 1, 2", 1, 1L, 1, 256) is Err(CapacityExceeded),
   )
