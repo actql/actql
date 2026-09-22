@@ -389,6 +389,22 @@ pub fn compute_host_count(
 }
 
 ///|
+#export_name("computeHostLogicalColumnCount")
+pub fn compute_host_logical_column_count(
+  run : ComputeNodeRun,
+  port : Int,
+) -> Int raise NodeHostFailure {
+  guard @duckdb.fixed_compute_import(
+      @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
+      port,
+    )
+    is Some(imported) else {
+    raise InvalidCommand
+  }
+  @duckdb.fixed_import_logical_column_count(imported)
+}
+
+///|
 #export_name("computeHostImportCount")
 pub fn compute_host_import_count(run : ComputeNodeRun) -> Int {
   @duckdb.fixed_compute_import_count(

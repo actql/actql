@@ -93,6 +93,8 @@ pub fn compute_host_input_stream_verify(ComputeNodeRun, Int, String, @execution_
 
 pub fn compute_host_input_values_reuse(ComputeNodeRun, Int) -> Bool
 
+pub fn compute_host_logical_column_count(ComputeNodeRun, Int) -> Int raise NodeHostFailure
+
 pub fn compute_host_managed_output_begin(ComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure
 
 pub fn compute_host_managed_output_enable_index(ManagedNodeOutput, Int) -> Unit raise NodeHostFailure

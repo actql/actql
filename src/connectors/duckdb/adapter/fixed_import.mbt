@@ -280,6 +280,13 @@ pub fn fixed_import_column_count(value : FixedImport) -> Int {
 }
 
 ///|
+/// ActQL columns admitted by the input contract. Physical helper columns such
+/// as the owned row ordinal do not consume the caller's logical cell budget.
+pub fn fixed_import_logical_column_count(value : FixedImport) -> Int {
+  value.logical_columns
+}
+
+///|
 pub fn fixed_import_parameter(
   value : FixedImport,
   row : Int,

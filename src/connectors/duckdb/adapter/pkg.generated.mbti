@@ -165,6 +165,8 @@ pub fn fixed_import_input(FixedImport) -> @execution_relation.ProducerRead
 
 pub fn fixed_import_insert_sql(FixedImport) -> String
 
+pub fn fixed_import_logical_column_count(FixedImport) -> Int
+
 pub fn fixed_import_ordinal_column() -> String
 
 pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]

@@ -37,19 +37,26 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
   for (let input = 0; input < count; input++) {
     const rows = port.rowCount(input);
     const columns = port.columnCount(input);
-    if (!Number.isSafeInteger(rows) || rows < 0 || !Number.isSafeInteger(columns) || columns < 0) {
+    const logicalColumns = port.logicalColumnCount?.(input) ?? columns;
+    if (!Number.isSafeInteger(rows) || rows < 0 ||
+        !Number.isSafeInteger(columns) || columns < 0 ||
+        !Number.isSafeInteger(logicalColumns) || logicalColumns < 0 ||
+        logicalColumns > columns) {
       throw new DuckDBTransportError('InvalidImportLimits');
     }
     if (rows > importLimits.maxRows) throw new DuckDBTransportError('ImportRows');
     if (columns === 0 || columns > limits.maxParameters || columns > limits.maxColumns) {
       throw new DuckDBTransportError('ImportColumns');
     }
-    if (rows > Math.floor((importLimits.maxCells - importedCells) / columns)) {
+    if (logicalColumns === 0 ||
+        rows > Math.floor(
+          (importLimits.maxCells - importedCells) / logicalColumns,
+        )) {
       throw new DuckDBTransportError('ImportCells');
     }
     if (rows > Number.MAX_SAFE_INTEGER - importedRows) throw new DuckDBTransportError('ImportRows');
     importedRows += rows;
-    importedCells += rows * columns;
+    importedCells += rows * logicalColumns;
     // Batch sizing is pure and precedes DB creation. Old trusted test ports can
     // keep the single-row path; installed ports use the exact MoonBit compiler.
     let batchRows = 1;
@@ -66,7 +73,7 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
     if (direct !== undefined && (typeof direct.run !== 'function' || typeof direct.path !== 'string')) {
       throw new DuckDBTransportError('InvalidDirectImport');
     }
-    imports.push({ rows, columns, batchRows, direct });
+    imports.push({ rows, columns, logicalColumns, batchRows, direct });
   }
   return withComputeDatabase(limits, async session => {
     retainSession(session);

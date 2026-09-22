@@ -83,12 +83,34 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
         hash(evidence.records[1]));
       assert.equal(evidence.observation.coverage.select_evidence_cid,
         hash(evidence.records[2]));
-      const inputRows = report.tasks.flatMap(task => task.phases.inputs)
-        .reduce((sum, input) => sum + input.validationRows, 0);
-      const inputCells = report.tasks.flatMap(task => task.phases.inputs)
-        .reduce((sum, input) => sum + input.validationCells, 0);
+      const taskInputs = report.tasks.flatMap(task => task.phases.inputs);
+      const fileInputs = taskInputs.filter(input =>
+        input.representation === 'verified-file-native-read');
+      const insertedInputs = taskInputs.filter(input =>
+        input.representation === undefined);
+      assert.equal(fileInputs.length + insertedInputs.length, taskInputs.length);
+      assert(fileInputs.every(input =>
+        Number.isSafeInteger(input.validationRows) &&
+        input.validationRows >= 0 &&
+        Number.isSafeInteger(input.validationCells) &&
+        input.validationCells >= 0), JSON.stringify(fileInputs));
+      assert(insertedInputs.every(input =>
+        Number.isSafeInteger(input.rows) && input.rows >= 0 &&
+        input.batchRows === input.rows &&
+        Number.isFinite(input.insertMilliseconds) &&
+        input.insertMilliseconds >= 0), JSON.stringify(insertedInputs));
+      const inputRows = fileInputs.reduce(
+        (sum, input) => sum + input.validationRows, 0);
+      const inputCells = fileInputs.reduce(
+        (sum, input) => sum + input.validationCells, 0);
       const outputRows = report.completionDescriptors.reduce(
         (sum, value) => sum + value.rows, 0);
+      assert(
+        report.completionDescriptors.every(value =>
+          Number.isSafeInteger(value.rows) && value.rows >= 0 &&
+          Number.isSafeInteger(value.columns) && value.columns >= 0),
+        JSON.stringify(report.completionDescriptors),
+      );
       const outputCells = report.completionDescriptors.reduce(
         (sum, value) => sum + value.rows * value.columns, 0);
       const receiptRows = evidence.receipts.reduce(
@@ -122,12 +144,10 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert(report.accounting.comparisonWork > 0);
       assert.equal(report.accounting.logicalCidPasses, 0);
       assert.equal(report.accounting.physicalIntegrityPasses,
-        report.tasks.flatMap(task => task.phases.inputs).length);
+        fileInputs.length);
       assert.equal(report.accounting.nativeFileReads,
-        report.tasks.flatMap(task => task.phases.inputs).length);
-      assert(report.tasks.every(task => task.phases.inputs.every(input =>
-        input.representation === 'verified-file-native-read' && input.parameterInsertRows === 0)));
-      for (const input of report.tasks.flatMap(task => task.phases.inputs)) {
+        fileInputs.length);
+      for (const input of fileInputs) {
         assert.equal(input.validationRows, input.rows);
         assert.equal(input.validationCells, input.rows * (workload === workloads[2] ? 2 : 1));
         assert.equal(input.storedRowJsonDecodes, 0);
@@ -137,6 +157,10 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
         assert.equal(input.nativeFileReads, 1);
         assert(input.fileBytes > 0);
       }
+      assert(insertedInputs.every(input =>
+        input.validationRows === undefined &&
+        input.validationCells === undefined &&
+        input.parameterInsertRows === undefined));
       assert.equal(report.controlMemory.status, 'observed');
       assert(BigInt(report.controlTransport.receivedBytes) > 0n);
       assert(report.executionMs > 0 && report.cleanupMs >= 0);

@@ -506,6 +506,9 @@ async function runHostCompute(
     importCount: () => rows(moon.computeHostImportCount(run)),
     rowCount: port => rows(checked(moon.computeHostCount(run, port, false))),
     columnCount: port => rows(checked(moon.computeHostCount(run, port, true))),
+    logicalColumnCount: port => rows(checked(
+      moon.computeHostLogicalColumnCount(run, port),
+    )),
     createSql: port => checked(moon.computeHostSql(run, 0, port)),
     insertSql: port => checked(moon.computeHostSql(run, 1, port)),
     insertBatch: (port, count) => {
