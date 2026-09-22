@@ -1399,5 +1399,13 @@ retains repeated input positions until semantic identity deduplication and
 checks cancellation before continuing expansion. The portable standard Host
 runs the variant through two downstream computations, Effect-free Named
 Result publication and retrieval, independent release, and final reclaim on
-JS, Wasm, and native. Traverse remains partial for predicate-selected paths
-and patterned path predicates.
+JS, Wasm, and native.
+
+At `09b723e4`, path traversal evaluates a checked start predicate through the
+same bounded typed-expression state machine used by node-emitting traversal.
+Predicate bindings are admitted before allocation, evaluation is resumable,
+and cancellation stops the private session before cleanup. Exact and
+one-short structural workspace fixtures plus the portable standard Host cover
+the kernel, two downstream computations, Effect-free publication and
+retrieval, independent release, and final reclaim on JS, Wasm, and native.
+Traverse remains partial only for patterned path hops and their predicates.
