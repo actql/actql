@@ -380,6 +380,45 @@ test "managed Events bind an exact internal sequence edge" {
 }
 
 ///|
+test "managed Events material issues exact internal operation views" {
+  let owner = event_sequence_owner()
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {
+    true
+  }).unwrap()
+  append_record(output, [
+    (@schema.Unqualified("event_id"), number(7.0)),
+    (@schema.Unqualified("occurred_at"), number(12.0)),
+  ]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let material = completed_material(completed).unwrap()
+  let first = @lifecycle.material_prepare_operation_view(
+    material, owner, 1, 0, owner,
+  ).unwrap()
+  let second = @lifecycle.material_prepare_operation_view(
+    material, owner, 1, 0, owner,
+  ).unwrap()
+  assert_false(
+    @lifecycle.producer_view_matches_read(
+      first,
+      @lifecycle.producer_view_read_reference(second),
+    ),
+  )
+  assert_true(
+    @lifecycle.material_prepare_operation_view(material, owner, 0, 0, owner)
+    is Err(@lifecycle.Unverified),
+  )
+  assert_true(
+    @lifecycle.material_prepare_operation_view(material, owner, 1, 1, owner)
+    is Err(@lifecycle.Unverified),
+  )
+  let foreign = event_producer_owner()
+  assert_true(
+    @lifecycle.material_prepare_operation_view(material, owner, 1, 0, foreign)
+    is Err(@lifecycle.Unverified),
+  )
+}
+
+///|
 test "managed record output cancels before publishing partial material" {
   let owner = producer_owner()
   let output = prepare_output(owner, @pipeline.Step(0), limits(), 2048L, fn() {

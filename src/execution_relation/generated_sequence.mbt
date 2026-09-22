@@ -4,6 +4,7 @@
 struct GeneratedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
+  selected_steps : Array[Int]?
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
   join_ceilings : Array[(Int, Int64)]
@@ -91,6 +92,7 @@ pub fn prepare_generated_sequence(
       Ok({
         contracts,
         sequence,
+        selected_steps: None,
         contexts,
         retained_ids,
         join_ceilings: [],
@@ -116,6 +118,9 @@ pub fn execute_generated_sequence(
   limits : SequenceExecutionLimits,
   produced? : Array[BoundProducerInput] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
+  if generated.selected_steps is Some(_) {
+    return Err(InputSet)
+  }
   evaluate_sequence_components(
     generated.contracts,
     generated.sequence,
@@ -452,6 +457,56 @@ pub fn generated_prepared_sequence(
 }
 
 ///|
+/// Select one original checked occurrence for an internal physical task.
+/// The view retains its complete owner and global step coordinate; it does not
+/// grant execution authority or permit the generic whole-sequence evaluator.
+pub fn select_generated_sequence_step(
+  generated : GeneratedSequence,
+  step : Int,
+) -> GeneratedSequence? {
+  if @lower.sequence_step(generated.sequence, step) is None {
+    None
+  } else {
+    Some({ ..generated, selected_steps: Some([step]), })
+  }
+}
+
+///|
+pub fn generated_sequence_step_count(generated : GeneratedSequence) -> Int {
+  match generated.selected_steps {
+    Some(steps) => steps.length()
+    None => @lower.sequence_count(generated.sequence)
+  }
+}
+
+///|
+/// Original checked step coordinate at one selected physical position.
+pub fn generated_sequence_step_index_at(
+  generated : GeneratedSequence,
+  position : Int,
+) -> Int? {
+  match generated.selected_steps {
+    Some(steps) => steps.get(position)
+    None =>
+      if position < 0 || position >= @lower.sequence_count(generated.sequence) {
+        None
+      } else {
+        Some(position)
+      }
+  }
+}
+
+///|
+pub fn generated_sequence_step_at(
+  generated : GeneratedSequence,
+  position : Int,
+) -> @lower.PreparedStep? {
+  generated_sequence_step_index_at(generated, position).bind(step => {
+    @lower.sequence_step(generated.sequence, step)
+  })
+}
+
+///|
 pub fn generated_retained_count(generated : GeneratedSequence) -> Int {
   generated.retained_ids.length()
 }
@@ -515,12 +570,12 @@ pub fn generated_sequence_all_steps(
   generated : GeneratedSequence,
   accepts : (@lower.PreparedStep) -> Bool,
 ) -> Bool {
-  let count = @lower.sequence_count(generated.sequence)
+  let count = generated_sequence_step_count(generated)
   if count == 0 {
     return false
   }
-  for index in 0..<count {
-    guard @lower.sequence_step(generated.sequence, index) is Some(step) &&
+  for position in 0..<count {
+    guard generated_sequence_step_at(generated, position) is Some(step) &&
       accepts(step) else {
       return false
     }

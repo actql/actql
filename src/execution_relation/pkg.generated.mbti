@@ -412,6 +412,12 @@ pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPr
 
 pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@lowering_relation.SequenceRequirements, @lowering_relation.SequenceRequirementsIssue]
 
+pub fn generated_sequence_step_at(GeneratedSequence, Int) -> @lowering_relation.PreparedStep?
+
+pub fn generated_sequence_step_count(GeneratedSequence) -> Int
+
+pub fn generated_sequence_step_index_at(GeneratedSequence, Int) -> Int?
+
 pub fn group_execution_supported(@lowering_relation.PreparedGroup) -> Bool
 
 pub fn group_execution_supported_with_numeric(@lowering_relation.PreparedGroup) -> Bool
@@ -815,6 +821,8 @@ pub fn row_wire_order_work(RowWireOrder) -> Int
 pub fn row_wire_usage(RowWireIdentity) -> (Int, Int, Int)
 
 pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
+
+pub fn select_generated_sequence_step(GeneratedSequence, Int) -> GeneratedSequence?
 
 pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 

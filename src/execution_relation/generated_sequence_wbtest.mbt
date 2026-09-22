@@ -168,4 +168,18 @@ test "generated row capability inspection rejects other prepared step kinds" {
     }),
   )
   assert_false(generated_sequence_all_steps(values_generated, _ => false))
+  let selected = select_generated_sequence_step(values_generated, 0).unwrap()
+  assert_eq(generated_sequence_step_count(selected), 1)
+  assert_eq(generated_sequence_step_index_at(selected, 0), Some(0))
+  assert_true(generated_sequence_step_index_at(selected, 1) is None)
+  assert_true(
+    generated_sequence_step_at(selected, 0) is Some(@lower.ValuesStep(_)),
+  )
+  assert_true(
+    generated_sequence_all_steps(selected, fn(step) {
+      step is @lower.ValuesStep(_)
+    }),
+  )
+  assert_true(select_generated_sequence_step(values_generated, -1) is None)
+  assert_true(select_generated_sequence_step(values_generated, 1) is None)
 }

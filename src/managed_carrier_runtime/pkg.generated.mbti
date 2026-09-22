@@ -53,6 +53,8 @@ pub fn material_available(Material) -> Bool
 
 pub fn material_kind(Material) -> @carrier_contract.Kind
 
+pub fn material_prepare_operation_view(Material, @lowering_relation.BoundPrepared, Int, Int, @lowering_relation.BoundPrepared) -> Result[ProducerView, Issue]
+
 pub fn material_prepare_view(Material, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[ProducerView, Issue]
 
 pub fn material_reference(Material) -> CompletionReference
@@ -63,7 +65,7 @@ pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target
 
 pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int) -> (Int, Int)?, (Int) -> @value_admission.CheckedValue??, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Int??) -> Result[ProducerView, ViewIssue]
 
-pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> ProducerView?, () -> Bool) -> Result[Material, Issue]
+pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> ProducerView?, (@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.BoundPrepared) -> ProducerView?, () -> Bool) -> Result[Material, Issue]
 
 pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
 

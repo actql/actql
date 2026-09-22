@@ -78,6 +78,37 @@ fn producer_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn sequence_owner() -> @lower.BoundPrepared {
+  let checked = @pipeline.check_carriers(
+    cursor(
+      "[{\"from\":\"g\",\"normalize_graph\":true},{\"normalize_graph\":true}]",
+    ),
+    [("g", graph_contract())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn consumer_owner(producer : @lower.BoundPrepared) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     cursor("[{\"normalize_graph\":true}]"),
@@ -275,6 +306,47 @@ test "managed Graph material owns final reclamation" {
   assert_true(@lifecycle.reclaim_material(material))
   assert_false(@lifecycle.material_available(material))
   assert_false(@lifecycle.reclaim_material(material))
+}
+
+///|
+test "managed Graph material issues exact internal operation views" {
+  let owner = sequence_owner()
+  let output = prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  append_node(output, number(1.0), [text("a")]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let material = completed_material(completed).unwrap()
+  let first = @lifecycle.material_prepare_operation_view(
+    material, owner, 1, 0, owner,
+  ).unwrap()
+  let second = @lifecycle.material_prepare_operation_view(
+    material, owner, 1, 0, owner,
+  ).unwrap()
+  assert_false(
+    @lifecycle.producer_view_matches_read(
+      first,
+      @lifecycle.producer_view_read_reference(second),
+    ),
+  )
+  assert_true(
+    @lifecycle.material_prepare_operation_view(material, owner, 0, 0, owner)
+    is Err(@lifecycle.Unverified),
+  )
+  assert_true(
+    @lifecycle.material_prepare_operation_view(material, owner, 1, 1, owner)
+    is Err(@lifecycle.Unverified),
+  )
+  let foreign = producer_owner()
+  assert_true(
+    @lifecycle.material_prepare_operation_view(material, owner, 1, 0, foreign)
+    is Err(@lifecycle.Unverified),
+  )
 }
 
 ///|

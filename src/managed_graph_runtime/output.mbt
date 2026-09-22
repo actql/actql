@@ -450,6 +450,20 @@ pub fn completed_material(
         Err(_) => None
       }
     },
+    (receiver, consumer_step, input_index, expected_producer) => {
+      if !physical_equal(receiver, expected_producer) {
+        None
+      } else {
+        match prepare_step_read(receiver, consumer_step, input_index, value) {
+          Ok(read) =>
+            match producer_read_view(read) {
+              Ok(view) => Some(view)
+              Err(_) => None
+            }
+          Err(_) => None
+        }
+      }
+    },
     fn() { discard_completed(value) },
   ).map_err(issue => Lifecycle(issue))
 }

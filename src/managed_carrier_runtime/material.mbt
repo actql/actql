@@ -4,20 +4,22 @@
 /// it cannot expose, serialize, or relabel the family payload.
 struct Material {
   reference : CompletionReference
-  prepare : (@lower.BoundPrepared, Int, @lower.BoundPrepared) -> ProducerView?
+  prepare_input : (@lower.BoundPrepared, Int, @lower.BoundPrepared) -> ProducerView?
+  prepare_operation : (@lower.BoundPrepared, Int, Int, @lower.BoundPrepared) -> ProducerView?
   reclaim : () -> Bool
 }
 
 ///|
 pub fn prepare_material(
   reference : CompletionReference,
-  prepare : (@lower.BoundPrepared, Int, @lower.BoundPrepared) -> ProducerView?,
+  prepare_input : (@lower.BoundPrepared, Int, @lower.BoundPrepared) -> ProducerView?,
+  prepare_operation : (@lower.BoundPrepared, Int, Int, @lower.BoundPrepared) -> ProducerView?,
   reclaim : () -> Bool,
 ) -> Result[Material, Issue] {
   if !completion_reference_available(reference) {
     return Err(Unavailable)
   }
-  Ok({ reference, prepare, reclaim, })
+  Ok({ reference, prepare_input, prepare_operation, reclaim, })
 }
 
 ///|
@@ -52,9 +54,44 @@ pub fn material_prepare_view(
   if !material_available(value) {
     return Err(Unavailable)
   }
-  guard (value.prepare)(receiver, input_index, expected_producer) is Some(view) &&
+  guard (value.prepare_input)(receiver, input_index, expected_producer)
+    is Some(view) &&
     producer_view_live(view) &&
     producer_read_reference_matches_input(view.read, receiver, input_index) &&
+    producer_read_reference_matches_output(view.read, value.reference) else {
+    return Err(Unverified)
+  }
+  if producer_view_kind(view) != material_kind(value) {
+    return Err(WrongCarrier)
+  }
+  Ok(view)
+}
+
+///|
+/// Issue a fresh view for one exact checked operation edge. The global step
+/// and operation-local input position are both retained; this does not turn an
+/// internal Carrier into an author-visible Result.
+pub fn material_prepare_operation_view(
+  value : Material,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+) -> Result[ProducerView, Issue] {
+  if !material_available(value) {
+    return Err(Unavailable)
+  }
+  guard (value.prepare_operation)(
+      receiver, consumer_step, input_index, expected_producer,
+    )
+    is Some(view) &&
+    producer_view_live(view) &&
+    producer_read_reference_matches_operation_input(
+      view.read,
+      receiver,
+      consumer_step,
+      input_index,
+    ) &&
     producer_read_reference_matches_output(view.read, value.reference) else {
     return Err(Unverified)
   }
