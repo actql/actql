@@ -145,6 +145,17 @@ function checkedOutput(value) {
   return value;
 }
 
+const missingOutputDisposal = () => {
+  const error = Object.assign(new Error('InvalidRemoteExecutionOutput'), {
+    code: 'InvalidRemoteExecutionOutput',
+    cleanupPending: true,
+  });
+  error.cleanupHandle = Object.freeze({
+    status: () => Object.freeze({pending: true, errors: Object.freeze([])}),
+  });
+  return error;
+};
+
 export function createRemoteDispatchRuntime({
   control,
   siteControl,
@@ -340,9 +351,12 @@ export function createRemoteDispatchRuntime({
     }
   };
   const reclaimResources = async entry => {
-    if (entry.output !== undefined &&
+    if (control.runtimeCustodyOutputAcquired(entry.custody) &&
         !control.runtimeCustodyOutputReleased(entry.custody)) {
-      await entry.output.close();
+      if (!entry.physicalOutputClosed) {
+        await entry.outputClose();
+        entry.physicalOutputClosed = true;
+      }
       if (!control.runtimeCustodyReleaseOutput(entry.custody)) {
         fail('RemoteRuntimeCustodyTransitionRejected');
       }
@@ -494,6 +508,8 @@ export function createRemoteDispatchRuntime({
       diagnostics: [],
       operation: operationState.operation,
       output,
+      outputClose: operationState.outputClose,
+      physicalOutputClosed: operationState.physicalOutputClosed,
       siteHolding: operationState.siteHolding,
       bundleHoldId,
     };
@@ -556,6 +572,8 @@ export function createRemoteDispatchRuntime({
       settled: false,
       siteHolding: undefined,
       bundleRetained: false,
+      outputClose: undefined,
+      physicalOutputClosed: false,
     };
     try {
       while (true) {
@@ -617,10 +635,13 @@ export function createRemoteDispatchRuntime({
             inputBindingBody,
             signal,
           }));
-          checkedOutput(output);
+          const close = member(output, 'close');
+          if (typeof close !== 'function') throw missingOutputDisposal();
+          operationState.outputClose = () => close.call(output);
           if (!control.runtimeCustodyAcquireOutput(custody)) {
             fail('RemoteRuntimeCustodyTransitionRejected');
           }
+          checkedOutput(output);
           continue;
         }
         if (action === RUNTIME_ACQUIRE_HOLDING) {
@@ -668,6 +689,8 @@ export function createRemoteDispatchRuntime({
             diagnostics: [],
             operation: operationState.operation,
             output,
+            outputClose: operationState.outputClose,
+            physicalOutputClosed: operationState.physicalOutputClosed,
             siteHolding: operationState.siteHolding,
             bundleHoldId,
           });

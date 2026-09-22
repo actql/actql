@@ -87,12 +87,16 @@ function managedOutput(overrides = {}) {
 async function fixture(
   t,
   execute,
-  {autoClose = true, wrapStore = value => value} = {},
+  {
+    autoClose = true,
+    wrapControl = value => value,
+    wrapStore = value => value,
+  } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), 'actql-remote-runtime-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const selectedSite = site();
-  const control = runtime.remoteSiteControl;
+  const control = wrapControl(runtime.remoteSiteControl);
   const journal = control.createJournal(selectedSite);
   const store = openSqliteDispatchJournal(root, {
     siteKey: 'site-a',
@@ -351,6 +355,152 @@ test('failed physical reclaim remains owned and retryable', async t => {
     [0n, 0n, 0n, 0n, 0n, 0n, 0n],
   );
 });
+
+test('invalid owned output is disposed once without admitting evidence',
+  async t => {
+    for (const [name, override] of [
+      ['negative-rows', {rowCount: -1}],
+      ['wrong-retained-type', {retainedBytes: 8}],
+      ['extra-key', {unexpected: true}],
+      ['invalid-measurement', {measurement: {rowCount: -1}}],
+    ]) {
+      let closes = 0;
+      const f = await fixture(t, async () => managedOutput({
+        ...override,
+        async close() { closes++; },
+      }));
+      const dispatch = request({dispatchId: `invalid-output-${name}`});
+      const record = f.store.accept(
+        f.control.prepareAdmission(f.journal, dispatch), dispatch, f.control,
+      );
+      await assert.rejects(
+        f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+      );
+      assert.equal(closes, 1, name);
+      assert.equal(f.bundleHolds.size, 0, name);
+      assert.deepEqual(
+        runtime.siteControl.status(f.selectedSite).slice(2, 9),
+        [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+        name,
+      );
+      assert.equal(await f.dispatchRuntime.cleanup(dispatch), false, name);
+      assert.equal(closes, 1, name);
+      assert.ok([0, 3].includes(f.control.status(record)[1]), name);
+      assert.equal(f.control.status(record)[3], 0, name);
+    }
+  });
+
+test('invalid output close failure keeps custody until retry', async t => {
+  let closes = 0;
+  const closeFailure = new Error('first disposal failed');
+  const f = await fixture(t, async () => managedOutput({
+    rowCount: -1,
+    async close() {
+      closes++;
+      if (closes === 1) throw closeFailure;
+    },
+  }), {autoClose: false});
+  const dispatch = request({dispatchId: 'invalid-output-retry'});
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch), dispatch, f.control,
+  );
+  await assert.rejects(
+    f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+    error => error instanceof AggregateError &&
+      error.errors.some(child => child === closeFailure),
+  );
+  assert.equal(closes, 1);
+  assert.equal(f.bundleHolds.size, 1);
+  assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
+  assert.equal(closes, 2);
+  assert.equal(f.bundleHolds.size, 0);
+  assert.equal(await f.dispatchRuntime.close(), true);
+  assert.equal(closes, 2);
+});
+
+test('custody transition retry does not repeat a successful physical close',
+  async t => {
+    let closes = 0;
+    let releaseCalls = 0;
+    const f = await fixture(t, async () => managedOutput({
+      rowCount: -1,
+      async close() { closes++; },
+    }), {
+      autoClose: false,
+      wrapControl: control => ({
+        ...control,
+        runtimeCustodyReleaseOutput(custody) {
+          releaseCalls++;
+          return releaseCalls === 1
+            ? false
+            : control.runtimeCustodyReleaseOutput(custody);
+        },
+      }),
+    });
+    const dispatch = request({dispatchId: 'invalid-output-custody-retry'});
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    await assert.rejects(
+      f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+      error => error instanceof AggregateError &&
+        error.errors.some(child =>
+          child.code === 'RemoteRuntimeCustodyTransitionRejected'),
+    );
+    assert.equal(closes, 1);
+    assert.equal(f.bundleHolds.size, 1);
+    assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
+    assert.equal(closes, 1);
+    assert.equal(releaseCalls, 2);
+    assert.equal(f.bundleHolds.size, 0);
+    assert.equal(await f.dispatchRuntime.close(), true);
+  });
+
+test('output without disposal remains explicitly cleanup pending', async t => {
+  const f = await fixture(t, async () => ({rowCount: -1}), {
+    autoClose: false,
+  });
+  const dispatch = request({dispatchId: 'invalid-output-no-close'});
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch), dispatch, f.control,
+  );
+  await assert.rejects(
+    f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+    error => error.code === 'InvalidRemoteExecutionOutput' &&
+      error.cleanupPending === true,
+  );
+  await assert.rejects(
+    f.dispatchRuntime.close(),
+    error => error.code === 'RemoteRuntimeCleanupPending' &&
+      error.cleanupHandle.status().pending === true,
+  );
+  assert.equal(f.bundleHolds.size, 1);
+});
+
+test('frozen and primitive executor failures preserve cleanup ownership',
+  async t => {
+    for (const [name, primary] of [
+      ['frozen', Object.freeze(new Error('frozen executor failure'))],
+      ['primitive', 0],
+    ]) {
+      const f = await fixture(t, async () => { throw primary; });
+      const dispatch = request({dispatchId: `executor-${name}`});
+      const record = f.store.accept(
+        f.control.prepareAdmission(f.journal, dispatch),
+        dispatch,
+        f.control,
+      );
+      await assert.rejects(
+        f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+        error => error === primary ||
+          error instanceof AggregateError && error.errors.includes(primary),
+      );
+      assert.equal(f.bundleHolds.size, 0, name);
+      assert.equal(await f.dispatchRuntime.cleanup(dispatch), false, name);
+    }
+  });
 
 test('concurrent release and close share one physical cleanup attempt',
   async t => {
