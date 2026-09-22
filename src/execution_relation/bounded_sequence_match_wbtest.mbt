@@ -146,10 +146,12 @@ test "bounded sequence match resumes and preserves canonical match order" {
 ///|
 test "bounded sequence match cancels without publishing partial rows" {
   let (control, execution, input) = bounded_sequence_fixture()
+  assert_eq(execution.predicate_entries.val, 0)
   match advance_bounded_sequence_match(execution, 8).unwrap() {
     BoundedSequenceMatchContinue(..) => ()
     _ => fail("expected partial sequence progress")
   }
+  assert_true(execution.predicate_entries.val > 0)
   assert_true(@bounded.request_cancel(control))
   match advance_bounded_sequence_match(execution, 1).unwrap() {
     BoundedSequenceMatchStopped(@bounded.Cancelled, ..) => ()
@@ -159,6 +161,21 @@ test "bounded sequence match cancels without publishing partial rows" {
   assert_true(bounded_sequence_match_cleanup_pending(execution))
   assert_true(cleanup_bounded_sequence_match(execution).unwrap())
   assert_false(bounded_sequence_match_cleanup_pending(execution))
+  assert_eq(execution.predicate_entries.val, 0)
+}
+
+///|
+test "bounded sequence cancellation precedes predicate initialization" {
+  let (control, execution, _) = bounded_sequence_fixture()
+  assert_eq(execution.predicate_entries.val, 0)
+  assert_true(@bounded.request_cancel(control))
+  match advance_bounded_sequence_match(execution, 1).unwrap() {
+    BoundedSequenceMatchStopped(@bounded.Cancelled, progress=0L, work=0L) => ()
+    _ => fail("expected cancellation before predicate initialization")
+  }
+  assert_eq(execution.predicate_entries.val, 0)
+  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_eq(execution.predicate_entries.val, 0)
 }
 
 ///|

@@ -51,6 +51,7 @@ fn bounded_sequence_input_cell(
 
 ///|
 priv enum BoundedSequencePhase {
+  InitializePredicates
   ValidateIdentity
   ReadClocks
   StartIdentitySort
@@ -106,7 +107,10 @@ priv struct BoundedSequenceState {
   mut identity_order : Array[Int]
   mut ordered : Array[Int]
   mut clocks : Array[Int64]
-  predicates : Array[Array[Int]]
+  mut predicates : Array[Array[Int]]
+  predicate_entries : Ref[Int]
+  mut predicate_initialize_pattern : Int
+  mut predicate_initialize_row : Int
   mut identity_row : Int
   mut unique_index : Int
   mut group_start : Int
@@ -120,7 +124,7 @@ priv struct BoundedSequenceState {
   mut selected : Array[Int]
   mut partials : Array[Array[BoundedSequencePartial]]
   mut row_matches : Array[Bool]
-  matches : Array[BoundedSequencePartial]
+  mut matches : Array[BoundedSequencePartial]
   predicate_input : Map[String, Value]
   mut predicate_field : Int
   mut predicate_position : Int
@@ -151,6 +155,7 @@ struct BoundedSequenceMatchExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  predicate_entries : Ref[Int]
 }
 
 ///|
@@ -199,9 +204,24 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
   state.identity_order = []
   state.ordered = []
   state.clocks = []
+  for predicate in state.predicates {
+    predicate.clear()
+  }
+  state.predicates = []
+  state.predicate_entries.val = 0
   state.selected = []
+  for patterns in state.partials {
+    for partial in patterns {
+      partial.positions.clear()
+    }
+    patterns.clear()
+  }
   state.partials = []
   state.row_matches = []
+  for match_ in state.matches {
+    match_.positions.clear()
+  }
+  state.matches = []
   state.output_row = []
   state.checked_row = []
   state.predicate_input.clear()
@@ -463,6 +483,28 @@ fn bounded_sequence_step(
       return bounded_sequence_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      InitializePredicates => {
+        if state.predicate_initialize_pattern == state.pattern_count {
+          state.phase = ValidateIdentity
+          continue
+        }
+        if state.predicate_initialize_pattern == state.predicates.length() {
+          state.predicates.push([])
+          used += 1
+          progress += 1
+          continue
+        }
+        if state.predicate_initialize_row == count {
+          state.predicate_initialize_pattern += 1
+          state.predicate_initialize_row = 0
+          continue
+        }
+        state.predicates[state.predicate_initialize_pattern].push(-1)
+        state.predicate_entries.val += 1
+        state.predicate_initialize_row += 1
+        used += 1
+        progress += 1
+      }
       ValidateIdentity => {
         if state.identity_row == count {
           state.identity_row = 0
@@ -1110,7 +1152,7 @@ fn start_bounded_sequence_match_input(
   let mut metadata = 0
   for
     slots in [
-      input_name_count, key_count, count, predicates_slots, output_name_count,
+      input_name_count, key_count, count, pattern_count, predicates_slots, output_name_count,
     ] {
     if slots < 0 || slots > max_entries - metadata {
       return Err(Rows(RowLimit))
@@ -1151,7 +1193,6 @@ fn start_bounded_sequence_match_input(
     resolve(@lower.sequence_match_time(kernel)) is Some(time_column) else {
     return Err(InvalidExecution)
   }
-  let predicates = Array::makei(pattern_count, _ => Array::make(count, -1))
   let output_names : Array[String] = []
   for index in 0..<@schema.field_count(output_schema) {
     guard @schema.field_at(output_schema, index) is Some(field) else {
@@ -1178,6 +1219,7 @@ fn start_bounded_sequence_match_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let predicate_entries = Ref(0)
   let port = match
     prepare_trusted_output_port_with_inputs(
       generated_completion_preparation(generated),
@@ -1219,13 +1261,16 @@ fn start_bounded_sequence_match_input(
     live,
     accepted,
     port,
-    phase: ValidateIdentity,
+    phase: InitializePredicates,
     continuation: ResumeDisallowFirst,
     sort: None,
     identity_order: [],
     ordered: [],
     clocks: [],
-    predicates,
+    predicates: [],
+    predicate_entries,
+    predicate_initialize_pattern: 0,
+    predicate_initialize_row: 0,
     identity_row: 0,
     unique_index: 1,
     group_start: 0,
@@ -1260,7 +1305,7 @@ fn start_bounded_sequence_match_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ session, token: Some(token), accepted, predicate_entries, })
 }
 
 ///|
@@ -1381,5 +1426,6 @@ pub fn cleanup_bounded_sequence_match(
 pub fn bounded_sequence_match_cleanup_pending(
   value : BoundedSequenceMatchExecution,
 ) -> Bool {
+  value.predicate_entries.val |> ignore
   @bounded.cleanup_pending(value.session)
 }
