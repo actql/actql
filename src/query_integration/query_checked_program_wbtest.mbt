@@ -500,6 +500,7 @@ fn query_checked_program_fixture(
         } else {
           None
         },
+        path_emission=local_carrier_graph_variant == "traverse_paths",
       ),
     ]
   } else if local_carrier_graph_chain &&

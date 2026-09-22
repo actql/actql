@@ -380,7 +380,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       }) +
       "\"min_hops\":1,\"max_hops\":2,"
     }) +
-    "\"emit\":\"nodes\"},\"as\":\"out\""
+    (if variant == "traverse_paths" { "\"max_output_rows\":2," } else { "" }) +
+    "\"emit\":\"" +
+    (if variant == "traverse_paths" { "paths" } else { "nodes" }) +
+    "\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"normalize_graph\":true," +
@@ -561,6 +564,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
     "\"node_ids\",\"edge_ids\""
+  } else if variant == "traverse_paths" {
+    "\"start_id\",\"end_id\",\"hop_count\",\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
   } else if graph_equality {
@@ -591,6 +596,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"component_id\",\"component_size\""
   } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"hop_count\""
+  } else if variant == "traverse_paths" {
+    "\"start_id\",\"end_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
   } else if graph_equality {
@@ -5424,6 +5431,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:3cfb1e511489aff333aa50b95bcdf7ccc857315196ef6ba1857d48bc1a7dc823"
   } else if variant.has_prefix("shortest_") {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
+  } else if variant == "traverse_paths" {
+    "sha256:cfc576a9585dd7c2b6fabb259d8c20b6f56faa99fd09803f85d83805f8fd6174"
   } else if variant.has_prefix("traverse_") {
     "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
@@ -5778,6 +5787,16 @@ fn run_standard_host_graph_relation_path(
     variant == "shortest_type_empty" ||
     variant == "traverse_pattern_predicate_empty" {
     ()
+  } else if variant == "traverse_paths" {
+    assert_true(graph_rows[0].contains("\"start_id\":1"))
+    assert_true(graph_rows[0].contains("\"end_id\":2"))
+    assert_true(graph_rows[0].contains("\"hop_count\":1"))
+    assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
+    assert_true(
+      graph_rows[0].contains(
+        "\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}]",
+      ),
+    )
   } else if variant.has_prefix("traverse_") {
     if variant == "traverse_ids" || traverse_relation_selector {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
@@ -5960,6 +5979,11 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
 ///|
 test "standard Host traverses a Graph for two consumers" {
   run_standard_host_graph_relation_path("traverse_out", publication=true)
+}
+
+///|
+test "standard Host emits traversal paths for two consumers" {
+  run_standard_host_graph_relation_path("traverse_paths", publication=true)
 }
 
 ///|
