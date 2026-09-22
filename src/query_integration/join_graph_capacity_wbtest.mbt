@@ -293,6 +293,7 @@ fn traversal_capacity_material(
   stage : String,
   operation : String,
   step? : Int = 1,
+  input_rows? : Int64 = 2L,
   output_rows? : Int64 = 2L,
   selector_rows? : Int64? = None,
   predicate_selector? : Bool = false,
@@ -310,13 +311,13 @@ fn traversal_capacity_material(
   if operation == "traverse" {
     let input = query_capacity_proof(
       "actql.bound.values",
-      2L,
+      input_rows,
       "{\"op\":\"source\"}",
       step=0,
     )
     let graph = query_capacity_proof(
       "actql.bound.graph-nodes",
-      2L,
+      input_rows,
       "{\"op\":\"source\"}",
       inputs=[@wire.cid(@wire.program_proof_witness(input))],
       step=0,

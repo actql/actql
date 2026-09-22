@@ -92,16 +92,9 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   hop_count > 0 &&
   (
     !@lower.graph_traverse_emits_paths(value) ||
-    (
-      !@lower.graph_traverse_patterned(value) &&
-      (
-        @lower.graph_traverse_start_id_count(value) > 0 ||
-        @lower.graph_traverse_start_relation_field(value) is Some(_) ||
-        @lower.graph_traverse_start_predicate(value) is Some(_)
-      ) &&
-      @lower.graph_traverse_hop_edge_predicate(value, 0) is None &&
-      @lower.graph_traverse_hop_node_predicate(value, 0) is None
-    )
+    @lower.graph_traverse_start_id_count(value) > 0 ||
+    @lower.graph_traverse_start_relation_field(value) is Some(_) ||
+    @lower.graph_traverse_start_predicate(value) is Some(_)
   ) &&
   ({
     let mut valid = true

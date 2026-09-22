@@ -19,6 +19,12 @@ priv enum TraversePathsPhase {
   SortStarts
   BeginDepth
   ScanEdge
+  ScanHopEdgeTypes
+  PrepareHopEdgePredicate
+  EvaluateHopEdgePredicate
+  PrepareHopNodePredicate
+  EvaluateHopNodePredicate
+  AddPath
   SortPaths
   EmitPath
   ReadField
@@ -49,6 +55,8 @@ priv struct TraversePathsState {
   mut start_scan : Int
   start_selected : Array[Bool]
   start_predicate_fields : Int
+  edge_predicate_fields : Int
+  node_predicate_fields : Int
   predicate_workspace : Int
   mut predicate_work_remaining : Int
   predicate_input : Map[String, @execution.Value]
@@ -61,6 +69,9 @@ priv struct TraversePathsState {
   mut depth : Int
   mut path_index : Int
   mut edge_occurrence : Int
+  mut candidate_node : Int
+  mut candidate_edge : Int
+  mut edge_type_index : Int
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
@@ -262,6 +273,7 @@ fn traversal_neighbor(
   path : TraversalPath,
   occurrence : Int,
 ) -> (Int, Int)? {
+  guard traverse_path_direction(state) is Some(direction) else { return None }
   let edge_count = @storage.edge_count(state.source)
   let edge = if occurrence < edge_count {
     occurrence
@@ -275,17 +287,17 @@ fn traversal_neighbor(
   }
   let current = path.nodes[path.nodes.length() - 1]
   if occurrence >= edge_count {
-    if state.direction != @graph_type.Both || from == to || to != current {
+    if direction != @graph_type.Both || from == to || to != current {
       return None
     }
     Some((from, edge))
-  } else if state.direction == @graph_type.Incoming {
+  } else if direction == @graph_type.Incoming {
     if to == current {
       Some((from, edge))
     } else {
       None
     }
-  } else if state.direction == @graph_type.Outgoing {
+  } else if direction == @graph_type.Outgoing {
     if from == current {
       Some((to, edge))
     } else {
@@ -299,23 +311,104 @@ fn traversal_neighbor(
 }
 
 ///|
-fn traversal_edge_type_matches(state : TraversePathsState, edge : Int) -> Bool {
-  match @lower.graph_traverse_hop_type_count(state.prepared, 0) {
-    None => true
-    Some(0) => false
-    Some(count) => {
-      guard @storage.edge_label(state.source, edge)
-        is Some(Some({ value: @value.Text(actual), .. })) else {
-        return false
-      }
-      for index in 0..<count {
-        if @lower.graph_traverse_hop_type_at(state.prepared, 0, index) ==
-          Some(actual) {
-          return true
-        }
-      }
-      false
+fn traverse_path_hop(state : TraversePathsState) -> Int {
+  if @lower.graph_traverse_patterned(state.prepared) {
+    state.depth
+  } else {
+    0
+  }
+}
+
+///|
+fn traverse_path_direction(
+  state : TraversePathsState,
+) -> @graph_type.Direction? {
+  if @lower.graph_traverse_patterned(state.prepared) {
+    @lower.graph_traverse_hop_direction(
+      state.prepared,
+      traverse_path_hop(state),
+    )
+  } else {
+    Some(state.direction)
+  }
+}
+
+///|
+fn traverse_path_edge_type_count(state : TraversePathsState) -> Int? {
+  @lower.graph_traverse_hop_type_count(state.prepared, traverse_path_hop(state))
+}
+
+///|
+fn traverse_path_edge_type_matches(
+  state : TraversePathsState,
+  edge : Int,
+  index : Int,
+) -> Bool {
+  guard @lower.graph_traverse_hop_type_at(
+      state.prepared,
+      traverse_path_hop(state),
+      index,
+    )
+    is Some(expected) &&
+    @storage.edge_label(state.source, edge)
+    is Some(Some({ value: @value.Text(actual), .. })) else {
+    return false
+  }
+  actual == expected
+}
+
+///|
+fn traverse_path_edge_predicate(
+  state : TraversePathsState,
+) -> @lower.Expression? {
+  @lower.graph_traverse_hop_edge_predicate(
+    state.prepared,
+    traverse_path_hop(state),
+  )
+}
+
+///|
+fn traverse_path_node_predicate(
+  state : TraversePathsState,
+) -> @lower.Expression? {
+  @lower.graph_traverse_hop_node_predicate(
+    state.prepared,
+    traverse_path_hop(state),
+  )
+}
+
+///|
+fn prepare_traverse_path_predicates(
+  state : TraversePathsState,
+  edge : Int,
+  node : Int,
+) -> Unit {
+  state.candidate_edge = edge
+  state.candidate_node = node
+  state.predicate_field = 0
+  state.predicate_input.clear()
+  state.phase = if traverse_path_edge_predicate(state) is Some(_) {
+    PrepareHopEdgePredicate
+  } else {
+    PrepareHopNodePredicate
+  }
+}
+
+///|
+fn prepare_traverse_path_candidate(
+  state : TraversePathsState,
+  edge : Int,
+  node : Int,
+) -> Unit {
+  state.candidate_edge = edge
+  state.candidate_node = node
+  match traverse_path_edge_type_count(state) {
+    Some(0) => state.phase = ScanEdge
+    Some(_) => {
+      state.edge_type_index = 0
+      state.phase = ScanHopEdgeTypes
     }
+    None => prepare_traverse_path_predicates(state, edge, node)
   }
 }
 
@@ -546,7 +639,10 @@ fn traverse_paths_step(
           state.sort_cursor = 1
           state.phase = SortPaths
         } else {
-          let occurrences = if state.direction == @graph_type.Both {
+          guard traverse_path_direction(state) is Some(direction) else {
+            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+          }
+          let occurrences = if direction == @graph_type.Both {
             @storage.edge_count(state.source) * 2
           } else {
             @storage.edge_count(state.source)
@@ -560,30 +656,201 @@ fn traverse_paths_step(
             let occurrence = state.edge_occurrence
             state.edge_occurrence += 1
             if traversal_neighbor(state, path, occurrence) is Some((node, edge)) &&
-              !path_contains_node(path, node) &&
-              traversal_edge_type_matches(state, edge) {
-              let next_slots = path.nodes.length() + path.edges.length() + 3
-              if next_slots > state.max_workspace_slots - state.workspace_slots {
-                return @bounded.Failed(
-                  TraversePathsWorkspaceLimit,
-                  progress,
-                  used,
-                )
-              }
-              if state.depth + 1 >= state.minimum_depth &&
-                state.emitted + state.next_frontier.length() >= state.max_rows {
-                return @bounded.Failed(TraversePathsOutputLimit, progress, used)
-              }
-              let nodes = path.nodes.copy()
-              let edges = path.edges.copy()
-              nodes.push(node)
-              edges.push(edge)
-              let next = { nodes, edges, }
-              state.workspace_slots += next_slots
-              state.next_frontier.push(next)
+              !path_contains_node(path, node) {
+              prepare_traverse_path_candidate(state, edge, node)
             }
           }
         }
+      ScanHopEdgeTypes => {
+        guard traverse_path_edge_type_count(state) is Some(type_count) else {
+          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+        }
+        let matches = traverse_path_edge_type_matches(
+          state,
+          state.candidate_edge,
+          state.edge_type_index,
+        )
+        state.edge_type_index += 1
+        used += 1
+        if matches {
+          prepare_traverse_path_predicates(
+            state,
+            state.candidate_edge,
+            state.candidate_node,
+          )
+        } else if state.edge_type_index >= type_count {
+          state.phase = ScanEdge
+        }
+      }
+      PrepareHopEdgePredicate =>
+        if state.predicate_field < state.edge_predicate_fields {
+          used += 1
+          guard graph_edge_predicate_binding(
+              state.graph,
+              state.source,
+              state.candidate_edge,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard traverse_path_edge_predicate(state) is Some(predicate) else {
+            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                TraversePathsPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateHopEdgePredicate
+            }
+          }
+        }
+      EvaluateHopEdgePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              TraversePathsPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            state.predicate_field = 0
+            state.phase = if !selected {
+              ScanEdge
+            } else {
+              PrepareHopNodePredicate
+            }
+          }
+        }
+      }
+      PrepareHopNodePredicate =>
+        if traverse_path_node_predicate(state) is None {
+          state.phase = AddPath
+        } else if state.predicate_field < state.node_predicate_fields {
+          used += 1
+          guard graph_node_predicate_binding(
+              state.graph,
+              state.source,
+              state.candidate_node,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard traverse_path_node_predicate(state) is Some(predicate) else {
+            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                TraversePathsPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateHopNodePredicate
+            }
+          }
+        }
+      EvaluateHopNodePredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              TraversePathsPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            state.predicate_field = 0
+            state.phase = if selected { AddPath } else { ScanEdge }
+          }
+        }
+      }
+      AddPath => {
+        used += 1
+        guard state.frontier.get(state.path_index) is Some(path) else {
+          return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
+        }
+        let next_slots = path.nodes.length() + path.edges.length() + 3
+        if next_slots > state.max_workspace_slots - state.workspace_slots {
+          return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
+        }
+        if state.depth + 1 >= state.minimum_depth &&
+          state.emitted + state.next_frontier.length() >= state.max_rows {
+          return @bounded.Failed(TraversePathsOutputLimit, progress, used)
+        }
+        let nodes = path.nodes.copy()
+        let edges = path.edges.copy()
+        nodes.push(state.candidate_node)
+        edges.push(state.candidate_edge)
+        state.workspace_slots += next_slots
+        state.next_frontier.push({ nodes, edges, })
+        state.phase = ScanEdge
+      }
       SortPaths =>
         if state.sort_index >= state.next_frontier.length() {
           for path in state.frontier {
@@ -719,25 +986,37 @@ fn start_traverse_paths(
   inputs : Array[@execution.ProducerRead],
 ) -> Result[TraversePathsExecution, TraversePathsIssue] {
   let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphTraverseStep(prepared)) else {
+    return Err(InvalidTraversePathsKernel)
+  }
+  let hop_count = @lower.graph_traverse_hop_count(prepared)
+  let patterned = @lower.graph_traverse_patterned(prepared)
+  let bounds = if patterned {
+    Some((hop_count.to_int64(), hop_count.to_int64()))
+  } else {
+    @lower.graph_traverse_bounds(prepared)
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
     ) &&
-    @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphTraverseStep(prepared)) &&
     @lower.graph_traverse_emits_paths(prepared) &&
-    !@lower.graph_traverse_patterned(prepared) &&
-    @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
+    bounds is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
+    hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
-    @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
-    @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
     @graph.producer_read_storage(input) is Some(source) &&
     (direction != @graph_type.Both || @storage.edge_count(source) <= 1073741823) &&
     max_rows >= 0 &&
     max_workspace_slots >= 0 else {
     return Err(InvalidTraversePathsKernel)
+  }
+  for hop in 0..<hop_count {
+    guard @lower.graph_traverse_hop_direction(prepared, hop) is Some(_) else {
+      return Err(InvalidTraversePathsKernel)
+    }
   }
   guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
     return Err(InvalidTraversePathsKernel)
@@ -818,8 +1097,32 @@ fn start_traverse_paths(
     PredicatePathStarts(_) => graph_node_predicate_binding_count(graph)
     _ => 0
   }
+  let mut has_edge_predicate = false
+  let mut has_node_predicate = false
+  for hop in 0..<hop_count {
+    if @lower.graph_traverse_hop_edge_predicate(prepared, hop) is Some(_) {
+      has_edge_predicate = true
+    }
+    if @lower.graph_traverse_hop_node_predicate(prepared, hop) is Some(_) {
+      has_node_predicate = true
+    }
+  }
+  let edge_predicate_fields = if has_edge_predicate {
+    graph_edge_predicate_binding_count(graph)
+  } else {
+    0
+  }
+  let node_predicate_fields = if has_node_predicate {
+    graph_node_predicate_binding_count(graph)
+  } else {
+    0
+  }
+  let predicate_workspace_width = Int::max(
+    start_predicate_fields,
+    Int::max(edge_predicate_fields, node_predicate_fields),
+  )
   if node_count > max_workspace_slots ||
-    start_predicate_fields > max_workspace_slots - node_count {
+    predicate_workspace_width > max_workspace_slots - node_count {
     @execution.cancel_admitted_output(output) |> ignore
     return Err(TraversePathsWorkspaceLimit)
   }
@@ -852,9 +1155,11 @@ fn start_traverse_paths(
     start_scan: 0,
     start_selected: Array::make(node_count, false),
     start_predicate_fields,
+    edge_predicate_fields,
+    node_predicate_fields,
     predicate_workspace: max_workspace_slots -
     node_count -
-    start_predicate_fields,
+    predicate_workspace_width,
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),
     predicate_execution: None,
@@ -866,11 +1171,14 @@ fn start_traverse_paths(
     depth: 0,
     path_index: 0,
     edge_occurrence: 0,
+    candidate_node: -1,
+    candidate_edge: -1,
+    edge_type_index: 0,
     emit_index: 0,
     column: 0,
     values: [],
     emitted: 0,
-    workspace_slots: node_count + start_predicate_fields,
+    workspace_slots: node_count + predicate_workspace_width,
   }
   let (session, token) = @bounded.start(
     control,

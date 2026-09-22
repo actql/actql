@@ -486,6 +486,13 @@ fn query_checked_program_fixture(
         environment,
         "graph",
         "traverse",
+        input_rows=if local_carrier_graph_variant.has_prefix(
+            "traverse_pattern_multi_paths",
+          ) {
+          3L
+        } else {
+          2L
+        },
         output_rows=if local_carrier_graph_variant == "traverse_ids" ||
           local_carrier_graph_variant == "traverse_predicate" ||
           local_carrier_graph_variant == "traverse_predicate_paths" ||
@@ -505,7 +512,8 @@ fn query_checked_program_fixture(
         },
         path_emission=local_carrier_graph_variant == "traverse_paths" ||
           local_carrier_graph_variant == "traverse_relation_paths" ||
-          local_carrier_graph_variant == "traverse_predicate_paths",
+          local_carrier_graph_variant == "traverse_predicate_paths" ||
+          local_carrier_graph_variant.has_prefix("traverse_pattern_multi_paths"),
       ),
     ]
   } else if local_carrier_graph_chain &&

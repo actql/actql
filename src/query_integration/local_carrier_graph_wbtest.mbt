@@ -156,9 +156,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subtract_numeric = variant == "subtract_numeric"
   let subtract_properties = subtract_exact || subtract_numeric
   let union_set = variant == "union_set"
+  let patterned_multi = variant == "traverse_pattern_multi" ||
+    variant.has_prefix("traverse_pattern_multi_paths")
   let typed_traverse = variant.has_prefix("traverse_type") ||
     variant.has_prefix("shortest_type") ||
-    variant == "traverse_pattern_multi"
+    patterned_multi
   let subgraph_relation_selector = variant.has_prefix(
     "subgraph_relation_selector",
   )
@@ -166,7 +168,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     variant == "traverse_relation_paths"
   let traverse_paths = variant == "traverse_paths" ||
     variant == "traverse_relation_paths" ||
-    variant == "traverse_predicate_paths"
+    variant == "traverse_predicate_paths" ||
+    variant.has_prefix("traverse_pattern_multi_paths")
   let shortest_relation_selector = variant == "shortest_relation_selector"
   let relation_selector = subgraph_relation_selector ||
     traverse_relation_selector ||
@@ -202,6 +205,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }
   let rows = if union_set {
     "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
+  } else if variant.has_prefix("traverse_pattern_multi_paths") {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":3,\"edge_type\":\"blocks\"," +
+    "\"node_name\":\"second\",\"weight\":20},{\"id\":3," +
+    "\"src\":3,\"dst\":3,\"edge_type\":\"other\"," +
+    "\"node_name\":\"third\",\"weight\":30}]"
   } else if typed_traverse {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
@@ -322,7 +332,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       (if variant == "traverse_ids" {
         "2,1,2"
       } else if variant.has_prefix("traverse_pattern_") &&
-        variant != "traverse_pattern_multi" &&
+        !patterned_multi &&
         variant != "traverse_pattern_one" {
         "2"
       } else {
@@ -332,12 +342,24 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     }) +
     "}," +
     (if variant.has_prefix("traverse_pattern_") {
-      if variant == "traverse_pattern_multi" {
+      if patterned_multi {
         "\"hops\":[{\"direction\":\"out\"," +
         "\"edge_types\":[\"owns\"]," +
-        "\"node_where\":\"node_name = 'second'\"},{" +
-        "\"direction\":\"out\",\"edge_types\":[\"blocks\"]," +
-        "\"node_where\":\"node_name = 'first'\"}],"
+        "\"edge_where\":\"weight > " +
+        (if variant == "traverse_pattern_multi_paths_empty" {
+          "100"
+        } else {
+          "5"
+        }) +
+        "\"," +
+        "\"node_where\":\"node_name = 'second'\"" +
+        "},{\"direction\":\"out\"," +
+        "\"edge_types\":[\"blocks\"]," +
+        "\"edge_where\":\"weight > 15\"," +
+        "\"node_where\":\"node_name = '" +
+        (if variant == "traverse_pattern_multi" { "first" } else { "third" }) +
+        "'\"" +
+        "}],"
       } else {
         "\"hops\":[{\"direction\":\"out\"" +
         (if variant == "traverse_pattern_predicate" ||
@@ -1515,6 +1537,7 @@ fn carrier_graph_shortest_owner(
 ///|
 fn carrier_graph_predicate_pattern_owner(
   source : @lower.BoundPrepared,
+  emission? : String = "nodes",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -1525,7 +1548,9 @@ fn carrier_graph_predicate_pattern_owner(
       "\"from\":\"graph\",\"traverse\":{\"start\":{\"where\":" +
       "\"node_name = 'second'\"},\"hops\":[{\"direction\":\"out\"," +
       "\"edge_where\":\"weight > 10\",\"node_where\":" +
-      "\"node_name = 'first'\"}],\"emit\":\"nodes\"," +
+      "\"node_name = 'first'\"}],\"emit\":\"" +
+      emission +
+      "\"," +
       "\"max_output_rows\":4}}]",
     ),
     [
@@ -4215,6 +4240,93 @@ test "traversal separates predicate widths at exact workspace" {
 }
 
 ///|
+test "path traversal admits hop predicate bindings before allocation" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_predicate_pattern_owner(
+    source_owner,
+    emission="paths",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  assert_true(
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      4,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
+  )
+  let control = @bounded.control()
+  let admitted = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    5,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_traverse(admitted, 1).unwrap()
+    is @local_sga.TraverseStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_traverse(admitted), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap(),
+    "{\"edge_ids\":[{\"dst\":1,\"rel\":null,\"src\":2}]," +
+    "\"end_id\":1,\"hop_count\":1,\"node_ids\":[2,1],\"start_id\":2}",
+  )
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "homogeneous traversal rejects a missing literal start atomically" {
   let source_owner = carrier_graph_components_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -5735,6 +5847,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:1c0cbd7fcb1f8c732eadd4214ccb94132fe77ebc043af653a0327d329adfafa7"
   } else if variant == "traverse_predicate_paths" {
     "sha256:1c0cbd7fcb1f8c732eadd4214ccb94132fe77ebc043af653a0327d329adfafa7"
+  } else if variant == "traverse_pattern_multi_paths" {
+    "sha256:dddbfc637cf2cf3754dd3bf39af12cd54006d26f38e09736d8f0fb1a922ed332"
   } else if variant.has_prefix("traverse_") {
     "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
@@ -5759,7 +5873,8 @@ fn run_standard_host_graph_relation_path(
     variant == "traverse_relation_paths"
   let traverse_paths = variant == "traverse_paths" ||
     variant == "traverse_relation_paths" ||
-    variant == "traverse_predicate_paths"
+    variant == "traverse_predicate_paths" ||
+    variant == "traverse_pattern_multi_paths"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
@@ -5945,6 +6060,7 @@ fn run_standard_host_graph_relation_path(
     variant == "traverse_type_empty" ||
     variant == "traverse_types_miss" ||
     variant == "traverse_pattern_predicate_empty" ||
+    variant == "traverse_pattern_multi_paths_empty" ||
     variant == "shortest_type_miss" ||
     variant == "shortest_type_empty" ||
     variant == "subgraph_edges_false" {
@@ -6095,18 +6211,32 @@ fn run_standard_host_graph_relation_path(
     variant == "traverse_types_miss" ||
     variant == "shortest_type_miss" ||
     variant == "shortest_type_empty" ||
-    variant == "traverse_pattern_predicate_empty" {
+    variant == "traverse_pattern_predicate_empty" ||
+    variant == "traverse_pattern_multi_paths_empty" {
     ()
   } else if traverse_paths {
-    assert_true(graph_rows[0].contains("\"start_id\":1"))
-    assert_true(graph_rows[0].contains("\"end_id\":2"))
-    assert_true(graph_rows[0].contains("\"hop_count\":1"))
-    assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
-    assert_true(
-      graph_rows[0].contains(
-        "\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}]",
-      ),
-    )
+    if variant == "traverse_pattern_multi_paths" {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"end_id\":3"))
+      assert_true(graph_rows[0].contains("\"hop_count\":2"))
+      assert_true(graph_rows[0].contains("\"node_ids\":[1,2,3]"))
+      assert_true(
+        graph_rows[0].contains(
+          "\"edge_ids\":[{\"dst\":2,\"rel\":\"owns\",\"src\":1}," +
+          "{\"dst\":3,\"rel\":\"blocks\",\"src\":2}]",
+        ),
+      )
+    } else {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"end_id\":2"))
+      assert_true(graph_rows[0].contains("\"hop_count\":1"))
+      assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
+      assert_true(
+        graph_rows[0].contains(
+          "\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}]",
+        ),
+      )
+    }
   } else if variant.has_prefix("traverse_") {
     if variant == "traverse_ids" || traverse_relation_selector {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
@@ -6344,6 +6474,15 @@ test "standard Host evaluates authored hop predicates" {
 ///|
 test "standard Host traverses ordered authored hops" {
   run_standard_host_graph_relation_path("traverse_pattern_multi")
+}
+
+///|
+test "standard Host emits paths from ordered authored hops" {
+  run_standard_host_graph_relation_path(
+    "traverse_pattern_multi_paths",
+    publication=true,
+  )
+  run_standard_host_graph_relation_path("traverse_pattern_multi_paths_empty")
 }
 
 ///|
