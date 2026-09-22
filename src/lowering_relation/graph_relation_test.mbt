@@ -47,6 +47,27 @@ test "Graph equality and diff retain exact binary edges" {
 }
 
 ///|
+test "Graph diff retains its typed output and graph contract identity" {
+  let sequence = @lowering_relation.prepare_sequence(
+    graph_relation_owner("[{\"from\":\"a\",\"graph_diff\":{\"with\":\"b\"}}]"),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.GraphRelationStep(diff)) &&
+    @lowering_relation.graph_relation_diff_contract(diff) is Some(contract) &&
+    @lowering_relation.graph_relation_graph_contract_cid(diff) is Some(cid) else {
+    fail("missing graph diff lowering evidence")
+  }
+  assert_true(contract.shape is @contract.Object(_))
+  let expected = @graph_contract.admit(graph_union_carrier(), {
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }).unwrap()
+  assert_eq(cid, @graph_contract.cid(expected))
+}
+
+///|
 test "Graph delta application retains produced delta field and budgets" {
   let source = "[{\"from\":\"a\",\"graph_diff\":{\"with\":\"b\"},\"as\":\"changes\"},{\"from\":\"a\",\"apply_graph_delta\":{\"with\":\"changes\",\"field\":\"delta\"}}]"
   assert_eq(

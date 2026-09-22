@@ -15,8 +15,28 @@ pub(all) enum GraphRelationKind {
 pub fn graph_relation_kind(value : PreparedGraphRelation) -> GraphRelationKind {
   match value.params {
     EqualityGraphRelationParams => GraphsEqualRelation
-    DiffGraphRelationParams => GraphDiffRelation
+    DiffGraphRelationParams(_, _) => GraphDiffRelation
     ApplyGraphParams(_) => ApplyGraphRelation
+  }
+}
+
+///|
+pub fn graph_relation_diff_contract(
+  value : PreparedGraphRelation,
+) -> @contract.Contract? {
+  match value.params {
+    DiffGraphRelationParams(contract, _) => Some(contract)
+    _ => None
+  }
+}
+
+///|
+pub fn graph_relation_graph_contract_cid(
+  value : PreparedGraphRelation,
+) -> String? {
+  match value.params {
+    DiffGraphRelationParams(_, cid) => Some(cid)
+    _ => None
   }
 }
 
@@ -43,7 +63,7 @@ pub fn graph_relation_output_schema(
 ///|
 priv enum PreparedGraphRelationParams {
   EqualityGraphRelationParams
-  DiffGraphRelationParams
+  DiffGraphRelationParams(@contract.Contract, String)
   ApplyGraphParams(String)
 }
 
@@ -66,12 +86,16 @@ fn prepare_graph_relation_node(
   }
   let params = match node.payload {
     GraphEqualityRows(_) => EqualityGraphRelationParams
-    GraphDiffRows(_) => DiffGraphRelationParams
+    GraphDiffRows(checked) =>
+      DiffGraphRelationParams(
+        @graph.diff_contract(checked),
+        @graph_contract.cid(@graph.diff_graph_contract(checked)),
+      )
     GraphApplyValue(checked) => ApplyGraphParams(@graph.apply_field(checked))
     _ => return Err(InvalidGraphRelationWiring)
   }
   let (entries, name_bytes, work) = match params {
-    EqualityGraphRelationParams | DiffGraphRelationParams => (0, 0, 0)
+    EqualityGraphRelationParams | DiffGraphRelationParams(_, _) => (0, 0, 0)
     ApplyGraphParams(field) => (1, @utf8.encode(field).length(), 1)
   }
   if entries > max_entries || name_bytes > max_name_bytes || work > max_work {
@@ -99,7 +123,7 @@ fn emit_graph_relation_node(
   @encode.key(out, "params")
   @encode.begin_object(out)
   match prepared.params {
-    EqualityGraphRelationParams | DiffGraphRelationParams => ()
+    EqualityGraphRelationParams | DiffGraphRelationParams(_, _) => ()
     ApplyGraphParams(field) => {
       @encode.key(out, "field")
       @encode.string_value(out, field)
