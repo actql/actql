@@ -19,6 +19,17 @@ SPEC.loader.exec_module(GENERATOR)
 
 
 class UnicodeCoverageTests(unittest.TestCase):
+    def test_pinned_nfc_quick_check_values(self):
+        no, maybe = GENERATOR.read_nfc_quick_check(
+            ROOT / "vendor" / "unicode" / "16.0.0" /
+            "DerivedNormalizationProps.txt",
+        )
+        self.assertIn(0x0344, no)
+        self.assertIn(0x0301, maybe)
+        self.assertIn(0x16D68, maybe)
+        self.assertNotIn(0x65E5, no | maybe)
+        self.assertFalse(no & maybe)
+
     def test_assigned_scalars_expand_ranges_and_exclude_surrogates(self):
         scalars = GENERATOR.assigned_scalars([
             "000D;<control>;Cc",

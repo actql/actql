@@ -264,10 +264,8 @@ pub fn normalize_nfc(value : String) -> Result[String, TextNormalizationError] {
 
 ///|
 fn normalize_text(value : String) -> Result[String, TextNormalizationError] {
-  // The generated set is a conservative Unicode 16.0 NFC quick check. It
-  // includes every nonstarter, composition trail, and unstable singleton.
-  // Validated text outside the set is already NFC without allocating rows of
-  // scalars or re-encoding a new string.
+  // The pinned Unicode 16.0 NFC quick check avoids scalar arrays and string
+  // rebuilding for validated text that is already in NFC.
   match nfc_quick_check(value) {
     Err(error) => return Err(error)
     Ok(true) => return Ok(value)
@@ -294,6 +292,7 @@ fn normalize_text(value : String) -> Result[String, TextNormalizationError] {
 ///|
 fn nfc_quick_check(value : String) -> Result[Bool, TextNormalizationError] {
   let mut index = 0
+  let mut previous_class = 0
   while index < value.length() {
     let unit = value[index].to_int()
     let scalar = if unit >= 0xD800 && unit <= 0xDBFF {
@@ -311,9 +310,16 @@ fn nfc_quick_check(value : String) -> Result[Bool, TextNormalizationError] {
     } else {
       unit
     }
-    if scalar > 0x7F && lookup_int(nfc_unsafe_scalar_keys, scalar) is Some(_) {
+    if scalar > 0x7F &&
+      (lookup_int(nfc_qc_no_scalar_keys, scalar) is Some(_) ||
+      lookup_int(nfc_qc_maybe_scalar_keys, scalar) is Some(_)) {
       return Ok(false)
     }
+    let current_class = canonical_combining_class(scalar)
+    if current_class != 0 && current_class < previous_class {
+      return Ok(false)
+    }
+    previous_class = current_class
     index += 1
   }
   Ok(true)
