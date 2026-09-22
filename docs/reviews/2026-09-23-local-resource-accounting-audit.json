@@ -1,0 +1,306 @@
+{
+  "version": "actql-local-resource-accounting-audit/0.1",
+  "inventories": {
+    "rela": "docs/reviews/2026-09-18-local-compute-coverage.json",
+    "families": "docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json"
+  },
+  "required_facets": [
+    "admission_before_allocation",
+    "charged_bounded_work",
+    "finite_stop_observation",
+    "temporary_retained_peak_scope",
+    "cleanup_owner"
+  ],
+  "required_phases": [
+    "prepare",
+    "resume",
+    "order_or_hash",
+    "value_construction",
+    "finalize",
+    "cancel",
+    "cleanup"
+  ],
+  "profiles": {
+    "rela_rows": {
+      "work_unit": "one admitted row, expression step, comparison, membership, or emitted value",
+      "cumulative_ceiling": "the selected request work, output, value, and structural workspace limits",
+      "temporary_scope": "operation workspace and unpublished output builders",
+      "retained_scope": "accepted immutable Relation storage and its consumer leases",
+      "peak_scope": "borrowed input, live workspace, and output storage while their lifetimes overlap",
+      "noninterruptible_bound": "one charged row, expression, comparison, membership, or builder step",
+      "stop_observation": "the managed driver and bounded helpers observe stop between charged steps",
+      "cleanup_owner": "the Local attempt owns unpublished builders and scratch; accepted storage owns later reclamation",
+      "phase_inventory": {
+        "prepare": "check dimensions and reserve fixed structural workspace before allocation",
+        "resume": "charge each row, expression, comparison, membership, or emitted value against cumulative request limits",
+        "order_or_hash": "charge indexed ordering and hashing by processed keys and preserve collision or comparison work",
+        "value_construction": "admit structural and byte bounds before appending each unpublished value",
+        "finalize": "seal exact output counts and retention while temporary workspace is still owned",
+        "cancel": "observe the common request state between bounded driver and evaluator steps",
+        "cleanup": "cancel unpublished builders, release attempt scratch, and leave accepted storage with its independent owner"
+      },
+      "sources": [
+        "src/execution_relation/row_workspace.mbt",
+        "src/execution_relation/admitted_output_stream.mbt",
+        "src/connectors/local/driver/managed_dispatch.mbt"
+      ],
+      "evidence": [
+        {
+          "facets": ["admission_before_allocation"],
+          "path": "src/execution_relation/window_group_scale_wbtest.mbt",
+          "fixture": "numeric window group arrays respect the exact workspace boundary"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/execution_relation/binary_scale_wbtest.mbt",
+          "fixture": "cross join work and retention follow the emitted product"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+          "fixture": "Local managed cross join cancellation publishes nothing and reclaims"
+        },
+        {
+          "facets": ["temporary_retained_peak_scope"],
+          "path": "src/execution_relation/layout_leases_wbtest.mbt",
+          "fixture": "conversion capacity includes source and destination without partial reservations"
+        }
+      ]
+    },
+    "sga_graph": {
+      "work_unit": "one graph record, predicate step, frontier item, path element, comparison, or output append",
+      "cumulative_ceiling": "the admitted graph scan, traversal, output, value-node, and workspace limits",
+      "temporary_scope": "private selectors, frontier, snapshots, predicate state, and unpublished Graph or Relation builders",
+      "retained_scope": "accepted immutable Graph storage or Relation projection with independent consumer custody",
+      "peak_scope": "borrowed Graph inputs plus private traversal or merge state plus an unpublished output",
+      "noninterruptible_bound": "one charged graph record, predicate, frontier, comparison, or value-builder step",
+      "stop_observation": "every resumable graph phase checks the shared bounded-session stop reader",
+      "cleanup_owner": "the graph session owns nested predicate state, scratch, snapshots, and unpublished output until acceptance",
+      "phase_inventory": {
+        "prepare": "validate exact Graph inputs and reserve selectors, indices, and fixed traversal workspace before allocation",
+        "resume": "charge graph records, predicate steps, frontier items, comparisons, path elements, and output appends",
+        "order_or_hash": "charge canonical graph ordering, visited membership, deduplication, and equality work",
+        "value_construction": "reserve row, array, and identity-value nodes before bounded Graph or Relation appends",
+        "finalize": "transfer a complete private Graph or Relation generation without exposing frontier or predicate state",
+        "cancel": "poll the shared stop reader between every resumable graph phase and nested predicate step",
+        "cleanup": "cancel nested evaluation and clear selectors, snapshots, frontiers, scratch, and unpublished builders"
+      },
+      "sources": [
+        "src/local_sga/normalize.mbt",
+        "src/local_sga/graft.mbt",
+        "src/local_sga/mean.mbt",
+        "src/local_sga/traverse_paths.mbt"
+      ],
+      "evidence": [
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize advances in bounded steps and feeds two consumers"
+        },
+        {
+          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
+          "path": "src/local_sga/mean_wbtest.mbt",
+          "fixture": "graph mean admits merge storage before sorting"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize confirms cancellation before reclaiming partial output"
+        }
+      ]
+    },
+    "tea_events": {
+      "work_unit": "one event field, sort comparison, membership, candidate pair, pattern cell, identity scalar, or output append",
+      "cumulative_ceiling": "the admitted event, pair, membership, identity-byte, output, and workspace limits",
+      "temporary_scope": "private event records, indices, predicate cells, candidate search state, and unpublished output",
+      "retained_scope": "accepted immutable Events or Relation storage held through completion and consumer release",
+      "peak_scope": "borrowed input plus live temporal state plus output storage during finalization",
+      "noninterruptible_bound": "one charged field, comparison, membership, pair, pattern, identity, or builder step",
+      "stop_observation": "temporal sessions observe shared stop state at every bounded resume step",
+      "cleanup_owner": "the temporal session owns partial matrices, indices, builders, and completed-but-unaccepted values",
+      "phase_inventory": {
+        "prepare": "check event dimensions and reserve indices, predicate cells, pair state, and fixed output structure before allocation",
+        "resume": "charge each field, comparison, membership, pair, pattern cell, identity scalar, and output append",
+        "order_or_hash": "charge temporal sorting, key grouping, deduplication, candidate search, and sequence matching work",
+        "value_construction": "admit identity bytes, record fields, and output structure before each private append",
+        "finalize": "retain a completed but unaccepted Events or Relation value until completion admission succeeds",
+        "cancel": "observe shared stop state between bounded temporal, identity, search, and builder steps",
+        "cleanup": "clear predicate matrices, indices, search state, scratch, and every unaccepted completed or partial output"
+      },
+      "sources": [
+        "src/local_tea/window.mbt",
+        "src/local_tea/session.mbt",
+        "src/local_tea/dedupe.mbt",
+        "src/local_tea_provider/sequence_match.mbt"
+      ],
+      "evidence": [
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/local_tea/window_wbtest.mbt",
+          "fixture": "fixed and sliding event windows preserve order with bounded steps"
+        },
+        {
+          "facets": ["admission_before_allocation"],
+          "path": "src/local_tea/dedupe_wbtest.mbt",
+          "fixture": "event dedupe admits scratch before allocation and observes cancellation"
+        },
+        {
+          "facets": ["finite_stop_observation"],
+          "path": "src/local_tea/session_wbtest.mbt",
+          "fixture": "session identity construction can stop between scalar parts"
+        },
+        {
+          "facets": ["temporary_retained_peak_scope", "cleanup_owner"],
+          "path": "src/local_tea/watermark_wbtest.mbt",
+          "fixture": "watermark retains completed output custody until stop cleanup"
+        }
+      ]
+    },
+    "veca_vectors": {
+      "work_unit": "one vector component, candidate, comparison, ranking field, numeric operation, or output append",
+      "cumulative_ceiling": "the admitted component, candidate, comparison, value, output, and workspace limits",
+      "temporary_scope": "private numeric accumulators, candidate order, ranking state, and unpublished output builders",
+      "retained_scope": "accepted immutable Vectors or Relation storage and independent consumer leases",
+      "peak_scope": "borrowed vector inputs plus live ordering or numeric state plus output storage",
+      "noninterruptible_bound": "one charged component, comparison, candidate, numeric operation, or builder step",
+      "stop_observation": "vector sessions poll the shared stop reader between bounded component and candidate steps",
+      "cleanup_owner": "the vector session owns numeric state, sort scratch, value builders, and unpublished output",
+      "phase_inventory": {
+        "prepare": "validate dimensions and reserve candidate, ordering, ranking, and numeric workspace before allocation",
+        "resume": "charge every component, candidate, comparison, numeric operation, ranking field, and output append",
+        "order_or_hash": "charge stable candidate ordering, ranking grouping, deduplication, and tie comparison work",
+        "value_construction": "reserve component and container structure before bounded vector or Relation construction",
+        "finalize": "seal numeric observations and retain the private completed value until common completion accepts it",
+        "cancel": "poll shared stop state between component, candidate, comparison, reduction, and builder steps",
+        "cleanup": "cancel numeric and value builders, release sort scratch, and discard every unpublished output"
+      },
+      "sources": [
+        "src/local_veca/normalize.mbt",
+        "src/local_veca/score.mbt",
+        "src/local_veca/nearest.mbt",
+        "src/local_veca/pool.mbt",
+        "src/local_veca/ranking.mbt"
+      ],
+      "evidence": [
+        {
+          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool admits structural workspace before allocating sort state"
+        },
+        {
+          "facets": ["charged_bounded_work", "finite_stop_observation"],
+          "path": "src/local_veca/score_wbtest.mbt",
+          "fixture": "score observes cancellation between bounded work units"
+        },
+        {
+          "facets": ["cleanup_owner"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool observes cancellation and reclaims partial output"
+        }
+      ]
+    },
+    "carrier_bridges": {
+      "work_unit": "one admitted Carrier record, field, component, identity projection, or output append",
+      "cumulative_ceiling": "the selected Bridge input, output, value, identity, and workspace limits",
+      "temporary_scope": "private projection state and unpublished target-Carrier builder",
+      "retained_scope": "the independently accepted target generation and its consumer leases",
+      "peak_scope": "source Carrier custody plus projection scratch plus target storage until handoff",
+      "noninterruptible_bound": "one charged record, field, component, identity, or builder step",
+      "stop_observation": "registered Bridge providers yield and observe the common execution-control state",
+      "cleanup_owner": "the Bridge session owns partial target storage while accepted generations own later reclamation",
+      "phase_inventory": {
+        "prepare": "validate the exact source Carrier edge and reserve projection and target-builder structure before allocation",
+        "resume": "charge each source record, field, component, identity projection, conversion, and target append",
+        "order_or_hash": "preserve and charge required source order, semantic identity lookup, and duplicate detection",
+        "value_construction": "admit target Carrier records, fields, values, and identity bytes before private appends",
+        "finalize": "create an independent accepted target generation while retaining source custody through handoff",
+        "cancel": "yield through the environment adapter and observe common stop state between conversion steps",
+        "cleanup": "discard partial target storage, release projection scratch and source use, and preserve accepted generations"
+      },
+      "sources": [
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/local_tea_provider/events_pipeline.mbt",
+        "src/local_veca_provider/vectors_pipeline.mbt"
+      ],
+      "evidence": [
+        {
+          "facets": ["admission_before_allocation", "charged_bounded_work", "temporary_retained_peak_scope"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded Graph bridge preserves repeated positions and two consumers"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph bridge cancellation stops before cleanup and preserves inputs"
+        },
+        {
+          "facets": ["temporary_retained_peak_scope"],
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "fixture": "bounded Events bridge round trip feeds two Relation consumers"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "standard Host runs the vector bridge through two consumers"
+        }
+      ]
+    }
+  },
+  "bindings": [
+    {
+      "inventory": "rela",
+      "profile": "rela_rows",
+      "operations": [
+        "filter", "select", "rename", "drop", "derive", "sort", "take",
+        "top_k", "top_k_by", "row_window", "window_group", "lag",
+        "watermark_rows", "pivot", "unpivot", "json_pick", "unnest",
+        "join", "nest", "group", "distinct", "dedupe_rows", "assert_rows",
+        "append", "values", "except", "intersect", "cross_join", "analytic"
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "SGA",
+      "profile": "sga_graph",
+      "operations": [
+        "normalize_graph", "match_nodes", "match_edges", "traverse",
+        "shortest_path", "components", "reach", "graph_bounds", "degree",
+        "graph_diff", "graft_graph", "union_graphs", "subtract_graphs",
+        "subgraph", "graphs_equal", "apply_graph_delta", "mean_graphs"
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "TEA",
+      "profile": "tea_events",
+      "operations": [
+        "window_events", "watermark_events", "session", "time_series",
+        "interval_join", "dedupe_events", "asof_join", "sequence"
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "VecA",
+      "profile": "veca_vectors",
+      "operations": [
+        "normalize_vectors", "score_vectors", "nearest", "pool_vectors",
+        "merge_rankings"
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "profile": "carrier_bridges",
+      "operations": [
+        "graph", "node_rows", "edge_rows", "to_events", "events",
+        "to_vectors", "vectors"
+      ]
+    },
+    {
+      "inventory": "families",
+      "family": "VecAExpression",
+      "profile": "veca_vectors",
+      "operations": ["vector_score", "vector_concat"]
+    }
+  ]
+}

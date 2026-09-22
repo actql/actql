@@ -14,12 +14,12 @@ readable coverage manifest is authoritative for individual operation status.
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Closed for operation coverage: all 39 entries use the shared Carrier-aware lifecycle with registered lifetime evidence | Preserve exact owner, generation, view, and independent release rules while closing the shared release gates |
 | Runtime material | Closed for operation coverage: all 39 entries retain their Carrier laws through bounded immutable or managed shared storage | Preserve storage meaning, admission, holding, and reclamation while closing the shared release gates |
-| Progress | Closed for operation coverage: long principal paths use bounded sessions and the environment yield adapter | Complete the repository-wide accounting inventory so new long phases cannot bypass the reviewed boundary |
-| Cancellation | Closed for operation coverage: request delivery, kernel observation, stop confirmation, and cleanup evidence cover all 39 entries | Preserve the stop/reclaim distinction and finite observation points while closing the accounting inventory |
+| Progress | Closed: long principal paths use bounded sessions and the repository gate binds every operation to a reviewed accounting profile | Preserve charged bounded steps, finite stop observation, and the operation-indexed audit when phases change |
+| Cancellation | Closed: request delivery, kernel observation, stop confirmation, and cleanup evidence cover all 39 entries | Preserve the stop/reclaim distinction, finite observation points, and cleanup ownership |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
-| Resource accounting audit | Kernels use bounded sessions and local work and workspace ledgers, but reviewed invariants are not yet enforced by one repository gate | Add small shared accounting helpers where they remove repetition and a checked inventory for allocation admission, loop charging, and stop points in every long phase |
+| Resource accounting audit | Closed: all 68 normative Local operations are bound to reviewed implementation profiles and their allocation, work, stop, lifetime, peak, and cleanup evidence | Keep the audit synchronized with both normative inventories and reject missing facets or disconnected fixtures in CI |
 
 The following snapshot is generated from the authoritative manifest. It is
 checked by `check:local-family-coverage`; do not edit its counts by hand.
@@ -87,9 +87,9 @@ close the four concrete execution-boundary findings.
   recursive runtime-value check. An insufficient value limit rejects the path
   before any identity element is constructed.
 
-The broader RelA differential-conformance matrix and the repository-wide
-resource-accounting audit remain explicit shared release gaps above. Focused
-tests or source inspection are not recorded as their completion.
+The operation-indexed RelA differential and resource-accounting gates below
+now close the broader release checks. Focused tests or source inspection alone
+are not recorded as their completion.
 
 ## Closed focused Local and DuckDB semantic review
 
@@ -137,6 +137,26 @@ oracles, verifies every fixture remains connected to source, and requires
 coverage for values, order, NULL, text identity, decimal, duplicates, empty
 input, failures, exact resource boundaries, and Named Result identity. The
 focused real DuckDB run executes all ten registered Node comparisons.
+
+## Closed operation-indexed resource-accounting gate
+
+The release manifest
+`docs/reviews/2026-09-23-local-resource-accounting-audit.json` binds every one
+of the 29 RelA and 39 family operations to a reviewed implementation profile.
+Each profile records its work unit, cumulative ceiling, temporary, retained,
+and peak scopes, maximum noninterruptible step, stop observation point, and
+cleanup owner. It separately inventories prepare, resume, ordering or hashing,
+value construction, finalization, cancellation, and cleanup. Fixture evidence
+is required for admission before allocation, charged bounded work, finite stop
+observation, overlapping lifetime and peak accounting, and cleanup ownership.
+
+`check:local-resource-accounting` derives both operation inventories from the
+authoritative manifests, rejects missing or duplicate bindings, verifies every
+source and fixture, and requires every accounting facet for every profile. It
+also requires operation-specific RelA performance evidence and the resources
+and cancellation layers for every SGA, TEA, VecA, Bridge, and VecA-expression
+entry. The negative suite proves that omitted operations, missing facets,
+disconnected fixtures, and unknown profiles fail the release gate.
 
 ## Closed review findings after `15d759ac`
 

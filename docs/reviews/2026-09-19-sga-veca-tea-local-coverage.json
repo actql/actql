@@ -25,9 +25,7 @@
     "target_contract": "spec/contracts/actql-aoa.json",
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
-  "shared_gaps": [
-    "bounded_resource_accounting_audit"
-  ],
+  "shared_gaps": [],
   "shared_completed": [
     "canonical_aoa_inventory",
     "ordered_typed_task_inputs",
@@ -58,6 +56,7 @@
     "bounded_step_execution",
     "cancellation_delivery_and_stop",
     "rela_differential_conformance",
+    "bounded_resource_accounting_audit",
     "workers_fixture_freshness",
     "family_selective_artifacts"
   ],
