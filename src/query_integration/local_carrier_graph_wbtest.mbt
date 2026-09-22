@@ -4005,7 +4005,73 @@ test "homogeneous traversal rejects a missing literal start atomically" {
 }
 
 ///|
-test "Graph provider rejects unsupported traversal before execution" {
+fn homogeneous_traverse_paths_result(
+  max_output_rows : Int,
+  workspace : Int,
+  minimum? : Int = 1,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(
+    source_owner,
+    minimum,
+    2,
+    emission="paths",
+    max_output_rows~,
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    workspace,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let result = finish_traverse(execution)
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  result
+}
+
+///|
+test "homogeneous traversal emits canonical simple paths" {
+  let output = homogeneous_traverse_paths_result(4, 100).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}]," +
+    "\"end_id\":2,\"hop_count\":1,\"node_ids\":[1,2],\"start_id\":1}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 10000, 1000, 20).unwrap(),
+    "{\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}," +
+    "{\"dst\":3,\"rel\":null,\"src\":2}],\"end_id\":3," +
+    "\"hop_count\":2,\"node_ids\":[1,2,3],\"start_id\":1}",
+  )
   let source_owner = carrier_graph_components_source_owner()
   let owner = carrier_graph_traverse_owner(source_owner, 1, 2, emission="paths")
   let generated = task_test_generated(owner)
@@ -4018,7 +4084,31 @@ test "Graph provider rejects unsupported traversal before execution" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  assert_false(@local_connector.managed_provider_accepts(provider, generated))
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+}
+
+///|
+test "path traversal admits output and workspace before expansion" {
+  assert_true(
+    homogeneous_traverse_paths_result(1, 100)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutputLimit)),
+  )
+  assert_true(
+    homogeneous_traverse_paths_result(4, 13)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
+  )
+  assert_true(homogeneous_traverse_paths_result(4, 14) is Ok(_))
+}
+
+///|
+test "path traversal emits a zero-hop path at minimum zero" {
+  let output = homogeneous_traverse_paths_result(4, 100, minimum=0).unwrap()
+  assert_eq(@execution.completed_row_count(output), 3)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"edge_ids\":[],\"end_id\":1,\"hop_count\":0," +
+    "\"node_ids\":[1],\"start_id\":1}",
+  )
 }
 
 ///|

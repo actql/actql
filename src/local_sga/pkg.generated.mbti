@@ -431,6 +431,19 @@ type TraverseExecution
 pub(all) enum TraverseIssue {
   UnsupportedTraverseKernel
   TraverseReachIssue(ReachIssue)
+  TraversePathIssue(TraversePathsIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TraversePathsIssue {
+  InvalidTraversePathsKernel
+  TraversePathsInputUnavailable
+  TraversePathsStartMissing
+  TraversePathsOutputLimit
+  TraversePathsWorkspaceLimit
+  TraversePathsKeyOrder(@value_admission.KeyOrderIssue)
+  TraversePathsOutput(@execution_relation.CaptureIssue)
+  TraversePathsCompletion(@execution_relation.TrustedOutputIssue)
+  TraversePathsExecutionIssue(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)
 
 pub enum TraversePoll {

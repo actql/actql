@@ -1,6 +1,12 @@
 ///|
+priv enum TraverseKernel {
+  TraverseNodes(ReachExecution)
+  TraversePaths(TraversePathsExecution)
+}
+
+///|
 struct TraverseExecution {
-  inner : ReachExecution
+  kernel : TraverseKernel
 }
 
 ///|
@@ -15,6 +21,7 @@ pub enum TraversePoll {
 pub(all) enum TraverseIssue {
   UnsupportedTraverseKernel
   TraverseReachIssue(ReachIssue)
+  TraversePathIssue(TraversePathsIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -46,8 +53,7 @@ pub fn start_traverse(
   } else {
     @lower.graph_traverse_bounds(prepared)
   }
-  guard !@lower.graph_traverse_emits_paths(prepared) &&
-    bounds is Some((minimum, maximum)) &&
+  guard bounds is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
     (
@@ -64,6 +70,14 @@ pub fn start_traverse(
     guard @lower.graph_traverse_hop_direction(prepared, hop) is Some(_) else {
       return Err(UnsupportedTraverseKernel)
     }
+  }
+  if @lower.graph_traverse_emits_paths(prepared) {
+    return start_traverse_paths(
+        control, preparation, sequence, step, input, max_rows, limits, max_workspace_slots,
+        max_entries, max_name_bytes, inputs,
+      )
+      .map(paths => ({ kernel: TraversePaths(paths), } : TraverseExecution))
+      .map_err(issue => TraversePathIssue(issue))
   }
   let starts = match
     (
@@ -138,7 +152,7 @@ pub fn start_traverse(
     max_name_bytes,
     inputs,
   )
-  .map(inner => ({ inner, } : TraverseExecution))
+  .map(inner => ({ kernel: TraverseNodes(inner), } : TraverseExecution))
   .map_err(issue => TraverseReachIssue(issue))
 }
 
@@ -147,34 +161,63 @@ pub fn advance_traverse(
   value : TraverseExecution,
   quantum : Int,
 ) -> Result[TraversePoll, TraverseIssue] {
-  advance_reach(value.inner, quantum)
-  .map(poll => {
-    match poll {
-      ReachContinue(progress~, work~) => TraverseContinue(progress~, work~)
-      ReachComplete(output, progress~, work~) =>
-        TraverseComplete(output, progress~, work~)
-      ReachFailed(issue, progress~, work~) =>
-        TraverseFailed(TraverseReachIssue(issue), progress~, work~)
-      ReachStopped(reason, progress~, work~) =>
-        TraverseStopped(reason, progress~, work~)
-    }
-  })
-  .map_err(issue => TraverseReachIssue(issue))
+  match value.kernel {
+    TraverseNodes(inner) =>
+      advance_reach(inner, quantum)
+      .map(poll => {
+        match poll {
+          ReachContinue(progress~, work~) => TraverseContinue(progress~, work~)
+          ReachComplete(output, progress~, work~) =>
+            TraverseComplete(output, progress~, work~)
+          ReachFailed(issue, progress~, work~) =>
+            TraverseFailed(TraverseReachIssue(issue), progress~, work~)
+          ReachStopped(reason, progress~, work~) =>
+            TraverseStopped(reason, progress~, work~)
+        }
+      })
+      .map_err(issue => TraverseReachIssue(issue))
+    TraversePaths(paths) =>
+      advance_traverse_paths(paths, quantum)
+      .map(poll => {
+        match poll {
+          TraversePathsContinue(progress~, work~) =>
+            TraverseContinue(progress~, work~)
+          TraversePathsComplete(output, progress~, work~) =>
+            TraverseComplete(output, progress~, work~)
+          TraversePathsFailed(issue, progress~, work~) =>
+            TraverseFailed(TraversePathIssue(issue), progress~, work~)
+          TraversePathsStopped(reason, progress~, work~) =>
+            TraverseStopped(reason, progress~, work~)
+        }
+      })
+      .map_err(issue => TraversePathIssue(issue))
+  }
 }
 
 ///|
 pub fn traverse_stopped(value : TraverseExecution) -> Bool {
-  reach_stopped(value.inner)
+  match value.kernel {
+    TraverseNodes(inner) => reach_stopped(inner)
+    TraversePaths(paths) => traverse_paths_stopped(paths)
+  }
 }
 
 ///|
 pub fn traverse_cleanup_pending(value : TraverseExecution) -> Bool {
-  reach_cleanup_pending(value.inner)
+  match value.kernel {
+    TraverseNodes(inner) => reach_cleanup_pending(inner)
+    TraversePaths(paths) => traverse_paths_cleanup_pending(paths)
+  }
 }
 
 ///|
 pub fn cleanup_traverse(
   value : TraverseExecution,
 ) -> Result[Bool, TraverseIssue] {
-  cleanup_reach(value.inner).map_err(issue => TraverseReachIssue(issue))
+  match value.kernel {
+    TraverseNodes(inner) =>
+      cleanup_reach(inner).map_err(issue => TraverseReachIssue(issue))
+    TraversePaths(paths) =>
+      cleanup_traverse_paths(paths).map_err(issue => TraversePathIssue(issue))
+  }
 }
