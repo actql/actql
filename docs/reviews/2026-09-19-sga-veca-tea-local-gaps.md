@@ -121,6 +121,37 @@ tests cover the corresponding SQL paths. This closes E1 through E6 from the
 review, but does not close the broader operation-indexed RelA differential
 release gate in the shared blockers table.
 
+## Closed review findings after `15d759ac`
+
+Commits `bc8e0e383`, `55cb15796`, `7f49454ea`, `58dede85e`, and
+`b7e026526` close the fixed review findings without changing the Local
+milestone boundary.
+
+- The graft and mean fixtures use valid typed row sources. Workers and Node
+  Host generated fixtures are synchronized from their pinned generators.
+- DuckDB logical cell accounting excludes its owned physical ordinal, retained
+  diagnostics distinguish semantic file validation from physical inserts, and
+  count-group transport uses collision-free physical aliases while preserving
+  case-distinct logical names.
+- Path traversal validates its exact Graph operation edge before storage
+  access and readmits Relation selector values under the Graph identity
+  contract. Nullable non-NULL identities therefore match required identities,
+  while NULL and missing identities fail before traversal.
+- Paths are emitted by canonical start identity, then hop count, node identity
+  sequence, and edge identity sequence. The regression covers every ordering
+  of the review graph's three relevant edges and quanta 1, 2, 32, and 256.
+- Start selection, simple-path membership, path copying, path comparison, and
+  node/edge value construction are resumable charged phases. Frontier transfer
+  is an owned pointer swap with explicit slot accounting. Structural row and
+  array bounds are checked before builders allocate or append rejected items.
+- Cleanup cancels nested predicate execution and clears every private selector,
+  frontier, pending path, row, and value-builder owner. The diagnostic reaches
+  zero while an independently accepted output remains outside private state.
+
+The complete Graph integration file passes 86 tests on each of JS, Wasm, and
+native at `b7e026526`. These focused results do not replace the final same-SHA
+Linux CI or close the broader resource-accounting release gate.
+
 ## Closed review findings after `4f84dec2`
 
 Commit `6d9affad` closes both ownership findings from the fixed review.
