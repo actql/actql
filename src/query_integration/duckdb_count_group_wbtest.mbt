@@ -53,7 +53,7 @@ test "fixed count SQL uses owned checked keys and exact count without a fabricat
     native_compile_limits(),
   ).unwrap()
   assert_true(physical_equal(@duckdb.fixed_count_group_owner(compiled), owner))
-  let expected = "SELECT __actql_source.\"k\" AS \"k\", CAST(COUNT(*) AS DOUBLE) AS \"n\", CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"p\" FROM \"main\".\"fixed\" AS __actql_source GROUP BY __actql_source.\"k\", __actql_source.\"k\" ORDER BY __actql_source.\"k\" ASC NULLS FIRST, __actql_source.\"k\" ASC NULLS FIRST"
+  let expected = "SELECT * FROM (SELECT __actql_source.\"k\" AS \"k\", CAST(COUNT(*) AS DOUBLE) AS \"n\", CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"p\" FROM \"main\".\"fixed\" AS __actql_source GROUP BY __actql_source.\"k\", __actql_source.\"k\") AS __actql_grouped ORDER BY \"__actql_grouped\".\"k\" ASC NULLS FIRST, \"__actql_grouped\".\"k\" ASC NULLS FIRST"
   assert_eq(@duckdb.fixed_count_group_sql(compiled), expected)
   assert_true(
     @duckdb.compile_fixed_count_group(owner, "main", "fixed", {

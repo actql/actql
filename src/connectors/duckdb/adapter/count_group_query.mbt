@@ -58,8 +58,9 @@ pub fn compile_fixed_count_group(
     counts[count.name] = count
   }
   let sql = { builder: StringBuilder(), remaining: limits.max_sql_bytes, }
+  let keys = @lower.count_group_key_count(group)
   try {
-    sql_text(sql, "SELECT ")
+    sql_text(sql, if keys > 0 { "SELECT * FROM (SELECT " } else { "SELECT " })
     for i in 0..<width {
       if i > 0 {
         sql_text(sql, ", ")
@@ -78,7 +79,18 @@ pub fn compile_fixed_count_group(
           }
           sql_text(sql, ") AS DOUBLE)")
         }
-        None => group_input_identifier(sql, name)
+        None => {
+          guard @schema.lookup(input, field) is Some(contract) else {
+            return Err(UnsupportedField)
+          }
+          if contract.shape is @contract.Text(_) {
+            sql_text(sql, "first(")
+            group_input_identifier(sql, name)
+            sql_text(sql, ")")
+          } else {
+            group_input_identifier(sql, name)
+          }
+        }
       }
       sql_text(sql, " AS ")
       sql_identifier(sql, name)
@@ -88,19 +100,25 @@ pub fn compile_fixed_count_group(
     sql_text(sql, ".")
     sql_identifier(sql, table)
     sql_text(sql, " AS __actql_source")
-    let keys = @lower.count_group_key_count(group)
     if keys > 0 {
       sql_text(sql, " GROUP BY ")
       for i in 0..<keys {
         if i > 0 {
           sql_text(sql, ", ")
         }
-        group_input_identifier(
-          sql,
-          @schema.reference_name(@lower.count_group_key_at(group, i).unwrap()),
-        )
+        let field = @lower.count_group_key_at(group, i).unwrap()
+        guard @schema.lookup(input, field) is Some(contract) else {
+          return Err(UnsupportedField)
+        }
+        if contract.shape is @contract.Text(_) {
+          sql_text(sql, "encode(")
+          group_input_identifier(sql, @schema.reference_name(field))
+          sql_text(sql, ")")
+        } else {
+          group_input_identifier(sql, @schema.reference_name(field))
+        }
       }
-      sql_text(sql, " ORDER BY ")
+      sql_text(sql, ") AS __actql_grouped ORDER BY ")
       for i in 0..<keys {
         if i > 0 {
           sql_text(sql, ", ")
@@ -114,9 +132,17 @@ pub fn compile_fixed_count_group(
           Ok(_) => ()
         }
         if contract.shape is @contract.Text(_) {
-          emit_utf16_order_key(sql, @schema.reference_name(field))
+          emit_utf16_order_key_from(
+            sql,
+            "__actql_grouped",
+            @schema.reference_name(field),
+          )
         } else {
-          group_input_identifier(sql, @schema.reference_name(field))
+          physical_input_identifier(
+            sql,
+            "__actql_grouped",
+            @schema.reference_name(field),
+          )
         }
         sql_text(sql, " ASC NULLS FIRST")
       }
@@ -126,20 +152,6 @@ pub fn compile_fixed_count_group(
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)
   }
-}
-
-///|
-/// DuckDB's default VARCHAR byte order differs from ActQL's UTF16 order.
-/// Generate a lexicographic list of UTF16 code units entirely inside SQL.
-/// The helper list is physical scratch, never an output field or logical key.
-fn emit_utf16_order_key(sql : SqlText, field : String) -> Unit raise SqlFailure {
-  sql_text(sql, "flatten(list_transform(list_transform(range(1, length(")
-  group_input_identifier(sql, field)
-  sql_text(sql, ") + 1), lambda __actql_i: unicode(substr(")
-  group_input_identifier(sql, field)
-  sql_text(
-    sql, ", __actql_i, 1))), lambda __actql_cp: CASE WHEN __actql_cp > 65535 THEN [55296 + ((__actql_cp - 65536) // 1024), 56320 + ((__actql_cp - 65536) % 1024)] ELSE [__actql_cp] END))",
-  )
 }
 
 ///|

@@ -175,7 +175,7 @@ test "fixed join request binds both captured ports through registered Local sele
     @duckdb.fixed_import_create_sql(
       @duckdb.fixed_join_import_at(native_inputs, 1).unwrap(),
     ),
-    "CREATE TEMP TABLE \"right_input\" (\"id\" DOUBLE NOT NULL)",
+    "CREATE TEMP TABLE \"right_input\" (\"id\" DOUBLE NOT NULL, \"__actql_input_ordinal\" BIGINT NOT NULL)",
   )
   assert_true(@duckdb.fixed_join_import_at(native_inputs, 2) is None)
   assert_true(@duckdb.fixed_join_inputs_available(native_inputs))

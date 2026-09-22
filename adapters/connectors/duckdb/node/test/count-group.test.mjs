@@ -23,8 +23,11 @@ test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckD
         { k: 1, n: 1, p: 1 }, { k: 2, n: 2, p: 2 }],
     },
     text: {
-      type: 'VARCHAR', values: '(chr(57344)),(chr(65536)),(NULL),(chr(65536)),(chr(97)),(chr(97))',
-      expected: [{ k: null, n: 1, p: 0 }, { k: 'a', n: 2, p: 2 },
+      type: 'VARCHAR',
+      values: '(chr(57344)),(chr(65536)),(NULL),(chr(65536)),(\'a\'),' +
+        '(\'a\'),(\'A\'),(chr(55295))',
+      expected: [{ k: null, n: 1, p: 0 }, { k: 'A', n: 1, p: 1 },
+        { k: 'a', n: 2, p: 2 }, { k: '\ud7ff', n: 1, p: 1 },
         { k: '\u{10000}', n: 2, p: 2 }, { k: '\ue000', n: 1, p: 1 }],
     },
   };
@@ -33,6 +36,9 @@ test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckD
     const db = await DuckDBInstance.create(':memory:');
     const connection = await db.connect();
     try {
+      if (fixture.name === 'text') {
+        await connection.run("SET default_collation = 'nocase'");
+      }
       await connection.run(`CREATE TABLE fixed(k ${c.type})`);
       await connection.run(`INSERT INTO fixed VALUES ${c.values}`);
       const result = await connection.runAndReadAll(fixture.sql);

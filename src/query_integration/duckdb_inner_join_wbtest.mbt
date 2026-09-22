@@ -81,7 +81,7 @@ test "native inner join compiles exact owner ports and bounded collision free SQ
     @lower.inner_join_key_count(@duckdb.native_inner_join_profile(compiled)),
     2,
   )
-  let expected = "SELECT l.\"c2\" AS \"l\", r.\"c2\" AS \"r\" FROM (SELECT \"__ordinal\" AS \"c0\", \"k\" AS \"c1\", \"tag\" AS \"c2\", row_number() OVER () AS \"__ordinal\" FROM \"main\".\"left_rows\") AS l INNER JOIN (SELECT \"__ordinal\" AS \"c0\", \"k\" AS \"c1\", \"tag\" AS \"c2\", row_number() OVER () AS \"__ordinal\" FROM \"main\".\"right_rows\") AS r ON l.\"c1\" = r.\"c1\" AND l.\"c0\" = r.\"c0\" ORDER BY l.\"__ordinal\" ASC, r.\"__ordinal\" ASC"
+  let expected = "SELECT l.\"c2\" AS \"l\", r.\"c2\" AS \"r\" FROM (SELECT \"__ordinal\" AS \"c0\", \"k\" AS \"c1\", \"tag\" AS \"c2\", \"__actql_input_ordinal\" AS \"__ordinal\" FROM \"main\".\"left_rows\") AS l INNER JOIN (SELECT \"__ordinal\" AS \"c0\", \"k\" AS \"c1\", \"tag\" AS \"c2\", \"__actql_input_ordinal\" AS \"__ordinal\" FROM \"main\".\"right_rows\") AS r ON l.\"c1\" = r.\"c1\" AND l.\"c0\" = r.\"c0\" ORDER BY l.\"__ordinal\" ASC, r.\"__ordinal\" ASC"
   assert_eq(@duckdb.native_inner_join_sql(compiled), expected)
   assert_true(
     @duckdb.compile_fixed_inner_join(

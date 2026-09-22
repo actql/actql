@@ -30,31 +30,31 @@ test('MoonBit composite inner join SQL preserves mapped equality and original pa
     const connection = await db.connect();
     try {
       await connection.run('SET preserve_insertion_order = true');
-      await connection.run(`CREATE TABLE left_rows(__ordinal DOUBLE, k ${c.types[0]}, tag DOUBLE)`);
-      await connection.run(`CREATE TABLE right_rows(__ordinal DOUBLE, k ${c.types[1]}, tag DOUBLE)`);
-      await connection.run(`INSERT INTO left_rows VALUES (1,${c.left[0]},10),(1,${c.left[1]},11),(1,${c.left[0]},12),(1,NULL,13),(2,${c.left[0]},14)`);
-      await connection.run(`INSERT INTO right_rows VALUES (1,${c.right[0]},20),(1,${c.right[1]},21),(1,${c.right[0]},22),(1,NULL,23)`);
+      await connection.run(`CREATE TABLE left_rows(__ordinal DOUBLE, k ${c.types[0]}, tag DOUBLE, __actql_input_ordinal BIGINT)`);
+      await connection.run(`CREATE TABLE right_rows(__ordinal DOUBLE, k ${c.types[1]}, tag DOUBLE, __actql_input_ordinal BIGINT)`);
+      await connection.run(`INSERT INTO left_rows VALUES (1,${c.left[0]},10,0),(1,${c.left[1]},11,1),(1,${c.left[0]},12,2),(1,NULL,13,3),(2,${c.left[0]},14,4)`);
+      await connection.run(`INSERT INTO right_rows VALUES (1,${c.right[0]},20,0),(1,${c.right[1]},21,1),(1,${c.right[0]},22,2),(1,NULL,23,3)`);
       assert.deepEqual((await connection.runAndReadAll(fixture.sql)).getRowObjects(), expected);
       if (fixture.name === 'decimal') {
         // A common precision-38 cast cannot hold both extreme domains. Exact
         // unequal fractions must not round into the integral left key either.
-        await connection.run("INSERT INTO left_rows VALUES (1,'99999999999999999999999999999999999999',30),(1,0,31)");
-        await connection.run("INSERT INTO right_rows VALUES (1,'999999999999999999999999999999999999.99',40),(1,'-0.00',41),(1,'-10.01',42)");
+        await connection.run("INSERT INTO left_rows VALUES (1,'99999999999999999999999999999999999999',30,5),(1,0,31,6)");
+        await connection.run("INSERT INTO right_rows VALUES (1,'999999999999999999999999999999999999.99',40,4),(1,'-0.00',41,5),(1,'-10.01',42,6)");
         assert.deepEqual((await connection.runAndReadAll(fixture.sql)).getRowObjects(), [...expected, { l: 31, r: 41 }]);
       }
       if (fixture.name === 'text') {
         await connection.run("SET default_collation = 'nocase'");
-        await connection.run("INSERT INTO left_rows VALUES (1,'a',30),(1,'é',31)");
-        await connection.run("INSERT INTO right_rows VALUES (1,'A',40),(1,'e' || chr(769),41)");
+        await connection.run("INSERT INTO left_rows VALUES (1,'a',30,5),(1,'é',31,6)");
+        await connection.run("INSERT INTO right_rows VALUES (1,'A',40,4),(1,'e' || chr(769),41,5)");
         assert.deepEqual((await connection.runAndReadAll(fixture.sql)).getRowObjects(), expected);
       }
       await connection.run('DELETE FROM left_rows');
       assert.deepEqual((await connection.runAndReadAll(fixture.sql)).getRowObjects(), []);
       if (fixture.name === 'number') {
         await connection.run('DELETE FROM right_rows');
-        await connection.run('INSERT INTO left_rows SELECT 1, i % 257, i FROM range(5001) t(i)');
-        await connection.run('INSERT INTO right_rows SELECT 1, i, i FROM range(257) t(i)');
-        await connection.run('INSERT INTO right_rows SELECT 1, i, i + 1000 FROM range(257) t(i)');
+        await connection.run('INSERT INTO left_rows SELECT 1, i % 257, i, i FROM range(5001) t(i)');
+        await connection.run('INSERT INTO right_rows SELECT 1, i, i, i FROM range(257) t(i)');
+        await connection.run('INSERT INTO right_rows SELECT 1, i, i + 1000, i + 257 FROM range(257) t(i)');
         const expectedLarge = [];
         for (let l = 0; l < 5001; l++) {
           expectedLarge.push({ l, r: l % 257 }, { l, r: l % 257 + 1000 });

@@ -174,7 +174,8 @@ pub fn compile_fixed_inner_join(
       if @schema.field_count(schema) > 0 {
         sql_text(sql, ", ")
       }
-      sql_text(sql, "row_number() OVER () AS \"__ordinal\" FROM ")
+      sql_identifier(sql, fixed_import_ordinal_column())
+      sql_text(sql, " AS \"__ordinal\" FROM ")
       sql_identifier(sql, database_schema)
       sql_text(sql, ".")
       sql_identifier(

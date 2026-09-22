@@ -47,11 +47,17 @@ pub fn prepare_fixed_join_inputs(
   let imports = []
   for port in 0..<inputs.length() {
     let imported = match
-      prepare_fixed_import(inputs[port], query.tables[port], columns, bytes) {
+      prepare_fixed_import(
+        inputs[port],
+        query.tables[port],
+        columns,
+        bytes,
+        ordinal=true,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(Import(issue))
     }
-    columns -= imported.columns
+    columns -= imported.logical_columns
     for text in [imported.create_sql, imported.insert_sql] {
       match @scalar.admit_utf8_length(text, bytes) {
         Ok(size) => bytes -= size

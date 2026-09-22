@@ -21,7 +21,10 @@ pub fn check_fixed_compute_static(
     tables.is_empty() {
     return Err(UnsupportedShape)
   }
-  let checked = if @lower.node_at(prepared, 0) is Some(node) &&
+  let join = @lower.node_at(prepared, 0) is Some(node) &&
+    @lower.node_input_target(node, 1) is Some(_)
+  let checked = if join &&
+    @lower.node_at(prepared, 0) is Some(node) &&
     @lower.node_input_target(node, 1) is Some(_) {
     compile_fixed_inner_join(owner, "main", tables, limits).map(_ => ())
   } else if tables.length() == 1 {
@@ -39,7 +42,14 @@ pub fn check_fixed_compute_static(
     guard @lower.preparation_input_schema(prepared, port) is Some(schema) else {
       return Err(UnsupportedShape)
     }
-    match compile_fixed_import_schema(schema, tables[port], columns, bytes) {
+    match
+      compile_fixed_import_schema(
+        schema,
+        tables[port],
+        columns,
+        bytes,
+        ordinal=join,
+      ) {
       Err(issue) => return Err(issue)
       Ok((create_sql, insert_sql, count)) => {
         columns -= count

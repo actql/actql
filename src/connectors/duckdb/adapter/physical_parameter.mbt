@@ -58,6 +58,18 @@ pub fn prepare_physical_parameter(
 }
 
 ///|
+/// Physical row ordinal owned by the fixed import. It is not an ActQL value
+/// and cannot be selected by an authored field reference.
+pub fn prepare_physical_ordinal(
+  row : Int,
+) -> Result[PhysicalParameter, ValueIssue] {
+  if row < 0 {
+    return Err(OutOfRange)
+  }
+  Ok({ id: "DOUBLE", decimal: None, value: ScalarNumber(row.to_double()), })
+}
+
+///|
 /// Read one exact receiving cell from a bound immutable producer. This does not
 /// repeat admission or grant receiving execution/guard credits. The caller must
 /// account for import and transport independently of the producer's completion.

@@ -165,6 +165,8 @@ pub fn fixed_import_input(FixedImport) -> @execution_relation.ProducerRead
 
 pub fn fixed_import_insert_sql(FixedImport) -> String
 
+pub fn fixed_import_ordinal_column() -> String
+
 pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
 pub fn fixed_import_verified_demand(FixedImportStream) -> FixedImportDemand?
@@ -353,7 +355,7 @@ pub fn prepare_fixed_compute_receiving(FixedCompute, Array[(String, PhysicalType
 
 pub fn prepare_fixed_compute_stream_receiving(FixedCompute, Array[(String, PhysicalType)], PhysicalResultLimits, @execution_relation.ValueLimits, Int, @execution_relation.RowWireLimits, Int, Int, measurement? : @execution_relation.FixedProducerMeasurement) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue]
 
-pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
+pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int, ordinal? : Bool) -> Result[FixedImport, NativeQueryIssue]
 
 pub fn prepare_fixed_import_physical(FixedImportStream, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, FixedImportStreamIssue]
 
@@ -390,6 +392,8 @@ pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int, NativeVal
 pub fn prepare_native_root_guard(NativeQuery, Int) -> Result[NativeRootGuard, NativeRootGuardIssue]
 
 pub fn prepare_native_scan(NativeQuery, Int, Int) -> Result[NativeScan, NativeQueryIssue]
+
+pub fn prepare_physical_ordinal(Int) -> Result[PhysicalParameter, ValueIssue]
 
 pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
 

@@ -14,6 +14,8 @@ pub fn output_rows(@execution_relation.CompletedOutput) -> Int
 
 pub fn output_value(@execution_relation.CompletedOutput) -> Double
 
+pub fn prepare_events_session() -> Scenario raise
+
 pub fn prepare_sort_take() -> Scenario raise
 
 pub fn prepare_subset(Int) -> Scenario raise

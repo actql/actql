@@ -8,6 +8,13 @@ struct FixedImport {
   create_sql : String
   insert_sql : String
   columns : Int
+  logical_columns : Int
+  ordinal : Bool
+}
+
+///|
+pub fn fixed_import_ordinal_column() -> String {
+  "__actql_input_ordinal"
 }
 
 ///|
@@ -16,6 +23,7 @@ pub fn prepare_fixed_import(
   table : String,
   max_columns : Int,
   max_sql_bytes : Int,
+  ordinal? : Bool = false,
 ) -> Result[FixedImport, NativeQueryIssue] {
   if !@execution.producer_read_available(input) {
     return Err(InputUnavailable)
@@ -24,10 +32,29 @@ pub fn prepare_fixed_import(
     return Err(InvalidLimits)
   }
   let schema = @execution.producer_read_schema(input)
-  match compile_fixed_import_schema(schema, table, max_columns, max_sql_bytes) {
+  match
+    compile_fixed_import_schema(
+      schema,
+      table,
+      max_columns,
+      max_sql_bytes,
+      ordinal~,
+    ) {
     Err(issue) => Err(issue)
-    Ok((create_sql, insert_sql, columns)) =>
-      Ok({ input, table, create_sql, insert_sql, columns, })
+    Ok((create_sql, insert_sql, logical_columns)) =>
+      Ok({
+        input,
+        table,
+        create_sql,
+        insert_sql,
+        columns: if ordinal {
+          logical_columns + 1
+        } else {
+          logical_columns
+        },
+        logical_columns,
+        ordinal,
+      })
   }
 }
 
@@ -38,11 +65,13 @@ fn compile_fixed_import_schema(
   max_columns : Int,
   max_sql_bytes : Int,
   temporary? : Bool = true,
+  ordinal? : Bool = false,
 ) -> Result[(String, String, Int), NativeQueryIssue] {
   let count = @schema.field_count(schema)
-  if count > max_columns {
+  if count > max_columns || (ordinal && count == 2147483647) {
     return Err(Limit)
   }
+  let physical_count = if ordinal { count + 1 } else { count }
   // DuckDB cannot represent a zero-column table. This is adapter eligibility,
   // not a restriction on an empty-schema Relation or its logical row count.
   if count == 0 {
@@ -50,6 +79,17 @@ fn compile_fixed_import_schema(
   }
   if !physical_column_names_unique(schema) {
     return Err(UnsupportedField)
+  }
+  if ordinal {
+    let hidden = physical_column_name_key(fixed_import_ordinal_column())
+    for i in 0..<count {
+      let name = @schema.reference_name(
+        @schema.field_at(schema, i).unwrap().name,
+      )
+      if physical_column_name_key(name) == hidden {
+        return Err(UnsupportedField)
+      }
+    }
   }
   let create = { builder: StringBuilder(), remaining: max_sql_bytes, }
   try {
@@ -87,12 +127,17 @@ fn compile_fixed_import_schema(
         sql_text(create, " NOT NULL")
       }
     }
+    if ordinal {
+      sql_text(create, ", ")
+      sql_identifier(create, fixed_import_ordinal_column())
+      sql_text(create, " BIGINT NOT NULL")
+    }
     sql_text(create, ")")
     let insert = { builder: StringBuilder(), remaining: create.remaining, }
     sql_text(insert, "INSERT INTO ")
     sql_identifier(insert, table)
     sql_text(insert, " VALUES (")
-    for i in 0..<count {
+    for i in 0..<physical_count {
       if i > 0 {
         sql_text(insert, ", ")
       }
@@ -240,5 +285,9 @@ pub fn fixed_import_parameter(
   row : Int,
   column : Int,
 ) -> Result[PhysicalParameter, ValueIssue] {
-  prepare_producer_parameter(value.input, row, column)
+  if value.ordinal && column == value.logical_columns {
+    prepare_physical_ordinal(row)
+  } else {
+    prepare_producer_parameter(value.input, row, column)
+  }
 }
