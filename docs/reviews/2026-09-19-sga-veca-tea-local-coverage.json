@@ -1919,7 +1919,7 @@
       "output": "same carrier",
       "canonical": ["TEA.window.session_assign"],
       "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -2038,6 +2038,22 @@
             "src/managed_record_storage/storage_wbtest.mbt",
             "src/local_tea/session.mbt",
             "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "retained_events_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "f5e99a87c",
+          "evidence": [
+            "src/physical_strategy/carrier_tasks.mbt",
             "src/query_integration/local_carrier_events_wbtest.mbt"
           ]
         }
@@ -2246,7 +2262,7 @@
       "output": "relation",
       "canonical": ["TEA.sequence.match"],
       "variants": ["relation/events", "allow/disallow overlap", "adjacent/subsequence", "global/grouped", "literal/parameter guards"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
         "contract",
@@ -2298,6 +2314,23 @@
             "src/connectors/duckdb/conformance/sequence_capacity_fixture.mbt",
             "src/connectors/duckdb/conformance/standard_subset.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "events_sequence_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9174f203f",
+          "evidence": [
+            "src/local_tea_provider/sequence_match.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
           ]
         }
       ]
@@ -2752,7 +2785,7 @@
       "output": "graph",
       "canonical": ["BRIDGE.rows.to_graph"],
       "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
         "contract",
@@ -2874,6 +2907,24 @@
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
+        },
+        {
+          "scope": "retained_graph_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b39cdbbd4",
+          "evidence": [
+            "src/physical_strategy/carrier_tasks.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
@@ -2966,7 +3017,7 @@
       "output": "events",
       "canonical": ["BRIDGE.rows.to_events"],
       "variants": ["semantic id", "number/timestamp clock", "uniqueness failure"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
         "contract",
@@ -3014,6 +3065,23 @@
           "sha": "fb4a149b9",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "retained_events_bridge_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "f5e99a87c",
+          "evidence": [
+            "src/physical_strategy/carrier_tasks.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
           ]
         }
       ]
@@ -3919,6 +3987,78 @@
         },
         {
           "name": "standard Host nearest cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "session",
+      "sha": "f5e99a87c",
+      "suites": [
+        {
+          "name": "portable retained Events session lifecycle",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "sequence",
+      "sha": "9174f203f",
+      "suites": [
+        {
+          "name": "portable Events sequence lifecycle and publication",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host sequence cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graph",
+      "sha": "b39cdbbd4",
+      "suites": [
+        {
+          "name": "portable retained Graph lifecycle and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host Graph cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "to_events",
+      "sha": "f5e99a87c",
+      "suites": [
+        {
+          "name": "portable retained Events bridge lifecycle",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host Bridge cancellation and publication",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"

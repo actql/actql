@@ -38,8 +38,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `cancellation` | 39/39 |
 | `publication` | 39/39 |
 | `three_targets` | 39/39 |
-| complete operations | 35/39 |
-| open operations | 4/39 |
+| complete operations | 39/39 |
+| open operations | 0/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -896,9 +896,9 @@ reclamation. The same provider path passes on JS, Wasm, and native. At
 `1a9e0e42`, the author-visible Relation form reaches the bounded session kernel
 through the standard Host, publishes its Named Result, feeds two downstream
 computations, and reclaims its managed record storage on all three targets.
-The Node standard Host still needs to carry an Events completion across a
-physical task boundary into the exact session input, so session assignment
-remains partial. At `4ef9c6be`, equal-time events reach the standard Host on
+At `f5e99a87c`, the standard Host carries the retained Events completion
+across the physical task boundary into the exact session input. At
+`4ef9c6be`, equal-time events reach the standard Host on
 all three targets and are ordered by their typed semantic identity before
 closed-open session assignment. Session identity construction now advances
 one scalar part per bounded phase, checks complete UTF-8 prefixes and
@@ -931,8 +931,10 @@ resume in finite work quanta. Empty input, global and grouped partitions, and
 all overlap and contiguity policy combinations pass on JS, Wasm, and native.
 The Node standard Host delivers timer cancellation during matching, observes
 kernel stop, publishes no partial result, completes cleanup, and returns held
-and reserved bytes to zero. The Events input path across a physical standard
-Host task boundary remains open, so sequence matching remains partial. Event
+and reserved bytes to zero. At `9174f203f`, the Events input crosses a
+physical standard Host task boundary into bounded sequence matching. Its
+Relation output reaches publication and two independently released consumers.
+Event
 windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
 sliding-assignment operation. Their bounded kernel validates the complete
@@ -1005,22 +1007,22 @@ computations, and release the retained output independently. A real
 environment timer reaches each Bridge boundary, stop is observed, and final
 cleanup returns all holdings and reservations. Both Graph projection
 operations are complete. Standalone Bridge selection, overlapping direct
-Carrier consumer lifetime and Graph construction remain open. The bounded
+Carrier consumer lifetime, and Graph construction are closed. The bounded
 Relation-to-Events-to-Relation path now has page-split evidence, but a
 Relation-shaped buffer alone is not evidence of a completed conversion.
 The Events-to-rows and Vectors-to-rows operations feed two overlapping
 Relation consumers and establish the exact Named Result identity on all three
 portable targets. Rows-to-Vectors now has the required direct Carrier consumer
-and formal Bridge consumer evidence. Rows-to-Events still needs the standard
-Host to schedule that retained generation across those two consumer forms;
-Relation publication does not substitute for that standard Host evidence.
+and formal Bridge consumer evidence. At `f5e99a87c`, the standard Host
+schedules the retained Events generation across its same-Carrier session
+consumer and its formal Relation Bridge consumer. Relation publication remains
+separate evidence.
 At `fb4a149b9`, the product Node Host establishes and retrieves the exact
 Named Result after rows-to-Events construction, a bounded watermark transform,
 and the formal Events-to-Relation Bridge. Two downstream Relation consumers
 retain independent projections, and final cleanup returns held and reserved
 bytes to zero. This closes the required Relation publication layer for
-`to_events`; the retained Events handoff between physical Host tasks remains
-open.
+`to_events`.
 At `15af5df1`, the compiled Node Host separately delivers cancellation during
 the rows-to-Events copy and during the Events-to-rows copy after the bounded
 watermark transform. Both paths observe stop and reclaim the ledger without
@@ -1033,9 +1035,8 @@ At `5b83cf99`, an exact retained Events generation crosses managed task
 boundaries to one session consumer and one formal Bridge consumer. Their
 lifetimes overlap; independent release leaves the producer live until the last
 view is done, and a cancelled projection stops and cleans up before final
-reclamation on JS, Wasm, and native. Scheduling the same Carrier handoff by the
-standard Host, rather than the direct registered-provider harness, remains
-open for `to_events`.
+reclamation on JS, Wasm, and native. The same Carrier handoff is scheduled by
+the standard Host at `f5e99a87c`.
 
 Commits `4b1d0e4c8`, `786e5d839`, and `1e8ca3e61` establish the next shared
 physical-segmentation boundary without closing that gap. Lowering now exposes
@@ -1046,9 +1047,9 @@ Graph and record material can issue a fresh view for one exact internal
 operation edge. The Events provider executes selected rows-to-Events, session,
 and Events-to-rows steps through those views. JS, Wasm, and native regressions
 cover exact step and input binding, foreign-owner rejection, independent
-views, and final reclamation. The common Host still has to turn this inventory
-into scheduled physical tasks; direct selected-step execution is not recorded
-as standard Host completion.
+views, and final reclamation. Commits `39540b2f7`, `c621fbb19`, and
+`f5e99a87c` turn this inventory into scheduled Events construction, session,
+and projection tasks.
 
 At `c5f7dd45`, an owner-bound Events view preserves canonical timestamp values
 through the formal Events-to-Relation Bridge on JS, Wasm, and native. A separate
@@ -1056,8 +1057,8 @@ negative fixture rejects duplicate semantic identities before Carrier
 completion and preserves the completed Relation input through cleanup. These
 fixtures close clock preservation and identity transfer; the existing standard
 Host page-split, two-consumer, publication, and environment-cancellation
-evidence closes `events` without claiming the still-open `to_events` scheduling
-boundary.
+evidence closes `events`; `f5e99a87c` closes the corresponding `to_events`
+scheduling boundary.
 
 ## Current verification boundary
 
@@ -1450,15 +1451,16 @@ construction projection, retrieves it from the publication store, and checks
 the independent value. This closes publication for the Graph-producing Bridge
 without defining a non-Relation Graph artifact format.
 
-The Graph-producing Bridge remains partial because a completed Graph is not
-yet scheduled through the product standard Host across a physical task
-boundary. Commits `5d1163dd` and `da4ec645` close the underlying managed
+At `b39cdbbd4`, a completed Graph is scheduled through the standard Host
+across a physical task boundary into its formal node-Relation projection.
+Commits `5d1163dd` and `da4ec645` close the underlying managed
 provider boundary: standalone construction returns an owner-bound Graph
 material, exact views feed overlapping graft and Graph-to-Relation consumers,
 one consumer can finish or cancel without revoking the other, and final
-reclamation occurs once. The remaining work is common Host task selection and
-custody, not another Graph storage or wire format. Graph publication is not
-invented while the formal publication contract remains Relation-valued.
+reclamation occurs once. The physical path retains repeated exact input edges,
+publishes the Relation projection, releases two consumers independently, and
+reclaims the Graph after its last view. Graph publication is not invented
+while the formal publication contract remains Relation-valued.
 
 Commits `ceaf836d`, `e965f84b`, and `05f70065` close the two VecA row
 expression entries. A shared bounded row evaluator retains exact input roots,
