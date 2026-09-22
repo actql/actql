@@ -76,6 +76,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     return local_vector_ranking_program(variant)
   }
   if variant == "nearest" ||
+    variant == "nearest_vectors" ||
+    variant == "nearest_relation_vectors" ||
+    variant == "nearest_vectors_relation" ||
     variant == "nearest_cosine" ||
     variant == "nearest_l2" ||
     variant == "nearest_inferred" ||
@@ -363,6 +366,10 @@ fn local_vector_ranking_program(variant : String) -> String {
 ///|
 fn local_vector_nearest_program(variant : String) -> String {
   let inferred = variant == "nearest_inferred"
+  let candidate_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_vectors_relation"
+  let query_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_relation_vectors"
   let identity_type = if inferred { "string" } else { "number" }
   let vector_schema = "{\"id\":{\"type\":\"" +
     identity_type +
@@ -387,11 +394,35 @@ fn local_vector_nearest_program(variant : String) -> String {
   } else {
     "[{\"id\":20,\"embedding\":[1,0]},{\"id\":10," + "\"embedding\":[0,1]}]"
   }
-  let roles = if inferred {
+  let candidate_roles = if inferred || candidate_vectors {
     ""
   } else {
-    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\"," +
+    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\","
+  }
+  let query_roles = if inferred || query_vectors {
+    ""
+  } else {
     "\"query_id\":\"id\",\"query_vector\":\"embedding\","
+  }
+  let candidate_input = if candidate_vectors {
+    "candidate_vectors"
+  } else {
+    "candidates"
+  }
+  let query_input = if query_vectors { "query_vectors" } else { "queries" }
+  let candidate_bridge = if candidate_vectors {
+    "{\"from\":\"candidates\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"candidate_vectors\"},"
+  } else {
+    ""
+  }
+  let query_bridge = if query_vectors {
+    "{\"from\":\"queries\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"query_vectors\"},"
+  } else {
+    ""
   }
   let identity_tail = if inferred {
     ",{\"from\":\"out\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
@@ -444,9 +475,16 @@ fn local_vector_nearest_program(variant : String) -> String {
   "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
   "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
   "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
-  "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
-  "\"nearest\":{\"queries\":\"queries\"," +
-  roles +
+  "\"result\":\"r\"}}},\"steps\":[" +
+  candidate_bridge +
+  query_bridge +
+  "{\"from\":\"" +
+  candidate_input +
+  "\",\"nearest\":{\"queries\":\"" +
+  query_input +
+  "\"," +
+  candidate_roles +
+  query_roles +
   "\"metric\":\"" +
   metric +
   "\",\"k\":" +
@@ -1352,6 +1390,21 @@ test "standard Host encodes composite Relation pool identity" {
 ///|
 test "standard Host runs exact nearest with two consumers" {
   run_standard_nearest_provider("nearest")
+}
+
+///|
+test "standard Host runs nearest with two Vectors inputs" {
+  run_standard_nearest_provider("nearest_vectors")
+}
+
+///|
+test "standard Host runs nearest with Relation and Vectors inputs" {
+  run_standard_nearest_provider("nearest_relation_vectors")
+}
+
+///|
+test "standard Host runs nearest with Vectors and Relation inputs" {
+  run_standard_nearest_provider("nearest_vectors_relation")
 }
 
 ///|

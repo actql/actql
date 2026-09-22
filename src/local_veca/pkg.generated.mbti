@@ -42,6 +42,8 @@ pub fn nearest_max_noninterruptible_value_bytes(NearestExecution) -> Int
 
 pub fn nearest_max_noninterruptible_value_nodes(NearestExecution) -> Int
 
+pub fn nearest_record_producer(@managed_record_runtime.ProducerRead) -> NearestProducerInput?
+
 pub fn nearest_relation_producer(@execution_relation.ProducerRead) -> NearestProducerInput
 
 pub fn nearest_stopped(NearestExecution) -> Bool
@@ -81,6 +83,8 @@ pub fn score_max_noninterruptible_value_nodes(ScoreExecution) -> Int
 pub fn score_stopped(ScoreExecution) -> Bool
 
 pub fn start_nearest_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[NearestExecution, NearestIssue]
+
+pub fn start_nearest_inputs_with_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
 
 pub fn start_nearest_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @execution_relation.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
 

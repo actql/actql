@@ -9,6 +9,9 @@ priv enum Phase {
   CleanupKernel
   StartProjection
   Projection
+  StartNearestBridge
+  NearestBridge
+  CleanupNearestBridge
   StartNearest
   Nearest
   StartRanking
@@ -47,6 +50,12 @@ priv struct Execution {
   mut pending_transformed : @records.Completed?
   mut projection_input : @records.ProducerRead?
   mut projection : @bridge.VectorsToRowsExecution?
+  nearest_step : Int
+  mut nearest_bridge_step : Int
+  mut nearest_bridge : @bridge.RowsToVectorsExecution?
+  mut nearest_bridge_output : @records.Completed?
+  mut nearest_bridge_outputs : Array[@records.Completed]
+  nearest_inputs : Array[@veca.NearestProducerInput?]
   mut nearest : @veca.NearestExecution?
   mut ranking : @veca.RankingExecution?
   mut stage_progress : Int64
@@ -58,6 +67,41 @@ priv struct Execution {
 ///|
 fn issue() -> @connector.FixedComputeIssue {
   @connector.Execution(@execution.InputSet)
+}
+
+///|
+fn accepts_nearest_pipeline(
+  sequence : @execution.GeneratedSequence,
+  count : Int,
+) -> Bool {
+  if count < 2 || count > 3 {
+    return false
+  }
+  let owner = @execution.generated_sequence_owner(sequence)
+  let prepared = @execution.generated_prepared_sequence(sequence)
+  guard @lower.sequence_step(prepared, count - 1) is Some(@lower.VectorStep(_)) &&
+    @lower.node_at(@lower.bound_preparation(owner), count - 1) is Some(nearest) &&
+    @lower.operation(nearest) == "VEC.knn_join" else {
+    return false
+  }
+  for step in 0..<(count - 1) {
+    guard @lower.sequence_step(prepared, step) is Some(@lower.VectorStep(_)) &&
+      @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+      @lower.operation(node) == "BRIDGE.rows.to_vectors" &&
+      @lower.node_input_target(node, 0) is Some(@pipeline.Input(_)) else {
+      return false
+    }
+    let mut uses = 0
+    for side in 0..<2 {
+      if @lower.node_input_target(nearest, side) == Some(@pipeline.Step(step)) {
+        uses += 1
+      }
+    }
+    if uses != 1 {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -93,6 +137,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   }
   if count < 2 {
     return false
+  }
+  if accepts_nearest_pipeline(sequence, count) {
+    return true
   }
   let index = Ref(0)
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
@@ -695,18 +742,181 @@ fn advance_execution(
           }
         }
       }
-      StartNearest => {
-        guard value.inputs.length() == 2 &&
-          nearest_input(value.inputs[0]) is Some(left) &&
-          nearest_input(value.inputs[1]) is Some(right) else {
+      StartNearestBridge => {
+        guard value.relation_inputs is Some(inputs) &&
+          value.nearest_bridge_step >= 0 &&
+          value.nearest_bridge_step < value.nearest_step &&
+          @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(value.generated),
+            ),
+            value.nearest_bridge_step,
+          )
+          is Some(node) &&
+          @lower.node_input_target(node, 0) is Some(@pipeline.Input(input)) &&
+          inputs.get(input) is Some(source) else {
           return fail_execution(value)
         }
         let started = match
+          @bridge.start_rows_to_vectors(
+            value.control,
+            value.sequence,
+            value.nearest_bridge_step,
+            source,
+            value.limits,
+            value.storage_bytes,
+            fn() { true },
+          ) {
+          Ok(execution) => execution
+          Err(_) => return fail_execution(value)
+        }
+        value.nearest_bridge = Some(started)
+        value.phase = NearestBridge
+        reset_stage(value)
+      }
+      NearestBridge => {
+        guard value.nearest_bridge is Some(active) else {
+          return fail_execution(value)
+        }
+        match @bridge.advance_rows_to_vectors(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@bridge.Continue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@bridge.Complete(output, progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            value.nearest_bridge_output = Some(output)
+            value.phase = CleanupNearestBridge
+            if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
+              return Ok(poll)
+            }
+          }
+          Ok(@bridge.Failed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@bridge.Stopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
+      CleanupNearestBridge => {
+        guard value.nearest_bridge is Some(active) &&
+          value.nearest_bridge_output is Some(output) else {
+          return fail_execution(value)
+        }
+        match @bridge.cleanup_rows_to_vectors(active) {
+          Ok(true) => ()
+          Ok(false) | Err(_) => return fail_execution(value)
+        }
+        guard @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(value.generated),
+            ),
+            value.nearest_step,
+          )
+          is Some(nearest) else {
+          return fail_execution(value)
+        }
+        let mut side = None
+        for candidate in 0..<2 {
+          if @lower.node_input_target(nearest, candidate) ==
+            Some(@pipeline.Step(value.nearest_bridge_step)) {
+            side = Some(candidate)
+          }
+        }
+        guard side is Some(side) &&
+          @records.prepare_step_read(
+            @execution.generated_sequence_owner(value.generated),
+            value.nearest_step,
+            side,
+            output,
+          )
+          is Ok(read) &&
+          @veca.nearest_record_producer(read) is Some(nearest_input) else {
+          return fail_execution(value)
+        }
+        value.nearest_inputs[side] = Some(nearest_input)
+        value.nearest_bridge_outputs.push(output)
+        value.nearest_bridge = None
+        value.nearest_bridge_output = None
+        value.nearest_bridge_step += 1
+        value.phase = if value.nearest_bridge_step < value.nearest_step {
+          StartNearestBridge
+        } else {
+          StartNearest
+        }
+      }
+      StartNearest => {
+        let prepared = @execution.generated_prepared_sequence(value.generated)
+        guard @lower.sequence_step(prepared, value.nearest_step)
+          is Some(@lower.VectorStep(_)) else {
+          return fail_execution(value)
+        }
+        guard @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(value.generated),
+            ),
+            value.nearest_step,
+          )
+          is Some(nearest_node) else {
+          return fail_execution(value)
+        }
+        for side in 0..<2 {
+          if value.nearest_inputs[side] is None {
+            guard @lower.node_input_target(nearest_node, side)
+              is Some(@pipeline.Input(input_index)) &&
+              value.inputs.get(input_index) is Some(input) &&
+              nearest_input(input) is Some(prepared_input) else {
+              return fail_execution(value)
+            }
+            value.nearest_inputs[side] = Some(prepared_input)
+          }
+        }
+        guard value.nearest_inputs[0] is Some(left) &&
+          value.nearest_inputs[1] is Some(right) else {
+          return fail_execution(value)
+        }
+        let started_result = if value.nearest_step > 0 {
+          match value.relation_inputs {
+            Some(inputs) =>
+              @veca.start_nearest_inputs_with_relations(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.nearest_step,
+                left,
+                right,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_workspace_slots,
+                value.max_value_bytes,
+                inputs,
+              )
+            None => Err(@veca.InvalidNearestKernel)
+          }
+        } else {
           @veca.start_nearest_inputs(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
-            0,
+            value.nearest_step,
             left,
             right,
             value.max_rows,
@@ -719,7 +929,9 @@ fn advance_execution(
             value.limits.max_workspace_slots,
             value.limits.max_workspace_slots,
             value.max_value_bytes,
-          ) {
+          )
+        }
+        let started = match started_result {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
         }
@@ -875,6 +1087,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.nearest_bridge is Some(active) {
+    match @bridge.cleanup_rows_to_vectors(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   if value.nearest is Some(active) {
     match @veca.cleanup_nearest(active) {
       Ok(_) => ()
@@ -913,6 +1131,10 @@ fn cleanup_execution(
     Some(active) => @veca.nearest_cleanup_pending(active)
     None => false
   }
+  let nearest_bridge_pending = match value.nearest_bridge {
+    Some(active) => @bridge.rows_to_vectors_cleanup_pending(active)
+    None => false
+  }
   let ranking_pending = match value.ranking {
     Some(active) => @veca.ranking_cleanup_pending(active)
     None => false
@@ -924,10 +1146,17 @@ fn cleanup_execution(
     rows_pending ||
     kernel_pending ||
     projection_pending ||
+    nearest_bridge_pending ||
     nearest_pending ||
     ranking_pending {
     return Ok(false)
   }
+  for output in value.nearest_bridge_outputs {
+    discard(Some(output)) |> ignore
+  }
+  value.nearest_bridge_outputs = []
+  discard(value.nearest_bridge_output) |> ignore
+  value.nearest_bridge_output = None
   value.reclaimed = true
   Ok(true)
 }
@@ -983,12 +1212,14 @@ pub fn provider(
       } else {
         None
       }
+      let nearest_pipeline = accepts_nearest_pipeline(sequence, count)
       let relations = relation_inputs(inputs)
       let rankings = ranking_inputs(inputs)
       if direct_operation == Some("VEC.merge_rankings") && rankings is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
       if direct_operation != Some("VEC.knn_join") &&
+        !nearest_pipeline &&
         direct_operation != Some("VEC.merge_rankings") &&
         relations is None {
         return Err(@connector.Execution(@execution.InputSet))
@@ -1011,6 +1242,8 @@ pub fn provider(
           StartBindingRows
         } else if direct_operation == Some("VEC.knn_join") {
           StartNearest
+        } else if nearest_pipeline {
+          StartNearestBridge
         } else if direct_operation == Some("VEC.merge_rankings") {
           StartRanking
         } else {
@@ -1028,6 +1261,16 @@ pub fn provider(
         pending_transformed: None,
         projection_input: None,
         projection: None,
+        nearest_step: if nearest_pipeline {
+          count - 1
+        } else {
+          0
+        },
+        nearest_bridge_step: 0,
+        nearest_bridge: None,
+        nearest_bridge_output: None,
+        nearest_bridge_outputs: [],
+        nearest_inputs: Array::make(2, None),
         nearest: None,
         ranking: None,
         stage_progress: 0L,

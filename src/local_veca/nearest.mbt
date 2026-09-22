@@ -36,6 +36,17 @@ pub fn nearest_carrier_producer(
 }
 
 ///|
+/// Bind a Vectors generation produced by an earlier step in this sequence.
+pub fn nearest_record_producer(
+  value : @records.ProducerRead,
+) -> NearestProducerInput? {
+  match @records.producer_read_view(value) {
+    Ok(view) => Some({ value: CarrierProducer(view), })
+    Err(_) => None
+  }
+}
+
+///|
 priv struct NearestRecord {
   identities : Array[@value.CheckedValue]
   vector : @value.CheckedValue
@@ -1253,6 +1264,39 @@ pub fn start_nearest_inputs(
     max_entries,
     max_name_bytes,
     [nearest_trusted_input(candidates), nearest_trusted_input(queries)],
+  )
+}
+
+///|
+/// Start a fused nearest pipeline whose runtime operands may be intermediate
+/// Vectors while its completion remains bound to the exact external Relations.
+pub fn start_nearest_inputs_with_relations(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  candidates : NearestProducerInput,
+  queries : NearestProducerInput,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[NearestExecution, NearestIssue] {
+  start_nearest_producers(
+    control,
+    preparation,
+    sequence,
+    step,
+    candidates,
+    queries,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs.map(@execution.trusted_output_relation_input),
   )
 }
 
