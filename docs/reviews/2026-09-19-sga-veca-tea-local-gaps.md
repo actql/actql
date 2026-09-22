@@ -1037,6 +1037,19 @@ reclamation on JS, Wasm, and native. Scheduling the same Carrier handoff by the
 standard Host, rather than the direct registered-provider harness, remains
 open for `to_events`.
 
+Commits `4b1d0e4c8`, `786e5d839`, and `1e8ca3e61` establish the next shared
+physical-segmentation boundary without closing that gap. Lowering now exposes
+an ordered typed inventory of every non-Relation operation edge, including
+repeated material positions. A generated execution view can select one
+original checked step while retaining its global coordinate, and managed
+Graph and record material can issue a fresh view for one exact internal
+operation edge. The Events provider executes selected rows-to-Events, session,
+and Events-to-rows steps through those views. JS, Wasm, and native regressions
+cover exact step and input binding, foreign-owner rejection, independent
+views, and final reclamation. The common Host still has to turn this inventory
+into scheduled physical tasks; direct selected-step execution is not recorded
+as standard Host completion.
+
 At `c5f7dd45`, an owner-bound Events view preserves canonical timestamp values
 through the formal Events-to-Relation Bridge on JS, Wasm, and native. A separate
 negative fixture rejects duplicate semantic identities before Carrier
