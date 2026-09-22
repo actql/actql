@@ -16,6 +16,7 @@ priv struct Execution {
   inputs : Array[@execution.ProducerRead]
   carrier_input : @lifecycle.ProducerView?
   relation_output : Bool
+  row_step : Int
   event_step : Int
   projection_step : Int?
   control : @bounded.Control
@@ -55,9 +56,7 @@ fn fail_execution(
 ///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
-  let count = @lower.sequence_count(
-    @execution.generated_prepared_sequence(sequence),
-  )
+  let count = @execution.generated_sequence_step_count(sequence)
   if count != 1 && count != 3 {
     return false
   }
@@ -65,7 +64,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
     let current = index.val
     index.val += 1
-    guard @lower.node_at(@lower.bound_preparation(owner), current) is Some(node) else {
+    guard @execution.generated_sequence_step_index_at(sequence, current)
+      is Some(actual) else {
+      return false
+    }
+    guard @lower.node_at(@lower.bound_preparation(owner), actual) is Some(node) else {
       return false
     }
     match (current, step) {
@@ -189,7 +192,7 @@ fn advance_execution(
           @bridge.start_rows_to_events(
             value.control,
             value.sequence,
-            0,
+            value.row_step,
             value.inputs[0],
             value.limits,
             value.storage_bytes,
@@ -217,7 +220,7 @@ fn advance_execution(
               delta(work, value.stage_work) is Some(work_delta) else {
               return fail_execution(value)
             }
-            if @lower.sequence_count(value.sequence) == 1 {
+            if @execution.generated_sequence_step_count(value.generated) == 1 {
               let material = match @records.completed_material(output) {
                 Ok(value) => value
                 Err(_) => {
@@ -789,20 +792,31 @@ pub fn provider(
         return Err(@connector.InvalidLimits)
       }
       let owner = @execution.generated_sequence_owner(sequence)
-      let direct_session = @lower.sequence_count(
-          @execution.generated_prepared_sequence(sequence),
-        ) ==
-        1 &&
-        @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
+      let step_count = @execution.generated_sequence_step_count(sequence)
+      guard @execution.generated_sequence_step_index_at(sequence, 0)
+        is Some(first_step) else {
+        return Err(@connector.InvalidLimits)
+      }
+      let direct_session = step_count == 1 &&
+        @lower.node_at(@lower.bound_preparation(owner), first_step)
+        is Some(node) &&
         @lower.operation(node) == "TEA.window.session_assign"
-      let direct_projection = @lower.sequence_count(
-          @execution.generated_prepared_sequence(sequence),
-        ) ==
-        1 &&
-        @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
+      let direct_projection = step_count == 1 &&
+        @lower.node_at(@lower.bound_preparation(owner), first_step)
+        is Some(node) &&
         @lower.operation(node) == "BRIDGE.events.to_rows"
+      let direct_rows = step_count == 1 &&
+        @lower.node_at(@lower.bound_preparation(owner), first_step)
+        is Some(node) &&
+        @lower.operation(node) == "BRIDGE.rows.to_events"
       let direct_relation = direct_session &&
-        @lower.preparation_input_carrier(@lower.bound_preparation(owner), 0)
+        @lower.node_at(@lower.bound_preparation(owner), first_step)
+        is Some(node) &&
+        @lower.node_input_target(node, 0) is Some(input_target) &&
+        @lower.preparation_carrier_at(
+          @lower.bound_preparation(owner),
+          input_target,
+        )
         is Some(input_carrier) &&
         @carrier.kind(input_carrier) == @carrier.RelationKind
       let relations : Array[@execution.ProducerRead] = []
@@ -828,6 +842,10 @@ pub fn provider(
         if relations.length() != 0 || carrier_input is None {
           return Err(@connector.InvalidLimits)
         }
+      } else if direct_rows {
+        if relations.length() != 1 || carrier_input is Some(_) {
+          return Err(@connector.InvalidLimits)
+        }
       } else if relations.length() != inputs.length() ||
         carrier_input is Some(_) {
         return Err(@connector.InvalidLimits)
@@ -838,19 +856,21 @@ pub fn provider(
         inputs: relations,
         carrier_input,
         relation_output: direct_relation,
-        event_step: if direct_session {
+        row_step: if direct_rows {
+          first_step
+        } else {
           0
+        },
+        event_step: if direct_session {
+          first_step
         } else {
           1
         },
         projection_step: if direct_projection {
-          Some(0)
+          Some(first_step)
         } else if direct_session {
           None
-        } else if @lower.sequence_count(
-            @execution.generated_prepared_sequence(sequence),
-          ) ==
-          3 {
+        } else if step_count == 3 {
           Some(2)
         } else {
           None
