@@ -1322,8 +1322,9 @@ pub fn start_bounded_sequence_match(
 ) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue] {
   let sequence = generated.sequence
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_count(sequence) == 1 &&
-    producer_read_matches_operation_input(input, owner, 0, 0) &&
+  guard generated_sequence_step_count(generated) == 1 &&
+    generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    producer_read_matches_operation_input(input, owner, step, 0) &&
     producer_read_has_cell_access(input) else {
     return Err(InvalidExecution)
   }
@@ -1332,7 +1333,7 @@ pub fn start_bounded_sequence_match(
     generated,
     RelationInput(input),
     producer_read_schema(input),
-    0,
+    step,
     [trusted_output_relation_input(input)],
     max_rows,
     values,
@@ -1359,12 +1360,15 @@ pub fn start_bounded_sequence_match_events(
   let owner = @lower.sequence_owner(sequence)
   let prepared = @lower.bound_preparation(owner)
   let reference = @managed_carrier.producer_view_read_reference(input)
-  guard @lower.sequence_count(sequence) == 1 &&
+  guard generated_sequence_step_count(generated) == 1 &&
+    generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    @lower.node_at(prepared, step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(input_target) &&
     @managed_carrier.producer_view_kind(input) == @carrier.EventsKind &&
     @managed_carrier.producer_read_reference_matches_operation_input(
-      reference, owner, 0, 0,
+      reference, owner, step, 0,
     ) &&
-    @lower.preparation_input_carrier(prepared, 0)
+    @lower.preparation_carrier_at(prepared, input_target)
     is Some(@carrier.EventValue(events)) &&
     @carrier.complete_schema(@carrier.event_records(events)) is Some(schema) else {
     return Err(InvalidExecution)
@@ -1374,7 +1378,7 @@ pub fn start_bounded_sequence_match_events(
     generated,
     EventsInput(input),
     schema,
-    0,
+    step,
     [trusted_output_carrier_input(reference)],
     max_rows,
     values,

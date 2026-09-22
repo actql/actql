@@ -2,6 +2,8 @@
 fn sequence_capacity_material(
   environment : @environment.WireEnvironment,
   input_proof : @wire.ProgramProofClaim,
+  stage? : String = "matched",
+  step? : Int = 0,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -41,7 +43,9 @@ fn sequence_capacity_material(
       candidates.join(",") +
       "],\"effective_max\":" +
       effective.to_string() +
-      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:0:" +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:" +
+      step.to_string() +
+      ":" +
       suffix +
       "\",\"unit\":\"" +
       unit +
@@ -64,7 +68,7 @@ fn sequence_capacity_material(
     @wire.value(witnesses[1]),
     "{\"op\":\"source\"}",
     inputs=[output_host_cid],
-    step=0,
+    step~,
   )
   witnesses.push(@wire.program_proof_witness(input_proof))
   witnesses.push(@wire.program_proof_witness(output_proof))
@@ -87,11 +91,11 @@ fn sequence_capacity_material(
     max_depth: 30,
   }).unwrap()
   {
-    stage: "matched",
+    stage,
     sources,
     uses: [
       Sequence(
-        step=0,
+        step~,
         matches=@wire.mixed_limit_at(mixed, 0).unwrap(),
         output=@wire.mixed_limit_at(mixed, 1).unwrap(),
       ),

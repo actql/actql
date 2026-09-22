@@ -53,11 +53,15 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let window = variant == "window_fixed" ||
     variant == "window_sliding" ||
     variant == "window_parameter"
+  let sequence = variant == "sequence"
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
   let session_relation = variant == "session_relation"
-  let fields = if dedupe {
+  let fields = if sequence {
+    "[\"match_start_ms\",\"match_end_ms\",\"start_id\"," +
+    "\"start_time_ms\",\"end_id\",\"end_time_ms\"]"
+  } else if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
@@ -91,7 +95,14 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
     "{\"event_id\":3,\"occurred_at\":2,\"payload\":\"edge\"}]"
   }
-  let transform = if dedupe {
+  let transform = if sequence {
+    "{\"sequence\":{\"by\":[],\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\",\"pattern\":[{\"as\":\"start\"," +
+    "\"where\":{\"literal\":true}},{\"as\":\"end\"," +
+    "\"where\":{\"literal\":true}}],\"within\":10," +
+    "\"overlap\":\"allow\",\"contiguity\":\"subsequence\"}," +
+    "\"as\":\"out\"}"
+  } else if dedupe {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
@@ -111,7 +122,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
-  let second_fields = if dedupe {
+  let second_fields = if sequence {
+    "[\"end_id\",\"start_id\",\"match_start_ms\"]"
+  } else if dedupe {
     "[\"payload\",\"event_id\"]"
   } else if window {
     "[\"payload\",\"window_start_ms\",\"event_id\"]"
@@ -124,6 +137,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
     "\"as\":\"out\"}"
+  } else if sequence {
+    "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\"}}," +
+    transform
   } else {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
@@ -1993,4 +2010,177 @@ test "standard Host retains Events across physical task boundaries" {
     assert_eq(usage.held_bytes, 0L)
     @mock.close_mock_query_issuer(issuer)
   }
+}
+
+///|
+test "standard Host matches retained Events in a later physical task" {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_events_chain=true,
+    local_carrier_events_variant="sequence",
+    managed_publication=true,
+    parameter_json="{\"minimum\":1}",
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let event_provider = @local_tea_provider.provider(
+    carrier_events_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let sequence_provider = @local_tea_provider.sequence_match_provider(
+    carrier_events_storage_limits(),
+    @execution.generated_sequence_capacity(
+      sequences[2],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [event_provider, sequence_provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_columns: 10,
+        max_order_work: 1000,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    2,
+    [@local_driver.local_managed_relation_output(values)],
+    [values_rows],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let matches_live = Ref(true)
+  let (matches_ops, matches) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [],
+    [],
+    3,
+    matches_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    carrier_inputs=[(bridge, bridge_material)],
+  )
+  let rows = local_managed_test_rows(matches_ops)
+  assert_eq(rows.length(), 3)
+  assert_true(rows[0].contains("\"start_id\":2"))
+  assert_true(rows[0].contains("\"end_id\":3"))
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [matches],
+    [rows],
+    4,
+    first_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [matches],
+    [rows],
+    5,
+    second_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), 3)
+  assert_eq(local_managed_test_rows(second_ops).length(), 3)
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(matches))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  matches_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (matches_ops.close)()
+  (matches_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 2)
+  (bridge_ops.close)()
+  (bridge_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }

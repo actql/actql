@@ -147,29 +147,57 @@ fn validate_trusted_output_contract_with_inputs(
     if inputs.length() > max_entries {
       return Err(Limit)
     }
-    if inputs.length() != @lower.preparation_input_count(prepared) {
+    let expected_input_count = match generated.selected_step {
+      Some(step) =>
+        @lower.node_at(prepared, step)
+        .map(node => @lower.node_input_count(node))
+        .unwrap_or(-1)
+      None => @lower.preparation_input_count(prepared)
+    }
+    if inputs.length() != expected_input_count {
       return Err(ForeignInputs)
     }
     for index, input in inputs {
       match input.value {
         RelationInput(input) => {
-          if !physical_equal(input.bound.receiver, owner) ||
-            input.bound.input_index != index ||
-            !producer_read_available(input) {
+          let exact = match generated.selected_step {
+            Some(step) =>
+              producer_read_matches_operation_input(input, owner, step, index)
+            None =>
+              physical_equal(input.bound.receiver, owner) &&
+              input.bound.input_index == index &&
+              producer_read_available(input)
+          }
+          if !exact {
             return Err(ForeignInputs)
           }
           input_bindings.push(input.bound.identity)
         }
         SuppliedRelationInput(input) => {
-          if !supplied_relation_read_matches_input(input, owner, index) {
+          let exact = match generated.selected_step {
+            Some(step) =>
+              supplied_relation_read_matches_operation_input(
+                input, owner, step, index,
+              )
+            None => supplied_relation_read_matches_input(input, owner, index)
+          }
+          if !exact {
             return Err(ForeignInputs)
           }
           input_bindings.push(supplied_relation_read_identity(input))
         }
         CarrierInput(input) => {
-          if !@managed_carrier.producer_read_reference_matches_input(
-              input, owner, index,
-            ) {
+          let exact = match generated.selected_step {
+            Some(step) =>
+              @managed_carrier.producer_read_reference_matches_operation_input(
+                input, owner, step, index,
+              )
+            None =>
+              @managed_carrier.producer_read_reference_matches_input(
+                input, owner, index,
+              )
+          }
+          if !exact {
             return Err(ForeignInputs)
           }
           input_bindings.push({
@@ -182,7 +210,10 @@ fn validate_trusted_output_contract_with_inputs(
     }
   }
   guard target is Step(index) &&
-    index == @lower.sequence_count(generated.sequence) - 1 &&
+    index ==
+    generated.selected_step.unwrap_or(
+      @lower.sequence_count(generated.sequence) - 1,
+    ) &&
     @lower.node_at(prepared, index) is Some(node) &&
     @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(InvalidTarget)

@@ -626,6 +626,15 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
+  } else if local_carrier_events_chain &&
+    local_carrier_events_variant == "sequence" {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      3L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    [sequence_capacity_material(environment, input, stage="events", step=1)]
   } else if local_values_sequence_chain {
     let input = query_capacity_proof(
       "actql.bound.values",

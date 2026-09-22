@@ -62,7 +62,9 @@ pub fn node_accepts_managed_carrier_view(
     return false
   }
   match operation(node) {
-    "TEA.window.session_assign" | "BRIDGE.events.to_rows" => true
+    "TEA.window.session_assign"
+    | "TEA.sequence.match"
+    | "BRIDGE.events.to_rows" => true
     _ => false
   }
 }
