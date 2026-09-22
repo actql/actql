@@ -894,6 +894,13 @@ portable targets. Rows-to-Vectors now has the required direct Carrier consumer
 and formal Bridge consumer evidence. Rows-to-Events still needs the standard
 Host to schedule that retained generation across those two consumer forms;
 Relation publication does not substitute for that standard Host evidence.
+At `fb4a149b9`, the product Node Host establishes and retrieves the exact
+Named Result after rows-to-Events construction, a bounded watermark transform,
+and the formal Events-to-Relation Bridge. Two downstream Relation consumers
+retain independent projections, and final cleanup returns held and reserved
+bytes to zero. This closes the required Relation publication layer for
+`to_events`; the retained Events handoff between physical Host tasks remains
+open.
 At `15af5df1`, the compiled Node Host separately delivers cancellation during
 the rows-to-Events copy and during the Events-to-rows copy after the bounded
 watermark transform. Both paths observe stop and reclaim the ledger without

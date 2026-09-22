@@ -2703,6 +2703,7 @@
         "standard_host",
         "consumer_lifetime",
         "resources",
+        "publication",
         "cancellation",
         "three_targets"
       ],
@@ -2728,6 +2729,15 @@
           "layers": ["cancellation"],
           "targets": ["js-node"],
           "sha": "15af5df1",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "bridged_relation_named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["js-node"],
+          "sha": "fb4a149b9",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
