@@ -4853,9 +4853,11 @@ fn traverse_paths_result_for_source(
   minimum? : Int = 1,
   maximum? : Int = 2,
   starts? : String = "1",
+  predicate? : String = "",
   max_value_nodes? : Int = 1000,
   attempts? : Ref[Int]? = None,
   quantum? : Int = 1,
+  workspace_peak? : Ref[Int]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_traverse_owner(
@@ -4864,6 +4866,7 @@ fn traverse_paths_result_for_source(
     maximum,
     emission="paths",
     starts~,
+    predicate~,
     max_output_rows~,
   )
   let sequence = prepared_sequence(owner)
@@ -4907,6 +4910,9 @@ fn traverse_paths_result_for_source(
   if attempts is Some(attempts) {
     attempts.val = @local_sga.traverse_value_item_attempts(execution)
   }
+  if workspace_peak is Some(peak) {
+    peak.val = @local_sga.traverse_private_workspace_usage(execution).1
+  }
   assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
   assert_true(@graphs.discard_completed(graph))
   result
@@ -4919,9 +4925,11 @@ fn homogeneous_traverse_paths_result(
   minimum? : Int = 1,
   maximum? : Int = 2,
   starts? : String = "1",
+  predicate? : String = "",
   max_value_nodes? : Int = 1000,
   attempts? : Ref[Int]? = None,
   quantum? : Int = 1,
+  workspace_peak? : Ref[Int]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
   traverse_paths_result_for_source(
     carrier_graph_components_source_owner(),
@@ -4930,9 +4938,11 @@ fn homogeneous_traverse_paths_result(
     minimum~,
     maximum~,
     starts~,
+    predicate~,
     max_value_nodes~,
     attempts~,
     quantum~,
+    workspace_peak~,
   )
 }
 
@@ -5031,10 +5041,157 @@ test "path traversal admits output and workspace before expansion" {
     is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutputLimit)),
   )
   assert_true(
-    homogeneous_traverse_paths_result(4, 22)
+    homogeneous_traverse_paths_result(4, 19)
     is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
   )
-  assert_true(homogeneous_traverse_paths_result(4, 23) is Ok(_))
+  let peak = Ref(0)
+  assert_true(
+    homogeneous_traverse_paths_result(4, 20, workspace_peak=Some(peak)) is Ok(_),
+  )
+  assert_eq(peak.val, 20)
+}
+
+///|
+test "path traversal charges overlapping start selector and indices" {
+  for workspace in [7, 8] {
+    let source_owner = carrier_graph_components_source_owner()
+    let source = carrier_events_source_output(source_owner)
+    let owner = carrier_graph_traverse_owner(
+      source_owner,
+      0,
+      1,
+      emission="paths",
+      starts="1,2,3,4",
+      max_output_rows=20,
+    )
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let control = @bounded.control()
+    let execution = @local_sga.start_traverse(
+      control,
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      20,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    let mut terminal = false
+    let mut polls = 0
+    while !terminal {
+      polls += 1
+      assert_true(polls < 1000)
+      match @local_sga.advance_traverse(execution, 1).unwrap() {
+        @local_sga.TraverseContinue(..) => {
+          let (live, peak) = @local_sga.traverse_private_workspace_usage(
+            execution,
+          )
+          if workspace == 8 && peak == 8 && live == 8 {
+            assert_eq(@local_sga.traverse_private_entry_count(execution), 8)
+            assert_true(@bounded.request_cancel(control))
+            assert_true(
+              @local_sga.advance_traverse(execution, 1).unwrap()
+              is @local_sga.TraverseStopped(_, ..),
+            )
+            terminal = true
+          }
+        }
+        @local_sga.TraverseFailed(
+          @local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit),
+          ..
+        ) => {
+          assert_eq(workspace, 7)
+          assert_eq(@local_sga.traverse_private_workspace_usage(execution).1, 7)
+          terminal = true
+        }
+        _ => abort("unexpected traversal outcome")
+      }
+    }
+    assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+    assert_eq(@local_sga.traverse_private_entry_count(execution), 0)
+    assert_eq(@local_sga.traverse_private_workspace_usage(execution).0, 0)
+    assert_true(@graphs.discard_completed(graph))
+  }
+}
+
+///|
+test "sparse and zero-hop path selectors are independent of resume quantum" {
+  let empty_one_peak = Ref(0)
+  let empty_seven_peak = Ref(0)
+  let empty_one = homogeneous_traverse_paths_result(
+    10,
+    100,
+    minimum=0,
+    maximum=1,
+    predicate="false",
+    quantum=1,
+    workspace_peak=Some(empty_one_peak),
+  ).unwrap()
+  let empty_seven = homogeneous_traverse_paths_result(
+    10,
+    100,
+    minimum=0,
+    maximum=1,
+    predicate="false",
+    quantum=7,
+    workspace_peak=Some(empty_seven_peak),
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(empty_one), 0)
+  assert_eq(@execution.completed_row_count(empty_seven), 0)
+  assert_eq(empty_one_peak.val, empty_seven_peak.val)
+  let one_peak = Ref(0)
+  let seven_peak = Ref(0)
+  let one = homogeneous_traverse_paths_result(
+    10,
+    100,
+    minimum=0,
+    maximum=1,
+    starts="1,4",
+    quantum=1,
+    workspace_peak=Some(one_peak),
+  ).unwrap()
+  let seven = homogeneous_traverse_paths_result(
+    10,
+    100,
+    minimum=0,
+    maximum=1,
+    starts="1,4",
+    quantum=7,
+    workspace_peak=Some(seven_peak),
+  ).unwrap()
+  assert_eq(one_peak.val, seven_peak.val)
+  assert_true(one_peak.val >= 6)
+  assert_eq(
+    @execution.completed_row_count(one),
+    @execution.completed_row_count(seven),
+  )
+  for row in 0..<@execution.completed_row_count(one) {
+    assert_eq(
+      @execution.completed_output_row_wire(one, row, 10000, 1000, 20).unwrap(),
+      @execution.completed_output_row_wire(seven, row, 10000, 1000, 20).unwrap(),
+    )
+  }
 }
 
 ///|

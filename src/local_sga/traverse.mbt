@@ -220,6 +220,17 @@ pub fn traverse_private_entry_count(value : TraverseExecution) -> Int {
 }
 
 ///|
+/// Diagnostic structural reservation, including the selected-start overlap.
+pub fn traverse_private_workspace_usage(
+  value : TraverseExecution,
+) -> (Int, Int) {
+  match value.kernel {
+    TraverseNodes(_) => (0, 0)
+    TraversePaths(paths) => traverse_paths_workspace_usage(paths)
+  }
+}
+
+///|
 pub fn traverse_value_item_attempts(value : TraverseExecution) -> Int {
   match value.kernel {
     TraverseNodes(_) => 0

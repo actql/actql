@@ -103,6 +103,7 @@ priv struct TraversePathsState {
   value_item_attempts : Ref[Int]
   mut emitted : Int
   mut workspace_slots : Int
+  mut workspace_peak : Int
 }
 
 ///|
@@ -115,6 +116,7 @@ priv struct TraversePathsExecution {
   mut token : @bounded.Token?
   accepted : Ref[Bool]
   private_entries : () -> Int
+  workspace_usage : () -> (Int, Int)
   value_item_attempts : Ref[Int]
 }
 
@@ -655,11 +657,26 @@ fn traverse_paths_step(
         if state.start_scan < state.start_selected.length() {
           used += 1
           if state.start_selected[state.start_scan] {
+            // The Boolean selection and canonical start indices overlap until
+            // the scan is complete. Admit the new entry before appending it.
+            if state.workspace_slots >= state.max_workspace_slots {
+              return @bounded.Failed(
+                TraversePathsWorkspaceLimit,
+                progress,
+                used,
+              )
+            }
+            state.workspace_slots += 1
+            state.workspace_peak = Int::max(
+              state.workspace_peak,
+              state.workspace_slots,
+            )
             state.start_nodes.push(state.start_scan)
           }
           state.start_scan += 1
         } else {
           state.start_selected = []
+          state.workspace_slots -= @storage.node_count(state.source)
           state.sort_index = 1
           state.sort_cursor = 1
           state.phase = SortStarts
@@ -724,6 +741,10 @@ fn traverse_paths_step(
             return @bounded.Failed(TraversePathsOutputLimit, progress, used)
           }
           state.workspace_slots += slots
+          state.workspace_peak = Int::max(
+            state.workspace_peak,
+            state.workspace_slots,
+          )
           state.frontier_slots = slots
           state.frontier.push(path)
           state.start_scan += 1
@@ -980,6 +1001,10 @@ fn traverse_paths_step(
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
         state.workspace_slots += next_slots
+        state.workspace_peak = Int::max(
+          state.workspace_peak,
+          state.workspace_slots,
+        )
         state.pending_slots = next_slots
         state.pending_nodes = []
         state.pending_edges = []
@@ -1162,6 +1187,10 @@ fn traverse_paths_step(
                 return @bounded.Failed(TraversePathsOutputLimit, progress, used)
               }
               state.workspace_slots += nodes
+              state.workspace_peak = Int::max(
+                state.workspace_peak,
+                state.workspace_slots,
+              )
               state.row_value_slots += nodes
               state.value_items = Some(builder)
               state.value_item = 0
@@ -1189,6 +1218,10 @@ fn traverse_paths_step(
                 return @bounded.Failed(TraversePathsOutputLimit, progress, used)
               }
               state.workspace_slots += nodes
+              state.workspace_peak = Int::max(
+                state.workspace_peak,
+                state.workspace_slots,
+              )
               state.row_value_slots += nodes
               state.value_items = Some(builder)
               state.value_item = 0
@@ -1587,6 +1620,7 @@ fn start_traverse_paths(
     value_item_attempts,
     emitted: 0,
     workspace_slots: node_count + predicate_workspace_width,
+    workspace_peak: node_count + predicate_workspace_width,
   }
   let (session, token) = @bounded.start(
     control,
@@ -1603,6 +1637,7 @@ fn start_traverse_paths(
     token: Some(token),
     accepted,
     private_entries: fn() { traverse_paths_private_entries(state) },
+    workspace_usage: fn() { (state.workspace_slots, state.workspace_peak) },
     value_item_attempts,
   })
 }
@@ -1650,6 +1685,11 @@ fn traverse_paths_cleanup_pending(value : TraversePathsExecution) -> Bool {
 ///|
 fn traverse_paths_private_entry_count(value : TraversePathsExecution) -> Int {
   (value.private_entries)()
+}
+
+///|
+fn traverse_paths_workspace_usage(value : TraversePathsExecution) -> (Int, Int) {
+  (value.workspace_usage)()
 }
 
 ///|
