@@ -67,9 +67,9 @@ test("local family coverage rejects an omitted normative operation", async t => 
 
 test("local family coverage rejects a completion without suite evidence", async t => {
   const result = await withManifest(t, manifest => {
-    manifest.operations.find(
-      entry => entry.operation === "graph_diff",
-    ).status = "complete";
+    manifest.evidence = manifest.evidence.filter(
+      entry => entry.operation !== "graph_diff",
+    );
   });
   assert.notEqual(result.status, 0);
   assert.match(

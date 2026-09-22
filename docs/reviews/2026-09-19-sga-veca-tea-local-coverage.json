@@ -1106,10 +1106,72 @@
       "output": "relation",
       "canonical": ["SGA.diff"],
       "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/graph_relation_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_relation_test.mbt",
+        "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
+        "src/bounded_graph_diff/diff_wbtest.mbt",
+        "src/local_sga/graph_diff.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "canonical_bounded_snapshot_and_delta_construction",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "cd6841c32",
+          "evidence": [
+            "src/bounded_graph_snapshot/snapshot.mbt",
+            "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
+            "src/bounded_graph_diff/diff.mbt",
+            "src/bounded_graph_diff/diff_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "nonempty_standard_host_consumers_and_publication",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "15d759ac6",
+          "evidence": [
+            "src/local_sga/graph_diff.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "partial_snapshot_cancellation_stop_and_cleanup",
+          "layers": ["cancellation", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "15d759ac6",
+          "evidence": [
+            "src/bounded_graph_snapshot/snapshot.mbt",
+            "src/bounded_graph_diff/diff.mbt",
+            "src/local_sga/graph_diff.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
     },
     {
       "family": "SGA",
@@ -3589,6 +3651,24 @@
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graph_diff",
+      "sha": "15d759ac6",
+      "suites": [
+        {
+          "name": "portable bounded graph delta and lifecycle",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable incremental graph delta core",
+          "path": "src/bounded_graph_diff/diff_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
           "result": "passed"
         }
       ]

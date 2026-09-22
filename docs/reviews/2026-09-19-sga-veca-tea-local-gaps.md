@@ -30,16 +30,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `contract` | 39/39 |
 | `checker` | 39/39 |
 | `lowering` | 39/39 |
-| `kernel` | 37/39 |
-| `managed` | 37/39 |
-| `standard_host` | 37/39 |
-| `consumer_lifetime` | 37/39 |
-| `resources` | 37/39 |
-| `cancellation` | 37/39 |
-| `publication` | 37/39 |
-| `three_targets` | 37/39 |
-| complete operations | 33/39 |
-| open operations | 6/39 |
+| `kernel` | 38/39 |
+| `managed` | 38/39 |
+| `standard_host` | 38/39 |
+| `consumer_lifetime` | 38/39 |
+| `resources` | 38/39 |
+| `cancellation` | 38/39 |
+| `publication` | 38/39 |
+| `three_targets` | 38/39 |
+| complete operations | 34/39 |
+| open operations | 5/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -330,6 +330,16 @@ All seventeen SGA operations now have typed canonical lowering: `normalize_graph
 `apply_graph_delta`, `mean_graphs`, `reach`, `subgraph`, `traverse`, and
 `shortest_path`. Match lowering retains checked
 predicate field bindings and authored projection order without frontend rediscovery.
+
+Commits `308ed6027`, `0a0cb4a73`, `cd6841c32`, and `15d759ac6`
+close `graph_diff`. Canonical snapshot construction, tuple sorting, equality,
+action materialization, and cleanup advance under bounded work and admitted
+workspace. The standard Host fixture exercises nonempty node and edge add,
+remove, and update sets through two overlapping consumers on JS, Wasm, and
+native. The same path establishes the independently derived Named Result
+identity. Cancellation after partial snapshot work confirms stop separately
+from cleanup and reclaims the unpublished output without revoking either
+input.
 Reach retains its typed start identity, direction, and finite depth.
 Subgraph retains explicit, predicate, and Relation selectors as distinct typed
 forms and preserves its optional edge predicate.
