@@ -1,0 +1,14 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/bounded_tuple_sort" @sort,
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/graph_snapshot_identity" @identity,
+  "actql/actql/managed_graph_storage" @storage,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_admission" @value,
+}
+
+import {
+  "actql/actql/value_contract" @contract,
+} for "wbtest"
