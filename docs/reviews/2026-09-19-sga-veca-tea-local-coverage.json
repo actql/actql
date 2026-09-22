@@ -26,9 +26,6 @@
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
   "shared_gaps": [
-    "carrier_standard_host_dispatch",
-    "bounded_step_execution",
-    "cancellation_delivery_and_stop",
     "rela_differential_conformance",
     "bounded_resource_accounting_audit"
   ],
@@ -58,6 +55,9 @@
     "bounded_result_finalization",
     "bounded_finalization_terminal_reports",
     "bounded_result_resume_lifetime",
+    "carrier_standard_host_dispatch",
+    "bounded_step_execution",
+    "cancellation_delivery_and_stop",
     "workers_fixture_freshness",
     "family_selective_artifacts"
   ],
@@ -642,7 +642,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "26e49190",
+          "sha": "46ba53ff",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -660,7 +660,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "e9a81d8a",
+          "sha": "0ae4b508",
           "evidence": [
             "src/query_integration/query_checked_program_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
@@ -679,7 +679,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "7242472e7",
+          "sha": "5b91dc2c7",
           "evidence": [
             "src/local_sga/traverse.mbt",
             "src/local_sga/traverse_paths.mbt",
@@ -1154,7 +1154,7 @@
           "scope": "canonical_bounded_snapshot_and_delta_construction",
           "layers": ["kernel", "resources", "three_targets"],
           "targets": ["js", "wasm", "native"],
-          "sha": "cd6841c32",
+          "sha": "8d730cf95",
           "evidence": [
             "src/bounded_graph_snapshot/snapshot.mbt",
             "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
@@ -1172,7 +1172,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "15d759ac6",
+          "sha": "050469b0b",
           "evidence": [
             "src/local_sga/graph_diff.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -1183,7 +1183,7 @@
           "scope": "partial_snapshot_cancellation_stop_and_cleanup",
           "layers": ["cancellation", "resources", "three_targets"],
           "targets": ["js", "wasm", "native"],
-          "sha": "15d759ac6",
+          "sha": "050469b0b",
           "evidence": [
             "src/bounded_graph_snapshot/snapshot.mbt",
             "src/bounded_graph_diff/diff.mbt",
@@ -1689,7 +1689,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "4fc92d2a6",
+          "sha": "098f29445",
           "evidence": [
             "src/local_sga/graph_apply.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -1704,7 +1704,7 @@
             "publication"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "5d70fc120",
+          "sha": "d3877af58",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
@@ -2051,7 +2051,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "f5e99a87c",
+          "sha": "dfff01b2e",
           "evidence": [
             "src/physical_strategy/carrier_tasks.mbt",
             "src/query_integration/local_carrier_events_wbtest.mbt"
@@ -2327,7 +2327,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "9174f203f",
+          "sha": "d4fb3d6da",
           "evidence": [
             "src/local_tea_provider/sequence_match.mbt",
             "src/query_integration/local_carrier_events_wbtest.mbt"
@@ -2566,7 +2566,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "d8e798256",
+          "sha": "396da45da",
           "evidence": [
             "src/local_veca/nearest.mbt",
             "src/local_veca_provider/vectors_pipeline.mbt",
@@ -2919,7 +2919,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "b39cdbbd4",
+          "sha": "16bae24a5",
           "evidence": [
             "src/physical_strategy/carrier_tasks.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -3077,7 +3077,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "f5e99a87c",
+          "sha": "dfff01b2e",
           "evidence": [
             "src/physical_strategy/carrier_tasks.mbt",
             "src/local_tea_provider/events_pipeline.mbt",
@@ -3695,7 +3695,7 @@
     },
     {
       "operation": "traverse",
-      "sha": "e9a81d8a",
+      "sha": "0ae4b508",
       "suites": [
         {
           "name": "portable node and path variants with retained consumers",
@@ -3797,7 +3797,7 @@
     },
     {
       "operation": "graph_diff",
-      "sha": "15d759ac6",
+      "sha": "050469b0b",
       "suites": [
         {
           "name": "portable bounded graph delta and lifecycle",
@@ -3815,7 +3815,7 @@
     },
     {
       "operation": "apply_graph_delta",
-      "sha": "5d70fc120",
+      "sha": "d3877af58",
       "suites": [
         {
           "name": "portable atomic graph application and lifecycle",
@@ -3977,7 +3977,7 @@
     },
     {
       "operation": "nearest",
-      "sha": "d8e798256",
+      "sha": "396da45da",
       "suites": [
         {
           "name": "portable fused Carrier combinations and lifetime",
@@ -3995,7 +3995,7 @@
     },
     {
       "operation": "session",
-      "sha": "f5e99a87c",
+      "sha": "dfff01b2e",
       "suites": [
         {
           "name": "portable retained Events session lifecycle",
@@ -4013,7 +4013,7 @@
     },
     {
       "operation": "sequence",
-      "sha": "9174f203f",
+      "sha": "d4fb3d6da",
       "suites": [
         {
           "name": "portable Events sequence lifecycle and publication",
@@ -4031,7 +4031,7 @@
     },
     {
       "operation": "graph",
-      "sha": "b39cdbbd4",
+      "sha": "16bae24a5",
       "suites": [
         {
           "name": "portable retained Graph lifecycle and publication",
@@ -4049,7 +4049,7 @@
     },
     {
       "operation": "to_events",
-      "sha": "f5e99a87c",
+      "sha": "dfff01b2e",
       "suites": [
         {
           "name": "portable retained Events bridge lifecycle",

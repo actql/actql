@@ -12,12 +12,12 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | Closed for inventory coverage: all 39 normative entries have contract, checker, and typed canonical lowering evidence | Preserve checked meaning and reject unsupported runtime variants before execution without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Carrier-aware lifecycle is shared; exact layer counts are generated below | Extend the registered boundary and independent lifetime evidence to every principal variant |
-| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; exact layer counts are generated below | Implement and register the remaining entries without forced Carrier-erasing copies |
-| Progress | Bounded sessions, retryable cleanup, and the environment yield adapter are present; long work in completed kernels is split into admitted phases | Audit every remaining long loop and foreign call, then verify each compiled environment path |
-| Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; exact layer counts are generated below | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
+| Completion | Closed for operation coverage: all 39 entries use the shared Carrier-aware lifecycle with registered lifetime evidence | Preserve exact owner, generation, view, and independent release rules while closing the shared release gates |
+| Runtime material | Closed for operation coverage: all 39 entries retain their Carrier laws through bounded immutable or managed shared storage | Preserve storage meaning, admission, holding, and reclamation while closing the shared release gates |
+| Progress | Closed for operation coverage: long principal paths use bounded sessions and the environment yield adapter | Complete the repository-wide accounting inventory so new long phases cannot bypass the reviewed boundary |
+| Cancellation | Closed for operation coverage: request delivery, kernel observation, stop confirmation, and cleanup evidence cover all 39 entries | Preserve the stop/reclaim distinction and finite observation points while closing the accounting inventory |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
-| Publication | The Effect-free path publishes and retrieves the implemented Relation projections; exact layer counts are generated below | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Independent expectations and focused Local/DuckDB comparisons exist, but do not yet form an operation-indexed RelA release gate | Bind every overlapping RelA operation to the same checked Program, Local and DuckDB or reference execution, canonical comparison, and an independently authored expectation |
 | Resource accounting audit | Kernels use bounded sessions and local work and workspace ledgers, but reviewed invariants are not yet enforced by one repository gate | Add small shared accounting helpers where they remove repetition and a checked inventory for allocation admission, loop charging, and stop points in every long phase |
 
@@ -68,7 +68,7 @@ canonical binary fold tree.
 
 ## Review findings closed after `bc391b3e`
 
-Commits `420621fce`, `486fe4299`, `fb098b075`, and `a10ad0b3b`
+Commits `3c381d6e0`, `8672bbd7a`, `f337ee951`, and `1b317fe90`
 close the four concrete execution-boundary findings.
 
 - Interval join charges each explored pair exactly once before key or temporal
@@ -93,7 +93,7 @@ tests or source inspection are not recorded as their completion.
 
 ## Closed focused Local and DuckDB semantic review
 
-Commits `9305bd6af`, `717e418b1`, `2e5aa6c17`, and `4910b3771`
+Commits `4c0dbff79`, `1fc115323`, `985ed20f5`, and `9902dbead`
 close the concrete placement-parity findings from the focused review.
 
 - Managed sort and take run the same null placement, descending, offset,
@@ -123,8 +123,8 @@ release gate in the shared blockers table.
 
 ## Closed review findings after `15d759ac`
 
-Commits `bc8e0e383`, `55cb15796`, `db7cb723c`, `0c805dd06`, and
-`7242472e7` close the fixed review findings without changing the Local
+Commits `8da406996`, `30b18fa67`, `5dcc77be4`, `b97b7f3a7`, and
+`5b91dc2c7` close the fixed review findings without changing the Local
 milestone boundary.
 
 - The graft and mean fixtures use valid typed row sources. Workers and Node
@@ -149,7 +149,7 @@ milestone boundary.
   zero while an independently accepted output remains outside private state.
 
 The complete Graph integration file passes 86 tests on each of JS, Wasm, and
-native at `7242472e7`. These focused results do not replace the final same-SHA
+native at `5b91dc2c7`. These focused results do not replace the final same-SHA
 Linux CI or close the broader resource-accounting release gate.
 
 ## Closed review findings after `4f84dec2`
@@ -362,7 +362,7 @@ All seventeen SGA operations now have typed canonical lowering: `normalize_graph
 `shortest_path`. Match lowering retains checked
 predicate field bindings and authored projection order without frontend rediscovery.
 
-Commits `308ed6027`, `0a0cb4a73`, `cd6841c32`, and `15d759ac6`
+Commits `16573673c`, `83df880a5`, `8d730cf95`, and `050469b0b`
 close `graph_diff`. Canonical snapshot construction, tuple sorting, equality,
 action materialization, and cleanup advance under bounded work and admitted
 workspace. The standard Host fixture exercises nonempty node and edge add,
@@ -372,7 +372,7 @@ identity. Cancellation after partial snapshot work confirms stop separately
 from cleanup and reclaims the unpublished output without revoking either
 input.
 
-Commits `f5847af44`, `28cb4546c`, and `4fc92d2a6` add the atomic
+Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the
 typed delta field and Graph contract identity. The kernel verifies the exact
 base snapshot CID, Graph contract CID, ordered unique actions, before-value
@@ -380,7 +380,7 @@ preconditions, and target snapshot CID before exposing a completed Graph.
 Empty and nonempty node, edge, and property changes run with single-work
 quanta on JS, Wasm, and native; cancellation stops independently of cleanup.
 
-Commit `5d70fc120` closes the standard Host boundary without adding a hidden
+Commit `d3877af58` closes the standard Host boundary without adding a hidden
 provider-local Relation channel. One formal task completes `graph_diff` as an
 exact retained Relation; the following task rebuilds the base Graph from its
 typed Relation input and consumes that exact delta as its second input. The
@@ -817,7 +817,7 @@ Vectors input combination without erasing Carrier authority, rejects reversed
 use-site bindings, and preserves source storage after output cleanup on all
 three targets. The real Node Host now delivers timer cancellation after exact
 nearest work begins, observes kernel stop, publishes no partial result, and
-reclaims all reservations at `456c2f27`. Commit `d8e798256` connects the three
+reclaims all reservations at `456c2f27`. Commit `396da45da` connects the three
 remaining direct-Carrier combinations to standard Host selection. One or two
 bounded rows-to-Vectors bridges feed the exact nearest occurrence while final
 completion retains the two external Relation bindings. Each combination
@@ -896,7 +896,7 @@ reclamation. The same provider path passes on JS, Wasm, and native. At
 `1a9e0e42`, the author-visible Relation form reaches the bounded session kernel
 through the standard Host, publishes its Named Result, feeds two downstream
 computations, and reclaims its managed record storage on all three targets.
-At `f5e99a87c`, the standard Host carries the retained Events completion
+At `dfff01b2e`, the standard Host carries the retained Events completion
 across the physical task boundary into the exact session input. At
 `4ef9c6be`, equal-time events reach the standard Host on
 all three targets and are ordered by their typed semantic identity before
@@ -931,7 +931,7 @@ resume in finite work quanta. Empty input, global and grouped partitions, and
 all overlap and contiguity policy combinations pass on JS, Wasm, and native.
 The Node standard Host delivers timer cancellation during matching, observes
 kernel stop, publishes no partial result, completes cleanup, and returns held
-and reserved bytes to zero. At `9174f203f`, the Events input crosses a
+and reserved bytes to zero. At `d4fb3d6da`, the Events input crosses a
 physical standard Host task boundary into bounded sequence matching. Its
 Relation output reaches publication and two independently released consumers.
 Event
@@ -1013,7 +1013,7 @@ Relation-shaped buffer alone is not evidence of a completed conversion.
 The Events-to-rows and Vectors-to-rows operations feed two overlapping
 Relation consumers and establish the exact Named Result identity on all three
 portable targets. Rows-to-Vectors now has the required direct Carrier consumer
-and formal Bridge consumer evidence. At `f5e99a87c`, the standard Host
+and formal Bridge consumer evidence. At `dfff01b2e`, the standard Host
 schedules the retained Events generation across its same-Carrier session
 consumer and its formal Relation Bridge consumer. Relation publication remains
 separate evidence.
@@ -1036,9 +1036,9 @@ boundaries to one session consumer and one formal Bridge consumer. Their
 lifetimes overlap; independent release leaves the producer live until the last
 view is done, and a cancelled projection stops and cleans up before final
 reclamation on JS, Wasm, and native. The same Carrier handoff is scheduled by
-the standard Host at `f5e99a87c`.
+the standard Host at `dfff01b2e`.
 
-Commits `4b1d0e4c8`, `786e5d839`, and `1e8ca3e61` establish the next shared
+Commits `8bdc0f73c`, `58fcfbf17`, and `c41194698` establish the next shared
 physical-segmentation boundary without closing that gap. Lowering now exposes
 an ordered typed inventory of every non-Relation operation edge, including
 repeated material positions. A generated execution view can select one
@@ -1047,8 +1047,8 @@ Graph and record material can issue a fresh view for one exact internal
 operation edge. The Events provider executes selected rows-to-Events, session,
 and Events-to-rows steps through those views. JS, Wasm, and native regressions
 cover exact step and input binding, foreign-owner rejection, independent
-views, and final reclamation. Commits `39540b2f7`, `c621fbb19`, and
-`f5e99a87c` turn this inventory into scheduled Events construction, session,
+views, and final reclamation. Commits `757bc77dc`, `438c87d0c`, and
+`dfff01b2e` turn this inventory into scheduled Events construction, session,
 and projection tasks.
 
 At `c5f7dd45`, an owner-bound Events view preserves canonical timestamp values
@@ -1057,7 +1057,7 @@ negative fixture rejects duplicate semantic identities before Carrier
 completion and preserves the completed Relation input through cleanup. These
 fixtures close clock preservation and identity transfer; the existing standard
 Host page-split, two-consumer, publication, and environment-cancellation
-evidence closes `events`; `f5e99a87c` closes the corresponding `to_events`
+evidence closes `events`; `dfff01b2e` closes the corresponding `to_events`
 scheduling boundary.
 
 ## Current verification boundary
@@ -1451,7 +1451,7 @@ construction projection, retrieves it from the publication store, and checks
 the independent value. This closes publication for the Graph-producing Bridge
 without defining a non-Relation Graph artifact format.
 
-At `b39cdbbd4`, a completed Graph is scheduled through the standard Host
+At `16bae24a5`, a completed Graph is scheduled through the standard Host
 across a physical task boundary into its formal node-Relation projection.
 Commits `5d1163dd` and `da4ec645` close the underlying managed
 provider boundary: standalone construction returns an owner-bound Graph
@@ -1544,7 +1544,7 @@ one-short structural workspace fixtures plus the portable standard Host cover
 the kernel, two downstream computations, Effect-free publication and
 retrieval, independent release, and final reclaim on JS, Wasm, and native.
 
-At `26e49190`, path traversal selects every authored hop direction and edge
+At `46ba53ff`, path traversal selects every authored hop direction and edge
 type at its exact depth. Edge and reached-node predicates use the shared
 bounded expression state, with incremental edge-type matching and
 pre-allocation admission for the maximum live binding width. A two-hop
@@ -1554,7 +1554,7 @@ Its false-predicate counterpart completes atomically with no rows. Exact and
 one-short workspace fixtures, cancellation cleanup, and the affected suites
 pass on JS, Wasm, and native.
 
-At `e9a81d8a`, standard Host fixtures cover path output with inbound and
+At `0ae4b508`, standard Host fixtures cover path output with inbound and
 bidirectional traversal, a minimum-zero bound, and an explicit empty edge-type
 set. Together with the literal, Relation-backed, predicate-selected, and
 patterned lifecycle evidence above, every classified `traverse` layer and
