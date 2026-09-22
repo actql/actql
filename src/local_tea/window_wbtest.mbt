@@ -285,6 +285,85 @@ test "fixed and sliding event windows preserve order with bounded steps" {
 }
 
 ///|
+test "event windows terminate when binary grid subtraction cannot progress" {
+  let producer = event_window_producer()
+  let live = Ref(true)
+  for
+    (time, step, arithmetic) in [
+      (9007199254740992.0, 1, false),
+      (9007199254740992.0, 2, false),
+      (18014398509481984.0, 1, true),
+      (18014398509481984.0, 2, false),
+      (18014398509481984.0, 4, false),
+      (-9007199254740992.0, 1, true),
+      (-9007199254740992.0, 2, false),
+      (-18014398509481984.0, 1, true),
+      (-18014398509481984.0, 2, true),
+      (-18014398509481984.0, 4, false),
+    ] {
+    let body = "{\"kind\":\"sliding\",\"size\":8,\"step\":" +
+      step.to_string() +
+      "}"
+    let owner = event_window_owner(producer, body)
+    let source = event_window_source(producer, [time], live)
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      read,
+      event_window_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut polls = 0
+    let mut terminal = false
+    while !terminal && polls < 64 {
+      polls += 1
+      match advance_event_window(execution, 1).unwrap() {
+        EventWindowContinue(..) => ()
+        EventWindowComplete(output, ..) => {
+          assert_false(arithmetic)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        EventWindowFailed(EventWindowArithmetic(0), ..) => {
+          assert_true(arithmetic)
+          terminal = true
+        }
+        EventWindowFailed(_, ..) => fail("unexpected window failure")
+        EventWindowStopped(_, ..) => fail("unexpected window stop")
+      }
+    }
+    assert_true(terminal)
+    assert_true(polls < 64)
+    assert_true(cleanup_event_window(execution).unwrap())
+    assert_true(@records.discard_completed(source))
+  }
+  for
+    time in [
+      9007199254740992.0, 18014398509481984.0, -9007199254740992.0, -18014398509481984.0,
+    ] {
+    let owner = event_window_owner(producer, "{\"kind\":\"fixed\",\"size\":8}")
+    let source = event_window_source(producer, [time], live)
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let (output, _) = event_window_finish(
+      start_event_window(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        read,
+        event_window_limits(),
+        4096L,
+        fn() { true },
+      ).unwrap(),
+    )
+    assert_true(@records.discard_completed(output))
+    assert_true(@records.discard_completed(source))
+  }
+}
+
+///|
 test "event windows admit capacity before allocation and clean cancellation" {
   let producer = event_window_producer()
   let owner = event_window_owner(

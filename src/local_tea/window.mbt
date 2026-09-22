@@ -290,6 +290,7 @@ fn event_window_seek_earliest(
       let end = candidate + state.size.to_double()
       if candidate.is_nan() ||
         candidate.is_inf() ||
+        candidate >= state.binary_current ||
         end.is_nan() ||
         end.is_inf() ||
         end <= candidate {
