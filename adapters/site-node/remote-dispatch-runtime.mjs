@@ -260,6 +260,8 @@ export function createRemoteDispatchRuntime({
   const owners = new Map();
   const pendingCleanup = new Map();
   let closed = false;
+  let closeComplete = false;
+  let closeFlight;
 
   const registrationFor = dispatch => {
     const key = keyOf(control.executionScope(dispatch));
@@ -822,10 +824,12 @@ export function createRemoteDispatchRuntime({
       if (entry === undefined) return false;
       return reconcileCleanup(identity, entry);
     },
-    async close() {
-      const wasClosed = closed;
+    close() {
+      if (closeFlight !== undefined) return closeFlight;
+      if (closeComplete) return Promise.resolve(false);
       closed = true;
-      if (!wasClosed) {
+      const flight = (async () => {
+        const activeAtClose = new Set(active.keys());
         for (const entry of active.values()) {
           entry.controller.abort(
             Object.assign(new Error('RemoteDispatchRuntimeClosed'), {
@@ -836,64 +840,93 @@ export function createRemoteDispatchRuntime({
         await Promise.allSettled(
           [...active.values()].map(entry => entry.operation),
         );
-      }
-      const failures = [];
-      for (const [identity, owner] of [...owners]) {
-        try {
-          await releaseOwner(identity, owner);
-        } catch (error) {
-          failures.push(error);
+        const failures = [];
+        for (const [identity, owner] of [...owners]) {
+          try {
+            await releaseOwner(identity, owner);
+          } catch (error) {
+            failures.push(error);
+          }
         }
-      }
-      for (const [identity, entry] of [...pendingCleanup]) {
-        try {
-          await reconcileCleanup(identity, entry);
-        } catch (error) {
-          entry.diagnostics.push(error);
+        for (const [identity, entry] of [...pendingCleanup]) {
+          // This close already waited for the active attempt's cleanup.
+          // A failed physical stop is retried by a later close invocation.
+          if (activeAtClose.has(identity)) continue;
+          try {
+            await reconcileCleanup(identity, entry);
+          } catch (error) {
+            entry.diagnostics.push(error);
+          }
         }
-      }
-      if (pendingCleanup.size !== 0) {
-        const pending = [...pendingCleanup.values()];
-        const failure = new AggregateError(
-          pending.flatMap(entry => [
-            entry.primary,
-            ...entry.diagnostics,
-          ]),
-          'Remote runtime cleanup is not confirmed',
-        );
-        failure.code = 'RemoteRuntimeCleanupPending';
-        failure.cleanupPending = true;
-        failure.cleanupHandle = Object.freeze({
-          status: () => Object.freeze({
-            pending: pendingCleanup.size !== 0,
-            errors: Object.freeze(
-              [...pendingCleanup.values()].flatMap(entry =>
-                [...entry.diagnostics, ...cleanupState(entry).errors]),
-            ),
-          }),
-          async retry() {
-            const retryFailures = [];
-            for (const [identity, entry] of [...pendingCleanup]) {
-              try { await reconcileCleanup(identity, entry); }
-              catch (error) {
-                entry.diagnostics.push(error);
-                retryFailures.push(error);
+        if (pendingCleanup.size !== 0 || owners.size !== 0) {
+          const pending = [...pendingCleanup.values()];
+          const failure = new AggregateError(
+            [
+              ...pending.flatMap(entry => [
+                entry.primary,
+                ...entry.diagnostics,
+              ]),
+              ...[...owners.values()].flatMap(entry => entry.diagnostics),
+            ].filter(error => error !== undefined),
+            'Remote runtime cleanup is not confirmed',
+          );
+          failure.code = 'RemoteRuntimeCleanupPending';
+          failure.cleanupPending = true;
+          failure.cleanupHandle = Object.freeze({
+            status: () => Object.freeze({
+              pending: pendingCleanup.size !== 0 || owners.size !== 0,
+              errors: Object.freeze(
+                [
+                  ...[...pendingCleanup.values()].flatMap(entry =>
+                    [...entry.diagnostics, ...cleanupState(entry).errors]),
+                  ...[...owners.values()].flatMap(entry =>
+                    [...entry.diagnostics, ...cleanupState(entry).errors]),
+                ],
+              ),
+            }),
+            async retry() {
+              const retryFailures = [];
+              for (const [identity, owner] of [...owners]) {
+                try { await releaseOwner(identity, owner); }
+                catch (error) {
+                  owner.diagnostics.push(error);
+                  retryFailures.push(error);
+                }
               }
-            }
-            if (retryFailures.length !== 0) {
-              failure.cleanupErrors = Object.freeze(retryFailures);
-            }
-            failure.cleanupPending = pendingCleanup.size !== 0;
-            return this.status();
-          },
-        });
-        failure.cleanupErrors = failure.cleanupHandle.status().errors;
-        throw failure;
-      }
-      if (failures.length !== 0) {
-        throw new AggregateError(failures, 'Remote runtime cleanup failed');
-      }
-      return !wasClosed;
+              for (const [identity, entry] of [...pendingCleanup]) {
+                try { await reconcileCleanup(identity, entry); }
+                catch (error) {
+                  entry.diagnostics.push(error);
+                  retryFailures.push(error);
+                }
+              }
+              if (retryFailures.length !== 0) {
+                failure.cleanupErrors = Object.freeze(retryFailures);
+              }
+              failure.cleanupPending =
+                pendingCleanup.size !== 0 || owners.size !== 0;
+              return this.status();
+            },
+          });
+          failure.cleanupErrors = failure.cleanupHandle.status().errors;
+          throw failure;
+        }
+        if (failures.length !== 0) {
+          throw new AggregateError(failures, 'Remote runtime cleanup failed');
+        }
+        return true;
+      })();
+      closeFlight = flight;
+      flight.then(
+        () => {
+          closeComplete = true;
+          if (closeFlight === flight) closeFlight = undefined;
+        },
+        () => {
+          if (closeFlight === flight) closeFlight = undefined;
+        },
+      );
+      return flight;
     },
   });
 }

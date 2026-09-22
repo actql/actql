@@ -245,6 +245,78 @@ test('active exact replay joins one physical start', async t => {
   assert.equal(await first, await replay);
 });
 
+test('concurrent runtime closes wait for active execution and cleanup',
+  async t => {
+    let enteredExecution;
+    const entered = new Promise(resolve => { enteredExecution = resolve; });
+    let finishExecution;
+    const executionGate = new Promise(resolve => { finishExecution = resolve; });
+    let closes = 0;
+    const f = await fixture(t, async () => {
+      enteredExecution();
+      await executionGate;
+      return managedOutput({async close() { closes++; }});
+    }, {autoClose: false});
+    const dispatch = request({dispatchId: 'concurrent-runtime-close'});
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch), dispatch, f.control,
+    );
+    const active = f.dispatchRuntime.start(dispatch, record, undefined, '{}');
+    await entered;
+    const first = f.dispatchRuntime.close();
+    const second = f.dispatchRuntime.close();
+    assert.equal(first, second);
+    let secondSettled = false;
+    second.finally(() => { secondSettled = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(secondSettled, false);
+    finishExecution();
+    await assert.rejects(active, {code: 'RemoteDispatchRuntimeClosed'});
+    assert.deepEqual(await Promise.all([first, second]), [true, true]);
+    assert.equal(closes, 1);
+    assert.equal(await f.dispatchRuntime.close(), false);
+  });
+
+test('concurrent runtime closes report the same cleanup failure', async t => {
+  let enteredExecution;
+  const entered = new Promise(resolve => { enteredExecution = resolve; });
+  let finishExecution;
+  const executionGate = new Promise(resolve => { finishExecution = resolve; });
+  const failure = new Error('physical close failed');
+  let closes = 0;
+  const f = await fixture(t, async () => {
+    enteredExecution();
+    await executionGate;
+    return managedOutput({
+      async close() {
+        closes++;
+        if (closes === 1) throw failure;
+      },
+    });
+  }, {autoClose: false});
+  const dispatch = request({dispatchId: 'concurrent-close-failure'});
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch), dispatch, f.control,
+  );
+  const active = f.dispatchRuntime.start(dispatch, record, undefined, '{}');
+  await entered;
+  const first = f.dispatchRuntime.close();
+  const second = f.dispatchRuntime.close();
+  assert.equal(first, second);
+  finishExecution();
+  await assert.rejects(active, error =>
+    error instanceof AggregateError && error.errors.includes(failure),
+  );
+  const outcomes = await Promise.allSettled([first, second]);
+  assert.equal(outcomes[0].status, 'rejected');
+  assert.equal(outcomes[1].status, 'rejected');
+  assert.equal(outcomes[0].reason, outcomes[1].reason);
+  assert.equal(closes, 1);
+  assert.equal(await f.dispatchRuntime.close(), true);
+  assert.equal(closes, 2);
+  assert.equal(await f.dispatchRuntime.close(), false);
+});
+
 test('failed physical reclaim remains owned and retryable', async t => {
   let closes = 0;
   const failure = new Error('close failed');
