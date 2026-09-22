@@ -27,6 +27,48 @@ test "inner join indices preserve left major right minor duplicates and exact de
 }
 
 ///|
+test "decimal join corpus preserves scale equality and extreme inequality" {
+  let left = order_table([
+    decimal_value("100000000000000000000000000000000000", 0),
+    decimal_value("-10", 0),
+    decimal_value("0", 0),
+    decimal_value("99999999999999999999999999999999999999", 0),
+  ])
+  let right = order_table([
+    decimal_value("100000000000000000000000000000000000.00", 2),
+    decimal_value("-10.00", 2),
+    decimal_value("0.00", 2),
+    decimal_value("999999999999999999999999999999999999.99", 2),
+    decimal_value("-10.01", 2),
+  ])
+  let workspace = { limit: 1000, live: 0, peak: 0, }
+  assert_eq(
+    inner_join_indices(
+      left,
+      right,
+      [(0, 0)],
+      false,
+      10,
+      { remaining: 10000, max_frames: 0, },
+      workspace,
+    ).unwrap(),
+    [(0, 0), (1, 1), (2, 2)],
+  )
+  assert_eq(
+    inner_join_indices(
+      order_table([]),
+      right,
+      [(0, 0)],
+      false,
+      10,
+      { remaining: 10000, max_frames: 0, },
+      { limit: 1000, live: 0, peak: 0, },
+    ).unwrap(),
+    [],
+  )
+}
+
+///|
 test "inner join indices bound intermediate output and release only their own scratch" {
   let left = order_table([Number(1), Number(1)])
   let right = order_table([Number(1), Number(1)])

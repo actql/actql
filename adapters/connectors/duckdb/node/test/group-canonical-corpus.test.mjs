@@ -13,7 +13,7 @@ test('main canonical group vectors agree with Local and real DuckDB ordering', a
   const { stdout } = await promisify(execFile)('moon', [
     'test', '--target', 'js', 'src/query_integration/group_canonical_corpus_wbtest.mbt', '--deny-warn',
   ], { cwd: root, maxBuffer: 2 * 1024 * 1024 });
-  assert.match(stdout, /Total tests: 1, passed: 1, failed: 0/);
+  assert.match(stdout, /Total tests: 2, passed: 2, failed: 0/);
   const queries = stdout.split('\n').filter(line => line.startsWith('ACTQL_GROUP_CORPUS '))
     .map(line => JSON.parse(line.slice('ACTQL_GROUP_CORPUS '.length)));
   assert.deepEqual(queries.map(q => q.id), corpus.cases.map(c => c.id));
@@ -40,5 +40,34 @@ test('main canonical group vectors agree with Local and real DuckDB ordering', a
         assert.deepEqual((await connection.runAndReadAll(sql)).getRowObjects(), expected, c.id);
       }
     } finally { connection.closeSync(); db.closeSync(); }
+  }
+  const textLine = stdout.split('\n')
+    .find(line => line.startsWith('ACTQL_GROUP_TEXT_CORPUS '));
+  assert(textLine);
+  const textFixture = JSON.parse(
+    textLine.slice('ACTQL_GROUP_TEXT_CORPUS '.length),
+  );
+  const db = await DuckDBInstance.create(':memory:');
+  const connection = await db.connect();
+  try {
+    await connection.run("SET default_collation = 'nocase'");
+    await connection.run('CREATE TABLE fixed(a VARCHAR, b VARCHAR)');
+    await connection.run(`INSERT INTO fixed VALUES
+      (NULL,NULL),(NULL,NULL),(NULL,'A'),('A',chr(65536)),
+      ('a',chr(55295)),('a',chr(65536)),('a',chr(57344))`);
+    assert.deepEqual(
+      (await connection.runAndReadAll(textFixture.sql)).getRowObjects(),
+      [
+        {a: null, b: null, n: 2},
+        {a: null, b: 'A', n: 1},
+        {a: 'A', b: String.fromCodePoint(0x10000), n: 1},
+        {a: 'a', b: String.fromCodePoint(0xd7ff), n: 1},
+        {a: 'a', b: String.fromCodePoint(0x10000), n: 1},
+        {a: 'a', b: String.fromCodePoint(0xe000), n: 1},
+      ],
+    );
+  } finally {
+    connection.closeSync();
+    db.closeSync();
   }
 });

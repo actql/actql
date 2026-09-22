@@ -250,6 +250,45 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                   empty ? [] : ['0', '2']);
                 assert.deepEqual(sorted.map(row => row.amount),
                   empty ? [] : ['日本語', '日本語']);
+                if (!empty) {
+                  const sortCorpus = async (values, steps, expectedValues,
+                    expectedOccurrences) => {
+                    await connection.run('DROP TABLE take_source');
+                    await connection.run('CREATE TABLE take_source(amount VARCHAR)');
+                    await connection.run(`INSERT INTO take_source VALUES ${values}`);
+                    const [sql] = checked(fixture.managedTakeChainCompileFixture(
+                      configured, completed, JSON.stringify(steps)));
+                    const actual = (await connection.runAndReadAll(sql)).getRowObjects();
+                    assert.deepEqual(actual.map(row => row.amount), expectedValues);
+                    assert.deepEqual(actual.map(row => row.occurrence.toString()),
+                      expectedOccurrences);
+                  };
+                  await sortCorpus(
+                    `(NULL),(chr(65536)),(chr(57344))`,
+                    [{sort: [{field: 'amount', dir: 'desc', nulls: 'first'}]},
+                      {take: {count: 2, offset: 1}}, {select: ['amount']}],
+                    [String.fromCodePoint(0xe000), String.fromCodePoint(0x10000)],
+                    ['2', '1'],
+                  );
+                  await sortCorpus(
+                    `('a'),('a'),(chr(55295))`,
+                    [{sort: [{field: 'amount', dir: 'asc', nulls: 'last'}]},
+                      {take: 3}, {select: ['amount']}],
+                    ['a', 'a', String.fromCodePoint(0xd7ff)],
+                    ['0', '1', '2'],
+                  );
+                  await sortCorpus(
+                    `(chr(55295)),(chr(65536)),(chr(57344))`,
+                    [{sort: [{field: 'amount', dir: 'asc', nulls: 'last'}]},
+                      {take: 3}, {select: ['amount']}],
+                    [String.fromCodePoint(0xd7ff), String.fromCodePoint(0x10000),
+                      String.fromCodePoint(0xe000)],
+                    ['0', '1', '2'],
+                  );
+                  await connection.run('DROP TABLE take_source');
+                  await connection.run('CREATE TABLE take_source(amount VARCHAR)');
+                  await connection.run("INSERT INTO take_source VALUES ('日本語'),(NULL),('日本語')");
+                }
                 for (const unsupported of [[{select: ['amount']}], [{take: 2}, {filter: 'true'}],
                   [{take: 2}, {derive: {unused: '1 + 1'}}, {select: ['amount']}],
                   [{take: 2}, {derive: {unused: '1 / 0'}}, {select: ['amount']}],

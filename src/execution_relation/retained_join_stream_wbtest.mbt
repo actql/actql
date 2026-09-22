@@ -152,7 +152,7 @@ test "join key scratch is cumulative and checks its exact capacity before retent
 }
 
 ///|
-test "verified retained keys preserve left-side NULL and duplicate failure precedence" {
+test "Local and retained DuckDB keys share NULL and duplicate failures" {
   for nulls in [false, true] {
     let n = if nulls { "null" } else { "1" }
     let rows = [
@@ -192,6 +192,8 @@ test "verified retained keys preserve left-side NULL and duplicate failure prece
       assert_true(stream.rows[0][1][0] is Number(1.0))
     }
     let result = finish_fixed_join_stream(stream)
+    // The memory baseline is the Local value path. The retained stream is the
+    // DuckDB import path. Both must expose the same typed semantic failure.
     let baseline = validate_fixed_join_inputs(owner, profile, [memory], limits)
     if nulls {
       assert_true(result is Err(JoinNullKey(true, 0, 0)))

@@ -6,6 +6,7 @@ fn query_sequence_fixture(
   supplied? : String = "{\"minimum\":1}",
   request? : String = "",
   catalog? : @environment.SourceRequestContracts? = None,
+  field? : String = "id",
 ) -> (@acquisition.QueryAcquisition, @lower.BoundPrepared) {
   let wire = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
     parameters +
@@ -13,9 +14,13 @@ fn query_sequence_fixture(
     (if request == "" { "" } else { ",\"request\":" + request }) +
     "}},\"steps\":[{\"filter\":\"" +
     filter +
-    "\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}" +
+    "\",\"as\":\"filtered\"},{\"select\":[\"" +
+    field +
+    "\"],\"as\":\"captured\"}" +
     extra +
-    "],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+    "],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"" +
+    field +
+    "\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
   let program = @syntax.parse(
     wire,
     {

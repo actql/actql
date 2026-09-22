@@ -98,3 +98,67 @@ test "canonical group corpus agrees with Local execution and exports checked SQL
     println("ACTQL_GROUP_CORPUS " + @encode.finish(writer))
   }
 }
+
+///|
+test "compound text group corpus agrees with Local and exports checked SQL" {
+  let input = duckdb_fixed_values(
+    "[{\"values\":{\"schema\":{\"a\":{\"type\":\"string\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"a\":null,\"b\":null},{\"a\":null,\"b\":null},{\"a\":null,\"b\":\"A\"},{\"a\":\"A\",\"b\":\"𐀀\"},{\"a\":\"a\",\"b\":\"퟿\"},{\"a\":\"a\",\"b\":\"𐀀\"},{\"a\":\"a\",\"b\":\"\"}]},\"as\":\"seed\"}]",
+    steps="[{\"group\":{\"by\":[\"a\",\"b\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
+  )
+  let owner = @execution.producer_read_receiver(input)
+  let completed = @execution.execute_fixed_producers_guarded(
+    compute_test_sequence(owner),
+    [input],
+    Step(0),
+    compute_test_limits(),
+    max_rows=100,
+    max_value_bytes=1000,
+    { max_nodes: 10000, max_bytes: 100000, max_depth: 100, max_work: 100000, },
+  ).unwrap()
+  let output = @execution.completed_output(completed, Step(0)).unwrap()
+  let expected : Array[(String?, String?, Double)] = [
+    (None, None, 2.0),
+    (None, Some("A"), 1.0),
+    (Some("A"), Some("𐀀"), 1.0),
+    (Some("a"), Some("퟿"), 1.0),
+    (Some("a"), Some("𐀀"), 1.0),
+    (Some("a"), Some(""), 1.0),
+  ]
+  assert_eq(@execution.completed_row_count(output), expected.length())
+  for row, (a, b, n) in expected {
+    match a {
+      None =>
+        assert_true(@execution.completed_cell(output, row, 0) is Some(Null))
+      Some(a) =>
+        assert_true(
+          @execution.completed_cell(output, row, 0) is Some(Text(actual)) &&
+          actual == a,
+        )
+    }
+    match b {
+      None =>
+        assert_true(@execution.completed_cell(output, row, 1) is Some(Null))
+      Some(b) =>
+        assert_true(
+          @execution.completed_cell(output, row, 1) is Some(Text(actual)) &&
+          actual == b,
+        )
+    }
+    assert_true(
+      @execution.completed_cell(output, row, 2) is Some(Number(actual)) &&
+      actual == n,
+    )
+  }
+  let query = @duckdb.compile_fixed_query(
+    owner,
+    "main",
+    "fixed",
+    native_compile_limits(),
+  ).unwrap()
+  let writer = @encode.writer(10000, 100, 10)
+  @encode.begin_object(writer)
+  @encode.key(writer, "sql")
+  @encode.string_value(writer, @duckdb.fixed_query_sql(query))
+  @encode.end_object(writer)
+  println("ACTQL_GROUP_TEXT_CORPUS " + @encode.finish(writer))
+}
