@@ -488,6 +488,7 @@ fn query_checked_program_fixture(
         "traverse",
         output_rows=if local_carrier_graph_variant == "traverse_ids" ||
           local_carrier_graph_variant == "traverse_predicate" ||
+          local_carrier_graph_variant == "traverse_predicate_paths" ||
           local_carrier_graph_variant == "traverse_pattern_all_predicates" ||
           local_carrier_graph_variant == "traverse_relation_selector" ||
           local_carrier_graph_variant == "traverse_relation_paths" {
@@ -503,7 +504,8 @@ fn query_checked_program_fixture(
           None
         },
         path_emission=local_carrier_graph_variant == "traverse_paths" ||
-          local_carrier_graph_variant == "traverse_relation_paths",
+          local_carrier_graph_variant == "traverse_relation_paths" ||
+          local_carrier_graph_variant == "traverse_predicate_paths",
       ),
     ]
   } else if local_carrier_graph_chain &&

@@ -8,11 +8,14 @@ priv struct TraversalPath {
 priv enum TraversePathStarts {
   LiteralPathStarts
   RelationPathStarts(@execution.ProducerRead, Int)
+  PredicatePathStarts(@lower.Expression)
 }
 
 ///|
 priv enum TraversePathsPhase {
   ResolveStarts
+  PrepareStartPredicate
+  EvaluateStartPredicate
   SortStarts
   BeginDepth
   ScanEdge
@@ -27,6 +30,7 @@ priv enum TraversePathsPhase {
 priv struct TraversePathsState {
   input : @graph.ProducerRead
   source : @storage.Storage
+  graph : @carrier.Graph
   schema : @schema.Schema
   prepared : @lower.PreparedGraphTraverse
   starts : TraversePathStarts
@@ -44,6 +48,12 @@ priv struct TraversePathsState {
   mut phase : TraversePathsPhase
   mut start_scan : Int
   start_selected : Array[Bool]
+  start_predicate_fields : Int
+  predicate_workspace : Int
+  mut predicate_work_remaining : Int
+  predicate_input : Map[String, @execution.Value]
+  mut predicate_execution : @execution.PredicateExpressionExecution?
+  mut predicate_field : Int
   mut sort_index : Int
   mut sort_cursor : Int
   frontier : Array[TraversalPath]
@@ -88,6 +98,7 @@ pub(all) enum TraversePathsIssue {
   TraversePathsStartMissing
   TraversePathsOutputLimit
   TraversePathsWorkspaceLimit
+  TraversePathsPredicate(@execution.EvalIssueKind)
   TraversePathsKeyOrder(@value.KeyOrderIssue)
   TraversePathsOutput(@execution.CaptureIssue)
   TraversePathsCompletion(@execution.TrustedOutputIssue)
@@ -99,6 +110,7 @@ fn traverse_path_start_count(state : TraversePathsState) -> Int {
   match state.starts {
     LiteralPathStarts => @lower.graph_traverse_start_id_count(state.prepared)
     RelationPathStarts(input, _) => @execution.producer_read_row_count(input)
+    PredicatePathStarts(_) => @storage.node_count(state.source)
   }
 }
 
@@ -117,6 +129,7 @@ fn traverse_path_start_at(
         column,
         state.value_limits,
       )
+    PredicatePathStarts(_) => None
   }
 }
 
@@ -125,6 +138,7 @@ fn traverse_path_starts_available(state : TraversePathsState) -> Bool {
   match state.starts {
     LiteralPathStarts => true
     RelationPathStarts(input, _) => @execution.producer_read_available(input)
+    PredicatePathStarts(_) => true
   }
 }
 
@@ -410,6 +424,82 @@ fn traverse_paths_step(
           state.start_scan = 0
           state.phase = SortStarts
         }
+      PrepareStartPredicate =>
+        if state.start_scan >= @storage.node_count(state.source) {
+          state.start_scan = 0
+          state.phase = SortStarts
+        } else if state.predicate_field < state.start_predicate_fields {
+          used += 1
+          guard graph_node_predicate_binding(
+              state.graph,
+              state.source,
+              state.start_scan,
+              state.predicate_field,
+            )
+            is Some((name, value)) else {
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
+          }
+          state.predicate_input[name] = value
+          state.predicate_field += 1
+        } else {
+          guard state.starts is PredicatePathStarts(predicate) else {
+            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+          }
+          match
+            @execution.start_predicate_expression(
+              predicate,
+              state.predicate_input,
+              state.predicate_work_remaining,
+              state.value_limits.max_nodes,
+              state.predicate_workspace,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(
+                TraversePathsPredicate(issue.kind),
+                progress,
+                used,
+              )
+            Ok(execution) => {
+              state.predicate_execution = Some(execution)
+              state.phase = EvaluateStartPredicate
+            }
+          }
+        }
+      EvaluateStartPredicate => {
+        used += 1
+        guard state.predicate_execution is Some(execution) else {
+          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+        }
+        match @execution.advance_predicate_expression(execution) {
+          Err(issue) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            return @bounded.Failed(
+              TraversePathsPredicate(issue.kind),
+              progress,
+              used,
+            )
+          }
+          Ok(@execution.PredicateExpressionContinue) => ()
+          Ok(@execution.PredicateExpressionComplete(selected)) => {
+            state.predicate_work_remaining = @execution.predicate_expression_remaining(
+              execution,
+            )
+            state.predicate_execution = None
+            state.predicate_input.clear()
+            state.start_selected[state.start_scan] = selected
+            state.start_scan += 1
+            state.predicate_field = 0
+            state.phase = PrepareStartPredicate
+          }
+        }
+      }
       SortStarts =>
         if state.start_scan < state.start_selected.length() {
           used += 1
@@ -640,7 +730,6 @@ fn start_traverse_paths(
     @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
-    @lower.graph_traverse_start_predicate(prepared) is None &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
     @lower.graph_traverse_hop_node_predicate(prepared, 0) is None &&
@@ -650,14 +739,21 @@ fn start_traverse_paths(
     max_workspace_slots >= 0 else {
     return Err(InvalidTraversePathsKernel)
   }
-  let starts = match @lower.graph_traverse_start_relation_field(prepared) {
-    None => {
+  guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    return Err(InvalidTraversePathsKernel)
+  }
+  let starts = match
+    (
+      @lower.graph_traverse_start_relation_field(prepared),
+      @lower.graph_traverse_start_predicate(prepared),
+    ) {
+    (None, None) => {
       guard @lower.graph_traverse_start_id_count(prepared) > 0 else {
         return Err(InvalidTraversePathsKernel)
       }
       LiteralPathStarts
     }
-    Some(field) => {
+    (Some(field), None) => {
       let mut selector = None
       for candidate in inputs {
         if @execution.producer_read_matches_operation_input(
@@ -682,6 +778,8 @@ fn start_traverse_paths(
       guard column >= 0 else { return Err(InvalidTraversePathsKernel) }
       RelationPathStarts(selector, column)
     }
+    (None, Some(predicate)) => PredicatePathStarts(predicate)
+    _ => return Err(InvalidTraversePathsKernel)
   }
   let max_rows = match @lower.graph_traverse_output_guard(prepared) {
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()
@@ -716,13 +814,19 @@ fn start_traverse_paths(
     }
   }
   let node_count = @storage.node_count(source)
-  if node_count > max_workspace_slots {
+  let start_predicate_fields = match starts {
+    PredicatePathStarts(_) => graph_node_predicate_binding_count(graph)
+    _ => 0
+  }
+  if node_count > max_workspace_slots ||
+    start_predicate_fields > max_workspace_slots - node_count {
     @execution.cancel_admitted_output(output) |> ignore
     return Err(TraversePathsWorkspaceLimit)
   }
   let state : TraversePathsState = {
     input,
     source,
+    graph,
     schema: @lower.graph_traverse_output_schema(prepared),
     prepared,
     starts,
@@ -741,9 +845,20 @@ fn start_traverse_paths(
     live,
     accepted,
     port,
-    phase: ResolveStarts,
+    phase: match starts {
+      PredicatePathStarts(_) => PrepareStartPredicate
+      _ => ResolveStarts
+    },
     start_scan: 0,
     start_selected: Array::make(node_count, false),
+    start_predicate_fields,
+    predicate_workspace: max_workspace_slots -
+    node_count -
+    start_predicate_fields,
+    predicate_work_remaining: limits.max_work,
+    predicate_input: Map([]),
+    predicate_execution: None,
+    predicate_field: 0,
     sort_index: 0,
     sort_cursor: 0,
     frontier: [],
@@ -755,7 +870,7 @@ fn start_traverse_paths(
     column: 0,
     values: [],
     emitted: 0,
-    workspace_slots: node_count,
+    workspace_slots: node_count + start_predicate_fields,
   }
   let (session, token) = @bounded.start(
     control,

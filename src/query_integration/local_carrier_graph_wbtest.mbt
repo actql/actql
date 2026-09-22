@@ -165,7 +165,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let traverse_relation_selector = variant == "traverse_relation_selector" ||
     variant == "traverse_relation_paths"
   let traverse_paths = variant == "traverse_paths" ||
-    variant == "traverse_relation_paths"
+    variant == "traverse_relation_paths" ||
+    variant == "traverse_predicate_paths"
   let shortest_relation_selector = variant == "shortest_relation_selector"
   let relation_selector = subgraph_relation_selector ||
     traverse_relation_selector ||
@@ -306,6 +307,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{" +
     (if variant == "traverse_predicate" ||
+      variant == "traverse_predicate_paths" ||
       variant == "traverse_pattern_all_predicates" {
       "\"where\":" +
       (if variant == "traverse_pattern_all_predicates" {
@@ -4025,6 +4027,112 @@ test "homogeneous traversal evaluates a typed start predicate" {
 }
 
 ///|
+test "path traversal evaluates a typed start predicate" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(
+    source_owner,
+    1,
+    2,
+    emission="paths",
+    predicate="node_name = 'two'",
+  )
+  let generated = task_test_generated(owner)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  assert_true(
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      5,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
+  )
+  let admission_control = @bounded.control()
+  let admitted = @local_sga.start_traverse(
+    admission_control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    6,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(@bounded.request_cancel(admission_control))
+  match @local_sga.advance_traverse(admitted, 1).unwrap() {
+    @local_sga.TraverseStopped(_, ..) => ()
+    _ => fail("Predicate path traversal must stop after cancellation")
+  }
+  assert_eq(@local_sga.cleanup_traverse(admitted), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap(),
+    "{\"edge_ids\":[{\"dst\":1,\"rel\":null,\"src\":2}]," +
+    "\"end_id\":1,\"hop_count\":1,\"node_ids\":[2,1],\"start_id\":2}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 1000, 100, 10).unwrap(),
+    "{\"edge_ids\":[{\"dst\":3,\"rel\":null,\"src\":2}]," +
+    "\"end_id\":3,\"hop_count\":1,\"node_ids\":[2,3],\"start_id\":2}",
+  )
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "traversal separates predicate widths at exact workspace" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -5625,6 +5733,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:cfc576a9585dd7c2b6fabb259d8c20b6f56faa99fd09803f85d83805f8fd6174"
   } else if variant == "traverse_relation_paths" {
     "sha256:1c0cbd7fcb1f8c732eadd4214ccb94132fe77ebc043af653a0327d329adfafa7"
+  } else if variant == "traverse_predicate_paths" {
+    "sha256:1c0cbd7fcb1f8c732eadd4214ccb94132fe77ebc043af653a0327d329adfafa7"
   } else if variant.has_prefix("traverse_") {
     "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
@@ -5648,7 +5758,8 @@ fn run_standard_host_graph_relation_path(
   let traverse_relation_selector = variant == "traverse_relation_selector" ||
     variant == "traverse_relation_paths"
   let traverse_paths = variant == "traverse_paths" ||
-    variant == "traverse_relation_paths"
+    variant == "traverse_relation_paths" ||
+    variant == "traverse_predicate_paths"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
@@ -5854,7 +5965,8 @@ fn run_standard_host_graph_relation_path(
     2
   } else if variant.has_prefix("shortest_") {
     1
-  } else if variant == "traverse_predicate" {
+  } else if variant == "traverse_predicate" ||
+    variant == "traverse_predicate_paths" {
     2
   } else if variant == "union_set" {
     1
@@ -6188,6 +6300,14 @@ test "standard Host emits traversal paths for two consumers" {
 test "standard Host emits paths from a Relation start selector" {
   run_standard_host_graph_relation_path(
     "traverse_relation_paths",
+    publication=true,
+  )
+}
+
+///|
+test "standard Host emits paths from a predicate start selector" {
+  run_standard_host_graph_relation_path(
+    "traverse_predicate_paths",
     publication=true,
   )
 }
