@@ -1,5 +1,5 @@
 #include "moonbit.h"
-#include "../../../vendor/duckdb/1.4.3/duckdb.h"
+#include "../../../../../vendor/duckdb/1.4.3/duckdb.h"
 
 #include <dlfcn.h>
 #include <stdbool.h>
