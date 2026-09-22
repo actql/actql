@@ -121,7 +121,7 @@ fn captured_graph_fixture(
   let graph = @strategy.prepare_checked_dag(
     program,
     owners,
-    @program_check.unit_count(program),
+    @program_check.unit_count(program) + 100,
     1000,
   ).unwrap()
   let requirement = @planning.prepare_query_requirement(
@@ -461,11 +461,15 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let window = variant == "window_fixed" ||
     variant == "window_sliding" ||
     variant == "window_parameter"
+  let sequence = variant == "sequence"
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
   let session_relation = variant == "session_relation"
-  let fields = if dedupe {
+  let fields = if sequence {
+    "[\"match_start_ms\",\"match_end_ms\",\"start_id\"," +
+    "\"start_time_ms\",\"end_id\",\"end_time_ms\"]"
+  } else if dedupe {
     "[\"event_id\",\"occurred_at\",\"payload\"]"
   } else if window {
     "[\"event_id\",\"occurred_at\",\"payload\"," +
@@ -499,7 +503,14 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"event_id\":2,\"occurred_at\":1,\"payload\":\"late\"}," +
     "{\"event_id\":3,\"occurred_at\":2,\"payload\":\"edge\"}]"
   }
-  let transform = if dedupe {
+  let transform = if sequence {
+    "{\"sequence\":{\"by\":[],\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\",\"pattern\":[{\"as\":\"start\"," +
+    "\"where\":{\"literal\":true}},{\"as\":\"end\"," +
+    "\"where\":{\"literal\":true}}],\"within\":10," +
+    "\"overlap\":\"allow\",\"contiguity\":\"subsequence\"}," +
+    "\"as\":\"out\"}"
+  } else if dedupe {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
@@ -519,7 +530,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else {
     "{\"watermark_events\":{\"watermark_ms\":2," + "\"policy\":\"mark\"}}"
   }
-  let second_fields = if dedupe {
+  let second_fields = if sequence {
+    "[\"end_id\",\"start_id\",\"match_start_ms\"]"
+  } else if dedupe {
     "[\"payload\",\"event_id\"]"
   } else if window {
     "[\"payload\",\"window_start_ms\",\"event_id\"]"
@@ -532,6 +545,10 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
     "\"as\":\"out\"}"
+  } else if sequence {
+    "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
+    "\"time\":\"occurred_at\"}}," +
+    transform
   } else {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
@@ -3914,6 +3931,15 @@ fn query_checked_program_fixture(
         candidates=[joined],
       ),
     ]
+  } else if local_carrier_events_chain &&
+    local_carrier_events_variant == "sequence" {
+    let input = query_capacity_proof(
+      "actql.bound.values",
+      3L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    [sequence_capacity_material(environment, input, stage="events", step=1)]
   } else if local_values_sequence_chain {
     let input = query_capacity_proof(
       "actql.bound.values",
@@ -4396,6 +4422,8 @@ fn run_limits() -> @execution.SequenceRunLimits {
 fn sequence_capacity_material(
   environment : @environment.WireEnvironment,
   input_proof : @wire.ProgramProofClaim,
+  stage? : String = "matched",
+  step? : Int = 0,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -4435,7 +4463,9 @@ fn sequence_capacity_material(
       candidates.join(",") +
       "],\"effective_max\":" +
       effective.to_string() +
-      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:0:" +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:" +
+      step.to_string() +
+      ":" +
       suffix +
       "\",\"unit\":\"" +
       unit +
@@ -4458,7 +4488,7 @@ fn sequence_capacity_material(
     @wire.value(witnesses[1]),
     "{\"op\":\"source\"}",
     inputs=[output_host_cid],
-    step=0,
+    step~,
   )
   witnesses.push(@wire.program_proof_witness(input_proof))
   witnesses.push(@wire.program_proof_witness(output_proof))
@@ -4481,11 +4511,11 @@ fn sequence_capacity_material(
     max_depth: 30,
   }).unwrap()
   {
-    stage: "matched",
+    stage,
     sources,
     uses: [
       Sequence(
-        step=0,
+        step~,
         matches=@wire.mixed_limit_at(mixed, 0).unwrap(),
         output=@wire.mixed_limit_at(mixed, 1).unwrap(),
       ),
