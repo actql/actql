@@ -108,14 +108,40 @@ fn[T] prepare_managed_fixed_compute_request_for_owner_validated(
     !physical_equal(@lower.sequence_requirements_owner(sequence), owner) {
     return Err(ForeignPreparation)
   }
-  if @lower.preparation_input_count(@lower.bound_preparation(owner)) !=
-    bindings.length() {
-    return Err(UnsupportedInputShape)
-  }
-  for index, binding in bindings {
-    if !@execution.managed_input_binding_matches_input(binding, owner, index) {
-      return Err(InputUnavailable)
+  let prepared = @lower.bound_preparation(owner)
+  let mut exact_binding_set = @lower.preparation_input_count(prepared) ==
+    bindings.length()
+  if exact_binding_set {
+    for index, binding in bindings {
+      if !@execution.managed_input_binding_matches_input(binding, owner, index) {
+        exact_binding_set = false
+        break
+      }
     }
+  }
+  if !exact_binding_set {
+    for step in 0..<@lower.node_count(prepared) {
+      guard @lower.node_at(prepared, step) is Some(node) else { continue }
+      if @lower.node_input_count(node) != bindings.length() {
+        continue
+      }
+      let mut operation_matches = true
+      for index, binding in bindings {
+        if !@execution.managed_input_binding_matches_operation_input(
+            binding, owner, step, index,
+          ) {
+          operation_matches = false
+          break
+        }
+      }
+      if operation_matches {
+        exact_binding_set = true
+        break
+      }
+    }
+  }
+  if !exact_binding_set {
+    return Err(InputUnavailable)
   }
   for input in inputs {
     let index = @execution.managed_producer_read_input_index(input)

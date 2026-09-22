@@ -7,7 +7,6 @@ import {
   "actql/actql/physical_host" @host,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }

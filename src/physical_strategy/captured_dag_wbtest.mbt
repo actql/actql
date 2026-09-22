@@ -5,13 +5,14 @@ fn data_edge(producer : Int, consumer : Int, input : Int) -> DataEdge {
     target: @pipeline.Step(0),
     consumer,
     input,
+    source_input: Some(input),
     operation_input: None,
   }
 }
 
 ///|
 fn local_input_slot(consumer : Int, input : Int) -> LocalInputSlot {
-  { consumer, input, }
+  { consumer, input, source_input: input, operation_input: None, }
 }
 
 ///|

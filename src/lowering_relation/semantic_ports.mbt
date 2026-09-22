@@ -51,6 +51,23 @@ pub fn node_input_count(node : PreparedNode) -> Int {
 }
 
 ///|
+/// Whether the registered portable kernel boundary can consume this input as
+/// an immutable managed Carrier view. This is execution capability metadata,
+/// not authority to read a particular completion.
+pub fn node_accepts_managed_carrier_view(
+  node : PreparedNode,
+  index : Int,
+) -> Bool {
+  if index < 0 || index >= node.input_targets.length() {
+    return false
+  }
+  match operation(node) {
+    "TEA.window.session_assign" | "BRIDGE.events.to_rows" => true
+    _ => false
+  }
+}
+
+///|
 pub fn node_input_step(node : PreparedNode, index : Int) -> Int? {
   match node_input_target(node, index) {
     Some(@pipeline.Step(step)) => Some(step)

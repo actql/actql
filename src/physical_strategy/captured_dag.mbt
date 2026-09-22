@@ -193,6 +193,15 @@ fn ordered_data_inputs_complete(
 }
 
 ///|
+pub fn graph_ordered_inputs_complete(graph : CheckedDAG) -> Bool {
+  ordered_data_inputs_complete(
+    graph.input_counts,
+    graph.data,
+    supplied_slots=graph.supplied_slots,
+  )
+}
+
+///|
 /// Initial profile: one captured acquisition at unit zero, ordered checked
 /// data inputs per task and one final output. No fresh reads are synthesized.
 /// Bindings are indexed by checked receiving port.
@@ -252,7 +261,7 @@ pub fn open_captured_dag(
       }
       if physical_equal(@execution.captured_owner(rows), owner) &&
         @execution.captured_origin(rows) is @execution.SuppliedInput(index) &&
-        index == input.input {
+        index == input.source_input {
         if matched || supplied_inputs[input.consumer][input.input] is Some(_) {
           return Err(ForeignCapture)
         }
@@ -454,16 +463,13 @@ pub fn open_captured_dag(
       }
     }
   }
-  // This bounded execution profile exposes one final output per Compute.
-  // Do not reinterpret an authored reference to an intermediate step as it.
+  // Every physical producer exposes exactly its selected target. An ordinary
+  // task still selects the final step; a segmented Carrier task retains its
+  // original intermediate coordinate instead of relabeling it as final.
   for edge in graph.data {
-    if edge.producer != 0 {
-      let pipeline = @lower.pipeline(
-        @lower.bound_preparation(graph.owners[edge.producer]),
-      )
-      if edge.target != @pipeline.Step(@pipeline.step_count(pipeline) - 1) {
-        return Err(UnsupportedGraph)
-      }
+    if edge.producer != 0 &&
+      graph.targets.get(edge.producer).bind(value => value) != Some(edge.target) {
+      return Err(UnsupportedGraph)
     }
   }
   let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
@@ -758,12 +764,13 @@ pub fn captured_task_input(
   }
   let edge = selected.unwrap()
   let receiver = run.graph.owners[task]
+  let receiver_input = edge.source_input.unwrap_or(edge.input)
   let bound = if edge.producer == 0 {
     guard run.source is Some(source) else {
       fail_captured_task(run, task, Capture(Unavailable))
       return Err(Capture(Unavailable))
     }
-    match @query.bind_captured_source(source, receiver, edge.input) {
+    match @query.bind_captured_source(source, receiver, receiver_input) {
       Ok(bound) => bound
       Err(issue) => {
         fail_captured_task(run, task, Capture(issue))
@@ -778,7 +785,7 @@ pub fn captured_task_input(
     match
       @execution.bind_completed_input(
         receiver,
-        edge.input,
+        receiver_input,
         run.graph.owners[edge.producer],
         output,
       ) {
@@ -832,10 +839,22 @@ pub fn captured_supplied_task_input(
     return Err(NotReady)
   }
   let lifetime = run.lifetimes[task]
+  let mut source_input = None
+  for input in run.graph.supplied_slots {
+    if input.consumer == task && input.input == input_index {
+      source_input = Some(input.source_input)
+      break
+    }
+  }
+  guard source_input is Some(source_input) else {
+    let failure = RunIssue::ForeignCandidate
+    fail_captured_task(run, task, failure)
+    return Err(failure)
+  }
   match
     @execution.prepare_supplied_relation_read(
       run.graph.owners[task],
-      input_index,
+      source_input,
       rows,
       fn() { lifetime.live && !run.done[task] && !run.stopped },
     ) {
@@ -894,7 +913,7 @@ pub fn[T] captured_managed_task_input(
   match
     @execution.prepare_managed_producer_read(
       run.graph.owners[task],
-      input_index,
+      edge.source_input.unwrap_or(input_index),
       run.graph.owners[edge.producer],
       output,
       max_entries,
@@ -965,7 +984,7 @@ pub fn captured_carrier_managed_task_input(
     None =>
       @execution.prepare_carrier_managed_producer_read(
         run.graph.owners[task],
-        input_index,
+        edge.source_input.unwrap_or(input_index),
         run.graph.owners[edge.producer],
         output,
         carrier_read,
@@ -1025,6 +1044,11 @@ pub fn captured_next_managed_operation_input(
   for edge in run.graph.data {
     if edge.consumer == task && edge.input == input_index {
       return edge.operation_input
+    }
+  }
+  for slot in run.graph.supplied_slots {
+    if slot.consumer == task && slot.input == input_index {
+      return slot.operation_input
     }
   }
   None
@@ -1360,19 +1384,39 @@ fn captured_mixed_managed_inputs_match(
     return false
   }
   for port, input in inputs {
-    if !@execution.managed_input_binding_matches_input(
-        input,
-        run.graph.owners[task],
-        port,
-      ) {
-      return false
-    }
     let mut selected : DataEdge? = None
     for edge in run.graph.data {
       if edge.consumer == task && edge.input == port {
         selected = Some(edge)
         break
       }
+    }
+    let mut operation = selected.bind(edge => edge.operation_input)
+    if operation is None {
+      for slot in run.graph.supplied_slots {
+        if slot.consumer == task && slot.input == port {
+          operation = slot.operation_input
+          break
+        }
+      }
+    }
+    let position_matches = match operation {
+      Some((step, operation_input)) =>
+        @execution.managed_input_binding_matches_operation_input(
+          input,
+          run.graph.owners[task],
+          step,
+          operation_input,
+        )
+      None =>
+        @execution.managed_input_binding_matches_input(
+          input,
+          run.graph.owners[task],
+          port,
+        )
+    }
+    if !position_matches {
+      return false
     }
     let supplied_matches = run.supplied_reads[task][port]
       .map(read => {

@@ -5,6 +5,7 @@ pub struct DataEdge {
   target : @pipeline.Target
   consumer : Int
   input : Int
+  source_input : Int?
   operation_input : (Int, Int)?
 }
 
@@ -21,6 +22,8 @@ pub struct ControlEdge {
 priv struct LocalInputSlot {
   consumer : Int
   input : Int
+  source_input : Int
+  operation_input : (Int, Int)?
 }
 
 ///|
@@ -266,6 +269,7 @@ pub fn prepare_checked_dag(
         target: @pipeline.producer_target(producer),
         consumer: stage,
         input,
+        source_input: Some(input),
         operation_input: None,
       })
     }
@@ -280,7 +284,12 @@ pub fn prepare_checked_dag(
         return Err(MissingProducer(stage, input))
       }
       if @checked.input_completeness_is_supplied(requirement) {
-        supplied_slots.push({ consumer: stage, input, })
+        supplied_slots.push({
+          consumer: stage,
+          input,
+          source_input: input,
+          operation_input: None,
+        })
       }
     }
   }
@@ -436,7 +445,7 @@ pub fn prepare_checked_dag(
     }
     results.push({ task, occurrence, })
   }
-  Ok({
+  let logical : CheckedDAG = {
     program,
     owners: owners.copy(),
     targets: Array::makei(count, task => {
@@ -459,7 +468,8 @@ pub fn prepare_checked_dag(
     operations,
     numeric,
     results,
-  })
+  }
+  Ok(logical)
 }
 
 ///|

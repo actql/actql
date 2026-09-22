@@ -697,6 +697,8 @@ pub fn nest_kernel_owner(PreparedNestKernel) -> BoundPrepared
 
 pub fn nest_kernel_step(PreparedNestKernel) -> Int
 
+pub fn node_accepts_managed_carrier_view(PreparedNode, Int) -> Bool
+
 pub fn node_at(Prepared, Int) -> PreparedNode?
 
 pub fn node_count(Prepared) -> Int

@@ -77,6 +77,26 @@ priv enum LocalManagedRelationInput[T] {
 }
 
 ///|
+fn bind_physical_operation_input(
+  run : @strategy.CapturedDAG,
+  index : Int,
+  binding : @execution.ManagedInputBinding,
+) -> @execution.ManagedInputBinding? {
+  match @strategy.captured_next_managed_operation_input(run, index) {
+    Some((step, operation_input)) =>
+      @strategy.graph_task_owner(
+        @strategy.captured_dag_graph(run),
+        @strategy.next_captured_task(run).unwrap(),
+      ).bind(owner => {
+        @execution.managed_input_binding_for_operation(
+          binding, owner, step, operation_input,
+        )
+      })
+    None => Some(binding)
+  }
+}
+
+///|
 pub struct LocalManagedInputTransfer[T] {
   input : @execution.ManagedProducerRead[T]
   append : (String) -> Result[Unit, LocalDispatchIssue]
@@ -202,9 +222,15 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         let relation_index = relation_inputs.length()
         relation_inputs.push(OrdinaryRelationInput(value))
         provider_inputs.push(PreparedRelation(relation_index))
-        completion_inputs.push(
-          @execution.ordinary_relation_input_binding(value),
-        )
+        guard bind_physical_operation_input(
+            installed.run,
+            index,
+            @execution.ordinary_relation_input_binding(value),
+          )
+          is Some(binding) else {
+          return Err(Configuration(InputUnavailable))
+        }
+        completion_inputs.push(binding)
       }
       SuppliedRelationInput => {
         let value = match
@@ -222,9 +248,15 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         }
         relation_inputs.push(SuppliedRelationInput(value))
         provider_inputs.push(PreparedSupplied(value))
-        completion_inputs.push(
-          @execution.supplied_relation_input_binding(value),
-        )
+        guard bind_physical_operation_input(
+            installed.run,
+            index,
+            @execution.supplied_relation_input_binding(value),
+          )
+          is Some(binding) else {
+          return Err(Configuration(InputUnavailable))
+        }
+        completion_inputs.push(binding)
       }
       RelationOutput(output) =>
         match
@@ -240,9 +272,15 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
             let relation_index = relation_inputs.length()
             relation_inputs.push(ManagedRelationInput(value))
             provider_inputs.push(PreparedRelation(relation_index))
-            completion_inputs.push(
-              @execution.managed_relation_input_binding(value),
-            )
+            guard bind_physical_operation_input(
+                installed.run,
+                index,
+                @execution.managed_relation_input_binding(value),
+              )
+              is Some(binding) else {
+              return Err(Configuration(InputUnavailable))
+            }
+            completion_inputs.push(binding)
           }
           Err(issue) => return Err(Execution(issue))
         }
@@ -308,9 +346,13 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     is Some(asof_search_ceilings) else {
     return Err(Configuration(InvalidLimits))
   }
-  let request_result = if provider_inputs.any(input => {
-      input is PreparedCarrier(_)
-    }) ||
+  let selected_operation = @strategy.graph_task_selected_step(
+      @strategy.captured_dag_graph(installed.run),
+      task,
+    )
+    is Some(_)
+  let request_result = if selected_operation ||
+    provider_inputs.any(input => input is PreparedCarrier(_)) ||
     relation_inputs.any(input => {
       input is OrdinaryRelationInput(_) || input is SuppliedRelationInput(_)
     }) {
@@ -783,11 +825,7 @@ pub fn[T] start_local_managed_dispatch(
       },
     })
   }
-  let output_target = @lower.preparation_output_target(
-    @lower.bound_preparation(
-      @connector.managed_fixed_compute_request_owner(request),
-    ),
-  )
+  let output_target = @strategy.captured_task_target(setup.run, setup.task)
   let advance = fn(
     quantum : Int,
   ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
@@ -1425,9 +1463,11 @@ pub fn[T] start_local_managed_dispatch(
     settle: fn() {
       let failed_or_stopped = !live.val ||
         (execution_finished.val && ordinary.val is None && carrier.val is None)
-      if !finalization_ready.val &&
+      let relation_pending = ordinary.val is Some(_) &&
+        !finalization_ready.val &&
         !finalization_cancelled.val &&
-        !failed_or_stopped {
+        !failed_or_stopped
+      if relation_pending {
         return Err(Configuration(InvalidLimits))
       }
       @strategy.settle_task_execution(setup.run, execution, true).map_err(issue => {
@@ -1481,7 +1521,8 @@ pub fn[T] start_local_managed_dispatch(
         output_target is Some(target) &&
         @carrier_runtime.material_available(material) &&
         @carrier_runtime.material_storage_bytes(material) is Some(storage_bytes) &&
-        storage_bytes == setup.capacity.retained_bytes &&
+        storage_bytes >= 0L &&
+        storage_bytes <= setup.capacity.retained_bytes &&
         !@execution.managed_obligations_require_logical_identity(obligations) else {
         return Err(Configuration(InvalidLimits))
       }

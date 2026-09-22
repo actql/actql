@@ -170,6 +170,8 @@ pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.Synchr
 
 pub fn execute_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?
 
+pub fn expand_internal_carrier_tasks(CheckedDAG, Int, Int) -> Result[CheckedDAG, GraphIssue]
+
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
@@ -179,6 +181,8 @@ pub fn graph_control_count(CheckedDAG) -> Int
 pub fn graph_data_at(CheckedDAG, Int) -> DataEdge?
 
 pub fn graph_data_count(CheckedDAG) -> Int
+
+pub fn graph_ordered_inputs_complete(CheckedDAG) -> Bool
 
 pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram
 
@@ -478,6 +482,7 @@ pub struct DataEdge {
   target : @pipeline_typing.Target
   consumer : Int
   input : Int
+  source_input : Int?
   operation_input : (Int, Int)?
 }
 
