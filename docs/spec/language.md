@@ -5881,6 +5881,18 @@ per entity kind. A changed identity is a removal and addition, not an update.
 The graph contract fixes all record fields and equality laws; no patch paths,
 arbitrary JSON instructions or implicit property merge exist.
 
+<!-- requirement-block: graph-equality-and-delta.snapshot-identity graph-equality-and-delta.snapshot-identity-backend-independence -->
+The base and target graph CIDs hash one canonical JSON array with preimage
+`["actql-graph-snapshot/0.1", graph_contract_cid, nodes, edges]`. `nodes`
+contains the complete closed node records in canonical typed node-ID order.
+`edges` contains the complete closed edge records in lexicographic source ID,
+target ID and nullable label order. Records and admitted values use canonical
+JSON object-key order and the typed wire representation fixed by their common
+graph contract. This identity excludes acquisition order, provider locators,
+process handles, indexes and physical storage. Implementations MUST validate
+strict record order while hashing and MUST NOT substitute an unordered
+container digest or a backend-specific serialization.
+
 <!-- requirement-block: graph-equality-and-delta.complete-records -->
 Delta node records MUST use the closed shape `{id, props}` and edge records
 the closed shape `{src, dst, rel, props}`. IDs retain the common contract's

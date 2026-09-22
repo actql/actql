@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/encode_core" @encode,
+  "actql/actql/value_admission" @value,
+  "actql/actql/canonical_value" @canonical,
+}
+
+import {
+  "actql/actql/value_contract" @contract,
+} for "wbtest"

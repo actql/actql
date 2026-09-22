@@ -99,6 +99,29 @@ offset. Lowering must implement the admitted behavior without removing the
 authored semantic operation or claiming unsupported execution conformance.
 The type-checking increment does not implement those adapters or proof propagation.
 
+## Graph snapshot identity for Delta
+
+The normative owner is
+[Graph equality and Delta](../spec/language.md#graph-equality-and-delta).
+The original Delta contract required exact base and target graph CIDs but did
+not define their preimage. That omission made independently implemented
+`graph_diff` and `apply_graph_delta` unable to establish the same identity.
+
+The adopted preimage is the canonical JSON array
+`["actql-graph-snapshot/0.1", graph_contract_cid, nodes, edges]`. Complete
+records use the common graph contract, typed wire values and canonical graph
+identity order. This is a clarification of an existing required identity, not
+a new authority or a requirement to assign a CID to every Graph completion.
+The CID is computed only where Delta semantics or another selected contract
+requires it. Input enumeration, storage indexes and provider identity do not
+participate.
+
+AoA's JavaScript reference sorts string node IDs and hashes its own graph JSON.
+That implementation remains useful evidence but cannot define this preimage:
+ActQL permits non-string typed IDs and fixes a distinct complete Delta record
+shape. The implementation therefore uses the common typed-value order and
+graph-contract identity rather than converting IDs to strings.
+
 ## Canonical group null placement
 
 The normative owner is [group](../spec/language.md#group). Its final output uses
