@@ -43,6 +43,9 @@ priv enum ShortestPhase {
   ReverseEdges
   SelectNearestPath
   ReadField
+  BuildNodeIds
+  BuildEdgeIds
+  FinalizePathValue
   CommitRow
   FinishPair
   FinishNearestSource
@@ -146,6 +149,9 @@ priv struct ShortestState {
   mut best_path_edges : Array[Int]
   mut emitted_rows : Int64
   mut values : Array[@value.CheckedValue]
+  mut value_items : Array[@value.Value]
+  mut value_item : Int
+  value_item_attempts : Ref[Int]
 }
 
 ///|
@@ -157,6 +163,7 @@ struct ShortestExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  value_item_attempts : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -677,50 +684,23 @@ fn shortest_path_value(
         state.path_edges.length().to_double(),
         field.contract,
       )
-    @schema.Unqualified("node_ids") => {
-      let values : Array[@value.Value] = []
-      for node in state.path_nodes {
-        guard @storage.node_identity(state.source, node) is Some(identity) else {
-          return None
-        }
-        values.push(identity.value)
-      }
-      @value.recheck_runtime_value(
-        @value.array_value(values),
-        field.contract,
-        state.value_limits,
-      )
-    }
-    @schema.Unqualified("edge_ids") => {
-      let values : Array[@value.Value] = []
-      for edge in state.path_edges {
-        guard @storage.edge_endpoints(state.source, edge)
-          is Some((source, target)) &&
-          @storage.node_identity(state.source, source) is Some(source_id) &&
-          @storage.node_identity(state.source, target) is Some(target_id) &&
-          @storage.edge_label(state.source, edge) is Some(label) &&
-          @value.object_value([
-            ("src", source_id.value),
-            ("dst", target_id.value),
-            (
-              "rel",
-              match label {
-                Some(value) => value.value
-                None => @value.null_value()
-              },
-            ),
-          ])
-          is Some(identity) else {
-          return None
-        }
-        values.push(identity)
-      }
-      @value.recheck_runtime_value(
-        @value.array_value(values),
-        field.contract,
-        state.value_limits,
-      )
-    }
+    @schema.Unqualified("node_ids") | @schema.Unqualified("edge_ids") => None
+    _ => None
+  }
+}
+
+///|
+fn shortest_path_value_minimum_nodes(
+  state : ShortestState,
+  field : @schema.Field,
+) -> Int? {
+  match field.name {
+    @schema.Unqualified("node_ids") =>
+      checked_shortest_add(1, state.path_nodes.length())
+    @schema.Unqualified("edge_ids") =>
+      checked_shortest_multiply(state.path_edges.length(), 4).bind(count => {
+        checked_shortest_add(1, count)
+      })
     _ => None
   }
 }
@@ -1581,16 +1561,103 @@ fn shortest_step(
         if state.path_overrange {
           return @bounded.Failed(ShortestCostOverrange, progress, used)
         } else if state.row_column < @schema.field_count(state.schema) {
-          guard @schema.field_at(state.schema, state.row_column) is Some(field) &&
-            shortest_path_value(state, field) is Some(value) else {
+          guard @schema.field_at(state.schema, state.row_column) is Some(field) else {
             return @bounded.Failed(ShortestInputUnavailable, progress, used)
           }
-          state.values.push(value)
-          state.row_column += 1
-          used += 1
+          match field.name {
+            @schema.Unqualified("node_ids") => {
+              guard shortest_path_value_minimum_nodes(state, field)
+                is Some(nodes) &&
+                nodes <= state.value_limits.max_nodes else {
+                return @bounded.Failed(ShortestOutputLimit, progress, used)
+              }
+              state.value_items = []
+              state.value_item = 0
+              state.phase = BuildNodeIds
+            }
+            @schema.Unqualified("edge_ids") => {
+              guard shortest_path_value_minimum_nodes(state, field)
+                is Some(nodes) &&
+                nodes <= state.value_limits.max_nodes else {
+                return @bounded.Failed(ShortestOutputLimit, progress, used)
+              }
+              state.value_items = []
+              state.value_item = 0
+              state.phase = BuildEdgeIds
+            }
+            _ => {
+              guard shortest_path_value(state, field) is Some(value) else {
+                return @bounded.Failed(ShortestInputUnavailable, progress, used)
+              }
+              state.values.push(value)
+              state.row_column += 1
+              used += 1
+            }
+          }
         } else {
           state.phase = CommitRow
         }
+      BuildNodeIds => {
+        if state.value_item == state.path_nodes.length() {
+          state.phase = FinalizePathValue
+          continue
+        }
+        let node = state.path_nodes[state.value_item]
+        guard @storage.node_identity(state.source, node) is Some(identity) else {
+          return @bounded.Failed(ShortestInputUnavailable, progress, used)
+        }
+        state.value_item_attempts.val += 1
+        state.value_items.push(identity.value)
+        state.value_item += 1
+        used += 1
+      }
+      BuildEdgeIds => {
+        if state.value_item == state.path_edges.length() {
+          state.phase = FinalizePathValue
+          continue
+        }
+        let edge = state.path_edges[state.value_item]
+        guard @storage.edge_endpoints(state.source, edge)
+          is Some((source, target)) &&
+          @storage.node_identity(state.source, source) is Some(source_id) &&
+          @storage.node_identity(state.source, target) is Some(target_id) &&
+          @storage.edge_label(state.source, edge) is Some(label) &&
+          @value.object_value([
+            ("src", source_id.value),
+            ("dst", target_id.value),
+            (
+              "rel",
+              match label {
+                Some(value) => value.value
+                None => @value.null_value()
+              },
+            ),
+          ])
+          is Some(identity) else {
+          return @bounded.Failed(ShortestInputUnavailable, progress, used)
+        }
+        state.value_item_attempts.val += 1
+        state.value_items.push(identity)
+        state.value_item += 1
+        used += 1
+      }
+      FinalizePathValue => {
+        guard @schema.field_at(state.schema, state.row_column) is Some(field) &&
+          @value.recheck_runtime_value(
+            @value.array_value(state.value_items),
+            field.contract,
+            state.value_limits,
+          )
+          is Some(value) else {
+          return @bounded.Failed(ShortestOutputLimit, progress, used)
+        }
+        state.values.push(value)
+        state.value_items = []
+        state.value_item = 0
+        state.row_column += 1
+        state.phase = ReadField
+        used += 1
+      }
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(UnsupportedShortestKernel, progress, used)
@@ -1602,6 +1669,7 @@ fn shortest_step(
         match @execution.append_admitted_output(output, state.values) {
           Ok(_) => {
             state.values = []
+            state.value_items = []
             state.emitted_rows += 1L
             state.phase = match state.selection {
               @graph_type.EachPair => FinishPair
@@ -1692,6 +1760,7 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.best_path_nodes.clear()
   state.best_path_edges.clear()
   state.values = []
+  state.value_items = []
   true
 }
 
@@ -1827,6 +1896,7 @@ pub fn start_shortest(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let value_item_attempts = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port(
       preparation,
@@ -1934,6 +2004,9 @@ pub fn start_shortest(
     best_path_edges: [],
     emitted_rows: 0L,
     values: [],
+    value_items: [],
+    value_item: 0,
+    value_item_attempts,
   }
   let (session, token) = @bounded.start(
     control,
@@ -1949,6 +2022,7 @@ pub fn start_shortest(
     session,
     token: Some(token),
     accepted,
+    value_item_attempts,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1966,6 +2040,12 @@ pub fn shortest_max_noninterruptible_value_bytes(
   value : ShortestExecution,
 ) -> Int {
   value.max_noninterruptible_value_bytes
+}
+
+///|
+/// Report path value items constructed after output-limit preflight.
+pub fn shortest_value_item_attempts(value : ShortestExecution) -> Int {
+  value.value_item_attempts.val
 }
 
 ///|

@@ -3079,6 +3079,31 @@ test "scalar shortest path admits workspace before allocation and cancels" {
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_output_matches_inputs(output, [external]))
 
+  let limited = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    1,
+    { max_nodes: 3, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut limited_terminal = false
+  while !limited_terminal {
+    match @local_sga.advance_shortest(limited, 1).unwrap() {
+      @local_sga.ShortestContinue(..) => ()
+      @local_sga.ShortestFailed(@local_sga.ShortestOutputLimit, ..) =>
+        limited_terminal = true
+      _ => fail("expected bounded path value rejection")
+    }
+  }
+  assert_eq(@local_sga.shortest_value_item_attempts(limited), 0)
+  assert_eq(@local_sga.cleanup_shortest(limited), Ok(true))
+
   let control = @bounded.control()
   let cancelled = @local_sga.start_shortest(
     control,

@@ -147,6 +147,8 @@ pub fn shortest_max_noninterruptible_value_nodes(ShortestExecution) -> Int
 
 pub fn shortest_stopped(ShortestExecution) -> Bool
 
+pub fn shortest_value_item_attempts(ShortestExecution) -> Int
+
 pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ComponentsExecution, ComponentsIssue]
 
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
