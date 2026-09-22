@@ -207,6 +207,22 @@ def main() -> int:
     compositions.sort()
     composition_keys = [(a << 21) | b for a, b, _ in compositions]
     composition_values = [result for _, _, result in compositions]
+    # A scalar may use the allocation-free NFC path only if it cannot need
+    # decomposition, canonical reordering, or composition with its predecessor.
+    # This is deliberately conservative: all nonstarters and composition
+    # trails take the full normalizer even when a particular context is NFC.
+    nfc_unsafe = set(ccc)
+    nfc_unsafe.update(set(decomp_keys) - set(composition_values))
+    nfc_unsafe.update(second for _, second, _ in compositions)
+    nfc_unsafe.update(range(0x1161, 0x1176))
+    nfc_unsafe.update(range(0x11A8, 0x11C3))
+    changed = True
+    while changed:
+        changed = False
+        for scalar, decomposition in decompositions.items():
+            if scalar not in nfc_unsafe and decomposition[0] in nfc_unsafe:
+                nfc_unsafe.add(scalar)
+                changed = True
     sources = {
         name: hashlib.sha256((UCD / name).read_bytes()).hexdigest()
         for name in ("UnicodeData.txt", "CompositionExclusions.txt", "NormalizationTest.txt")
@@ -252,6 +268,11 @@ let canonical_composition_keys : FixedArray[Int64] = [
 ///|
 let canonical_composition_values : FixedArray[Int] = [
 {wrap([hex(value) for value in composition_values])}
+]
+
+///|
+let nfc_unsafe_scalar_keys : FixedArray[Int] = [
+{wrap([hex(value) for value in sorted(nfc_unsafe)])}
 ]
 '''
     emit(output, text)

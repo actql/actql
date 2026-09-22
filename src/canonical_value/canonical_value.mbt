@@ -243,11 +243,15 @@ pub fn normalize_nfc_lf(
   match normalize_nfc(value) {
     Err(error) => Err(error)
     Ok(normalized) =>
-      Ok(
-        normalized
-        .replace_all(old="\r\n", new="\n")
-        .replace_all(old="\r", new="\n"),
-      )
+      if normalized.contains("\r") {
+        Ok(
+          normalized
+          .replace_all(old="\r\n", new="\n")
+          .replace_all(old="\r", new="\n"),
+        )
+      } else {
+        Ok(normalized)
+      }
   }
 }
 
@@ -260,17 +264,14 @@ pub fn normalize_nfc(value : String) -> Result[String, TextNormalizationError] {
 
 ///|
 fn normalize_text(value : String) -> Result[String, TextNormalizationError] {
-  // ASCII is already NFC. Non-ASCII input always takes the validating path.
-  let mut normalized_ascii = true
-  for index = 0; index < value.length(); index = index + 1 {
-    let unit = value[index].to_int()
-    if unit > 0x7F {
-      normalized_ascii = false
-      break
-    }
-  }
-  if normalized_ascii {
-    return Ok(value)
+  // The generated set is a conservative Unicode 16.0 NFC quick check. It
+  // includes every nonstarter, composition trail, and unstable singleton.
+  // Validated text outside the set is already NFC without allocating rows of
+  // scalars or re-encoding a new string.
+  match nfc_quick_check(value) {
+    Err(error) => return Err(error)
+    Ok(true) => return Ok(value)
+    Ok(false) => ()
   }
   match scalar_values(value) {
     Err(error) => Err(error)
@@ -288,6 +289,34 @@ fn normalize_text(value : String) -> Result[String, TextNormalizationError] {
       Ok(builder.to_string())
     }
   }
+}
+
+///|
+fn nfc_quick_check(value : String) -> Result[Bool, TextNormalizationError] {
+  let mut index = 0
+  while index < value.length() {
+    let unit = value[index].to_int()
+    let scalar = if unit >= 0xD800 && unit <= 0xDBFF {
+      if index + 1 >= value.length() {
+        return Err(UnpairedSurrogate(index))
+      }
+      let low = value[index + 1].to_int()
+      if low < 0xDC00 || low > 0xDFFF {
+        return Err(UnpairedSurrogate(index))
+      }
+      index += 1
+      0x10000 + ((unit - 0xD800) << 10) + low - 0xDC00
+    } else if unit >= 0xDC00 && unit <= 0xDFFF {
+      return Err(UnpairedSurrogate(index))
+    } else {
+      unit
+    }
+    if scalar > 0x7F && lookup_int(nfc_unsafe_scalar_keys, scalar) is Some(_) {
+      return Ok(false)
+    }
+    index += 1
+  }
+  Ok(true)
 }
 
 ///|

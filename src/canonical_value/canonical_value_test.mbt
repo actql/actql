@@ -11,6 +11,9 @@ test "NFC composition, decomposition, ordering and exclusions" {
     ("A\u{0305}\u{0301}", "A\u{0305}\u{0301}"),
     ("\u{1100}\u{1161}\u{11A8}", "각"),
     ("가\u{11A8}", "각"),
+    // The trailing character is itself NFC, but its decomposition can
+    // compose with the preceding character.
+    ("\u{16D63}\u{16D68}", "\u{16D6A}"),
     // NFC does not perform compatibility decomposition or case folding.
     ("\u{FB01}", "\u{FB01}"),
     ("Straße", "Straße"),
