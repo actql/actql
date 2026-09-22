@@ -20,7 +20,7 @@ test "fixed global count completion uses its own target and preserves common gua
       generated=Some(compute_test_sequence(owner)),
     )
     @duckdb_compute.begin_duckdb_compute_result(attempt, [
-      ("n", @duckdb.Float64),
+      ("__actql_output_0", @duckdb.Float64),
     ]).unwrap()
     @duckdb_compute.receive_duckdb_compute_chunk(attempt, 1, [
       input_cursor(expected_wire),
@@ -72,7 +72,7 @@ test "global count cannot seal an empty receipt even when its fixed input is emp
   let limits = fixed_compute_attempt_limits()
   let receiving = @duckdb.prepare_fixed_compute_receiving(
     compute,
-    [("n", @duckdb.Float64)],
+    [("__actql_output_0", @duckdb.Float64)],
     limits.physical,
     limits.retention,
     limits.metadata_work,
