@@ -52,6 +52,29 @@ test "runtime recheck preserves exact nested typed values" {
 }
 
 ///|
+test "runtime recheck reports exact node and text usage" {
+  let text = @contract.primitive(@contract.StringType, nullable=false)
+  let items = @contract.array_contract(text, nullable=false).unwrap()
+  let contract = @contract.object_contract(
+    [("items", items)],
+    nullable=false,
+    max_fields=1,
+    max_name_bytes=5,
+  ).unwrap()
+  let source = recheck_admitted(contract, "{\"items\":[\"é\"]}")
+  let result = recheck_runtime_value_usage(source.value, contract, {
+    max_nodes: 20,
+    max_depth: 5,
+    max_text_bytes: 20,
+  })
+  assert_true(result is Some(_))
+  let (checked, nodes, text_bytes) = result.unwrap()
+  assert_true(physical_equal(checked.value, source.value))
+  assert_eq(nodes, 3)
+  assert_eq(text_bytes, 7)
+}
+
+///|
 test "runtime recheck rejects foreign contracts and exhausted limits" {
   let text = @contract.primitive(@contract.StringType, nullable=false)
   let number = @contract.primitive(@contract.NumberType, nullable=false)

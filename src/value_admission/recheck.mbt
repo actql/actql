@@ -162,6 +162,17 @@ pub fn recheck_runtime_value(
   contract : @contract.Contract,
   limits : Limits,
 ) -> CheckedValue? {
+  recheck_runtime_value_usage(value, contract, limits).map(result => result.0)
+}
+
+///|
+/// Rebind an immutable runtime value and report its exact logical value-node
+/// and UTF-8 text usage. No partial usage escapes when validation fails.
+pub fn recheck_runtime_value_usage(
+  value : Value,
+  contract : @contract.Contract,
+  limits : Limits,
+) -> (CheckedValue, Int, Int)? {
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return None
   }
@@ -171,7 +182,13 @@ pub fn recheck_runtime_value(
     max_depth: limits.max_depth,
   }
   if recheck_value(value, contract, budget, 0) {
-    Some({ contract, value, })
+    Some(
+      (
+        { contract, value, },
+        limits.max_nodes - budget.nodes,
+        limits.max_text_bytes - budget.text,
+      ),
+    )
   } else {
     None
   }
