@@ -297,6 +297,18 @@ pub fn[T] managed_fixed_query_sql(value : ManagedFixedQuery[T]) -> String {
 }
 
 ///|
+/// Physical output names are compiler-owned transport bindings. Callers use
+/// them only to admit the exact query result into its logical output schema.
+pub fn[T] managed_fixed_query_output_names(
+  value : ManagedFixedQuery[T],
+) -> Array[String]? {
+  match value.body {
+    Fixed(query) => fixed_query_output_names(query)
+    Take(_) => None
+  }
+}
+
+///|
 pub fn[T] managed_fixed_query_parameter_count(
   value : ManagedFixedQuery[T],
 ) -> Int {

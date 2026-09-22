@@ -653,7 +653,9 @@ test('standard native and broad Node Hosts own verification through real capture
           // Fixed source [3,2,3] joined with itself: left-major/right-minor.
           const expectedJoin = hash(kind === 'empty' ? [] : [{ id: 3 }, { id: 3 }, { id: 2 }, { id: 3 }, { id: 3 }]);
           assert.equal(joinResult.importedRows, kind === 'empty' ? 0 : 6);
-          assert.equal(joinResult.importedCells, kind === 'empty' ? 0 : 12);
+          // The private physical ordinal participates in the import wire but
+          // is not a caller-visible logical cell.
+          assert.equal(joinResult.importedCells, kind === 'empty' ? 0 : 6);
           assert.equal(joinResult.usage.statements, kind === 'empty' ? 3 : 9);
           try {
             assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), expectedFixed);
@@ -5580,7 +5582,11 @@ async function exerciseStrategyGraph(
       const result = await runExample({ database: path, environment, environmentCid: args[1],
         program: programFile, parameters, nativeMilliseconds: estimate, resident });
       try {
-        assert.equal(result.report.status, 'host-tasks-completed');
+        assert.equal(
+          result.report.status,
+          'host-tasks-completed',
+          result.execution.failure?.stack ?? result.execution.failure,
+        );
         assert.equal(result.report.completed[0].realization, expected);
         assert.equal(result.report.internal_output_cids[0].cid, hash([{ id: 3 }]));
         assert.equal(result.report.internal_output_cids[2].cid, hash([{ id: 3 }]));

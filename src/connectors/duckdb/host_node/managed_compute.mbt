@@ -194,15 +194,31 @@ pub fn managed_strategy_storage_order(
   if run.closed {
     raise InvalidCommand
   }
-  match
-    @duckdb.prepare_managed_output_storage_order(
-      @duckdb_compute.managed_input_duckdb_output_values(
-        @duckdb_driver.captured_managed_duckdb_completion(run.task),
-      ),
-      transport_fields(run.transport, fields),
-      run.limits.physical,
-      run.limits.metadata_work,
+  let values = @duckdb_compute.managed_input_duckdb_output_values(
+    @duckdb_driver.captured_managed_duckdb_completion(run.task),
+  )
+  let physical_fields = transport_fields(run.transport, fields)
+  let prepared = match
+    @duckdb.managed_fixed_query_output_names(
+      @duckdb_driver.captured_managed_duckdb_query(run.task),
     ) {
+    None =>
+      @duckdb.prepare_managed_output_storage_order(
+        values,
+        physical_fields,
+        run.limits.physical,
+        run.limits.metadata_work,
+      )
+    Some(names) =>
+      @duckdb.prepare_managed_output_storage_order_named(
+        values,
+        names,
+        physical_fields,
+        run.limits.physical,
+        run.limits.metadata_work,
+      )
+  }
+  match prepared {
     Ok(order) => order
     Err(issue) => raise ManagedValues(issue)
   }
@@ -436,7 +452,7 @@ pub fn managed_strategy_output_begin(
   if run.closed {
     raise InvalidCommand
   }
-  let output = managed_output_open(
+  let output = managed_output_open_named(
     @duckdb_compute.managed_input_duckdb_output_values(
       @duckdb_driver.captured_managed_duckdb_completion(run.task),
     ),
@@ -444,6 +460,9 @@ pub fn managed_strategy_output_begin(
     run.limits.physical,
     run.transport,
     run.limits.metadata_work,
+    @duckdb.managed_fixed_query_output_names(
+      @duckdb_driver.captured_managed_duckdb_query(run.task),
+    ),
   )
   errdefer managed_output_cancel(output)
   if run.max_index_cells > 0 {

@@ -73,6 +73,46 @@ test "managed physical chunks admit reordered columns without row encoding or lo
 }
 
 ///|
+test "managed physical output admits compiler-owned transport names" {
+  let owner = managed_physical_test_owner()
+  let values = @execution.prepare_managed_output_values(
+    owner,
+    Step(1),
+    1,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    { max_work: 100, max_bytes: 1000, max_nodes: 100, max_depth: 10, },
+  ).unwrap()
+  let names = ["__actql_output_0", "__actql_output_1"]
+  let fields = [("__actql_output_1", Varchar), ("__actql_output_0", Float64)]
+  assert_eq(
+    prepare_managed_output_storage_order_named(
+      values,
+      names,
+      fields,
+      result_limits(),
+      1000,
+    ).unwrap(),
+    [1, 0],
+  )
+  let output = prepare_managed_physical_output_named(
+    values,
+    names,
+    fields,
+    result_limits(),
+    1000,
+  ).unwrap()
+  append_managed_physical_output(output, 1, [
+    result_cursor("[\"é\"]"),
+    result_cursor("[\"3ff0000000000000\"]"),
+  ]).unwrap()
+  let receipt = finish_managed_physical_output(output).unwrap()
+  assert_true(
+    @execution.managed_output_value_receipt_matches(receipt, owner, Step(1)),
+  )
+}
+
+///|
 test "managed physical output rejects malformed later chunks and never returns a partial receipt" {
   let owner = managed_physical_test_owner()
   for mode in 0..<3 {

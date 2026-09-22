@@ -495,13 +495,37 @@ pub fn managed_output_open(
   transport : @duckdb.TransportColumnLimits,
   max_metadata_work : Int,
 ) -> ManagedNodeOutput raise NodeHostFailure {
-  let receiver = match
-    @duckdb.prepare_managed_physical_output(
-      values,
-      transport_fields(transport, fields),
-      physical,
-      max_metadata_work,
-    ) {
+  managed_output_open_named(
+    values,
+    fields,
+    physical,
+    transport,
+    max_metadata_work,
+    None,
+  )
+}
+
+///|
+fn managed_output_open_named(
+  values : @execution.ManagedOutputValues,
+  fields : String,
+  physical : @duckdb.PhysicalResultLimits,
+  transport : @duckdb.TransportColumnLimits,
+  max_metadata_work : Int,
+  expected_names : Array[String]?,
+) -> ManagedNodeOutput raise NodeHostFailure {
+  let physical_fields = transport_fields(transport, fields)
+  let prepared = match expected_names {
+    None =>
+      @duckdb.prepare_managed_physical_output(
+        values, physical_fields, physical, max_metadata_work,
+      )
+    Some(names) =>
+      @duckdb.prepare_managed_physical_output_named(
+        values, names, physical_fields, physical, max_metadata_work,
+      )
+  }
+  let receiver = match prepared {
     Ok(value) => value
     Err(issue) => raise ManagedValues(issue)
   }

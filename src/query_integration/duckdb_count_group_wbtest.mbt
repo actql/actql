@@ -113,6 +113,21 @@ test "global count SQL has no accidental keyed grouping or empty order clause" {
     )
     is Err(UnsupportedShape),
   )
+  let query = @duckdb.compile_fixed_query(
+    owner,
+    "main",
+    "fixed",
+    native_compile_limits(),
+  ).unwrap()
+  let resident = @duckdb.prepare_resident_query(query, "result", 10000).unwrap()
+  assert_eq(
+    @duckdb.resident_query_create_sql(resident),
+    "CREATE TABLE \"result\" AS SELECT \"__actql_result\".\"__actql_output_0\" AS \"n\" FROM (SELECT CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"__actql_output_0\" FROM \"main\".\"fixed\" AS __actql_source) AS \"__actql_result\"",
+  )
+  assert_eq(
+    @duckdb.resident_query_read_sql(resident),
+    "SELECT \"n\" AS \"__actql_output_0\" FROM main.\"result\"",
+  )
 }
 
 ///|

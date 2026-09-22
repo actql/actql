@@ -32,6 +32,27 @@ pub fn prepare_managed_physical_output(
 }
 
 ///|
+/// Admit physical names owned by the compiled query while preserving the
+/// checked logical output schema. Only query compilation may supply names.
+pub fn prepare_managed_physical_output_named(
+  values : @execution.ManagedOutputValues,
+  expected_names : Array[String],
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  max_metadata_work : Int,
+) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue] {
+  prepare_physical_result_named(
+    @execution.managed_output_values_schema(values),
+    expected_names,
+    fields,
+    limits,
+    max_metadata_work,
+  )
+  .map(physical => { physical, values, open: true, })
+  .map_err(issue => Physical(issue))
+}
+
+///|
 /// Establish the physical-to-logical storage order without reading values or
 /// claiming the one-use output stream. A positional writer must use this order.
 pub fn prepare_managed_output_storage_order(
@@ -42,6 +63,26 @@ pub fn prepare_managed_output_storage_order(
 ) -> Result[Array[Int], ManagedPhysicalOutputIssue] {
   prepare_physical_result(
     @execution.managed_output_values_schema(values),
+    fields,
+    limits,
+    max_metadata_work,
+  )
+  .map(physical_result_source_columns)
+  .map_err(issue => Physical(issue))
+}
+
+///|
+/// Establish storage order for compiler-owned physical result names.
+pub fn prepare_managed_output_storage_order_named(
+  values : @execution.ManagedOutputValues,
+  expected_names : Array[String],
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  max_metadata_work : Int,
+) -> Result[Array[Int], ManagedPhysicalOutputIssue] {
+  prepare_physical_result_named(
+    @execution.managed_output_values_schema(values),
+    expected_names,
     fields,
     limits,
     max_metadata_work,

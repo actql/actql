@@ -233,6 +233,8 @@ pub fn[T] managed_fixed_query_occurrence_sql(ManagedFixedQuery[T]) -> String?
 
 pub fn[T] managed_fixed_query_output_column_count(ManagedFixedQuery[T]) -> Int
 
+pub fn[T] managed_fixed_query_output_names(ManagedFixedQuery[T]) -> Array[String]?
+
 pub fn[T] managed_fixed_query_output_row_ceiling(ManagedFixedQuery[T], Int) -> Int
 
 pub fn[T] managed_fixed_query_owner(ManagedFixedQuery[T]) -> @lowering_relation.BoundPrepared
@@ -383,7 +385,11 @@ pub fn[T] prepare_managed_fixed_view_plan(ManagedFixedQuery[T], NativeQueryLimit
 
 pub fn prepare_managed_output_storage_order(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[Array[Int], ManagedPhysicalOutputIssue]
 
+pub fn prepare_managed_output_storage_order_named(@execution_relation.ManagedOutputValues, Array[String], Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[Array[Int], ManagedPhysicalOutputIssue]
+
 pub fn prepare_managed_physical_output(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
+
+pub fn prepare_managed_physical_output_named(@execution_relation.ManagedOutputValues, Array[String], Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
 
 pub fn[T] prepare_managed_query_demand(ManagedFixedQuery[T], Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ManagedQueryDemand[T], NativeDemandIssue]
 

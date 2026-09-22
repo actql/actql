@@ -40,9 +40,56 @@ pub fn prepare_resident_query(
     sql_text(create, "CREATE TABLE ")
     sql_identifier(create, output_table)
     sql_text(create, " AS ")
-    sql_text(create, fixed_query_sql(query))
+    match fixed_query_output_names(query) {
+      None => sql_text(create, fixed_query_sql(query))
+      Some(physical_names) => {
+        let prepared = @lower.bound_preparation(fixed_query_owner(query))
+        guard @lower.preparation_schema_at(prepared, fixed_query_target(query))
+          is Some(schema) &&
+          physical_names.length() == @schema.field_count(schema) else {
+          return Err(UnsupportedShape)
+        }
+        sql_text(create, "SELECT ")
+        for index in 0..<physical_names.length() {
+          if index > 0 {
+            sql_text(create, ", ")
+          }
+          sql_identifier(create, "__actql_result")
+          sql_text(create, ".")
+          sql_identifier(create, physical_names[index])
+          sql_text(create, " AS ")
+          let field = @schema.field_at(schema, index).unwrap()
+          sql_identifier(create, @schema.reference_name(field.name))
+        }
+        sql_text(create, " FROM (")
+        sql_text(create, fixed_query_sql(query))
+        sql_text(create, ") AS ")
+        sql_identifier(create, "__actql_result")
+      }
+    }
     let read = { builder: StringBuilder(), remaining: create.remaining, }
-    sql_text(read, "SELECT * FROM main.")
+    sql_text(read, "SELECT ")
+    match fixed_query_output_names(query) {
+      None => sql_text(read, "*")
+      Some(physical_names) => {
+        let prepared = @lower.bound_preparation(fixed_query_owner(query))
+        guard @lower.preparation_schema_at(prepared, fixed_query_target(query))
+          is Some(schema) &&
+          physical_names.length() == @schema.field_count(schema) else {
+          return Err(UnsupportedShape)
+        }
+        for index in 0..<physical_names.length() {
+          if index > 0 {
+            sql_text(read, ", ")
+          }
+          let field = @schema.field_at(schema, index).unwrap()
+          sql_identifier(read, @schema.reference_name(field.name))
+          sql_text(read, " AS ")
+          sql_identifier(read, physical_names[index])
+        }
+      }
+    }
+    sql_text(read, " FROM main.")
     sql_identifier(read, output_table)
     let drop = { builder: StringBuilder(), remaining: read.remaining, }
     sql_text(drop, "DROP TABLE main.")
