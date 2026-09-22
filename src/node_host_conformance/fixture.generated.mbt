@@ -712,6 +712,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\":20}]"
   }
   let graph_equality = is_graph_equality_variant(variant)
+  let graph_diff = variant == "graph_diff" || variant == "graph_diff_changes"
+  let graph_diff_changes = variant == "graph_diff_changes"
   let projection = if concise {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "match_nodes" {
@@ -940,16 +942,16 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+    "\"rows\",\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
     "\"node_rows\":true,\"as\":\"out\""
   } else if variant == "mean" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+    "\"rows\",\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"mean_graphs\":{\"with\":[\"right_graph\",\"g\"," +
     "\"right_graph\"],\"weights\":[1,2,3]," +
@@ -1021,6 +1023,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     } else {
       "\"node_rows\":true,\"as\":\"out\""
     })
+  } else if graph_diff {
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if graph_diff_changes { "\"other\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+    (if graph_diff_changes { "\"other\"" } else { "\"rows\"" }) +
+    "," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
+    "\"from\":\"g\",\"graph_diff\":{\"with\":\"right_graph\"}," +
+    "\"as\":\"out\""
   } else if graph_equality {
     let right = if variant == "graphs_equal_self" {
       ""
@@ -1087,6 +1100,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"start_id\",\"end_id\",\"hop_count\",\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
+  } else if graph_diff {
+    "\"delta\""
   } else if graph_equality {
     "\"equal\""
   } else {
@@ -1119,12 +1134,24 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"start_id\",\"end_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
+  } else if graph_diff {
+    "\"delta\""
   } else if graph_equality {
     "\"equal\""
   } else {
     "\"node_name\""
   }
-  let other_stage = if subtract || union_set {
+  let other_stage = if graph_diff_changes {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":3," +
+    "\"node_name\":\"changed\",\"weight\":11},{\"id\":3," +
+    "\"src\":3,\"dst\":1,\"node_name\":\"third\"," +
+    "\"weight\":30}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    "\"node_name\",\"weight\"]}}},"
+  } else if subtract || union_set {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
@@ -1206,7 +1233,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if subtract || union_set {
+  let graph_inputs = if graph_diff_changes {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if subtract || union_set {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
