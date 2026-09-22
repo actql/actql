@@ -513,7 +513,11 @@ fn query_checked_program_fixture(
         path_emission=local_carrier_graph_variant == "traverse_paths" ||
           local_carrier_graph_variant == "traverse_relation_paths" ||
           local_carrier_graph_variant == "traverse_predicate_paths" ||
-          local_carrier_graph_variant.has_prefix("traverse_pattern_multi_paths"),
+          local_carrier_graph_variant.has_prefix("traverse_pattern_multi_paths") ||
+          local_carrier_graph_variant == "traverse_in_paths" ||
+          local_carrier_graph_variant == "traverse_both_paths" ||
+          local_carrier_graph_variant == "traverse_zero_paths" ||
+          local_carrier_graph_variant == "traverse_type_empty_paths",
       ),
     ]
   } else if local_carrier_graph_chain &&

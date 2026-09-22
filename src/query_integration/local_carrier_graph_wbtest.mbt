@@ -169,7 +169,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let traverse_paths = variant == "traverse_paths" ||
     variant == "traverse_relation_paths" ||
     variant == "traverse_predicate_paths" ||
-    variant.has_prefix("traverse_pattern_multi_paths")
+    variant.has_prefix("traverse_pattern_multi_paths") ||
+    variant == "traverse_in_paths" ||
+    variant == "traverse_both_paths" ||
+    variant == "traverse_zero_paths" ||
+    variant == "traverse_type_empty_paths"
   let shortest_relation_selector = variant == "shortest_relation_selector"
   let relation_selector = subgraph_relation_selector ||
     traverse_relation_selector ||
@@ -382,16 +386,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       }
     } else {
       "\"direction\":\"" +
-      (if variant == "traverse_in" {
+      (if variant == "traverse_in" || variant == "traverse_in_paths" {
         "in"
-      } else if variant == "traverse_both" {
+      } else if variant == "traverse_both" || variant == "traverse_both_paths" {
         "both"
       } else {
         "out"
       }) +
       "\"," +
       (if typed_traverse {
-        if variant == "traverse_type_empty" {
+        if variant == "traverse_type_empty" ||
+          variant == "traverse_type_empty_paths" {
           "\"edge_types\":[],"
         } else if variant.has_prefix("traverse_types_") {
           "\"edge_types\":[\"missing\",\"" +
@@ -405,7 +410,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       } else {
         ""
       }) +
-      "\"min_hops\":1,\"max_hops\":2,"
+      "\"min_hops\":" +
+      (if variant == "traverse_zero_paths" { "0" } else { "1" }) +
+      ",\"max_hops\":" +
+      (if variant == "traverse_zero_paths" { "1" } else { "2" }) +
+      ","
     }) +
     (if traverse_paths {
       "\"max_output_rows\":" +
@@ -5874,7 +5883,11 @@ fn run_standard_host_graph_relation_path(
   let traverse_paths = variant == "traverse_paths" ||
     variant == "traverse_relation_paths" ||
     variant == "traverse_predicate_paths" ||
-    variant == "traverse_pattern_multi_paths"
+    variant == "traverse_pattern_multi_paths" ||
+    variant == "traverse_in_paths" ||
+    variant == "traverse_both_paths" ||
+    variant == "traverse_zero_paths" ||
+    variant == "traverse_type_empty_paths"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
@@ -6058,6 +6071,7 @@ fn run_standard_host_graph_relation_path(
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
+    variant == "traverse_type_empty_paths" ||
     variant == "traverse_types_miss" ||
     variant == "traverse_pattern_predicate_empty" ||
     variant == "traverse_pattern_multi_paths_empty" ||
@@ -6067,6 +6081,10 @@ fn run_standard_host_graph_relation_path(
     0
   } else if variant == "graph_bounds" {
     4
+  } else if variant == "traverse_both_paths" {
+    2
+  } else if variant == "traverse_zero_paths" {
+    2
   } else if variant == "traverse_relation_paths" {
     2
   } else if variant == "traverse_ids" || traverse_relation_selector {
@@ -6212,10 +6230,34 @@ fn run_standard_host_graph_relation_path(
     variant == "shortest_type_miss" ||
     variant == "shortest_type_empty" ||
     variant == "traverse_pattern_predicate_empty" ||
-    variant == "traverse_pattern_multi_paths_empty" {
+    variant == "traverse_pattern_multi_paths_empty" ||
+    variant == "traverse_type_empty_paths" {
     ()
   } else if traverse_paths {
-    if variant == "traverse_pattern_multi_paths" {
+    if variant == "traverse_zero_paths" {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"end_id\":1"))
+      assert_true(graph_rows[0].contains("\"hop_count\":0"))
+      assert_true(graph_rows[0].contains("\"node_ids\":[1]"))
+      assert_true(graph_rows[0].contains("\"edge_ids\":[]"))
+    } else if variant == "traverse_in_paths" {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"end_id\":2"))
+      assert_true(graph_rows[0].contains("\"hop_count\":1"))
+      assert_true(graph_rows[0].contains("\"node_ids\":[1,2]"))
+      assert_true(
+        graph_rows[0].contains(
+          "\"edge_ids\":[{\"dst\":1,\"rel\":null,\"src\":2}]",
+        ),
+      )
+    } else if variant == "traverse_both_paths" {
+      assert_true(graph_rows[0].contains("\"start_id\":1"))
+      assert_true(graph_rows[0].contains("\"end_id\":2"))
+      assert_true(graph_rows[1].contains("\"start_id\":1"))
+      assert_true(graph_rows[1].contains("\"end_id\":2"))
+      assert_true(graph_rows[0].contains("\"hop_count\":1"))
+      assert_true(graph_rows[1].contains("\"hop_count\":1"))
+    } else if variant == "traverse_pattern_multi_paths" {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
       assert_true(graph_rows[0].contains("\"end_id\":3"))
       assert_true(graph_rows[0].contains("\"hop_count\":2"))
@@ -6483,6 +6525,26 @@ test "standard Host emits paths from ordered authored hops" {
     publication=true,
   )
   run_standard_host_graph_relation_path("traverse_pattern_multi_paths_empty")
+}
+
+///|
+test "standard Host emits inbound traversal paths" {
+  run_standard_host_graph_relation_path("traverse_in_paths")
+}
+
+///|
+test "standard Host emits bidirectional traversal paths" {
+  run_standard_host_graph_relation_path("traverse_both_paths")
+}
+
+///|
+test "standard Host emits zero-hop traversal paths" {
+  run_standard_host_graph_relation_path("traverse_zero_paths")
+}
+
+///|
+test "standard Host preserves empty path edge types" {
+  run_standard_host_graph_relation_path("traverse_type_empty_paths")
 }
 
 ///|
