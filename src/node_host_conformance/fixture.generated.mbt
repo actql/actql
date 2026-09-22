@@ -588,6 +588,78 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
 
 ///|
 /// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+fn local_carrier_graph_apply_program() -> String {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"src\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+  let graph = "{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}}"
+  let right_graph = "{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"other\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}}"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":[{" +
+  "\"id\":1,\"src\":1,\"dst\":2,\"node_name\":\"first\"," +
+  "\"weight\":10},{\"id\":2,\"src\":2,\"dst\":1," +
+  "\"node_name\":\"second\",\"weight\":20}]},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
+  "\"id\":\"other_values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":[{\"id\":1,\"src\":1," +
+  "\"dst\":3,\"node_name\":\"changed\",\"weight\":11},{" +
+  "\"id\":3,\"src\":3,\"dst\":1,\"node_name\":\"third\"," +
+  "\"weight\":30}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+  "\"node_name\",\"weight\"]}}},{\"id\":\"diff\",\"inputs\":{" +
+  "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+  "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"graph\":" +
+  graph +
+  ",\"as\":\"g\"},{\"graph\":" +
+  right_graph +
+  ",\"as\":\"right\"},{\"from\":\"g\",\"graph_diff\":{" +
+  "\"with\":\"right\"},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"delta\"]}}},{" +
+  "\"id\":\"apply\",\"inputs\":{\"rows\":{\"result\":{" +
+  "\"stage\":\"values\",\"result\":\"r\"}},\"changes\":{" +
+  "\"result\":{\"stage\":\"diff\",\"result\":\"r\"}}}," +
+  "\"steps\":[{\"graph\":" +
+  graph +
+  ",\"as\":\"base\"},{" +
+  "\"from\":\"base\",\"apply_graph_delta\":{\"with\":\"changes\"," +
+  "\"field\":\"delta\"},\"as\":\"applied\"},{\"from\":\"applied\"," +
+  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"apply\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"node_name\"]}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{" +
+  "\"result\":{\"stage\":\"apply\",\"result\":\"r\"}}}," +
+  "\"steps\":[{\"select\":[\"node_name\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"node_name\"]}}}],\"results\":{\"source\":{\"from\":{" +
+  "\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
 fn local_carrier_graph_environment(
   original : @environment.WireEnvironment,
 ) -> @environment.WireEnvironment raise {
@@ -626,6 +698,9 @@ fn local_carrier_graph_environment(
 ///|
 /// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
+  if variant == "graph_apply_changes" {
+    return local_carrier_graph_apply_program()
+  }
   let concise = variant == "concise_projection"
   let split = variant == "split_projection"
   let subtract = variant.has_prefix("subtract")
@@ -3606,7 +3681,12 @@ fn query_checked_program_fixture(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
       new=if local_carrier_graph_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
-        "\"graph\",\"result\":\"r\"}}}}"
+        (if local_carrier_graph_variant == "graph_apply_changes" {
+          "\"apply\""
+        } else {
+          "\"graph\""
+        }) +
+        ",\"result\":\"r\"}}}}"
       } else if local_carrier_events_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"events\",\"result\":\"r\"}}}}"
@@ -4004,7 +4084,9 @@ fn query_checked_program_fixture(
       {
         input: input_limits,
         compilation: query_checked_limits(
-          if local_values_join_chain && local_values_join_kind == "full" {
+          if local_carrier_graph_variant == "graph_apply_changes" {
+            12
+          } else if local_values_join_chain && local_values_join_kind == "full" {
             20
           } else {
             10
