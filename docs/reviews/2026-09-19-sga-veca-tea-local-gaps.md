@@ -91,6 +91,36 @@ The broader RelA differential-conformance matrix and the repository-wide
 resource-accounting audit remain explicit shared release gaps above. Focused
 tests or source inspection are not recorded as their completion.
 
+## Closed focused Local and DuckDB semantic review
+
+Commits `9305bd6af`, `717e418b1`, `2e5aa6c17`, and `4910b3771`
+close the concrete placement-parity findings from the focused review.
+
+- Managed sort and take run the same null placement, descending, offset,
+  ordinal-tie, and UTF-16 corpus through Local and real DuckDB execution.
+- Filter comparison covers `=`, `<>`, `<=`, and `>=` over nullable numbers,
+  including a bound NULL parameter, from one checked owner.
+- Decimal join covers scale equality, precision 38 boundaries, negative zero,
+  large values, and empty input on Local and DuckDB.
+- Group keys cover compound text, NULL, ASCII case, supplementary Unicode,
+  and BMP/private-use boundaries while the DuckDB session uses a hostile
+  `nocase` collation. Generated SQL groups text by encoded bytes and orders
+  results with the ActQL UTF-16 comparator.
+- `null_key: fail` returns the same typed failure for Local memory input and
+  the retained DuckDB import path.
+- Join SQL orders by explicit imported ordinals. Retained row wires without
+  that physical column re-enter the checked parameter importer, which appends
+  the admitted row ordinal. Resident views expose their immutable stored rowid
+  as that ordinal and never derive it with `row_number() OVER ()`.
+- The managed retained Host checks the exact join and downstream count CIDs at
+  the formal custody boundary. Internal completions that have no identity
+  requirement keep their specified delayed-identity state.
+
+The focused corpus passes on JS, Wasm, and native, and the real DuckDB Node
+tests cover the corresponding SQL paths. This closes E1 through E6 from the
+review, but does not close the broader operation-indexed RelA differential
+release gate in the shared blockers table.
+
 ## Closed review findings after `4f84dec2`
 
 Commit `6d9affad` closes both ownership findings from the fixed review.
