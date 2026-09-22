@@ -3,6 +3,7 @@ package "actql/actql/local_sga"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/bounded_graph_diff",
   "actql/actql/bounded_value_set",
   "actql/actql/exact_binary64",
   "actql/actql/execution_relation",
@@ -22,6 +23,8 @@ pub fn advance_graft(GraftExecution, Int) -> Result[GraftPoll, GraftIssue]
 pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
 
 pub fn advance_graph_degree(GraphDegreeExecution, Int) -> Result[GraphDegreePoll, GraphBoundsIssue]
+
+pub fn advance_graph_diff(GraphDiffExecution, Int) -> Result[GraphDiffPoll, GraphDiffIssue]
 
 pub fn advance_graphs_equal(GraphsEqualExecution, Int) -> Result[GraphsEqualPoll, GraphsEqualIssue]
 
@@ -48,6 +51,8 @@ pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
 pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
 
 pub fn cleanup_graph_degree(GraphDegreeExecution) -> Result[Bool, GraphBoundsIssue]
+
+pub fn cleanup_graph_diff(GraphDiffExecution) -> Result[Bool, GraphDiffIssue]
 
 pub fn cleanup_graphs_equal(GraphsEqualExecution) -> Result[Bool, GraphsEqualIssue]
 
@@ -92,6 +97,14 @@ pub fn graph_degree_cleanup_pending(GraphDegreeExecution) -> Bool
 pub fn graph_degree_max_noninterruptible_value_bytes(GraphDegreeExecution) -> Int
 
 pub fn graph_degree_max_noninterruptible_value_nodes(GraphDegreeExecution) -> Int
+
+pub fn graph_diff_cleanup_pending(GraphDiffExecution) -> Bool
+
+pub fn graph_diff_max_noninterruptible_value_bytes(GraphDiffExecution) -> Int
+
+pub fn graph_diff_max_noninterruptible_value_nodes(GraphDiffExecution) -> Int
+
+pub fn graph_diff_stopped(GraphDiffExecution) -> Bool
 
 pub fn graphs_equal_cleanup_pending(GraphsEqualExecution) -> Bool
 
@@ -158,6 +171,8 @@ pub fn start_graft_views(@bounded_execution.Control, @lowering_relation.Prepared
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
 pub fn start_graph_degree(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDegreeExecution, GraphBoundsIssue]
+
+pub fn start_graph_diff(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDiffExecution, GraphDiffIssue]
 
 pub fn start_graphs_equal(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphsEqualExecution, GraphsEqualIssue]
 
@@ -256,6 +271,25 @@ pub enum GraphDegreePoll {
   GraphDegreeComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   GraphDegreeFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
   GraphDegreeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type GraphDiffExecution
+
+pub(all) enum GraphDiffIssue {
+  InvalidGraphDiffKernel
+  GraphDiffInputUnavailable
+  GraphDiffWorkLimit
+  GraphDiffCore(@bounded_graph_diff.Issue)
+  GraphDiffOutput(@execution_relation.CaptureIssue)
+  GraphDiffCompletion(@execution_relation.TrustedOutputIssue)
+  GraphDiffExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum GraphDiffPoll {
+  GraphDiffContinue(progress~ : Int64, work~ : Int64)
+  GraphDiffComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  GraphDiffFailed(GraphDiffIssue, progress~ : Int64, work~ : Int64)
+  GraphDiffStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type GraphsEqualExecution

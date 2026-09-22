@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/bounded_tuple_sort"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance(Sort, Int) -> Result[Poll, Issue]
+
+pub fn cleanup(Sort) -> Bool
+
+pub fn count(Sort) -> Int
+
+pub fn index_at(Sort, Int) -> Int?
+
+pub fn key_component_at(Sort, Int, Int) -> String?
+
+pub fn prepare(Array[Array[String]], Int) -> Result[Sort, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  InvalidKey
+  WorkspaceLimit
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum Poll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(progress~ : Int64, work~ : Int64)
+}
+
+type Sort
+
+// Type aliases
+
+// Traits

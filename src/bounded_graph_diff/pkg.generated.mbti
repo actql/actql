@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/bounded_graph_diff"
+
+import {
+  "actql/actql/bounded_graph_snapshot",
+  "actql/actql/managed_graph_storage",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance(Preparation, Int) -> Result[Poll, Issue]
+
+pub fn base_cid(Delta) -> String
+
+pub fn cleanup(Preparation) -> Bool
+
+pub fn prepare(@managed_graph_storage.Storage, @managed_graph_storage.Storage, @value_contract.Contract, String, Limits) -> Result[Preparation, Issue]
+
+pub fn target_cid(Delta) -> String
+
+pub fn value(Delta) -> @value_admission.CheckedValue
+
+// Errors
+
+// Types and methods
+type Delta
+
+pub(all) enum Issue {
+  InvalidLimits
+  InvalidGraph
+  InvalidDeltaContract
+  WorkspaceLimit
+  OutputLimit
+  Snapshot(@bounded_graph_snapshot.Issue)
+  Comparison(@value_admission.CompleteEqualityIssue)
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_workspace_slots : Int
+  max_output_nodes : Int
+  max_output_text_bytes : Int
+  max_output_depth : Int
+  max_identity_bytes : Int
+  max_identity_nodes : Int
+  max_identity_depth : Int
+  value_limits : @value_admission.Limits
+}
+
+pub enum Poll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(Delta, progress~ : Int64, work~ : Int64)
+  Failed(Issue, progress~ : Int64, work~ : Int64)
+}
+
+type Preparation
+
+// Type aliases
+
+// Traits

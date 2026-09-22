@@ -60,6 +60,13 @@ priv enum PendingAction {
 }
 
 ///|
+priv enum ComparePropertyPoll {
+  CompareContinue(Int)
+  CompareComplete(Bool, Int)
+  CompareFailed(Issue, Int)
+}
+
+///|
 struct Preparation {
   left : @storage.Storage
   right : @storage.Storage
@@ -586,7 +593,7 @@ fn compare_property(
   left : @value.CheckedValue,
   right : @value.CheckedValue,
   quantum : Int,
-) -> Result[(Bool?, Int), Issue] {
+) -> ComparePropertyPoll {
   let comparison = match value.comparison {
     Some(comparison) => comparison
     None =>
@@ -596,18 +603,18 @@ fn compare_property(
           value.comparison = Some(comparison)
           comparison
         }
-        Err(issue) => return Err(Comparison(issue))
+        Err(issue) => return CompareFailed(Comparison(issue), 0)
       }
   }
   match @value.advance_complete_equality(comparison, quantum) {
-    @value.EqualityContinue(work~) => Ok((None, work))
+    @value.EqualityContinue(work~) => CompareContinue(work)
     @value.EqualityComplete(equal~, work~) => {
       value.comparison = None
-      Ok((Some(equal), work))
+      CompareComplete(equal, work)
     }
-    @value.EqualityFailed(issue, work=_) => {
+    @value.EqualityFailed(issue, work~) => {
       value.comparison = None
-      Err(Comparison(issue))
+      CompareFailed(Comparison(issue), work)
     }
   }
 }
@@ -829,19 +836,21 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           return Err(InvalidGraph)
         }
         match compare_property(value, left, right, quantum - used) {
-          Ok((None, work)) => used += work
-          Ok((Some(true), work)) => {
+          CompareContinue(work) => used += work
+          CompareComplete(true, work) => {
             used += work
             value.property += 1
           }
-          Ok((Some(false), work)) => {
+          CompareComplete(false, work) => {
             used += work
             schedule(value, NodeUpdate(left_index, right_index, false))
           }
-          Err(issue) =>
+          CompareFailed(issue, work) => {
+            used += work
             return Ok(
               Failed(issue, progress=progress.to_int64(), work=used.to_int64()),
             )
+          }
         }
       }
       SelectEdge => {
@@ -876,19 +885,21 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           return Err(InvalidGraph)
         }
         match compare_property(value, left, right, quantum - used) {
-          Ok((None, work)) => used += work
-          Ok((Some(true), work)) => {
+          CompareContinue(work) => used += work
+          CompareComplete(true, work) => {
             used += work
             value.property += 1
           }
-          Ok((Some(false), work)) => {
+          CompareComplete(false, work) => {
             used += work
             schedule(value, EdgeUpdate(left_index, right_index, false))
           }
-          Err(issue) =>
+          CompareFailed(issue, work) => {
+            used += work
             return Ok(
               Failed(issue, progress=progress.to_int64(), work=used.to_int64()),
             )
+          }
         }
       }
       BuildRecord => {
@@ -1014,6 +1025,14 @@ pub fn target_cid(delta : Delta) -> String {
 
 ///|
 pub fn cleanup(value : Preparation) -> Bool {
+  if value.left_preparation is Some(preparation) {
+    @snapshot.cancel(preparation) |> ignore
+    value.left_preparation = None
+  }
+  if value.right_preparation is Some(preparation) {
+    @snapshot.cancel(preparation) |> ignore
+    value.right_preparation = None
+  }
   if value.left_snapshot is Some(snapshot) {
     @snapshot.cleanup(snapshot) |> ignore
     value.left_snapshot = None

@@ -235,7 +235,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"weight\":20}]"
   }
   let graph_equality = is_graph_equality_variant(variant)
-  let graph_diff = variant == "graph_diff"
+  let graph_diff = variant == "graph_diff" || variant == "graph_diff_changes"
+  let graph_diff_changes = variant == "graph_diff_changes"
   let projection = if concise {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "match_nodes" {
@@ -464,7 +465,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
@@ -472,7 +473,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"node_rows\":true,\"as\":\"out\""
   } else if variant == "mean" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"mean_graphs\":{\"with\":[\"right_graph\",\"g\"," +
@@ -546,8 +547,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"node_rows\":true,\"as\":\"out\""
     })
   } else if graph_diff {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"graph\":{\"nodes\":{\"from\":" +
+    (if graph_diff_changes { "\"other\"" } else { "\"rows\"" }) +
+    ",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
+    (if graph_diff_changes { "\"other\"" } else { "\"rows\"" }) +
+    "," +
     "\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graph_diff\":{\"with\":\"right_graph\"}," +
@@ -659,7 +664,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     "\"node_name\""
   }
-  let other_stage = if subtract || union_set {
+  let other_stage = if graph_diff_changes {
+    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
+    "\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":3," +
+    "\"node_name\":\"changed\",\"weight\":11},{\"id\":3," +
+    "\"src\":3,\"dst\":1,\"node_name\":\"third\"," +
+    "\"weight\":30}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+    "\"node_name\",\"weight\"]}}},"
+  } else if subtract || union_set {
     "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
     "\"values\":{\"schema\":" +
     schema +
@@ -741,7 +756,11 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else {
     ""
   }
-  let graph_inputs = if subtract || union_set {
+  let graph_inputs = if graph_diff_changes {
+    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+    "\"result\":\"r\"}}"
+  } else if subtract || union_set {
     "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
     "\"other\":{\"result\":{\"stage\":\"other_values\"," +
     "\"result\":\"r\"}}"
@@ -5929,6 +5948,7 @@ fn run_standard_host_graph_relation_path(
   variant : String,
   publication? : Bool = false,
 ) -> Unit raise {
+  let graph_diff_changes = variant == "graph_diff_changes"
   let relation_selector = variant.has_prefix("subgraph_relation_selector") ||
     variant == "traverse_relation_selector" ||
     variant == "traverse_relation_paths" ||
@@ -5951,6 +5971,7 @@ fn run_standard_host_graph_relation_path(
       variant == "split_projection" ||
       variant.has_prefix("subtract") ||
       variant == "union_set" ||
+      graph_diff_changes ||
       relation_selector {
       Some({
         planning_work: 20000,
@@ -5978,6 +5999,7 @@ fn run_standard_host_graph_relation_path(
     variant == "split_projection" ||
     variant.has_prefix("subtract") ||
     variant == "union_set" ||
+    graph_diff_changes ||
     relation_selector {
     3
   } else {
@@ -6083,7 +6105,8 @@ fn run_standard_host_graph_relation_path(
   } else if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
     variant.has_prefix("subtract") ||
-    variant == "union_set" {
+    variant == "union_set" ||
+    graph_diff_changes {
     let other_live = Ref(true)
     let (other_ops, other) = run_local_managed_test_task(
       installed,
@@ -6166,7 +6189,8 @@ fn run_standard_host_graph_relation_path(
   } else if variant == "match_edges_predicate" ||
     variant == "match_nodes_predicate" {
     1
-  } else if is_graph_equality_variant(variant) || variant == "graph_diff" {
+  } else if is_graph_equality_variant(variant) ||
+    variant.has_prefix("graph_diff") {
     1
   } else {
     2
@@ -6384,6 +6408,13 @@ fn run_standard_host_graph_relation_path(
     assert_true(graph_rows[0].contains("\"add\":[]"))
     assert_true(graph_rows[0].contains("\"remove\":[]"))
     assert_true(graph_rows[0].contains("\"update\":[]"))
+  } else if graph_diff_changes {
+    assert_true(graph_rows[0].contains("\"version\":\"actql-graph-delta/0.1\""))
+    assert_true(graph_rows[0].contains("\"node_name\":\"changed\""))
+    assert_true(graph_rows[0].contains("\"node_name\":\"third\""))
+    assert_true(graph_rows[0].contains("\"id\":2"))
+    assert_true(graph_rows[0].contains("\"weight\":11"))
+    assert_true(graph_rows[0].contains("\"weight\":30"))
   } else if variant == "concise_projection" {
     assert_true(graph_rows[0].contains("\"src\":1"))
     assert_true(graph_rows[0].contains("\"dst\":2"))
@@ -6517,6 +6548,7 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_unequal")
   run_standard_host_graph_relation_path("graphs_payload_unequal")
   run_standard_host_graph_relation_path("graph_diff")
+  run_standard_host_graph_relation_path("graph_diff_changes")
 }
 
 ///|

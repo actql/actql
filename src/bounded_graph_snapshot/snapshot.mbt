@@ -488,3 +488,19 @@ pub fn edge_key_at(value : Snapshot, index : Int) -> (String, String, String)? {
 pub fn cleanup(value : Snapshot) -> Bool {
   @sort.cleanup(value.node_sort) && @sort.cleanup(value.edge_sort)
 }
+
+///|
+pub fn cancel(value : Preparation) -> Bool {
+  value.node_keys.clear()
+  value.edge_keys.clear()
+  if value.node_sort is Some(sort) {
+    @sort.cleanup(sort) |> ignore
+    value.node_sort = None
+  }
+  if value.edge_sort is Some(sort) {
+    @sort.cleanup(sort) |> ignore
+    value.edge_sort = None
+  }
+  value.phase = Finished
+  true
+}

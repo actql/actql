@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/graph_snapshot_identity"
+
+import {
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append_property(Builder, String, @value_admission.CheckedValue) -> Result[Unit, Issue]
+
+pub fn begin_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Result[Unit, Issue]
+
+pub fn begin_node(Builder, @value_admission.CheckedValue) -> Result[Unit, Issue]
+
+pub fn end_edge(Builder) -> Result[Unit, Issue]
+
+pub fn end_node(Builder) -> Result[Unit, Issue]
+
+pub fn end_nodes(Builder) -> Result[Unit, Issue]
+
+pub fn finish(Builder) -> Result[String, Issue]
+
+pub fn prepare(String, Limits) -> Result[Builder, Issue]
+
+// Errors
+
+// Types and methods
+type Builder
+
+pub(all) enum Issue {
+  InvalidLimits
+  InvalidContractIdentity
+  InvalidPhase
+  InvalidNodeOrder
+  InvalidEdgeOrder
+  InvalidPropertyOrder
+  EncodingLimit
+  ValueOrder(@value_admission.CompleteOrderIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  value_limits : @value_admission.Limits
+}
+
+// Type aliases
+
+// Traits

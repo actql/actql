@@ -1,0 +1,69 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/bounded_graph_snapshot"
+
+import {
+  "actql/actql/bounded_tuple_sort",
+  "actql/actql/graph_snapshot_identity",
+  "actql/actql/managed_graph_storage",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance(Preparation, Int) -> Result[Poll, Issue]
+
+pub fn cancel(Preparation) -> Bool
+
+pub fn cid(Snapshot) -> String
+
+pub fn cleanup(Snapshot) -> Bool
+
+pub fn edge_at(Snapshot, Int) -> Int?
+
+pub fn edge_count(Snapshot) -> Int
+
+pub fn edge_key_at(Snapshot, Int) -> (String, String, String)?
+
+pub fn node_at(Snapshot, Int) -> Int?
+
+pub fn node_count(Snapshot) -> Int
+
+pub fn node_key_at(Snapshot, Int) -> String?
+
+pub fn prepare(@managed_graph_storage.Storage, String, Limits) -> Result[Preparation, Issue]
+
+pub fn workspace_slots(@managed_graph_storage.Storage) -> Int?
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  InvalidGraph
+  WorkspaceLimit
+  ValueOrder(@value_admission.CompleteOrderIssue)
+  Sort(@bounded_tuple_sort.Issue)
+  Identity(@graph_snapshot_identity.Issue)
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_workspace_slots : Int
+  max_identity_bytes : Int
+  max_identity_nodes : Int
+  max_identity_depth : Int
+  value_limits : @value_admission.Limits
+}
+
+pub enum Poll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(Snapshot, progress~ : Int64, work~ : Int64)
+}
+
+type Preparation
+
+type Snapshot
+
+// Type aliases
+
+// Traits

@@ -132,3 +132,16 @@ test "snapshot rejects workspace before incremental allocation" {
     is Err(WorkspaceLimit),
   )
 }
+
+///|
+test "snapshot cancellation releases partial preparation" {
+  let preparation = prepare(
+    graph_storage(),
+    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    snapshot_limits(12),
+  ).unwrap()
+  assert_true(advance(preparation, 1) is Ok(Continue(_)))
+  assert_true(cancel(preparation))
+  assert_true(advance(preparation, 1) is Err(Terminal))
+  assert_true(cancel(preparation))
+}

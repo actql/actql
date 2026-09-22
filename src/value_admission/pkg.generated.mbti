@@ -24,6 +24,8 @@ pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
 pub fn append_array_item(ArrayBuilder, Value) -> Bool
 
+pub fn append_object_field(ObjectBuilder, String, Value) -> Bool
+
 pub fn append_vector_component(VectorBuilder, Double) -> Bool
 
 pub fn array_value(Array[Value]) -> Value
@@ -33,6 +35,10 @@ pub fn bind_reference_issuer((@value_contract.Contract, String) -> Bool, (String
 pub fn bind_reference_reissuer((@value_contract.Contract, String) -> ReferenceValue?) -> ReferenceIssuer
 
 pub fn boolean_value(Bool) -> Value
+
+pub fn cancel_array_value(ArrayBuilder) -> Bool
+
+pub fn cancel_object_value(ObjectBuilder) -> Bool
 
 pub fn cancel_vector_value(VectorBuilder) -> Bool
 
@@ -72,7 +78,11 @@ pub fn event_time_milliseconds(CheckedValue, Bool) -> Double?
 
 pub fn finish_array_value(ArrayBuilder) -> Value?
 
+pub fn finish_bounded_array_value(ArrayBuilder) -> Value?
+
 pub fn finish_checked_vector_value(VectorBuilder, @value_contract.Contract) -> CheckedValue?
+
+pub fn finish_object_value(ObjectBuilder) -> Value?
 
 pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, ReferenceLimits) -> Result[CheckedValue, ReferenceIssue]
 
@@ -84,9 +94,13 @@ pub fn object_value(Array[(String, Value)]) -> Value?
 
 pub fn prepare_array_value(Int) -> ArrayBuilder?
 
+pub fn prepare_object_value(Int) -> ObjectBuilder?
+
 pub fn prepare_vector_value(Int) -> VectorBuilder?
 
 pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
+
+pub fn recheck_runtime_value_usage(Value, @value_contract.Contract, Limits) -> (CheckedValue, Int, Int)?
 
 pub fn reference_available(ReferenceValue) -> Bool
 
@@ -181,6 +195,8 @@ pub(all) struct Limits {
   max_depth : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+type ObjectBuilder
 
 type ReferenceDomain
 

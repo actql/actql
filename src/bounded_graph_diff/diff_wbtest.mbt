@@ -182,3 +182,30 @@ test "graph diff admits combined workspace before snapshot construction" {
     is Err(WorkspaceLimit),
   )
 }
+
+///|
+test "graph diff cleanup cancels partial snapshots" {
+  let left = graph_storage(10.0, 2.0, 20.0)
+  let right = graph_storage(11.0, 3.0, 30.0)
+  let checked = @graph_type.check_diff(
+    cursor("{\"with\":\"target\"}"),
+    graph_carrier(),
+    graph_carrier(),
+    {
+      max_work: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+      max_text_bytes: 100000,
+    },
+  ).unwrap()
+  let preparation = prepare(
+    left,
+    right,
+    @graph_type.diff_contract(checked),
+    @graph_contract.cid(@graph_type.diff_graph_contract(checked)),
+    diff_limits(100),
+  ).unwrap()
+  assert_true(advance(preparation, 1) is Ok(Continue(_)))
+  assert_true(cleanup(preparation))
+  assert_true(cleanup(preparation))
+}
