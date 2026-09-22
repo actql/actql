@@ -149,8 +149,9 @@ priv struct ShortestState {
   mut best_path_edges : Array[Int]
   mut emitted_rows : Int64
   mut values : Array[@value.CheckedValue]
-  mut value_items : Array[@value.Value]
+  mut value_items : @value.ArrayBuilder?
   mut value_item : Int
+  mut value_nodes_remaining : Int
   value_item_attempts : Ref[Int]
 }
 
@@ -232,10 +233,32 @@ fn shortest_workspace(
     checked_shortest_add(node_slots, edge_slots) is Some(base) &&
     checked_shortest_multiply(nodes, if retain_best_path { 2 } else { 0 })
     is Some(best_slots) &&
-    checked_shortest_add(base, best_slots) is Some(total) else {
+    checked_shortest_add(base, best_slots) is Some(graph_slots) &&
+    checked_shortest_add(nodes, 1) is Some(node_value_slots) &&
+    checked_shortest_multiply(edges, 4) is Some(edge_value_items) &&
+    checked_shortest_add(edge_value_items, 1) is Some(edge_value_slots) &&
+    checked_shortest_add(
+      graph_slots,
+      if node_value_slots > edge_value_slots {
+        node_value_slots
+      } else {
+        edge_value_slots
+      },
+    )
+    is Some(total) else {
     return None
   }
   Some(total)
+}
+
+///|
+fn shortest_reserve_value_nodes(state : ShortestState, nodes : Int) -> Bool {
+  if nodes < 0 || nodes > state.value_nodes_remaining {
+    false
+  } else {
+    state.value_nodes_remaining -= nodes
+    true
+  }
 }
 
 ///|
@@ -1568,21 +1591,33 @@ fn shortest_step(
             @schema.Unqualified("node_ids") => {
               guard shortest_path_value_minimum_nodes(state, field)
                 is Some(nodes) &&
-                nodes <= state.value_limits.max_nodes else {
+                nodes <= state.value_limits.max_nodes &&
+                @value.prepare_array_value(state.path_nodes.length())
+                is Some(builder) else {
                 return @bounded.Failed(ShortestOutputLimit, progress, used)
               }
-              state.value_items = []
+              state.value_items = Some(builder)
               state.value_item = 0
+              state.value_nodes_remaining = state.value_limits.max_nodes
+              guard shortest_reserve_value_nodes(state, 1) else {
+                return @bounded.Failed(ShortestOutputLimit, progress, used)
+              }
               state.phase = BuildNodeIds
             }
             @schema.Unqualified("edge_ids") => {
               guard shortest_path_value_minimum_nodes(state, field)
                 is Some(nodes) &&
-                nodes <= state.value_limits.max_nodes else {
+                nodes <= state.value_limits.max_nodes &&
+                @value.prepare_array_value(state.path_edges.length())
+                is Some(builder) else {
                 return @bounded.Failed(ShortestOutputLimit, progress, used)
               }
-              state.value_items = []
+              state.value_items = Some(builder)
               state.value_item = 0
+              state.value_nodes_remaining = state.value_limits.max_nodes
+              guard shortest_reserve_value_nodes(state, 1) else {
+                return @bounded.Failed(ShortestOutputLimit, progress, used)
+              }
               state.phase = BuildEdgeIds
             }
             _ => {
@@ -1602,23 +1637,37 @@ fn shortest_step(
           state.phase = FinalizePathValue
           continue
         }
+        guard shortest_reserve_value_nodes(state, 1) else {
+          return @bounded.Failed(ShortestOutputLimit, progress, used)
+        }
+        used += 1
+        if @bounded.stop_requested(reader) is Some(reason) {
+          return @bounded.Stopped(reason, progress, used)
+        }
         let node = state.path_nodes[state.value_item]
-        guard @storage.node_identity(state.source, node) is Some(identity) else {
+        guard state.value_items is Some(builder) &&
+          @storage.node_identity(state.source, node) is Some(identity) &&
+          @value.append_array_item(builder, identity.value) else {
           return @bounded.Failed(ShortestInputUnavailable, progress, used)
         }
         state.value_item_attempts.val += 1
-        state.value_items.push(identity.value)
         state.value_item += 1
-        used += 1
       }
       BuildEdgeIds => {
         if state.value_item == state.path_edges.length() {
           state.phase = FinalizePathValue
           continue
         }
+        guard shortest_reserve_value_nodes(state, 4) else {
+          return @bounded.Failed(ShortestOutputLimit, progress, used)
+        }
+        used += 1
+        if @bounded.stop_requested(reader) is Some(reason) {
+          return @bounded.Stopped(reason, progress, used)
+        }
         let edge = state.path_edges[state.value_item]
-        guard @storage.edge_endpoints(state.source, edge)
-          is Some((source, target)) &&
+        guard state.value_items is Some(builder) &&
+          @storage.edge_endpoints(state.source, edge) is Some((source, target)) &&
           @storage.node_identity(state.source, source) is Some(source_id) &&
           @storage.node_identity(state.source, target) is Some(target_id) &&
           @storage.edge_label(state.source, edge) is Some(label) &&
@@ -1633,18 +1682,19 @@ fn shortest_step(
               },
             ),
           ])
-          is Some(identity) else {
+          is Some(identity) &&
+          @value.append_array_item(builder, identity) else {
           return @bounded.Failed(ShortestInputUnavailable, progress, used)
         }
         state.value_item_attempts.val += 1
-        state.value_items.push(identity)
         state.value_item += 1
-        used += 1
       }
       FinalizePathValue => {
-        guard @schema.field_at(state.schema, state.row_column) is Some(field) &&
+        guard state.value_items is Some(builder) &&
+          @value.finish_array_value(builder) is Some(array) &&
+          @schema.field_at(state.schema, state.row_column) is Some(field) &&
           @value.recheck_runtime_value(
-            @value.array_value(state.value_items),
+            array,
             field.contract,
             state.value_limits,
           )
@@ -1652,8 +1702,9 @@ fn shortest_step(
           return @bounded.Failed(ShortestOutputLimit, progress, used)
         }
         state.values.push(value)
-        state.value_items = []
+        state.value_items = None
         state.value_item = 0
+        state.value_nodes_remaining = 0
         state.row_column += 1
         state.phase = ReadField
         used += 1
@@ -1669,7 +1720,7 @@ fn shortest_step(
         match @execution.append_admitted_output(output, state.values) {
           Ok(_) => {
             state.values = []
-            state.value_items = []
+            state.value_items = None
             state.emitted_rows += 1L
             state.phase = match state.selection {
               @graph_type.EachPair => FinishPair
@@ -1760,7 +1811,7 @@ fn cleanup_shortest_state(state : ShortestState) -> Bool {
   state.best_path_nodes.clear()
   state.best_path_edges.clear()
   state.values = []
-  state.value_items = []
+  state.value_items = None
   true
 }
 
@@ -2004,8 +2055,9 @@ pub fn start_shortest(
     best_path_edges: [],
     emitted_rows: 0L,
     values: [],
-    value_items: [],
+    value_items: None,
     value_item: 0,
+    value_nodes_remaining: 0,
     value_item_attempts,
   }
   let (session, token) = @bounded.start(

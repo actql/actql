@@ -30,3 +30,21 @@ test "closed object construction detaches sorts and rejects invalid names" {
   )
   assert_true(object_value([("e\u{0301}", null_value())]) is None)
 }
+
+///|
+test "owned array builder closes exact backing without reopening" {
+  assert_true(prepare_array_value(-1) is None)
+  let builder = prepare_array_value(2).unwrap()
+  assert_true(append_array_item(builder, number_value(1.0).unwrap()))
+  assert_true(append_array_item(builder, boolean_value(true)))
+  assert_false(append_array_item(builder, null_value()))
+  guard finish_array_value(builder) is Some(Array(items)) else { fail("array") }
+  assert_eq(element_count(items), 2)
+  assert_true(element_at(items, 0) is Some(Number(1.0)))
+  assert_true(element_at(items, 1) is Some(Boolean(true)))
+  assert_false(append_array_item(builder, null_value()))
+  assert_true(finish_array_value(builder) is None)
+
+  let incomplete = prepare_array_value(1).unwrap()
+  assert_true(finish_array_value(incomplete) is None)
+}

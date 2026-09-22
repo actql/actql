@@ -33,6 +33,15 @@ struct FrozenArray[T] {
 }
 
 ///|
+/// Package-owned construction prevents mutation after an array is exposed
+/// without requiring a second whole-array copy at completion.
+struct ArrayBuilder {
+  values : Array[Value]
+  expected : Int
+  mut open : Bool
+}
+
+///|
 /// Package-owned construction prevents mutation after the final value is
 /// exposed without requiring a second whole-vector copy.
 struct VectorBuilder {
@@ -46,6 +55,35 @@ struct VectorBuilder {
 /// The detached backing prevents later mutation of the caller's collection.
 pub fn array_value(values : Array[Value]) -> Value {
   Array({ values: values.copy(), })
+}
+
+///|
+pub fn prepare_array_value(length : Int) -> ArrayBuilder? {
+  if length < 0 {
+    None
+  } else {
+    Some({ values: [], expected: length, open: true, })
+  }
+}
+
+///|
+pub fn append_array_item(builder : ArrayBuilder, value : Value) -> Bool {
+  if !builder.open || builder.values.length() >= builder.expected {
+    false
+  } else {
+    builder.values.push(value)
+    true
+  }
+}
+
+///|
+pub fn finish_array_value(builder : ArrayBuilder) -> Value? {
+  if !builder.open || builder.values.length() != builder.expected {
+    None
+  } else {
+    builder.open = false
+    Some(Array({ values: builder.values, }))
+  }
 }
 
 ///|

@@ -22,6 +22,8 @@ pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Res
 
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
+pub fn append_array_item(ArrayBuilder, Value) -> Bool
+
 pub fn append_vector_component(VectorBuilder, Double) -> Bool
 
 pub fn array_value(Array[Value]) -> Value
@@ -68,6 +70,8 @@ pub fn epoch_milliseconds_timestamp(Int64) -> String?
 
 pub fn event_time_milliseconds(CheckedValue, Bool) -> Double?
 
+pub fn finish_array_value(ArrayBuilder) -> Value?
+
 pub fn finish_checked_vector_value(VectorBuilder, @value_contract.Contract) -> CheckedValue?
 
 pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, ReferenceLimits) -> Result[CheckedValue, ReferenceIssue]
@@ -77,6 +81,8 @@ pub fn null_value() -> Value
 pub fn number_value(Double) -> Value?
 
 pub fn object_value(Array[(String, Value)]) -> Value?
+
+pub fn prepare_array_value(Int) -> ArrayBuilder?
 
 pub fn prepare_vector_value(Int) -> VectorBuilder?
 
@@ -103,6 +109,8 @@ pub fn timestamp_epoch_milliseconds(String) -> Int64?
 // Errors
 
 // Types and methods
+type ArrayBuilder
+
 pub struct CheckedValue {
   contract : @value_contract.Contract
   value : Value

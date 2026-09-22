@@ -3028,7 +3028,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
   let external = @execution.prepare_producer_read(
     owner,
     @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
-    72,
+    89,
     1000,
   ).unwrap()
   let construction = @local_bridge.start_rows_to_graph(
@@ -3054,7 +3054,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
       input,
       1,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      71,
+      88,
       1000,
       1000,
       [external],
@@ -3069,7 +3069,7 @@ test "scalar shortest path admits workspace before allocation and cancels" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    100,
+    89,
     1000,
     1000,
     [external],
@@ -3113,15 +3113,33 @@ test "scalar shortest path admits workspace before allocation and cancels" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    72,
+    89,
     1000,
     1000,
     [external],
   ).unwrap()
+  let mut polls = 0
+  let mut attempts = 0
+  while attempts == 0 {
+    let before = @local_sga.shortest_value_item_attempts(cancelled)
+    assert_true(
+      @local_sga.advance_shortest(cancelled, 1).unwrap()
+      is @local_sga.ShortestContinue(..),
+    )
+    attempts = @local_sga.shortest_value_item_attempts(cancelled)
+    assert_true(attempts - before <= 1)
+    polls += 1
+    assert_true(polls < 1000)
+  }
   assert_true(@bounded.request_cancel(control))
+  let attempts_before_stop = @local_sga.shortest_value_item_attempts(cancelled)
   assert_true(
     @local_sga.advance_shortest(cancelled, 1).unwrap()
-    is @local_sga.ShortestStopped(_, progress=0L, work=0L),
+    is @local_sga.ShortestStopped(_, progress=_, work=_),
+  )
+  assert_eq(
+    @local_sga.shortest_value_item_attempts(cancelled),
+    attempts_before_stop,
   )
   assert_true(@local_sga.shortest_stopped(cancelled))
   assert_true(@local_sga.shortest_cleanup_pending(cancelled))
@@ -3172,7 +3190,7 @@ test "scalar shortest path uses canonical identity ties" {
     input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    72,
+    89,
     1000,
     1000,
     [external],
@@ -3328,10 +3346,10 @@ test "weighted shortest path admits workspace before allocation" {
     "{\"id\":3,\"src\":3,\"dst\":2," +
     "\"node_name\":\"three\",\"weight\":1}]"
   assert_true(
-    weighted_shortest_result(rows, 1, 2, 2, workspace=74)
+    weighted_shortest_result(rows, 1, 2, 2, workspace=87)
     is Err(@local_sga.ShortestWorkspaceLimit),
   )
-  assert_true(weighted_shortest_result(rows, 1, 2, 2, workspace=75) is Ok(_))
+  assert_true(weighted_shortest_result(rows, 1, 2, 2, workspace=88) is Ok(_))
 
   let source_owner = carrier_graph_source_owner_with_rows(rows)
   let source = carrier_events_source_output(source_owner)
@@ -3370,7 +3388,7 @@ test "weighted shortest path admits workspace before allocation" {
     @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    75,
+    88,
     1000,
     1000,
     [external],
@@ -3437,7 +3455,7 @@ test "scalar shortest path preserves edge type filters" {
       input,
       1,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      54,
+      67,
       1000,
       1000,
       [external],
@@ -3494,7 +3512,7 @@ test "shortest path executes explicit endpoint identity sets" {
     input,
     4,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    72,
+    89,
     1000,
     1000,
     [external],
@@ -3553,7 +3571,7 @@ test "shortest path executes explicit endpoint identity sets" {
       nearest_input,
       2,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      79,
+      96,
       1000,
       1000,
       [nearest_external],
@@ -3568,7 +3586,7 @@ test "shortest path executes explicit endpoint identity sets" {
     nearest_input,
     2,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    80,
+    97,
     1000,
     1000,
     [nearest_external],
@@ -3659,7 +3677,7 @@ test "shortest path executes explicit endpoint identity sets" {
     missing_input,
     1,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    72,
+    89,
     1000,
     1000,
     [missing_external],
