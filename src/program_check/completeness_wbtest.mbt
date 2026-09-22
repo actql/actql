@@ -33,12 +33,14 @@ test "formal coverage reads retain Unit ownership and Result import projection" 
   assert_true(unit_completeness_requirement(p, 2, Input(0)) is None)
   assert_true(unit_completeness_requirement(p, 0, Step(-1)) is None)
   let local_binding = unit_input_completeness(p, 0, 0).unwrap()
+  assert_true(input_completeness_is_supplied(local_binding))
   guard local_binding.binding is Local(subject) else {
     fail("local coverage owner")
   }
   assert_true(physical_equal(subject.pipeline, unit_pipeline(p, 0).unwrap()))
   assert_eq(subject.target, Input(0))
   let imported_binding = unit_input_completeness(p, 1, 0).unwrap()
+  assert_false(input_completeness_is_supplied(imported_binding))
   guard imported_binding.binding is Imported(interface, producer) else {
     fail("import coverage owner")
   }
@@ -58,6 +60,7 @@ test "coverage binding includes unused sources and uses pipeline input names" {
   assert_eq(@pipeline.input_count(pipeline), 2)
   for index in 0..<@pipeline.input_count(pipeline) {
     let binding = unit_input_completeness(p, 0, index).unwrap()
+    assert_false(input_completeness_is_supplied(binding))
     guard binding.binding is Source(execution) else {
       fail("source coverage owner")
     }

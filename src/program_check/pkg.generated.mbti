@@ -201,6 +201,8 @@ pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
+pub fn input_completeness_is_supplied(InputCompletenessRequirement) -> Bool
+
 pub fn input_request_at(InputRequests, Int) -> InputRequest?
 
 pub fn input_request_count(InputRequests) -> Int

@@ -13,6 +13,15 @@ pub struct InputCompletenessRequirement {
 }
 
 ///|
+/// True only for an input fulfilled by the checked Program's supplied data.
+/// Source acquisition and imported Result bindings remain distinct.
+pub fn input_completeness_is_supplied(
+  value : InputCompletenessRequirement,
+) -> Bool {
+  value.binding is Local(_)
+}
+
+///|
 fn prepare_input_completeness(
   units : Array[BuiltUnit],
   budget : IdentityBudget,

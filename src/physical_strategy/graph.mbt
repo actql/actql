@@ -274,7 +274,7 @@ pub fn prepare_checked_dag(
         is Some(requirement) else {
         return Err(MissingProducer(stage, input))
       }
-      if requirement.binding is @checked.Local(_) {
+      if @checked.input_completeness_is_supplied(requirement) {
         supplied_slots.push({ consumer: stage, input, })
       }
     }
