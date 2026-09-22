@@ -653,7 +653,7 @@ test('standard native and broad Node Hosts own verification through real capture
           // Fixed source [3,2,3] joined with itself: left-major/right-minor.
           const expectedJoin = hash(kind === 'empty' ? [] : [{ id: 3 }, { id: 3 }, { id: 2 }, { id: 3 }, { id: 3 }]);
           assert.equal(joinResult.importedRows, kind === 'empty' ? 0 : 6);
-          assert.equal(joinResult.importedCells, kind === 'empty' ? 0 : 6);
+          assert.equal(joinResult.importedCells, kind === 'empty' ? 0 : 12);
           assert.equal(joinResult.usage.statements, kind === 'empty' ? 3 : 9);
           try {
             assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), expectedFixed);

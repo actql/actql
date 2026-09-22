@@ -483,13 +483,24 @@ export async function exerciseManagedExample(database, environmentText, environm
   try {
     await joinChannel.request({command: 'prepare', input: joinInput});
     const result = await joinChannel.request({command: 'execute'});
-    assert.equal(result.report.status, 'host-tasks-completed', JSON.stringify(result.report));
+    assert.equal(
+      result.report.status,
+      'host-tasks-completed',
+      JSON.stringify({report: result.report, failure: {
+        code: result.execution?.failure?.code,
+        message: result.execution?.failure?.message,
+        cause: String(result.execution?.failure?.cause ?? ''),
+      }}),
+    );
     assert.equal(result.program_success, false);
     assert.equal(result.report.completed.length, 4);
     assert(result.report.completed.every(task => task.realization === 'duckdb' && task.outputRepresentation === 'retained-file'));
     assert.equal(joinCustody.count(), 4);
-    assert.equal(joinCustody.inspect(joinCustody.completion(3)).descriptor.rows, 4);
-    assert.equal(joinCustody.inspect(joinCustody.completion(3)).descriptor.input_count, 2);
+    const joined = joinCustody.inspect(joinCustody.completion(3));
+    assert.equal(joined.descriptor.rows, 4);
+    assert.equal(joined.descriptor.input_count, 2);
+    assert.equal(joined.descriptor.rows_cid,
+      `sha256:${createHash('sha256').update('[{"id":3},{"id":3},{"id":3},{"id":3}]').digest('hex')}`);
     const last = joinCustody.inspect(joinCustody.completion(4));
     assert.equal(last.descriptor.rows, 1);
     assert.equal(last.descriptor.rows_cid,
@@ -501,7 +512,9 @@ export async function exerciseManagedExample(database, environmentText, environm
       assert.equal(host.usage().attempts, beforeJoin.attempts + 6);
       assert.equal(host.usage().reserved_execution_bytes, 0n);
       assert.equal(host.usage().reserved_retention_bytes, 0n);
-      for (let task = 1; task <= 4; task++) assert.equal(joinStore.body(`task-${task}`)?.available(), true);
+      for (let task = 1; task <= 4; task++) {
+        assert.equal(joinStore.body(`task-${task}`)?.available(), true);
+      }
       assert.equal(joinStore.body('capture-0')?.available(), true);
     } finally {
       await joinCustody.close();
