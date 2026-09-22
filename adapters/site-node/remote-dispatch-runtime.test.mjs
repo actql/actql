@@ -479,13 +479,15 @@ test('output without disposal remains explicitly cleanup pending', async t => {
   assert.equal(f.bundleHolds.size, 1);
 });
 
-test('frozen and primitive executor failures preserve cleanup ownership',
+test('untyped executor failures cannot confirm physical stop',
   async t => {
     for (const [name, primary] of [
       ['frozen', Object.freeze(new Error('frozen executor failure'))],
       ['primitive', 0],
     ]) {
-      const f = await fixture(t, async () => { throw primary; });
+      const f = await fixture(t, async () => { throw primary; }, {
+        autoClose: false,
+      });
       const dispatch = request({dispatchId: `executor-${name}`});
       const record = f.store.accept(
         f.control.prepareAdmission(f.journal, dispatch),
@@ -497,8 +499,12 @@ test('frozen and primitive executor failures preserve cleanup ownership',
         error => error === primary ||
           error instanceof AggregateError && error.errors.includes(primary),
       );
-      assert.equal(f.bundleHolds.size, 0, name);
+      assert.equal(f.bundleHolds.size, 1, name);
       assert.equal(await f.dispatchRuntime.cleanup(dispatch), false, name);
+      await assert.rejects(f.dispatchRuntime.close(), error =>
+        error.code === 'RemoteRuntimeCleanupPending' &&
+        error.cleanupHandle.status().pending === true,
+      );
     }
   });
 
@@ -750,7 +756,11 @@ test('runtime rejects a mismatched input binding before execution', async t => {
 
 test('executor failure is durably failed without completion evidence',
   async t => {
-    const failure = new Error('executor failed');
+    const failure = Object.assign(new Error('executor failed'), {
+      cleanupHandle: Object.freeze({
+        status: () => Object.freeze({pending: false}),
+      }),
+    });
     const f = await fixture(t, async () => { throw failure; });
     const dispatch = request();
     const record = f.store.accept(
@@ -803,7 +813,12 @@ test('cancellation retains Site capacity until executor stop is observed',
       await new Promise((resolve, reject) => {
         signal.addEventListener('abort', async () => {
           await stopped;
-          reject(signal.reason);
+          reject(Object.assign(new Error('RemoteDispatchCancelled'), {
+            code: 'RemoteDispatchCancelled',
+            cleanupHandle: Object.freeze({
+              status: () => Object.freeze({pending: false}),
+            }),
+          }));
         }, {once: true});
       });
     });

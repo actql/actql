@@ -587,9 +587,14 @@ pub fn prepare_remote_runtime_cleanup(
             }
           }
         NativeSettled | ExecutionFailed | ExecutionCancelled =>
-          match prepare_begin_remote_release(record) {
-            Ok(value) => Ok(runtime_step(RuntimePersistTransition, Some(value)))
-            Err(issue) => Err(issue)
+          if !stop_confirmed {
+            Ok(runtime_step(RuntimeAwaitStop, None))
+          } else {
+            match prepare_begin_remote_release(record) {
+              Ok(value) =>
+                Ok(runtime_step(RuntimePersistTransition, Some(value)))
+              Err(issue) => Err(issue)
+            }
           }
       }
   }

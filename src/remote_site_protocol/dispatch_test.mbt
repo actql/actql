@@ -381,10 +381,23 @@ test "unknown execution is reconciled only after cleanup confirmation" {
     prepare_mark_execution_unknown(failed).unwrap(),
     true,
   ).unwrap()
+  assert_true(prepare_begin_remote_release(failed) is Err(InvalidTransition))
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_remote_runtime_cleanup(failed, false, false, false).unwrap(),
+    ),
+    0,
+  )
   commit_dispatch_transition(
     prepare_reconcile_failed_execution(failed).unwrap(),
     true,
   ).unwrap()
+  assert_eq(
+    remote_runtime_step_action_code(
+      prepare_remote_runtime_cleanup(failed, false, false, false).unwrap(),
+    ),
+    0,
+  )
   let (failed_execution, _, failed_cleanup, _, _) = dispatch_record_state(
     failed,
   )

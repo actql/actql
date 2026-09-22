@@ -489,7 +489,9 @@ export function createRemoteDispatchRuntime({
     signal,
     bundleHoldId,
   ) => {
-    const cleanupPending = member(error, 'cleanupPending') === true;
+    const cleanupPending = member(error, 'cleanupPending') === true ||
+      operationState.executeStarted && !operationState.executeReturned &&
+      cleanupState({handle: member(error, 'cleanupHandle')}).pending;
     const retainedOwner = owners.get(identity);
     const custody = retainedOwner?.custody ?? currentCustody;
     if (!control.runtimeCustodyRecordFailure(
@@ -574,6 +576,8 @@ export function createRemoteDispatchRuntime({
       bundleRetained: false,
       outputClose: undefined,
       physicalOutputClosed: false,
+      executeStarted: false,
+      executeReturned: false,
     };
     try {
       while (true) {
@@ -628,6 +632,7 @@ export function createRemoteDispatchRuntime({
           continue;
         }
         if (action === RUNTIME_EXECUTE_PHYSICAL) {
+          operationState.executeStarted = true;
           output = await registration.execute(Object.freeze({
             bundle,
             dispatch,
@@ -635,6 +640,7 @@ export function createRemoteDispatchRuntime({
             inputBindingBody,
             signal,
           }));
+          operationState.executeReturned = true;
           const close = member(output, 'close');
           if (typeof close !== 'function') throw missingOutputDisposal();
           operationState.outputClose = () => close.call(output);

@@ -1979,8 +1979,15 @@ pub fn prepare_mark_execution_unknown(
 pub fn prepare_begin_remote_release(
   record : DispatchRecord,
 ) -> Result[DispatchTransition, DispatchIssue] {
-  match record.cleanup {
-    CleanupActive | CleanupUnknown =>
+  match (record.execution, record.cleanup) {
+    (Accepted, CleanupActive)
+    | (
+      NativeSettled
+      | ExecutionFailed
+      | ExecutionCancelled,
+      CleanupActive
+      | CleanupUnknown,
+    ) =>
       Ok(
         prepare_transition(
           record,
