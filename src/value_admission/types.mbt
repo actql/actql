@@ -42,6 +42,16 @@ struct ArrayBuilder {
 }
 
 ///|
+/// Package-owned construction for a canonical closed object. Fields must be
+/// appended in strict UTF-16 name order, so finishing never sorts or copies.
+struct ObjectBuilder {
+  values : Array[(String, Value)]
+  expected : Int
+  mut previous : String?
+  mut open : Bool
+}
+
+///|
 /// Package-owned construction prevents mutation after the final value is
 /// exposed without requiring a second whole-vector copy.
 struct VectorBuilder {
@@ -83,6 +93,71 @@ pub fn finish_array_value(builder : ArrayBuilder) -> Value? {
   } else {
     builder.open = false
     Some(Array({ values: builder.values, }))
+  }
+}
+
+///|
+/// Seal a bounded array at its current length without copying its backing.
+pub fn finish_bounded_array_value(builder : ArrayBuilder) -> Value? {
+  if !builder.open {
+    None
+  } else {
+    builder.open = false
+    Some(Array({ values: builder.values, }))
+  }
+}
+
+///|
+pub fn prepare_object_value(length : Int) -> ObjectBuilder? {
+  if length < 0 {
+    None
+  } else {
+    Some({ values: [], expected: length, previous: None, open: true, })
+  }
+}
+
+///|
+pub fn append_object_field(
+  builder : ObjectBuilder,
+  name : String,
+  value : Value,
+) -> Bool {
+  if !builder.open || builder.values.length() >= builder.expected {
+    return false
+  }
+  guard @canonical.normalize_nfc_lf(name) is Ok(normalized) &&
+    normalized == name &&
+    (
+      builder.previous is None ||
+      @canonical.compare_utf16(builder.previous.unwrap(), name) < 0
+    ) else {
+    builder.open = false
+    builder.values.clear()
+    return false
+  }
+  builder.values.push((name, value))
+  builder.previous = Some(name)
+  true
+}
+
+///|
+pub fn finish_object_value(builder : ObjectBuilder) -> Value? {
+  if !builder.open || builder.values.length() != builder.expected {
+    None
+  } else {
+    builder.open = false
+    Some(Object({ values: builder.values, }))
+  }
+}
+
+///|
+pub fn cancel_object_value(builder : ObjectBuilder) -> Bool {
+  if !builder.open {
+    false
+  } else {
+    builder.open = false
+    builder.values.clear()
+    true
   }
 }
 

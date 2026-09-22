@@ -48,3 +48,28 @@ test "owned array builder closes exact backing without reopening" {
   let incomplete = prepare_array_value(1).unwrap()
   assert_true(finish_array_value(incomplete) is None)
 }
+
+///|
+test "bounded array and canonical object builders seal owned backing" {
+  let array = prepare_array_value(3).unwrap()
+  assert_true(append_array_item(array, number_value(1.0).unwrap()))
+  guard finish_bounded_array_value(array) is Some(Array(items)) else {
+    fail("bounded array")
+  }
+  assert_eq(element_count(items), 1)
+  assert_false(append_array_item(array, number_value(2.0).unwrap()))
+
+  let object = prepare_object_value(2).unwrap()
+  assert_true(append_object_field(object, "a", boolean_value(true)))
+  assert_true(append_object_field(object, "z", null_value()))
+  guard finish_object_value(object) is Some(Object(fields)) else {
+    fail("canonical object")
+  }
+  assert_eq(element_at(fields, 0).map(entry => entry.0), Some("a"))
+  assert_eq(element_at(fields, 1).map(entry => entry.0), Some("z"))
+
+  let invalid = prepare_object_value(2).unwrap()
+  assert_true(append_object_field(invalid, "z", null_value()))
+  assert_false(append_object_field(invalid, "a", null_value()))
+  assert_true(finish_object_value(invalid) is None)
+}
