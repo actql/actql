@@ -466,7 +466,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "graft" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"rows\",\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
     "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
@@ -474,7 +474,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "mean" {
     "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"rows\",\"source\":\"src\",\"target\":\"dst\"," +
     "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
     "\"mean_graphs\":{\"with\":[\"right_graph\",\"g\"," +
     "\"right_graph\"],\"weights\":[1,2,3]," +
