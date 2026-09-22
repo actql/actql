@@ -114,30 +114,28 @@ fn regex_argument(
     None => raise RegexStop(MissingBindings(i))
   }
   let values = @references.bound_values(index)
-  let mut lo = 0
-  let mut hi = @parameter.bound_value_count(values)
-  while lo < hi {
-    let mid = lo + (hi - lo) / 2
-    let entry = @parameter.bound_value_at(values, mid).unwrap()
-    regex_spend(b, 1)
-    regex_spend(b, parameter.length())
-    regex_spend(b, entry.name.length())
-    // Admitted Parameter names are ASCII and BoundValues is name-sorted.
-    let order = parameter.compare(entry.name)
-    if order < 0 {
-      hi = mid
-    } else if order > 0 {
-      lo = mid + 1
-    } else {
-      let value = match entry.value.value {
-        @value.Text(v) => Text(v)
-        @value.Number(v) => Number(v)
+  let (entry, remaining) = match
+    search_bound_parameter(
+      parameter,
+      @parameter.bound_value_count(values),
+      position => @parameter.bound_value_at(values, position),
+      b.work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise RegexStop(BudgetExceeded)
+  }
+  b.work = remaining
+  match entry {
+    Some(value) => {
+      let decoded = match value.value.value {
+        @value.Text(text) => Text(text)
+        @value.Number(number) => Number(number)
         _ => raise RegexStop(InvalidArgument(i, name))
       }
-      return (value, Some(entry))
+      (decoded, Some(value))
     }
+    None => raise RegexStop(MissingBindings(i))
   }
-  raise RegexStop(MissingBindings(i))
 }
 
 ///|

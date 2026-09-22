@@ -111,26 +111,21 @@ fn operation_scalar_parameter(
     Some(v) => v
     None => raise OperationScalarStop(MissingBindings(i))
   }
-  // Search the selected used values, not unrelated supplied names. They follow
-  // the immutable declaration index's ASCII name order.
-  let mut lo = 0
-  let mut hi = @references.used_value_count(index)
-  while lo < hi {
-    let mid = lo + (hi - lo) / 2
-    let entry = @references.used_value_at(index, mid).unwrap()
-    scalar_spend(b, 1)
-    scalar_spend(b, name.length())
-    scalar_spend(b, entry.name.length())
-    let order = name.compare(entry.name)
-    if order < 0 {
-      hi = mid
-    } else if order > 0 {
-      lo = mid + 1
-    } else {
-      return entry
-    }
+  let (entry, remaining) = match
+    search_bound_parameter(
+      name,
+      @references.used_value_count(index),
+      position => @references.used_value_at(index, position),
+      b.remaining,
+    ) {
+    Ok(value) => value
+    Err(_) => raise OperationScalarStop(BudgetExceeded)
   }
-  raise OperationScalarStop(MissingBindings(i))
+  b.remaining = remaining
+  match entry {
+    Some(value) => value
+    None => raise OperationScalarStop(MissingBindings(i))
+  }
 }
 
 ///|

@@ -1,4 +1,18 @@
 ///|
+test "LIKE search follows UTF-16 order for unequal names" {
+  let context = regex_fixture(
+    "NULL LIKE $count",
+    parameters="{\"count\":{\"type\":\"string\",\"default\":\"a%\"},\"n\":{\"type\":\"string\",\"default\":\"b%\"}}",
+  )
+  let checked = check_patterns(context, pattern_limits()).unwrap()
+  let pattern = match pattern_at(checked, 0).unwrap() {
+    Like(value) => value
+    _ => fail("expected LIKE")
+  }
+  assert_eq(like_pattern_parameter(pattern).unwrap().name, "count")
+}
+
+///|
 test "LIKE closure resolves literal and bound patterns without a text-time policy" {
   let context = regex_fixture(
     "[NULL LIKE 'a%', NULL LIKE $p, NULL LIKE '\\😀_']",

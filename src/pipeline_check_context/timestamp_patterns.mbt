@@ -102,29 +102,25 @@ fn timestamp_argument(
     None => raise TimestampStop(MissingBindings(index))
   }
   let values = @references.bound_values(bound)
-  // BoundValues retains declaration order, sorted by UTF-16. Parameter names
-  // are ASCII, so String comparison agrees with the canonical ordering here.
-  let mut low = 0
-  let mut high = @parameter.bound_value_count(values)
-  while low < high {
-    let mid = low + (high - low) / 2
-    let entry = @parameter.bound_value_at(values, mid).unwrap()
-    timestamp_spend(budget, 1)
-    timestamp_spend(budget, name.length())
-    timestamp_spend(budget, entry.name.length())
-    let order = name.compare(entry.name)
-    if order < 0 {
-      high = mid
-    } else if order > 0 {
-      low = mid + 1
-    } else {
-      match entry.value.value {
-        @value.Text(text) => return (text, Some(entry))
+  let (entry, remaining) = match
+    search_bound_parameter(
+      name,
+      @parameter.bound_value_count(values),
+      position => @parameter.bound_value_at(values, position),
+      budget.work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise TimestampStop(BudgetExceeded)
+  }
+  budget.work = remaining
+  match entry {
+    Some(value) =>
+      match value.value.value {
+        @value.Text(text) => (text, Some(value))
         _ => raise TimestampStop(InvalidPatternValue(index))
       }
-    }
+    None => raise TimestampStop(MissingBindings(index))
   }
-  raise TimestampStop(MissingBindings(index))
 }
 
 ///|

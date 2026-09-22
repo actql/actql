@@ -38,6 +38,19 @@ fn regex_fixture(
 }
 
 ///|
+test "regex search follows UTF-16 order for unequal names" {
+  let context = regex_fixture(
+    "regex_match(NULL, $count)",
+    parameters="{\"count\":{\"type\":\"string\",\"default\":\"a\"},\"n\":{\"type\":\"string\",\"default\":\"b\"}}",
+  )
+  let checked = check_regex_patterns(context, regex_limits()).unwrap()
+  assert_eq(
+    regex_pattern_parameter(regex_pattern_at(checked, 0).unwrap()).unwrap().name,
+    "count",
+  )
+}
+
+///|
 test "regex static options belong to the exact bindings and unused expression visits" {
   let expression = "if(TRUE, '', regex_replace(NULL, $p, $r, 'sm'))"
   let context = regex_fixture(

@@ -55,6 +55,7 @@ import {
   "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/capacity_policy" @policy,
   "actql/actql/parameter_binding" @parameter,
+  "actql/actql/canonical_value" @canonical,
   "actql/actql/check_environment" @environment,
   "actql/actql/decode_core" @decode,
   "actql/actql/value_admission" @value,

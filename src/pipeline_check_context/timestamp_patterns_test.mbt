@@ -46,6 +46,19 @@ fn timestamp_fixture(
 }
 
 ///|
+test "timestamp search follows UTF-16 order for unequal names" {
+  let context = timestamp_fixture(
+    "parse_timestamp(NULL, $count)",
+    parameters="{\"count\":{\"type\":\"string\",\"default\":\"yyyy-MM-dd\"},\"n\":{\"type\":\"string\",\"default\":\"yyyy\"}}",
+  )
+  let checked = check_timestamp_patterns(context, timestamp_limits()).unwrap()
+  assert_eq(
+    timestamp_pattern_parameter(timestamp_pattern_at(checked, 0).unwrap()).unwrap().name,
+    "count",
+  )
+}
+
+///|
 test "timestamp obligations resolve exact bindings in unused branches and repeated producers" {
   let expression = "if(TRUE, CAST(NULL AS TIMESTAMP), parse_timestamp(NULL, $p))"
   let context = timestamp_fixture(

@@ -64,27 +64,25 @@ fn like_parameter(
     None => raise LikeStop(MissingBindings(i))
   }
   let values = @references.bound_values(bound)
-  let mut lo = 0
-  let mut hi = @parameter.bound_value_count(values)
-  while lo < hi {
-    let mid = lo + (hi - lo) / 2
-    let entry = @parameter.bound_value_at(values, mid).unwrap()
-    like_spend(b, 1)
-    like_spend(b, name.length())
-    like_spend(b, entry.name.length())
-    let order = name.compare(entry.name)
-    if order < 0 {
-      hi = mid
-    } else if order > 0 {
-      lo = mid + 1
-    } else {
-      match entry.value.value {
-        @value.Text(v) => return (v, Some(entry))
+  let (entry, remaining) = match
+    search_bound_parameter(
+      name,
+      @parameter.bound_value_count(values),
+      position => @parameter.bound_value_at(values, position),
+      b.work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise LikeStop(BudgetExceeded)
+  }
+  b.work = remaining
+  match entry {
+    Some(value) =>
+      match value.value.value {
+        @value.Text(text) => (text, Some(value))
         _ => raise LikeStop(InvalidPatternValue(i))
       }
-    }
+    None => raise LikeStop(MissingBindings(i))
   }
-  raise LikeStop(MissingBindings(i))
 }
 
 ///|

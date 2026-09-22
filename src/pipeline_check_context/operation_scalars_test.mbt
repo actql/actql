@@ -6,6 +6,22 @@ fn scalar_steps(operation : String) -> String {
 }
 
 ///|
+test "operation scalar search follows UTF-16 order for unequal names" {
+  let requirements = operation_order_fixture(
+    scalar_steps("{\"take\":{\"count\":{\"$param\":\"count\"}}}"),
+    parameters="{\"p\":{\"type\":\"string\",\"default\":\"x\"},\"n\":{\"type\":\"number\",\"default\":1},\"count\":{\"type\":\"number\",\"default\":1}}",
+  )
+  let orders = link_program_operation_orders(requirements, 10000000, 100).unwrap()
+  let result = check_program_operation_scalars(orders, 10000000, 100).unwrap()
+  assert_true(operation_scalars_count(result) > 0)
+  for index in 0..<operation_scalars_count(result) {
+    let entry = operation_scalar_at(result, index).unwrap()
+    assert_eq(entry.parameter.name, "count")
+    assert_eq(entry.value, Integer(1L))
+  }
+}
+
+///|
 test "bound counts retain repeated Parameter occurrences and inclusive budgets" {
   let steps = scalar_steps(
     (

@@ -75,24 +75,21 @@ fn bound_parameter(
     None => raise TextBoundStop(MissingBindings(index))
   }
   let values = @references.bound_values(bound)
-  let mut lo = 0
-  let mut hi = @parameter.bound_value_count(values)
-  while lo < hi {
-    let mid = lo + (hi - lo) / 2
-    let entry = @parameter.bound_value_at(values, mid).unwrap()
-    bound_spend(b, 1)
-    bound_spend(b, name.length())
-    bound_spend(b, entry.name.length())
-    let order = name.compare(entry.name)
-    if order < 0 {
-      hi = mid
-    } else if order > 0 {
-      lo = mid + 1
-    } else {
-      return entry
-    }
+  let (entry, remaining) = match
+    search_bound_parameter(
+      name,
+      @parameter.bound_value_count(values),
+      position => @parameter.bound_value_at(values, position),
+      b.work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise TextBoundStop(BudgetExceeded)
   }
-  raise TextBoundStop(MissingBindings(index))
+  b.work = remaining
+  match entry {
+    Some(value) => value
+    None => raise TextBoundStop(MissingBindings(index))
+  }
 }
 
 ///|

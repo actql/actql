@@ -39,6 +39,26 @@ fn bound_fixture(
 }
 
 ///|
+test "text bound search follows UTF-16 order for unequal names" {
+  let patterns = bound_fixture(
+    "substring($count, 1, $n)",
+    parameters="{\"count\":{\"type\":\"string\",\"default\":\"abc\"},\"n\":{\"type\":\"number\",\"default\":1}}",
+  )
+  let checked = check_text_bounds(patterns, bound_limits()).unwrap()
+  assert_true(text_bound_count(checked) > 0)
+  let mut found = false
+  for index in 0..<text_bound_count(checked) {
+    if text_bound_input_parameter(text_bound_at(checked, index).unwrap())
+      is Some(parameter) {
+      if parameter.name == "count" {
+        found = true
+      }
+    }
+  }
+  assert_true(found)
+}
+
+///|
 test "text bounds resolve every portable formula from owned expression sites" {
   let examples = [
     ("split_part('é😀', ',', 1)", 6L),
