@@ -1367,3 +1367,14 @@ runs the repeated selector through two downstream computations. The affected
 Local SGA, provider, and query integration suites pass 461 tests on JS, Wasm,
 and native. Traverse remains partial for Relation and predicate selectors,
 patterned hops, path emission, and their classified lifecycle evidence.
+
+At `c3059ed0`, homogeneous traversal with a nonempty literal start set can
+emit bounded simple paths. The dedicated resumable kernel preserves the
+original directed edge identity records, orders rows by hop count and the
+canonical node and edge sequences, rejects repeated nodes, and admits both
+the output ceiling and path workspace before copying an expansion. Portable
+fixtures cover zero-hop and multi-hop output plus exact output and workspace
+failures on JS, Wasm, and native. The registered provider now admits this
+variant. Traverse remains partial until Relation and predicate path starts,
+patterned path predicates, environment cancellation, standard Host consumers,
+publication, and reclaim are connected for path output.

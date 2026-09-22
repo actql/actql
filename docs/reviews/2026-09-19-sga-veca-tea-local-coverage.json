@@ -542,6 +542,18 @@
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "src/query_integration/query_checked_program_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "homogeneous_literal_simple_path_kernel",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c3059ed0",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
