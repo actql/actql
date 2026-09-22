@@ -679,7 +679,7 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "b7e026526",
+          "sha": "7242472e7",
           "evidence": [
             "src/local_sga/traverse.mbt",
             "src/local_sga/traverse_paths.mbt",
@@ -1656,7 +1656,7 @@
       "output": "graph",
       "canonical": ["SGA.apply_delta"],
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": [
         "contract",
@@ -1664,8 +1664,11 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
+        "consumer_lifetime",
         "resources",
         "cancellation",
+        "publication",
         "three_targets"
       ],
       "layer_evidence": [
@@ -1686,15 +1689,29 @@
             "three_targets"
           ],
           "targets": ["js", "wasm", "native"],
-          "sha": "17973713a",
+          "sha": "4fc92d2a6",
           "evidence": [
             "src/local_sga/graph_apply.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "standard_host_exact_delta_handoff_and_publication",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5d70fc120",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
         }
-      ],
-      "blocker": "The standard Host cannot yet retain an internal graph_diff Relation output as the exact second input of the following apply step; two consumers, formal publication, and final Host-owned reclamation remain open."
+      ]
     },
     {
       "family": "SGA",
@@ -3723,6 +3740,18 @@
         {
           "name": "portable incremental graph delta core",
           "path": "src/bounded_graph_diff/diff_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "apply_graph_delta",
+      "sha": "5d70fc120",
+      "suites": [
+        {
+          "name": "portable atomic graph application and lifecycle",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "targets": ["js", "wasm", "native"],
           "result": "passed"
         }

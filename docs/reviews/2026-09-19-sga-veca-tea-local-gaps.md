@@ -32,14 +32,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `lowering` | 39/39 |
 | `kernel` | 39/39 |
 | `managed` | 39/39 |
-| `standard_host` | 38/39 |
-| `consumer_lifetime` | 38/39 |
+| `standard_host` | 39/39 |
+| `consumer_lifetime` | 39/39 |
 | `resources` | 39/39 |
 | `cancellation` | 39/39 |
-| `publication` | 38/39 |
+| `publication` | 39/39 |
 | `three_targets` | 39/39 |
-| complete operations | 34/39 |
-| open operations | 5/39 |
+| complete operations | 35/39 |
+| open operations | 4/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -123,8 +123,8 @@ release gate in the shared blockers table.
 
 ## Closed review findings after `15d759ac`
 
-Commits `bc8e0e383`, `55cb15796`, `7f49454ea`, `58dede85e`, and
-`b7e026526` close the fixed review findings without changing the Local
+Commits `bc8e0e383`, `55cb15796`, `db7cb723c`, `0c805dd06`, and
+`7242472e7` close the fixed review findings without changing the Local
 milestone boundary.
 
 - The graft and mean fixtures use valid typed row sources. Workers and Node
@@ -149,7 +149,7 @@ milestone boundary.
   zero while an independently accepted output remains outside private state.
 
 The complete Graph integration file passes 86 tests on each of JS, Wasm, and
-native at `b7e026526`. These focused results do not replace the final same-SHA
+native at `7242472e7`. These focused results do not replace the final same-SHA
 Linux CI or close the broader resource-accounting release gate.
 
 ## Closed review findings after `4f84dec2`
@@ -372,7 +372,7 @@ identity. Cancellation after partial snapshot work confirms stop separately
 from cleanup and reclaims the unpublished output without revoking either
 input.
 
-Commits `e97504c30`, `b13773456`, and `17973713a` add the atomic
+Commits `f5847af44`, `28cb4546c`, and `4fc92d2a6` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the
 typed delta field and Graph contract identity. The kernel verifies the exact
 base snapshot CID, Graph contract CID, ordered unique actions, before-value
@@ -380,13 +380,14 @@ preconditions, and target snapshot CID before exposing a completed Graph.
 Empty and nonempty node, edge, and property changes run with single-work
 quanta on JS, Wasm, and native; cancellation stops independently of cleanup.
 
-This does not close the operation. The standard Host Graph pipeline currently
-finishes an internal `graph_diff` Relation as a terminal output and cannot
-retain it as the exact second input of a following Graph apply step. A direct
-managed-provider fixture proves the physical kernel boundary, but it does not
-substitute for Host scheduling. The remaining closure is the typed internal
-Relation handoff followed by two downstream Relation consumers, formal Named
-Result publication, and final Host-owned reclamation.
+Commit `5d70fc120` closes the standard Host boundary without adding a hidden
+provider-local Relation channel. One formal task completes `graph_diff` as an
+exact retained Relation; the following task rebuilds the base Graph from its
+typed Relation input and consumes that exact delta as its second input. The
+applied Graph reaches two overlapping downstream Relation consumers and the
+formal Named Result publication path on JS, Wasm, and native. Independent
+release and retryable cleanup return execution, retention, and held-byte
+ledgers to zero. `apply_graph_delta` is complete.
 Reach retains its typed start identity, direction, and finite depth.
 Subgraph retains explicit, predicate, and Relation selectors as distinct typed
 forms and preserves its optional edge predicate.
