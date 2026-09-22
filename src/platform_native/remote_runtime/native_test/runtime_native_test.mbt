@@ -252,6 +252,7 @@ test "native remote runtime owns success failure and cleanup progression" {
     [registration],
     [budget],
   ).unwrap()
+  assert_false(runtime.retains_dispatch_resources())
   let request = fn(dispatch_id : String) {
     @remote.prepare_dispatch_request(
       "native-coordinator",
@@ -400,6 +401,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(accepted[0], 2)
   assert_eq(executions[0], 1)
+  assert_true(runtime.retains_dispatch_resources())
   assert_eq(observed_budget[0], (128L, 128L))
   let reconciled_completion = runtime.observed_completion(first).unwrap()
   assert_eq(
@@ -474,6 +476,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_true(cancelled_reader.close().unwrap())
   assert_true(runtime.release(first) is Err(@runtime.CleanupPending("output")))
   assert_true(runtime.release(first).unwrap())
+  assert_false(runtime.retains_dispatch_resources())
   assert_true(
     runtime.observed_completion(first) is Err(@runtime.OutputReaderUnavailable),
   )
@@ -484,7 +487,9 @@ test "native remote runtime owns success failure and cleanup progression" {
     is Err(@runtime.Physical("native-stop-pending")),
   )
   assert_true(runtime.cleanup_pending())
+  assert_true(runtime.retains_dispatch_resources())
   assert_true(runtime.cleanup(second).unwrap())
+  assert_false(runtime.retains_dispatch_resources())
   assert_eq(stopped[0], 1)
   assert_false(runtime.cleanup_pending())
   let status = @site.site_status(site)
@@ -505,6 +510,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_false(runtime.cleanup_pending())
   runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
   runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
+  assert_true(runtime.retains_dispatch_resources())
   bundles.drain(bundle_cid).unwrap() |> ignore
   let executions_before_draining_process = executions[0]
   assert_true(
@@ -515,6 +521,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_true(runtime.close() is Err(@runtime.CleanupPending("output")))
   assert_eq(released[0], 6)
   assert_true(runtime.close().unwrap())
+  assert_false(runtime.retains_dispatch_resources())
   assert_eq(released[0], 8)
   assert_false(bundles.release("runtime-process:native-runtime-test").unwrap())
   assert_true(journal.close())

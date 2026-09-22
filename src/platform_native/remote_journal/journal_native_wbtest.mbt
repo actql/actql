@@ -460,6 +460,22 @@ test "native Site restart durably fences the old generation" {
   guard reopened.accept(request) is Err(Protocol(@remote.StaleSiteGeneration)) else {
     fail("the old dispatch authority was revived")
   }
+  assert_true(
+    @remote.prepare_begin_remote_release(recovered.1)
+    is Err(@remote.InvalidTransition),
+  )
+  // This journal fixture explicitly supplies a confirmed physical stop.
+  // Restart alone never supplies that fact or permits release.
+  let stopped = @remote.prepare_remote_runtime_cleanup(
+    recovered.1,
+    false,
+    true,
+    false,
+  ).unwrap()
+  assert_eq(@remote.remote_runtime_step_action_code(stopped), 2)
+  reopened
+  .commit_transition(@remote.remote_runtime_step_transition(stopped).unwrap())
+  .unwrap()
   reopened
   .commit_transition(@remote.prepare_begin_remote_release(recovered.1).unwrap())
   .unwrap()
@@ -468,7 +484,7 @@ test "native Site restart durably fences the old generation" {
     @remote.prepare_confirm_remote_release(recovered.1).unwrap(),
   )
   .unwrap()
-  assert_eq(@remote.dispatch_record_state_codes(recovered.1), [6, 0, 2, 0, 0])
+  assert_eq(@remote.dispatch_record_state_codes(recovered.1), [4, 0, 2, 0, 0])
   let (new_kind, _) = reopened
     .accept(test_request_for("new-generation", 8, 5, next_revision))
     .unwrap()

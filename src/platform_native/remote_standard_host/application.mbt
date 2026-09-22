@@ -775,6 +775,13 @@ pub fn NativeRemoteStandardSiteComponent::close(
 }
 
 ///|
+pub fn NativeRemoteStandardSiteComponent::retains_dispatch_resources(
+  self : NativeRemoteStandardSiteComponent,
+) -> Bool {
+  self.runtime.retains_dispatch_resources()
+}
+
+///|
 /// Advances one authenticated occurrence through the process-owned component.
 pub fn NativeRemoteStandardSiteDistribution::poll(
   self : NativeRemoteStandardSiteDistribution,
@@ -1058,4 +1065,11 @@ pub fn NativeRemoteStandardSiteDistribution::close(
   }
   self.closed = true
   Ok(true)
+}
+
+///|
+pub fn NativeRemoteStandardSiteDistribution::retains_dispatch_resources(
+  self : NativeRemoteStandardSiteDistribution,
+) -> Bool {
+  self.component.retains_dispatch_resources()
 }

@@ -820,23 +820,39 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let mut poll_failure : String? = None
   let mut polls = 0
   let mut closed = false
-  while !closed && (max_polls == 0 || polls < max_polls) {
+  let mut release_observed = false
+  while !closed {
+    if max_polls > 0 &&
+      polls >= max_polls &&
+      !release_observed &&
+      !application_site.retains_dispatch_resources() {
+      break
+    }
     polls += 1
     match
       poll_outcome_json(application_site, publication_store, output_chunk_bytes) {
       Ok(result) => {
         println(result)
-        if result == "{\"kind\":\"idle\"}" {
+        if result.has_prefix("{\"kind\":\"released\"") {
+          release_observed = true
+        }
+        if result == "{\"kind\":\"idle\"}" &&
+          !application_site.retains_dispatch_resources() {
           match application_site.close() {
             Ok(_) => closed = true
             Err(_) => ()
           }
         }
       }
-      Err(issue) => {
-        poll_failure = Some(issue)
-        break
-      }
+      Err(issue) =>
+        if application_site.retains_dispatch_resources() {
+          // A lost observation or Coordinator restart is not permission to
+          // reclaim the physical output. Reconcile on the next poll.
+          @transfer_client.wait_for_remote_control_retry()
+        } else {
+          poll_failure = Some(issue)
+          break
+        }
     }
   }
   let close_failure = if closed {

@@ -249,6 +249,10 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     Ok(value) => value
     Err(_) => stop("dispatch poll envelope failed")
   }
+  let poll_query = match @remote.remote_poll_query_json(dispatch) {
+    Ok(value) => value
+    Err(_) => stop("query poll envelope failed")
+  }
   let poll_plan = match @remote.remote_poll_output_plan_json(dispatch, intent) {
     Ok(value) => value
     Err(_) => stop("output plan poll envelope failed")
@@ -495,6 +499,10 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
       } else if subject[0] is Some(_) {
         poll_plan
+      } else if state[2] != "-1" {
+        // An accepted Site revision is already known. Reconcile its exact
+        // durable observation instead of delivering a second start request.
+        poll_query
       } else {
         poll_dispatch
       }

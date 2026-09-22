@@ -12,6 +12,13 @@ pub(all) enum NativeRemoteTransferClientIssue {
 }
 
 ///|
+/// Bound a native control-channel retry after a transient disconnect. This
+/// changes no dispatch, holding, or cleanup state.
+pub fn wait_for_remote_control_retry() -> Unit {
+  physical_reconciliation_wait(50)
+}
+
+///|
 /// One exact bounded source for a Transfer occurrence. The common client
 /// verifies every chunk against the admitted request before physical upload.
 /// Environment callbacks perform only physical access and stop confirmation.

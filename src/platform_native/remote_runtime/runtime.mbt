@@ -1841,6 +1841,17 @@ pub fn NativeRemoteRuntime::cleanup_pending(self : NativeRemoteRuntime) -> Bool 
 }
 
 ///|
+/// A transport disconnect or idle poll cannot close an owner whose physical
+/// output, execution, or cleanup responsibility is still live.
+pub fn NativeRemoteRuntime::retains_dispatch_resources(
+  self : NativeRemoteRuntime,
+) -> Bool {
+  !self.admitting.is_empty() ||
+  !self.owners.is_empty() ||
+  !self.pending_cleanup.is_empty()
+}
+
+///|
 /// Stop admission and attempt all known releases. Owners remain installed if
 /// any stop, physical release, or durable transition is still unconfirmed.
 pub fn NativeRemoteRuntime::close(

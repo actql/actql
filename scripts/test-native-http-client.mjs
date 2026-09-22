@@ -7,7 +7,7 @@ import {
 } from 'node:crypto';
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
-import {createServer} from 'node:https';
+import {createServer, request as httpsRequest} from 'node:https';
 import {createServer as createNetServer, isIP} from 'node:net';
 import {
   mkdtemp,
@@ -173,6 +173,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
   .update(remoteInputBindingBody).digest('hex')}`;
 
 let server;
+let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
 let outboundPolls = 0;
@@ -2131,7 +2132,7 @@ try {
       '--max-manifest-bytes', '4096',
       '--max-referenced-bytes', '1048576',
   ];
-  const coordinatorRun = runCapturedIn(
+  let coordinatorRun = runCapturedIn(
     nativeRemoteCoordinator,
     coordinatorArguments,
     {},
@@ -2156,6 +2157,57 @@ try {
     if (ready.code === 0) break;
     await new Promise(resolve => setTimeout(resolve, 20));
   }
+  let terminalStatusDropped = false;
+  let interruptedCoordinatorExit;
+  applicationControlProxy = createServer({
+    key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')),
+    ca: await readFile(join(root, 'ca.crt')),
+    requestCert: true,
+    rejectUnauthorized: true,
+  }, async (incoming, outgoing) => {
+    const chunks = [];
+    for await (const chunk of incoming) chunks.push(chunk);
+    const body = Buffer.concat(chunks);
+    if (!terminalStatusDropped &&
+        incoming.url.endsWith('/outbound/observations') &&
+        body.includes('actql-remote-dispatch-status/0.1') &&
+        body.includes('"evidence":{')) {
+      terminalStatusDropped = true;
+      incoming.socket.destroy();
+      const interrupted = coordinatorRun;
+      interrupted.child.kill('SIGKILL');
+      interruptedCoordinatorExit = await interrupted.completed;
+      coordinatorRun = runCapturedIn(
+        nativeRemoteCoordinator,
+        coordinatorArguments,
+        {},
+        undefined,
+        undefined,
+      );
+      return;
+    }
+    const upstream = httpsRequest(`${coordinatorOrigin}${incoming.url}`, {
+      method: incoming.method,
+      cert: await readFile(join(root, 'client.crt')),
+      key: await readFile(join(root, 'client.key')),
+      ca: await readFile(join(root, 'ca.crt')),
+      headers: {'content-type': 'application/json'},
+    }, response => {
+      outgoing.writeHead(response.statusCode, {
+        'content-type': response.headers['content-type'] ??
+          'application/json',
+      });
+      response.pipe(outgoing);
+    });
+    upstream.on('error', error => outgoing.destroy(error));
+    upstream.end(body);
+  });
+  applicationControlProxy.listen(0, nativeHttpHost);
+  await once(applicationControlProxy, 'listening');
+  const proxyPort = applicationControlProxy.address().port;
+  const applicationControlOrigin =
+    `https://${nativeHttpHost}:${proxyPort}`;
   const applicationArguments = [
     '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
     '--crypto-library', cryptoLibrary,
@@ -2181,9 +2233,9 @@ try {
     '--ca', join(root, 'ca.crt'),
     '--cert', join(root, 'client.crt'),
     '--key', join(root, 'client.key'),
-    '--poll-url', coordinatorOrigin +
+    '--poll-url', applicationControlOrigin +
       '/v1/sites/native-standard-transfer-site/generations/1/outbound/poll',
-    '--observation-url', coordinatorOrigin +
+    '--observation-url', applicationControlOrigin +
       '/v1/sites/native-standard-transfer-site/generations/1/' +
       'outbound/observations',
     '--operation-capability-cid', operationCapabilityCid,
@@ -2360,11 +2412,12 @@ try {
         );
       })()
     : Promise.resolve();
-  const [applicationExit, coordinatorExit] = await Promise.all([
+  const [applicationExit] = await Promise.all([
     applicationRun.completed,
-    coordinatorRun.completed,
     destinationCompletion,
   ]);
+  const coordinatorExit = await coordinatorRun.completed;
+  assert.equal(interruptedCoordinatorExit?.signal, 'SIGKILL');
   assert.equal(
     applicationExit.code,
     0,
@@ -2375,11 +2428,12 @@ try {
     0,
     JSON.stringify({applicationExit, coordinatorExit}),
   );
+  assert.equal(terminalStatusDropped, true);
   const applicationEvents = applicationExit.stdout.trim().split('\n')
     .filter(Boolean).map(line => JSON.parse(line));
   assert.deepEqual(
     applicationEvents.map(event => event.kind),
-    ['dispatch', 'output-plan', 'output', 'released', 'idle'],
+    ['query', 'output-plan', 'output', 'released', 'idle'],
   );
   const coordinatorEvents = coordinatorExit.stdout.trim().split('\n')
     .filter(Boolean).map(line => JSON.parse(line));
@@ -2425,6 +2479,10 @@ try {
   productTransferService = undefined;
 } finally {
   releaseStalePoll?.();
+  if (applicationControlProxy !== undefined) {
+    applicationControlProxy.close();
+    await once(applicationControlProxy, 'close');
+  }
   if (productTransferService !== undefined &&
       stopProductTransferService !== undefined) {
     try { await stopProductTransferService(productTransferService); }

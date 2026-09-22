@@ -1015,6 +1015,14 @@ pub fn NativeRemoteApplicationSite::close(
 }
 
 ///|
+pub fn NativeRemoteApplicationSite::retains_dispatch_resources(
+  self : NativeRemoteApplicationSite,
+) -> Bool {
+  self.pending_output is Some(_) ||
+  self.distribution.retains_dispatch_resources()
+}
+
+///|
 fn NativeRemoteApplicationRun::finish_outputs(
   self : NativeRemoteApplicationRun,
 ) -> Bool {
