@@ -51,15 +51,20 @@ try {
     eventsResult.completed.map(item => item.outputRepresentation),
     [
       'managed-local-memory',
+      'managed-local-carrier',
+      'managed-local-carrier',
       'managed-local-memory',
       'managed-local-memory',
       'managed-local-memory',
     ],
   );
-  assert.deepEqual(eventsResult.completed.map(item => item.task), [1, 2, 3, 4]);
+  assert.deepEqual(
+    eventsResult.completed.map(item => item.task),
+    [1, 2, 3, 4, 5, 6],
+  );
   assert.deepEqual(
     eventsResult.completed.map(item => item.outputRows),
-    [3, 3, 3, 3],
+    [3, 0, 0, 3, 3, 3],
   );
 } finally {
   eventsResult?.close();
