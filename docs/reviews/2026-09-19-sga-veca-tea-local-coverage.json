@@ -25,7 +25,10 @@
     "target_contract": "spec/contracts/actql-aoa.json",
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
-  "shared_gaps": [],
+  "shared_gaps": [
+    "mixed_carrier_relation_stage: selected Graph, Events, and Vectors bridge paths have three-target regressions; unselected Carrier prefixes and in-flight RelA cancellation still require common execution-boundary closure",
+    "resource_accounting_boundaries: all 68 operations now bind to checked production routes, but exact/one-short/cancellation/cleanup fixtures are not yet operation-specific for every route"
+  ],
   "shared_completed": [
     "canonical_aoa_inventory",
     "ordered_typed_task_inputs",
@@ -56,7 +59,7 @@
     "bounded_step_execution",
     "cancellation_delivery_and_stop",
     "rela_differential_conformance",
-    "bounded_resource_accounting_audit",
+    "resource_accounting_production_routes",
     "workers_fixture_freshness",
     "family_selective_artifacts"
   ],

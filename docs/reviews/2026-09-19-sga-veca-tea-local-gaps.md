@@ -14,12 +14,24 @@ readable coverage manifest is authoritative for individual operation status.
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Closed for operation coverage: all 39 entries use the shared Carrier-aware lifecycle with registered lifetime evidence | Preserve exact owner, generation, view, and independent release rules while closing the shared release gates |
 | Runtime material | Closed for operation coverage: all 39 entries retain their Carrier laws through bounded immutable or managed shared storage | Preserve storage meaning, admission, holding, and reclamation while closing the shared release gates |
-| Progress | Closed: long principal paths use bounded sessions and the repository gate binds every operation to a reviewed accounting profile | Preserve charged bounded steps, finite stop observation, and the operation-indexed audit when phases change |
-| Cancellation | Closed: request delivery, kernel observation, stop confirmation, and cleanup evidence cover all 39 entries | Preserve the stop/reclaim distinction, finite observation points, and cleanup ownership |
+| Progress | Long principal paths use bounded sessions and each operation has a checked production route | Prove operation-specific boundary evidence and the remaining common cancellation boundary |
+| Cancellation | Closed for the 39 operation entries; in-flight RelA execution after a mixed Carrier/Relation split remains a shared gap | Preserve stop/reclaim separation while closing the common evaluator boundary |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
-| Resource accounting audit | Closed: all 68 normative Local operations are bound to reviewed implementation profiles and their allocation, work, stop, lifetime, peak, and cleanup evidence | Keep the audit synchronized with both normative inventories and reject missing facets or disconnected fixtures in CI |
+| Resource accounting audit | Incomplete: all 68 operations are bound to profiles and checked production routes, but operation-specific exact/one-short/cancel/cleanup evidence is not yet complete | Bind executable boundary fixtures to every production route |
+
+## Current cross-operation review gaps
+
+- Mixed Carrier/Relation stages: the selected Graph, Events, and Vectors
+  projection paths now connect to subsequent Relation operations. The common
+  split still requires an audit of Carrier prefixes without standalone selected
+  providers and of in-flight cancellation in the Relation evaluator. These are
+  connection gaps, not new normative operations.
+- Resource accounting: the 68-operation gate now checks each production
+  dispatch marker and entrypoint symbol as well as the family profile. It does
+  not yet prove each operation's own exact, one-short, cancellation, and
+  cleanup evidence. A passing route gate alone is not completion evidence.
 
 The following snapshot is generated from the authoritative manifest. It is
 checked by `check:local-family-coverage`; do not edit its counts by hand.
@@ -87,9 +99,9 @@ close the four concrete execution-boundary findings.
   recursive runtime-value check. An insufficient value limit rejects the path
   before any identity element is constructed.
 
-The operation-indexed RelA differential and resource-accounting gates below
-now close the broader release checks. Focused tests or source inspection alone
-are not recorded as their completion.
+The operation-indexed RelA differential gate covers its registered overlap.
+The resource-accounting route gate remains useful but needs operation-specific
+boundary evidence before it closes the broader release check.
 
 ## Closed focused Local and DuckDB semantic review
 
@@ -138,7 +150,7 @@ coverage for values, order, NULL, text identity, decimal, duplicates, empty
 input, failures, exact resource boundaries, and Named Result identity. The
 focused real DuckDB run executes all ten registered Node comparisons.
 
-## Closed operation-indexed resource-accounting gate
+## Resource-accounting route gate and remaining boundary evidence
 
 The release manifest
 `docs/reviews/2026-09-23-local-resource-accounting-audit.json` binds every one
@@ -152,11 +164,15 @@ observation, overlapping lifetime and peak accounting, and cleanup ownership.
 
 `check:local-resource-accounting` derives both operation inventories from the
 authoritative manifests, rejects missing or duplicate bindings, verifies every
-source and fixture, and requires every accounting facet for every profile. It
+source and fixture, checks 68 dispatch-to-entrypoint routes, and requires every
+accounting facet for every profile. It
 also requires operation-specific RelA performance evidence and the resources
 and cancellation layers for every SGA, TEA, VecA, Bridge, and VecA-expression
-entry. The negative suite proves that omitted operations, missing facets,
-disconnected fixtures, and unknown profiles fail the release gate.
+entry. The negative suite proves that omitted operations or routes, missing
+facets, disconnected profile fixtures, and unknown profiles fail. It rejects a
+missing entrypoint or dispatch marker. The gate does not yet prove that a
+boundary fixture exercises every operation's exact and one-short limits,
+cancellation, and cleanup.
 
 ## Closed review findings after `15d759ac`
 
