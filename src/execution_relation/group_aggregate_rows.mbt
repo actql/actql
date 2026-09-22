@@ -331,13 +331,30 @@ fn distinct_aggregate_values(
 }
 
 ///|
-fn admitted_aggregate_item(value : Value) -> @admitted.Value? {
+fn admitted_aggregate_item(
+  value : Value,
+  control : ControlBudget,
+) -> Result[@admitted.Value?, RowIssue] {
   match value {
-    Null => None
-    Boolean(value) => Some(@admitted.boolean_value(value))
-    Number(value) => @admitted.number_value(value)
-    Text(value) => @admitted.text_value(value, 2147483647)
-    Captured(value) => Some(value)
+    Null => Ok(None)
+    Boolean(value) => Ok(Some(@admitted.boolean_value(value)))
+    Number(value) =>
+      match @admitted.number_value(value) {
+        Some(value) => Ok(Some(value))
+        None => Err(InvalidRows)
+      }
+    Text(value) => {
+      // Row Text is not an admitted type. Pay for the complete UTF-8 scan
+      // before asking the admission layer to normalize or retain it.
+      if !spend_control_text(control, value) {
+        return Err(RowLimit)
+      }
+      match @admitted.text_value(value, 2147483647) {
+        Some(value) => Ok(Some(value))
+        None => Err(InvalidRows)
+      }
+    }
+    Captured(value) => Ok(Some(value))
   }
 }
 
@@ -405,8 +422,10 @@ fn evaluate_array_aggregate(
   }
   let admitted : Array[@admitted.Value] = []
   for value in values {
-    guard admitted_aggregate_item(value) is Some(item) else {
-      return Err(InvalidRows)
+    let item = match admitted_aggregate_item(value, control) {
+      Ok(Some(item)) => item
+      Ok(None) => return Err(InvalidRows)
+      Err(issue) => return Err(issue)
     }
     admitted.push(item)
   }

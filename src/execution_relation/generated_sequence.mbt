@@ -58,7 +58,7 @@ pub fn prepare_generated_sequence(
     return Err(InvalidLimits)
   }
   let control = { remaining: max_work, max_frames: 0, }
-  let workspace = { limit: max_entries, live: 0, peak: 0, }
+  let workspace = row_workspace(max_entries)
   match
     prepare_wiring(
       @lower.sequence_owner(sequence),

@@ -230,7 +230,7 @@ test "interval join enforces search and output ceilings independently" {
 ///|
 test "interval join admits workspace before each retained output" {
   let (owner, kernel) = interval_join_test_kernel("inner", "point_in_interval")
-  let exact : RowWorkspace = { limit: 27, live: 0, peak: 0, }
+  let exact = row_workspace(27)
   let result = evaluate_interval_join_rows(
     kernel,
     interval_numeric_left(owner, kernel),
@@ -243,7 +243,7 @@ test "interval join admits workspace before each retained output" {
   ).unwrap()
   assert_eq(result.rows.length(), 2)
   assert_eq((exact.live, exact.peak), (8, 27))
-  let short : RowWorkspace = { limit: 26, live: 0, peak: 0, }
+  let short = row_workspace(26)
   assert_true(
     evaluate_interval_join_rows(
       kernel,

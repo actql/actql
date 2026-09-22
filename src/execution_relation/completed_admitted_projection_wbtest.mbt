@@ -37,7 +37,7 @@ test "admitted projection retains nonnumeric values aliases and empty schema met
       names,
       rows: material.rows,
     })
-    let workspace : RowWorkspace = { limit: 10000, live: 0, peak: 0, }
+    let workspace = row_workspace(10000)
     let result = evaluate_completed_body(
       Projection(@lower.prepare_projection(checked).unwrap()),
       table,

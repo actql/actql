@@ -25,11 +25,7 @@ pub fn start_expression_execution(
   max_workspace_slots : Int,
 ) -> Result[ExpressionExecution, EvalIssue] {
   let budget : ControlBudget = { remaining: max_work, max_frames, }
-  let workspace : RowWorkspace = {
-    limit: max_workspace_slots,
-    live: 0,
-    peak: 0,
-  }
+  let workspace = row_workspace(max_workspace_slots)
   expression_frame(expression, input, slots, budget, workspace, None).map(frame => {
     frame,
     finished: false,

@@ -194,10 +194,8 @@ fn prepare_sequence_invocation(
     limits,
     control,
     fn(captured) {
-      table_from_capture_bounded(captured, control, {
-        limit: limits.operation_entries,
-        live: 0,
-        peak: 0,
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        table_from_capture_bounded(captured, control, workspace)
       })
     },
     fn(bound, id, output_budget) {
@@ -213,15 +211,17 @@ fn prepare_sequence_invocation(
       match bound.projection {
         None => Ok(adopted)
         Some(projection) =>
-          evaluate_row_body(
-            Projection(projection),
-            adopted,
-            id,
-            limits.max_rows,
-            control,
-            output_budget,
-            { limit: limits.operation_entries, live: 0, peak: 0, },
-          )
+          with_sequence_workspace(limits.operation_entries, workspace => {
+            evaluate_row_body(
+              Projection(projection),
+              adopted,
+              id,
+              limits.max_rows,
+              control,
+              output_budget,
+              workspace,
+            )
+          })
       }
     },
     produced~,
@@ -269,7 +269,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
   }
   let owner = @lower.sequence_owner(sequence)
   let prepared = @lower.bound_preparation(owner)
-  let metadata = { limit: limits.metadata_entries, live: 0, peak: 0, }
+  let metadata = row_workspace(limits.metadata_entries)
   let wiring = match prepare_wiring(owner, retained_ids, control, metadata) {
     Ok(v) => v
     Err(e) => return Err(Wiring(e))
@@ -358,7 +358,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
   let store = match
     table_store(
       wiring,
-      { limit: limits.retained_entries, live: 0, peak: 0, },
+      row_workspace(limits.retained_entries),
       release=release_table,
       reserve_storage~,
     ) {
@@ -456,58 +456,62 @@ fn run_sequence_invocation(
   run_completed_sequence_backend(
     invocation,
     fn(captured) {
-      table_from_capture_bounded(captured, invocation.control, {
-        limit: invocation.limits.operation_entries,
-        live: 0,
-        peak: 0,
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        table_from_capture_bounded(captured, invocation.control, workspace)
       })
     },
     fn(kernel, input, logical) {
-      evaluate_rows_with_workspace(
-        kernel,
-        input,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        ordered_budget=logical,
-        aggregate_outputs=selected_aggregate_outputs_at(
-          aggregate_outputs,
-          @lower.kernel_step(kernel),
-        ),
-        analytic_envelope=selected_analytic_envelope_at(
-          analytic_envelopes,
-          @lower.kernel_step(kernel),
-        ),
-        identity_limits=Some(invocation.limits.input_values),
-        numeric~,
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_rows_with_workspace(
+          kernel,
+          input,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+          ordered_budget=logical,
+          aggregate_outputs=selected_aggregate_outputs_at(
+            aggregate_outputs,
+            @lower.kernel_step(kernel),
+          ),
+          analytic_envelope=selected_analytic_envelope_at(
+            analytic_envelopes,
+            @lower.kernel_step(kernel),
+          ),
+          identity_limits=Some(invocation.limits.input_values),
+          numeric~,
+        )
+      })
     },
     store => RowStore(store),
     evaluate_window=Some((window, input) => {
-      evaluate_window_rows(
-        window,
-        input,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_window_rows(
+          window,
+          input,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+        )
+      })
     }),
     evaluate_join=Some((kernel, left, right) => {
-      evaluate_join_rows(
-        kernel,
-        left,
-        right,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(
-          join_ceilings,
-          @lower.join_kernel_step(kernel),
-        ),
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_join_rows(
+          kernel,
+          left,
+          right,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(
+            join_ceilings,
+            @lower.join_kernel_step(kernel),
+          ),
+        )
+      })
     }),
     evaluate_interval_join=Some((kernel, left, right) => {
       let step = @lower.interval_join_step(kernel)
@@ -515,17 +519,19 @@ fn run_sequence_invocation(
         is Some(search_ceiling) else {
         return Err(InvalidRowLimits)
       }
-      evaluate_interval_join_rows(
-        kernel,
-        left,
-        right,
-        invocation.limits.max_rows,
-        search_ceiling,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_interval_join_rows(
+          kernel,
+          left,
+          right,
+          invocation.limits.max_rows,
+          search_ceiling,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
+        )
+      })
     }),
     evaluate_asof_join=Some((kernel, left, right) => {
       let step = @lower.asof_join_step(kernel)
@@ -533,83 +539,95 @@ fn run_sequence_invocation(
         is Some(search_ceiling) else {
         return Err(InvalidRowLimits)
       }
-      evaluate_asof_join_rows(
-        kernel,
-        left,
-        right,
-        invocation.limits.max_rows,
-        search_ceiling,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_asof_join_rows(
+          kernel,
+          left,
+          right,
+          invocation.limits.max_rows,
+          search_ceiling,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
+        )
+      })
     }),
     evaluate_sequence_match=Some((kernel, input) => {
-      evaluate_sequence_match_rows(
-        kernel,
-        input,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_sequence_match_rows(
+          kernel,
+          input,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+        )
+      })
     }),
     evaluate_cross_join=Some((kernel, left, right) => {
-      evaluate_cross_join_rows(
-        kernel,
-        left,
-        right,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(
-          join_ceilings,
-          @lower.cross_join_kernel_step(kernel),
-        ),
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_cross_join_rows(
+          kernel,
+          left,
+          right,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(
+            join_ceilings,
+            @lower.cross_join_kernel_step(kernel),
+          ),
+        )
+      })
     }),
     evaluate_append=Some((kernel, left, right) => {
-      evaluate_append_rows(
-        kernel,
-        left,
-        right,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_append_rows(
+          kernel,
+          left,
+          right,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+        )
+      })
     }),
     evaluate_set=Some((kernel, left, right) => {
-      evaluate_set_rows(
-        kernel,
-        left,
-        right,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_set_rows(
+          kernel,
+          left,
+          right,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+        )
+      })
     }),
     evaluate_nest=Some((kernel, parent, child) => {
       let step = @lower.nest_kernel_step(kernel)
-      evaluate_nest_rows(
-        kernel,
-        parent,
-        child,
-        invocation.limits.max_rows,
-        invocation.control,
-        invocation.output_budget,
-        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_item_limit=selected_step_ceiling(nest_item_ceilings, step),
-        grouped_byte_limit=selected_step_ceiling(
-          nest_grouped_byte_ceilings, step,
-        ),
-        attached_byte_limit=selected_step_ceiling(
-          nest_attached_byte_ceilings, step,
-        ),
-      )
+      with_sequence_workspace(invocation.limits.operation_entries, workspace => {
+        evaluate_nest_rows(
+          kernel,
+          parent,
+          child,
+          invocation.limits.max_rows,
+          invocation.control,
+          invocation.output_budget,
+          workspace,
+          selected_item_limit=selected_step_ceiling(nest_item_ceilings, step),
+          grouped_byte_limit=selected_step_ceiling(
+            nest_grouped_byte_ceilings, step,
+          ),
+          attached_byte_limit=selected_step_ceiling(
+            nest_attached_byte_ceilings, step,
+          ),
+        )
+      })
     }),
   )
 }

@@ -37,7 +37,7 @@ fn nest_scale_sample(count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = row_workspace(maximum)
   let output = value_budget({
     max_nodes: maximum,
     max_text_bytes: maximum,
@@ -76,7 +76,7 @@ test "nest indexed correlation scales with inputs and emitted payload" {
 ///|
 test "nest metadata construction follows the exact workspace reservation" {
   let width = 512
-  let exact_workspace : RowWorkspace = { limit: width * 3, live: 0, peak: 0, }
+  let exact_workspace = row_workspace(width * 3)
   let exact_constructed = Ref(false)
   let exact = construct_reserved_nest_metadata(exact_workspace, width, fn() {
     exact_constructed.val = true
@@ -86,11 +86,7 @@ test "nest metadata construction follows the exact workspace reservation" {
   assert_true(exact_constructed.val)
   assert_eq(exact_workspace.peak, width * 3)
 
-  let short_workspace : RowWorkspace = {
-    limit: width * 3 - 1,
-    live: 0,
-    peak: 0,
-  }
+  let short_workspace = row_workspace(width * 3 - 1)
   let short_constructed = Ref(false)
   let short = construct_reserved_nest_metadata(short_workspace, width, fn() {
     short_constructed.val = true
@@ -119,7 +115,7 @@ fn nest_empty_workspace_attempt(
   )
   let parents = { ..parent_template, rows: [], }
   let children = { ..child_template, rows: [], }
-  let workspace : RowWorkspace = { limit, live: 0, peak: 0, }
+  let workspace = row_workspace(limit)
   let result = evaluate_nest_rows(
     kernel,
     parents,

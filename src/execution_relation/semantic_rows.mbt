@@ -194,7 +194,14 @@ fn compare_admitted_vectors(
 ) -> Result[Int, OrderingIssue] {
   let left_count = @admitted.element_count(left)
   let right_count = @admitted.element_count(right)
-  for index in 0..<Int::min(left_count, right_count) {
+  let compared = Int::min(left_count, right_count)
+  // Numeric scalar comparison has constant operand cost, so the vector
+  // primitive owns the dimension-dependent charge before it starts walking
+  // either vector.
+  if !spend_control(control, compared) {
+    return Err(Limit)
+  }
+  for index in 0..<compared {
     let comparison = match
       compare_complete_scalar(
         Number(@admitted.element_at(left, index).unwrap()),

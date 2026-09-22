@@ -532,8 +532,28 @@ Before inserting container entries it reserves structural slots for the borrowed
 input layout, copied kernel view, column ordinals, projection metadata, snapshot
 maps, output cells and retained row references. Snapshots are released logically
 at the end of each row, including a false/NULL filter result. Retained rows remain
-charged for the operation. Failure returns no partial table; a partly consumed
-workspace cannot be reused for another operation.
+charged for the operation. Every production operation enters through a scoped
+workspace owner. Success commits the operation's retained slots; failure restores
+the exact entry baseline. A release underflow poisons the workspace and is
+reported as `RowLimit`; it never wraps or silently admits later allocation.
+
+The bounded kernel convention is uniform:
+
+- `start` may create only small, constant-size metadata;
+- `resume` owns charged work and observes cancellation in every long loop;
+- structural allocation reserves before construction, never afterward;
+- a row costs one row slot plus its fixed-width cells;
+- text construction charges canonical UTF-8 bytes before normalization or
+  concatenation;
+- vector comparison charges every compared dimension before traversal; and
+- every terminal outcome performs its cleanup obligation even when the caller
+  keeps the terminal handle.
+
+`charge_row`, `charge_named`, and `with_scoped_slots` are the common primitives
+for these rules. Resource exhaustion is the canonical `RowLimit` family;
+semantic errors such as `InvalidRows`, `InputMismatch`, and `WindowTime` must not
+hide a failed charge. Adapters may impose stricter physical limits, but they do
+not reinterpret these portable outcomes.
 
 Independent fixed boundary tests count a two-column/two-row projection at 22
 slots (21 fails), a fully rejecting filter at peak 15/live 12 (including its

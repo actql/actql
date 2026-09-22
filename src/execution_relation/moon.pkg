@@ -26,7 +26,6 @@ import {
   "actql/actql/managed_carrier_runtime" @managed_carrier,
   "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/json",
-  "moonbitlang/core/encoding/utf8",
 }
 
 import {

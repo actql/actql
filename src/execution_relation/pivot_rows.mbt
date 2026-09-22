@@ -276,7 +276,10 @@ fn[T : RelationRows] evaluate_pivot_rows(
   let axis_by_name : Map[String, Int] = Map([])
   for i = 0; i < axis_count; i = i + 1 {
     let name = @lower.pivot_axis_at(pivot, i).unwrap()
-    if !spend_control_text(control, name) || axis_by_name.contains(name) {
+    if !spend_control_text(control, name) {
+      return Err(RowLimit)
+    }
+    if axis_by_name.contains(name) {
       return Err(InvalidRows)
     }
     axis_by_name[name] = i

@@ -522,7 +522,7 @@ pub fn start_bounded_interval_join(
     output_ceiling = value.to_int()
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
-  let workspace : RowWorkspace = { limit: max_entries, live: 0, peak: 0, }
+  let workspace = row_workspace(max_entries)
   let resolve = fn(input : ProducerRead, field : @schema.FieldName) -> Int? {
     let schema = producer_read_schema(input)
     let name = @schema.reference_name(field)

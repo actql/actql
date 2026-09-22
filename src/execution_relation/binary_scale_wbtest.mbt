@@ -56,7 +56,7 @@ fn set_scale_sample(operation : String, count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = row_workspace(maximum)
   let result = evaluate_set_rows(
     kernel,
     left,
@@ -97,7 +97,7 @@ fn cross_join_scale_sample(count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = row_workspace(maximum)
   let result = evaluate_cross_join_rows(
     kernel,
     left,
@@ -147,7 +147,7 @@ test "equality join uses indexed lookup outside output multiplicity" {
     )
     let maximum = 100000000
     let control = { remaining: maximum, max_frames: 100, }
-    let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+    let workspace = row_workspace(maximum)
     let pairs = inner_join_indices(
       left,
       right,

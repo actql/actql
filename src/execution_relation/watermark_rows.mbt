@@ -58,13 +58,14 @@ fn[T : RelationRows] evaluate_watermark_rows(
     if !spend_control(control, 1) {
       return Err(RowLimit)
     }
-    guard window_time_milliseconds(
+    let time = match
+      window_time_milliseconds(
         IndexedRows::read_cell(input, row, time_column),
         timestamp,
         control,
-      )
-      is Some(time) else {
-      return Err(WindowTime(row))
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(window_time_row_issue(issue, row))
     }
     times.push(time)
   }

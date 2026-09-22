@@ -7,21 +7,40 @@ fn window_timestamp_milliseconds(text : String) -> Double? {
 }
 
 ///|
+priv enum WindowTimeReadIssue {
+  InvalidWindowTime
+  WindowTimeResourceLimit
+}
+
+///|
+fn window_time_row_issue(issue : WindowTimeReadIssue, row : Int) -> RowIssue {
+  match issue {
+    InvalidWindowTime => WindowTime(row)
+    WindowTimeResourceLimit => RowLimit
+  }
+}
+
+///|
 fn window_time_milliseconds(
   value : Value,
   timestamp : Bool,
   control : ControlBudget,
-) -> Double? {
+) -> Result[Double, WindowTimeReadIssue] {
   if timestamp {
-    guard value is Captured(@admitted.Timestamp(text)) &&
-      spend_control_text(control, text) else {
-      return None
+    guard value is Captured(@admitted.Timestamp(text)) else {
+      return Err(InvalidWindowTime)
     }
-    window_timestamp_milliseconds(text)
+    if !spend_control_text(control, text) {
+      return Err(WindowTimeResourceLimit)
+    }
+    match window_timestamp_milliseconds(text) {
+      Some(value) => Ok(value)
+      None => Err(InvalidWindowTime)
+    }
   } else {
     match value {
-      Number(number) if !number.is_nan() && !number.is_inf() => Some(number)
-      _ => None
+      Number(number) if !number.is_nan() && !number.is_inf() => Ok(number)
+      _ => Err(InvalidWindowTime)
     }
   }
 }
@@ -61,21 +80,25 @@ fn window_time_coordinate(
   value : Value,
   timestamp : Bool,
   control : ControlBudget,
-) -> WindowCoordinate? {
+) -> Result[WindowCoordinate, WindowTimeReadIssue] {
   if timestamp {
-    guard value is Captured(@admitted.Timestamp(text)) &&
-      spend_control_text(control, text) &&
-      @admitted.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
-      return None
+    guard value is Captured(@admitted.Timestamp(text)) else {
+      return Err(InvalidWindowTime)
     }
-    Some(ExactFloor(milliseconds))
+    if !spend_control_text(control, text) {
+      return Err(WindowTimeResourceLimit)
+    }
+    match @admitted.timestamp_epoch_milliseconds(text) {
+      Some(milliseconds) => Ok(ExactFloor(milliseconds))
+      None => Err(InvalidWindowTime)
+    }
   } else {
     guard value is Number(number) && !number.is_nan() && !number.is_inf() else {
-      return None
+      return Err(InvalidWindowTime)
     }
     match @scalar.read_safe_integer(number.floor()) {
-      Some(floor) => Some(ExactFloor(floor))
-      None => Some(Binary64(number))
+      Some(floor) => Ok(ExactFloor(floor))
+      None => Ok(Binary64(number))
     }
   }
 }
@@ -241,13 +264,14 @@ fn[T : RelationRows] evaluate_window_rows(
         },
       )
     }
-    guard window_time_coordinate(
+    let time = match
+      window_time_coordinate(
         IndexedRows::read_cell(input, source, time_column),
         @lower.window_requires_epoch_milliseconds(window),
         control,
-      )
-      is Some(time) else {
-      return Err(WindowTime(source))
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(window_time_row_issue(issue, source))
     }
     let memberships : Array[WindowMembership] = []
     match time {

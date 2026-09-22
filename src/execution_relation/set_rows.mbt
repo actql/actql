@@ -46,9 +46,11 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
     }
     let name = @schema.reference_name(field)
     if left_names.get(left_column) != Some(name) ||
-      right_names.get(right_column) != Some(name) ||
-      !spend_control_text(control, name) {
+      right_names.get(right_column) != Some(name) {
       return Err(InputMismatch)
+    }
+    if !spend_control_text(control, name) {
+      return Err(RowLimit)
     }
     names.push(name)
     left_columns.push(left_column)

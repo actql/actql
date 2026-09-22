@@ -43,12 +43,18 @@ fn bounded_sequence_fixture(
   contiguity? : String = "subsequence",
   empty? : Bool = false,
   grouped? : Bool = true,
+  max_output_rows? : Int? = None,
+  max_work? : Int = 100000,
 ) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
   let (source_owner, source_output) = bounded_sequence_source(empty~)
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
   ).unwrap()
+  let output_guard = match max_output_rows {
+    Some(limit) => ",\"max_output_rows\":" + limit.to_string()
+    None => ""
+  }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"from\":\"events\",\"sequence\":{\"by\":" +
@@ -61,7 +67,9 @@ fn bounded_sequence_fixture(
       overlap +
       "\",\"contiguity\":\"" +
       contiguity +
-      "\"}}]",
+      "\"" +
+      output_guard +
+      "}}]",
     ),
     [("events", @pipeline.ProducedInput(producer))],
     None,
@@ -107,12 +115,35 @@ fn bounded_sequence_fixture(
     input,
     100,
     run_limits().output_values,
-    100000,
+    max_work,
     100,
     10000,
     10000,
   ).unwrap()
   (control, execution, input)
+}
+
+///|
+fn assert_bounded_sequence_scratch_reclaimed(
+  execution : BoundedSequenceMatchExecution,
+) -> Unit raise {
+  let state = bounded_sequence_match_state(execution)
+  assert_true(state.sort is None)
+  assert_true(state.predicate_execution is None)
+  assert_true(state.output is None)
+  assert_eq(state.identity_order.length(), 0)
+  assert_eq(state.ordered.length(), 0)
+  assert_eq(state.clocks.length(), 0)
+  assert_eq(state.predicates.length(), 0)
+  assert_eq(state.selected.length(), 0)
+  assert_eq(state.partials.length(), 0)
+  assert_eq(state.row_matches.length(), 0)
+  assert_eq(state.matches.length(), 0)
+  assert_eq(state.predicate_input.length(), 0)
+  assert_true(state.output_scope is None)
+  assert_eq(state.output_row.length(), 0)
+  assert_eq(state.checked_row.length(), 0)
+  assert_eq(state.workspace.live, 0)
 }
 
 ///|
@@ -141,17 +172,18 @@ test "bounded sequence match resumes and preserves canonical match order" {
   assert_true(completed_output_matches_inputs(output, [input]))
   assert_true(cleanup_bounded_sequence_match(execution).unwrap())
   assert_false(bounded_sequence_match_cleanup_pending(execution))
+  assert_bounded_sequence_scratch_reclaimed(execution)
 }
 
 ///|
 test "bounded sequence match cancels without publishing partial rows" {
   let (control, execution, input) = bounded_sequence_fixture()
-  assert_eq(execution.predicate_entries.val, 0)
+  assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
   match advance_bounded_sequence_match(execution, 8).unwrap() {
     BoundedSequenceMatchContinue(..) => ()
     _ => fail("expected partial sequence progress")
   }
-  assert_true(execution.predicate_entries.val > 0)
+  assert_true(bounded_sequence_match_state(execution).predicate_entries.val > 0)
   assert_true(@bounded.request_cancel(control))
   match advance_bounded_sequence_match(execution, 1).unwrap() {
     BoundedSequenceMatchStopped(@bounded.Cancelled, ..) => ()
@@ -161,21 +193,82 @@ test "bounded sequence match cancels without publishing partial rows" {
   assert_true(bounded_sequence_match_cleanup_pending(execution))
   assert_true(cleanup_bounded_sequence_match(execution).unwrap())
   assert_false(bounded_sequence_match_cleanup_pending(execution))
-  assert_eq(execution.predicate_entries.val, 0)
+  assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
+  assert_bounded_sequence_scratch_reclaimed(execution)
+}
+
+///|
+test "bounded sequence output-limit failure reclaims all scratch" {
+  let (_, execution, _) = bounded_sequence_fixture(max_output_rows=Some(2))
+  let mut failed = false
+  while !failed {
+    match advance_bounded_sequence_match(execution, 2).unwrap() {
+      BoundedSequenceMatchContinue(..) => ()
+      BoundedSequenceMatchFailed(Rows(RowLimit), ..) => failed = true
+      _ => fail("expected atomic sequence output-limit failure")
+    }
+  }
+  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_bounded_sequence_scratch_reclaimed(execution)
+}
+
+///|
+fn finish_bounded_sequence(
+  execution : BoundedSequenceMatchExecution,
+) -> BoundedSequenceMatchPoll {
+  while true {
+    match advance_bounded_sequence_match(execution, 1000).unwrap() {
+      BoundedSequenceMatchContinue(..) => ()
+      terminal => return terminal
+    }
+  }
+  abort("unreachable")
+}
+
+///|
+test "bounded sequence work boundary charges output before row allocation" {
+  let maximum = 100000
+  let (_, measured, _) = bounded_sequence_fixture(max_work=maximum)
+  assert_true(
+    finish_bounded_sequence(measured) is BoundedSequenceMatchComplete(_, ..),
+  )
+  let required = maximum -
+    bounded_sequence_match_state(measured).control.remaining
+  assert_true(required > 0)
+  cleanup_bounded_sequence_match(measured).unwrap() |> ignore
+
+  let (_, exact, _) = bounded_sequence_fixture(max_work=required)
+  assert_true(
+    finish_bounded_sequence(exact) is BoundedSequenceMatchComplete(_, ..),
+  )
+  cleanup_bounded_sequence_match(exact).unwrap() |> ignore
+
+  let (_, short, _) = bounded_sequence_fixture(max_work=required - 1)
+  match finish_bounded_sequence(short) {
+    BoundedSequenceMatchFailed(Rows(RowLimit), ..) => ()
+    BoundedSequenceMatchFailed(InvalidExecution, ..) =>
+      fail("work exhaustion was misclassified as invalid execution")
+    BoundedSequenceMatchFailed(_, ..) => fail("unexpected sequence failure")
+    BoundedSequenceMatchComplete(_, ..) => fail("short work budget completed")
+    BoundedSequenceMatchStopped(_, ..) => fail("short work budget stopped")
+    BoundedSequenceMatchContinue(..) => fail("terminal helper continued")
+  }
+  cleanup_bounded_sequence_match(short).unwrap() |> ignore
+  assert_bounded_sequence_scratch_reclaimed(short)
 }
 
 ///|
 test "bounded sequence cancellation precedes predicate initialization" {
   let (control, execution, _) = bounded_sequence_fixture()
-  assert_eq(execution.predicate_entries.val, 0)
+  assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
   assert_true(@bounded.request_cancel(control))
   match advance_bounded_sequence_match(execution, 1).unwrap() {
     BoundedSequenceMatchStopped(@bounded.Cancelled, progress=0L, work=0L) => ()
     _ => fail("expected cancellation before predicate initialization")
   }
-  assert_eq(execution.predicate_entries.val, 0)
+  assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
   assert_true(cleanup_bounded_sequence_match(execution).unwrap())
-  assert_eq(execution.predicate_entries.val, 0)
+  assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
 }
 
 ///|

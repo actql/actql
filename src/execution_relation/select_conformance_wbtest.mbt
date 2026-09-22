@@ -213,7 +213,7 @@ fn select_scale_sample(
   })
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: 100000000, live: 0, peak: 0, }
+  let workspace = row_workspace(100000000)
   let result = evaluate_completed_body(
     Projection(select_projection(schema, "[" + projection.join(",") + "]")),
     input,

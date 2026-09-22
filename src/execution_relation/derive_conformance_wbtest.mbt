@@ -56,7 +56,7 @@ fn run_derive_contract_value(
   }
   let control = { remaining: 100000, max_frames: 100, }
   let output = value_budget(run_limits().output_values).unwrap()
-  let workspace : RowWorkspace = { limit: 10000, live: 0, peak: 0, }
+  let workspace = row_workspace(10000)
   if ordered {
     let logical = logical_budget(
       {

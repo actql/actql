@@ -9,14 +9,30 @@ fn nest_index_issue(issue : JoinIndexIssue) -> RowIssue {
 }
 
 ///|
-fn admitted_nest_value(value : Value) -> @admitted.Value {
+fn admitted_nest_value(
+  value : Value,
+  control : ControlBudget,
+) -> Result[@admitted.Value, RowIssue] {
   match value {
-    Null => @admitted.null_value()
-    Number(number) => @admitted.number_value(number).unwrap()
-    Boolean(boolean) => @admitted.boolean_value(boolean)
-    Text(text) =>
-      @admitted.text_value(text, @utf8.encode(text).length()).unwrap()
-    Captured(value) => value
+    Null => Ok(@admitted.null_value())
+    Number(number) =>
+      match @admitted.number_value(number) {
+        Some(value) => Ok(value)
+        None => Err(InvalidRows)
+      }
+    Boolean(boolean) => Ok(@admitted.boolean_value(boolean))
+    Text(text) => {
+      // Plain row Text is not structurally proven to be admitted. Charge the
+      // UTF-8 scan before the admission API normalizes or copies it.
+      if !spend_control_text(control, text) {
+        return Err(RowLimit)
+      }
+      match @admitted.text_value(text, 2147483647) {
+        Some(value) => Ok(value)
+        None => Err(InvalidRows)
+      }
+    }
+    Captured(value) => Ok(value)
   }
 }
 
@@ -269,14 +285,15 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
         }
         retained += projection.length()
         for (name, column) in projection {
-          entries.push(
-            (
-              name,
-              admitted_nest_value(
-                IndexedRows::read_cell(child, child_row, column),
-              ),
-            ),
-          )
+          let value = match
+            admitted_nest_value(
+              IndexedRows::read_cell(child, child_row, column),
+              control,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          entries.push((name, value))
         }
         guard @admitted.object_value(entries) is Some(object) else {
           return Err(InvalidRows)

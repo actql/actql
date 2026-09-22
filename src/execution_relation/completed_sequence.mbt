@@ -1,4 +1,13 @@
 ///|
+fn[T] with_sequence_workspace(
+  limit : Int,
+  action : (RowWorkspace) -> Result[T, RowIssue],
+) -> Result[T, RowIssue] {
+  let workspace = row_workspace(limit)
+  with_scoped_slots(workspace, fn() { action(workspace) })
+}
+
+///|
 fn prepare_physical_sequence(
   contracts : RegisteredRelationContracts,
   sequence : @lower.PreparedSequence,
@@ -18,11 +27,11 @@ fn prepare_physical_sequence(
     limits,
     control,
     captured => {
-      table_from_capture_bounded(captured, control, {
-        limit: limits.operation_entries,
-        live: 0,
-        peak: 0,
-      }).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        table_from_capture_bounded(captured, control, workspace).map(table => {
+          RowTable(table)
+        })
+      })
     },
     fn(bound, id, output_budget) {
       guard bound.output.table is Some(source) else { return Err(InvalidRows) }
@@ -38,16 +47,18 @@ fn prepare_physical_sequence(
       match bound.projection {
         None => Ok(adopted)
         Some(projection) =>
-          evaluate_completed_body(
-            Projection(projection),
-            adopted,
-            id,
-            limits.max_rows,
-            control,
-            output_budget,
-            { limit: limits.operation_entries, live: 0, peak: 0, },
-            None,
-          )
+          with_sequence_workspace(limits.operation_entries, workspace => {
+            evaluate_completed_body(
+              Projection(projection),
+              adopted,
+              id,
+              limits.max_rows,
+              control,
+              output_budget,
+              workspace,
+              None,
+            )
+          })
       }
     },
     reserve_storage=Some(reserve_completed_storage),
@@ -89,58 +100,64 @@ fn evaluate_physical_sequence(
   run_completed_sequence_backend(
     invocation,
     captured => {
-      table_from_capture_bounded(captured, control, {
-        limit: limits.operation_entries,
-        live: 0,
-        peak: 0,
-      }).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        table_from_capture_bounded(captured, control, workspace).map(table => {
+          RowTable(table)
+        })
+      })
     },
     (kernel, input, logical) => {
-      evaluate_completed_rows(
-        kernel,
-        input,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-        logical,
-        aggregate_outputs=selected_aggregate_outputs_at(
-          aggregate_outputs,
-          @lower.kernel_step(kernel),
-        ),
-        analytic_envelope=selected_analytic_envelope_at(
-          analytic_envelopes,
-          @lower.kernel_step(kernel),
-        ),
-        identity_limits=Some(invocation.limits.input_values),
-        numeric~,
-      )
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_completed_rows(
+          kernel,
+          input,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+          logical,
+          aggregate_outputs=selected_aggregate_outputs_at(
+            aggregate_outputs,
+            @lower.kernel_step(kernel),
+          ),
+          analytic_envelope=selected_analytic_envelope_at(
+            analytic_envelopes,
+            @lower.kernel_step(kernel),
+          ),
+          identity_limits=Some(invocation.limits.input_values),
+          numeric~,
+        )
+      })
     },
     store => PhysicalStore(store),
     evaluate_window=Some((window, input) => {
-      evaluate_window_rows(
-        window,
-        input,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_window_rows(
+          window,
+          input,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_join=Some((kernel, left, right) => {
-      evaluate_join_rows(
-        kernel,
-        left,
-        right,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(
-          join_ceilings,
-          @lower.join_kernel_step(kernel),
-        ),
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_join_rows(
+          kernel,
+          left,
+          right,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(
+            join_ceilings,
+            @lower.join_kernel_step(kernel),
+          ),
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_interval_join=Some((kernel, left, right) => {
       let step = @lower.interval_join_step(kernel)
@@ -148,17 +165,19 @@ fn evaluate_physical_sequence(
         is Some(search_ceiling) else {
         return Err(InvalidRowLimits)
       }
-      evaluate_interval_join_rows(
-        kernel,
-        left,
-        right,
-        limits.max_rows,
-        search_ceiling,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_interval_join_rows(
+          kernel,
+          left,
+          right,
+          limits.max_rows,
+          search_ceiling,
+          control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_asof_join=Some((kernel, left, right) => {
       let step = @lower.asof_join_step(kernel)
@@ -166,83 +185,95 @@ fn evaluate_physical_sequence(
         is Some(search_ceiling) else {
         return Err(InvalidRowLimits)
       }
-      evaluate_asof_join_rows(
-        kernel,
-        left,
-        right,
-        limits.max_rows,
-        search_ceiling,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_asof_join_rows(
+          kernel,
+          left,
+          right,
+          limits.max_rows,
+          search_ceiling,
+          control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(join_ceilings, step),
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_sequence_match=Some((kernel, input) => {
-      evaluate_sequence_match_rows(
-        kernel,
-        input,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_sequence_match_rows(
+          kernel,
+          input,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_cross_join=Some((kernel, left, right) => {
-      evaluate_cross_join_rows(
-        kernel,
-        left,
-        right,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=selected_join_ceiling_at(
-          join_ceilings,
-          @lower.cross_join_kernel_step(kernel),
-        ),
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_cross_join_rows(
+          kernel,
+          left,
+          right,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+          selected_ceiling=selected_join_ceiling_at(
+            join_ceilings,
+            @lower.cross_join_kernel_step(kernel),
+          ),
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_append=Some((kernel, left, right) => {
-      evaluate_append_rows(
-        kernel,
-        left,
-        right,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_append_rows(
+          kernel,
+          left,
+          right,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_set=Some((kernel, left, right) => {
-      evaluate_set_rows(
-        kernel,
-        left,
-        right,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_set_rows(
+          kernel,
+          left,
+          right,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+        ).map(table => RowTable(table))
+      })
     }),
     evaluate_nest=Some((kernel, parent, child) => {
       let step = @lower.nest_kernel_step(kernel)
-      evaluate_nest_rows(
-        kernel,
-        parent,
-        child,
-        limits.max_rows,
-        control,
-        invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_item_limit=selected_step_ceiling(nest_item_ceilings, step),
-        grouped_byte_limit=selected_step_ceiling(
-          nest_grouped_byte_ceilings, step,
-        ),
-        attached_byte_limit=selected_step_ceiling(
-          nest_attached_byte_ceilings, step,
-        ),
-      ).map(table => RowTable(table))
+      with_sequence_workspace(limits.operation_entries, workspace => {
+        evaluate_nest_rows(
+          kernel,
+          parent,
+          child,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          workspace,
+          selected_item_limit=selected_step_ceiling(nest_item_ceilings, step),
+          grouped_byte_limit=selected_step_ceiling(
+            nest_grouped_byte_ceilings, step,
+          ),
+          attached_byte_limit=selected_step_ceiling(
+            nest_attached_byte_ceilings, step,
+          ),
+        ).map(table => RowTable(table))
+      })
     }),
   )
 }

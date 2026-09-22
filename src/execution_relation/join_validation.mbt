@@ -84,7 +84,7 @@ fn prepare_fixed_join_validation_layout(
     return Err(OwnerMismatch)
   }
   let control = ControlBudget::{ remaining: limits.max_work, max_frames: 0, }
-  let workspace = RowWorkspace::{ limit: limits.max_entries, live: 0, peak: 0, }
+  let workspace = row_workspace(limits.max_entries)
   if !reserve_slots(workspace, count + 2) || !spend_control(control, count) {
     return Err(RowLimit)
   }

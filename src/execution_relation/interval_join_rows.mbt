@@ -8,9 +8,13 @@ fn interval_clock(
     return Err(RowLimit)
   }
   if timestamp {
-    guard value is Captured(@admitted.Timestamp(text)) &&
-      spend_control_text(control, text) &&
-      @admitted.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
+    guard value is Captured(@admitted.Timestamp(text)) else {
+      return Err(InvalidRows)
+    }
+    if !spend_control_text(control, text) {
+      return Err(RowLimit)
+    }
+    guard @admitted.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
       return Err(InvalidRows)
     }
     Ok(milliseconds)

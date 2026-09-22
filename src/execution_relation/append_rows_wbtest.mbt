@@ -253,7 +253,7 @@ fn append_scale_sample(
   }
   let control_max = 100000000
   let control = { remaining: control_max, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: 100000000, live: 0, peak: 0, }
+  let workspace = row_workspace(100000000)
   let output = value_budget({
     max_nodes: 10000000,
     max_text_bytes: 10000000,

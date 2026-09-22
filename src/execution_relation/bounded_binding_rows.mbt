@@ -535,10 +535,10 @@ pub fn start_bounded_binding_rows(
     }
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
-  let workspace : RowWorkspace = {
-    limit: max_entries,
-    live: metadata_entries,
-    peak: metadata_entries,
+  let workspace = row_workspace(max_entries)
+  if !reserve_slots(workspace, metadata_entries) {
+    cancel_admitted_output(output) |> ignore
+    return Err(Rows(RowLimit))
   }
   let state : BoundedBindingRowsState = {
     input,

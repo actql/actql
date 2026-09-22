@@ -40,7 +40,7 @@ fn unnest_scale_sample(count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = row_workspace(maximum)
   let result = evaluate_unnest_rows(
     row_kernel(owner, 0),
     input,
@@ -79,7 +79,7 @@ fn unpivot_scale_sample(count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = row_workspace(maximum)
   let result = evaluate_unpivot_rows(
     row_kernel(owner, 0),
     input,
@@ -115,7 +115,7 @@ fn pivot_scale_sample(count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace : RowWorkspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = row_workspace(maximum)
   let result = evaluate_pivot_rows(
     row_kernel(owner, 0),
     input,
