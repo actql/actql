@@ -373,8 +373,9 @@ fn provider_capacity(
   base : @execution.ExecutionCapacity,
   storage_bytes : Int64,
   generation_count : Int,
+  private_scratch_bytes : Int64,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || generation_count < 2 {
+  if storage_bytes < 0L || private_scratch_bytes < 0L || generation_count < 2 {
     return None
   }
   let count = generation_count.to_int64()
@@ -383,12 +384,45 @@ fn provider_capacity(
   }
   let extra = storage_bytes * count
   let execution = @execution.execution_capacity_execution_bytes(base)
-  if execution > 9223372036854775807L - extra {
+  if execution > 9223372036854775807L - extra ||
+    private_scratch_bytes > 9223372036854775807L - execution - extra {
     return None
   }
   @execution.execution_capacity(
     @execution.execution_capacity_retained_bytes(base),
-    execution + extra,
+    execution + extra + private_scratch_bytes,
+  )
+}
+
+///|
+fn apply_private_capacity(
+  sequence : @execution.GeneratedSequence,
+  limits : @storage.Limits,
+) -> Int64? {
+  let mut applies = false
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    guard @execution.generated_sequence_step_at(sequence, index) is Some(step) else {
+      return None
+    }
+    match step {
+      @lower.GraphRelationStep(relation) =>
+        if @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation {
+          applies = true
+        }
+      _ => ()
+    }
+  }
+  if !applies {
+    return Some(0L)
+  }
+  if limits.max_workspace_slots < 0 || limits.max_total_value_bytes < 0 {
+    return None
+  }
+  // Contractual physical upper bound for action maps, property-reference
+  // arrays, canonical key bytes, and overlapping graph snapshots.
+  Some(
+    limits.max_workspace_slots.to_int64() * 256L +
+    limits.max_total_value_bytes.to_int64() * 8L,
   )
 }
 
@@ -1773,12 +1807,16 @@ pub fn provider(
     accepts,
     sequence => {
       if accepts(sequence) {
+        guard apply_private_capacity(sequence, limits) is Some(private_scratch) else {
+          return None
+        }
         provider_capacity(
           capacity,
           storage_bytes,
           @lower.sequence_count(
             @execution.generated_prepared_sequence(sequence),
           ),
+          private_scratch,
         )
       } else {
         None

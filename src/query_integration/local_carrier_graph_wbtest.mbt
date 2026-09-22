@@ -1,11 +1,28 @@
 ///|
-fn carrier_graph_source_owner_with_rows(rows : String) -> @lower.BoundPrepared {
+fn carrier_graph_source_owner_with_rows(
+  rows : String,
+  wide? : Bool = false,
+  text_id? : Bool = false,
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
-      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
-      "\"src\":{\"type\":\"number\",\"nullable\":false}," +
-      "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"" +
+      (if text_id { "string" } else { "number" }) +
+      "\",\"nullable\":false}," +
+      "\"src\":{\"type\":\"" +
+      (if text_id { "string" } else { "number" }) +
+      "\",\"nullable\":false}," +
+      "\"dst\":{\"type\":\"" +
+      (if text_id { "string" } else { "number" }) +
+      "\",\"nullable\":false}," +
       "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
+      (if wide {
+        "\"node_label\":{\"type\":\"string\",\"nullable\":false}," +
+        "\"node_tag\":{\"type\":\"string\",\"nullable\":false}," +
+        "\"edge_note\":{\"type\":\"string\",\"nullable\":false},"
+      } else {
+        ""
+      }) +
       "\"weight\":{\"type\":\"number\",\"nullable\":false}}," +
       "\"rows\":" +
       rows +
@@ -1160,15 +1177,24 @@ fn carrier_graph_diff_owner(
 fn carrier_graph_delta_owner(
   left_source : @lower.BoundPrepared,
   right_source : @lower.BoundPrepared,
+  wide? : Bool = false,
 ) -> @lower.BoundPrepared {
   let graph = fn(rows : String) {
     "{\"nodes\":{\"from\":\"" +
     rows +
-    "\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
+    "\",\"id\":\"id\",\"fields\":" +
+    (if wide {
+      "[\"node_name\",\"node_label\",\"node_tag\"]"
+    } else {
+      "[\"node_name\"]"
+    }) +
+    "}," +
     "\"edges\":{\"from\":\"" +
     rows +
     "\",\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}}"
+    "\"fields\":" +
+    (if wide { "[\"weight\",\"edge_note\"]" } else { "[\"weight\"]" }) +
+    "}}"
   }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -2032,6 +2058,27 @@ fn carrier_graph_storage_limits() -> @graph_storage.Limits {
     max_contract_work: 1000,
     max_work: 1000,
     max_workspace_slots: 1000,
+  }
+}
+
+///|
+fn carrier_graph_storage_limits_for_scratch(
+  workspace : Int,
+  bytes : Int,
+) -> @graph_storage.Limits {
+  let limits = carrier_graph_storage_limits()
+  {
+    max_input_rows: limits.max_input_rows,
+    max_nodes: limits.max_nodes,
+    max_edges: limits.max_edges,
+    max_value_bytes: limits.max_value_bytes,
+    max_total_value_bytes: bytes,
+    max_retained_value_bytes: limits.max_retained_value_bytes,
+    max_value_nodes: limits.max_value_nodes,
+    max_value_depth: limits.max_value_depth,
+    max_contract_work: limits.max_contract_work,
+    max_work: limits.max_work,
+    max_workspace_slots: workspace,
   }
 }
 
@@ -6841,6 +6888,14 @@ test "Graph delta atomically applies node edge and property changes" {
     }
   }
   let output = applied.unwrap()
+  assert_true(@local_sga.graph_apply_private_entry_count(apply) > 0)
+  let (scratch_slots, scratch_bytes, peak_slots, peak_bytes) = @local_sga.graph_apply_private_scratch_usage(
+    apply,
+  )
+  assert_eq(
+    (scratch_slots, scratch_bytes, peak_slots, peak_bytes),
+    (38, 776, 44, 922),
+  )
   let storage = @graphs.completed_storage(output).unwrap()
   assert_eq(@graph_storage.node_count(storage), 2)
   assert_eq(@graph_storage.edge_count(storage), 2)
@@ -6857,6 +6912,40 @@ test "Graph delta atomically applies node edge and property changes" {
   let view = @carrier_runtime.material_prepare_view(
     material, apply_owner, 0, diff_owner,
   ).unwrap()
+  let viewed = @local_sga.start_graph_apply_view(
+    @bounded.control(),
+    prepared_sequence(apply_owner),
+    0,
+    view,
+    @execution.prepare_producer_read(
+      apply_owner,
+      @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+      100,
+      1000,
+    ).unwrap(),
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut viewed_output = None
+  while viewed_output is None {
+    match @local_sga.advance_graph_apply(viewed, 7).unwrap() {
+      @local_sga.GraphApplyContinue(..) => ()
+      @local_sga.GraphApplyComplete(result, ..) => viewed_output = Some(result)
+      _ => abort("viewed graph apply failed")
+    }
+  }
+  assert_eq(@local_sga.graph_apply_private_scratch_usage(viewed).2, 44)
+  assert_eq(@local_sga.graph_apply_private_scratch_usage(viewed).3, 922)
+  assert_eq(
+    @graph_storage.node_count(
+      @graphs.completed_storage(viewed_output.unwrap()).unwrap(),
+    ),
+    2,
+  )
+  assert_eq(@local_sga.cleanup_graph_apply(viewed), Ok(true))
+  assert_eq(@local_sga.graph_apply_private_entry_count(viewed), 0)
+  assert_true(@graphs.discard_completed(viewed_output.unwrap()))
   let provider = @local_sga_provider.provider(
     carrier_graph_storage_limits(),
     4096L,
@@ -6899,7 +6988,100 @@ test "Graph delta atomically applies node edge and property changes" {
   assert_true(
     @local_connector.cleanup_managed_provider(provider_run).unwrap_or(false),
   )
+  let partial_control = @bounded.control()
+  let partial = @local_sga.start_graph_apply(
+    partial_control,
+    prepared_sequence(apply_owner),
+    0,
+    @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap(),
+    @execution.prepare_producer_read(
+      apply_owner,
+      @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+      100,
+      1000,
+    ).unwrap(),
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut partial_polls = 0
+  while @local_sga.graph_apply_private_entry_count(partial) == 0 {
+    partial_polls += 1
+    assert_true(partial_polls < 1000)
+    assert_true(
+      @local_sga.advance_graph_apply(partial, 1).unwrap()
+      is @local_sga.GraphApplyContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(partial_control))
+  assert_true(
+    @local_sga.advance_graph_apply(partial, 1).unwrap()
+    is @local_sga.GraphApplyStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_graph_apply(partial), Ok(true))
+  assert_eq(@local_sga.graph_apply_private_entry_count(partial), 0)
+  assert_eq(@local_sga.cleanup_graph_apply(partial), Ok(false))
+  for
+    (workspace, bytes, expected) in [
+      (64, 10000, "scratch"),
+      (109, 10000, "scratch"),
+      (110, 10000, "complete"),
+      (1000, 921, "bytes"),
+      (1000, 922, "complete"),
+    ] {
+    let capped = @local_sga.start_graph_apply(
+      @bounded.control(),
+      prepared_sequence(apply_owner),
+      0,
+      @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap(),
+      @execution.prepare_producer_read(
+        apply_owner,
+        @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+        100,
+        1000,
+      ).unwrap(),
+      carrier_graph_storage_limits_for_scratch(workspace, bytes),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut status = ""
+    let mut attempts = 0
+    while status == "" {
+      attempts += 1
+      assert_true(attempts < 1000)
+      match @local_sga.advance_graph_apply(capped, 1).unwrap() {
+        @local_sga.GraphApplyContinue(..) => ()
+        @local_sga.GraphApplyFailed(@local_sga.GraphApplyWorkspaceLimit, ..) =>
+          status = "scratch"
+        @local_sga.GraphApplyFailed(@local_sga.GraphApplyScratchBytesLimit, ..) =>
+          status = "bytes"
+        @local_sga.GraphApplyFailed(_, ..) => status = "other"
+        @local_sga.GraphApplyComplete(result, ..) => {
+          assert_true(@graphs.discard_completed(result))
+          status = "complete"
+        }
+        _ => abort("unexpected capped apply outcome")
+      }
+    }
+    assert_eq(status, expected)
+    if workspace == 64 {
+      assert_true(@local_sga.graph_apply_private_scratch_usage(capped).2 < 44)
+      assert_true(@local_sga.graph_apply_private_entry_count(capped) < 20)
+    }
+    if bytes == 921 {
+      assert_true(@local_sga.graph_apply_private_scratch_usage(capped).3 < 922)
+    }
+    if expected == "complete" {
+      assert_eq(@local_sga.graph_apply_private_scratch_usage(capped).2, 44)
+      assert_eq(@local_sga.graph_apply_private_scratch_usage(capped).3, 922)
+    }
+    assert_eq(@local_sga.cleanup_graph_apply(capped), Ok(true))
+    assert_eq(@local_sga.graph_apply_private_entry_count(capped), 0)
+    assert_eq(@local_sga.graph_apply_private_scratch_usage(capped).0, 0)
+    assert_eq(@local_sga.graph_apply_private_scratch_usage(capped).1, 0)
+  }
   assert_true(@local_sga.cleanup_graph_apply(apply).unwrap_or(false))
+  assert_eq(@local_sga.graph_apply_private_entry_count(apply), 0)
   assert_true(@graphs.discard_completed(output))
   assert_true(@local_sga.cleanup_graph_diff(diff_execution).unwrap_or(false))
   assert_true(
@@ -6912,6 +7094,228 @@ test "Graph delta atomically applies node edge and property changes" {
   assert_true(@graphs.discard_completed(right))
   assert_true(@execution.completed_output_available(left_rows))
   assert_true(@execution.completed_output_available(right_rows))
+}
+
+///|
+fn graph_apply_population_case(
+  left_data : String,
+  right_data : String,
+  workspace : Int,
+  quantum : Int,
+  wide? : Bool = false,
+  text_id? : Bool = false,
+  scratch_bytes? : Int = 10000,
+) -> (String, Int, Int, Int, Int, Int) raise {
+  let left_owner = carrier_graph_source_owner_with_rows(
+    left_data,
+    wide~,
+    text_id~,
+  )
+  let right_owner = carrier_graph_source_owner_with_rows(
+    right_data,
+    wide~,
+    text_id~,
+  )
+  let left_rows = carrier_events_source_output(left_owner)
+  let right_rows = carrier_events_source_output(right_owner)
+  let diff_owner = carrier_graph_delta_owner(left_owner, right_owner, wide~)
+  let sequence = prepared_sequence(diff_owner)
+  let left_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 0, left_owner, left_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let right_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 1, right_owner, right_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let inputs = [left_input, right_input]
+  let left_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [left_input, left_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_execution)
+  let right_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [right_input, right_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_execution)
+  let diff_execution = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(diff_owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(diff_owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(diff_owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    inputs,
+  ).unwrap()
+  let delta = finish_graph_diff(diff_execution)
+  let apply_owner = carrier_graph_apply_owner(diff_owner)
+  let execution = @local_sga.start_graph_apply(
+    @bounded.control(),
+    prepared_sequence(apply_owner),
+    0,
+    @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap(),
+    @execution.prepare_producer_read(
+      apply_owner,
+      @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+      100,
+      1000,
+    ).unwrap(),
+    carrier_graph_storage_limits_for_scratch(workspace, scratch_bytes),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut status = ""
+  let mut output = None
+  let mut polls = 0
+  while status == "" {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_apply(execution, quantum).unwrap() {
+      @local_sga.GraphApplyContinue(..) => ()
+      @local_sga.GraphApplyFailed(@local_sga.GraphApplyWorkspaceLimit, ..) =>
+        status = "workspace"
+      @local_sga.GraphApplyFailed(@local_sga.GraphApplyScratchBytesLimit, ..) =>
+        status = "bytes"
+      @local_sga.GraphApplyFailed(_, ..) => status = "other"
+      @local_sga.GraphApplyComplete(completed, ..) => {
+        output = Some(completed)
+        status = "complete"
+      }
+      _ => abort("unexpected Graph delta population result")
+    }
+  }
+  let entries = @local_sga.graph_apply_private_entry_count(execution)
+  let (live_slots, _, peak_slots, peak_bytes) = @local_sga.graph_apply_private_scratch_usage(
+    execution,
+  )
+  if output is Some(completed) {
+    assert_eq(
+      @graph_storage.node_count(@graphs.completed_storage(completed).unwrap()),
+      @graph_storage.node_count(@graphs.completed_storage(right).unwrap()),
+    )
+  }
+  assert_eq(@local_sga.cleanup_graph_apply(execution), Ok(true))
+  assert_eq(@local_sga.graph_apply_private_entry_count(execution), 0)
+  assert_eq(@local_sga.graph_apply_private_scratch_usage(execution).0, 0)
+  if output is Some(completed) {
+    assert_true(@graphs.discard_completed(completed))
+  }
+  assert_eq(@local_sga.cleanup_graph_diff(diff_execution), Ok(true))
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_execution), Ok(true))
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_execution), Ok(true))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(left_rows))
+  assert_true(@execution.completed_output_available(right_rows))
+  (status, entries, live_slots, peak_slots, peak_bytes, polls)
+}
+
+///|
+test "Graph delta admits many additions and removals before scratch allocation" {
+  let three = "[{\"id\":1,\"src\":1,\"dst\":2,\"node_name\":\"a\",\"weight\":10}," +
+    "{\"id\":2,\"src\":2,\"dst\":3,\"node_name\":\"b\",\"weight\":20}," +
+    "{\"id\":3,\"src\":3,\"dst\":1,\"node_name\":\"c\",\"weight\":30}]"
+  let add_zero = graph_apply_population_case("[]", three, 0, 1)
+  assert_eq(add_zero.0, "workspace")
+  assert_eq(add_zero.1, 0)
+  assert_eq(add_zero.2, 0)
+  let add_one = graph_apply_population_case("[]", three, 5, 7)
+  assert_eq(add_one.0, "workspace")
+  assert_eq(add_one.1, 0)
+  let added = graph_apply_population_case("[]", three, 1000, 1)
+  assert_eq(added.0, "complete")
+  assert_true(added.1 > 6)
+  assert_true(added.2 > 0)
+  let added_wide = graph_apply_population_case("[]", three, 1000, 7)
+  assert_eq(added.3, added_wide.3)
+  let removed = graph_apply_population_case(three, "[]", 1000, 1)
+  assert_eq(removed.0, "complete")
+  assert_true(removed.1 > 6)
+  let removed_wide = graph_apply_population_case(three, "[]", 1000, 7)
+  assert_eq(removed.3, removed_wide.3)
+}
+
+///|
+test "Graph delta reserves wide property reference containers before action storage" {
+  let wide = "[{\"id\":1,\"src\":1,\"dst\":1," +
+    "\"node_name\":\"name\",\"node_label\":\"label\"," +
+    "\"node_tag\":\"tag\",\"weight\":10," +
+    "\"edge_note\":\"note\"}]"
+  let rejected = graph_apply_population_case("[]", wide, 7, 1, wide=true)
+  assert_eq(rejected.0, "workspace")
+  assert_eq(rejected.1, 0)
+  let first_action_only = graph_apply_population_case(
+    "[]",
+    wide,
+    8,
+    1,
+    wide=true,
+  )
+  assert_eq(first_action_only.0, "workspace")
+  assert_true(first_action_only.1 > 0)
+  let accepted = graph_apply_population_case("[]", wide, 1000, 1, wide=true)
+  assert_eq(accepted.0, "complete")
+  assert_true(accepted.1 >= 8)
+  let alternate = graph_apply_population_case("[]", wide, 1000, 7, wide=true)
+  assert_eq(accepted.3, alternate.3)
+}
+
+///|
+test "Graph delta accounts UTF-8 action keys apart from structural entries" {
+  let unicode = "[{\"id\":\"😀\",\"src\":\"😀\",\"dst\":\"😀\"," +
+    "\"node_name\":\"x\",\"weight\":1}]"
+  let accepted = graph_apply_population_case(
+    "[]",
+    unicode,
+    1000,
+    1,
+    text_id=true,
+  )
+  assert_eq(accepted.0, "complete")
+  assert_true(accepted.4 > accepted.3)
+  let one_short = graph_apply_population_case(
+    "[]",
+    unicode,
+    1000,
+    7,
+    text_id=true,
+    scratch_bytes=accepted.4 - 1,
+  )
+  assert_eq(one_short.0, "bytes")
+  assert_true(one_short.4 < accepted.4)
+  assert_true(one_short.1 < accepted.1)
+  let exact = graph_apply_population_case(
+    "[]",
+    unicode,
+    1000,
+    7,
+    text_id=true,
+    scratch_bytes=accepted.4,
+  )
+  assert_eq(exact.0, "complete")
+  assert_eq(exact.4, accepted.4)
 }
 
 ///|

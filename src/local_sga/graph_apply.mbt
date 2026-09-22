@@ -60,18 +60,23 @@ priv struct GraphApplyState {
   mut result_snapshot : @snapshot.Snapshot?
   mut output : @graph.OutputBuilder?
   mut completed : @graph.Completed?
-  node_add : Map[String, ApplyNodeRecord]
-  node_remove : Map[String, ApplyNodeRecord]
-  node_update : Map[String, ApplyNodeUpdate]
-  edge_add : Map[String, ApplyEdgeRecord]
-  edge_remove : Map[String, ApplyEdgeRecord]
-  edge_update : Map[String, ApplyEdgeUpdate]
-  node_add_order : Array[String]
-  edge_add_order : Array[String]
+  mut node_add : Map[String, ApplyNodeRecord]
+  mut node_remove : Map[String, ApplyNodeRecord]
+  mut node_update : Map[String, ApplyNodeUpdate]
+  mut edge_add : Map[String, ApplyEdgeRecord]
+  mut edge_remove : Map[String, ApplyEdgeRecord]
+  mut edge_update : Map[String, ApplyEdgeUpdate]
+  mut node_add_order : Array[String]
+  mut edge_add_order : Array[String]
   mut action_list : Int
   mut action_index : Int
   mut previous_action_key : String?
   mut record : Int
+  mut action_scratch_slots : Int
+  mut action_scratch_bytes : Int
+  mut action_scratch_peak_slots : Int
+  mut action_scratch_peak_bytes : Int
+  base_snapshot_slots : Int
 }
 
 ///|
@@ -79,6 +84,8 @@ struct GraphApplyExecution {
   session : @bounded.Session[GraphApplyState, @graph.Completed, GraphApplyIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
+  private_entries : () -> Int
+  private_scratch : () -> (Int, Int, Int, Int)
 }
 
 ///|
@@ -98,6 +105,8 @@ pub(all) enum GraphApplyIssue {
   GraphApplyWrongContract
   GraphApplyWrongTarget
   GraphApplyPrecondition
+  GraphApplyWorkspaceLimit
+  GraphApplyScratchBytesLimit
   GraphApplySnapshot(@snapshot.Issue)
   GraphApplyOutput(@graph.Issue)
   GraphApplyExecutionIssue(@bounded.Issue)
@@ -139,6 +148,19 @@ fn graph_apply_base_edge_count(value : GraphApplyBase) -> Int? {
     Stored(_, storage) => Some(@storage.edge_count(storage))
     Viewed(view, _) => @lifecycle.producer_view_edge_count(view)
   }
+}
+
+///|
+fn graph_apply_base_snapshot_slots(value : GraphApplyBase) -> Int? {
+  guard graph_apply_base_node_count(value) is Some(nodes) &&
+    graph_apply_base_edge_count(value) is Some(edges) &&
+    nodes >= 0 &&
+    edges >= 0 &&
+    edges <= 2147483647 / 7 &&
+    nodes <= (2147483647 - edges * 7) / 5 else {
+    return None
+  }
+  Some(nodes * 5 + edges * 7)
 }
 
 ///|
@@ -282,6 +304,145 @@ fn apply_array_item(value : @value.Value, index : Int) -> @value.Value? {
     @value.Array(items) => @value.element_at(items, index)
     _ => None
   }
+}
+
+///|
+priv struct ActionScratchBudget {
+  retained_slots : Int
+  peak_slots : Int
+  retained_bytes : Int
+  peak_bytes : Int
+}
+
+///|
+fn apply_key_byte_bound(value : @value.Value, limits : @storage.Limits) -> Int? {
+  match value {
+    @value.Null => Some(16)
+    @value.Boolean(_) => Some(32)
+    @value.Number(_) => Some(64)
+    @value.Text(text) | @value.Date(text) | @value.Timestamp(text) => {
+      guard @scalar.utf8_length_within(text, limits.max_value_bytes)
+        is Some(bytes) &&
+        bytes <= (2147483647 - 32) / 6 else {
+        return None
+      }
+      Some(32 + bytes * 6)
+    }
+    _ => {
+      guard limits.max_value_nodes <= (2147483647 - 128) / 96 else {
+        return None
+      }
+      let structural = limits.max_value_nodes * 96 + 128
+      guard limits.max_value_bytes <= (2147483647 - structural) / 6 else {
+        return None
+      }
+      Some(structural + limits.max_value_bytes * 6)
+    }
+  }
+}
+
+///|
+fn apply_action_key_bound(
+  raw : @value.Value,
+  edge : Bool,
+  limits : @storage.Limits,
+) -> Int? {
+  if !edge {
+    guard apply_object_field(raw, "id") is Some(identity) else { return None }
+    return apply_key_byte_bound(identity, limits)
+  }
+  guard apply_object_field(raw, "src") is Some(source) &&
+    apply_object_field(raw, "dst") is Some(target) &&
+    apply_object_field(raw, "rel") is Some(label) &&
+    apply_key_byte_bound(source, limits) is Some(source_bytes) &&
+    apply_key_byte_bound(target, limits) is Some(target_bytes) &&
+    apply_key_byte_bound(label, limits) is Some(label_bytes) &&
+    source_bytes <= 2147483647 - target_bytes &&
+    source_bytes + target_bytes <= 2147483645 - label_bytes else {
+    return None
+  }
+  Some(source_bytes + target_bytes + label_bytes + 2)
+}
+
+///|
+fn apply_action_scratch_budget(
+  state : GraphApplyState,
+  raw : @value.Value,
+) -> ActionScratchBudget? {
+  guard graph_apply_base_graph(state.base_read) is Some(graph) else {
+    return None
+  }
+  let edge = state.action_list >= 3
+  let update = state.action_list == 2 || state.action_list == 5
+  let add = state.action_list == 0 || state.action_list == 3
+  let record = if update { apply_object_field(raw, "after") } else { Some(raw) }
+  guard record is Some(record) &&
+    apply_action_key_bound(record, edge, state.limits) is Some(key_bytes) else {
+    return None
+  }
+  let key_bytes = if update {
+    guard apply_object_field(raw, "before") is Some(before) &&
+      apply_action_key_bound(before, edge, state.limits) is Some(before_bytes) else {
+      return None
+    }
+    Int::max(key_bytes, before_bytes)
+  } else {
+    key_bytes
+  }
+  let width = if edge {
+    @carrier.field_count(@carrier.graph_edge_properties(graph))
+  } else {
+    @carrier.field_count(@carrier.graph_node_properties(graph))
+  }
+  // Record, property container and elements, map entry, retained key and
+  // optional insertion-order entry all remain live through result validation.
+  guard width <= (2147483647 - 20) / 3 && key_bytes <= 715827882 else {
+    return None
+  }
+  let retained_slots = width + 4 + (if add { 1 } else { 0 })
+  let key_temporaries = if edge { 3 } else { 0 }
+  let update_temporaries = if update { width + 3 } else { 0 }
+  // Remove and update compare against a temporary snapshot of the existing
+  // record, including its independent property reference container.
+  let actual_temporaries = if add { 0 } else { width + 2 }
+  let peak_slots = retained_slots +
+    key_temporaries +
+    update_temporaries +
+    actual_temporaries
+  // Key encoding and edge-key concatenation can coexist with the retained
+  // key. Reserve a safe upper bound before either is constructed.
+  let retained_bytes = key_bytes
+  let peak_bytes = key_bytes *
+    (if update && edge { 3 } else if update || edge { 2 } else { 1 })
+  Some({ retained_slots, peak_slots, retained_bytes, peak_bytes, })
+}
+
+///|
+fn reserve_action_scratch(
+  state : GraphApplyState,
+  budget : ActionScratchBudget,
+) -> GraphApplyIssue? {
+  if budget.peak_slots >
+    state.limits.max_workspace_slots -
+    state.base_snapshot_slots -
+    state.action_scratch_slots {
+    return Some(GraphApplyWorkspaceLimit)
+  }
+  if budget.peak_bytes >
+    state.limits.max_total_value_bytes - state.action_scratch_bytes {
+    return Some(GraphApplyScratchBytesLimit)
+  }
+  state.action_scratch_peak_slots = Int::max(
+    state.action_scratch_peak_slots,
+    state.action_scratch_slots + budget.peak_slots,
+  )
+  state.action_scratch_peak_bytes = Int::max(
+    state.action_scratch_peak_bytes,
+    state.action_scratch_bytes + budget.peak_bytes,
+  )
+  state.action_scratch_slots += budget.peak_slots
+  state.action_scratch_bytes += budget.peak_bytes
+  None
 }
 
 ///|
@@ -759,9 +920,20 @@ fn graph_apply_step(
         }
         if state.action_index < count {
           used += 1
+          guard apply_array_item(items, state.action_index) is Some(item) &&
+            apply_action_scratch_budget(state, item) is Some(budget) else {
+            return @bounded.Failed(GraphApplyPrecondition, progress, used)
+          }
+          if reserve_action_scratch(state, budget) is Some(issue) {
+            return @bounded.Failed(issue, progress, used)
+          }
           if !parse_one_action(state) {
             return @bounded.Failed(GraphApplyPrecondition, progress, used)
           }
+          state.action_scratch_slots -= budget.peak_slots -
+            budget.retained_slots
+          state.action_scratch_bytes -= budget.peak_bytes -
+            budget.retained_bytes
           state.action_index += 1
           progress += 1
           continue
@@ -771,6 +943,22 @@ fn graph_apply_step(
         state.previous_action_key = None
         used += 1
         if state.action_list >= 6 {
+          let remaining_workspace = state.limits.max_workspace_slots -
+            state.base_snapshot_slots -
+            state.action_scratch_slots
+          let output_limits : @storage.Limits = {
+            max_input_rows: state.limits.max_input_rows,
+            max_nodes: state.limits.max_nodes,
+            max_edges: state.limits.max_edges,
+            max_value_bytes: state.limits.max_value_bytes,
+            max_total_value_bytes: state.limits.max_total_value_bytes,
+            max_retained_value_bytes: state.limits.max_retained_value_bytes,
+            max_value_nodes: state.limits.max_value_nodes,
+            max_value_depth: state.limits.max_value_depth,
+            max_contract_work: state.limits.max_contract_work,
+            max_work: state.limits.max_work,
+            max_workspace_slots: remaining_workspace,
+          }
           state.output = match
             @graph.prepare_output(
               state.owner,
@@ -779,7 +967,7 @@ fn graph_apply_step(
                 Stored(_, storage) => @storage.mode(storage)
                 Viewed(_, _) => @storage.DeclaredNodes
               },
-              state.limits,
+              output_limits,
               state.storage_bytes,
               state.available,
             ) {
@@ -902,8 +1090,22 @@ fn graph_apply_step(
           @graph.discard_completed(completed) |> ignore
           return @bounded.Failed(GraphApplyInputUnavailable, progress, used + 1)
         }
+        let output_slots = @storage.retained_workspace_slots(storage)
+        guard @snapshot.workspace_slots(storage) is Some(result_snapshot_slots) &&
+          output_slots <=
+          state.limits.max_workspace_slots -
+          state.base_snapshot_slots -
+          state.action_scratch_slots &&
+          result_snapshot_slots <=
+          state.limits.max_workspace_slots -
+          state.base_snapshot_slots -
+          state.action_scratch_slots -
+          output_slots else {
+          @graph.discard_completed(completed) |> ignore
+          return @bounded.Failed(GraphApplyWorkspaceLimit, progress, used + 1)
+        }
         let snapshot_limits : @snapshot.Limits = {
-          max_workspace_slots: state.limits.max_workspace_slots,
+          max_workspace_slots: result_snapshot_slots,
           max_identity_bytes: state.limits.max_value_bytes,
           max_identity_nodes: state.limits.max_value_nodes,
           max_identity_depth: state.limits.max_value_depth,
@@ -965,31 +1167,89 @@ fn graph_apply_step(
 
 ///|
 fn cleanup_graph_apply_state(state : GraphApplyState) -> Bool {
+  let mut cleaned = true
   if state.base_snapshot_preparation is Some(preparation) {
-    @snapshot.cancel(preparation) |> ignore
-    state.base_snapshot_preparation = None
+    if @snapshot.cancel(preparation) {
+      state.base_snapshot_preparation = None
+    } else {
+      cleaned = false
+    }
   }
   if state.base_snapshot is Some(snapshot) {
-    @snapshot.cleanup(snapshot) |> ignore
-    state.base_snapshot = None
+    if @snapshot.cleanup(snapshot) {
+      state.base_snapshot = None
+    } else {
+      cleaned = false
+    }
   }
   if state.result_snapshot_preparation is Some(preparation) {
-    @snapshot.cancel(preparation) |> ignore
-    state.result_snapshot_preparation = None
+    if @snapshot.cancel(preparation) {
+      state.result_snapshot_preparation = None
+    } else {
+      cleaned = false
+    }
   }
   if state.result_snapshot is Some(snapshot) {
-    @snapshot.cleanup(snapshot) |> ignore
-    state.result_snapshot = None
+    if @snapshot.cleanup(snapshot) {
+      state.result_snapshot = None
+    } else {
+      cleaned = false
+    }
   }
   if state.output is Some(output) {
-    @graph.cancel_output(output) |> ignore
-    state.output = None
+    if @graph.cancel_output(output) {
+      state.output = None
+    } else {
+      cleaned = false
+    }
   }
   if state.completed is Some(completed) {
-    @graph.discard_completed(completed) |> ignore
-    state.completed = None
+    if @graph.discard_completed(completed) {
+      state.completed = None
+    } else {
+      cleaned = false
+    }
   }
-  true
+  state.node_add = Map([])
+  state.node_remove = Map([])
+  state.node_update = Map([])
+  state.edge_add = Map([])
+  state.edge_remove = Map([])
+  state.edge_update = Map([])
+  state.node_add_order = []
+  state.edge_add_order = []
+  state.previous_action_key = None
+  state.action_scratch_slots = 0
+  state.action_scratch_bytes = 0
+  cleaned
+}
+
+///|
+fn graph_apply_private_entries(state : GraphApplyState) -> Int {
+  let mut entries = state.node_add_order.length() +
+    state.edge_add_order.length()
+  for _, record in state.node_add {
+    entries += 1 + record.properties.length()
+  }
+  for _, record in state.node_remove {
+    entries += 1 + record.properties.length()
+  }
+  for _, update in state.node_update {
+    entries += 1 + update.after.properties.length()
+  }
+  for _, record in state.edge_add {
+    entries += 1 + record.properties.length()
+  }
+  for _, record in state.edge_remove {
+    entries += 1 + record.properties.length()
+  }
+  for _, update in state.edge_update {
+    entries += 1 + update.after.properties.length()
+  }
+  if state.previous_action_key is Some(_) {
+    entries += 1
+  }
+  entries
 }
 
 ///|
@@ -1058,6 +1318,11 @@ pub fn start_graph_apply(
     Ok(preparation) => preparation
     Err(issue) => return Err(GraphApplySnapshot(issue))
   }
+  guard graph_apply_base_snapshot_slots(Stored(base_read, base))
+    is Some(base_snapshot_slots) else {
+    @snapshot.cancel(base_snapshot_preparation) |> ignore
+    return Err(GraphApplyWorkspaceLimit)
+  }
   let state : GraphApplyState = {
     base_read: Stored(base_read, base),
     delta_read,
@@ -1089,6 +1354,11 @@ pub fn start_graph_apply(
     action_index: 0,
     previous_action_key: None,
     record: 0,
+    action_scratch_slots: 0,
+    action_scratch_bytes: 0,
+    action_scratch_peak_slots: 0,
+    action_scratch_peak_bytes: 0,
+    base_snapshot_slots,
   }
   let (session, token) = @bounded.start(
     control, state, graph_apply_step, cleanup_graph_apply_state, @graph.discard_completed,
@@ -1097,6 +1367,15 @@ pub fn start_graph_apply(
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,
+    private_entries: fn() { graph_apply_private_entries(state) },
+    private_scratch: fn() {
+      (
+        state.action_scratch_slots,
+        state.action_scratch_bytes,
+        state.action_scratch_peak_slots,
+        state.action_scratch_peak_bytes,
+      )
+    },
   })
 }
 
@@ -1178,6 +1457,11 @@ pub fn start_graph_apply_view(
     Ok(preparation) => preparation
     Err(issue) => return Err(GraphApplySnapshot(issue))
   }
+  guard graph_apply_base_snapshot_slots(Viewed(base_view, graph))
+    is Some(base_snapshot_slots) else {
+    @snapshot.cancel(base_snapshot_preparation) |> ignore
+    return Err(GraphApplyWorkspaceLimit)
+  }
   let state : GraphApplyState = {
     base_read: Viewed(base_view, graph),
     delta_read,
@@ -1209,6 +1493,11 @@ pub fn start_graph_apply_view(
     action_index: 0,
     previous_action_key: None,
     record: 0,
+    action_scratch_slots: 0,
+    action_scratch_bytes: 0,
+    action_scratch_peak_slots: 0,
+    action_scratch_peak_bytes: 0,
+    base_snapshot_slots,
   }
   let (session, token) = @bounded.start(
     control, state, graph_apply_step, cleanup_graph_apply_state, @graph.discard_completed,
@@ -1217,6 +1506,15 @@ pub fn start_graph_apply_view(
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,
+    private_entries: fn() { graph_apply_private_entries(state) },
+    private_scratch: fn() {
+      (
+        state.action_scratch_slots,
+        state.action_scratch_bytes,
+        state.action_scratch_peak_slots,
+        state.action_scratch_peak_bytes,
+      )
+    },
   })
 }
 
@@ -1254,6 +1552,18 @@ pub fn graph_apply_max_noninterruptible_value_nodes(
   value : GraphApplyExecution,
 ) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+pub fn graph_apply_private_entry_count(value : GraphApplyExecution) -> Int {
+  (value.private_entries)()
+}
+
+///|
+pub fn graph_apply_private_scratch_usage(
+  value : GraphApplyExecution,
+) -> (Int, Int, Int, Int) {
+  (value.private_scratch)()
 }
 
 ///|

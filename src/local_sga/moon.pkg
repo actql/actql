@@ -17,6 +17,7 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/bounded_value_set" @value_set,
   "actql/actql/exact_binary64" @exact,
+  "actql/actql/decode_scalar" @scalar,
 }
 
 import {
