@@ -1383,5 +1383,12 @@ publishes and retrieves the Effect-free Named Result, releases each consumer
 independently, and reclaims the producer after the final release. Admission
 uses the Host path ceiling and the authored output guard; it does not attach
 the node-output proof to path rows. Traverse remains partial until Relation
-and predicate path starts, patterned path predicates, and environment
-cancellation are connected for path output.
+and predicate path starts and patterned path predicates reach the same Host
+lifecycle.
+
+At `7e0bd409`, a real Node standard Host timer delivers cancellation while
+the homogeneous path kernel is active. Stop confirmation precedes cleanup,
+no partial path completion is published, retryable cleanup finishes, and the
+final ledger is empty. Direct JS, Wasm, and native fixtures cover the same
+kernel stop and cleanup boundary. Cancellation remains open only for the
+unimplemented path selector and patterned-predicate variants.

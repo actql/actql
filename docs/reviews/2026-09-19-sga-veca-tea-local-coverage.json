@@ -572,6 +572,18 @@
             "src/query_integration/query_checked_program_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "homogeneous_literal_simple_path_environment_cancellation",
+          "layers": ["cancellation"],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "7e0bd409",
+          "evidence": [
+            "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
         }
       ]
     },
