@@ -11,6 +11,45 @@ priv enum BoundedSequenceResume {
 }
 
 ///|
+priv enum BoundedSequenceInput {
+  RelationInput(ProducerRead)
+  EventsInput(@managed_carrier.ProducerView)
+}
+
+///|
+fn bounded_sequence_input_available(input : BoundedSequenceInput) -> Bool {
+  match input {
+    RelationInput(value) => producer_read_available(value)
+    EventsInput(value) =>
+      @managed_carrier.producer_view_record_count(value) is Some(_)
+  }
+}
+
+///|
+fn bounded_sequence_input_row_count(input : BoundedSequenceInput) -> Int? {
+  match input {
+    RelationInput(value) => Some(producer_read_row_count(value))
+    EventsInput(value) => @managed_carrier.producer_view_record_count(value)
+  }
+}
+
+///|
+fn bounded_sequence_input_cell(
+  input : BoundedSequenceInput,
+  row : Int,
+  column : Int,
+) -> Value? {
+  match input {
+    RelationInput(value) => producer_read_cell(value, row, column)
+    EventsInput(value) =>
+      match @managed_carrier.producer_view_record_field(value, row, column) {
+        Ok((_, checked)) => Some(capture(checked.value))
+        Err(_) => None
+      }
+  }
+}
+
+///|
 priv enum BoundedSequencePhase {
   ValidateIdentity
   ReadClocks
@@ -40,7 +79,7 @@ priv enum BoundedSequencePhase {
 
 ///|
 priv struct BoundedSequenceState {
-  input : ProducerRead
+  input : BoundedSequenceInput
   kernel : @lower.PreparedSequenceMatch
   key_columns : Array[Int]
   identity_column : Int
@@ -181,8 +220,8 @@ fn bounded_sequence_compare_value(
   right : Int,
   column : Int,
 ) -> Result[Int, BoundedSequenceMatchIssue] {
-  guard producer_read_cell(state.input, left, column) is Some(a) &&
-    producer_read_cell(state.input, right, column) is Some(b) else {
+  guard bounded_sequence_input_cell(state.input, left, column) is Some(a) &&
+    bounded_sequence_input_cell(state.input, right, column) is Some(b) else {
     return Err(InvalidExecution)
   }
   compare_complete_value(a, b, state.control).map_err(issue => {
@@ -233,7 +272,9 @@ fn bounded_sequence_start_sort(
   state : BoundedSequenceState,
   compare : (Int, Int) -> Result[Int, RowIssue],
 ) -> Bool {
-  let count = producer_read_row_count(state.input)
+  guard bounded_sequence_input_row_count(state.input) is Some(count) else {
+    return false
+  }
   if count > (state.workspace.limit - state.workspace.live) / 2 ||
     !reserve_slots(state.workspace, count * 2) {
     return false
@@ -370,7 +411,11 @@ fn bounded_sequence_output_value(
         @schema.reference_name,
       ) ==
       Some(name) {
-      return producer_read_cell(state.input, first, state.key_columns[index])
+      return bounded_sequence_input_cell(
+        state.input,
+        first,
+        state.key_columns[index],
+      )
     }
   }
   if name == "match_start_ms" {
@@ -386,7 +431,11 @@ fn bounded_sequence_output_value(
     }
     let source = state.ordered[match_.positions[pattern]]
     if name == label + "_id" {
-      return producer_read_cell(state.input, source, state.identity_column)
+      return bounded_sequence_input_cell(
+        state.input,
+        source,
+        state.identity_column,
+      )
     }
     if name == label + "_time_ms" {
       return Some(Number(state.clocks[source].to_double()))
@@ -403,12 +452,14 @@ fn bounded_sequence_step(
 ) -> @bounded.KernelStep[CompletedOutput, BoundedSequenceMatchIssue] {
   let mut used = 0
   let mut progress = 0
-  let count = producer_read_row_count(state.input)
+  guard bounded_sequence_input_row_count(state.input) is Some(count) else {
+    return bounded_sequence_failure(InvalidExecution, 0, 0)
+  }
   while used < quantum {
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !producer_read_available(state.input) {
+    if !bounded_sequence_input_available(state.input) {
       return bounded_sequence_failure(InvalidExecution, progress, used)
     }
     match state.phase {
@@ -418,7 +469,7 @@ fn bounded_sequence_step(
           state.phase = ReadClocks
           continue
         }
-        guard producer_read_cell(
+        guard bounded_sequence_input_cell(
             state.input,
             state.identity_row,
             state.identity_column,
@@ -442,7 +493,7 @@ fn bounded_sequence_step(
           state.phase = StartIdentitySort
           continue
         }
-        guard producer_read_cell(
+        guard bounded_sequence_input_cell(
             state.input,
             state.identity_row,
             state.time_column,
@@ -873,7 +924,8 @@ fn bounded_sequence_step(
         }
         let row = state.ordered[state.predicate_position]
         let column = state.predicate_field
-        guard producer_read_cell(state.input, row, column) is Some(value) &&
+        guard bounded_sequence_input_cell(state.input, row, column)
+          is Some(value) &&
           spend_control_text(state.control, state.input_names[column]) else {
           return bounded_sequence_failure(Rows(RowLimit), progress, used)
         }
@@ -1012,10 +1064,13 @@ fn bounded_sequence_step(
 }
 
 ///|
-pub fn start_bounded_sequence_match(
+fn start_bounded_sequence_match_input(
   engine : @bounded.Control,
   generated : GeneratedSequence,
-  input : ProducerRead,
+  input : BoundedSequenceInput,
+  schema : @schema.Schema,
+  step : Int,
+  trusted_inputs : Array[TrustedOutputInput],
   max_rows : Int,
   values : ValueLimits,
   max_work : Int,
@@ -1032,18 +1087,17 @@ pub fn start_bounded_sequence_match(
   }
   let sequence = generated.sequence
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_count(sequence) == 1 &&
-    @lower.sequence_step(sequence, 0) is Some(@lower.SequenceMatchStep(kernel)) &&
-    producer_read_matches_operation_input(input, owner, 0, 0) &&
-    producer_read_has_cell_access(input) &&
-    producer_read_row_count(input) <= max_rows else {
+  guard step >= 0 &&
+    step == @lower.sequence_count(sequence) - 1 &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.SequenceMatchStep(kernel)) &&
+    bounded_sequence_input_row_count(input) is Some(count) &&
+    count <= max_rows else {
     return Err(InvalidExecution)
   }
-  let schema = producer_read_schema(input)
   let output_schema = @lower.sequence_match_output_schema(kernel)
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace : RowWorkspace = { limit: max_entries, live: 0, peak: 0, }
-  let count = producer_read_row_count(input)
   let pattern_count = @lower.sequence_match_pattern_count(kernel)
   let input_name_count = @schema.field_count(schema)
   let key_count = @lower.sequence_match_key_count(kernel)
@@ -1117,7 +1171,7 @@ pub fn start_bounded_sequence_match(
     return Err(InvalidExecution)
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(0), output_limit, values) {
+    prepare_admitted_output(owner, @pipeline.Step(step), output_limit, values) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
@@ -1125,13 +1179,13 @@ pub fn start_bounded_sequence_match(
   let live = Ref(true)
   let accepted = Ref(false)
   let port = match
-    prepare_trusted_output_port(
+    prepare_trusted_output_port_with_inputs(
       generated_completion_preparation(generated),
-      @pipeline.Step(0),
+      @pipeline.Step(step),
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
-      inputs=[input],
+      inputs=trusted_inputs,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -1207,6 +1261,83 @@ pub fn start_bounded_sequence_match(
     },
   )
   Ok({ session, token: Some(token), accepted, })
+}
+
+///|
+pub fn start_bounded_sequence_match(
+  engine : @bounded.Control,
+  generated : GeneratedSequence,
+  input : ProducerRead,
+  max_rows : Int,
+  values : ValueLimits,
+  max_work : Int,
+  max_frames : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue] {
+  let sequence = generated.sequence
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_count(sequence) == 1 &&
+    producer_read_matches_operation_input(input, owner, 0, 0) &&
+    producer_read_has_cell_access(input) else {
+    return Err(InvalidExecution)
+  }
+  start_bounded_sequence_match_input(
+    engine,
+    generated,
+    RelationInput(input),
+    producer_read_schema(input),
+    0,
+    [trusted_output_relation_input(input)],
+    max_rows,
+    values,
+    max_work,
+    max_frames,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
+pub fn start_bounded_sequence_match_events(
+  engine : @bounded.Control,
+  generated : GeneratedSequence,
+  input : @managed_carrier.ProducerView,
+  max_rows : Int,
+  values : ValueLimits,
+  max_work : Int,
+  max_frames : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue] {
+  let sequence = generated.sequence
+  let owner = @lower.sequence_owner(sequence)
+  let prepared = @lower.bound_preparation(owner)
+  let reference = @managed_carrier.producer_view_read_reference(input)
+  guard @lower.sequence_count(sequence) == 1 &&
+    @managed_carrier.producer_view_kind(input) == @carrier.EventsKind &&
+    @managed_carrier.producer_read_reference_matches_operation_input(
+      reference, owner, 0, 0,
+    ) &&
+    @lower.preparation_input_carrier(prepared, 0)
+    is Some(@carrier.EventValue(events)) &&
+    @carrier.complete_schema(@carrier.event_records(events)) is Some(schema) else {
+    return Err(InvalidExecution)
+  }
+  start_bounded_sequence_match_input(
+    engine,
+    generated,
+    EventsInput(input),
+    schema,
+    0,
+    [trusted_output_carrier_input(reference)],
+    max_rows,
+    values,
+    max_work,
+    max_frames,
+    max_entries,
+    max_name_bytes,
+  )
 }
 
 ///|

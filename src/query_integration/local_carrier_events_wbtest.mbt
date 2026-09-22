@@ -409,6 +409,54 @@ fn carrier_events_session_owner(
 }
 
 ///|
+fn carrier_events_sequence_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"events\",\"sequence\":{" +
+      "\"by\":[],\"id\":\"event_id\",\"time\":\"occurred_at\"," +
+      "\"pattern\":[{\"as\":\"start\",\"where\":{" +
+      "\"literal\":true}},{\"as\":\"end\",\"where\":{" +
+      "\"literal\":true}}],\"within\":10," +
+      "\"overlap\":\"allow\",\"contiguity\":\"subsequence\"}}]",
+    ),
+    [
+      (
+        "events",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"events\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_events_projection_owner(
   source : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -900,6 +948,142 @@ test "registered Events provider returns retained Carrier material" {
   )
   assert_true(@carrier_runtime.material_available(retained))
   assert_true(@carrier_runtime.reclaim_material(retained))
+}
+
+///|
+test "registered sequence provider consumes exact Events Carrier" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let events_generated = task_test_generated(events_owner)
+  let limits = dispatch_test_limits()
+  let storage_limits = carrier_events_storage_limits()
+  let external = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let events_provider = @local_tea_provider.provider(
+    storage_limits,
+    4096L,
+    @execution.generated_sequence_capacity(
+      events_generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let events_execution = @local_connector.start_managed_provider(
+    events_provider,
+    events_generated,
+    [external],
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  while material is None {
+    match
+      @local_connector.advance_managed_provider(events_execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) => material = Some(value)
+      @local_connector.Complete(_, ..) => fail("bridge returned rows")
+      @local_connector.Failed(_, ..) => fail("bridge provider failed")
+      @local_connector.Stopped(..) => fail("bridge provider stopped")
+    }
+  }
+  assert_true(
+    @local_connector.cleanup_managed_provider(events_execution).unwrap_or(false),
+  )
+  let material = material.unwrap()
+  let owner = carrier_events_sequence_owner(events_owner)
+  let generated = task_test_generated(owner)
+  let first_view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, events_owner,
+  ).unwrap()
+  let second_view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, events_owner,
+  ).unwrap()
+  let provider = @local_tea_provider.sequence_match_provider(
+    storage_limits,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let first = @local_connector.start_managed_provider_with_inputs_and_execution(
+    provider,
+    generated,
+    [@local_connector.managed_provider_carrier_input(first_view)],
+    10,
+    1000,
+    limits.local_execution,
+  ).unwrap()
+  let second = @local_connector.start_managed_provider_with_inputs_and_execution(
+    provider,
+    generated,
+    [@local_connector.managed_provider_carrier_input(second_view)],
+    10,
+    1000,
+    limits.local_execution,
+  ).unwrap()
+  let mut output = None
+  while output is None {
+    match @local_connector.advance_managed_provider(first, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("sequence returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("sequence provider failed")
+      @local_connector.Stopped(..) => fail("sequence provider stopped")
+    }
+  }
+  assert_eq(@execution.completed_row_count(output.unwrap()), 1)
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@local_connector.managed_provider_stopped(first))
+  assert_true(@local_connector.cleanup_managed_provider(first).unwrap_or(false))
+  assert_true(@carrier_runtime.material_available(material))
+  let mut second_output = None
+  while second_output is None {
+    match @local_connector.advance_managed_provider(second, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => second_output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("sequence returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("sequence provider failed")
+      @local_connector.Stopped(..) => fail("sequence provider stopped")
+    }
+  }
+  assert_eq(@execution.completed_row_count(second_output.unwrap()), 1)
+  assert_true(
+    @local_connector.cleanup_managed_provider(second).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(material))
+  let cancel_view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, events_owner,
+  ).unwrap()
+  let cancelled = @local_connector.start_managed_provider_with_inputs_and_execution(
+    provider,
+    generated,
+    [@local_connector.managed_provider_carrier_input(cancel_view)],
+    10,
+    1000,
+    limits.local_execution,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+    is @local_connector.Continue(_),
+  )
+  assert_true(@local_connector.cancel_managed_provider(cancelled))
+  assert_true(
+    @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+    is @local_connector.Stopped(_),
+  )
+  assert_true(
+    @local_connector.cleanup_managed_provider(cancelled).unwrap_or(false),
+  )
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
 }
 
 ///|

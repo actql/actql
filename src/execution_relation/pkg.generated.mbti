@@ -828,6 +828,8 @@ pub fn start_bounded_interval_join(@bounded_execution.Control, GeneratedSequence
 
 pub fn start_bounded_sequence_match(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue]
 
+pub fn start_bounded_sequence_match_events(@bounded_execution.Control, GeneratedSequence, @managed_carrier_runtime.ProducerView, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue]
+
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]

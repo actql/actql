@@ -118,7 +118,7 @@ pub fn sequence_match_provider(
   limits : @storage.Limits,
   capacity : @execution.ExecutionCapacity,
 ) -> @local.ManagedProvider {
-  @local.managed_provider(
+  @local.managed_provider_with_inputs(
     sequence_match_provider_accepts,
     sequence => {
       if sequence_match_provider_accepts(sequence) {
@@ -137,18 +137,34 @@ pub fn sequence_match_provider(
         return Err(@connector.InvalidLimits)
       }
       let control = @bounded.control()
-      let active = match
-        @execution.start_bounded_sequence_match(
-          control,
-          sequence,
-          inputs[0],
-          max_rows,
-          execution.rows.output_values,
-          execution.max_work,
-          execution.max_frames,
-          limits.max_workspace_slots,
-          max_value_bytes,
-        ) {
+      let started = match inputs[0] {
+        @local.RelationInput(input) =>
+          @execution.start_bounded_sequence_match(
+            control,
+            sequence,
+            input,
+            max_rows,
+            execution.rows.output_values,
+            execution.max_work,
+            execution.max_frames,
+            limits.max_workspace_slots,
+            max_value_bytes,
+          )
+        @local.CarrierInput(input) =>
+          @execution.start_bounded_sequence_match_events(
+            control,
+            sequence,
+            input,
+            max_rows,
+            execution.rows.output_values,
+            execution.max_work,
+            execution.max_frames,
+            limits.max_workspace_slots,
+            max_value_bytes,
+          )
+        @local.SuppliedRelationInput(_) => Err(@execution.InvalidExecution)
+      }
+      let active = match started {
         Ok(value) => value
         Err(_) => return Err(sequence_match_provider_issue())
       }
