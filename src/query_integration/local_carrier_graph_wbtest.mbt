@@ -997,6 +997,58 @@ fn carrier_graph_material_owner(
 }
 
 ///|
+fn carrier_graph_diff_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let graph = "{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}}"
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":" +
+      graph +
+      ",\"as\":\"left\"},{\"graph\":" +
+      graph +
+      ",\"as\":\"right\"},{\"from\":\"left\"," +
+      "\"graph_diff\":{\"with\":\"right\"}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_projection_owner(
   source : @lower.BoundPrepared,
   projection : String,
@@ -5883,7 +5935,9 @@ fn graph_publication_obligations(
 
 ///|
 fn graph_relation_publication_cid(variant : String) -> String {
-  if variant == "concise_projection" {
+  if variant == "graph_diff_changes" {
+    "sha256:de8347c32fb9edf7f0bddd3ab5bcd9b986ba90aeff296e55f02e52f067067ef9"
+  } else if variant == "concise_projection" {
     "sha256:4dc1796ed34dc82b34758a1fca828ec1a34ef068e231fd5637d51841529bdb97"
   } else if variant == "subtract_exact" {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
@@ -5941,6 +5995,75 @@ fn graph_relation_publication_cid(variant : String) -> String {
   } else {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   }
+}
+
+///|
+test "Graph diff cancellation stops partial snapshots before cleanup" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_diff_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_execution)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_execution), Ok(true))
+  let right_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_execution)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_execution), Ok(true))
+  let control = @bounded.control()
+  let execution = @local_sga.start_graph_diff(
+    control,
+    task_test_completion(owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_graph_diff(execution, 1).unwrap()
+    is @local_sga.GraphDiffContinue(progress=1L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graph_diff(execution, 1).unwrap()
+    is @local_sga.GraphDiffStopped(_, ..),
+  )
+  assert_true(@local_sga.graph_diff_stopped(execution))
+  assert_true(@local_sga.graph_diff_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_graph_diff(execution), Ok(true))
+  assert_false(@local_sga.graph_diff_cleanup_pending(execution))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -6047,9 +6170,9 @@ fn run_standard_host_graph_relation_path(
       values: limits.local_execution.rows.input_values,
       wire: {
         ..retained_attempt_wire_limits(),
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
         max_columns: 10,
       },
       row: {
@@ -6548,7 +6671,7 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_unequal")
   run_standard_host_graph_relation_path("graphs_payload_unequal")
   run_standard_host_graph_relation_path("graph_diff")
-  run_standard_host_graph_relation_path("graph_diff_changes")
+  run_standard_host_graph_relation_path("graph_diff_changes", publication=true)
 }
 
 ///|
