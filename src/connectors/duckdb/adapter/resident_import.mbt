@@ -221,6 +221,11 @@ pub fn resident_import_receiver_sql(
         @schema.reference_name(@schema.field_at(receiver, i).unwrap().name),
       )
     }
+    // The immutable resident table owns insertion order as its physical rowid.
+    // Expose that stored ordinal explicitly; downstream joins must not derive a
+    // fresh row_number from an optimizer-dependent scan order.
+    sql_text(sql, ", rowid AS ")
+    sql_identifier(sql, fixed_import_ordinal_column())
     sql_text(sql, " FROM main.")
     sql_identifier(sql, imported.table)
     Ok(sql.builder.to_string())

@@ -11,6 +11,7 @@ pub fn fixed_import_file_sql(
   let schema = @execution.retained_producer_scan_schema(stream.scan)
   if max_row_bytes <= 0 ||
     max_sql_bytes <= 0 ||
+    stream.owner.ordinal ||
     @schema.field_count(schema) == 0 ||
     !physical_column_names_unique(schema) {
     return None

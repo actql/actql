@@ -110,6 +110,36 @@ test "retained fixed import demand uses exact decoded input and single receiving
     100,
     10000,
   ).unwrap()
+  let ordered = @duckdb.prepare_fixed_import(
+    input,
+    "ordered",
+    100,
+    10000,
+    ordinal=true,
+  ).unwrap()
+  let ordered_stream = @duckdb.prepare_fixed_import_stream(
+    ordered,
+    100,
+    native_retained_values(),
+    native_completion_limits().receipts,
+    1000,
+  ).unwrap()
+  // The retained row wire has no physical ordinal column. Re-enter the normal
+  // parameter importer instead of deriving ordering from a file scan.
+  assert_true(
+    @duckdb.fixed_import_file_sql(ordered_stream, 1000, 10000) is None,
+  )
+  let ordered_parameters = @duckdb.append_fixed_import_stream(
+    ordered_stream,
+    "{\"id\":3}",
+    { max_bytes: 1000, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  assert_eq(ordered_parameters.length(), 2)
+  assert_eq(
+    @duckdb.physical_parameter_binding(ordered_parameters[1]),
+    Ok(@duckdb.BindDouble(0.0)),
+  )
+  assert_true(@duckdb.cancel_fixed_import_stream(ordered_stream))
   for case_index in 0..<13 {
     let mode = case_index / 4
     let materialize_parameters = case_index % 4 == 0

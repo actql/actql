@@ -167,6 +167,15 @@ fn finish_fixed_import_row(
       }
     }
   }
+  if stream.owner.ordinal {
+    match prepare_physical_ordinal(stream.rows - 1) {
+      Ok(parameter) => parameters.push(parameter)
+      Err(issue) => {
+        @execution.cancel_retained_producer_scan(stream.scan) |> ignore
+        return Err(Parameter(issue))
+      }
+    }
+  }
   Ok(parameters)
 }
 

@@ -211,7 +211,7 @@ test "resident SQL uses exact producer storage and checked receiver projection" 
     @duckdb.resident_import_receiver_sql(
       imported, input, "owned_input", 10, 1000,
     ).unwrap(),
-    "CREATE TEMP VIEW \"owned_input\" AS SELECT \"x\" AS \"x\" FROM main.\"resident_x\"",
+    "CREATE TEMP VIEW \"owned_input\" AS SELECT \"x\" AS \"x\", rowid AS \"__actql_input_ordinal\" FROM main.\"resident_x\"",
   )
   let foreign = duckdb_fixed_values(source, steps~)
   assert_true(
