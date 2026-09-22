@@ -198,7 +198,11 @@ pub fn subgraph_max_noninterruptible_value_nodes(SubgraphExecution) -> Int
 
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
 
+pub fn traverse_private_entry_count(TraverseExecution) -> Int
+
 pub fn traverse_stopped(TraverseExecution) -> Bool
+
+pub fn traverse_value_item_attempts(TraverseExecution) -> Int
 
 // Errors
 

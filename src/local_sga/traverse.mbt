@@ -63,6 +63,7 @@ pub fn start_traverse(
     ) &&
     hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
+    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(source) else {
     return Err(UnsupportedTraverseKernel)
   }
@@ -207,6 +208,22 @@ pub fn traverse_cleanup_pending(value : TraverseExecution) -> Bool {
   match value.kernel {
     TraverseNodes(inner) => reach_cleanup_pending(inner)
     TraversePaths(paths) => traverse_paths_cleanup_pending(paths)
+  }
+}
+
+///|
+pub fn traverse_private_entry_count(value : TraverseExecution) -> Int {
+  match value.kernel {
+    TraverseNodes(_) => 0
+    TraversePaths(paths) => traverse_paths_private_entry_count(paths)
+  }
+}
+
+///|
+pub fn traverse_value_item_attempts(value : TraverseExecution) -> Int {
+  match value.kernel {
+    TraverseNodes(_) => 0
+    TraversePaths(paths) => traverse_paths_value_item_attempts(paths)
   }
 }
 

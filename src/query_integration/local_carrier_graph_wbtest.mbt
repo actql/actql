@@ -66,11 +66,16 @@ fn carrier_graph_components_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
-fn carrier_graph_selector_source_owner(rows : String) -> @lower.BoundPrepared {
+fn carrier_graph_selector_source_owner(
+  rows : String,
+  nullable? : Bool = false,
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
       "[{\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
-      "\"nullable\":false}},\"rows\":" +
+      "\"nullable\":" +
+      nullable.to_string() +
+      "}},\"rows\":" +
       rows +
       "},\"as\":\"source\"}]",
     ),
@@ -1537,6 +1542,58 @@ fn carrier_graph_traverse_owner(
 }
 
 ///|
+fn carrier_graph_two_path_traversals_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+      "\"source\":\"src\",\"target\":\"dst\"," +
+      "\"fields\":[\"weight\"]}},\"as\":\"graph\"}," +
+      "{\"from\":\"graph\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+      "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+      "\"emit\":\"paths\",\"max_output_rows\":4},\"as\":\"first\"}," +
+      "{\"from\":\"graph\",\"traverse\":{\"start\":{\"ids\":[1]}," +
+      "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
+      "\"emit\":\"paths\",\"max_output_rows\":4}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_shortest_owner_with_endpoints(
   source : @lower.BoundPrepared,
   source_endpoint : String,
@@ -1922,9 +1979,10 @@ fn finish_reach(
 ///|
 fn finish_traverse(
   execution : @local_sga.TraverseExecution,
+  quantum? : Int = 1,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] {
   while true {
-    let poll = match @local_sga.advance_traverse(execution, 1) {
+    let poll = match @local_sga.advance_traverse(execution, quantum) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -4022,6 +4080,7 @@ test "path traversal reads a Relation start selector" {
   let source = carrier_events_source_output(source_owner)
   let selector_owner = carrier_graph_selector_source_owner(
     "[{\"key\":2},{\"key\":1},{\"key\":2}]",
+    nullable=true,
   )
   let selector = carrier_events_source_output(selector_owner)
   let owner = carrier_graph_relation_traverse_owner(
@@ -4507,18 +4566,24 @@ test "homogeneous traversal rejects a missing literal start atomically" {
 }
 
 ///|
-fn homogeneous_traverse_paths_result(
+fn traverse_paths_result_for_source(
+  source_owner : @lower.BoundPrepared,
   max_output_rows : Int,
   workspace : Int,
   minimum? : Int = 1,
+  maximum? : Int = 2,
+  starts? : String = "1",
+  max_value_nodes? : Int = 1000,
+  attempts? : Ref[Int]? = None,
+  quantum? : Int = 1,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
-  let source_owner = carrier_graph_components_source_owner()
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_traverse_owner(
     source_owner,
     minimum,
-    2,
+    maximum,
     emission="paths",
+    starts~,
     max_output_rows~,
   )
   let sequence = prepared_sequence(owner)
@@ -4547,11 +4612,101 @@ fn homogeneous_traverse_paths_result(
     1,
     @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
     4,
-    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    {
+      max_nodes: max_value_nodes,
+      max_text_bytes: 1000,
+      max_depth: 10,
+      max_work: 10000,
+    },
     workspace,
     1000,
     1000,
     [external],
+  ).unwrap()
+  let result = finish_traverse(execution, quantum~)
+  if attempts is Some(attempts) {
+    attempts.val = @local_sga.traverse_value_item_attempts(execution)
+  }
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  result
+}
+
+///|
+fn homogeneous_traverse_paths_result(
+  max_output_rows : Int,
+  workspace : Int,
+  minimum? : Int = 1,
+  maximum? : Int = 2,
+  starts? : String = "1",
+  max_value_nodes? : Int = 1000,
+  attempts? : Ref[Int]? = None,
+  quantum? : Int = 1,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  traverse_paths_result_for_source(
+    carrier_graph_components_source_owner(),
+    max_output_rows,
+    workspace,
+    minimum~,
+    maximum~,
+    starts~,
+    max_value_nodes~,
+    attempts~,
+    quantum~,
+  )
+}
+
+///|
+fn relation_traverse_paths_result(
+  rows : String,
+  nullable? : Bool = false,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let selector_owner = carrier_graph_selector_source_owner(rows, nullable~)
+  let selector = carrier_events_source_output(selector_owner)
+  let owner = carrier_graph_relation_traverse_owner(
+    source_owner,
+    selector_owner,
+    emission="paths",
+  )
+  let sequence = prepared_sequence(owner)
+  let source_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let selector_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, selector_owner, selector).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [source_read, source_read],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [source_read, selector_read],
   ).unwrap()
   let result = finish_traverse(execution)
   assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
@@ -4596,10 +4751,181 @@ test "path traversal admits output and workspace before expansion" {
     is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutputLimit)),
   )
   assert_true(
-    homogeneous_traverse_paths_result(4, 13)
+    homogeneous_traverse_paths_result(4, 22)
     is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
   )
-  assert_true(homogeneous_traverse_paths_result(4, 14) is Ok(_))
+  assert_true(homogeneous_traverse_paths_result(4, 23) is Ok(_))
+}
+
+///|
+test "path traversal rejects oversized arrays before building all items" {
+  let attempts = Ref(0)
+  assert_true(
+    homogeneous_traverse_paths_result(
+      1,
+      100,
+      minimum=2,
+      maximum=2,
+      max_value_nodes=16,
+      attempts=Some(attempts),
+    )
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutputLimit)),
+  )
+  assert_eq(attempts.val, 0)
+  assert_true(
+    homogeneous_traverse_paths_result(
+      1,
+      100,
+      minimum=2,
+      maximum=2,
+      max_value_nodes=17,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "path traversal orders all depths within each canonical start" {
+  let expected = [
+    "{\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}]," +
+    "\"end_id\":2,\"hop_count\":1,\"node_ids\":[1,2],\"start_id\":1}",
+    "{\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}," +
+    "{\"dst\":3,\"rel\":null,\"src\":2}],\"end_id\":3," +
+    "\"hop_count\":2,\"node_ids\":[1,2,3],\"start_id\":1}",
+    "{\"edge_ids\":[{\"dst\":1,\"rel\":null,\"src\":2}]," +
+    "\"end_id\":1,\"hop_count\":1,\"node_ids\":[2,1],\"start_id\":2}",
+    "{\"edge_ids\":[{\"dst\":3,\"rel\":null,\"src\":2}]," +
+    "\"end_id\":3,\"hop_count\":1,\"node_ids\":[2,3],\"start_id\":2}",
+  ]
+  for quantum in [1, 2, 32, 256] {
+    let output = homogeneous_traverse_paths_result(
+      4,
+      100,
+      starts="2,1,2",
+      quantum~,
+    ).unwrap()
+    assert_eq(@execution.completed_row_count(output), 4)
+    let rows = Array::makei(4, row => {
+      @execution.completed_output_row_wire(output, row, 10000, 1000, 20).unwrap()
+    })
+    assert_eq(rows, expected)
+  }
+}
+
+///|
+test "path traversal is start-major across physical edge permutations" {
+  let a = "{\"id\":1,\"src\":1,\"dst\":3," +
+    "\"node_name\":\"one\",\"weight\":10}"
+  let b = "{\"id\":3,\"src\":3,\"dst\":4," +
+    "\"node_name\":\"three\",\"weight\":30}"
+  let c = "{\"id\":2,\"src\":2,\"dst\":4," +
+    "\"node_name\":\"two\",\"weight\":20}"
+  let d = "{\"id\":4,\"src\":4,\"dst\":4," +
+    "\"node_name\":\"four\",\"weight\":40}"
+  let expected = [
+    "{\"edge_ids\":[{\"dst\":3,\"rel\":null,\"src\":1}]," +
+    "\"end_id\":3,\"hop_count\":1,\"node_ids\":[1,3],\"start_id\":1}",
+    "{\"edge_ids\":[{\"dst\":3,\"rel\":null,\"src\":1}," +
+    "{\"dst\":4,\"rel\":null,\"src\":3}],\"end_id\":4," +
+    "\"hop_count\":2,\"node_ids\":[1,3,4],\"start_id\":1}",
+    "{\"edge_ids\":[{\"dst\":4,\"rel\":null,\"src\":2}]," +
+    "\"end_id\":4,\"hop_count\":1,\"node_ids\":[2,4],\"start_id\":2}",
+  ]
+  for rows in [
+    [a, b, c, d],
+    [a, c, b, d],
+    [b, a, c, d],
+    [b, c, a, d],
+    [c, a, b, d],
+    [c, b, a, d],
+  ] {
+    let source_owner = carrier_graph_source_owner_with_rows(
+      "[" + rows.join(",") + "]",
+    )
+    let output = traverse_paths_result_for_source(
+      source_owner,
+      3,
+      120,
+      starts="2,1",
+    ).unwrap()
+    let actual = Array::makei(3, row => {
+      @execution.completed_output_row_wire(output, row, 10000, 1000, 20).unwrap()
+    })
+    assert_eq(actual, expected)
+  }
+}
+
+///|
+test "path traversal revalidates nullable Relation start identities" {
+  let required = relation_traverse_paths_result("[{\"key\":1}]").unwrap()
+  let nullable = relation_traverse_paths_result("[{\"key\":1}]", nullable=true).unwrap()
+  assert_eq(
+    @execution.completed_output_row_wire(required, 0, 10000, 1000, 20).unwrap(),
+    @execution.completed_output_row_wire(nullable, 0, 10000, 1000, 20).unwrap(),
+  )
+  assert_true(
+    relation_traverse_paths_result("[{\"key\":null}]", nullable=true)
+    is Err(
+      @local_sga.TraversePathIssue(
+        @local_sga.TraversePathsKeyOrder(@admitted.InvalidKey)
+      )
+    ),
+  )
+  assert_true(
+    relation_traverse_paths_result("[{\"key\":999}]", nullable=true)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsStartMissing)),
+  )
+  assert_eq(
+    @execution.completed_row_count(
+      relation_traverse_paths_result("[]", nullable=true).unwrap(),
+    ),
+    0,
+  )
+}
+
+///|
+test "path traversal rejects a Graph read bound to another step" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_two_path_traversals_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let wrong_step = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  assert_true(
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      2,
+      wrong_step,
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      100,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_sga.UnsupportedTraverseKernel),
+  )
+  assert_true(@graphs.producer_read_available(wrong_step))
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|
@@ -4651,15 +4977,21 @@ test "path traversal observes cancellation before completion" {
     1000,
     [external],
   ).unwrap()
+  assert_true(
+    @local_sga.advance_traverse(execution, 1).unwrap()
+    is @local_sga.TraverseContinue(progress=0L, work=1L),
+  )
+  assert_true(@local_sga.traverse_private_entry_count(execution) > 0)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_traverse(execution, 1).unwrap()
-    is @local_sga.TraverseStopped(_, progress=0L, work=0L),
+    is @local_sga.TraverseStopped(_, ..),
   )
   assert_true(@local_sga.traverse_stopped(execution))
   assert_true(@local_sga.traverse_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
   assert_false(@local_sga.traverse_cleanup_pending(execution))
+  assert_eq(@local_sga.traverse_private_entry_count(execution), 0)
   assert_true(@graphs.discard_completed(graph))
 }
 
