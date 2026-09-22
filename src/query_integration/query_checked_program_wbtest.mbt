@@ -393,7 +393,12 @@ fn query_checked_program_fixture(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
       new=if local_carrier_graph_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
-        "\"graph\",\"result\":\"r\"}}}}"
+        (if local_carrier_graph_variant == "graph_apply_changes" {
+          "\"apply\""
+        } else {
+          "\"graph\""
+        }) +
+        ",\"result\":\"r\"}}}}"
       } else if local_carrier_events_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
         "\"events\",\"result\":\"r\"}}}}"
@@ -791,7 +796,9 @@ fn query_checked_program_fixture(
       {
         input: input_limits,
         compilation: query_checked_limits(
-          if local_values_join_chain && local_values_join_kind == "full" {
+          if local_carrier_graph_variant == "graph_apply_changes" {
+            12
+          } else if local_values_join_chain && local_values_join_kind == "full" {
             20
           } else {
             10

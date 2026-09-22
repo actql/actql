@@ -153,7 +153,81 @@ fn is_graph_equality_variant(variant : String) -> Bool {
 }
 
 ///|
+fn local_carrier_graph_apply_program() -> String {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"src\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
+    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
+  let graph = "{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}}"
+  let right_graph = "{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
+    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"other\"," +
+    "\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}}"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":[{" +
+  "\"id\":1,\"src\":1,\"dst\":2,\"node_name\":\"first\"," +
+  "\"weight\":10},{\"id\":2,\"src\":2,\"dst\":1," +
+  "\"node_name\":\"second\",\"weight\":20}]},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
+  "\"id\":\"other_values\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":[{\"id\":1,\"src\":1," +
+  "\"dst\":3,\"node_name\":\"changed\",\"weight\":11},{" +
+  "\"id\":3,\"src\":3,\"dst\":1,\"node_name\":\"third\"," +
+  "\"weight\":30}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
+  "\"node_name\",\"weight\"]}}},{\"id\":\"diff\",\"inputs\":{" +
+  "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
+  "\"other\":{\"result\":{\"stage\":\"other_values\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"graph\":" +
+  graph +
+  ",\"as\":\"g\"},{\"graph\":" +
+  right_graph +
+  ",\"as\":\"right\"},{\"from\":\"g\",\"graph_diff\":{" +
+  "\"with\":\"right\"},\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"delta\"]}}},{" +
+  "\"id\":\"apply\",\"inputs\":{\"rows\":{\"result\":{" +
+  "\"stage\":\"values\",\"result\":\"r\"}},\"changes\":{" +
+  "\"result\":{\"stage\":\"diff\",\"result\":\"r\"}}}," +
+  "\"steps\":[{\"graph\":" +
+  graph +
+  ",\"as\":\"base\"},{" +
+  "\"from\":\"base\",\"apply_graph_delta\":{\"with\":\"changes\"," +
+  "\"field\":\"delta\"},\"as\":\"applied\"},{\"from\":\"applied\"," +
+  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
+  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
+  "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"apply\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"node_name\"]}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{" +
+  "\"result\":{\"stage\":\"apply\",\"result\":\"r\"}}}," +
+  "\"steps\":[{\"select\":[\"node_name\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"node_name\"]}}}],\"results\":{\"source\":{\"from\":{" +
+  "\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
+  if variant == "graph_apply_changes" {
+    return local_carrier_graph_apply_program()
+  }
   let concise = variant == "concise_projection"
   let split = variant == "split_projection"
   let subtract = variant.has_prefix("subtract")
@@ -7380,6 +7454,237 @@ fn run_standard_host_graph_relation_path(
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+fn run_standard_host_graph_apply_path() -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant="graph_apply_changes",
+    managed_publication=true,
+    ledger_limits=Some({
+      planning_work: 30000,
+      attempts: 30,
+      holdings: 30,
+      transfer_bytes: 800000L,
+      retained_bytes: 96000000L,
+      execution_bytes: 402653184L,
+    }),
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let cleanup_attempts = Ref(0)
+  let provider = delayed_cleanup_provider(
+    @local_sga_provider.provider(
+      carrier_graph_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        sequences[3],
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    ),
+    cleanup_attempts,
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  let other_live = Ref(true)
+  let (other_ops, other) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    other_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let other_rows = local_managed_test_rows(other_ops)
+  let diff_live = Ref(true)
+  let (diff_ops, diff) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [values, other],
+    [values_rows, other_rows],
+    3,
+    diff_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let diff_rows = local_managed_test_rows(diff_ops)
+  assert_eq(diff_rows.length(), 1)
+  assert_true(diff_rows[0].contains("\"version\":\"actql-graph-delta/0.1\""))
+
+  let apply_live = Ref(true)
+  let apply_obligations = graph_publication_obligations(run, true)
+  let (apply_ops, applied) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [values, diff],
+    [values_rows, diff_rows],
+    4,
+    apply_live,
+    obligations?=apply_obligations,
+  )
+  let applied_rows = local_managed_test_rows(apply_ops)
+  assert_eq(applied_rows.length(), 2)
+  assert_true(applied_rows[0].contains("\"id\":1"))
+  assert_true(applied_rows[0].contains("\"node_name\":\"changed\""))
+  assert_true(applied_rows[1].contains("\"id\":3"))
+  assert_true(applied_rows[1].contains("\"node_name\":\"third\""))
+  guard apply_obligations is Some(obligations) else {
+    fail("missing graph apply publication obligations")
+  }
+  let requirements = @execution.managed_obligations_identities(obligations)
+  let published = requirements.filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
+  assert_eq(published.length(), 1)
+  match
+    @execution.managed_completed_identity_requirement_status(
+      applied,
+      published[0],
+    ) {
+    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
+      assert_eq(
+        cid, "sha256:52381836c0f9c56d7d1fd56a8d84dd49031c7eaf602b458b604b2d649c27d7ef",
+      )
+    }
+    _ => fail("Graph apply output did not establish publication identity")
+  }
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [applied],
+    [applied_rows],
+    5,
+    first_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    6,
+    [applied],
+    [applied_rows],
+    6,
+    second_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), 2)
+  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(applied))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 6)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  apply_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (apply_ops.close)()
+  assert_false((apply_ops.cleanup_refresh)())
+  assert_true((apply_ops.cleanup_refresh)())
+  diff_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (diff_ops.close)()
+  assert_true((diff_ops.cleanup_refresh)())
+  assert_eq(cleanup_attempts.val, 3)
+  other_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (other_ops.close)()
+  (other_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host applies an exact Graph delta for two consumers" {
+  run_standard_host_graph_apply_path()
 }
 
 ///|

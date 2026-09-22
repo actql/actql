@@ -250,7 +250,10 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       (current, @lower.GraphRelationStep(relation)) if current < count - 1 =>
         @lower.operation(node) == "SGA.apply_delta" &&
         @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation &&
-        @lower.node_input_target(node, 0) is Some(@pipeline.Input(_)) &&
+        (
+          @lower.node_input_target(node, 0) is Some(@pipeline.Input(_)) ||
+          @lower.node_input_target(node, 0) is Some(@pipeline.Step(_))
+        ) &&
         @lower.node_input_target(node, 1) is Some(@pipeline.Input(_))
       (current, @lower.CarrierProjectionStep(projection)) if current ==
         count - 1 =>
@@ -762,11 +765,10 @@ fn advance_execution(
               relation,
             ) ==
             @lower.ApplyGraphRelation => {
-            guard value.carrier_inputs.length() == 1 &&
-              input_at(value, value.kernel_step, 1) is Some(delta_input) else {
+            guard input_at(value, value.kernel_step, 1) is Some(delta_input) else {
               return fail_execution(value)
             }
-            match
+            let started = if value.carrier_inputs.length() == 1 {
               @sga.start_graph_apply_view(
                 value.control,
                 value.sequence,
@@ -776,7 +778,34 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
-              ) {
+              )
+            } else {
+              guard value.carrier_inputs.is_empty() &&
+                value.graph is Some(output) else {
+                return fail_execution(value)
+              }
+              let base = match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.kernel_step,
+                  0,
+                  output,
+                ) {
+                Ok(read) => read
+                Err(_) => return fail_execution(value)
+              }
+              @sga.start_graph_apply(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                base,
+                delta_input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            }
+            match started {
               Ok(execution) => Apply(execution)
               Err(_) => return fail_execution(value)
             }
