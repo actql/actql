@@ -31,11 +31,12 @@ fn bounded_interval_source(
 }
 
 ///|
-fn bounded_interval_fixture() -> (
-  @bounded.Control,
-  BoundedIntervalJoinExecution,
-  Array[ProducerRead],
-) raise {
+fn bounded_interval_fixture_result(
+  max_work : Int,
+) -> Result[
+  (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]),
+  BoundedIntervalJoinIssue,
+] raise {
   let (left_owner, left_output) = bounded_interval_source(
     "[{\"key\":1,\"start\":0,\"end\":5,\"time\":2,\"value\":10}," +
     "{\"key\":2,\"start\":5,\"end\":8,\"time\":7,\"value\":11}]",
@@ -111,19 +112,60 @@ fn bounded_interval_fixture() -> (
     10000,
   ).unwrap()
   let control = @bounded.control()
-  let execution = start_bounded_interval_join(
-    control,
-    generated,
-    left,
-    right,
-    10,
-    run_limits().output_values,
-    100000,
-    100,
-    10000,
-    10000,
-  ).unwrap()
-  (control, execution, [left, right])
+  let execution = match
+    start_bounded_interval_join(
+      control,
+      generated,
+      left,
+      right,
+      10,
+      run_limits().output_values,
+      max_work,
+      100,
+      10000,
+      10000,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok((control, execution, [left, right]))
+}
+
+///|
+fn bounded_interval_fixture(
+  max_work? : Int = 100000,
+) -> (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]) raise {
+  bounded_interval_fixture_result(max_work).unwrap()
+}
+
+///|
+test "bounded interval charges every explored pair" {
+  let (_, exact, _) = bounded_interval_fixture(max_work=132)
+  let mut exact_terminal = false
+  while !exact_terminal {
+    match advance_bounded_interval_join(exact, 1).unwrap() {
+      BoundedIntervalJoinContinue(..) => ()
+      BoundedIntervalJoinComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 3)
+        exact_terminal = true
+      }
+      BoundedIntervalJoinFailed(_, ..) => fail("unexpected exact failure")
+      BoundedIntervalJoinStopped(_, ..) => fail("unexpected exact stop")
+    }
+  }
+  assert_true(cleanup_bounded_interval_join(exact).unwrap())
+  let (_, short, _) = bounded_interval_fixture(max_work=131)
+  let mut short_terminal = false
+  while !short_terminal {
+    match advance_bounded_interval_join(short, 1).unwrap() {
+      BoundedIntervalJoinContinue(..) => ()
+      BoundedIntervalJoinComplete(_, ..) => fail("one-short work completed")
+      BoundedIntervalJoinFailed(Rows(RowLimit), ..) => short_terminal = true
+      BoundedIntervalJoinFailed(_, ..) => fail("unexpected one-short issue")
+      BoundedIntervalJoinStopped(_, ..) => fail("unexpected one-short stop")
+    }
+  }
+  assert_true(cleanup_bounded_interval_join(short).unwrap())
 }
 
 ///|

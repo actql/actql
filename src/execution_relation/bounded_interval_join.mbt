@@ -2,6 +2,7 @@
 priv enum BoundedIntervalPhase {
   ReadLeftClocks
   ReadRightClocks
+  BeginPair
   CompareKey
   EvaluatePair
   EmitRemainder
@@ -213,7 +214,7 @@ fn bounded_interval_step(
       ReadRightClocks => {
         if state.right_row == right_count {
           state.right_row = 0
-          state.phase = CompareKey
+          state.phase = BeginPair
           continue
         }
         guard producer_read_cell(
@@ -254,7 +255,7 @@ fn bounded_interval_step(
         used += 1
         progress += 1
       }
-      CompareKey => {
+      BeginPair => {
         if state.left_row == left_count {
           state.phase = FinishOutput
           continue
@@ -266,6 +267,13 @@ fn bounded_interval_step(
         if state.visited >= state.search_ceiling {
           return bounded_interval_failure(Rows(RowLimit), progress, used)
         }
+        if !spend_control(state.control, 1) {
+          return bounded_interval_failure(Rows(RowLimit), progress, used + 1)
+        }
+        state.phase = CompareKey
+        used += 1
+      }
+      CompareKey => {
         if state.key_index == state.keys.length() {
           state.phase = EvaluatePair
           continue
@@ -281,6 +289,7 @@ fn bounded_interval_step(
           state.visited += 1L
           state.key_index = 0
           state.right_row += 1
+          state.phase = BeginPair
           progress += 1
         } else {
           match compare_complete_value(left_value, right_value, state.control) {
@@ -289,6 +298,7 @@ fn bounded_interval_step(
               state.visited += 1L
               state.key_index = 0
               state.right_row += 1
+              state.phase = BeginPair
               progress += 1
             }
             Err(issue) =>
@@ -326,7 +336,7 @@ fn bounded_interval_step(
         } else {
           state.right_row += 1
           state.key_index = 0
-          state.phase = CompareKey
+          state.phase = BeginPair
         }
         used += 1
         progress += 1
@@ -344,7 +354,7 @@ fn bounded_interval_step(
           state.right_row = 0
           state.key_index = 0
           state.matched = false
-          state.phase = CompareKey
+          state.phase = BeginPair
         }
         used += 1
         progress += 1
@@ -410,14 +420,14 @@ fn bounded_interval_step(
           NextPair => {
             state.right_row += 1
             state.key_index = 0
-            state.phase = CompareKey
+            state.phase = BeginPair
           }
           NextLeft => {
             state.left_row += 1
             state.right_row = 0
             state.key_index = 0
             state.matched = false
-            state.phase = CompareKey
+            state.phase = BeginPair
           }
         }
         used += 1
