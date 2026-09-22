@@ -34,10 +34,10 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `consumer_lifetime` | 37/39 |
 | `resources` | 37/39 |
 | `cancellation` | 37/39 |
-| `publication` | 36/39 |
+| `publication` | 37/39 |
 | `three_targets` | 37/39 |
-| complete operations | 31/39 |
-| open operations | 8/39 |
+| complete operations | 32/39 |
+| open operations | 7/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -1408,4 +1408,19 @@ and cancellation stops the private session before cleanup. Exact and
 one-short structural workspace fixtures plus the portable standard Host cover
 the kernel, two downstream computations, Effect-free publication and
 retrieval, independent release, and final reclaim on JS, Wasm, and native.
-Traverse remains partial only for patterned path hops and their predicates.
+
+At `26e49190`, path traversal selects every authored hop direction and edge
+type at its exact depth. Edge and reached-node predicates use the shared
+bounded expression state, with incremental edge-type matching and
+pre-allocation admission for the maximum live binding width. A two-hop
+fixture distinguishes `owns` from `blocks`, checks both predicates, publishes
+and retrieves the resulting Relation, and runs two downstream computations.
+Its false-predicate counterpart completes atomically with no rows. Exact and
+one-short workspace fixtures, cancellation cleanup, and the affected suites
+pass on JS, Wasm, and native.
+
+At `e9a81d8a`, standard Host fixtures cover path output with inbound and
+bidirectional traversal, a minimum-zero bound, and an explicit empty edge-type
+set. Together with the literal, Relation-backed, predicate-selected, and
+patterned lifecycle evidence above, every classified `traverse` layer and
+formal branch is connected. `traverse` is complete.

@@ -291,7 +291,7 @@
       "output": "relation",
       "canonical": ["SGA.traverse"],
       "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
-      "status": "partial",
+      "status": "complete",
       "owner": "local-sga",
       "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
       "layer_evidence": [
@@ -623,6 +623,43 @@
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "ordered_patterned_simple_paths_with_hop_predicates",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "26e49190",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "direction_zero_hop_and_empty_edge_type_path_branches",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e9a81d8a",
+          "evidence": [
             "src/query_integration/query_checked_program_wbtest.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
@@ -3429,6 +3466,24 @@
         },
         {
           "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "traverse",
+      "sha": "e9a81d8a",
+      "suites": [
+        {
+          "name": "portable node and path variants with retained consumers",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "targets": ["js"],
           "result": "passed"
