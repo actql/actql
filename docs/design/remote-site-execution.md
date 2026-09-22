@@ -98,6 +98,23 @@ journal facts are durable. After restart, the Site generation changes and old
 execution authority is not restored. Historical terminal facts may still be
 queried, while current material availability is checked separately.
 
+The durable start boundary has five conceptual cases, represented by the
+portable record and custody state rather than an adapter-local state machine:
+
+| Conceptual case | Portable representation | Replay rule |
+| --- | --- | --- |
+| Accepted, not started | `Accepted`, no operation custody | Resume the same occurrence through the durable start sequence; do not create another occurrence |
+| Start owned | `Provisioning`, bundle custody and optionally operation custody | Continue the same occurrence only |
+| Running | `Running`, exact operation custody | Exact replay reconciles; it never starts a second handler |
+| Failed before start | `Accepted` followed by durable release or cancellation | No physical stop is fabricated |
+| Unknown after start | `ExecutionUnknown` with cleanup custody | Keep reservation and owner until exact stop and cleanup are confirmed |
+
+The ordering is durable acceptance, durable provisioning, physical operation
+ownership, durable running, then handler invocation. A synchronous failure
+before operation ownership follows the before-start release path. A failure
+after ownership without a confirmed stop becomes unknown. A crash or lost reply
+does not turn an existing nonterminal record into permission to restart it.
+
 An installed execution capability additionally binds the exact Site
 generation, runtime bundle, Connector registration and revision, strategy
 revision, and operation grant. Unsupported requests are rejected before

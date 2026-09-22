@@ -437,13 +437,29 @@ export function createRemoteDispatchRuntime({
       }
     }
   };
+  const runCleanup = (entry, retryStop = false) => {
+    if (entry.cleanupFlight !== undefined) return entry.cleanupFlight;
+    const flight = driveCleanup(entry, retryStop);
+    entry.cleanupFlight = flight;
+    flight.then(
+      () => {
+        if (entry.cleanupFlight === flight) entry.cleanupFlight = undefined;
+      },
+      () => {
+        // A rejected physical cleanup remains retryable. Only concurrent
+        // callers join this attempt; a later caller starts a fresh one.
+        if (entry.cleanupFlight === flight) entry.cleanupFlight = undefined;
+      },
+    );
+    return flight;
+  };
   const reconcileCleanup = async (identity, entry) => {
-    if (!await driveCleanup(entry, true)) return false;
+    if (!await runCleanup(entry, true)) return false;
     pendingCleanup.delete(identity);
     return true;
   };
   const releaseOwner = async (identity, owner) => {
-    if (!await driveCleanup(owner)) return false;
+    if (!await runCleanup(owner)) return false;
     owners.delete(identity);
     return true;
   };
@@ -505,7 +521,7 @@ export function createRemoteDispatchRuntime({
       throw error;
     }
     try {
-      await driveCleanup(entry);
+      await runCleanup(entry);
       pendingCleanup.delete(identity);
     } catch (cleanupError) {
       throw new AggregateError(

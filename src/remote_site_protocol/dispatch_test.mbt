@@ -859,6 +859,45 @@ test "runtime admission owns start and active resend precedence" {
 }
 
 ///|
+test "durable start boundary distinguishes pre-start and unknown work" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let dispatch = request("dispatch-start-boundary", 23, 1, bundle)
+  let (_, accepted) = accept(state, dispatch)
+  assert_true(remote_runtime_record_startable(accepted))
+  assert_eq(
+    prepare_remote_runtime_success(accepted, create_remote_runtime_custody()).unwrap(),
+    RuntimeAcquireBundle,
+  )
+
+  // A failure before any start ownership is a durable release, not a
+  // fabricated native failure or an implicit retry permission.
+  let before_start = prepare_remote_runtime_failure(accepted, false, false).unwrap()
+  assert_eq(remote_runtime_step_action_code(before_start), 1)
+  commit_dispatch_transition(
+    remote_runtime_step_transition(before_start).unwrap(),
+    true,
+  ).unwrap()
+  assert_false(remote_runtime_record_startable(accepted))
+
+  let second = request("dispatch-start-owned", 24, 1, bundle)
+  let (_, started) = accept(state, second)
+  provision(started)
+  execute(started)
+  let unknown = prepare_remote_runtime_failure(started, false, false).unwrap()
+  commit_dispatch_transition(
+    remote_runtime_step_transition(unknown).unwrap(),
+    true,
+  ).unwrap()
+  let (execution, _, cleanup, _, _) = dispatch_record_state(started)
+  assert_eq(execution, ExecutionUnknown)
+  assert_eq(cleanup, CleanupUnknown)
+  assert_false(remote_runtime_record_startable(started))
+}
+
+///|
 test "runtime cleanup waits for stop then advances one durable fact at a time" {
   let state = journal()
   let bundle = cid(

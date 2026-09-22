@@ -256,6 +256,68 @@ test('failed physical reclaim remains owned and retryable', async t => {
   );
 });
 
+test('concurrent release and close share one physical cleanup attempt',
+  async t => {
+    let closes = 0;
+    let finishClose;
+    const closeGate = new Promise(resolve => { finishClose = resolve; });
+    const f = await fixture(t, async () => managedOutput({
+      async close() {
+        closes++;
+        await closeGate;
+      },
+    }), {autoClose: false});
+    const dispatch = request({dispatchId: 'single-flight-release'});
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    await f.dispatchRuntime.start(dispatch, record, undefined, '{}');
+
+    const first = f.dispatchRuntime.release(dispatch);
+    const second = f.dispatchRuntime.release(dispatch);
+    const closing = f.dispatchRuntime.close();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(closes, 1);
+    finishClose();
+    assert.deepEqual(await Promise.all([first, second, closing]), [true, true, true]);
+    assert.equal(closes, 1);
+  });
+
+test('failed cleanup is retried once when release races runtime close',
+  async t => {
+    let closes = 0;
+    let finishRetry;
+    const retryGate = new Promise(resolve => { finishRetry = resolve; });
+    const failure = new Error('first close failed');
+    const f = await fixture(t, async () => managedOutput({
+      async close() {
+        closes++;
+        if (closes === 1) throw failure;
+        await retryGate;
+      },
+    }), {autoClose: false});
+    const dispatch = request({dispatchId: 'single-flight-retry'});
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    await f.dispatchRuntime.start(dispatch, record, undefined, '{}');
+    await assert.rejects(f.dispatchRuntime.release(dispatch), error =>
+      error === failure,
+    );
+
+    const retry = f.dispatchRuntime.release(dispatch);
+    const closing = f.dispatchRuntime.close();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(closes, 2);
+    finishRetry();
+    assert.deepEqual(await Promise.all([retry, closing]), [true, true]);
+    assert.equal(closes, 2);
+  });
+
 test('unsupported grant is rejected before durable admission or execution',
   async t => {
     let executions = 0;
