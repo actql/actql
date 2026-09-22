@@ -102,7 +102,11 @@ pub fn estimate_local_dispatch_offer(
   lines : Array[@cost.SerialEstimateLine],
   max_work : Int,
 ) -> Result[@strategy.TaskOffer, LocalDispatchIssue] {
-  if local_dispatch_rejection(installed, task) is Some(_) {
+  if local_dispatch_rejection(installed, task) is Some(_) &&
+    !@local.local_module_managed_sequence_supported(
+      installed.implementation,
+      task - 1,
+    ) {
     return Err(Configuration(ComputeUnsupported))
   }
   guard @local.local_module_capacity(installed.implementation, task - 1)

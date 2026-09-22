@@ -31,4 +31,7 @@ import {
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/connector_conformance" @conformance,
+  "actql/actql/physical_host" @host_driver,
+  "actql/actql/local_tea_provider" @tea_provider,
+  "actql/actql/managed_record_storage" @record_storage,
 }

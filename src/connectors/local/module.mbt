@@ -177,6 +177,19 @@ pub fn local_module_managed_provider(
 }
 
 ///|
+/// Exact installed sequence capability used by candidate estimation. This is
+/// the same managed evaluator/provider decision used during preparation; it
+/// does not infer support from operation names or connector labels.
+pub fn local_module_managed_sequence_supported(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  local_managed_sequence_supported(sequence) ||
+  local_module_managed_provider(installed, sequence) is Some(_)
+}
+
+///|
 pub fn local_module_managed_capacity(
   installed : LocalComputeModule,
 ) -> @connector.FixedComputeCapacity {

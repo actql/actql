@@ -5,6 +5,53 @@ struct Scenario {
 }
 
 ///|
+fn events_storage_limits() -> @record_storage.Limits {
+  {
+    max_input_records: 10,
+    max_records: 10,
+    max_fields_per_record: 10,
+    max_value_bytes: 1000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 100,
+    max_value_depth: 10,
+    max_contract_work: 1000,
+    max_work: 1000,
+    max_workspace_slots: 1000,
+  }
+}
+
+///|
+fn open_events_host(
+  run : @strategy.CapturedDAG,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  let sequences = dispatch_test_generated(run)
+  let execution = compute_test_limits()
+  let provider = @tea_provider.provider(
+    events_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(sequences[1], execution, {
+      max_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }).unwrap(),
+  )
+  @conformance.configure_subset(run, sequences, 2, managed_providers=[provider])
+}
+
+///|
+#export_name("prepareEventsSession")
+pub fn prepare_events_session() -> Scenario raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_events_chain=true,
+    local_carrier_events_variant="session",
+    managed_publication=true,
+  )
+  { installed: open_events_host(run), issuer, }
+}
+
+///|
 #export_name("prepareSortTake")
 pub fn prepare_sort_take() -> Scenario raise {
   let (run, issuer) = captured_graph_fixture(
@@ -53,6 +100,9 @@ pub fn subset_host(
 ///|
 #export_name("closeSubset")
 pub fn close_subset(scenario : Scenario) -> Unit {
+  @host_driver.stop_dispatch_driver(
+    @builtin.configured_host_driver(scenario.installed),
+  )
   @mock.close_mock_query_issuer(scenario.issuer)
 }
 

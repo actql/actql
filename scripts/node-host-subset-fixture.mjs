@@ -1,6 +1,7 @@
 // Run only in a copied tree with no installed Connector dependencies.
 import assert from 'node:assert/strict';
-import {runCapturedStrategy} from '../adapters/host-node/entry.mjs';
+import {runCapturedInternalStrategy, runCapturedStrategy} from
+  '../adapters/host-node/entry.mjs';
 import * as fixture from '../_build/js/release/build/node_host_conformance/node_host_conformance.js';
 import {checked} from '../adapters/host-common/runtime-result.mjs';
 
@@ -38,3 +39,33 @@ assert.equal(await sortedResult.cleanup(), true);
 assert.equal(sortedResult.usage().heldBytes, 0n);
 assert.equal(sortedResult.usage().reservedExecutionBytes, 0n);
 console.log('Checked sort/take and downstream consumer passed through the standard Local-only Host.');
+
+const events = checked(fixture.prepareEventsSession());
+let eventsResult;
+try {
+  eventsResult = await runCapturedInternalStrategy(
+    fixture.subsetHost(events),
+  );
+  assert.equal(eventsResult.status, 'host-tasks-completed');
+  assert.deepEqual(
+    eventsResult.completed.map(item => item.outputRepresentation),
+    [
+      'managed-local-memory',
+      'managed-local-memory',
+      'managed-local-memory',
+      'managed-local-memory',
+    ],
+  );
+  assert.deepEqual(eventsResult.completed.map(item => item.task), [1, 2, 3, 4]);
+  assert.deepEqual(
+    eventsResult.completed.map(item => item.outputRows),
+    [3, 3, 3, 3],
+  );
+} finally {
+  eventsResult?.close();
+  fixture.closeSubset(events);
+}
+assert.equal(await eventsResult.cleanup(), true);
+assert.equal(eventsResult.usage().heldBytes, 0n);
+assert.equal(eventsResult.usage().reservedExecutionBytes, 0n);
+console.log('Checked a registered Events provider through the standard Host.');

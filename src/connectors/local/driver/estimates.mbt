@@ -75,7 +75,11 @@ fn estimate_local_configuration(
   guard task > 0 && configuration.schedules.get(task - 1) is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
-  if local_dispatch_rejection(installed, task) is Some(_) {
+  if local_dispatch_rejection(installed, task) is Some(_) &&
+    !@local.local_module_managed_sequence_supported(
+      installed.implementation,
+      task - 1,
+    ) {
     return Ok([])
   }
   let lines = match
