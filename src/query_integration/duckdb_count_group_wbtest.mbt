@@ -53,7 +53,7 @@ test "fixed count SQL uses owned checked keys and exact count without a fabricat
     native_compile_limits(),
   ).unwrap()
   assert_true(physical_equal(@duckdb.fixed_count_group_owner(compiled), owner))
-  let expected = "SELECT * FROM (SELECT __actql_source.\"k\" AS \"k\", CAST(COUNT(*) AS DOUBLE) AS \"n\", CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"p\" FROM \"main\".\"fixed\" AS __actql_source GROUP BY __actql_source.\"k\", __actql_source.\"k\") AS __actql_grouped ORDER BY \"__actql_grouped\".\"k\" ASC NULLS FIRST, \"__actql_grouped\".\"k\" ASC NULLS FIRST"
+  let expected = "SELECT * FROM (SELECT __actql_source.\"k\" AS \"__actql_output_0\", CAST(COUNT(*) AS DOUBLE) AS \"__actql_output_1\", CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"__actql_output_2\" FROM \"main\".\"fixed\" AS __actql_source GROUP BY __actql_source.\"k\", __actql_source.\"k\") AS __actql_grouped ORDER BY \"__actql_grouped\".\"__actql_output_0\" ASC NULLS FIRST, \"__actql_grouped\".\"__actql_output_0\" ASC NULLS FIRST"
   assert_eq(@duckdb.fixed_count_group_sql(compiled), expected)
   assert_true(
     @duckdb.compile_fixed_count_group(owner, "main", "fixed", {
@@ -95,7 +95,7 @@ test "global count SQL has no accidental keyed grouping or empty order clause" {
   ).unwrap()
   assert_eq(
     @duckdb.fixed_count_group_sql(compiled),
-    "SELECT CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"n\" FROM \"main\".\"fixed\" AS __actql_source",
+    "SELECT CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"__actql_output_0\" FROM \"main\".\"fixed\" AS __actql_source",
   )
   let unsupported = count_group_owner(
     @value_contract.primitive(@value_contract.NumberType, nullable=true),

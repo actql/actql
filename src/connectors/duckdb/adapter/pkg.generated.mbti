@@ -147,6 +147,8 @@ pub fn fixed_compute_stream_receipt_content(FixedComputeStreamReceipt) -> @execu
 
 pub fn fixed_compute_stream_receipt_matches(FixedComputeStreamReceipt, FixedComputeReceiving) -> Bool
 
+pub fn fixed_count_group_output_names(NativeCountGroup) -> Array[String]
+
 pub fn fixed_count_group_owner(NativeCountGroup) -> @lowering_relation.BoundPrepared
 
 pub fn fixed_count_group_profile(NativeCountGroup) -> @lowering_relation.PreparedCountGroup

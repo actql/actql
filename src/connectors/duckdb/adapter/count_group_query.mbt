@@ -7,6 +7,25 @@ struct NativeCountGroup {
   group : @lower.PreparedCountGroup
   sql : String
   table : String
+  output_names : Array[String]
+}
+
+///|
+fn count_group_output_name(index : Int) -> String {
+  "__actql_output_" + index.to_string()
+}
+
+///|
+fn count_group_output_index(
+  schema : @schema.Schema,
+  name : @schema.FieldName,
+) -> Int? {
+  for index in 0..<@schema.field_count(schema) {
+    if @schema.field_at(schema, index).unwrap().name == name {
+      return Some(index)
+    }
+  }
+  None
 }
 
 ///|
@@ -59,6 +78,7 @@ pub fn compile_fixed_count_group(
   }
   let sql = { builder: StringBuilder(), remaining: limits.max_sql_bytes, }
   let keys = @lower.count_group_key_count(group)
+  let output_names = Array::makei(width, count_group_output_name)
   try {
     sql_text(sql, if keys > 0 { "SELECT * FROM (SELECT " } else { "SELECT " })
     for i in 0..<width {
@@ -93,7 +113,7 @@ pub fn compile_fixed_count_group(
         }
       }
       sql_text(sql, " AS ")
-      sql_identifier(sql, name)
+      sql_identifier(sql, output_names[i])
     }
     sql_text(sql, " FROM ")
     sql_identifier(sql, database_schema)
@@ -135,19 +155,23 @@ pub fn compile_fixed_count_group(
           emit_utf16_order_key_from(
             sql,
             "__actql_grouped",
-            @schema.reference_name(field),
+            count_group_output_name(
+              count_group_output_index(output, field).unwrap(),
+            ),
           )
         } else {
           physical_input_identifier(
             sql,
             "__actql_grouped",
-            @schema.reference_name(field),
+            count_group_output_name(
+              count_group_output_index(output, field).unwrap(),
+            ),
           )
         }
         sql_text(sql, " ASC NULLS FIRST")
       }
     }
-    Ok({ owner, group, table, sql: sql.builder.to_string(), })
+    Ok({ owner, group, table, sql: sql.builder.to_string(), output_names, })
   } catch {
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)
@@ -209,4 +233,11 @@ pub fn fixed_count_group_profile(
   query : NativeCountGroup,
 ) -> @lower.PreparedCountGroup {
   query.group
+}
+
+///|
+pub fn fixed_count_group_output_names(
+  query : NativeCountGroup,
+) -> Array[String] {
+  query.output_names.copy()
 }

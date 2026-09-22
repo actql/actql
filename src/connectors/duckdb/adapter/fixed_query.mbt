@@ -81,3 +81,11 @@ pub fn fixed_query_input_table(query : FixedQuery, port : Int) -> String? {
     _ => None
   }
 }
+
+///|
+fn fixed_query_output_names(query : FixedQuery) -> Array[String]? {
+  match query {
+    CountGroup(query) => Some(fixed_count_group_output_names(query))
+    _ => None
+  }
+}

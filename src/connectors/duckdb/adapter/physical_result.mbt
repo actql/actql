@@ -47,6 +47,24 @@ pub fn prepare_physical_result(
   limits : PhysicalResultLimits,
   max_metadata_work : Int,
 ) -> Result[PhysicalResult, PhysicalResultIssue] {
+  let expected = Array::makei(@schema.field_count(schema), index => {
+    @schema.reference_name(@schema.field_at(schema, index).unwrap().name)
+  })
+  prepare_physical_result_named(
+    schema, expected, fields, limits, max_metadata_work,
+  )
+}
+
+///|
+/// Admit a physical result whose collision-free transport names are owned by
+/// the compiled query. Logical result names remain those of the checked schema.
+fn prepare_physical_result_named(
+  schema : @schema.Schema,
+  expected_names : Array[String],
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  max_metadata_work : Int,
+) -> Result[PhysicalResult, PhysicalResultIssue] {
   if limits.max_rows < 0 ||
     limits.max_cells < 0 ||
     limits.max_nodes < 0 ||
@@ -55,7 +73,7 @@ pub fn prepare_physical_result(
     return Err(InvalidLimits)
   }
   let count = @schema.field_count(schema)
-  if count != fields.length() {
+  if count != fields.length() || count != expected_names.length() {
     return Err(SchemaMismatch)
   }
   if count > max_metadata_work {
@@ -65,7 +83,7 @@ pub fn prepare_physical_result(
   let mappings = []
   for column in 0..<count {
     let field = @schema.field_at(schema, column).unwrap()
-    let expected = @schema.reference_name(field.name)
+    let expected = expected_names[column]
     let mut matched = None
     for index, (name, physical) in fields {
       if work == 0 {

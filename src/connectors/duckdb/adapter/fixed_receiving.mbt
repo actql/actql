@@ -73,8 +73,14 @@ fn prepare_fixed_compute_receiving_impl(
   } else {
     physical
   }
-  let received = match
-    prepare_physical_result(schema, fields, physical, max_metadata_work) {
+  let received_result = match fixed_query_output_names(compute.query) {
+    Some(names) =>
+      prepare_physical_result_named(
+        schema, names, fields, physical, max_metadata_work,
+      )
+    None => prepare_physical_result(schema, fields, physical, max_metadata_work)
+  }
+  let received = match received_result {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
