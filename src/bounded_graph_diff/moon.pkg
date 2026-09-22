@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/bounded_graph_snapshot" @snapshot,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/managed_graph_storage" @storage,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_admission" @value,
+  "actql/actql/value_contract" @contract,
+}
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/graph_contract",
+  "actql/actql/graph_typing" @graph_type,
+  "actql/actql/source_value" @source,
+} for "wbtest"
