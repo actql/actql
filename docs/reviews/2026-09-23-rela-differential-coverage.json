@@ -1,0 +1,267 @@
+{
+  "version": "actql-rela-differential-coverage/0.1",
+  "normative_inventory": "docs/reviews/2026-09-18-local-compute-coverage.json",
+  "scope": "Every normative RelA operation is classified. Every registered overlapping Local and DuckDB scope has one checked input, independent expectations, canonical result comparison, and failure or resource evidence where applicable.",
+  "required_observations": [
+    "value",
+    "ordering",
+    "null",
+    "text_identity",
+    "decimal",
+    "duplicates",
+    "empty",
+    "failure",
+    "resource_boundary",
+    "named_result_identity"
+  ],
+  "publication_evidence": {
+    "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+    "fixture": "standard native and broad Node Hosts own verification through real capture and consumer",
+    "observations": ["named_result_identity", "resource_boundary"]
+  },
+  "operations": [
+    {
+      "operation": "filter",
+      "support": "overlap",
+      "scope": "numeric and boolean comparison predicates accepted by the registered fixed filter/select compiler",
+      "observations": ["value", "ordering", "null", "empty", "failure", "resource_boundary"],
+      "evidence": [
+        {
+          "path": "src/query_integration/filter_null_differential_wbtest.mbt",
+          "fixture": "nullable comparisons and NULL parameters agree with Local and export SQL",
+          "role": "local_same_program_independent_expectation"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/filter-null-differential.test.mjs",
+          "fixture": "nullable comparisons agree between Local and real DuckDB",
+          "role": "duckdb_same_program_canonical_comparison"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/equivalent-failure-parity.test.mjs",
+          "fixture": "both legs validate excluded source values before filtering",
+          "role": "failure_and_resource_boundary"
+        }
+      ]
+    },
+    {
+      "operation": "select",
+      "support": "overlap",
+      "scope": "typed projection in the registered fixed filter/select and managed view compilers",
+      "observations": ["value", "ordering", "null", "text_identity", "decimal", "duplicates", "empty", "resource_boundary"],
+      "evidence": [
+        {
+          "path": "adapters/connectors/duckdb/node/test/typed-resident-join.test.mjs",
+          "fixture": "typed composite join and count preserve fixed capture across Local fresh and resident DAGs",
+          "role": "same_program_all_placements_independent_expectation"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/typed-fixed-host.test.mjs",
+          "fixture": "standard fixed Host retains typed projected values through completion and checked consumer",
+          "role": "canonical_completion_comparison"
+        }
+      ]
+    },
+    {
+      "operation": "rename",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate implements the complete standalone rename scope; aliases used inside another admitted physical plan are not a second rename implementation."
+    },
+    {
+      "operation": "drop",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate implements the complete standalone drop scope; projection pruning inside another admitted plan is not a second drop implementation."
+    },
+    {
+      "operation": "derive",
+      "support": "no_registered_overlap",
+      "reason": "DuckDB admits exact field copies only inside a managed sort/take plan and does not implement the formal derive expression scope."
+    },
+    {
+      "operation": "sort",
+      "support": "overlap",
+      "scope": "registered managed stable sort over admitted number or text fields",
+      "observations": ["value", "ordering", "null", "text_identity", "duplicates", "empty", "resource_boundary"],
+      "evidence": [
+        {
+          "path": "src/query_integration/sort_take_differential_wbtest.mbt",
+          "fixture": "Local sort take preserves UTF-16 order null placement and stable ties",
+          "role": "local_same_program_independent_expectation"
+        },
+        {
+          "path": "src/query_integration/sort_take_differential_wbtest.mbt",
+          "fixture": "Local sort take preserves numeric zero ties and null placement",
+          "role": "local_numeric_independent_expectation"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/managed-compute-host.test.mjs",
+          "fixture": "managed selected Compute verifies actual DuckDB transport and exact physical holding without output CID",
+          "role": "duckdb_same_program_canonical_comparison"
+        }
+      ]
+    },
+    {
+      "operation": "take",
+      "support": "overlap",
+      "scope": "registered managed offset/count slicing with exact input ordinals",
+      "observations": ["value", "ordering", "null", "text_identity", "duplicates", "empty", "resource_boundary"],
+      "evidence": [
+        {
+          "path": "src/query_integration/sort_take_differential_wbtest.mbt",
+          "fixture": "Local sort take preserves UTF-16 order null placement and stable ties",
+          "role": "local_same_program_independent_expectation"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/managed-compute-host.test.mjs",
+          "fixture": "managed selected Compute verifies actual DuckDB transport and exact physical holding without output CID",
+          "role": "duckdb_same_program_canonical_comparison"
+        }
+      ]
+    },
+    {
+      "operation": "top_k",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the complete top_k contract and its formal failure and demand scope."
+    },
+    {
+      "operation": "top_k_by",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the complete top_k_by contract and its formal partition scope."
+    },
+    {
+      "operation": "row_window",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal row_window scope."
+    },
+    {
+      "operation": "window_group",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal window_group scope."
+    },
+    {
+      "operation": "lag",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal lag scope."
+    },
+    {
+      "operation": "watermark_rows",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal watermark_rows scope."
+    },
+    {
+      "operation": "pivot",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal pivot scope."
+    },
+    {
+      "operation": "unpivot",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal unpivot scope."
+    },
+    {
+      "operation": "json_pick",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal json_pick scope."
+    },
+    {
+      "operation": "unnest",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal unnest scope."
+    },
+    {
+      "operation": "join",
+      "support": "overlap",
+      "scope": "registered inner equality join without null_key fail or cardinality assertions",
+      "observations": ["value", "ordering", "null", "text_identity", "decimal", "duplicates", "empty", "failure", "resource_boundary"],
+      "evidence": [
+        {
+          "path": "adapters/connectors/duckdb/node/test/typed-resident-join.test.mjs",
+          "fixture": "typed composite join and count preserve fixed capture across Local fresh and resident DAGs",
+          "role": "same_program_all_placements_independent_expectation"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/inner-join.test.mjs",
+          "fixture": "MoonBit composite inner join SQL preserves mapped equality and original pair order",
+          "role": "decimal_and_ordering_canonical_comparison"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/equivalent-failure-parity.test.mjs",
+          "fixture": "both legs reject join expansion before the final count",
+          "role": "failure_and_resource_boundary"
+        }
+      ]
+    },
+    {
+      "operation": "nest",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal nest scope."
+    },
+    {
+      "operation": "group",
+      "support": "overlap",
+      "scope": "registered grouping with count and count(field) aggregates",
+      "observations": ["value", "ordering", "null", "text_identity", "decimal", "duplicates", "empty", "resource_boundary"],
+      "evidence": [
+        {
+          "path": "src/query_integration/group_canonical_corpus_wbtest.mbt",
+          "fixture": "canonical group corpus agrees with Local execution and exports checked SQL",
+          "role": "local_same_program_independent_expectation"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/group-canonical-corpus.test.mjs",
+          "fixture": "main canonical group vectors agree with Local and real DuckDB ordering",
+          "role": "duckdb_same_program_canonical_comparison"
+        },
+        {
+          "path": "adapters/connectors/duckdb/node/test/typed-resident-join.test.mjs",
+          "fixture": "typed composite join and count preserve fixed capture across Local fresh and resident DAGs",
+          "role": "same_program_all_placements_independent_expectation"
+        }
+      ]
+    },
+    {
+      "operation": "distinct",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal distinct scope."
+    },
+    {
+      "operation": "dedupe_rows",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal dedupe_rows scope."
+    },
+    {
+      "operation": "assert_rows",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal assert_rows scope."
+    },
+    {
+      "operation": "append",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal append scope."
+    },
+    {
+      "operation": "values",
+      "support": "no_registered_overlap",
+      "reason": "Values is a checked source operation and has no second registered DuckDB Compute candidate."
+    },
+    {
+      "operation": "except",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal except scope."
+    },
+    {
+      "operation": "intersect",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal intersect scope."
+    },
+    {
+      "operation": "cross_join",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal cross_join scope."
+    },
+    {
+      "operation": "analytic",
+      "support": "no_registered_overlap",
+      "reason": "No DuckDB candidate is registered for the formal analytic scope."
+    }
+  ]
+}

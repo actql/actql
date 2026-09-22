@@ -18,7 +18,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Cancellation | Closed for operation coverage: request delivery, kernel observation, stop confirmation, and cleanup evidence cover all 39 entries | Preserve the stop/reclaim distinction and finite observation points while closing the accounting inventory |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
-| Differential conformance | Independent expectations and focused Local/DuckDB comparisons exist, but do not yet form an operation-indexed RelA release gate | Bind every overlapping RelA operation to the same checked Program, Local and DuckDB or reference execution, canonical comparison, and an independently authored expectation |
+| Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
 | Resource accounting audit | Kernels use bounded sessions and local work and workspace ledgers, but reviewed invariants are not yet enforced by one repository gate | Add small shared accounting helpers where they remove repetition and a checked inventory for allocation admission, loop charging, and stop points in every long phase |
 
 The following snapshot is generated from the authoritative manifest. It is
@@ -118,8 +118,25 @@ close the concrete placement-parity findings from the focused review.
 
 The focused corpus passes on JS, Wasm, and native, and the real DuckDB Node
 tests cover the corresponding SQL paths. This closes E1 through E6 from the
-review, but does not close the broader operation-indexed RelA differential
-release gate in the shared blockers table.
+review.
+
+## Closed operation-indexed RelA differential gate
+
+The release manifest
+`docs/reviews/2026-09-23-rela-differential-coverage.json` classifies every one
+of the 29 normative RelA operations. The registered overlapping scopes are
+`filter`, `select`, `sort`, `take`, `join`, and `group`. Each names its exact
+supported scope, Local and real DuckDB fixtures, an independently authored
+expectation, and the observations it covers. A projection or expression used
+only inside another admitted physical plan is not misreported as a complete
+second implementation of its author-visible operation.
+
+`check:rela-differential-coverage` derives the operation inventory from the
+fixed RelA manifest, rejects missing classifications and missing independent
+oracles, verifies every fixture remains connected to source, and requires
+coverage for values, order, NULL, text identity, decimal, duplicates, empty
+input, failures, exact resource boundaries, and Named Result identity. The
+focused real DuckDB run executes all ten registered Node comparisons.
 
 ## Closed review findings after `15d759ac`
 

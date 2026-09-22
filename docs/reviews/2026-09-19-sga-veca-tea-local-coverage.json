@@ -26,7 +26,6 @@
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
   "shared_gaps": [
-    "rela_differential_conformance",
     "bounded_resource_accounting_audit"
   ],
   "shared_completed": [
@@ -58,6 +57,7 @@
     "carrier_standard_host_dispatch",
     "bounded_step_execution",
     "cancellation_delivery_and_stop",
+    "rela_differential_conformance",
     "workers_fixture_freshness",
     "family_selective_artifacts"
   ],
