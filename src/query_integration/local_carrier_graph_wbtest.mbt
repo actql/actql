@@ -6937,7 +6937,10 @@ fn run_standard_host_graph_relation_path(
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
-  let graph_task = if variant.has_suffix("unequal") ||
+  let physical_graph_bridge = variant == "projection"
+  let graph_task = if physical_graph_bridge {
+    3
+  } else if variant.has_suffix("unequal") ||
     variant == "split_projection" ||
     variant.has_prefix("subtract") ||
     variant == "union_set" ||
@@ -6948,18 +6951,20 @@ fn run_standard_host_graph_relation_path(
     2
   }
   let cleanup_attempts = Ref(0)
-  let provider = delayed_cleanup_provider(
-    @local_sga_provider.provider(
-      carrier_graph_storage_limits(),
-      4096L,
-      @execution.generated_sequence_capacity(
-        sequences[graph_task - 1],
-        limits.local_execution,
-        limits.guards,
-      ).unwrap(),
-    ),
-    cleanup_attempts,
+  let base_provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[graph_task - 1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
   )
+  let provider = if physical_graph_bridge {
+    base_provider
+  } else {
+    delayed_cleanup_provider(base_provider, cleanup_attempts)
+  }
   let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
@@ -7077,17 +7082,56 @@ fn run_standard_host_graph_relation_path(
     })
   }
   let graph_live = Ref(true)
-  let graph_obligations = graph_publication_obligations(run, publication)
-  let (graph_ops, graph) = run_local_managed_test_task(
-    installed,
-    run,
-    graph_task,
-    graph_inputs,
-    graph_input_rows,
-    graph_task,
-    graph_live,
-    obligations?=graph_obligations,
+  let initial_graph_obligations = graph_publication_obligations(
+    run, publication,
   )
+  let physical_cleanup : Ref[(() -> Unit)?] = Ref(None)
+  let (graph_ops, graph, graph_obligations) = if physical_graph_bridge {
+    let construction_task = graph_task - 1
+    let producer_count = @strategy.captured_next_managed_producers(run).length()
+    let construction_inputs = Array::makei(producer_count, _ => {
+      @local_driver.local_managed_relation_output(values)
+    })
+    let construction_rows = Array::makei(producer_count, _ => values_rows)
+    let (carrier_ops, carrier, material) = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      construction_task,
+      construction_inputs,
+      construction_rows,
+      obligations?=graph_publication_obligations(run, publication),
+    )
+    physical_cleanup.val = Some(fn() {
+      @strategy.close_captured_task_output(run, construction_task)
+      (carrier_ops.close)()
+      (carrier_ops.cleanup_refresh)() |> ignore
+    })
+    let output_obligations = graph_publication_obligations(run, publication)
+    let (output_ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      graph_task,
+      [],
+      [],
+      graph_task,
+      graph_live,
+      obligations?=output_obligations,
+      carrier_inputs=[(carrier, material)],
+    )
+    (output_ops, output, output_obligations)
+  } else {
+    let (output_ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      graph_task,
+      graph_inputs,
+      graph_input_rows,
+      graph_task,
+      graph_live,
+      obligations?=initial_graph_obligations,
+    )
+    (output_ops, output, initial_graph_obligations)
+  }
   let graph_rows = local_managed_test_rows(graph_ops)
   let expected_rows = if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
@@ -7435,9 +7479,17 @@ fn run_standard_host_graph_relation_path(
   graph_live.val = false
   @strategy.close_captured_task_output(run, graph_task)
   (graph_ops.close)()
-  assert_false((graph_ops.cleanup_refresh)())
-  assert_true((graph_ops.cleanup_refresh)())
-  assert_eq(cleanup_attempts.val, 2)
+  if physical_graph_bridge {
+    (graph_ops.cleanup_refresh)() |> ignore
+  } else {
+    assert_false((graph_ops.cleanup_refresh)())
+    assert_true((graph_ops.cleanup_refresh)())
+    assert_eq(cleanup_attempts.val, 2)
+  }
+  match physical_cleanup.val {
+    Some(cleanup) => cleanup()
+    None => ()
+  }
   match other_cleanup.val {
     Some(cleanup) => cleanup()
     None => ()
@@ -7722,6 +7774,203 @@ test "standard Host runs bounded Graph relation paths with two consumers" {
   run_standard_host_graph_relation_path("graphs_payload_unequal")
   run_standard_host_graph_relation_path("graph_diff")
   run_standard_host_graph_relation_path("graph_diff_changes", publication=true)
+}
+
+///|
+test "standard Host retains Graph across physical task boundaries" {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant="projection",
+    managed_publication=true,
+  )
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  assert_eq(sequences.length(), 5)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  assert_eq(@strategy.captured_next_managed_producers(run), [1, 1])
+  assert_eq(
+    @strategy.captured_next_managed_operation_input(run, 0),
+    Some((0, 0)),
+  )
+  assert_eq(
+    @strategy.captured_next_managed_operation_input(run, 1),
+    Some((0, 1)),
+  )
+  let (graph_ops, graph, graph_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    2,
+    [
+      @local_driver.local_managed_relation_output(values),
+      @local_driver.local_managed_relation_output(values),
+    ],
+    [values_rows, values_rows],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let output_live = Ref(true)
+  let output_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+  let (output_ops, output) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [],
+    [],
+    3,
+    output_live,
+    obligations=output_obligations,
+    carrier_inputs=[(graph, graph_material)],
+  )
+  let rows = local_managed_test_rows(output_ops)
+  assert_eq(rows.length(), 2)
+  assert_true(rows[0].contains("\"id\":1"))
+  assert_true(rows[1].contains("\"node_name\":\"second\""))
+  let requirements = @execution.managed_obligations_identities(
+    output_obligations,
+  )
+  let published = requirements.filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
+  assert_eq(published.length(), 1)
+  match
+    @execution.managed_completed_identity_requirement_status(
+      output,
+      published[0],
+    ) {
+    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
+      assert_eq(cid, graph_relation_publication_cid("projection"))
+    }
+    _ => fail("Graph output did not establish publication identity")
+  }
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [output],
+    [rows],
+    4,
+    first_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [output],
+    [rows],
+    5,
+    second_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), 2)
+  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(output))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  output_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (output_ops.close)()
+  (output_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 2)
+  (graph_ops.close)()
+  (graph_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

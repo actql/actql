@@ -53,6 +53,7 @@ priv struct Execution {
   storage_bytes : Int64
   max_rows : Int
   max_value_bytes : Int
+  selected_step : Int?
   projection_step : Int
   construction_steps : Int
   mut kernel_step : Int
@@ -198,6 +199,35 @@ fn direct_structural_views(
 ///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  if selected is Some(step) {
+    guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+      @lower.sequence_step(
+        @execution.generated_prepared_sequence(sequence),
+        step,
+      )
+      is Some(operation) else {
+      return false
+    }
+    return match operation {
+      @lower.GraphConstructionStep(_) =>
+        @lower.operation(node) == "BRIDGE.rows.to_graph"
+      @lower.CarrierProjectionStep(projection) =>
+        (
+          @lower.operation(node) == "BRIDGE.graph.to_node_rows" &&
+          @lower.carrier_projection_operation(projection) ==
+          @projection.NodeRows
+        ) ||
+        (
+          @lower.operation(node) == "BRIDGE.graph.to_edge_rows" &&
+          @lower.carrier_projection_operation(projection) ==
+          @projection.EdgeRows
+        )
+      _ => false
+    }
+  }
   let count = @lower.sequence_count(
     @execution.generated_prepared_sequence(sequence),
   )
@@ -454,8 +484,8 @@ fn advance_execution(
   while true {
     match value.phase {
       StartConstruction => {
-        let step = value.graphs.length()
-        if step >= value.construction_steps {
+        let step = value.selected_step.unwrap_or(value.graphs.length())
+        if value.selected_step is None && step >= value.construction_steps {
           return fail_execution(value)
         }
         guard @lower.sequence_step(value.sequence, step)
@@ -502,8 +532,11 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@bridge.Complete(output, progress~, work~)) => {
-            if value.construction_steps == 1 &&
-              @lower.sequence_count(value.sequence) == 1 {
+            if value.selected_step is Some(_) ||
+              (
+                value.construction_steps == 1 &&
+                @lower.sequence_count(value.sequence) == 1
+              ) {
               guard delta(progress, value.stage_progress)
                 is Some(progress_delta) &&
                 delta(work, value.stage_work) is Some(work_delta) else {
@@ -1730,6 +1763,9 @@ pub fn provider(
       }
       let relations = []
       let carriers = []
+      let selected_step = @execution.completion_preparation_selected_step(
+        @execution.generated_completion_preparation(sequence),
+      )
       for input in inputs {
         match input {
           @local.RelationInput(value) => relations.push(value)
@@ -1742,7 +1778,7 @@ pub fn provider(
       let direct_projection = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
-          0,
+          selected_step.unwrap_or(0),
         ) {
         Some(@lower.CarrierProjectionStep(_)) => true
         _ => false
@@ -1750,7 +1786,7 @@ pub fn provider(
       let direct_apply = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
-          0,
+          selected_step.unwrap_or(0),
         ) {
         Some(@lower.GraphRelationStep(relation)) =>
           @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation
@@ -1807,10 +1843,13 @@ pub fn provider(
         storage_bytes,
         max_rows,
         max_value_bytes,
-        projection_step: @lower.sequence_count(
-          @execution.generated_prepared_sequence(sequence),
-        ) -
-        1,
+        selected_step,
+        projection_step: selected_step.unwrap_or(
+          @lower.sequence_count(
+            @execution.generated_prepared_sequence(sequence),
+          ) -
+          1,
+        ),
         construction_steps,
         kernel_step: construction_steps,
         phase: if direct_structural || direct_apply {

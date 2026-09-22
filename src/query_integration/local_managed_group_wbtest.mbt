@@ -127,7 +127,10 @@ fn run_local_managed_test_task(
     Err(@local_driver.Configuration(@connector.Execution(InputOwnership))) =>
       fail("Local managed sequence rejected input ownership")
     Err(@local_driver.Configuration(@connector.Execution(InputSet))) =>
-      fail("Local managed sequence rejected the input set")
+      fail(
+        "Local managed sequence rejected the input set for task " +
+        task.to_string(),
+      )
     Err(@local_driver.Configuration(@connector.Execution(Wiring(_)))) =>
       fail("Local managed sequence rejected input wiring")
     Err(
@@ -307,16 +310,23 @@ fn run_local_managed_carrier_test_task(
     @strategy.captured_dag_graph(run),
     task,
   ).unwrap()
-  let setup = @local_driver.prepare_local_managed_dispatch_with_outputs(
+  let setup = match
+    @local_driver.prepare_local_managed_dispatch_with_outputs(
       installed,
       inputs,
       obligations.unwrap_or_else(() => {
         @execution.process_managed_obligations(owner)
       }),
       0L,
-    )
-    .unwrap()
-    .unwrap()
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => fail("Local managed Carrier task was not selected")
+    Err(@local_driver.Configuration(@connector.Execution(InputSet))) =>
+      fail("Local managed Carrier provider rejected the input set")
+    Err(@local_driver.Configuration(InputUnavailable)) =>
+      fail("Local managed Carrier task lacked an exact input")
+    Err(_) => fail("Local managed Carrier task setup failed")
+  }
   let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
   assert_eq(operations.inputs.length(), rows.length())
   for index, transfer in operations.inputs {
@@ -329,14 +339,19 @@ fn run_local_managed_carrier_test_task(
   (operations.settle)().unwrap()
   let completed = (operations.complete_carrier)().unwrap()
   let material = (operations.carrier_material)().unwrap()
-  assert_true(
-    @strategy.captured_carrier_managed_task_output_matches(
+  if !@execution.carrier_managed_completed_output_available(completed) {
+    fail("Local managed Carrier completion was unavailable")
+  }
+  if !@strategy.captured_carrier_managed_task_output_matches(
       run,
       task,
       @strategy.captured_task_target(run, task).unwrap(),
       completed,
-    ),
-  )
+    ) {
+    fail(
+      "Local managed Carrier completion did not match task " + task.to_string(),
+    )
+  }
   (operations, completed, material)
 }
 

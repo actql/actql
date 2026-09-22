@@ -18,6 +18,17 @@ fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
   let mut found = false
   for step in 0..<count {
     guard @lower.node_at(prepared, step) is Some(node) else { return false }
+    if @lower.operation(node) == "BRIDGE.rows.to_graph" &&
+      @lower.node_input_count(node) > 1 {
+      guard @lower.node_input_target(node, 0) is Some(first) else {
+        return false
+      }
+      for input in 1..<@lower.node_input_count(node) {
+        if @lower.node_input_target(node, input) != Some(first) {
+          return false
+        }
+      }
+    }
     for input in 0..<@lower.node_input_count(node) {
       match @lower.node_input_target(node, input) {
         Some(@pipeline.Step(producer)) => {
