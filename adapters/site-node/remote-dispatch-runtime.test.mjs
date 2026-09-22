@@ -221,6 +221,30 @@ test('registered runtime durably executes, evidences, and releases output',
     );
   });
 
+test('active exact replay joins one physical start', async t => {
+  let executions = 0;
+  let finishExecution;
+  const executionGate = new Promise(resolve => { finishExecution = resolve; });
+  const f = await fixture(t, async () => {
+    executions++;
+    await executionGate;
+    return managedOutput();
+  });
+  const dispatch = request({dispatchId: 'active-exact-replay'});
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch),
+    dispatch,
+    f.control,
+  );
+  const first = f.dispatchRuntime.start(dispatch, record, undefined, '{}');
+  const replay = f.dispatchRuntime.start(dispatch, record, undefined, '{}');
+  assert.equal(first, replay);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(executions, 1);
+  finishExecution();
+  assert.equal(await first, await replay);
+});
+
 test('failed physical reclaim remains owned and retryable', async t => {
   let closes = 0;
   const failure = new Error('close failed');
@@ -317,6 +341,50 @@ test('failed cleanup is retried once when release races runtime close',
     assert.deepEqual(await Promise.all([retry, closing]), [true, true]);
     assert.equal(closes, 2);
   });
+
+test('pending cleanup retry and close share one stop observation', async t => {
+  let stopped = false;
+  let retries = 0;
+  let finishRetry;
+  const retryGate = new Promise(resolve => { finishRetry = resolve; });
+  const cleanupHandle = Object.freeze({
+    status: () => Object.freeze({pending: !stopped, errors: []}),
+    async retry() {
+      retries++;
+      await retryGate;
+      stopped = true;
+      return this.status();
+    },
+  });
+  const failure = Object.assign(new Error('stop pending'), {
+    cleanupPending: true,
+    cleanupHandle,
+  });
+  const f = await fixture(
+    t,
+    async () => { throw failure; },
+    {autoClose: false},
+  );
+  const dispatch = request({dispatchId: 'cleanup-close-single-flight'});
+  const record = f.store.accept(
+    f.control.prepareAdmission(f.journal, dispatch),
+    dispatch,
+    f.control,
+  );
+  await assert.rejects(
+    f.dispatchRuntime.start(dispatch, record, undefined, '{}'),
+    error => error === failure,
+  );
+
+  const cleanup = f.dispatchRuntime.cleanup(dispatch);
+  const closing = f.dispatchRuntime.close();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(retries, 1);
+  finishRetry();
+  assert.deepEqual(await Promise.all([cleanup, closing]), [true, true]);
+  assert.equal(retries, 1);
+  assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
+});
 
 test('unsupported grant is rejected before durable admission or execution',
   async t => {

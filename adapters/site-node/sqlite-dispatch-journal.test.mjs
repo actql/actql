@@ -117,6 +117,7 @@ test('reopen reconciles exact resend and rejects durable collisions', async t =>
     control,
   );
   assert.deepEqual(control.status(record), [0, 0, 0, 0, 0]);
+  assert.equal(control.runtimeStartable(record), true);
 
   const collisionJournal = control.createJournal(site());
   const collision = control.prepare(request('dispatch-a', 1, 'local/2'));
