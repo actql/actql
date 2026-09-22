@@ -1,7 +1,6 @@
 ///|
-/// A sequence is safely splittable without interpreting operation names when
-/// every internal dependency is a non-Relation Carrier edge. Relation-only
-/// sequences retain their existing task and evaluator path.
+/// Split a mixed sequence only when every internal use has a typed managed
+/// read boundary. Relation-only sequences retain their fused evaluator path.
 fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
   if stage <= 0 || stage >= graph.owners.length() {
     return false
@@ -15,9 +14,14 @@ fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
   if count < 2 {
     return false
   }
-  let mut found = false
+  let mut found_carrier = false
+  let mut found_relation = false
+  let mut prefer_fused_without_relation = false
   for step in 0..<count {
     guard @lower.node_at(prepared, step) is Some(node) else { return false }
+    if !@lower.node_supports_selected_managed_execution(node) {
+      return false
+    }
     if @lower.operation(node) == "BRIDGE.rows.to_graph" &&
       @lower.node_input_count(node) > 1 {
       guard @lower.node_input_target(node, 0) is Some(first) else {
@@ -34,20 +38,33 @@ fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
         Some(@pipeline.Step(producer)) => {
           guard producer >= 0 &&
             producer < step &&
-            @lower.node_accepts_managed_carrier_view(node, input) &&
             @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
-            is Some(carrier) &&
-            @carrier.kind(carrier) != @carrier.RelationKind else {
+            is Some(carrier) else {
             return false
           }
-          found = true
+          if @carrier.kind(carrier) == @carrier.RelationKind {
+            if @lower.preparation_schema_at(prepared, @pipeline.Step(producer))
+              is None ||
+              !@lower.node_accepts_managed_relation_view(node, input) {
+              return false
+            }
+            found_relation = true
+          } else {
+            if !@lower.node_accepts_managed_carrier_view(node, input) {
+              return false
+            }
+            found_carrier = true
+            if @lower.node_prefers_fused_without_relation_consumer(node) {
+              prefer_fused_without_relation = true
+            }
+          }
         }
         Some(@pipeline.Input(_)) => ()
         None => return false
       }
     }
   }
-  found
+  found_carrier && (!prefer_fused_without_relation || found_relation)
 }
 
 ///|
@@ -97,7 +114,7 @@ fn original_supplied_slot(
 }
 
 ///|
-/// Expand only structurally safe Carrier-only internal sequences into common
+/// Expand structurally safe mixed Carrier/Relation sequences into common
 /// physical tasks. The author-visible owner, global step coordinates and
 /// Result occurrences remain unchanged.
 pub fn expand_internal_carrier_tasks(

@@ -512,6 +512,29 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"normalized\",\"normalize_graph\":true," +
     "\"as\":\"same_carrier\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "normalize_filter" ||
+    variant == "normalize_select" ||
+    variant == "normalize_derive" ||
+    variant == "normalize_take" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"node_rows\":true," +
+    "\"as\":\"projected\"},{" +
+    "\"from\":\"projected\"," +
+    (if variant == "normalize_select" {
+      "\"select\":[\"id\",\"node_name\"]"
+    } else if variant == "normalize_derive" {
+      "\"derive\":{\"copy\":\"id\"}"
+    } else if variant == "normalize_take" {
+      "\"take\":1"
+    } else {
+      "\"filter\":\"true\""
+    }) +
+    ",\"as\":\"out\""
+  } else if variant == "edge_projection_filter" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"edge_rows\":true," +
+    "\"as\":\"projected\"},{" +
+    "\"from\":\"projected\",\"filter\":\"true\",\"as\":\"out\""
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
@@ -670,7 +693,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\",\"graphs_equal\":{\"with\":\"" +
     right_name +
     "\"},\"as\":\"out\""
-  } else if variant == "edge_projection" {
+  } else if variant == "edge_projection" || variant == "edge_projection_filter" {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
@@ -681,10 +704,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\""
   } else if subtract_numeric {
     "\"src\",\"dst\",\"weight\""
+  } else if variant == "normalize_derive" {
+    "\"id\",\"node_name\",\"copy\""
   } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "edge_projection_filter" ||
     variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
@@ -716,10 +742,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\""
   } else if subtract_numeric {
     "\"weight\",\"src\""
+  } else if variant == "normalize_derive" {
+    "\"copy\",\"id\""
   } else if concise {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "edge_projection_filter" ||
     variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
@@ -7506,6 +7535,254 @@ fn run_standard_host_graph_relation_path(
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+fn run_standard_host_mixed_graph_relation_path(
+  variant? : String = "normalize_filter",
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant=variant,
+    managed_publication=true,
+    ledger_limits=Some({
+      planning_work: 30000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 800000L,
+      retained_bytes: 96000000L,
+      execution_bytes: 402653184L,
+    }),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  let construction_inputs = Array::makei(2, _ => {
+    @local_driver.local_managed_relation_output(values)
+  })
+  let construction_rows = Array::makei(2, _ => values_rows)
+  let (construction_ops, construction, construction_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    2,
+    construction_inputs,
+    construction_rows,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let (normalize_ops, normalized, normalized_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    3,
+    [
+      @local_driver.local_managed_carrier_output(
+        construction, construction_material,
+      ),
+    ],
+    [],
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let projected_live = Ref(true)
+  let (projected_ops, projected) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [],
+    [],
+    4,
+    projected_live,
+    carrier_inputs=[(normalized, normalized_material)],
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let projected_rows = local_managed_test_rows(projected_ops)
+  let filtered_live = Ref(true)
+  let (filtered_ops, filtered) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [projected],
+    [projected_rows],
+    5,
+    filtered_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let filtered_rows = local_managed_test_rows(filtered_ops)
+  let expected_rows = if variant == "normalize_take" { 1 } else { 2 }
+  assert_eq(filtered_rows.length(), expected_rows)
+  if variant == "normalize_filter" {
+    assert_eq(filtered_rows, projected_rows)
+    assert_true(filtered_rows[0].contains("\"id\":1"))
+    assert_true(filtered_rows[1].contains("\"id\":2"))
+  } else if variant == "normalize_select" {
+    assert_true(filtered_rows[0].contains("\"id\":1"))
+    assert_true(filtered_rows[1].contains("\"id\":2"))
+  } else if variant == "normalize_derive" {
+    assert_true(filtered_rows[0].contains("\"copy\":1"))
+    assert_true(filtered_rows[1].contains("\"copy\":2"))
+  } else if variant == "normalize_take" {
+    assert_true(filtered_rows[0].contains("\"id\":1"))
+  } else {
+    assert_true(filtered_rows[0].contains("\"src\":1"))
+    assert_true(filtered_rows[1].contains("\"src\":2"))
+  }
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    6,
+    [filtered],
+    [filtered_rows],
+    6,
+    first_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    7,
+    [filtered],
+    [filtered_rows],
+    7,
+    second_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
+  assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 6)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(filtered))
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 7)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  filtered_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (filtered_ops.close)()
+  (filtered_ops.cleanup_refresh)() |> ignore
+  projected_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (projected_ops.close)()
+  (projected_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 3)
+  (normalize_ops.close)()
+  (normalize_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 2)
+  (construction_ops.close)()
+  (construction_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host composes Graph projection and Relation filter" {
+  run_standard_host_mixed_graph_relation_path()
+}
+
+///|
+test "standard Host composes Graph edge projection and Relation filter" {
+  run_standard_host_mixed_graph_relation_path(variant="edge_projection_filter")
+}
+
+///|
+test "standard Host composes Graph projection and Relation select" {
+  run_standard_host_mixed_graph_relation_path(variant="normalize_select")
+}
+
+///|
+test "standard Host composes Graph projection and Relation derive" {
+  run_standard_host_mixed_graph_relation_path(variant="normalize_derive")
+}
+
+///|
+test "standard Host composes Graph projection and Relation take" {
+  run_standard_host_mixed_graph_relation_path(variant="normalize_take")
 }
 
 ///|

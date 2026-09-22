@@ -5,6 +5,7 @@ struct BoundProducerInput {
   // Process-local identity only; retaining it does not retain the producer data.
   identity : ProducerBindingIdentity
   receiver : @lower.BoundPrepared
+  consumer_step : Int?
   input_index : Int
   output : CompletedOutput
   projection : @lower.PreparedProjection?
@@ -113,12 +114,49 @@ pub fn bind_completed_input(
   Ok({
     identity: { input_index, carrier: None, supplied: None, },
     receiver,
+    consumer_step: None,
     input_index,
     output,
     projection: @lower.preparation_input_projection(
       @lower.bound_preparation(receiver),
       input_index,
     ),
+  })
+}
+
+///|
+/// Retain an internal Relation edge as its original checked operation input.
+/// Its position is not an author-visible pipeline input.
+pub fn bind_completed_operation_input(
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+  output : CompletedOutput,
+) -> Result[BoundProducerInput, ProducerBindingIssue] {
+  if !completed_output_available(output) {
+    return Err(ProducerUnavailable)
+  }
+  let prepared = @lower.bound_preparation(receiver)
+  guard physical_equal(receiver, expected_producer) &&
+    physical_equal(
+      @lower.sequence_owner(output.completion.sequence),
+      expected_producer,
+    ) &&
+    @lower.node_at(prepared, consumer_step) is Some(node) &&
+    @lower.node_input_target(node, input_index) is Some(target) &&
+    target is @pipeline.Step(_) &&
+    target == output.target &&
+    @lower.preparation_schema_at(prepared, target) is Some(_) else {
+    return Err(ProducerBindingMismatch)
+  }
+  Ok({
+    identity: { input_index, carrier: None, supplied: None, },
+    receiver,
+    consumer_step: Some(consumer_step),
+    input_index,
+    output,
+    projection: None,
   })
 }
 

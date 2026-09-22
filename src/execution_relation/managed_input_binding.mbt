@@ -47,7 +47,7 @@ pub fn[T] managed_relation_input_binding(
   {
     identity: value.identity,
     receiver: value.receiver,
-    consumer_step: None,
+    consumer_step: value.consumer_step,
     input_index: value.input_index,
     kind: @carrier.RelationKind,
     profile_cid: managed_execution_profile_cid(value.output.profile),

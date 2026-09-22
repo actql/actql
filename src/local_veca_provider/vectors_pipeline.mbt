@@ -32,6 +32,7 @@ priv struct Execution {
   sequence : @lower.PreparedSequence
   inputs : Array[@local.ManagedProviderInput]
   relation_inputs : Array[@execution.ProducerRead]?
+  carrier_input : @lifecycle.ProducerView?
   ranking_inputs : Array[@veca.RankingInput]?
   control : @bounded.Control
   limits : @storage.Limits
@@ -116,6 +117,31 @@ fn fail_execution(
 ///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
+  if @execution.completion_preparation_selected_step(
+      @execution.generated_completion_preparation(sequence),
+    )
+    is Some(selected) {
+    guard @lower.node_at(@lower.bound_preparation(owner), selected)
+      is Some(node) &&
+      @lower.sequence_step(
+        @execution.generated_prepared_sequence(sequence),
+        selected,
+      )
+      is Some(step) else {
+      return false
+    }
+    let direct_bridge = match step {
+      @lower.VectorStep(_) => @lower.operation(node) == "BRIDGE.rows.to_vectors"
+      @lower.CarrierProjectionStep(projection) =>
+        @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
+        @lower.carrier_projection_operation(projection) ==
+        @carrier_projection.Vectors
+      _ => false
+    }
+    if direct_bridge {
+      return true
+    }
+  }
   let count = @lower.sequence_count(
     @execution.generated_prepared_sequence(sequence),
   )
@@ -432,7 +458,31 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@bridge.Complete(output, progress~, work~)) => {
+            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+              delta(work, value.stage_work) is Some(work_delta) else {
+              return fail_execution(value)
+            }
+            if @execution.completion_preparation_selected_step(
+                @execution.generated_completion_preparation(value.generated),
+              )
+              is Some(_) {
+              let material = match @records.completed_material(output) {
+                Ok(value) => value
+                Err(_) => {
+                  @records.discard_completed(output) |> ignore
+                  return fail_execution(value)
+                }
+              }
+              value.terminal = true
+              value.phase = Terminal
+              return Ok(
+                @local.managed_provider_carrier_complete(
+                  material, progress_delta, work_delta,
+                ),
+              )
+            }
             guard continue_poll(value, progress, work) is Some(poll) else {
+              @records.discard_completed(output) |> ignore
               return fail_execution(value)
             }
             value.transformed = Some(output)
@@ -658,42 +708,59 @@ fn advance_execution(
         }
       }
       StartProjection => {
-        guard value.transformed is Some(output) &&
-          value.relation_inputs is Some(inputs) else {
-          return fail_execution(value)
+        let limits : @execution.ValueLimits = {
+          max_nodes: value.limits.max_value_nodes,
+          max_text_bytes: value.max_value_bytes,
+          max_depth: value.limits.max_value_depth,
+          max_work: value.limits.max_work,
         }
-        let input = match value.projection_input {
-          Some(read) => read
-          None =>
-            match
-              @records.prepare_step_read(
-                @execution.generated_sequence_owner(value.generated),
-                value.projection_step,
-                0,
-                output,
-              ) {
-              Ok(read) => read
-              Err(_) => return fail_execution(value)
+        let started_result = match value.carrier_input {
+          Some(view) =>
+            @bridge.start_vectors_view_to_rows(
+              value.control,
+              @execution.generated_completion_preparation(value.generated),
+              value.sequence,
+              value.projection_step,
+              view,
+              value.max_rows,
+              limits,
+              value.limits.max_workspace_slots,
+              value.max_value_bytes,
+            )
+          None => {
+            guard value.transformed is Some(output) &&
+              value.relation_inputs is Some(inputs) else {
+              return fail_execution(value)
             }
+            let input = match value.projection_input {
+              Some(read) => read
+              None =>
+                match
+                  @records.prepare_step_read(
+                    @execution.generated_sequence_owner(value.generated),
+                    value.projection_step,
+                    0,
+                    output,
+                  ) {
+                  Ok(read) => read
+                  Err(_) => return fail_execution(value)
+                }
+            }
+            @bridge.start_vectors_to_rows(
+              value.control,
+              @execution.generated_completion_preparation(value.generated),
+              value.sequence,
+              value.projection_step,
+              input,
+              value.max_rows,
+              limits,
+              value.limits.max_workspace_slots,
+              value.max_value_bytes,
+              inputs,
+            )
+          }
         }
-        let started = match
-          @bridge.start_vectors_to_rows(
-            value.control,
-            @execution.generated_completion_preparation(value.generated),
-            value.sequence,
-            value.projection_step,
-            input,
-            value.max_rows,
-            {
-              max_nodes: value.limits.max_value_nodes,
-              max_text_bytes: value.max_value_bytes,
-              max_depth: value.limits.max_value_depth,
-              max_work: value.limits.max_work,
-            },
-            value.limits.max_workspace_slots,
-            value.max_value_bytes,
-            inputs,
-          ) {
+        let started = match started_result {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
         }
@@ -1171,9 +1238,31 @@ pub fn provider(
     accepts,
     fn(sequence) {
       if accepts(sequence) {
-        let count = @lower.sequence_count(
-          @execution.generated_prepared_sequence(sequence),
-        )
+        let selected = @execution.completion_preparation_selected_step(
+            @execution.generated_completion_preparation(sequence),
+          )
+          is Some(_)
+        let direct_bridge = selected &&
+          @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
+          @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(sequence),
+            ),
+            step,
+          )
+          .map(node => {
+            let operation = @lower.operation(node)
+            operation == "BRIDGE.rows.to_vectors" ||
+            operation == "BRIDGE.vectors.to_rows"
+          })
+          .unwrap_or(false)
+        let count = if direct_bridge {
+          @execution.generated_sequence_step_count(sequence)
+        } else {
+          @lower.sequence_count(
+            @execution.generated_prepared_sequence(sequence),
+          )
+        }
         if count == 1 {
           Some(capacity)
         } else {
@@ -1187,15 +1276,39 @@ pub fn provider(
       if !accepts(sequence) || storage_bytes < 0L {
         return Err(@connector.InvalidLimits)
       }
-      let count = @lower.sequence_count(
-        @execution.generated_prepared_sequence(sequence),
+      let selected_step = @execution.completion_preparation_selected_step(
+        @execution.generated_completion_preparation(sequence),
       )
+      let direct_bridge = selected_step is Some(step) &&
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          step,
+        )
+        .map(node => {
+          let operation = @lower.operation(node)
+          operation == "BRIDGE.rows.to_vectors" ||
+          operation == "BRIDGE.vectors.to_rows"
+        })
+        .unwrap_or(false)
+      let count = if direct_bridge {
+        @execution.generated_sequence_step_count(sequence)
+      } else {
+        @lower.sequence_count(@execution.generated_prepared_sequence(sequence))
+      }
+      guard @execution.generated_sequence_step_index_at(sequence, 0)
+        is Some(first_step) else {
+        return Err(@connector.InvalidLimits)
+      }
+      let selected = selected_step is Some(_)
       let first_operation = @lower.node_at(
         @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
-        0,
+        first_step,
       ).map(node => @lower.operation(node))
       let relation_pool = count == 2 && first_operation == Some("VEC.pool")
       let binding_rows = count == 1 &&
+        !selected &&
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
           0,
@@ -1207,7 +1320,7 @@ pub fn provider(
           @lower.bound_preparation(
             @execution.generated_sequence_owner(sequence),
           ),
-          0,
+          first_step,
         ).map(node => @lower.operation(node))
       } else {
         None
@@ -1215,12 +1328,21 @@ pub fn provider(
       let nearest_pipeline = accepts_nearest_pipeline(sequence, count)
       let relations = relation_inputs(inputs)
       let rankings = ranking_inputs(inputs)
+      let direct_projection = direct_operation == Some("BRIDGE.vectors.to_rows")
+      let carrier_input = match inputs {
+        [@local.CarrierInput(view)] if direct_projection => Some(view)
+        _ => None
+      }
+      if direct_projection && carrier_input is None {
+        return Err(@connector.Execution(@execution.InputSet))
+      }
       if direct_operation == Some("VEC.merge_rankings") && rankings is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
       if direct_operation != Some("VEC.knn_join") &&
         !nearest_pipeline &&
         direct_operation != Some("VEC.merge_rankings") &&
+        !direct_projection &&
         relations is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
@@ -1229,6 +1351,7 @@ pub fn provider(
         sequence: @execution.generated_prepared_sequence(sequence),
         inputs: inputs.copy(),
         relation_inputs: relations,
+        carrier_input,
         ranking_inputs: rankings,
         control: @bounded.control(),
         limits,
@@ -1236,9 +1359,15 @@ pub fn provider(
         max_rows,
         max_value_bytes,
         execution_limits,
-        projection_step: count - 1,
+        projection_step: if direct_projection {
+          first_step
+        } else {
+          count - 1
+        },
         relation_pool,
-        phase: if binding_rows {
+        phase: if direct_projection {
+          StartProjection
+        } else if binding_rows {
           StartBindingRows
         } else if direct_operation == Some("VEC.knn_join") {
           StartNearest

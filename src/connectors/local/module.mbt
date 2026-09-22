@@ -173,6 +173,13 @@ pub fn local_module_managed_provider(
       return Some(provider)
     }
   }
+  let relation = selected_relation_provider(
+    installed.execution,
+    installed.measurement,
+  )
+  if managed_provider_accepts(relation, sequence) {
+    return Some(relation)
+  }
   None
 }
 

@@ -910,15 +910,46 @@ pub fn[T] captured_managed_task_input(
     fail_captured_task(run, task, issue)
     return Err(issue)
   }
-  match
-    @execution.prepare_managed_producer_read(
-      run.graph.owners[task],
-      edge.source_input.unwrap_or(input_index),
-      run.graph.owners[edge.producer],
-      output,
-      max_entries,
-      max_name_bytes,
-    ) {
+  let prepared = match edge.operation_input {
+    Some((consumer_step, operation_input)) =>
+      match
+        @lower.node_input_target(
+          @lower.node_at(
+            @lower.bound_preparation(run.graph.owners[task]),
+            consumer_step,
+          ).unwrap(),
+          operation_input,
+        ) {
+        Some(@pipeline.Step(_)) =>
+          @execution.prepare_managed_operation_read(
+            run.graph.owners[task],
+            consumer_step,
+            operation_input,
+            run.graph.owners[edge.producer],
+            output,
+            max_entries,
+          )
+        _ =>
+          @execution.prepare_managed_producer_read(
+            run.graph.owners[task],
+            edge.source_input.unwrap_or(input_index),
+            run.graph.owners[edge.producer],
+            output,
+            max_entries,
+            max_name_bytes,
+          )
+      }
+    None =>
+      @execution.prepare_managed_producer_read(
+        run.graph.owners[task],
+        edge.source_input.unwrap_or(input_index),
+        run.graph.owners[edge.producer],
+        output,
+        max_entries,
+        max_name_bytes,
+      )
+  }
+  match prepared {
     Ok(read) => Ok(read)
     Err(Binding(issue)) => {
       let failure = RunIssue::Binding(issue)

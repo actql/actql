@@ -62,10 +62,69 @@ pub fn node_accepts_managed_carrier_view(
     return false
   }
   match operation(node) {
-    "TEA.window.session_assign"
+    "SGA.normalize"
+    | "TEA.window.session_assign"
     | "TEA.sequence.match"
     | "BRIDGE.events.to_rows"
-    | "BRIDGE.graph.to_node_rows" => true
+    | "BRIDGE.vectors.to_rows"
+    | "BRIDGE.graph.to_node_rows"
+    | "BRIDGE.graph.to_edge_rows" => true
+    _ => false
+  }
+}
+
+///|
+/// A split task is legal only when a registered portable candidate can execute
+/// this exact checked occurrence on its own. Other carrier pipelines remain
+/// fused; this rule does not depend on the neighboring operation's name.
+pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
+  match node.payload {
+    GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
+    BasicGraph(_) => operation(node) == "SGA.normalize"
+    VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
+    EventValue(_) =>
+      operation(node) == "BRIDGE.rows.to_events" ||
+      operation(node) == "TEA.window.session_assign"
+    SequenceRows(_) => operation(node) == "TEA.sequence.match"
+    CarrierProjection(_) =>
+      operation(node) == "BRIDGE.graph.to_node_rows" ||
+      operation(node) == "BRIDGE.graph.to_edge_rows" ||
+      operation(node) == "BRIDGE.events.to_rows" ||
+      operation(node) == "BRIDGE.vectors.to_rows"
+    Where(_) | Derive(_) | Select(_) | Limit(_) => true
+    _ => false
+  }
+}
+
+///|
+/// Preserve an established fused Carrier provider when no later Relation
+/// consumer needs the selected-view handoff. Selection is still decided
+/// before execution, never as a retry after a provider failure.
+pub fn node_prefers_fused_without_relation_consumer(
+  node : PreparedNode,
+) -> Bool {
+  match node.payload {
+    BasicGraph(_) => operation(node) == "SGA.normalize"
+    CarrierProjection(_) =>
+      operation(node) == "BRIDGE.graph.to_edge_rows" ||
+      operation(node) == "BRIDGE.vectors.to_rows"
+    _ => false
+  }
+}
+
+///|
+/// The common selected-operation Relation reader can preserve the checked
+/// unary row kernel at this exact internal input. This is typed capability
+/// metadata, not a second interpretation of the authored operation name.
+pub fn node_accepts_managed_relation_view(
+  node : PreparedNode,
+  index : Int,
+) -> Bool {
+  if index != 0 || node.input_targets.length() != 1 {
+    return false
+  }
+  match node.payload {
+    Where(_) | Derive(_) | Select(_) | Limit(_) => true
     _ => false
   }
 }

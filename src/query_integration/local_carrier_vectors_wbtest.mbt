@@ -207,11 +207,32 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
-  } else if variant == "bridge_only" {
+  } else if variant == "bridge_only" ||
+    variant == "bridge_filter" ||
+    variant == "bridge_select" ||
+    variant == "bridge_derive" ||
+    variant == "bridge_take" {
     "{\"from\":\"rows\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
     "\"as\":\"source\"},{\"from\":\"source\"," +
-    "\"vectors\":true,\"as\":\"out\"}"
+    "\"vectors\":true,\"as\":" +
+    (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
+    (if variant != "bridge_only" {
+      ",{" +
+      "\"from\":\"projected\"," +
+      (if variant == "bridge_select" {
+        "\"select\":[\"id\",\"embedding\"]"
+      } else if variant == "bridge_derive" {
+        "\"derive\":{\"copy\":\"id\"}"
+      } else if variant == "bridge_take" {
+        "\"take\":2"
+      } else {
+        "\"filter\":\"true\""
+      }) +
+      ",\"as\":\"out\"}"
+    } else {
+      ""
+    })
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +
@@ -865,6 +886,221 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+fn run_standard_host_mixed_vectors_relation_path(
+  variant : String,
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_vectors_chain=true,
+    local_carrier_vectors_variant=variant,
+    managed_publication=true,
+    ledger_limits=Some({
+      planning_work: 30000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 800000L,
+      retained_bytes: 96000000L,
+      execution_bytes: 402653184L,
+    }),
+  )
+  assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 7)
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    2,
+    [@local_driver.local_managed_relation_output(values)],
+    [values_rows],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let projected_live = Ref(true)
+  let (projected_ops, projected) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [],
+    [],
+    3,
+    projected_live,
+    carrier_inputs=[(bridge, bridge_material)],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let projected_rows = local_managed_test_rows(projected_ops)
+  let filtered_live = Ref(true)
+  let (filtered_ops, filtered) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [projected],
+    [projected_rows],
+    4,
+    filtered_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let filtered_rows = local_managed_test_rows(filtered_ops)
+  if variant == "bridge_derive" {
+    assert_true(filtered_rows[0].contains("\"copy\":1"))
+    assert_true(filtered_rows[1].contains("\"copy\":2"))
+  } else if variant == "bridge_select" {
+    assert_true(filtered_rows[0].contains("\"id\":1"))
+    assert_true(filtered_rows[1].contains("\"id\":2"))
+    assert_false(filtered_rows[0].contains("\"code\""))
+  } else {
+    assert_eq(filtered_rows, projected_rows)
+  }
+  assert_eq(filtered_rows.length(), 2)
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [filtered],
+    [filtered_rows],
+    5,
+    first_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    6,
+    [filtered],
+    [filtered_rows],
+    6,
+    second_live,
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), 2)
+  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(filtered))
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 6)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  filtered_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (filtered_ops.close)()
+  (filtered_ops.cleanup_refresh)() |> ignore
+  projected_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (projected_ops.close)()
+  (projected_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 2)
+  (bridge_ops.close)()
+  (bridge_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host composes Vectors projection and Relation filter" {
+  run_standard_host_mixed_vectors_relation_path("bridge_filter")
+}
+
+///|
+test "standard Host composes Vectors projection and Relation select" {
+  run_standard_host_mixed_vectors_relation_path("bridge_select")
+}
+
+///|
+test "standard Host composes Vectors projection and Relation derive" {
+  run_standard_host_mixed_vectors_relation_path("bridge_derive")
+}
+
+///|
+test "standard Host composes Vectors projection and Relation take" {
+  run_standard_host_mixed_vectors_relation_path("bridge_take")
 }
 
 ///|

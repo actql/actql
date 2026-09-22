@@ -111,6 +111,57 @@ pub fn start_vectors_to_rows(
 }
 
 ///|
+pub fn start_vectors_view_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[VectorsToRowsExecution, EventsBridgeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.CarrierProjectionStep(projection)) &&
+    @lower.carrier_projection_operation(projection) == @projection.Vectors &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_kind(input) == @carrier.VectorsKind &&
+    @lower.preparation_schema_at(
+      @lower.bound_preparation(owner),
+      @pipeline.Step(step),
+    )
+    is Some(schema) else {
+    return Err(InvalidKernel)
+  }
+  start_storage_to_rows(
+    control,
+    preparation,
+    owner,
+    @pipeline.Step(step),
+    Viewed(input),
+    fn() { @lifecycle.producer_view_record_count(input) is Some(_) },
+    None,
+    schema,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    None,
+  ).map(inner => { inner, })
+}
+
+///|
 pub fn advance_vectors_to_rows(
   value : VectorsToRowsExecution,
   quantum : Int,

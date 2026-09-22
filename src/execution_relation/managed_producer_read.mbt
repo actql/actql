@@ -5,6 +5,7 @@
 struct ManagedProducerRead[T] {
   identity : Ref[Unit]
   receiver : @lower.BoundPrepared
+  consumer_step : Int?
   input_index : Int
   output : ManagedCompletedOutput[T]
   schema : @schema.Schema
@@ -120,7 +121,66 @@ pub fn[T] prepare_managed_producer_read(
   if !managed_completed_output_available(output) {
     return Err(Binding(ProducerUnavailable))
   }
-  Ok({ identity: Ref(()), receiver, input_index, output, schema, columns, })
+  Ok({
+    identity: Ref(()),
+    receiver,
+    consumer_step: None,
+    input_index,
+    output,
+    schema,
+    columns,
+  })
+}
+
+///|
+/// Bind an internal Relation edge to its exact checked operation occurrence.
+/// The completed producer has already been admitted against its Step schema;
+/// no author-visible pipeline input or projection is fabricated here.
+pub fn[T] prepare_managed_operation_read(
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+  output : ManagedCompletedOutput[T],
+  max_entries : Int,
+) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue] {
+  if max_entries < 0 {
+    return Err(View(InvalidLimits))
+  }
+  let prepared = @lower.bound_preparation(receiver)
+  guard physical_equal(receiver, expected_producer) &&
+    physical_equal(
+      completion_preparation_owner(output.preparation),
+      expected_producer,
+    ) &&
+    @lower.node_at(prepared, consumer_step) is Some(node) &&
+    @lower.node_input_target(node, input_index) is Some(target) &&
+    target == output.target &&
+    target is @pipeline.Step(_) &&
+    @lower.preparation_schema_at(prepared, target) is Some(schema) else {
+    return Err(Binding(ProducerBindingMismatch))
+  }
+  if !managed_completed_output_available(output) {
+    return Err(Binding(ProducerUnavailable))
+  }
+  let count = @schema.field_count(schema)
+  if count > max_entries ||
+    @schema.field_count(output.material.receipt.schema) != count {
+    return Err(View(Limit))
+  }
+  let columns = []
+  for index in 0..<count {
+    columns.push(index)
+  }
+  Ok({
+    identity: Ref(()),
+    receiver,
+    consumer_step: Some(consumer_step),
+    input_index,
+    output,
+    schema,
+    columns,
+  })
 }
 
 ///|

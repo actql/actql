@@ -214,6 +214,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     return match operation {
       @lower.GraphConstructionStep(_) =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
+      @lower.GraphBasicStep(basic) =>
+        @lower.operation(node) == "SGA.normalize" &&
+        @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
       @lower.CarrierProjectionStep(projection) =>
         (
           @lower.operation(node) == "BRIDGE.graph.to_node_rows" &&
@@ -738,20 +741,31 @@ fn advance_execution(
           }
           Some(@lower.GraphBasicStep(basic)) if @lower.graph_basic_kind(basic) ==
             @lower.NormalizeBasic => {
-            guard value.graph is Some(output) else {
-              return fail_execution(value)
-            }
-            let input = match
-              @graph.prepare_step_read(
-                @execution.generated_sequence_owner(value.generated),
+            let started = if value.selected_step is Some(_) &&
+              value.carrier_inputs.length() == 1 {
+              @sga.start_normalize_view(
+                value.control,
+                value.sequence,
                 value.kernel_step,
-                0,
-                output,
-              ) {
-              Ok(read) => read
-              Err(_) => return fail_execution(value)
-            }
-            match
+                value.carrier_inputs[0],
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            } else {
+              guard value.graph is Some(output) else {
+                return fail_execution(value)
+              }
+              let input = match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.kernel_step,
+                  0,
+                  output,
+                ) {
+                Ok(read) => read
+                Err(_) => return fail_execution(value)
+              }
               @sga.start_normalize(
                 value.control,
                 value.sequence,
@@ -760,7 +774,9 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => Normalize(execution)
               Err(_) => return fail_execution(value)
             }
@@ -988,6 +1004,17 @@ fn advance_execution(
           _ => return fail_execution(value)
         }
         value.kernel = None
+        if value.selected_step is Some(_) {
+          let material = match @graph.completed_material(completed) {
+            Ok(material) => material
+            Err(_) => return fail_execution(value)
+          }
+          value.graph = Some(completed)
+          value.pending_graph = None
+          value.phase = Terminal
+          value.terminal = true
+          return Ok(@local.managed_provider_carrier_complete(material, 0L, 0L))
+        }
         if active is Graft(_) && !value.graphs.is_empty() {
           for source in value.graphs {
             discard(Some(source)) |> ignore
@@ -1783,6 +1810,16 @@ pub fn provider(
         Some(@lower.CarrierProjectionStep(_)) => true
         _ => false
       }
+      let direct_normalize = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphBasicStep(basic)) =>
+          selected_step is Some(_) &&
+          @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
+        _ => false
+      }
       let direct_apply = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1808,10 +1845,15 @@ pub fn provider(
           direct_projection &&
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
+        (
+          direct_normalize &&
+          (relations.length() != 0 || carriers.length() != 1)
+        ) ||
         (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
         (
           !direct_structural &&
           !direct_projection &&
+          !direct_normalize &&
           !direct_apply &&
           carriers.length() != 0
         ) {
@@ -1851,8 +1893,10 @@ pub fn provider(
           1,
         ),
         construction_steps,
-        kernel_step: construction_steps,
+        kernel_step: selected_step.unwrap_or(construction_steps),
         phase: if direct_structural || direct_apply {
+          StartKernel
+        } else if direct_normalize {
           StartKernel
         } else if direct_projection {
           StartProjection

@@ -7,8 +7,11 @@ priv enum NormalizePhase {
 
 ///|
 priv struct NormalizeState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  input : @graph.ProducerRead?
+  source : @storage.Storage?
+  view : @lifecycle.ProducerView?
+  node_count : Int
+  edge_count : Int
   mut output : @graph.OutputBuilder?
   node_fields : Int
   edge_fields : Int
@@ -46,7 +49,16 @@ fn copy_node(
   index : Int,
 ) -> Result[Unit, NormalizeIssue] {
   guard state.output is Some(output) else { return Err(InvalidKernel) }
-  match copy_graph_node(state.source, output, state.node_fields, index) {
+  let copied = match state.view {
+    Some(view) => copy_graph_view_node(view, output, state.node_fields, index)
+    None =>
+      match state.source {
+        Some(source) =>
+          copy_graph_node(source, output, state.node_fields, index)
+        None => Err(Unavailable)
+      }
+  }
+  match copied {
     Ok(_) => Ok(())
     Err(Unavailable) => Err(InputUnavailable)
     Err(GraphCopyIssue::Output(issue)) => Err(Output(issue))
@@ -59,7 +71,16 @@ fn copy_edge(
   index : Int,
 ) -> Result[Unit, NormalizeIssue] {
   guard state.output is Some(output) else { return Err(InvalidKernel) }
-  match copy_graph_edge(state.source, output, state.edge_fields, index) {
+  let copied = match state.view {
+    Some(view) => copy_graph_view_edge(view, output, state.edge_fields, index)
+    None =>
+      match state.source {
+        Some(source) =>
+          copy_graph_edge(source, output, state.edge_fields, index)
+        None => Err(Unavailable)
+      }
+  }
+  match copied {
     Ok(_) => Ok(())
     Err(Unavailable) => Err(InputUnavailable)
     Err(GraphCopyIssue::Output(issue)) => Err(Output(issue))
@@ -78,12 +99,18 @@ fn normalize_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !(match state.view {
+        Some(view) =>
+          @lifecycle.producer_read_reference_available(
+            @lifecycle.producer_view_read_reference(view),
+          )
+        None => state.input.map(@graph.producer_read_available).unwrap_or(false)
+      }) {
       return @bounded.Failed(InputUnavailable, progress, used)
     }
     match state.phase {
       CopyNodes =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           match copy_node(state, state.index) {
             Ok(_) => {
               state.index += 1
@@ -97,7 +124,7 @@ fn normalize_step(
           state.index = 0
         }
       CopyEdges =>
-        if state.index < @storage.edge_count(state.source) {
+        if state.index < state.edge_count {
           match copy_edge(state, state.index) {
             Ok(_) => {
               state.index += 1
@@ -171,8 +198,11 @@ pub fn start_normalize(
   }
   let max_noninterruptible_value_nodes = limits.max_value_nodes * 4 + 1
   let state : NormalizeState = {
-    input,
-    source,
+    input: Some(input),
+    source: Some(source),
+    view: None,
+    node_count: @storage.node_count(source),
+    edge_count: @storage.edge_count(source),
     output: Some(output),
     node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
     edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
@@ -183,6 +213,72 @@ pub fn start_normalize(
     control, state, normalize_step, cleanup_state, @graph.discard_completed,
   )
   Ok({ session, token: Some(token), max_noninterruptible_value_nodes, })
+}
+
+///|
+/// Execute the same normalization against an exact immutable managed view.
+pub fn start_normalize_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[NormalizeExecution, NormalizeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.GraphBasicStep(_)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "SGA.normalize" &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(contract)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_node_count(input) is Some(node_count) &&
+    @lifecycle.producer_view_edge_count(input) is Some(edge_count) else {
+    return Err(InvalidKernel)
+  }
+  if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
+    return Err(InvalidLimits)
+  }
+  let output = match
+    @graph.prepare_output(
+      owner,
+      @pipeline.Step(step),
+      @storage.DeclaredNodes,
+      limits,
+      storage_bytes,
+      available,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Output(issue))
+  }
+  let state : NormalizeState = {
+    input: None,
+    source: None,
+    view: Some(input),
+    node_count,
+    edge_count,
+    output: Some(output),
+    node_fields: @carrier.field_count(@carrier.graph_node_properties(contract)),
+    edge_fields: @carrier.field_count(@carrier.graph_edge_properties(contract)),
+    phase: CopyNodes,
+    index: 0,
+  }
+  let (session, token) = @bounded.start(
+    control, state, normalize_step, cleanup_state, @graph.discard_completed,
+  )
+  Ok({
+    session,
+    token: Some(token),
+    max_noninterruptible_value_nodes: limits.max_value_nodes * 4 + 1,
+  })
 }
 
 ///|

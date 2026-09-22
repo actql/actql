@@ -48,6 +48,14 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn carrier_events_relation_followup(variant : String) -> Bool {
+  variant == "session_filter" ||
+  variant == "session_select" ||
+  variant == "session_derive" ||
+  variant == "session_take"
+}
+
+///|
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe"
   let window = variant == "window_fixed" ||
@@ -145,7 +153,28 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
     transform +
-    ",{\"events\":true,\"as\":\"out\"}"
+    ",{\"events\":true,\"as\":" +
+    (if carrier_events_relation_followup(variant) {
+      "\"projected\"}"
+    } else {
+      "\"out\"}"
+    }) +
+    (if carrier_events_relation_followup(variant) {
+      ",{" +
+      "\"from\":\"projected\"," +
+      (if variant == "session_select" {
+        "\"select\":" + fields
+      } else if variant == "session_derive" {
+        "\"derive\":{\"copy\":\"event_id\"}"
+      } else if variant == "session_take" {
+        "\"take\":3"
+      } else {
+        "\"filter\":\"true\""
+      }) +
+      ",\"as\":\"out\"}"
+    } else {
+      ""
+    })
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
@@ -1831,12 +1860,25 @@ test "standard Host runs registered bounded Events provider" {
 test "standard Host retains Events across physical task boundaries" {
   for
     variant in [
-      "session", "session_global", "session_parameter", "session_ties",
+      "session", "session_global", "session_parameter", "session_ties", "session_filter",
+      "session_select", "session_derive", "session_take",
     ] {
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
       local_carrier_events_variant=variant,
       managed_publication=true,
+      ledger_limits=if carrier_events_relation_followup(variant) {
+        Some({
+          planning_work: 30000,
+          attempts: 20,
+          holdings: 20,
+          transfer_bytes: 800000L,
+          retained_bytes: 96000000L,
+          execution_bytes: 402653184L,
+        })
+      } else {
+        None
+      },
       parameter_json=if variant == "session_parameter" {
         "{\"minimum\":2}"
       } else {
@@ -1950,14 +1992,49 @@ test "standard Host retains Events across physical task boundaries" {
     assert_true(event_rows[0].contains("\"session_start_ms\":1"))
     assert_true(event_rows[2].contains("\"session_start_ms\":13"))
 
+    let mut consumer_source = events
+    let mut consumer_rows = event_rows
+    let mut consumer_task = 4
+    let mut close_filter : (() -> Unit)? = None
+    if carrier_events_relation_followup(variant) {
+      let filter_live = Ref(true)
+      let (filter_ops, filtered) = run_local_managed_test_task(
+        installed,
+        run,
+        5,
+        [events],
+        [event_rows],
+        5,
+        filter_live,
+        obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+      )
+      consumer_source = filtered
+      consumer_rows = local_managed_test_rows(filter_ops)
+      consumer_task = 5
+      if variant == "session_derive" {
+        assert_true(consumer_rows[0].contains("\"copy\":2"))
+      } else if variant == "session_select" {
+        assert_true(consumer_rows[0].contains("\"event_id\":2"))
+        assert_true(consumer_rows[2].contains("\"event_id\":3"))
+      } else {
+        assert_eq(consumer_rows, event_rows)
+      }
+      close_filter = Some(fn() {
+        filter_live.val = false
+        @strategy.close_captured_task_output(run, 5)
+        (filter_ops.close)()
+        (filter_ops.cleanup_refresh)() |> ignore
+      })
+    }
+
     let first_live = Ref(true)
     let (first_ops, first) = run_local_managed_test_task(
       installed,
       run,
-      5,
-      [events],
-      [event_rows],
-      5,
+      consumer_task + 1,
+      [consumer_source],
+      [consumer_rows],
+      consumer_task + 1,
       first_live,
       obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
     )
@@ -1965,10 +2042,10 @@ test "standard Host retains Events across physical task boundaries" {
     let (second_ops, second) = run_local_managed_test_task(
       installed,
       run,
-      6,
-      [events],
-      [event_rows],
-      6,
+      consumer_task + 2,
+      [consumer_source],
+      [consumer_rows],
+      consumer_task + 2,
       second_live,
       obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
     )
@@ -1976,17 +2053,21 @@ test "standard Host retains Events across physical task boundaries" {
     assert_eq(local_managed_test_rows(second_ops).length(), 3)
 
     first_live.val = false
-    @strategy.close_captured_task_output(run, 5)
+    @strategy.close_captured_task_output(run, consumer_task + 1)
     (first_ops.close)()
     (first_ops.cleanup_refresh)() |> ignore
     assert_false(@execution.managed_completed_output_available(first))
     assert_true(@execution.managed_completed_output_available(second))
-    assert_true(@execution.managed_completed_output_available(events))
+    assert_true(@execution.managed_completed_output_available(consumer_source))
 
     second_live.val = false
-    @strategy.close_captured_task_output(run, 6)
+    @strategy.close_captured_task_output(run, consumer_task + 2)
     (second_ops.close)()
     (second_ops.cleanup_refresh)() |> ignore
+    match close_filter {
+      Some(close) => close()
+      None => ()
+    }
     events_live.val = false
     @strategy.close_captured_task_output(run, 4)
     (events_ops.close)()

@@ -107,6 +107,74 @@ test "physical DAG segments Carrier-only internal operation edges" {
 }
 
 ///|
+test "physical DAG segments typed Carrier and Relation operation edges" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant="normalize_filter",
+  )
+  let owners = physical_graph_owners(program)
+  let physical = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  let selected = []
+  for task in 0..<@strategy.graph_task_count(physical) {
+    if @strategy.graph_task_selected_step(physical, task) is Some(step) {
+      selected.push((task, step))
+    }
+  }
+  assert_eq(selected.map(pair => pair.1), [0, 1, 2, 3])
+  let operation_edges = []
+  for edge in 0..<@strategy.graph_data_count(physical) {
+    let value = @strategy.graph_data_at(physical, edge).unwrap()
+    if @strategy.data_edge_operation_input(value) is Some(position) {
+      operation_edges.push(position)
+    }
+  }
+  assert_eq(operation_edges, [(0, 0), (0, 1), (1, 0), (2, 0), (3, 0)])
+  assert_true(@strategy.graph_ordered_inputs_complete(physical))
+}
+
+///|
+test "physical DAG segments Events projection before Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_carrier_events_chain=true,
+    local_carrier_events_variant="session_filter",
+  )
+  let owners = physical_graph_owners(program)
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG segments Vectors projection before Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_carrier_vectors_chain=true,
+    local_carrier_vectors_variant="bridge_filter",
+  )
+  let owners = physical_graph_owners(program)
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG admits Carrier segmentation before allocation" {
   let program = query_checked_program_fixture(
     dag=true,

@@ -77,10 +77,11 @@ pub fn prepare_producer_read(
   if !physical_equal(receiver, bound.receiver) {
     return Err(ForeignReceiver)
   }
-  guard @lower.preparation_schema_at(
-      @lower.bound_preparation(receiver),
-      Input(bound.input_index),
-    )
+  let target = match bound.consumer_step {
+    Some(_) => bound.output.target
+    None => Input(bound.input_index)
+  }
+  guard @lower.preparation_schema_at(@lower.bound_preparation(receiver), target)
     is Some(schema) else {
     return Err(InvalidProjection)
   }
@@ -186,9 +187,7 @@ pub fn producer_read_has_cell_access(value : ProducerRead) -> Bool {
 }
 
 ///|
-/// Match an external Relation read against one exact checked operation edge.
-/// Internal step reads use the managed Carrier lifecycle instead; an external
-/// input occurrence cannot stand in for an internal producer with equal rows.
+/// Match an exact checked operation edge, including an internal Relation step.
 pub fn producer_read_matches_operation_input(
   value : ProducerRead,
   receiver : @lower.BoundPrepared,
@@ -201,10 +200,17 @@ pub fn producer_read_matches_operation_input(
   }
   let prepared = @lower.bound_preparation(receiver)
   guard @lower.node_at(prepared, consumer_step) is Some(node) &&
-    @lower.node_input_target(node, edge_index) is Some(@pipeline.Input(index)) else {
+    @lower.node_input_target(node, edge_index) is Some(target) else {
     return false
   }
-  value.bound.input_index == index
+  match target {
+    @pipeline.Input(index) =>
+      value.bound.consumer_step is None && value.bound.input_index == index
+    @pipeline.Step(_) =>
+      value.bound.consumer_step == Some(consumer_step) &&
+      value.bound.input_index == edge_index &&
+      value.bound.output.target == target
+  }
 }
 
 ///|

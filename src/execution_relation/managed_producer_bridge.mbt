@@ -217,13 +217,24 @@ pub fn[T] finish_managed_producer_bridge(
     }
   }
   let input = bridge.input
-  let bound = match
-    bind_completed_input(
-      input.receiver,
-      input.input_index,
-      completion_preparation_owner(input.output.preparation),
-      output,
-    ) {
+  let binding = match input.consumer_step {
+    Some(step) =>
+      bind_completed_operation_input(
+        input.receiver,
+        step,
+        input.input_index,
+        completion_preparation_owner(input.output.preparation),
+        output,
+      )
+    None =>
+      bind_completed_input(
+        input.receiver,
+        input.input_index,
+        completion_preparation_owner(input.output.preparation),
+        output,
+      )
+  }
+  let bound = match binding {
     Ok(value) => value
     Err(issue) => {
       bridge.live.val = false
