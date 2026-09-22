@@ -633,13 +633,24 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subtract_numeric = variant == "subtract_numeric"
   let subtract_properties = subtract_exact || subtract_numeric
   let union_set = variant == "union_set"
+  let patterned_multi = variant == "traverse_pattern_multi" ||
+    variant.has_prefix("traverse_pattern_multi_paths")
   let typed_traverse = variant.has_prefix("traverse_type") ||
     variant.has_prefix("shortest_type") ||
-    variant == "traverse_pattern_multi"
+    patterned_multi
   let subgraph_relation_selector = variant.has_prefix(
     "subgraph_relation_selector",
   )
-  let traverse_relation_selector = variant == "traverse_relation_selector"
+  let traverse_relation_selector = variant == "traverse_relation_selector" ||
+    variant == "traverse_relation_paths"
+  let traverse_paths = variant == "traverse_paths" ||
+    variant == "traverse_relation_paths" ||
+    variant == "traverse_predicate_paths" ||
+    variant.has_prefix("traverse_pattern_multi_paths") ||
+    variant == "traverse_in_paths" ||
+    variant == "traverse_both_paths" ||
+    variant == "traverse_zero_paths" ||
+    variant == "traverse_type_empty_paths"
   let shortest_relation_selector = variant == "shortest_relation_selector"
   let relation_selector = subgraph_relation_selector ||
     traverse_relation_selector ||
@@ -675,6 +686,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }
   let rows = if union_set {
     "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
+  } else if variant.has_prefix("traverse_pattern_multi_paths") {
+    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
+    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
+    "\"src\":2,\"dst\":3,\"edge_type\":\"blocks\"," +
+    "\"node_name\":\"second\",\"weight\":20},{\"id\":3," +
+    "\"src\":3,\"dst\":3,\"edge_type\":\"other\"," +
+    "\"node_name\":\"third\",\"weight\":30}]"
   } else if typed_traverse {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
@@ -780,6 +798,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_prefix("traverse_") {
     "\"from\":\"g\",\"traverse\":{\"start\":{" +
     (if variant == "traverse_predicate" ||
+      variant == "traverse_predicate_paths" ||
       variant == "traverse_pattern_all_predicates" {
       "\"where\":" +
       (if variant == "traverse_pattern_all_predicates" {
@@ -794,7 +813,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       (if variant == "traverse_ids" {
         "2,1,2"
       } else if variant.has_prefix("traverse_pattern_") &&
-        variant != "traverse_pattern_multi" &&
+        !patterned_multi &&
         variant != "traverse_pattern_one" {
         "2"
       } else {
@@ -804,12 +823,24 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     }) +
     "}," +
     (if variant.has_prefix("traverse_pattern_") {
-      if variant == "traverse_pattern_multi" {
+      if patterned_multi {
         "\"hops\":[{\"direction\":\"out\"," +
         "\"edge_types\":[\"owns\"]," +
-        "\"node_where\":\"node_name = 'second'\"},{" +
-        "\"direction\":\"out\",\"edge_types\":[\"blocks\"]," +
-        "\"node_where\":\"node_name = 'first'\"}],"
+        "\"edge_where\":\"weight > " +
+        (if variant == "traverse_pattern_multi_paths_empty" {
+          "100"
+        } else {
+          "5"
+        }) +
+        "\"," +
+        "\"node_where\":\"node_name = 'second'\"" +
+        "},{\"direction\":\"out\"," +
+        "\"edge_types\":[\"blocks\"]," +
+        "\"edge_where\":\"weight > 15\"," +
+        "\"node_where\":\"node_name = '" +
+        (if variant == "traverse_pattern_multi" { "first" } else { "third" }) +
+        "'\"" +
+        "}],"
       } else {
         "\"hops\":[{\"direction\":\"out\"" +
         (if variant == "traverse_pattern_predicate" ||
@@ -832,16 +863,17 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       }
     } else {
       "\"direction\":\"" +
-      (if variant == "traverse_in" {
+      (if variant == "traverse_in" || variant == "traverse_in_paths" {
         "in"
-      } else if variant == "traverse_both" {
+      } else if variant == "traverse_both" || variant == "traverse_both_paths" {
         "both"
       } else {
         "out"
       }) +
       "\"," +
       (if typed_traverse {
-        if variant == "traverse_type_empty" {
+        if variant == "traverse_type_empty" ||
+          variant == "traverse_type_empty_paths" {
           "\"edge_types\":[],"
         } else if variant.has_prefix("traverse_types_") {
           "\"edge_types\":[\"missing\",\"" +
@@ -855,9 +887,22 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       } else {
         ""
       }) +
-      "\"min_hops\":1,\"max_hops\":2,"
+      "\"min_hops\":" +
+      (if variant == "traverse_zero_paths" { "0" } else { "1" }) +
+      ",\"max_hops\":" +
+      (if variant == "traverse_zero_paths" { "1" } else { "2" }) +
+      ","
     }) +
-    "\"emit\":\"nodes\"},\"as\":\"out\""
+    (if traverse_paths {
+      "\"max_output_rows\":" +
+      (if traverse_relation_selector { "4" } else { "2" }) +
+      ","
+    } else {
+      ""
+    }) +
+    "\"emit\":\"" +
+    (if traverse_paths { "paths" } else { "nodes" }) +
+    "\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"normalize_graph\":true," +
@@ -1038,6 +1083,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
     "\"node_ids\",\"edge_ids\""
+  } else if traverse_paths {
+    "\"start_id\",\"end_id\",\"hop_count\",\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
   } else if graph_equality {
@@ -1068,6 +1115,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"component_id\",\"component_size\""
   } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"hop_count\""
+  } else if traverse_paths {
+    "\"start_id\",\"end_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
   } else if graph_equality {
@@ -1271,6 +1320,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     return local_vector_ranking_program(variant)
   }
   if variant == "nearest" ||
+    variant == "nearest_vectors" ||
+    variant == "nearest_relation_vectors" ||
+    variant == "nearest_vectors_relation" ||
     variant == "nearest_cosine" ||
     variant == "nearest_l2" ||
     variant == "nearest_inferred" ||
@@ -2634,6 +2686,10 @@ fn local_vector_expression_program() -> String {
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_vector_nearest_program(variant : String) -> String {
   let inferred = variant == "nearest_inferred"
+  let candidate_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_vectors_relation"
+  let query_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_relation_vectors"
   let identity_type = if inferred { "string" } else { "number" }
   let vector_schema = "{\"id\":{\"type\":\"" +
     identity_type +
@@ -2658,11 +2714,35 @@ fn local_vector_nearest_program(variant : String) -> String {
   } else {
     "[{\"id\":20,\"embedding\":[1,0]},{\"id\":10," + "\"embedding\":[0,1]}]"
   }
-  let roles = if inferred {
+  let candidate_roles = if inferred || candidate_vectors {
     ""
   } else {
-    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\"," +
+    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\","
+  }
+  let query_roles = if inferred || query_vectors {
+    ""
+  } else {
     "\"query_id\":\"id\",\"query_vector\":\"embedding\","
+  }
+  let candidate_input = if candidate_vectors {
+    "candidate_vectors"
+  } else {
+    "candidates"
+  }
+  let query_input = if query_vectors { "query_vectors" } else { "queries" }
+  let candidate_bridge = if candidate_vectors {
+    "{\"from\":\"candidates\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"candidate_vectors\"},"
+  } else {
+    ""
+  }
+  let query_bridge = if query_vectors {
+    "{\"from\":\"queries\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}," +
+    "\"as\":\"query_vectors\"},"
+  } else {
+    ""
   }
   let identity_tail = if inferred {
     ",{\"from\":\"out\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
@@ -2715,9 +2795,16 @@ fn local_vector_nearest_program(variant : String) -> String {
   "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
   "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
   "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
-  "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
-  "\"nearest\":{\"queries\":\"queries\"," +
-  roles +
+  "\"result\":\"r\"}}},\"steps\":[" +
+  candidate_bridge +
+  query_bridge +
+  "{\"from\":\"" +
+  candidate_input +
+  "\",\"nearest\":{\"queries\":\"" +
+  query_input +
+  "\"," +
+  candidate_roles +
+  query_roles +
   "\"metric\":\"" +
   metric +
   "\",\"k\":" +
@@ -3581,20 +3668,38 @@ fn query_checked_program_fixture(
         environment,
         "graph",
         "traverse",
+        input_rows=if local_carrier_graph_variant.has_prefix(
+            "traverse_pattern_multi_paths",
+          ) {
+          3L
+        } else {
+          2L
+        },
         output_rows=if local_carrier_graph_variant == "traverse_ids" ||
           local_carrier_graph_variant == "traverse_predicate" ||
+          local_carrier_graph_variant == "traverse_predicate_paths" ||
           local_carrier_graph_variant == "traverse_pattern_all_predicates" ||
-          local_carrier_graph_variant == "traverse_relation_selector" {
+          local_carrier_graph_variant == "traverse_relation_selector" ||
+          local_carrier_graph_variant == "traverse_relation_paths" {
           4L
         } else {
           2L
         },
         selector_rows=if local_carrier_graph_variant ==
-          "traverse_relation_selector" {
+          "traverse_relation_selector" ||
+          local_carrier_graph_variant == "traverse_relation_paths" {
           Some(3L)
         } else {
           None
         },
+        path_emission=local_carrier_graph_variant == "traverse_paths" ||
+          local_carrier_graph_variant == "traverse_relation_paths" ||
+          local_carrier_graph_variant == "traverse_predicate_paths" ||
+          local_carrier_graph_variant.has_prefix("traverse_pattern_multi_paths") ||
+          local_carrier_graph_variant == "traverse_in_paths" ||
+          local_carrier_graph_variant == "traverse_both_paths" ||
+          local_carrier_graph_variant == "traverse_zero_paths" ||
+          local_carrier_graph_variant == "traverse_type_empty_paths",
       ),
     ]
   } else if local_carrier_graph_chain &&
@@ -4427,9 +4532,11 @@ fn traversal_capacity_material(
   stage : String,
   operation : String,
   step? : Int = 1,
+  input_rows? : Int64 = 2L,
   output_rows? : Int64 = 2L,
   selector_rows? : Int64? = None,
   predicate_selector? : Bool = false,
+  path_emission? : Bool = false,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -4443,13 +4550,13 @@ fn traversal_capacity_material(
   if operation == "traverse" {
     let input = query_capacity_proof(
       "actql.bound.values",
-      2L,
+      input_rows,
       "{\"op\":\"source\"}",
       step=0,
     )
     let graph = query_capacity_proof(
       "actql.bound.graph-nodes",
-      2L,
+      input_rows,
       "{\"op\":\"source\"}",
       inputs=[@wire.cid(@wire.program_proof_witness(input))],
       step=0,
@@ -4468,14 +4575,16 @@ fn traversal_capacity_material(
       proofs.push(selector)
       output_inputs.push(@wire.cid(@wire.program_proof_witness(selector)))
     }
-    let output = query_capacity_proof(
-      "actql.bound.traverse-nodes",
-      output_rows,
-      "{\"op\":\"source\"}",
-      inputs=output_inputs,
-      step~,
-    )
-    proofs.push(output)
+    if !path_emission {
+      let output = query_capacity_proof(
+        "actql.bound.traverse-nodes",
+        output_rows,
+        "{\"op\":\"source\"}",
+        inputs=output_inputs,
+        step~,
+      )
+      proofs.push(output)
+    }
     for proof in proofs {
       witnesses.push(@wire.program_proof_witness(proof))
     }
@@ -4546,7 +4655,10 @@ fn traversal_capacity_material(
     }).unwrap()
     witnesses.push(wire)
     let candidates = [wire]
-    if (operation == "traverse" || operation == "shortest_path") &&
+    if (
+        operation == "shortest_path" ||
+        (operation == "traverse" && !path_emission)
+      ) &&
       unit == "rows" {
       candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
       candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
