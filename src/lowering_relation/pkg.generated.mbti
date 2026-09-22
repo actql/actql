@@ -349,6 +349,8 @@ pub fn graph_reach_output_schema(PreparedGraphReach) -> @relation_schema.Schema
 
 pub fn graph_reach_start(PreparedGraphReach) -> @value_admission.CheckedValue
 
+pub fn graph_relation_apply_field(PreparedGraphRelation) -> String?
+
 pub fn graph_relation_diff_contract(PreparedGraphRelation) -> @value_contract.Contract?
 
 pub fn graph_relation_graph_contract_cid(PreparedGraphRelation) -> String?

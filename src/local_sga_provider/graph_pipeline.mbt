@@ -16,6 +16,7 @@ priv enum GraphExecution {
   Graft(@sga.GraftExecution)
   Mean(@sga.MeanExecution)
   Subgraph(@sga.SubgraphExecution)
+  Apply(@sga.GraphApplyExecution)
 }
 
 ///|
@@ -246,6 +247,11 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.union_structural"
       (current, @lower.GraphMeanStep(_)) if current < count - 1 =>
         @lower.operation(node) == "SGA.mean_structural"
+      (current, @lower.GraphRelationStep(relation)) if current < count - 1 =>
+        @lower.operation(node) == "SGA.apply_delta" &&
+        @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation &&
+        @lower.node_input_target(node, 0) is Some(@pipeline.Input(_)) &&
+        @lower.node_input_target(node, 1) is Some(@pipeline.Input(_))
       (current, @lower.CarrierProjectionStep(projection)) if current ==
         count - 1 =>
         (
@@ -752,6 +758,29 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.GraphRelationStep(relation)) if @lower.graph_relation_kind(
+              relation,
+            ) ==
+            @lower.ApplyGraphRelation => {
+            guard value.carrier_inputs.length() == 1 &&
+              input_at(value, value.kernel_step, 1) is Some(delta_input) else {
+              return fail_execution(value)
+            }
+            match
+              @sga.start_graph_apply_view(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                value.carrier_inputs[0],
+                delta_input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              ) {
+              Ok(execution) => Apply(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           _ => return fail_execution(value)
         }
         value.kernel = Some(started)
@@ -806,6 +835,18 @@ fn advance_execution(
               Ok(@sga.SubgraphFailed(_, progress~, work~)) =>
                 Ok((2, None, progress, work))
               Ok(@sga.SubgraphStopped(_, progress~, work~)) =>
+                Ok((3, None, progress, work))
+              Err(_) => Err(())
+            }
+          Apply(execution) =>
+            match @sga.advance_graph_apply(execution, quantum) {
+              Ok(@sga.GraphApplyContinue(progress~, work~)) =>
+                Ok((0, None, progress, work))
+              Ok(@sga.GraphApplyComplete(output, progress~, work~)) =>
+                Ok((1, Some(output), progress, work))
+              Ok(@sga.GraphApplyFailed(_, progress~, work~)) =>
+                Ok((2, None, progress, work))
+              Ok(@sga.GraphApplyStopped(_, progress~, work~)) =>
                 Ok((3, None, progress, work))
               Err(_) => Err(())
             }
@@ -869,6 +910,12 @@ fn advance_execution(
             }
           Subgraph(execution) =>
             match @sga.cleanup_subgraph(execution) {
+              Ok(true) => 1
+              Ok(false) => 0
+              Err(_) => -1
+            }
+          Apply(execution) =>
+            match @sga.cleanup_graph_apply(execution) {
               Ok(true) => 1
               Ok(false) => 0
               Err(_) => -1
@@ -1568,6 +1615,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      Apply(execution) =>
+        match @sga.cleanup_graph_apply(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -1609,6 +1661,7 @@ fn cleanup_execution(
     Some(Graft(active)) => @sga.graft_cleanup_pending(active)
     Some(Mean(active)) => @sga.mean_cleanup_pending(active)
     Some(Subgraph(active)) => @sga.subgraph_cleanup_pending(active)
+    Some(Apply(active)) => @sga.graph_apply_cleanup_pending(active)
     None => false
   }
   if failed {
@@ -1665,6 +1718,15 @@ pub fn provider(
         Some(@lower.CarrierProjectionStep(_)) => true
         _ => false
       }
+      let direct_apply = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          0,
+        ) {
+        Some(@lower.GraphRelationStep(relation)) =>
+          @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation
+        _ => false
+      }
       if (
           direct_structural &&
           (
@@ -1681,10 +1743,16 @@ pub fn provider(
           direct_projection &&
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
-        (!direct_structural && !direct_projection && carriers.length() != 0) {
+        (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
+        (
+          !direct_structural &&
+          !direct_projection &&
+          !direct_apply &&
+          carriers.length() != 0
+        ) {
         return Err(@connector.Execution(@execution.InputSet))
       }
-      let construction_steps = if direct_structural {
+      let construction_steps = if direct_structural || direct_apply {
         0
       } else {
         let mut count = 0
@@ -1716,7 +1784,7 @@ pub fn provider(
         1,
         construction_steps,
         kernel_step: construction_steps,
-        phase: if direct_structural {
+        phase: if direct_structural || direct_apply {
           StartKernel
         } else if direct_projection {
           StartProjection

@@ -3,7 +3,9 @@ package "actql/actql/bounded_graph_snapshot"
 
 import {
   "actql/actql/bounded_tuple_sort",
+  "actql/actql/carrier_contract",
   "actql/actql/graph_snapshot_identity",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_storage",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -31,6 +33,8 @@ pub fn node_count(Snapshot) -> Int
 pub fn node_key_at(Snapshot, Int) -> String?
 
 pub fn prepare(@managed_graph_storage.Storage, String, Limits) -> Result[Preparation, Issue]
+
+pub fn prepare_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, String, Limits) -> Result[Preparation, Issue]
 
 pub fn workspace_slots(@managed_graph_storage.Storage) -> Int?
 

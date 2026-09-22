@@ -1054,6 +1054,121 @@ fn carrier_graph_diff_owner(
 }
 
 ///|
+fn carrier_graph_delta_owner(
+  left_source : @lower.BoundPrepared,
+  right_source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let graph = fn(rows : String) {
+    "{\"nodes\":{\"from\":\"" +
+    rows +
+    "\",\"id\":\"id\",\"fields\":[\"node_name\"]}," +
+    "\"edges\":{\"from\":\"" +
+    rows +
+    "\",\"source\":\"src\",\"target\":\"dst\"," +
+    "\"fields\":[\"weight\"]}}"
+  }
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"graph\":" +
+      graph("left_rows") +
+      ",\"as\":\"left\"},{\"graph\":" +
+      graph("right_rows") +
+      ",\"as\":\"right\"},{\"from\":\"left\"," +
+      "\"graph_diff\":{\"with\":\"right\"}}]",
+    ),
+    [
+      (
+        "left_rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(left_source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+      (
+        "right_rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(right_source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_graph_apply_owner(
+  graph_owner : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let producer = @lower.pipeline(@lower.bound_preparation(graph_owner))
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"g\",\"apply_graph_delta\":{\"with\":\"d\",\"field\":\"delta\"}," +
+      "\"as\":\"restored\"},{\"from\":\"restored\",\"node_rows\":true}]",
+    ),
+    [
+      (
+        "g",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(producer, @pipeline.Step(0)).unwrap(),
+        ),
+      ),
+      (
+        "d",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(producer, @pipeline.Step(2)).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_projection_owner(
   source : @lower.BoundPrepared,
   projection : String,
@@ -1851,6 +1966,21 @@ fn finish_graph_to_rows(
           @local_bridge.GraphExecution(_) => abort("graph execution")
         }
       @local_bridge.Stopped(_, ..) => abort("graph-to-rows stopped")
+    }
+  }
+  abort("unreachable")
+}
+
+///|
+fn finish_graph_diff(
+  execution : @local_sga.GraphDiffExecution,
+) -> @execution.CompletedOutput {
+  while true {
+    match @local_sga.advance_graph_diff(execution, 1).unwrap() {
+      @local_sga.GraphDiffContinue(..) => ()
+      @local_sga.GraphDiffComplete(output, ..) => return output
+      @local_sga.GraphDiffFailed(_, ..) => abort("graph diff failed")
+      @local_sga.GraphDiffStopped(_, ..) => abort("graph diff stopped")
     }
   }
   abort("unreachable")
@@ -4831,14 +4961,15 @@ test "path traversal is start-major across physical edge permutations" {
     "{\"edge_ids\":[{\"dst\":4,\"rel\":null,\"src\":2}]," +
     "\"end_id\":4,\"hop_count\":1,\"node_ids\":[2,4],\"start_id\":2}",
   ]
-  for rows in [
-    [a, b, c, d],
-    [a, c, b, d],
-    [b, a, c, d],
-    [b, c, a, d],
-    [c, a, b, d],
-    [c, b, a, d],
-  ] {
+  for
+    rows in [
+      [a, b, c, d],
+      [a, c, b, d],
+      [b, a, c, d],
+      [b, c, a, d],
+      [c, a, b, d],
+      [c, b, a, d],
+    ] {
     let source_owner = carrier_graph_source_owner_with_rows(
       "[" + rows.join(",") + "]",
     )
@@ -6396,6 +6527,288 @@ test "Graph diff cancellation stops partial snapshots before cleanup" {
   assert_true(@graphs.discard_completed(left))
   assert_true(@graphs.discard_completed(right))
   assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Graph delta applies an empty exact diff with quantum one" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let diff_owner = carrier_graph_diff_owner(source_owner)
+  let diff_sequence = prepared_sequence(diff_owner)
+  let external = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    diff_sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_execution)
+  let right_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    diff_sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_execution)
+  let diff_execution = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(diff_owner),
+    diff_sequence,
+    2,
+    @graphs.prepare_step_read(diff_owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(diff_owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let delta = finish_graph_diff(diff_execution)
+  let apply_owner = carrier_graph_apply_owner(diff_owner)
+  let apply_sequence = prepared_sequence(apply_owner)
+  let base = @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap()
+  let delta = @execution.prepare_producer_read(
+    apply_owner,
+    @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let apply = @local_sga.start_graph_apply(
+    @bounded.control(),
+    apply_sequence,
+    0,
+    base,
+    delta,
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut completed = None
+  let mut polls = 0
+  while completed is None {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_apply(apply, 1).unwrap() {
+      @local_sga.GraphApplyContinue(..) => ()
+      @local_sga.GraphApplyComplete(output, ..) => completed = Some(output)
+      @local_sga.GraphApplyFailed(_, ..) => abort("graph apply failed")
+      @local_sga.GraphApplyStopped(_, ..) => abort("graph apply stopped")
+    }
+  }
+  let output = completed.unwrap()
+  let storage = @graphs.completed_storage(output).unwrap()
+  assert_eq(@graph_storage.node_count(storage), 2)
+  assert_eq(@graph_storage.edge_count(storage), 2)
+  let cancel_control = @bounded.control()
+  let cancelled = @local_sga.start_graph_apply(
+    cancel_control,
+    apply_sequence,
+    0,
+    base,
+    delta,
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(@bounded.request_cancel(cancel_control))
+  assert_true(
+    @local_sga.advance_graph_apply(cancelled, 1).unwrap()
+    is @local_sga.GraphApplyStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.graph_apply_stopped(cancelled))
+  assert_true(@local_sga.graph_apply_cleanup_pending(cancelled))
+  assert_eq(@local_sga.cleanup_graph_apply(cancelled), Ok(true))
+  assert_false(@local_sga.graph_apply_cleanup_pending(cancelled))
+  assert_true(@local_sga.cleanup_graph_apply(apply).unwrap_or(false))
+  assert_true(@graphs.discard_completed(output))
+  assert_true(@local_sga.cleanup_graph_diff(diff_execution).unwrap_or(false))
+  assert_true(
+    @local_bridge.cleanup_rows_to_graph(left_execution).unwrap_or(false),
+  )
+  assert_true(
+    @local_bridge.cleanup_rows_to_graph(right_execution).unwrap_or(false),
+  )
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Graph delta atomically applies node edge and property changes" {
+  let left_owner = carrier_graph_source_owner()
+  let right_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3," +
+    "\"node_name\":\"changed\",\"weight\":11},{\"id\":3," +
+    "\"src\":3,\"dst\":1,\"node_name\":\"third\",\"weight\":30}]",
+  )
+  let left_rows = carrier_events_source_output(left_owner)
+  let right_rows = carrier_events_source_output(right_owner)
+  let diff_owner = carrier_graph_delta_owner(left_owner, right_owner)
+  let sequence = prepared_sequence(diff_owner)
+  let left_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 0, left_owner, left_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let right_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 1, right_owner, right_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let inputs = [left_input, right_input]
+  let left_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [left_input, left_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_execution)
+  let right_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [right_input, right_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_execution)
+  let diff_execution = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(diff_owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(diff_owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(diff_owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    inputs,
+  ).unwrap()
+  let delta = finish_graph_diff(diff_execution)
+  let apply_owner = carrier_graph_apply_owner(diff_owner)
+  let apply = @local_sga.start_graph_apply(
+    @bounded.control(),
+    prepared_sequence(apply_owner),
+    0,
+    @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap(),
+    @execution.prepare_producer_read(
+      apply_owner,
+      @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+      100,
+      1000,
+    ).unwrap(),
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut applied = None
+  let mut polls = 0
+  while applied is None {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_apply(apply, 1).unwrap() {
+      @local_sga.GraphApplyContinue(..) => ()
+      @local_sga.GraphApplyComplete(output, ..) => applied = Some(output)
+      @local_sga.GraphApplyFailed(_, ..) => abort("graph apply failed")
+      @local_sga.GraphApplyStopped(_, ..) => abort("graph apply stopped")
+    }
+  }
+  let output = applied.unwrap()
+  let storage = @graphs.completed_storage(output).unwrap()
+  assert_eq(@graph_storage.node_count(storage), 2)
+  assert_eq(@graph_storage.edge_count(storage), 2)
+  assert_true(
+    @graph_storage.node_identity(storage, 1).unwrap().value
+    is @admitted.Number(3.0),
+  )
+  assert_true(
+    @graph_storage.node_property(storage, 0, 0).unwrap().value
+    is @admitted.Text("changed"),
+  )
+  let generated = task_test_generated(apply_owner)
+  let material = @graphs.completed_material(left).unwrap()
+  let view = @carrier_runtime.material_prepare_view(
+    material, apply_owner, 0, diff_owner,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let provider_run = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(view),
+      @local_connector.managed_provider_relation_input(
+        @execution.prepare_producer_read(
+          apply_owner,
+          @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+          100,
+          1000,
+        ).unwrap(),
+      ),
+    ],
+    10,
+    1000,
+  ).unwrap()
+  let mut rows = None
+  while rows is None {
+    match @local_connector.advance_managed_provider(provider_run, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(output, ..) => rows = Some(output)
+      @local_connector.CarrierComplete(_, ..) =>
+        abort("graph apply projection returned a Carrier")
+      @local_connector.Failed(_, ..) => abort("graph apply provider failed")
+      @local_connector.Stopped(..) => abort("graph apply provider stopped")
+    }
+  }
+  assert_eq(@execution.completed_row_count(rows.unwrap()), 2)
+  assert_true(
+    @local_connector.cleanup_managed_provider(provider_run).unwrap_or(false),
+  )
+  assert_true(@local_sga.cleanup_graph_apply(apply).unwrap_or(false))
+  assert_true(@graphs.discard_completed(output))
+  assert_true(@local_sga.cleanup_graph_diff(diff_execution).unwrap_or(false))
+  assert_true(
+    @local_bridge.cleanup_rows_to_graph(left_execution).unwrap_or(false),
+  )
+  assert_true(
+    @local_bridge.cleanup_rows_to_graph(right_execution).unwrap_or(false),
+  )
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(left_rows))
+  assert_true(@execution.completed_output_available(right_rows))
 }
 
 ///|

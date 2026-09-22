@@ -13,4 +13,5 @@ import {
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/pipeline_typing" @pipeline,
 }

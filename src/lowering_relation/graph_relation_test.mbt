@@ -94,10 +94,7 @@ test "Graph delta application retains produced delta field and budgets" {
     is Some(@lowering_relation.GraphRelationStep(apply)) else {
     fail("missing graph apply lowering evidence")
   }
-  assert_eq(
-    @lowering_relation.graph_relation_apply_field(apply),
-    Some("delta"),
-  )
+  assert_eq(@lowering_relation.graph_relation_apply_field(apply), Some("delta"))
   let expected = @graph_contract.admit(graph_union_carrier(), {
     max_bytes: 100000,
     max_nodes: 10000,
