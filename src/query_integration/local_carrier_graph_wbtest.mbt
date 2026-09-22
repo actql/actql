@@ -4119,6 +4119,56 @@ test "path traversal emits a zero-hop path at minimum zero" {
 }
 
 ///|
+test "path traversal observes cancellation before completion" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(source_owner, 1, 2, emission="paths")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let control = @bounded.control()
+  let execution = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_traverse(execution, 1).unwrap()
+    is @local_sga.TraverseStopped(_, progress=0L, work=0L),
+  )
+  assert_true(@local_sga.traverse_stopped(execution))
+  assert_true(@local_sga.traverse_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_false(@local_sga.traverse_cleanup_pending(execution))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 fn carrier_graph_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,

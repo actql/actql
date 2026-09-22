@@ -367,6 +367,8 @@ pub fn strategy_fixture_sga_sized_create(String, String, String, String, String,
 
 pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_sga_traverse_paths_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
 pub fn strategy_fixture_sga_traverse_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_tea_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture

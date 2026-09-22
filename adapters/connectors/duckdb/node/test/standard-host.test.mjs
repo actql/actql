@@ -3040,6 +3040,24 @@ async function exerciseStrategyGraph(
     },
     fields: ['start_id', 'node_id', 'depth'],
   }, {
+    name: 'traverse-paths',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    step: {
+      from: 'g',
+      traverse: {
+        start: {ids: [1]},
+        direction: 'out',
+        min_hops: 1,
+        max_hops: 40,
+        emit: 'paths',
+        max_output_rows: 40,
+      },
+      as: 'out',
+    },
+    fields: ['start_id', 'end_id', 'hop_count', 'node_ids', 'edge_ids'],
+  }, {
     name: 'components-strong',
     rows: 40,
     step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
@@ -4098,6 +4116,8 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureSgaCreate
       : cancellationCase.name === 'components-strong'
         ? fixture.strategyFixtureSgaComponentsSizedCreate
+        : cancellationCase.name === 'traverse-paths'
+          ? fixture.strategyFixtureSgaTraversePathsSizedCreate
         : cancellationCase.name === 'traverse-out'
           ? fixture.strategyFixtureSgaTraverseSizedCreate
       : cancellationCase.name === 'reach-out'

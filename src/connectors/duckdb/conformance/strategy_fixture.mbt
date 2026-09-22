@@ -415,6 +415,38 @@ pub fn strategy_fixture_sga_traverse_sized_create(
 }
 
 ///|
+#export_name("strategyFixtureSgaTraversePathsSizedCreate")
+pub fn strategy_fixture_sga_traverse_paths_sized_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  rows : Int64,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+    traverse=true,
+    traverse_paths=true,
+    sga_rows=Some(rows),
+  )
+}
+
+///|
 fn strategy_fixture_create_impl(
   environment_json : String,
   environment_cid : String,
@@ -435,6 +467,7 @@ fn strategy_fixture_create_impl(
   components_rows? : Int64 = 2L,
   reach? : Bool = false,
   traverse? : Bool = false,
+  traverse_paths? : Bool = false,
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
   supplied_ranking_rows? : Int? = None,
@@ -453,6 +486,7 @@ fn strategy_fixture_create_impl(
       components_rows~,
       reach~,
       traverse~,
+      traverse_paths~,
       sga_rows~,
       sga_derived_rows~,
       sequence_match~,

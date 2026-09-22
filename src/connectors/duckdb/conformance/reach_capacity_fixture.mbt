@@ -69,6 +69,7 @@ fn traversal_fixture_capacity(
   stage : String,
   operation : String,
   step? : Int = 1,
+  path_emission? : Bool = false,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -87,15 +88,17 @@ fn traversal_fixture_capacity(
       step=0,
       unit="nodes",
     )
-    let output = traversal_fixture_proof(
-      "actql.bound.traverse-nodes",
-      40L,
-      inputs=[@wire.cid(@wire.program_proof_witness(graph))],
-      step~,
-    )
     proofs.push(input)
     proofs.push(graph)
-    proofs.push(output)
+    if !path_emission {
+      let output = traversal_fixture_proof(
+        "actql.bound.traverse-nodes",
+        40L,
+        inputs=[@wire.cid(@wire.program_proof_witness(graph))],
+        step~,
+      )
+      proofs.push(output)
+    }
   }
   let witnesses = proofs.map(@wire.program_proof_witness)
   let artifacts : Array[(Bytes, String)] = []
@@ -119,8 +122,8 @@ fn traversal_fixture_capacity(
     }).unwrap()
     witnesses.push(wire)
     let candidates = [wire]
-    if operation == "traverse" && unit == "rows" {
-      candidates.push(@wire.program_proof_witness(proofs[2]))
+    if operation == "traverse" && !path_emission && unit == "rows" {
+      candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
       candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
     }
     let texts = candidates.map(candidate => {
@@ -200,6 +203,13 @@ fn traverse_fixture_capacity(
   environment : @environment.WireEnvironment,
   stage : String,
   step? : Int = 1,
+  path_emission? : Bool = false,
 ) -> @context.StageCapacityInput raise {
-  traversal_fixture_capacity(environment, stage, "traverse", step~)
+  traversal_fixture_capacity(
+    environment,
+    stage,
+    "traverse",
+    step~,
+    path_emission~,
+  )
 }

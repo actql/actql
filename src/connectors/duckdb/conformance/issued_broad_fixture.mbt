@@ -25,6 +25,7 @@ fn issued_fixture_checked(
   components_rows? : Int64 = 2L,
   reach? : Bool = false,
   traverse? : Bool = false,
+  traverse_paths? : Bool = false,
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
   sequence_match? : Bool = false,
@@ -63,7 +64,13 @@ fn issued_fixture_checked(
   } else if reach {
     [reach_fixture_capacity(environment, "graph")]
   } else if traverse {
-    [traverse_fixture_capacity(environment, "graph")]
+    [
+      traverse_fixture_capacity(
+        environment,
+        "graph",
+        path_emission=traverse_paths,
+      ),
+    ]
   } else if sga_derived_rows is Some(rows) {
     [graph_fixture_capacity(environment, "graph", rows, node_rows=rows * 2L)]
   } else if sga_rows is Some(rows) {
