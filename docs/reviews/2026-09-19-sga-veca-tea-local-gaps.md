@@ -18,6 +18,8 @@ readable coverage manifest is authoritative for individual operation status.
 | Cancellation | Common cancellation, stop confirmation, and cleanup retry are connected; exact layer counts are generated below | Prove request delivery, bounded observation, stop, and cleanup for every remaining long-running principal path |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | The Effect-free path publishes and retrieves the implemented Relation projections; exact layer counts are generated below | Connect every remaining applicable Relation result and Carrier projection through the formal path |
+| Differential conformance | Independent expectations and focused Local/DuckDB comparisons exist, but do not yet form an operation-indexed RelA release gate | Bind every overlapping RelA operation to the same checked Program, Local and DuckDB or reference execution, canonical comparison, and an independently authored expectation |
+| Resource accounting audit | Kernels use bounded sessions and local work and workspace ledgers, but reviewed invariants are not yet enforced by one repository gate | Add small shared accounting helpers where they remove repetition and a checked inventory for allocation admission, loop charging, and stop points in every long phase |
 
 The following snapshot is generated from the authoritative manifest. It is
 checked by `check:local-family-coverage`; do not edit its counts by hand.
@@ -63,6 +65,31 @@ occurrence. A physical fold remains an implementation choice only when it
 preserves the registered order, failure, numeric, identity, and accounting
 laws. Independent vectors retain repeated input positions and reject a
 canonical binary fold tree.
+
+## Review findings closed after `bc391b3e`
+
+Commits `420621fce`, `486fe4299`, `fb098b075`, and `a10ad0b3b`
+close the four concrete execution-boundary findings.
+
+- Interval join charges each explored pair exactly once before key or temporal
+  evaluation. Exact and one-short work limits remain invariant under
+  single-work resume quanta.
+- Sliding windows reject a binary64 backward grid step that does not decrease
+  the current coordinate. Fixed and sliding cases around `2^53` and `2^54`,
+  with positive and negative clocks and steps 1, 2, and 4, terminate under
+  single-work resume quanta on every portable target.
+- Sequence predicate-cache rows and cells are initialized only inside bounded
+  resume phases. Cancellation can arrive before or during initialization, and
+  cleanup clears predicate cells and every retained partial or completed match
+  position.
+- Shortest-path node and edge identity arrays preflight their structural value
+  node lower bound, construct one element per bounded step, and retain the
+  recursive runtime-value check. An insufficient value limit rejects the path
+  before any identity element is constructed.
+
+The broader RelA differential-conformance matrix and the repository-wide
+resource-accounting audit remain explicit shared release gaps above. Focused
+tests or source inspection are not recorded as their completion.
 
 ## Closed review findings after `4f84dec2`
 

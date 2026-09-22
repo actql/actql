@@ -28,7 +28,9 @@
   "shared_gaps": [
     "carrier_standard_host_dispatch",
     "bounded_step_execution",
-    "cancellation_delivery_and_stop"
+    "cancellation_delivery_and_stop",
+    "rela_differential_conformance",
+    "bounded_resource_accounting_audit"
   ],
   "shared_completed": [
     "canonical_aoa_inventory",
