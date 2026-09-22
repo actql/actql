@@ -1392,3 +1392,12 @@ no partial path completion is published, retryable cleanup finishes, and the
 final ledger is empty. Direct JS, Wasm, and native fixtures cover the same
 kernel stop and cleanup boundary. Cancellation remains open only for the
 unimplemented path selector and patterned-predicate variants.
+
+At `6ee11a18`, path traversal also resolves a checked Relation-backed start
+selector through its exact ordered input edge. The resumable selection phase
+retains repeated input positions until semantic identity deduplication and
+checks cancellation before continuing expansion. The portable standard Host
+runs the variant through two downstream computations, Effect-free Named
+Result publication and retrieval, independent release, and final reclaim on
+JS, Wasm, and native. Traverse remains partial for predicate-selected paths
+and patterned path predicates.

@@ -584,6 +584,27 @@
             "src/query_integration/local_carrier_graph_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ]
+        },
+        {
+          "scope": "relation_start_simple_path_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "6ee11a18",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },
