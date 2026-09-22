@@ -38,6 +38,7 @@ struct CarrierManagedCompletionReference {
 struct CarrierManagedProducerRead {
   identity : Ref[Unit]
   receiver : @lower.BoundPrepared
+  consumer_step : Int?
   input_index : Int
   output : CarrierManagedCompletedOutput
   carrier_read : @managed_carrier.ProducerReadReference
@@ -56,7 +57,10 @@ fn validate_carrier_completion_target(
   let owner = completion_preparation_owner(preparation)
   let prepared = @lower.bound_preparation(owner)
   guard target is @pipeline.Step(index) &&
-    index == @lower.sequence_count(preparation.sequence) - 1 &&
+    index ==
+    preparation.selected_step.unwrap_or(
+      @lower.sequence_count(preparation.sequence) - 1,
+    ) &&
     @lower.node_at(prepared, index) is Some(node) &&
     @lower.preparation_carrier_at(prepared, target) is Some(carrier) else {
     return Err(InvalidTarget)
@@ -72,7 +76,14 @@ fn validate_carrier_completion_target(
       Err(_) => return Err(Limit)
     }
   }
-  if @lower.preparation_input_count(prepared) > max_entries {
+  let input_count = match preparation.selected_step {
+    Some(step) =>
+      @lower.node_at(prepared, step)
+      .map(node => @lower.node_input_count(node))
+      .unwrap_or(max_entries + 1)
+    None => @lower.preparation_input_count(prepared)
+  }
+  if input_count > max_entries {
     return Err(Limit)
   }
   let kind = @carrier.kind(carrier)
@@ -140,13 +151,26 @@ pub fn[P] prepare_carrier_managed_completion_port_with_inputs(
   // a partial prefix must never become successful provenance.
   let selected_inputs = inputs.unwrap_or([])
   if inputs is Some(_) {
+    let expected_input_count = match preparation.selected_step {
+      Some(step) =>
+        @lower.node_at(@lower.bound_preparation(owner), step)
+        .map(node => @lower.node_input_count(node))
+        .unwrap_or(-1)
+      None => @lower.preparation_input_count(@lower.bound_preparation(owner))
+    }
     if selected_inputs.length() > max_entries ||
-      selected_inputs.length() !=
-      @lower.preparation_input_count(@lower.bound_preparation(owner)) {
+      selected_inputs.length() != expected_input_count {
       return Err(ForeignInputs)
     }
     for index, input in selected_inputs {
-      if !managed_input_binding_matches_input(input, owner, index) ||
+      let exact = match preparation.selected_step {
+        Some(step) =>
+          managed_input_binding_matches_operation_input(
+            input, owner, step, index,
+          )
+        None => managed_input_binding_matches_input(input, owner, index)
+      }
+      if !exact ||
         managed_input_binding_profile_cid(input) !=
         managed_execution_profile_cid(profile) {
         return Err(ForeignInputs)
@@ -276,7 +300,50 @@ pub fn prepare_carrier_managed_producer_read(
     ) {
     return Err(ForeignInputs)
   }
-  Ok({ identity: Ref(()), receiver, input_index, output, carrier_read, })
+  Ok({
+    identity: Ref(()),
+    receiver,
+    consumer_step: None,
+    input_index,
+    output,
+    carrier_read,
+  })
+}
+
+///|
+/// Bind one exact internal operation edge without converting its position to
+/// an author-visible pipeline input.
+pub fn prepare_carrier_managed_operation_read(
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+  output : CarrierManagedCompletedOutput,
+  carrier_read : @managed_carrier.ProducerReadReference,
+) -> Result[CarrierManagedProducerRead, TrustedOutputIssue] {
+  if !carrier_managed_completed_output_available(output) ||
+    !@managed_carrier.completion_reference_matches_port(
+      output.reference,
+      expected_producer,
+      output.target,
+    ) ||
+    !@managed_carrier.producer_read_reference_matches_operation_input(
+      carrier_read, receiver, consumer_step, input_index,
+    ) ||
+    !@managed_carrier.producer_read_reference_matches_output(
+      carrier_read,
+      output.reference,
+    ) {
+    return Err(ForeignInputs)
+  }
+  Ok({
+    identity: Ref(()),
+    receiver,
+    consumer_step: Some(consumer_step),
+    input_index,
+    output,
+    carrier_read,
+  })
 }
 
 ///|
@@ -301,6 +368,20 @@ pub fn carrier_managed_producer_read_matches_input(
   receiver : @lower.BoundPrepared,
   input_index : Int,
 ) -> Bool {
+  value.consumer_step is None &&
+  physical_equal(value.receiver, receiver) &&
+  value.input_index == input_index &&
+  carrier_managed_producer_read_available(value)
+}
+
+///|
+pub fn carrier_managed_producer_read_matches_operation_input(
+  value : CarrierManagedProducerRead,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+) -> Bool {
+  value.consumer_step == Some(consumer_step) &&
   physical_equal(value.receiver, receiver) &&
   value.input_index == input_index &&
   carrier_managed_producer_read_available(value)

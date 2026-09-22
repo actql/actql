@@ -224,6 +224,8 @@ pub fn carrier_managed_producer_read_carrier_reference(CarrierManagedProducerRea
 
 pub fn carrier_managed_producer_read_matches_input(CarrierManagedProducerRead, @lowering_relation.BoundPrepared, Int) -> Bool
 
+pub fn carrier_managed_producer_read_matches_operation_input(CarrierManagedProducerRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
 pub fn carrier_managed_producer_read_matches_reference(CarrierManagedProducerRead, CarrierManagedCompletionReference) -> Bool
 
 pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierManagedProducerRead) -> Bool
@@ -283,6 +285,8 @@ pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelati
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
+
+pub fn completion_preparation_selected_step(CompletionPreparation) -> Int?
 
 pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relation.PreparedSequence
 
@@ -492,6 +496,8 @@ pub fn managed_input_binding_matches_carrier_reference(ManagedInputBinding, Carr
 
 pub fn managed_input_binding_matches_input(ManagedInputBinding, @lowering_relation.BoundPrepared, Int) -> Bool
 
+pub fn managed_input_binding_matches_operation_input(ManagedInputBinding, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
 pub fn managed_input_binding_matches_ordinary_read(ManagedInputBinding, ProducerRead) -> Bool
 
 pub fn managed_input_binding_matches_relation_reference(ManagedInputBinding, ManagedCompletionReference) -> Bool
@@ -631,6 +637,8 @@ pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipelin
 pub fn[P] prepare_carrier_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[CarrierManagedProducerRead], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
 
 pub fn[P] prepare_carrier_managed_completion_port_with_inputs(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[ManagedInputBinding], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
+
+pub fn prepare_carrier_managed_operation_read(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.BoundPrepared, CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference) -> Result[CarrierManagedProducerRead, TrustedOutputIssue]
 
 pub fn prepare_carrier_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference) -> Result[CarrierManagedProducerRead, TrustedOutputIssue]
 

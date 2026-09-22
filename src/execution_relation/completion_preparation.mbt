@@ -6,6 +6,7 @@ struct CompletionPreparation {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   retained_ids : Array[String]
+  selected_step : Int?
 }
 
 ///|
@@ -35,7 +36,12 @@ pub fn prepare_completion(
     !spend_control(control, retained_ids.length()) {
     return Err(InputLimit)
   }
-  Ok({ contracts, sequence, retained_ids: retained_ids.copy(), })
+  Ok({
+    contracts,
+    sequence,
+    retained_ids: retained_ids.copy(),
+    selected_step: None,
+  })
 }
 
 ///|
@@ -48,7 +54,19 @@ pub fn generated_completion_preparation(
     contracts: generated.contracts,
     sequence: generated.sequence,
     retained_ids: generated.retained_ids,
+    selected_step: match generated.selected_steps {
+      Some([step]) => Some(step)
+      _ => None
+    },
   }
+}
+
+///|
+/// Original checked coordinate selected for one internal physical task.
+pub fn completion_preparation_selected_step(
+  value : CompletionPreparation,
+) -> Int? {
+  value.selected_step
 }
 
 ///|

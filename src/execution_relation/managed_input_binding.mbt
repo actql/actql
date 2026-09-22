@@ -5,6 +5,7 @@
 struct ManagedInputBinding {
   identity : Ref[Unit]
   receiver : @lower.BoundPrepared
+  consumer_step : Int?
   input_index : Int
   profile_cid : String
   available : () -> Bool
@@ -24,6 +25,7 @@ pub fn ordinary_relation_input_binding(
   {
     identity: Ref(()),
     receiver: producer_read_receiver(value),
+    consumer_step: None,
     input_index: producer_read_input_index(value),
     profile_cid: managed_execution_profile_cid(
       selected_managed_execution_profile(),
@@ -43,6 +45,7 @@ pub fn[T] managed_relation_input_binding(
   {
     identity: value.identity,
     receiver: value.receiver,
+    consumer_step: None,
     input_index: value.input_index,
     profile_cid: managed_execution_profile_cid(value.output.profile),
     available: fn() { managed_producer_read_available(value) },
@@ -60,6 +63,7 @@ pub fn managed_carrier_input_binding(
   {
     identity: value.identity,
     receiver: value.receiver,
+    consumer_step: value.consumer_step,
     input_index: value.input_index,
     profile_cid: managed_execution_profile_cid(value.output.profile),
     available: fn() { carrier_managed_producer_read_available(value) },
@@ -77,6 +81,7 @@ pub fn supplied_relation_input_binding(
   {
     identity: Ref(()),
     receiver: supplied_relation_read_receiver(value),
+    consumer_step: None,
     input_index: supplied_relation_read_input_index(value),
     profile_cid: managed_execution_profile_cid(
       selected_managed_execution_profile(),
@@ -105,6 +110,20 @@ pub fn managed_input_binding_matches_input(
   receiver : @lower.BoundPrepared,
   input_index : Int,
 ) -> Bool {
+  value.consumer_step is None &&
+  physical_equal(value.receiver, receiver) &&
+  value.input_index == input_index &&
+  managed_input_binding_available(value)
+}
+
+///|
+pub fn managed_input_binding_matches_operation_input(
+  value : ManagedInputBinding,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+) -> Bool {
+  value.consumer_step == Some(consumer_step) &&
   physical_equal(value.receiver, receiver) &&
   value.input_index == input_index &&
   managed_input_binding_available(value)

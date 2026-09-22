@@ -76,6 +76,58 @@ fn carrier_completion_producer() -> @lower.BoundPrepared {
 }
 
 ///|
+fn carrier_completion_sequence_owner() -> @lower.BoundPrepared {
+  carrier_completion_bind(
+    @pipeline.check_carriers(
+      carrier_completion_cursor(
+        "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}},{\"watermark_events\":{\"watermark_ms\":0,\"policy\":\"mark\"}}]",
+      ),
+      [("rows", carrier_completion_relation())],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn carrier_completion_generated(
+  owner : @lower.BoundPrepared,
+) -> GeneratedSequence raise {
+  let sequence = @lower.prepare_sequence(owner, {
+    max_steps: 10,
+    max_rows: 100,
+    max_cells: 1000,
+    max_bindings: 100,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 100,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }).unwrap()
+  let last = @lower.sequence_count(sequence) - 1
+  let retained = @lower.node_at(@lower.bound_preparation(owner), last).unwrap()
+  prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    [@lower.node_id(retained)],
+    10000,
+    1000,
+  ).unwrap()
+}
+
+///|
 fn carrier_completion_consumer(
   producer : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -175,7 +227,17 @@ fn raw_event_completion(
   live : Ref[Bool],
   storage_bytes : Int64,
 ) -> @managed_carrier.Completed[String, Int] {
-  let binding = @managed_carrier.prepare_binding(owner, @pipeline.Step(0)).unwrap()
+  raw_event_completion_at(owner, 0, live, storage_bytes)
+}
+
+///|
+fn raw_event_completion_at(
+  owner : @lower.BoundPrepared,
+  step : Int,
+  live : Ref[Bool],
+  storage_bytes : Int64,
+) -> @managed_carrier.Completed[String, Int] {
+  let binding = @managed_carrier.prepare_binding(owner, @pipeline.Step(step)).unwrap()
   let receipt = @managed_carrier.complete_receipt(
     binding,
     @managed_carrier.EventsMeasure(records=1),
@@ -187,6 +249,64 @@ fn raw_event_completion(
     (),
   ).unwrap()
   @managed_carrier.complete(retained).unwrap()
+}
+
+///|
+test "selected carrier completions retain exact internal operation inputs" {
+  let owner = carrier_completion_sequence_owner()
+  let generated = carrier_completion_generated(owner)
+  let producer_generated = select_generated_sequence_step(generated, 0).unwrap()
+  let producer_live = Ref(true)
+  let producer_raw = raw_event_completion_at(owner, 0, producer_live, 16L)
+  let producer_reference = @managed_carrier.completion_reference(producer_raw)
+  let producer_port = prepare_carrier_managed_completion_port(
+    selected_managed_execution_profile(),
+    generated_completion_preparation(producer_generated),
+    @pipeline.Step(0),
+    10,
+    100,
+    (_ : Unit) => Some(producer_reference),
+  ).unwrap()
+  let producer_output = complete_carrier_managed_output(producer_port, ()).unwrap()
+  let raw_read = @managed_carrier.prepare_step_producer_read(
+    owner, 1, 0, producer_raw,
+  ).unwrap()
+  let input = prepare_carrier_managed_operation_read(
+    owner,
+    1,
+    0,
+    owner,
+    producer_output,
+    @managed_carrier.producer_read_reference(raw_read),
+  ).unwrap()
+  assert_true(
+    carrier_managed_producer_read_matches_operation_input(input, owner, 1, 0),
+  )
+  assert_false(carrier_managed_producer_read_matches_input(input, owner, 0))
+  let common = managed_carrier_input_binding(input)
+  assert_true(
+    managed_input_binding_matches_operation_input(common, owner, 1, 0),
+  )
+  assert_false(managed_input_binding_matches_input(common, owner, 0))
+
+  let consumer_generated = select_generated_sequence_step(generated, 1).unwrap()
+  let consumer_live = Ref(true)
+  let consumer_raw = raw_event_completion_at(owner, 1, consumer_live, 32L)
+  let consumer_reference = @managed_carrier.completion_reference(consumer_raw)
+  let consumer_port = prepare_carrier_managed_completion_port_with_inputs(
+    selected_managed_execution_profile(),
+    generated_completion_preparation(consumer_generated),
+    @pipeline.Step(1),
+    10,
+    100,
+    (_ : Unit) => Some(consumer_reference),
+    inputs=[common],
+  ).unwrap()
+  let consumer_output = complete_carrier_managed_output(consumer_port, ()).unwrap()
+  assert_eq(
+    carrier_managed_completed_output_kind(consumer_output),
+    @carrier.EventsKind,
+  )
 }
 
 ///|

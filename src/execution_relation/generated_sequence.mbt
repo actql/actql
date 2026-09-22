@@ -464,11 +464,19 @@ pub fn select_generated_sequence_step(
   generated : GeneratedSequence,
   step : Int,
 ) -> GeneratedSequence? {
-  if @lower.sequence_step(generated.sequence, step) is None {
-    None
-  } else {
-    Some({ ..generated, selected_steps: Some([step]), })
+  guard @lower.sequence_step(generated.sequence, step) is Some(_) &&
+    @lower.node_at(
+      @lower.bound_preparation(@lower.sequence_owner(generated.sequence)),
+      step,
+    )
+    is Some(node) else {
+    return None
   }
+  Some({
+    ..generated,
+    selected_steps: Some([step]),
+    retained_ids: [@lower.node_id(node)],
+  })
 }
 
 ///|
