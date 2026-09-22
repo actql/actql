@@ -36,8 +36,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `cancellation` | 37/39 |
 | `publication` | 37/39 |
 | `three_targets` | 37/39 |
-| complete operations | 32/39 |
-| open operations | 7/39 |
+| complete operations | 33/39 |
+| open operations | 6/39 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -702,9 +702,14 @@ Vectors input combination without erasing Carrier authority, rejects reversed
 use-site bindings, and preserves source storage after output cleanup on all
 three targets. The real Node Host now delivers timer cancellation after exact
 nearest work begins, observes kernel stop, publishes no partial result, and
-reclaims all reservations at `456c2f27`. Standard Host selection for the direct
-Carrier forms, their two-consumer lifetime, duplicate identity failures, and
-publication remain open. Ranking merge now has typed canonical
+reclaims all reservations at `456c2f27`. Commit `d8e798256` connects the three
+remaining direct-Carrier combinations to standard Host selection. One or two
+bounded rows-to-Vectors bridges feed the exact nearest occurrence while final
+completion retains the two external Relation bindings. Each combination
+reaches two overlapping consumers, publication identity, independent release,
+and zero final ledger usage on JS, Wasm, and native. Duplicate identity and
+foreign use-site rejection remain covered by direct provider fixtures, so
+nearest is complete. Ranking merge now has typed canonical
 lowering for maximum, weighted-sum, and finite-list RRF policies. It retains
 score contracts, omitted versus explicit empty tie-breaks,
 and ordered repeated RRF inputs as one operation occurrence. RRF now executes
