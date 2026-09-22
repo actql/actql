@@ -2172,6 +2172,181 @@ async function exerciseStrategyGraph(
     await vectorPublicationStore?.close();
     await rm(vectorPublicationDirectory, {recursive: true, force: true});
   }
+  const eventPublicationProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{
+      id: 'a',
+      inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [
+        {filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'},
+      ],
+      results: {r: {from: 'captured', fields: ['id']}},
+    }, {
+      id: 'values',
+      inputs: {},
+      steps: [{
+        values: {
+          schema: {
+            event_id: {type: 'number', nullable: false},
+            occurred_at: {type: 'number', nullable: false},
+            payload: {type: 'string', nullable: false},
+          },
+          rows: [
+            {event_id: 1, occurred_at: 5, payload: 'first'},
+            {event_id: 2, occurred_at: 15, payload: 'second'},
+          ],
+        },
+        as: 'out',
+      }],
+      results: {
+        r: {from: 'out', fields: ['event_id', 'occurred_at', 'payload']},
+      },
+    }, {
+      id: 'events',
+      inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+      steps: [{
+        from: 'rows',
+        to_events: {id: 'event_id', time: 'occurred_at'},
+        as: 'source',
+      }, {
+        from: 'source',
+        watermark_events: {watermark_ms: 10, policy: 'mark'},
+        as: 'marked',
+      }, {
+        from: 'marked', events: true, as: 'out',
+      }],
+      results: {
+        r: {
+          from: 'out',
+          fields: [
+            'event_id',
+            'occurred_at',
+            'payload',
+            'watermark_ms',
+            'late',
+            'watermark_decision',
+          ],
+        },
+      },
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'events', result: 'r'}}},
+      steps: [{select: ['event_id', 'late'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['event_id', 'late']}},
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'events', result: 'r'}}},
+      steps: [{select: ['watermark_decision', 'event_id'], as: 'out'}],
+      results: {
+        r: {from: 'out', fields: ['watermark_decision', 'event_id']},
+      },
+    }],
+    results: {published: {from: {stage: 'events', result: 'r'}}},
+  };
+  const eventPublicationFixture = fixture.strategyFixtureTeaCreate(
+    ...args,
+    JSON.stringify(eventPublicationProgram),
+  );
+  const eventCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(eventPublicationFixture),
+    suppliedLimits,
+  );
+  const eventPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/event-publication-entry-',
+  ));
+  let eventPublicationOwner;
+  let eventPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        eventPublicationFixture,
+        eventCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureTeaSubset(eventPublicationFixture);
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 1);
+    eventPublicationStore = await openLocalPublicationStore({
+      directory: eventPublicationDirectory,
+      storeAuthorityCid: hash('event-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'event-publication-attempt',
+    );
+    eventPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: eventPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    );
+    assert.equal(eventPublicationOwner.status, 'published');
+    assert.equal(
+      eventPublicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.deepEqual(
+      eventPublicationOwner.execution.completed.map(
+        value => value.realization,
+      ),
+      Array(4).fill('local-managed'),
+    );
+    const occurrence = eventPublicationOwner.execution
+      .publicationInventory.occurrences[0];
+    const received = [];
+    await eventPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(
+      JSON.parse(Buffer.concat(received).toString('utf8')),
+      [{
+        event_id: 1,
+        occurred_at: 5,
+        payload: 'first',
+        watermark_ms: 10,
+        late: true,
+        watermark_decision: 'mark',
+      }, {
+        event_id: 2,
+        occurred_at: 15,
+        payload: 'second',
+        watermark_ms: 10,
+        late: false,
+        watermark_decision: 'keep',
+      }],
+    );
+  } finally {
+    if (eventPublicationOwner !== undefined) {
+      await eventPublicationOwner.close();
+      assert.equal(eventPublicationOwner.cleanupPending(), false);
+      assert.equal(await eventPublicationOwner.cleanup(), true);
+      assert.equal(eventPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(
+        eventPublicationOwner.execution.usage().reservedExecutionBytes,
+        0n,
+      );
+    }
+    eventCapture.close();
+    await eventPublicationStore?.close();
+    await rm(eventPublicationDirectory, {recursive: true, force: true});
+  }
   const carrierVectorPublicationProgram = {
     version: 'actql/0.1',
     id: 'p',
