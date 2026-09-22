@@ -42,8 +42,14 @@ priv enum Phase {
 } derive(Eq)
 
 ///|
+priv enum SnapshotSource {
+  Stored(@storage.Storage)
+  Viewed(@lifecycle.ProducerView, @carrier.Graph)
+}
+
+///|
 struct Preparation {
-  storage : @storage.Storage
+  source : SnapshotSource
   limits : Limits
   builder : @identity.Builder
   node_keys : Array[Array[String]]
@@ -81,9 +87,109 @@ fn checked_add(left : Int, right : Int) -> Int? {
 }
 
 ///|
-fn required_workspace(storage : @storage.Storage) -> Int? {
-  guard checked_multiply(@storage.node_count(storage), 5) is Some(nodes) &&
-    checked_multiply(@storage.edge_count(storage), 7) is Some(edges) else {
+fn source_node_count(source : SnapshotSource) -> Int? {
+  match source {
+    Stored(storage) => Some(@storage.node_count(storage))
+    Viewed(view, _) => @lifecycle.producer_view_node_count(view)
+  }
+}
+
+///|
+fn source_edge_count(source : SnapshotSource) -> Int? {
+  match source {
+    Stored(storage) => Some(@storage.edge_count(storage))
+    Viewed(view, _) => @lifecycle.producer_view_edge_count(view)
+  }
+}
+
+///|
+fn source_graph(source : SnapshotSource) -> @carrier.Graph? {
+  match source {
+    Stored(storage) => graph(storage)
+    Viewed(_, graph) => Some(graph)
+  }
+}
+
+///|
+fn source_node_identity(
+  source : SnapshotSource,
+  index : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(storage) => @storage.node_identity(storage, index)
+    Viewed(view, _) =>
+      match @lifecycle.producer_view_node_identity(view, index) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn source_node_property(
+  source : SnapshotSource,
+  node : Int,
+  property : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(storage) => @storage.node_property(storage, node, property)
+    Viewed(view, _) =>
+      match @lifecycle.producer_view_node_property(view, node, property) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn source_edge_endpoints(source : SnapshotSource, edge : Int) -> (Int, Int)? {
+  match source {
+    Stored(storage) => @storage.edge_endpoints(storage, edge)
+    Viewed(view, _) =>
+      match @lifecycle.producer_view_edge_endpoints(view, edge) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn source_edge_label(
+  source : SnapshotSource,
+  edge : Int,
+) -> @value.CheckedValue?? {
+  match source {
+    Stored(storage) => @storage.edge_label(storage, edge)
+    Viewed(view, _) =>
+      match @lifecycle.producer_view_edge_label(view, edge) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn source_edge_property(
+  source : SnapshotSource,
+  edge : Int,
+  property : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(storage) => @storage.edge_property(storage, edge, property)
+    Viewed(view, _) =>
+      match @lifecycle.producer_view_edge_property(view, edge, property) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn required_workspace(source : SnapshotSource) -> Int? {
+  guard source_node_count(source) is Some(node_count) &&
+    source_edge_count(source) is Some(edge_count) &&
+    checked_multiply(node_count, 5) is Some(nodes) &&
+    checked_multiply(edge_count, 7) is Some(edges) else {
     return None
   }
   checked_add(nodes, edges)
@@ -91,7 +197,7 @@ fn required_workspace(storage : @storage.Storage) -> Int? {
 
 ///|
 pub fn workspace_slots(storage : @storage.Storage) -> Int? {
-  required_workspace(storage)
+  required_workspace(Stored(storage))
 }
 
 ///|
@@ -116,6 +222,25 @@ pub fn prepare(
   graph_contract_cid : String,
   limits : Limits,
 ) -> Result[Preparation, Issue] {
+  prepare_source(Stored(storage), graph_contract_cid, limits)
+}
+
+///|
+pub fn prepare_view(
+  view : @lifecycle.ProducerView,
+  graph : @carrier.Graph,
+  graph_contract_cid : String,
+  limits : Limits,
+) -> Result[Preparation, Issue] {
+  prepare_source(Viewed(view, graph), graph_contract_cid, limits)
+}
+
+///|
+fn prepare_source(
+  source : SnapshotSource,
+  graph_contract_cid : String,
+  limits : Limits,
+) -> Result[Preparation, Issue] {
   if limits.max_workspace_slots < 0 ||
     limits.max_identity_bytes < 0 ||
     limits.max_identity_nodes < 0 ||
@@ -125,8 +250,8 @@ pub fn prepare(
     limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  guard graph(storage) is Some(_) &&
-    required_workspace(storage) is Some(required) else {
+  guard source_graph(source) is Some(_) &&
+    required_workspace(source) is Some(required) else {
     return Err(InvalidGraph)
   }
   if required > limits.max_workspace_slots {
@@ -143,7 +268,7 @@ pub fn prepare(
     Err(issue) => return Err(Identity(issue))
   }
   Ok({
-    storage,
+    source,
     limits,
     builder,
     node_keys: [],
@@ -193,26 +318,26 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
   if value.phase == Finished {
     return Err(Terminal)
   }
-  guard graph(value.storage) is Some(graph) else { return Err(InvalidGraph) }
+  guard source_graph(value.source) is Some(graph) &&
+    source_node_count(value.source) is Some(node_count) &&
+    source_edge_count(value.source) is Some(edge_count) else {
+    return Err(InvalidGraph)
+  }
   let mut used = 0
   let mut progress = 0
   while used < quantum {
     match value.phase {
       BuildNodeKeys => {
-        if value.cursor >= @storage.node_count(value.storage) {
+        if value.cursor >= node_count {
           value.node_sort = match
-            @sort.prepare(
-              value.node_keys,
-              @storage.node_count(value.storage) * 2,
-            ) {
+            @sort.prepare(value.node_keys, node_count * 2) {
             Ok(sort) => Some(sort)
             Err(issue) => return Err(Sort(issue))
           }
           value.phase = SortNodes
           continue
         }
-        guard @storage.node_identity(value.storage, value.cursor)
-          is Some(identity) else {
+        guard source_node_identity(value.source, value.cursor) is Some(identity) else {
           return Err(InvalidGraph)
         }
         let key = match order_key(identity, value.limits.value_limits) {
@@ -238,12 +363,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         }
       }
       HashNodeBegin => {
-        if value.cursor >= @storage.node_count(value.storage) {
+        if value.cursor >= node_count {
           value.phase = EndNodes
           continue
         }
         guard sorted_node(value) is Some(node) &&
-          @storage.node_identity(value.storage, node) is Some(identity) else {
+          source_node_identity(value.source, node) is Some(identity) else {
           return Err(InvalidGraph)
         }
         match @identity.begin_node(value.builder, identity) {
@@ -267,7 +392,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             value.property,
           )
           is Some(field) &&
-          @storage.node_property(value.storage, node, value.property)
+          source_node_property(value.source, node, value.property)
           is Some(property) else {
           return Err(InvalidGraph)
         }
@@ -305,23 +430,20 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       BuildEdgeKeys => {
-        if value.cursor >= @storage.edge_count(value.storage) {
+        if value.cursor >= edge_count {
           value.edge_sort = match
-            @sort.prepare(
-              value.edge_keys,
-              @storage.edge_count(value.storage) * 2,
-            ) {
+            @sort.prepare(value.edge_keys, edge_count * 2) {
             Ok(sort) => Some(sort)
             Err(issue) => return Err(Sort(issue))
           }
           value.phase = SortEdges
           continue
         }
-        guard @storage.edge_endpoints(value.storage, value.cursor)
+        guard source_edge_endpoints(value.source, value.cursor)
           is Some((source, target)) &&
-          @storage.node_identity(value.storage, source) is Some(source_id) &&
-          @storage.node_identity(value.storage, target) is Some(target_id) &&
-          @storage.edge_label(value.storage, value.cursor) is Some(label) else {
+          source_node_identity(value.source, source) is Some(source_id) &&
+          source_node_identity(value.source, target) is Some(target_id) &&
+          source_edge_label(value.source, value.cursor) is Some(label) else {
           return Err(InvalidGraph)
         }
         let source_key = match order_key(source_id, value.limits.value_limits) {
@@ -359,15 +481,15 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         }
       }
       HashEdgeBegin => {
-        if value.cursor >= @storage.edge_count(value.storage) {
+        if value.cursor >= edge_count {
           value.phase = Finish
           continue
         }
         guard sorted_edge(value) is Some(edge) &&
-          @storage.edge_endpoints(value.storage, edge) is Some((source, target)) &&
-          @storage.node_identity(value.storage, source) is Some(source_id) &&
-          @storage.node_identity(value.storage, target) is Some(target_id) &&
-          @storage.edge_label(value.storage, edge) is Some(label) else {
+          source_edge_endpoints(value.source, edge) is Some((source, target)) &&
+          source_node_identity(value.source, source) is Some(source_id) &&
+          source_node_identity(value.source, target) is Some(target_id) &&
+          source_edge_label(value.source, edge) is Some(label) else {
           return Err(InvalidGraph)
         }
         match @identity.begin_edge(value.builder, source_id, target_id, label) {
@@ -391,7 +513,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             value.property,
           )
           is Some(field) &&
-          @storage.edge_property(value.storage, edge, value.property)
+          source_edge_property(value.source, edge, value.property)
           is Some(property) else {
           return Err(InvalidGraph)
         }

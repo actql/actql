@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/graph_snapshot_identity" @identity,
   "actql/actql/managed_graph_storage" @storage,
+  "actql/actql/managed_carrier_runtime" @lifecycle,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
 }
