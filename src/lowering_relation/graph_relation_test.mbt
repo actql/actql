@@ -86,4 +86,25 @@ test "Graph delta application retains produced delta field and budgets" {
       )
     ),
   )
+  let sequence = @lowering_relation.prepare_sequence(
+    graph_relation_owner(source),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.GraphRelationStep(apply)) else {
+    fail("missing graph apply lowering evidence")
+  }
+  assert_eq(
+    @lowering_relation.graph_relation_apply_field(apply),
+    Some("delta"),
+  )
+  let expected = @graph_contract.admit(graph_union_carrier(), {
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }).unwrap()
+  assert_eq(
+    @lowering_relation.graph_relation_graph_contract_cid(apply),
+    Some(@graph_contract.cid(expected)),
+  )
 }

@@ -16,7 +16,7 @@ pub fn graph_relation_kind(value : PreparedGraphRelation) -> GraphRelationKind {
   match value.params {
     EqualityGraphRelationParams => GraphsEqualRelation
     DiffGraphRelationParams(_, _) => GraphDiffRelation
-    ApplyGraphParams(_) => ApplyGraphRelation
+    ApplyGraphParams(_, _) => ApplyGraphRelation
   }
 }
 
@@ -36,6 +36,15 @@ pub fn graph_relation_graph_contract_cid(
 ) -> String? {
   match value.params {
     DiffGraphRelationParams(_, cid) => Some(cid)
+    ApplyGraphParams(_, cid) => Some(cid)
+    _ => None
+  }
+}
+
+///|
+pub fn graph_relation_apply_field(value : PreparedGraphRelation) -> String? {
+  match value.params {
+    ApplyGraphParams(field, _) => Some(field)
     _ => None
   }
 }
@@ -64,7 +73,7 @@ pub fn graph_relation_output_schema(
 priv enum PreparedGraphRelationParams {
   EqualityGraphRelationParams
   DiffGraphRelationParams(@contract.Contract, String)
-  ApplyGraphParams(String)
+  ApplyGraphParams(String, String)
 }
 
 ///|
@@ -91,12 +100,16 @@ fn prepare_graph_relation_node(
         @graph.diff_contract(checked),
         @graph_contract.cid(@graph.diff_graph_contract(checked)),
       )
-    GraphApplyValue(checked) => ApplyGraphParams(@graph.apply_field(checked))
+    GraphApplyValue(checked) =>
+      ApplyGraphParams(
+        @graph.apply_field(checked),
+        @graph_contract.cid(@graph.apply_graph_contract(checked)),
+      )
     _ => return Err(InvalidGraphRelationWiring)
   }
   let (entries, name_bytes, work) = match params {
     EqualityGraphRelationParams | DiffGraphRelationParams(_, _) => (0, 0, 0)
-    ApplyGraphParams(field) => (1, @utf8.encode(field).length(), 1)
+    ApplyGraphParams(field, _) => (1, @utf8.encode(field).length(), 1)
   }
   if entries > max_entries || name_bytes > max_name_bytes || work > max_work {
     return Err(GraphRelationPreparationLimit)
@@ -124,7 +137,7 @@ fn emit_graph_relation_node(
   @encode.begin_object(out)
   match prepared.params {
     EqualityGraphRelationParams | DiffGraphRelationParams(_, _) => ()
-    ApplyGraphParams(field) => {
+    ApplyGraphParams(field, _) => {
       @encode.key(out, "field")
       @encode.string_value(out, field)
     }
