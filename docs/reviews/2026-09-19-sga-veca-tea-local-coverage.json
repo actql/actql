@@ -554,6 +554,24 @@
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        },
+        {
+          "scope": "homogeneous_literal_simple_path_standard_host_path",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e9cab711",
+          "evidence": [
+            "src/query_integration/join_graph_capacity_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
         }
       ]
     },

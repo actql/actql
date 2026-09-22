@@ -1375,6 +1375,13 @@ canonical node and edge sequences, rejects repeated nodes, and admits both
 the output ceiling and path workspace before copying an expansion. Portable
 fixtures cover zero-hop and multi-hop output plus exact output and workspace
 failures on JS, Wasm, and native. The registered provider now admits this
-variant. Traverse remains partial until Relation and predicate path starts,
-patterned path predicates, environment cancellation, standard Host consumers,
-publication, and reclaim are connected for path output.
+variant.
+
+At `e9cab711`, the same path variant reaches the portable standard Host on
+JS, Wasm, and native. It runs two overlapping downstream computations,
+publishes and retrieves the Effect-free Named Result, releases each consumer
+independently, and reclaims the producer after the final release. Admission
+uses the Host path ceiling and the authored output guard; it does not attach
+the node-output proof to path rows. Traverse remains partial until Relation
+and predicate path starts, patterned path predicates, and environment
+cancellation are connected for path output.
