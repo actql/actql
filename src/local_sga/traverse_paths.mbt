@@ -5,6 +5,12 @@ priv struct TraversalPath {
 }
 
 ///|
+priv enum TraversePathStarts {
+  LiteralPathStarts
+  RelationPathStarts(@execution.ProducerRead, Int)
+}
+
+///|
 priv enum TraversePathsPhase {
   ResolveStarts
   SortStarts
@@ -23,6 +29,7 @@ priv struct TraversePathsState {
   source : @storage.Storage
   schema : @schema.Schema
   prepared : @lower.PreparedGraphTraverse
+  starts : TraversePathStarts
   direction : @graph_type.Direction
   minimum_depth : Int
   maximum_depth : Int
@@ -86,6 +93,40 @@ pub(all) enum TraversePathsIssue {
   TraversePathsCompletion(@execution.TrustedOutputIssue)
   TraversePathsExecutionIssue(@bounded.Issue)
 } derive(Eq, Debug)
+
+///|
+fn traverse_path_start_count(state : TraversePathsState) -> Int {
+  match state.starts {
+    LiteralPathStarts => @lower.graph_traverse_start_id_count(state.prepared)
+    RelationPathStarts(input, _) => @execution.producer_read_row_count(input)
+  }
+}
+
+///|
+fn traverse_path_start_at(
+  state : TraversePathsState,
+  index : Int,
+) -> @value.CheckedValue? {
+  match state.starts {
+    LiteralPathStarts =>
+      @lower.graph_traverse_start_id_at(state.prepared, index)
+    RelationPathStarts(input, column) =>
+      @execution.producer_read_checked_cell(
+        input,
+        index,
+        column,
+        state.value_limits,
+      )
+  }
+}
+
+///|
+fn traverse_path_starts_available(state : TraversePathsState) -> Bool {
+  match state.starts {
+    LiteralPathStarts => true
+    RelationPathStarts(input, _) => @execution.producer_read_available(input)
+  }
+}
 
 ///|
 fn traversal_path_slots(value : TraversalPath) -> Int? {
@@ -337,20 +378,21 @@ fn traverse_paths_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !@graph.producer_read_available(state.input) ||
+      !traverse_path_starts_available(state) {
       return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
     }
     match state.phase {
       ResolveStarts =>
-        if state.start_scan <
-          @lower.graph_traverse_start_id_count(state.prepared) {
+        if state.start_scan < traverse_path_start_count(state) {
           used += 1
-          guard @lower.graph_traverse_start_id_at(
-              state.prepared,
-              state.start_scan,
-            )
+          guard traverse_path_start_at(state, state.start_scan)
             is Some(identity) else {
-            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
           }
           match @storage.node_index(state.source, identity) {
             Err(_) =>
@@ -598,8 +640,6 @@ fn start_traverse_paths(
     @lower.graph_traverse_bounds(prepared) is Some((minimum, maximum)) &&
     minimum <= 2147483647L &&
     maximum <= 2147483647L &&
-    @lower.graph_traverse_start_id_count(prepared) > 0 &&
-    @lower.graph_traverse_start_relation_field(prepared) is None &&
     @lower.graph_traverse_start_predicate(prepared) is None &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     @lower.graph_traverse_hop_edge_predicate(prepared, 0) is None &&
@@ -609,6 +649,39 @@ fn start_traverse_paths(
     max_rows >= 0 &&
     max_workspace_slots >= 0 else {
     return Err(InvalidTraversePathsKernel)
+  }
+  let starts = match @lower.graph_traverse_start_relation_field(prepared) {
+    None => {
+      guard @lower.graph_traverse_start_id_count(prepared) > 0 else {
+        return Err(InvalidTraversePathsKernel)
+      }
+      LiteralPathStarts
+    }
+    Some(field) => {
+      let mut selector = None
+      for candidate in inputs {
+        if @execution.producer_read_matches_operation_input(
+            candidate, owner, step, 1,
+          ) {
+          selector = Some(candidate)
+          break
+        }
+      }
+      guard selector is Some(selector) else {
+        return Err(InvalidTraversePathsKernel)
+      }
+      let schema = @execution.producer_read_schema(selector)
+      let mut column = -1
+      for index in 0..<@schema.field_count(schema) {
+        if @schema.field_at(schema, index).map(value => value.name) ==
+          Some(field) {
+          column = index
+          break
+        }
+      }
+      guard column >= 0 else { return Err(InvalidTraversePathsKernel) }
+      RelationPathStarts(selector, column)
+    }
   }
   let max_rows = match @lower.graph_traverse_output_guard(prepared) {
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()
@@ -652,6 +725,7 @@ fn start_traverse_paths(
     source,
     schema: @lower.graph_traverse_output_schema(prepared),
     prepared,
+    starts,
     direction,
     minimum_depth: minimum.to_int(),
     maximum_depth: maximum.to_int(),

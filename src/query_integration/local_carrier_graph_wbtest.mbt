@@ -162,7 +162,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   let subgraph_relation_selector = variant.has_prefix(
     "subgraph_relation_selector",
   )
-  let traverse_relation_selector = variant == "traverse_relation_selector"
+  let traverse_relation_selector = variant == "traverse_relation_selector" ||
+    variant == "traverse_relation_paths"
+  let traverse_paths = variant == "traverse_paths" ||
+    variant == "traverse_relation_paths"
   let shortest_relation_selector = variant == "shortest_relation_selector"
   let relation_selector = subgraph_relation_selector ||
     traverse_relation_selector ||
@@ -380,9 +383,15 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       }) +
       "\"min_hops\":1,\"max_hops\":2,"
     }) +
-    (if variant == "traverse_paths" { "\"max_output_rows\":2," } else { "" }) +
+    (if traverse_paths {
+      "\"max_output_rows\":" +
+      (if traverse_relation_selector { "4" } else { "2" }) +
+      ","
+    } else {
+      ""
+    }) +
     "\"emit\":\"" +
-    (if variant == "traverse_paths" { "paths" } else { "nodes" }) +
+    (if traverse_paths { "paths" } else { "nodes" }) +
     "\"},\"as\":\"out\""
   } else if variant == "normalize_shared" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
@@ -564,7 +573,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
     "\"node_ids\",\"edge_ids\""
-  } else if variant == "traverse_paths" {
+  } else if traverse_paths {
     "\"start_id\",\"end_id\",\"hop_count\",\"node_ids\",\"edge_ids\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"start_id\",\"node_id\",\"depth\""
@@ -596,7 +605,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"component_id\",\"component_size\""
   } else if variant.has_prefix("shortest_") {
     "\"source_id\",\"target_id\",\"hop_count\""
-  } else if variant == "traverse_paths" {
+  } else if traverse_paths {
     "\"start_id\",\"end_id\",\"hop_count\""
   } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
     "\"node_id\",\"depth\""
@@ -1556,6 +1565,7 @@ fn carrier_graph_predicate_pattern_owner(
 fn carrier_graph_relation_traverse_owner(
   source : @lower.BoundPrepared,
   selector : @lower.BoundPrepared,
+  emission? : String = "nodes",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -1566,7 +1576,9 @@ fn carrier_graph_relation_traverse_owner(
       "\"from\":\"graph\",\"traverse\":{\"start\":{" +
       "\"from\":\"selected\",\"id\":\"key\"}," +
       "\"direction\":\"out\",\"min_hops\":1,\"max_hops\":2," +
-      "\"emit\":\"nodes\",\"max_output_rows\":4}}]",
+      "\"emit\":\"" +
+      emission +
+      "\",\"max_output_rows\":4}}]",
     ),
     [
       (
@@ -2959,10 +2971,10 @@ test "homogeneous traversal enforces minimum depth and cancellation" {
     [external],
   ).unwrap()
   assert_true(@bounded.request_cancel(control))
-  assert_true(
-    @local_sga.advance_traverse(cancelled, 1).unwrap()
-    is @local_sga.TraverseStopped(_, progress=0L, work=0L),
-  )
+  match @local_sga.advance_traverse(cancelled, 1).unwrap() {
+    @local_sga.TraverseStopped(_, ..) => ()
+    _ => fail("Traversal must stop after cancellation")
+  }
   assert_true(@local_sga.traverse_stopped(cancelled))
   assert_true(@local_sga.traverse_cleanup_pending(cancelled))
   assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
@@ -3814,6 +3826,134 @@ test "homogeneous traversal reads a Relation start selector" {
       source_read, selector_read,
     ]),
   )
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [source_read, selector_read],
+  ).unwrap()
+  match @local_sga.advance_traverse(cancelled, 1).unwrap() {
+    @local_sga.TraverseContinue(..) => ()
+    _ => fail("Relation start traversal must remain resumable")
+  }
+  assert_true(@bounded.request_cancel(control))
+  match @local_sga.advance_traverse(cancelled, 1).unwrap() {
+    @local_sga.TraverseStopped(_, ..) => ()
+    _ => fail("Relation start traversal must stop after cancellation")
+  }
+  assert_true(@local_sga.traverse_stopped(cancelled))
+  assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "path traversal reads a Relation start selector" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let selector_owner = carrier_graph_selector_source_owner(
+    "[{\"key\":2},{\"key\":1},{\"key\":2}]",
+  )
+  let selector = carrier_events_source_output(selector_owner)
+  let owner = carrier_graph_relation_traverse_owner(
+    source_owner,
+    selector_owner,
+    emission="paths",
+  )
+  let generated = task_test_generated(owner)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let sequence = prepared_sequence(owner)
+  let source_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let selector_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, selector_owner, selector).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [source_read, source_read],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [source_read, selector_read],
+  ).unwrap()
+  let output = finish_traverse(execution).unwrap()
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 4)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 1000, 100, 10).unwrap(),
+    "{\"edge_ids\":[{\"dst\":2,\"rel\":null,\"src\":1}]," +
+    "\"end_id\":2,\"hop_count\":1,\"node_ids\":[1,2],\"start_id\":1}",
+  )
+  assert_true(
+    @execution.completed_output_matches_inputs(output, [
+      source_read, selector_read,
+    ]),
+  )
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [source_read, selector_read],
+  ).unwrap()
+  match @local_sga.advance_traverse(cancelled, 1).unwrap() {
+    @local_sga.TraverseContinue(..) => ()
+    _ => fail("Relation path traversal must remain resumable")
+  }
+  assert_true(@bounded.request_cancel(control))
+  match @local_sga.advance_traverse(cancelled, 1).unwrap() {
+    @local_sga.TraverseStopped(_, ..) => ()
+    _ => fail("Relation path traversal must stop after cancellation")
+  }
+  assert_true(@local_sga.traverse_stopped(cancelled))
+  assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
   assert_true(@graphs.discard_completed(graph))
 }
 
@@ -5483,6 +5623,8 @@ fn graph_relation_publication_cid(variant : String) -> String {
     "sha256:831394d8299fafff2a67b830d12bd9ed6f22028d51be29d4c3cd04f81d7511b1"
   } else if variant == "traverse_paths" {
     "sha256:cfc576a9585dd7c2b6fabb259d8c20b6f56faa99fd09803f85d83805f8fd6174"
+  } else if variant == "traverse_relation_paths" {
+    "sha256:1c0cbd7fcb1f8c732eadd4214ccb94132fe77ebc043af653a0327d329adfafa7"
   } else if variant.has_prefix("traverse_") {
     "sha256:92400debf0eecbf465589ca37f212e8480db77c26ce2279ae4c00993121bd2e1"
   } else if variant == "graphs_equal" ||
@@ -5501,8 +5643,12 @@ fn run_standard_host_graph_relation_path(
 ) -> Unit raise {
   let relation_selector = variant.has_prefix("subgraph_relation_selector") ||
     variant == "traverse_relation_selector" ||
+    variant == "traverse_relation_paths" ||
     variant == "shortest_relation_selector"
-  let traverse_relation_selector = variant == "traverse_relation_selector"
+  let traverse_relation_selector = variant == "traverse_relation_selector" ||
+    variant == "traverse_relation_paths"
+  let traverse_paths = variant == "traverse_paths" ||
+    variant == "traverse_relation_paths"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
     local_carrier_graph_variant=variant,
@@ -5694,6 +5840,8 @@ fn run_standard_host_graph_relation_path(
     0
   } else if variant == "graph_bounds" {
     4
+  } else if variant == "traverse_relation_paths" {
+    2
   } else if variant == "traverse_ids" || traverse_relation_selector {
     2
   } else if variant == "shortest_ids" || variant == "shortest_relation_selector" {
@@ -5837,7 +5985,7 @@ fn run_standard_host_graph_relation_path(
     variant == "shortest_type_empty" ||
     variant == "traverse_pattern_predicate_empty" {
     ()
-  } else if variant == "traverse_paths" {
+  } else if traverse_paths {
     assert_true(graph_rows[0].contains("\"start_id\":1"))
     assert_true(graph_rows[0].contains("\"end_id\":2"))
     assert_true(graph_rows[0].contains("\"hop_count\":1"))
@@ -6034,6 +6182,14 @@ test "standard Host traverses a Graph for two consumers" {
 ///|
 test "standard Host emits traversal paths for two consumers" {
   run_standard_host_graph_relation_path("traverse_paths", publication=true)
+}
+
+///|
+test "standard Host emits paths from a Relation start selector" {
+  run_standard_host_graph_relation_path(
+    "traverse_relation_paths",
+    publication=true,
+  )
 }
 
 ///|
