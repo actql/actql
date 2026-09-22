@@ -1046,6 +1046,22 @@ test "registered sequence provider consumes exact Events Carrier" {
   let first_view = @carrier_runtime.material_prepare_view(
     material, owner, 0, events_owner,
   ).unwrap()
+  for work in [0, 1] {
+    assert_true(
+      @execution.start_bounded_sequence_match_events(
+        @bounded.control(),
+        generated,
+        first_view,
+        10,
+        limits.local_execution.rows.output_values,
+        work,
+        limits.local_execution.max_frames,
+        storage_limits.max_workspace_slots,
+        1000,
+      )
+      is Err(@execution.Rows(@execution.RowLimit)),
+    )
+  }
   let second_view = @carrier_runtime.material_prepare_view(
     material, owner, 0, events_owner,
   ).unwrap()

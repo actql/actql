@@ -1,19 +1,33 @@
 ///|
 fn bounded_sequence_source(
   empty? : Bool = false,
+  unicode? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
+  let key = if unicode { "clé" } else { "key" }
   let rows = if empty {
     "[]"
   } else {
-    "[{\"id\":3,\"key\":1,\"clock\":3,\"value\":2}," +
-    "{\"id\":1,\"key\":1,\"clock\":1,\"value\":1}," +
-    "{\"id\":4,\"key\":2,\"clock\":4,\"value\":2}," +
-    "{\"id\":2,\"key\":1,\"clock\":2,\"value\":2}," +
-    "{\"id\":5,\"key\":2,\"clock\":3,\"value\":1}]"
+    "[{\"id\":3,\"" +
+    key +
+    "\":1,\"clock\":3,\"value\":2}," +
+    "{\"id\":1,\"" +
+    key +
+    "\":1,\"clock\":1,\"value\":1}," +
+    "{\"id\":4,\"" +
+    key +
+    "\":2,\"clock\":4,\"value\":2}," +
+    "{\"id\":2,\"" +
+    key +
+    "\":1,\"clock\":2,\"value\":2}," +
+    "{\"id\":5,\"" +
+    key +
+    "\":2,\"clock\":3,\"value\":1}]"
   }
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"key\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"" +
+    key +
+    "\":{\"type\":\"number\",\"nullable\":false}," +
     "\"clock\":{\"type\":\"number\",\"nullable\":false}," +
     "\"value\":{\"type\":\"number\",\"nullable\":false}}," +
     "\"rows\":" +
@@ -38,15 +52,21 @@ fn bounded_sequence_source(
 }
 
 ///|
-fn bounded_sequence_fixture(
+fn bounded_sequence_try_fixture(
   overlap? : String = "allow",
   contiguity? : String = "subsequence",
   empty? : Bool = false,
   grouped? : Bool = true,
   max_output_rows? : Int? = None,
   max_work? : Int = 100000,
-) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
-  let (source_owner, source_output) = bounded_sequence_source(empty~)
+  max_rows? : Int = 100,
+  unicode? : Bool = false,
+) -> (
+  @bounded.Control,
+  Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue],
+  ProducerRead,
+) raise {
+  let (source_owner, source_output) = bounded_sequence_source(empty~, unicode~)
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
@@ -55,10 +75,11 @@ fn bounded_sequence_fixture(
     Some(limit) => ",\"max_output_rows\":" + limit.to_string()
     None => ""
   }
+  let key = if unicode { "clé" } else { "key" }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"from\":\"events\",\"sequence\":{\"by\":" +
-      (if grouped { "[\"key\"]" } else { "[]" }) +
+      (if grouped { "[\"" + key + "\"]" } else { "[]" }) +
       "," +
       "\"id\":\"id\",\"time\":\"clock\",\"pattern\":[{" +
       "\"as\":\"start\",\"where\":\"value = 1\"},{" +
@@ -113,14 +134,38 @@ fn bounded_sequence_fixture(
     control,
     generated,
     input,
-    100,
+    max_rows,
     run_limits().output_values,
     max_work,
     100,
     10000,
     10000,
-  ).unwrap()
+  )
   (control, execution, input)
+}
+
+///|
+fn bounded_sequence_fixture(
+  overlap? : String = "allow",
+  contiguity? : String = "subsequence",
+  empty? : Bool = false,
+  grouped? : Bool = true,
+  max_output_rows? : Int? = None,
+  max_work? : Int = 100000,
+  max_rows? : Int = 100,
+  unicode? : Bool = false,
+) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
+  let (control, execution, input) = bounded_sequence_try_fixture(
+    overlap~,
+    contiguity~,
+    empty~,
+    grouped~,
+    max_output_rows~,
+    max_work~,
+    max_rows~,
+    unicode~,
+  )
+  (control, execution.unwrap(), input)
 }
 
 ///|
@@ -255,6 +300,52 @@ test "bounded sequence work boundary charges output before row allocation" {
   }
   cleanup_bounded_sequence_match(short).unwrap() |> ignore
   assert_bounded_sequence_scratch_reclaimed(short)
+}
+
+///|
+test "bounded sequence startup work exhaustion remains a resource error" {
+  for (grouped, unicode) in [(true, false), (false, false), (true, true)] {
+    let maximum = 100000
+    let (measured_control, measured, _) = bounded_sequence_fixture(
+      grouped~,
+      max_work=maximum,
+      unicode~,
+    )
+    let required_start = maximum -
+      bounded_sequence_match_state(measured).control.remaining
+    assert_true(required_start > 0)
+    assert_true(@bounded.request_cancel(measured_control))
+    assert_true(
+      advance_bounded_sequence_match(measured, 1).unwrap()
+      is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+    )
+    assert_true(cleanup_bounded_sequence_match(measured).unwrap())
+    for budget in 0..<=required_start {
+      let (control, result, _) = bounded_sequence_try_fixture(
+        grouped~,
+        max_work=budget,
+        unicode~,
+      )
+      if budget < required_start {
+        assert_true(result is Err(Rows(RowLimit)))
+      } else {
+        let execution = result.unwrap()
+        assert_true(@bounded.request_cancel(control))
+        assert_true(
+          advance_bounded_sequence_match(execution, 1).unwrap()
+          is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+        )
+        assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+        assert_bounded_sequence_scratch_reclaimed(execution)
+      }
+    }
+  }
+}
+
+///|
+test "bounded sequence input row limit is a resource error" {
+  let (_, result, _) = bounded_sequence_try_fixture(max_rows=4)
+  assert_true(result is Err(Rows(RowLimit)))
 }
 
 ///|

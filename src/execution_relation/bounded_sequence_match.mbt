@@ -1166,9 +1166,11 @@ fn start_bounded_sequence_match_input(
     step == @lower.sequence_count(sequence) - 1 &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.SequenceMatchStep(kernel)) &&
-    bounded_sequence_input_row_count(input) is Some(count) &&
-    count <= max_rows else {
+    bounded_sequence_input_row_count(input) is Some(count) else {
     return Err(InvalidExecution)
+  }
+  if count > max_rows {
+    return Err(Rows(RowLimit))
   }
   let output_schema = @lower.sequence_match_output_schema(kernel)
   let control : ControlBudget = { remaining: max_work, max_frames, }
@@ -1202,29 +1204,29 @@ fn start_bounded_sequence_match_input(
     }
     input_names.push(@schema.reference_name(field.name))
   }
-  let resolve = fn(field : @schema.FieldName) -> Int? {
-    let name = @schema.reference_name(field)
-    for index, candidate in input_names {
-      if !spend_control(control, 1) || !spend_control_text(control, name) {
-        return None
-      }
-      if candidate == name {
-        return Some(index)
-      }
-    }
-    None
-  }
   let key_columns : Array[Int] = []
   for index in 0..<key_count {
-    guard @lower.sequence_match_key_at(kernel, index) is Some(field) &&
-      resolve(field) is Some(column) else {
+    guard @lower.sequence_match_key_at(kernel, index) is Some(field) else {
       return Err(InvalidExecution)
+    }
+    let column = match resolve_column(input_names, field, control) {
+      Ok(column) => column
+      Err(RowLimit) => return Err(Rows(RowLimit))
+      Err(_) => return Err(InvalidExecution)
     }
     key_columns.push(column)
   }
-  guard resolve(@lower.sequence_match_identity(kernel)) is Some(identity_column) &&
-    resolve(@lower.sequence_match_time(kernel)) is Some(time_column) else {
-    return Err(InvalidExecution)
+  let identity_column = match
+    resolve_column(input_names, @lower.sequence_match_identity(kernel), control) {
+    Ok(column) => column
+    Err(RowLimit) => return Err(Rows(RowLimit))
+    Err(_) => return Err(InvalidExecution)
+  }
+  let time_column = match
+    resolve_column(input_names, @lower.sequence_match_time(kernel), control) {
+    Ok(column) => column
+    Err(RowLimit) => return Err(Rows(RowLimit))
+    Err(_) => return Err(InvalidExecution)
   }
   let output_names : Array[String] = []
   for index in 0..<@schema.field_count(output_schema) {

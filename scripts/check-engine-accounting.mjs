@@ -74,28 +74,73 @@ assert.ok(
   'evaluation resource conversion is not centralized',
 );
 
-for (const driver of ['completed_sequence.mbt', 'sequence_driver.mbt']) {
-  const source = sources.get(driver);
-  const rowEvaluator = driver === 'completed_sequence.mbt'
-    ? 'evaluate_completed_rows'
-    : 'evaluate_rows_with_workspace';
-  for (const evaluator of [
-    rowEvaluator,
-    'evaluate_window_rows',
-    'evaluate_join_rows',
-    'evaluate_interval_join_rows',
-    'evaluate_asof_join_rows',
-    'evaluate_sequence_match_rows',
-    'evaluate_cross_join_rows',
-    'evaluate_append_rows',
-    'evaluate_set_rows',
-    'evaluate_nest_rows',
-  ]) {
-    assert.ok(source.includes(evaluator), `${driver} omits ${evaluator}`);
+function declaration(source, name) {
+  const start = new RegExp(`\\bfn(?:\\[[^\\]]+\\])?\\s+${name}\\(`, 'u')
+    .exec(source)?.index ?? -1;
+  assert.ok(start >= 0, `missing production declaration ${name}`);
+  const end = source.indexOf('\n///|', start + 1);
+  return source.slice(start, end < 0 ? undefined : end);
+}
+
+const dispatch = declaration(
+  sources.get('sequence_driver.mbt'), 'run_sequence_steps',
+);
+const branches = [...dispatch.matchAll(
+  /@lower\.(\w+Step)\([^)]*\)\s*=>\s*/gu,
+)];
+const dispatchFamilies = new Set();
+for (let index = 0; index < branches.length; index++) {
+  const branch = branches[index][1];
+  const body = dispatch.slice(
+    branches[index].index + branches[index][0].length,
+    branches[index + 1]?.index,
+  );
+  if (branch === 'ValuesStep' || /^(?:return Err\(InputSet\))/u.test(body)) {
+    continue;
   }
-  assert.ok(
-    source.split('with_sequence_workspace').length >= 12,
-    `${driver} does not scope every production kernel`,
+  const family = branch === 'RowStep' ? 'row'
+    : body.match(/evaluate_(\w+) is Some\(evaluate\)/u)?.[1];
+  assert.ok(family, `${branch} has no accounted evaluator`);
+  assert.ok(!dispatchFamilies.has(family), `${family} has duplicate dispatch`);
+  dispatchFamilies.add(family);
+}
+
+for (const [driver, entry, rowEvaluator] of [
+  ['completed_sequence.mbt', 'evaluate_physical_sequence',
+    'evaluate_completed_rows'],
+  ['sequence_driver.mbt', 'run_sequence_invocation',
+    'evaluate_rows_with_workspace'],
+]) {
+  const body = declaration(sources.get(driver), entry);
+  const callbacks = [...body.matchAll(/evaluate_(\w+)=Some\(/gu)];
+  const registered = new Set(['row']);
+  assert.match(
+    body,
+    new RegExp(`with_sequence_workspace[\\s\\S]*?${rowEvaluator}\\(`, 'u'),
+    `${driver} does not scope its row evaluator`,
+  );
+  for (let index = 0; index < callbacks.length; index++) {
+    const family = callbacks[index][1];
+    assert.ok(!registered.has(family), `${driver} duplicates ${family}`);
+    registered.add(family);
+    const callback = body.slice(
+      callbacks[index].index,
+      callbacks[index + 1]?.index,
+    );
+    assert.match(
+      callback,
+      /with_sequence_workspace\([^]*?workspace\s*=>\s*\{/u,
+      `${driver}.${family} lacks a scoped workspace`,
+    );
+    assert.match(
+      callback,
+      new RegExp(`evaluate_${family}_rows\\(`, 'u'),
+      `${driver}.${family} lacks its evaluator`,
+    );
+  }
+  assert.deepEqual(
+    [...registered].sort(), [...dispatchFamilies].sort(),
+    `${driver} registrations differ from production dispatch`,
   );
 }
 
@@ -131,24 +176,15 @@ for (const required of [
     `kernel budget conformance omits: ${required}`,
   );
 }
-const allTests = [...testSources.values()].join('\n');
-for (const family of [
-  'row',
-  'window',
-  'join',
-  'interval_join',
-  'asof_join',
-  'sequence_match',
-  'cross_join',
-  'append',
-  'set',
-  'nest',
-]) {
-  assert.ok(
-    allTests.includes(`assert_kernel_budget_sweep("${family}"`),
-    `kernel family lacks the common budget sweep: ${family}`,
-  );
-}
+const testFamilies = [...testSources.values()].flatMap(source =>
+  [...source.matchAll(/assert_kernel_budget_sweep\("([^"]+)"/gu)]
+    .map(match => match[1]),
+);
+assert.equal(new Set(testFamilies).size, testFamilies.length);
+assert.deepEqual(
+  testFamilies.sort(), [...dispatchFamilies].sort(),
+  'budget conformance fixtures differ from production dispatch',
+);
 
 const design = await readFile(
   path.join(root, 'docs/design/lowering-relation-implementation.md'),
