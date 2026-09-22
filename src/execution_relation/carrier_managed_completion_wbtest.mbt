@@ -259,13 +259,30 @@ test "selected carrier completions retain exact internal operation inputs" {
   let producer_live = Ref(true)
   let producer_raw = raw_event_completion_at(owner, 0, producer_live, 16L)
   let producer_reference = @managed_carrier.completion_reference(producer_raw)
-  let producer_port = prepare_carrier_managed_completion_port(
+  let supplied = capture_input(
+    owner,
+    0,
+    [carrier_completion_cursor("{\"event_id\":7,\"occurred_at\":12}")],
+    max_rows=1,
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+  ).unwrap()
+  let supplied_read = prepare_supplied_relation_read(owner, 0, supplied, fn() {
+    true
+  }).unwrap()
+  let producer_input = managed_input_binding_for_operation(
+    supplied_relation_input_binding(supplied_read),
+    owner,
+    0,
+    0,
+  ).unwrap()
+  let producer_port = prepare_carrier_managed_completion_port_with_inputs(
     selected_managed_execution_profile(),
     generated_completion_preparation(producer_generated),
     @pipeline.Step(0),
     10,
     100,
     (_ : Unit) => Some(producer_reference),
+    inputs=[producer_input],
   ).unwrap()
   let producer_output = complete_carrier_managed_output(producer_port, ()).unwrap()
   let raw_read = @managed_carrier.prepare_step_producer_read(

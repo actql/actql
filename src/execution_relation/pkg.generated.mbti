@@ -492,6 +492,8 @@ pub fn managed_identity_issuance_capability_same(ManagedIdentityIssuanceCapabili
 
 pub fn managed_input_binding_available(ManagedInputBinding) -> Bool
 
+pub fn managed_input_binding_for_operation(ManagedInputBinding, @lowering_relation.BoundPrepared, Int, Int) -> ManagedInputBinding?
+
 pub fn managed_input_binding_matches_carrier_reference(ManagedInputBinding, CarrierManagedCompletionReference) -> Bool
 
 pub fn managed_input_binding_matches_input(ManagedInputBinding, @lowering_relation.BoundPrepared, Int) -> Bool

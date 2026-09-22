@@ -190,6 +190,15 @@ test "supplied relation read retains exact input position and liveness" {
   let binding = supplied_relation_input_binding(read)
   assert_true(managed_input_binding_matches_input(binding, owner, 0))
   assert_true(managed_input_binding_matches_supplied_read(binding, read))
+  let operation = managed_input_binding_for_operation(binding, owner, 0, 0).unwrap()
+  assert_true(
+    managed_input_binding_matches_operation_input(operation, owner, 0, 0),
+  )
+  assert_false(managed_input_binding_matches_input(operation, owner, 0))
+  assert_true(managed_input_binding_for_operation(binding, owner, 0, 1) is None)
+  assert_true(
+    managed_input_binding_for_operation(binding, input_owner(), 0, 0) is None,
+  )
   live.val = false
   assert_false(supplied_relation_read_available(read))
   assert_true(supplied_relation_read_cell(read, 0, 0) is None)
