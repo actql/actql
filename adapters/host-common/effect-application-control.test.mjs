@@ -231,6 +231,18 @@ test('Host bridge admits Effect Preview identity and exact apply key', () => {
   const wire = canonicalJson(preview);
   assert.equal(effect.admitPreviewApplyIdentity(wire, cid('a'), authoring,
     scope, [[key]], 8192, 256, 12), preview.effect_preview_cid);
+  const admitted = effect.admitPreviewIdentity(wire, cid('a'), authoring,
+    scope, [[key]], 8192, 256, 12);
+  assert.equal(effect.checkPreviewTargetGuards(admitted,
+    [rowCid], [cid('a')], 1, 2), true);
+  assert.throws(() => effect.checkPreviewTargetGuards(admitted,
+    [], [], 1, 1));
+  assert.throws(() => effect.checkPreviewTargetGuards(admitted,
+    [rowCid], [cid('b')], 1, 2));
+  assert.throws(() => effect.checkPreviewTargetGuards(admitted,
+    [rowCid, rowCid], [cid('a'), cid('a')], 2, 3));
+  assert.throws(() => effect.checkPreviewTargetGuards(admitted,
+    [rowCid], [], 1, 2));
   member.changes[0].row_idempotency_key = cid('5');
   assert.throws(() => effect.admitPreviewApplyIdentity(canonicalJson(preview),
     cid('a'), authoring, scope, [[key]], 8192, 256, 12));
@@ -238,6 +250,84 @@ test('Host bridge admits Effect Preview identity and exact apply key', () => {
   preview.run_identity_cid = cid('6');
   assert.throws(() => effect.admitPreviewApplyIdentity(canonicalJson(preview),
     cid('a'), authoring, scope, [[key]], 8192, 256, 12));
+});
+
+test('Host preflight checks guards across unordered Effect members', () => {
+  const scope = effect.logicalRequestScope(cid('a'), 'request-1', 32);
+  const authoring = 'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
+  const member = (id, target, version, placeholder) => ({
+    effect_id: id, effect_kind: 'update', target: 'Object',
+    mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('a'),
+    effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+    source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
+    authority_scope_cid: cid('a'),
+    write_footprint: {
+      kind: 'exact_targets', resource_identity_scheme_cid: cid('a'),
+      provider_namespace: 'provider', provider_boundary_cid: cid('a'),
+      resource_kind: 'Object', provider_object_identity_cids: [cid('1')],
+    },
+    count: 1, max_items: 1, required_permissions: ['write'],
+    approval: 'none', on_item_failure: 'halt',
+    changes: [{
+      target_row_identity: target,
+      target_guard: {state: 'version', version_cid: version},
+      intended_changes: {state: 'present', value: {}},
+      before: {state: 'present', value: {}},
+      after: {state: 'present', value: {}},
+      row_preview_cid: placeholder,
+      row_idempotency_key: cid('4'),
+    }],
+    row_order: [placeholder], effect_member_preview_cid: cid('a'),
+    executed: false,
+  });
+  const members = [
+    member('first', 'row-a', cid('8'), cid('3')),
+    member('second', 'row-b', cid('9'), cid('5')),
+  ];
+  members[1].write_footprint.provider_object_identity_cids = [cid('2')];
+  const preview = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: cid('a'), program_definition_cid: cid('a'),
+    invocation_cid: cid('a'), run_identity_cid: cid('a'),
+    compiled_plan_cid: cid('a'), check_environment_cid: cid('a'),
+    authoring_context: {
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: cid('a'), annotations: [],
+      authoring_context_cid: authoring,
+    },
+    barrier_provenance_cids: [], model_derived: false,
+    model_task_contract_cids: [], model_invocation_evidence_cids: [],
+    model_response_artifact_cids: [], effects: members, executed: false,
+    effect_preview_cid: cid('a'),
+  };
+  const rows = effect.derivePreviewRowIdentities(canonicalJson(preview),
+    8192, 256, 12);
+  members.forEach((entry, index) => {
+    entry.changes[0].row_preview_cid = rows[index][0];
+    entry.row_order = [rows[index][0]];
+  });
+  const identities = effect.derivePreviewIdentities(canonicalJson(preview),
+    8192, 256, 12);
+  members.forEach((entry, index) => {
+    entry.effect_member_preview_cid = identities[index + 1];
+  });
+  preview.effect_preview_cid = effect.derivePreviewIdentities(
+    canonicalJson(preview), 8192, 256, 12)[0];
+  const keys = members.map(entry => effect.dispatchKey(scope,
+    preview.effect_preview_cid,
+    canonicalJson(entry.changes[0].target_row_identity), 128, 8, 3));
+  members.forEach((entry, index) => {
+    entry.changes[0].row_idempotency_key = effect.dispatchKeyCid(keys[index]);
+  });
+  const admitted = effect.admitPreviewIdentity(canonicalJson(preview),
+    cid('a'), authoring, scope, keys.map(key => [key]), 8192, 256, 12);
+  assert.equal(effect.checkPreviewTargetGuards(admitted,
+    [rows[1][0], rows[0][0]], [cid('9'), cid('8')], 2, 4), true);
+  assert.throws(() => effect.checkPreviewTargetGuards(admitted,
+    [rows[0][0]], [cid('8')], 2, 3));
+  assert.throws(() => effect.checkPreviewTargetGuards(admitted,
+    [rows[0][0], rows[1][0]], [cid('8'), cid('7')], 2, 4));
 });
 
 test('Host bridge issues the same typed Effect ledger chain as MoonBit', () => {
