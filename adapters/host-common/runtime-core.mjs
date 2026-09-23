@@ -30,6 +30,12 @@ function effectApplicationControl(moon) {
     dispatchKey: (...args) =>
       checked(moon.strategyEffectDispatchKey(...args)),
     dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
+    logicalItemLocator: (...args) =>
+      checked(moon.strategyEffectLogicalItemLocator(...args)),
+    logicalItemLocatorCid: moon.strategyEffectLogicalItemLocatorCid,
+    applyKey: (...args) =>
+      checked(moon.strategyEffectApplyKey(...args)),
+    applyKeyCid: moon.strategyEffectApplyKeyCid,
     recoveryAction: moon.strategyEffectRowRecoveryAction,
   });
   effectApplicationControls.set(moon, control);
