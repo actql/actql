@@ -23,8 +23,8 @@ pub struct EffectLedgerEntry {
   recovery_contract_cid : String
   capability : String
   state : EffectRowState
-  fence : Int
-  attempt_sequence : Int
+  fence : Int64
+  attempt_sequence : Int64
   prior_entry_cid : String?
   outcome_receipt_cid : String?
   reservation_evidence_cid : String
@@ -63,14 +63,14 @@ fn ledger_optional_cid(
 fn ledger_integer(
   value : @json.CanonicalValue,
   field : String,
-  minimum : Int,
-) -> Int? {
+  minimum : Int64,
+) -> Int64? {
   match @json.object_field(value, field) {
     Some(@json.Number(number)) => {
-      if number < minimum.to_double() || number > 2147483647.0 {
+      if number < minimum.to_double() || number > 9007199254740991.0 {
         return None
       }
-      let integer = number.to_int()
+      let integer = number.to_int64()
       if integer.to_double() != number {
         return None
       }
@@ -156,8 +156,8 @@ pub fn admit_effect_ledger_entry(
     ) &&
     ledger_string(value, "state") is Some(state_text) &&
     ledger_state(state_text) is Some(state) &&
-    ledger_integer(value, "fence", 1) is Some(fence) &&
-    ledger_integer(value, "attempt_sequence", 0) is Some(attempt_sequence) &&
+    ledger_integer(value, "fence", 1L) is Some(fence) &&
+    ledger_integer(value, "attempt_sequence", 0L) is Some(attempt_sequence) &&
     ledger_cid(value, "self_cid") is Some(cid) else {
     return Err(InvalidShape)
   }
@@ -232,8 +232,8 @@ pub fn effect_ledger_entry_follows(
   match previous {
     None =>
       next.state == Prepared &&
-      next.fence == 1 &&
-      next.attempt_sequence == 0 &&
+      next.fence == 1L &&
+      next.attempt_sequence == 0L &&
       next.prior_entry_cid is None &&
       next.outcome_receipt_cid is None
     Some(prior) => {
@@ -249,16 +249,16 @@ pub fn effect_ledger_entry_follows(
         prior.capability != next.capability ||
         prior.reservation_evidence_cid != next.reservation_evidence_cid ||
         prior.retention_contract_cid != next.retention_contract_cid ||
-        prior.fence == 2147483647 ||
-        next.fence != prior.fence + 1 ||
+        prior.fence == 9007199254740991L ||
+        next.fence != prior.fence + 1L ||
         next.prior_entry_cid != Some(prior.cid) {
         return false
       }
       match prior.state {
         Prepared =>
           next.state == Dispatching &&
-          prior.attempt_sequence < 2147483647 &&
-          next.attempt_sequence == prior.attempt_sequence + 1 &&
+          prior.attempt_sequence < 9007199254740991L &&
+          next.attempt_sequence == prior.attempt_sequence + 1L &&
           next.outcome_receipt_cid is None
         Dispatching =>
           (

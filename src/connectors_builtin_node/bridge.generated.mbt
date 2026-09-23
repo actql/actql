@@ -7099,6 +7099,73 @@ pub fn strategy_effect_ledger_entry_wire(
 }
 
 ///|
+#export_name("strategyEffectLedgerBasis")
+pub fn strategy_effect_ledger_basis(
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  unit_definition_cid : String,
+  original_membership_cid : String,
+  intent_fingerprint_cid : String,
+  canonical_request_cid : String,
+  recovery_contract_cid : String,
+  capability : String,
+  reservation_evidence_cid : String,
+  retention_contract_cid : String,
+) -> @effect.EffectLedgerBasis raise NodeHostFailure {
+  match
+    @effect.prepare_effect_ledger_basis(
+      scope, locator, key, unit_definition_cid, original_membership_cid, intent_fingerprint_cid,
+      canonical_request_cid, recovery_contract_cid, capability, reservation_evidence_cid,
+      retention_contract_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectIssuePreparedLedgerEntry")
+pub fn strategy_effect_issue_prepared_ledger_entry(
+  basis : @effect.EffectLedgerBasis,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match
+    @effect.issue_prepared_effect_ledger_entry(
+      basis, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectIssueNextLedgerEntry")
+pub fn strategy_effect_issue_next_ledger_entry(
+  prior : @effect.EffectLedgerEntry,
+  next_state : String,
+  outcome_receipt_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  let outcome = if outcome_receipt_cid.is_empty() {
+    None
+  } else {
+    Some(outcome_receipt_cid)
+  }
+  match
+    @effect.issue_next_effect_ledger_entry(
+      prior, next_state, outcome, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
 /// Register one direct-input verifier without selecting a Node execution
 /// implementation. All input semantics and limits are fixed by MoonBit.
 #export_name("strategyRemoteStandardSourceFactoryRegister")

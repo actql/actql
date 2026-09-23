@@ -14,6 +14,7 @@ export function openEffectLedger({
   callerRequestId,
   maxEntries = 100_000,
   maxEntryBytes = 1_000_000,
+  maxStoredBytes = 134_217_728,
   maxNodes = 64,
   maxDepth = 4,
   maxCallerBytes = 4096,
@@ -24,7 +25,7 @@ export function openEffectLedger({
   );
   const scopeCid = control.logicalRequestScopeCid(scope);
   const physical = openSqliteEffectLedger(root, {
-    authorityScopeCid, maxEntries, maxEntryBytes,
+    authorityScopeCid, maxEntries, maxEntryBytes, maxStoredBytes,
   });
   const admit = wire => control.admitLedgerEntry(
     wire, maxEntryBytes, maxNodes, maxDepth,

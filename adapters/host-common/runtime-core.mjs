@@ -50,6 +50,13 @@ function effectApplicationControl(moon) {
     ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
     ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
     ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
+    ledgerBasis: (...args) => checked(moon.strategyEffectLedgerBasis(...args)),
+    issuePreparedLedgerEntry: (...args) => checked(
+      moon.strategyEffectIssuePreparedLedgerEntry(...args),
+    ),
+    issueNextLedgerEntry: (...args) => checked(
+      moon.strategyEffectIssueNextLedgerEntry(...args),
+    ),
   });
   effectApplicationControls.set(moon, control);
   return control;
