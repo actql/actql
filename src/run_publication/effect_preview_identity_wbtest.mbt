@@ -11,6 +11,7 @@ fn preview_identity_test_wire(
   target : String,
   member_cid : String,
   preview_cid : String,
+  empty? : Bool = false,
 ) -> String {
   let a = preview_identity_test_cid("a")
   let row = preview_identity_test_cid("3")
@@ -55,19 +56,26 @@ fn preview_identity_test_wire(
     a +
     "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[\"" +
     target_cid +
-    "\"]},\"count\":1,\"max_items\":1,\"required_permissions\":[\"write\"]," +
-    "\"approval\":\"none\",\"on_item_failure\":\"halt\",\"changes\":[{" +
-    "\"target_row_identity\":\"" +
-    target +
-    "\",\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}," +
-    "\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
-    "\"row_preview_cid\":\"" +
-    row +
-    "\",\"row_idempotency_key\":\"" +
-    row_key +
-    "\"}],\"row_order\":[\"" +
-    row +
-    "\"],\"effect_member_preview_cid\":\"" +
+    "\"]},\"count\":" +
+    (if empty { "0" } else { "1" }) +
+    ",\"max_items\":1,\"required_permissions\":[\"write\"]," +
+    "\"approval\":\"none\",\"on_item_failure\":\"halt\"," +
+    (if empty {
+      "\"changes\":[],\"row_order\":[]"
+    } else {
+      "\"changes\":[{\"target_row_identity\":\"" +
+      target +
+      "\",\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}," +
+      "\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
+      "\"row_preview_cid\":\"" +
+      row +
+      "\",\"row_idempotency_key\":\"" +
+      row_key +
+      "\"}],\"row_order\":[\"" +
+      row +
+      "\"]"
+    }) +
+    ",\"effect_member_preview_cid\":\"" +
     member_cid +
     "\",\"executed\":false}],\"executed\":false,\"effect_preview_cid\":\"" +
     preview_cid +
