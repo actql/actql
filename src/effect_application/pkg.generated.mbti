@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn effect_apply_key_cid(EffectApplyKey) -> String
+
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
@@ -18,15 +20,29 @@ pub fn effect_row_recovery_action(EffectDispatchKey, String, EffectRowRecord?, B
 
 pub fn effect_row_recovery_action_from_store(EffectDispatchKey, String, String, String, Int, Bool) -> Int
 
+pub fn logical_item_locator_cid(LogicalItemLocator) -> String
+
 pub fn logical_request_scope_cid(LogicalRequestScope) -> String
 
+pub fn prepare_effect_apply_key(LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
+
 pub fn prepare_effect_dispatch_key(LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+
+pub fn prepare_logical_item_locator(LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
 
 pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, EffectIdentityIssue]
 
 // Errors
 
 // Types and methods
+pub struct EffectApplyKey {
+  logical_request_scope_cid : String
+  effect_preview_cid : String
+  effect_id : String
+  effect_member_preview_cid : String
+  cid : String
+}
+
 pub struct EffectDispatchKey {
   logical_request_scope_cid : String
   effect_preview_cid : String
@@ -37,6 +53,10 @@ pub struct EffectDispatchKey {
 pub(all) enum EffectIdentityIssue {
   InvalidAuthorityScope
   InvalidPreview
+  InvalidEffect
+  InvalidUnitNamespace
+  InvalidItemCorrelation
+  InvalidMemberPreview
   InvalidCallerRequest
   InvalidRowKey
   InvalidLimits
@@ -71,6 +91,15 @@ pub(all) enum EffectRowState {
   Failed
   Unknown
 } derive(Eq, @debug.Debug)
+
+pub struct LogicalItemLocator {
+  logical_request_scope_cid : String
+  program_id : String
+  node_id : String
+  effect_id : String
+  item_correlation_wire : String
+  cid : String
+}
 
 pub struct LogicalRequestScope {
   authority_scope_cid : String
