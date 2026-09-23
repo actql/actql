@@ -133,6 +133,15 @@ test('resource completion requires work and workspace proof independently', () =
     /SGA graph_bounds: entrypoint work\/workspace assurance is missing/);
 });
 
+test('graph bounds value-work evidence cannot disappear from its route', () => {
+  assert.match(run(undefined, routes => {
+    const bounds = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graph_bounds');
+    bounds.boundary_tests = bounds.boundary_tests.filter(item =>
+      item.role !== 'graph_bounds_value_work_exact_one_short');
+  }), /SGA graph_bounds: exact value-work boundary fixture is missing/);
+});
+
 test('resource completion cannot accept the synchronous providerless lane', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
     /providerless managed execution still computes and copies synchronously/);
