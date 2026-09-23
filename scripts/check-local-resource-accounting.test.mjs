@@ -192,6 +192,14 @@ test('resource gate rejects filter without its one-short evidence', () => {
   }), /RelA filter: reviewed filter_input_one_short fixture is missing/);
 });
 
+test('resource gate rejects filter without delivered Host cancellation', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.environment_tests = [];
+  }), /RelA filter: in-flight Host cancellation fixture is missing/);
+});
+
 test('resource gate rejects selection without its bounded product route', () => {
   assert.match(run(undefined, value => {
     const selection = value.routes.find(entry => entry.family === 'RelA' &&
