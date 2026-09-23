@@ -1,0 +1,93 @@
+///|
+/// In-process ABI for the physical Client request journal. A handle is never
+/// serialized as a wire credential; retained fields are rechecked by MoonBit.
+#export_name("clientRequestAdmitRecord")
+pub fn client_request_admit_record(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  program_definition_cid : String,
+  parameter_values_cid : String,
+  caller_input_intent_cid : String,
+  logical_request_scope_cid : String,
+  intent_fingerprint_cid : String,
+) -> @publication_host.ClientRequestIdentity? {
+  match
+    @publication_host.admit_client_request_identity_record(
+      authority_scope_cid, caller_request_id, program_definition_cid, parameter_values_cid,
+      caller_input_intent_cid, logical_request_scope_cid, intent_fingerprint_cid,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("clientRequestAuthorityScopeCid")
+pub fn client_request_authority_scope_cid(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_authority_scope_cid(value)
+}
+
+///|
+#export_name("clientRequestCallerId")
+pub fn client_request_caller_id(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_caller_id(value)
+}
+
+///|
+#export_name("clientRequestScopeCid")
+pub fn client_request_scope_cid(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_scope_cid(value)
+}
+
+///|
+#export_name("clientRequestIntentCid")
+pub fn client_request_intent_cid(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_intent_cid(value)
+}
+
+///|
+#export_name("clientRequestProgramCid")
+pub fn client_request_program_cid(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_program_cid(value)
+}
+
+///|
+#export_name("clientRequestParametersCid")
+pub fn client_request_parameters_cid(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_parameters_cid(value)
+}
+
+///|
+#export_name("clientRequestInputCid")
+pub fn client_request_input_cid(
+  value : @publication_host.ClientRequestIdentity,
+) -> String {
+  @publication_host.client_request_input_cid(value)
+}
+
+///|
+/// The physical journal may branch only on this common semantic decision.
+#export_name("clientRequestRelation")
+pub fn client_request_relation(
+  requested : @publication_host.ClientRequestIdentity,
+  retained : @publication_host.ClientRequestIdentity,
+) -> Int {
+  match
+    @publication_host.client_request_identity_relation(requested, retained) {
+    DifferentRequest => 0
+    SameRequest => 1
+    ChangedIntent => 2
+  }
+}

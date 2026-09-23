@@ -16,6 +16,10 @@ import {
 // Values
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
+
+pub fn client_request_caller_id(ClientRequestIdentity) -> String
+
 pub fn client_request_identity_relation(ClientRequestIdentity, ClientRequestIdentity) -> ClientRequestIdentityRelation
 
 pub fn client_request_input_cid(ClientRequestIdentity) -> String
