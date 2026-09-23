@@ -307,6 +307,44 @@ test('a complete row prefix without the end marker remains incomplete', async t 
   assert.equal(reader.state(), 'prefix');
 });
 
+test('a blank JSONL record fails after the delivered prefix', async t => {
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'read') return new Response('{"n":1}\n\n\x1e');
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const result = (await (await connect(options)).attach(ref)).result('answer');
+  const reader = result.rows();
+  const seen = [];
+  await assert.rejects(async () => {
+    for await (const row of reader) seen.push(row);
+  }, error => error.code === 'InvalidResultStream' &&
+    error.attemptId === reader.attemptId);
+  assert.deepEqual(seen, [{n: 1}]);
+  assert.equal(reader.state(), 'prefix');
+});
+
+test('one transport chunk can contain many bounded rows', async t => {
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'read') return new Response(
+      `${Array.from({length: 40}, (_, n) => JSON.stringify({n}))
+        .join('\n')}\n\x1e`);
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const result = (await (await connect(options)).attach(ref)).result('answer');
+  const reader = result.rows({maxRowWireBytes: 8});
+  assert.deepEqual(await Array.fromAsync(reader),
+    Array.from({length: 40}, (_, n) => ({n})));
+  assert.equal(reader.state(), 'complete');
+});
+
 test('malformed acceptance is unknown and preserves the original ID', async t => {
   mock.method(globalThis, 'fetch', async url =>
     url.pathname.endsWith('/connect')
