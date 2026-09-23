@@ -140,6 +140,7 @@ export async function connect(options) {
           'content-type': 'application/json'},
         body: payload,
         signal,
+        redirect: 'error',
       });
     } catch (cause) {
       if (operation === 'submit') {
@@ -400,7 +401,16 @@ export async function connect(options) {
     },
     attach: async (ref, {signal} = {}) => {
       if (!validRef(ref)) fail('InvalidRunReference');
-      return execution(await (await exchange('attach', {ref}, signal)).json());
+      const requested = Object.freeze({...ref});
+      const admitted = await (await exchange('attach',
+        {ref: requested}, signal)).json();
+      if (!validRef(admitted?.ref)) fail('InvalidHostAdmission');
+      if (admitted.ref.tenantId !== requested.tenantId ||
+          admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
+          admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
+        fail('ForeignHostAdmission');
+      }
+      return execution(admitted);
     },
     lookupRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
