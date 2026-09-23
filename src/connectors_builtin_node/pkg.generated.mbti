@@ -98,6 +98,8 @@ pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @ru
 
 pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_effect_admit_ledger_entry(String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
 pub fn strategy_effect_apply_key(@effect_application.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
 
 pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> String
@@ -109,6 +111,16 @@ pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+
+pub fn strategy_effect_ledger_entry_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_follows(@effect_application.EffectLedgerEntry?, @effect_application.EffectLedgerEntry) -> Bool
+
+pub fn strategy_effect_ledger_entry_locator_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
 
 pub fn strategy_effect_logical_item_locator(@effect_application.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
 
@@ -1183,6 +1195,7 @@ pub(all) suberror NodeHostFailure {
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
   EffectIdentity(@effect_application.EffectIdentityIssue)
   EffectSetProgress(@effect_application.EffectSetProgressIssue)
+  EffectLedger(@effect_application.EffectLedgerIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)

@@ -11,6 +11,7 @@ pub(all) suberror NodeHostFailure {
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
   EffectIdentity(@effect.EffectIdentityIssue)
   EffectSetProgress(@effect.EffectSetProgressIssue)
+  EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
@@ -7037,6 +7038,64 @@ pub fn strategy_effect_set_frontier_ready_row(
   index : Int,
 ) -> Int {
   @effect.effect_set_frontier_ready_row(frontier, index)
+}
+
+///|
+#export_name("strategyEffectAdmitLedgerEntry")
+pub fn strategy_effect_admit_ledger_entry(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match
+    @effect.admit_effect_ledger_entry(
+      wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(entry) => entry
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectLedgerEntryFollows")
+pub fn strategy_effect_ledger_entry_follows(
+  previous : @effect.EffectLedgerEntry?,
+  next : @effect.EffectLedgerEntry,
+) -> Bool {
+  @effect.effect_ledger_entry_follows(previous, next)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryCid")
+pub fn strategy_effect_ledger_entry_cid(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryLocatorCid")
+pub fn strategy_effect_ledger_entry_locator_cid(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_locator_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryScopeCid")
+pub fn strategy_effect_ledger_entry_scope_cid(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_scope_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryWire")
+pub fn strategy_effect_ledger_entry_wire(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_wire(entry)
 }
 
 ///|
