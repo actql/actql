@@ -64,20 +64,25 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Twelve of the 68 production routes currently bind operation-specific boundary
-  fixtures. Graph normalization now has separate exact/one-short node-capacity
+  Thirteen of the 68 production routes bind operation-specific boundary
+  fixtures. Graph normalization has separate exact/one-short node-capacity
   and cancel/cleanup fixtures for its direct and managed-view starts on all
   three targets. One standard Host timer cancels the fused normalize after its
   80 graph-construction steps; another cancels the third selected task after
   measured work. The split task map binds that task to the managed-view
-  normalize step. Both registered paths have four proof roles, making this
-  the first route with complete resource-boundary assurance. Graph diagnostics
+  normalize step. Both registered paths have four lifecycle proof roles; their
+  exact work and workspace dimensions remain separately open. Graph diagnostics
   now pair independent four-row/three-row output and ten-slot/nine-slot
   workspace boundaries with in-flight cancellation after charged work. A Node
   standard Host timer reaches the same graph-bounds operation, giving its
-  direct entrypoint all four proof roles. The selected RelA
-  filter route adds an independent exact/one-short
-  input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
+  direct entrypoint all four proof roles. The degree route uses the same
+  resumable diagnostic kernel, but has its own workspace eight/seven and
+  output two/one exact-boundary fixtures. Its direct
+  fixture cancels after charged work and confirms cleanup; a Node standard Host
+  timer reaches the degree operation. Exact control-work limits are not yet
+  registered, so degree does not claim full resource-boundary assurance. The
+  selected RelA filter route adds an independent exact/one-short input-admission
+  pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
   after measured work, then confirms stop without exposing a partial result. A
   separate ordinary filter fixture proves quantum-one execution and lifetime,
@@ -96,14 +101,15 @@ readable coverage manifest is authoritative for individual operation status.
   cancellation, or cleanup roles is rejected. Reusing one fixture across
   different production paths requires a recorded reason and the same exact
   implementation entrypoint.
-  A successful route gate does not establish boundary closure for the other 66
-  operations, including 56 without operation-specific boundary records. Reused
-  evidence must identify the shared product
+  A successful route gate does not establish full work/workspace boundary
+  closure for any of the 68 operations. Fifty-five still lack operation-specific
+  boundary records. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
-  explicit proof roles on every route. Filter, select, sort, and take have
+  lifecycle proof roles and independent exact/one-short work and workspace
+  roles on every route. Filter, select, sort, and take have
   selected-path proof bindings. Sort uses an exact/one-short workspace pair and
   its wide-comparison Host timer; take uses independent exact/one-short work
   and peak-workspace fixtures plus the selected Host timer. The where and

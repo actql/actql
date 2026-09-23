@@ -1090,7 +1090,39 @@
       "entrypoint": {
         "path": "src/local_sga/graph_bounds.mbt",
         "symbol": "start_graph_degree"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "degree_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "degree metrics preserve directions and admitted execution"
+        },
+        {
+          "role": "degree_output_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "degree diagnostics enforce output capacity before publishing"
+        },
+        {
+          "role": "degree_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "degree diagnostics stop in flight and reclaim private output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "degree_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "degree-both"
+        }
+      ]
     },
     {
       "inventory": "families",

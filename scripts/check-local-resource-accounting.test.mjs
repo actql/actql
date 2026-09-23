@@ -41,7 +41,54 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 12 with operation-specific boundary records, 2 with complete boundary assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('resource completion requires work and workspace proof independently', () => {
+  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+    /SGA graph_bounds: entrypoint work\/workspace assurance is missing/);
+});
+
+test('resource gate rejects a borrowed work fixture', () => {
+  assert.match(run(undefined, value => {
+    const bounds = value.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graph_bounds');
+    bounds.resource_assurance = {
+      entrypoint: {
+        work: {
+          exact_limit: 'product_work_workspace_exact_one_short',
+          one_short_limit: 'product_work_workspace_exact_one_short',
+        },
+        workspace: {
+          exact_limit: 'graph_bounds_workspace_exact_one_short',
+          one_short_limit: 'graph_bounds_workspace_exact_one_short',
+        },
+      },
+    };
+  }), /SGA graph_bounds: entrypoint operation work lacks an executable fixture/);
+});
+
+test('resource gate keeps assertion work proofs variant-specific', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.resource_assurance = {
+      selected_entrypoint: {
+        variants: {
+          where: {
+            work: {
+              exact_limit: 'assert_where_input_exact',
+              one_short_limit: 'assert_where_input_one_short',
+            },
+            workspace: {
+              exact_limit: 'assert_where_input_exact',
+              one_short_limit: 'assert_where_input_one_short',
+            },
+          },
+        },
+      },
+    };
+  }), /RelA assert_rows: selected_entrypoint needs both assertion resource variants/);
 });
 
 test('resource completion rejects every unassured operation', () => {
