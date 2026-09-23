@@ -100,6 +100,8 @@ function admittedProgressFixture(firstPolicy = 'continue') {
     approval: 'none', on_item_failure: policy,
     changes: rows.map((row, index) => ({
       target_row_identity: row,
+      target_guard: {state: 'version', version_cid: cid('a')},
+      intended_changes: {state: 'present', value: {}},
       before: {state: 'present', value: {}},
       after: {state: 'present', value: {}},
       row_preview_cid: rowCids[index],
@@ -121,6 +123,14 @@ function admittedProgressFixture(firstPolicy = 'continue') {
     model_response_artifact_cids: [], effects, executed: false,
     effect_preview_cid: cid('a'),
   };
+  const rowIdentities = effect.derivePreviewRowIdentities(
+    canonicalJson(preview), 16384, 512, 12);
+  for (let index = 0; index < effects.length; index++) {
+    effects[index].row_order = rowIdentities[index];
+    effects[index].changes.forEach((change, row) => {
+      change.row_preview_cid = rowIdentities[index][row];
+    });
+  }
   const identities = effect.derivePreviewIdentities(
     canonicalJson(preview), 16384, 512, 12);
   for (let index = 0; index < effects.length; index++) {

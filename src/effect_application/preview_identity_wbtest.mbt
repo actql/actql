@@ -33,6 +33,9 @@ fn preview_apply_test_wire(
     new="\"authoring_context_cid\":\"" + authoring + "\"",
   )
   let change = "{\"target_row_identity\":\"row-1\"," +
+    "\"target_guard\":{\"state\":\"version\",\"version_cid\":\"" +
+    a +
+    "\"},\"intended_changes\":{\"state\":\"present\",\"value\":{}}," +
     "\"before\":{\"state\":\"present\",\"value\":{}}," +
     "\"after\":{\"state\":\"present\",\"value\":{}}," +
     "\"row_preview_cid\":\"" +
@@ -45,10 +48,14 @@ fn preview_apply_test_wire(
     .replace_all(old="\"changes\":[]", new="\"changes\":[" + change + "]")
     .replace_all(old="\"row_order\":[]", new="\"row_order\":[\"" + row + "\"]"),
   )
+  let computed_row = @publication.derive_effect_preview_row_identities(
+      with_change, 8192, 256, 12,
+    ).unwrap()[0][0]
+  let with_row = with_change.replace_all(old=row, new=computed_row)
   let (_, members) = @publication.derive_effect_preview_identities(
-    with_change, 8192, 256, 12,
+    with_row, 8192, 256, 12,
   ).unwrap()
-  let with_member = with_change.replace_all(
+  let with_member = with_row.replace_all(
     old="\"effect_member_preview_cid\":\"" + a + "\"",
     new="\"effect_member_preview_cid\":\"" + members[0] + "\"",
   )
@@ -143,9 +150,11 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
 test "Collections send rows match the admitted Preview and request scope" {
   let authority = preview_footprint_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
-  let row = preview_footprint_test_cid("3")
   let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
   let (wire, key) = preview_apply_test_wire(scope, "continue")
+  let row = @publication.derive_effect_preview_row_identities(
+      wire, 8192, 256, 12,
+    ).unwrap()[0][0]
   let preview = admit_effect_preview_apply_identity(
     wire,
     authority,
@@ -331,15 +340,18 @@ test "Collections send rows match the admitted Preview and request scope" {
 test "Collections slices follow Preview row order rather than change order" {
   let authority = preview_footprint_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
-  let row_one = preview_footprint_test_cid("3")
-  let row_two = preview_footprint_test_cid("5")
+  let row_one_placeholder = preview_footprint_test_cid("3")
+  let row_two_placeholder = preview_footprint_test_cid("5")
   let placeholder_one = preview_footprint_test_cid("4")
   let placeholder_two = preview_footprint_test_cid("6")
   let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
   let change = (row : String, key : String, identity : String) => {
     "{\"target_row_identity\":\"" +
     identity +
-    "\",\"before\":{\"state\":\"present\",\"value\":{}}," +
+    "\",\"target_guard\":{\"state\":\"version\",\"version_cid\":\"" +
+    authority +
+    "\"},\"intended_changes\":{\"state\":\"present\",\"value\":{}}," +
+    "\"before\":{\"state\":\"present\",\"value\":{}}," +
     "\"after\":{\"state\":\"present\",\"value\":{}},\"row_preview_cid\":\"" +
     row +
     "\",\"row_idempotency_key\":\"" +
@@ -365,20 +377,32 @@ test "Collections slices follow Preview row order rather than change order" {
     .replace_all(
       old="\"changes\":[]",
       new="\"changes\":[" +
-        change(row_one, placeholder_one, "row-1") +
+        change(row_one_placeholder, placeholder_one, "row-1") +
         "," +
-        change(row_two, placeholder_two, "row-2") +
+        change(row_two_placeholder, placeholder_two, "row-2") +
         "]",
     )
     .replace_all(
       old="\"row_order\":[]",
-      new="\"row_order\":[\"" + row_two + "\",\"" + row_one + "\"]",
+      new="\"row_order\":[\"" +
+        row_two_placeholder +
+        "\",\"" +
+        row_one_placeholder +
+        "\"]",
     ),
   )
+  let computed_rows = @publication.derive_effect_preview_row_identities(
+      with_rows, 8192, 256, 12,
+    ).unwrap()[0]
+  let row_one = computed_rows[0]
+  let row_two = computed_rows[1]
+  let with_row_cids = with_rows
+    .replace_all(old=row_one_placeholder, new=row_one)
+    .replace_all(old=row_two_placeholder, new=row_two)
   let (_, member_cids) = @publication.derive_effect_preview_identities(
-    with_rows, 8192, 256, 12,
+    with_row_cids, 8192, 256, 12,
   ).unwrap()
-  let with_member = with_rows.replace_all(
+  let with_member = with_row_cids.replace_all(
     old="\"effect_member_preview_cid\":\"" + authority + "\"",
     new="\"effect_member_preview_cid\":\"" + member_cids[0] + "\"",
   )

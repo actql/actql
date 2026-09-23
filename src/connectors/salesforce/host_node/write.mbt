@@ -188,6 +188,12 @@ pub fn salesforce_single_write_request_matches_preview_footprint(
     is Some(footprint) else {
     return false
   }
+  if @publication.effect_preview_row_intended_value_wire(
+      preview, member_index, row_index,
+    ) !=
+    Some(@catalog.single_write_request_body(request)) {
+    return false
+  }
   if @publication.effect_preview_footprint_provider_namespace(footprint) !=
     "salesforce" ||
     @publication.effect_preview_footprint_resource_kind(footprint) !=
@@ -554,6 +560,14 @@ pub fn salesforce_collection_write_request_matches_preview_footprint(
     if remaining < 0 {
       return false
     }
+    guard @publication.effect_preview_ordered_row_intended_value_wire(
+        preview,
+        member_index,
+        first_row + row,
+      ) ==
+      @catalog.write_collection_request_row_body(request, row) else {
+      return false
+    }
     let target = salesforce_collection_write_request_target_identity(
       request, row, max_identity_bytes,
     )
@@ -589,7 +603,7 @@ pub fn salesforce_collection_write_request_matches_preview_footprint(
         if !found {
           return false
         }
-        guard @publication.effect_preview_row_correlation_wire(
+        guard @publication.effect_preview_ordered_row_correlation_wire(
             preview,
             member_index,
             first_row + row,

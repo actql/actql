@@ -59,6 +59,8 @@ pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) 
 
 pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String, Array[String]), EffectPreviewIdentityIssue]
 
+pub fn derive_effect_preview_row_identities(String, Int, Int, Int) -> Result[Array[Array[String]], EffectPreviewIdentityIssue]
+
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
 pub fn effect_preview_footprint_kind(EffectPreviewFootprintIdentity) -> String
@@ -87,7 +89,11 @@ pub fn effect_preview_member_identity(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_kind(EffectPreviewIdentity, Int) -> String?
 
+pub fn effect_preview_ordered_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
+
 pub fn effect_preview_ordered_row_identity(EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn effect_preview_ordered_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
 
@@ -96,6 +102,8 @@ pub fn effect_preview_row_count(EffectPreviewIdentity, Int) -> Int?
 pub fn effect_preview_row_identity(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_index(EffectPreviewIdentity, Int, String) -> Int?
+
+pub fn effect_preview_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
 
@@ -558,6 +566,9 @@ pub struct EffectPreviewIdentity {
   row_cids : Array[Array[String]]
   row_indices : Array[Map[String, Int]]
   row_correlation_wires : Array[Array[String]]
+  row_intended_value_wires : Array[Array[String]]
+  ordered_row_correlation_wires : Array[Array[String]]
+  ordered_row_intended_value_wires : Array[Array[String]]
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
@@ -567,6 +578,7 @@ pub(all) enum EffectPreviewIdentityIssue {
   PreviewShape(PublicationContractIssue)
   InvalidMember
   RowInventoryMismatch(Int)
+  RowIdentityMismatch(Int, Int)
   MemberIdentityMismatch(Int)
   PreviewIdentityMismatch
   RunBindingMismatch

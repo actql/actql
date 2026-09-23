@@ -65,7 +65,10 @@ fn preview_identity_test_wire(
     } else {
       "\"changes\":[{\"target_row_identity\":\"" +
       target +
-      "\",\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}," +
+      "\",\"target_guard\":{\"state\":\"version\",\"version_cid\":\"" +
+      a +
+      "\"},\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
+      "\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}," +
       "\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
       "\"row_preview_cid\":\"" +
       row +
@@ -88,15 +91,20 @@ fn preview_identity_test_wire(
   let value = @json.from_source(parsed, 256, 12, 8192) catch {
     _ => abort("Expected canonical Preview fixture")
   }
-  @json.stringify_value(value, 8192, 256, 12) catch {
+  let canonical = @json.stringify_value(value, 8192, 256, 12) catch {
     _ => abort("Expected canonical Preview fixture")
+  }
+  if empty {
+    canonical
+  } else {
+    let rows = derive_effect_preview_row_identities(canonical, 8192, 256, 12).unwrap()
+    canonical.replace_all(old=row, new=rows[0][0])
   }
 }
 
 ///|
 test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" {
   let a = preview_identity_test_cid("a")
-  let row = preview_identity_test_cid("3")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
   let placeholder = preview_identity_test_wire(
     preview_identity_test_cid("b"),
@@ -109,10 +117,14 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   let (placeholder_set_cid, member_cids) = derive_effect_preview_identities(
     placeholder, 8192, 256, 12,
   ).unwrap()
+  let row = derive_effect_preview_row_identities(placeholder, 8192, 256, 12).unwrap()[0][0]
+  assert_eq(
+    row, "sha256:4531682e916a81a555998f41de7fef4c505a841b83d794d09d95db899d6e55c8",
+  )
   assert_eq(member_cids.length(), 1)
   let expected_member = member_cids[0]
   assert_eq(
-    expected_member, "sha256:8cb73aa63f4fb802dc407177552e0cca0d43315ee8e804c703f2a5a2e9643ff1",
+    expected_member, "sha256:099721c928770511d95faed4eaeef3fef768c4b573c714fc0af16c0b5439b5b6",
   )
   let member_fixed = preview_identity_test_wire(
     preview_identity_test_cid("b"),
@@ -126,7 +138,7 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     member_fixed, 8192, 256, 12,
   ).unwrap()
   assert_eq(
-    preview_cid, "sha256:0a35e40b82f30bb3956ba610962a2ca987f4aca6a52bdb1cfac482833010eff5",
+    preview_cid, "sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409",
   )
   assert_eq(placeholder_set_cid, preview_cid)
   let valid = preview_identity_test_wire(
@@ -162,6 +174,11 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   assert_eq(effect_preview_footprint_target_cid(footprint, 1), None)
   assert_true(effect_preview_member_footprint(admitted, 1) is None)
   assert_eq(effect_preview_row_identity(admitted, 0, 0), Some(row))
+  assert_eq(effect_preview_row_index(admitted, 0, row), Some(0))
+  assert_eq(
+    effect_preview_row_intended_value_wire(admitted, 0, 0),
+    Some("{\"Name\":\"After\"}"),
+  )
   assert_eq(effect_preview_ordered_row_identity(admitted, 0, 0), Some(row))
   assert_eq(effect_preview_row_identity(admitted, 0, 1), None)
   let wrong_count = valid.replace_all(old="\"count\":1", new="\"count\":2")
@@ -183,6 +200,9 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     .replace_all(
       old="}],\"row_order\":[\"" + row + "\"]",
       new="},{\"target_row_identity\":\"001000000000002\"," +
+        "\"target_guard\":{\"state\":\"version\",\"version_cid\":\"" +
+        a +
+        "\"},\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
         "\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}," +
         "\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
         "\"row_preview_cid\":\"" +
@@ -317,18 +337,109 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     old="\"Name\":\"After\"",
     new="\"Name\":\"Different\"",
   )
-  let (payload_cid, payload_members) = derive_effect_preview_identities(
-    changed_payload, 8192, 256, 12,
-  ).unwrap()
-  assert_true(payload_cid != preview_cid)
-  assert_true(payload_members[0] != expected_member)
+  assert_true(
+    derive_effect_preview_identities(changed_payload, 8192, 256, 12)
+    is Err(RowIdentityMismatch(0, 0)),
+  )
+  let changed_intended = valid.replace_all(
+    old="\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}",
+    new="\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"Different\"}}",
+  )
+  assert_true(
+    derive_effect_preview_identities(changed_intended, 8192, 256, 12)
+    is Err(RowIdentityMismatch(0, 0)),
+  )
+  let changed_guard = valid.replace_all(
+    old="\"version_cid\":\"" + a + "\"",
+    new="\"version_cid\":\"" + preview_identity_test_cid("d") + "\"",
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      changed_guard,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RowIdentityMismatch(0, 0)),
+  )
+  let missing_guard = valid.replace_all(
+    old="\"target_guard\":{\"state\":\"version\",\"version_cid\":\"" +
+      a +
+      "\"},",
+    new="",
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      missing_guard,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(PreviewShape(_)),
+  )
+  let missing_intended = valid.replace_all(
+    old="\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}},",
+    new="",
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      missing_intended,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(PreviewShape(_)),
+  )
+  let borrowed_row_cid = valid.replace_all(
+    old="\"target_row_identity\":\"001000000000001\"",
+    new="\"target_row_identity\":\"001000000000002\"",
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      borrowed_row_cid,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RowIdentityMismatch(0, 0)),
+  )
+  let foreign_program = valid.replace_all(
+    old="\"program_definition_cid\":\"" + a + "\"",
+    new="\"program_definition_cid\":\"" + preview_identity_test_cid("d") + "\"",
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      foreign_program,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RowIdentityMismatch(0, 0)),
+  )
+  let foreign_invocation = valid.replace_all(
+    old="\"invocation_cid\":\"" + a + "\"",
+    new="\"invocation_cid\":\"" + preview_identity_test_cid("d") + "\"",
+  )
+  assert_true(
+    derive_effect_preview_identities(foreign_invocation, 8192, 256, 12)
+    is Err(RowIdentityMismatch(0, 0)),
+  )
   let changed_operation = valid.replace_all(
     old="\"effect_kind\":\"update\"",
     new="\"effect_kind\":\"upsert\"",
   )
-  let (operation_cid, operation_members) = derive_effect_preview_identities(
-    changed_operation, 8192, 256, 12,
-  ).unwrap()
-  assert_true(operation_cid != preview_cid)
-  assert_true(operation_members[0] != expected_member)
+  assert_true(
+    derive_effect_preview_identities(changed_operation, 8192, 256, 12)
+    is Err(RowIdentityMismatch(0, 0)),
+  )
 }

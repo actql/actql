@@ -10671,7 +10671,7 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:ffacfcbd6992627eb07489e40ffff7b33db144e8d34ff80ac7d06221dcf45712",
+    "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
@@ -37157,6 +37157,8 @@
                   "additionalProperties": false,
                   "required": [
                     "target_row_identity",
+                    "target_guard",
+                    "intended_changes",
                     "before",
                     "after",
                     "row_preview_cid",
@@ -37201,6 +37203,69 @@
                         }
                       ]
                     },
+                    "target_guard": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "version_cid"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "version"
+                            },
+                            "version_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "not_applicable"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "intended_changes": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "value"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "present"
+                            },
+                            "value": {}
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "not_applicable"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "before": {},
                     "after": {},
                     "row_preview_cid": {
@@ -37208,10 +37273,6 @@
                       "pattern": "^sha256:[0-9a-f]{64}$"
                     },
                     "row_idempotency_key": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "target_version": {
                       "type": "string",
                       "pattern": "^sha256:[0-9a-f]{64}$"
                     }

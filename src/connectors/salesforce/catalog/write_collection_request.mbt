@@ -39,6 +39,7 @@ pub struct WriteCollectionRequest {
   kind : WriteCollectionKind
   projection : WriteProjection
   row_preview_cids : Array[String]
+  row_bodies : Array[String]
   targets : Array[WriteTargetValue]
   max_target_bytes : Int
 }
@@ -200,6 +201,14 @@ pub fn write_collection_request_row_cid(
   index : Int,
 ) -> String? {
   value.row_preview_cids.get(index)
+}
+
+///|
+pub fn write_collection_request_row_body(
+  value : WriteCollectionRequest,
+  index : Int,
+) -> String? {
+  value.row_bodies.get(index)
 }
 
 ///|
@@ -481,6 +490,7 @@ pub fn prepare_continue_write_collection(
     return Err(CapacityExceeded)
   }
   let row_cids : Array[String] = []
+  let row_bodies : Array[String] = []
   let row_targets : Array[WriteTargetValue] = []
   let wire_targets : Array[String?] = []
   let overlap_keys : Array[String?] = []
@@ -517,6 +527,7 @@ pub fn prepare_continue_write_collection(
     }
     remaining -= input_bytes
     row_cids.push(item.row_preview_cid)
+    row_bodies.push(item.body.json)
     row_targets.push(item.target)
     wire_targets.push(target)
     overlap_keys.push(overlap)
@@ -569,6 +580,7 @@ pub fn prepare_continue_write_collection(
     kind,
     projection: first,
     row_preview_cids: row_cids,
+    row_bodies,
     targets: row_targets,
     max_target_bytes: limits.max_target_bytes,
   })
