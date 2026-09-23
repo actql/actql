@@ -43,8 +43,11 @@ of the operation-specific resource proof count below. The providerless lane
 must use admitted bounded execution or an explicitly isolated stoppable
 physical lane; it must not be counted as quantum-bounded because execution
 still returns `work=1`. Direct copy and managed driver fixtures confirm
-quantum-one RowTable relocation, exact and one-short row/column admission,
-source-loss rejection between resumes, and cancellation after copy work starts.
+quantum-one RowTable relocation, exact and one-short row/column and structural
+workspace admission, source-loss rejection between resumes, and cancellation
+after copy work starts. Each destination container entry is reserved before
+append against the existing Site execution-capacity allowance; completed
+storage takes custody when the copy finishes.
 They do not prove cancellation during cross-join pair work or Node Host timer
 delivery. The strict resource-completion gate still rejects the providerless
 lane even if route evidence is added elsewhere. Its source

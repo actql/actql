@@ -1018,12 +1018,21 @@ pub fn[T] start_local_managed_dispatch(
         }
         if @execution.completed_output_has_row_table(output) {
           let control = @bounded.control()
+          // Execution capacity reserves 256 bytes per structural slot.
+          // Clamp before converting the site allowance to the workspace unit.
+          let copy_entries = if setup.capacity.execution_bytes / 256L >
+            2147483647L {
+            2147483647
+          } else {
+            (setup.capacity.execution_bytes / 256L).to_int()
+          }
           let copy = match
             @execution.start_bounded_independent_row_copy(
               control,
               output,
               setup.execution.rows.max_rows,
               setup.imports.wire.max_columns,
+              copy_entries,
             ) {
             Ok(value) => value
             Err(issue) => {
