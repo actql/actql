@@ -23,6 +23,8 @@ pub fn attached_stage(AttachedImports) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(AttachedImports) -> Int
 
+pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[EffectResultBindings, EffectResultBindingIssue]
+
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
 
 pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
@@ -30,6 +32,28 @@ pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLim
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
+
+pub fn effect_result_binding_at(EffectResultBindings, Int) -> EffectResultBinding?
+
+pub fn effect_result_binding_count(EffectResultBindings) -> Int
+
+pub fn effect_result_binding_header(EffectResultBinding) -> @stage_syntax.EffectHeader
+
+pub fn effect_result_binding_issue_effect(EffectResultBindingIssue) -> String
+
+pub fn effect_result_binding_issue_field(EffectResultBindingIssue) -> String?
+
+pub fn effect_result_binding_issue_kind(EffectResultBindingIssue) -> EffectResultBindingIssueKind
+
+pub fn effect_result_binding_issue_stage(EffectResultBindingIssue) -> Int
+
+pub fn effect_result_binding_result(EffectResultBinding) -> @relation_results.ResultDefinition?
+
+pub fn effect_result_bindings_headers(EffectResultBindings) -> @stage_syntax.EffectHeaders
+
+pub fn effect_result_bindings_owner(EffectResultBindings) -> Checked
+
+pub fn effect_result_bindings_work(EffectResultBindings) -> Int
 
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
@@ -126,6 +150,33 @@ pub(all) struct CollectionLimits {
   max_nodes : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub struct EffectResultBinding {
+  header : @stage_syntax.EffectHeader
+  result : @relation_results.ResultDefinition?
+}
+
+pub struct EffectResultBindingIssue {
+  kind : EffectResultBindingIssueKind
+  stage_index : Int
+  effect_id : String
+  field : String?
+}
+
+pub(all) enum EffectResultBindingIssueKind {
+  InvalidLimits
+  WorkLimit
+  ForeignProgram
+  MissingResult
+  MissingField
+} derive(Eq, @debug.Debug)
+
+pub struct EffectResultBindings {
+  owner : Checked
+  headers : @stage_syntax.EffectHeaders
+  members : Array[EffectResultBinding]
+  work : Int
+}
 
 pub(all) enum ImportIssue {
   InvalidLimits
