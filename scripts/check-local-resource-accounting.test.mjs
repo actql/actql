@@ -54,6 +54,16 @@ test('selected projection loses its resource proof when the fixture is removed',
   }), /RelA select: missing operation boundary fixture missing-selected-projection-resources/);
 });
 
+test('cross join copy evidence must resolve to its managed product fixture', () => {
+  assert.match(run(undefined, routes => {
+    const crossJoin = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    crossJoin.boundary_tests.find(item =>
+      item.role === 'managed_in_flight_copy_cancel_cleanup').fixture =
+      'missing-cross-join-copy-stop';
+  }), /RelA cross_join: missing operation boundary fixture missing-cross-join-copy-stop/);
+});
+
 test('selected filter retains its shared expression accounting rule', () => {
   assert.match(run(undefined, routes => {
     const filter = routes.routes.find(entry => entry.family === 'RelA' &&
