@@ -78,6 +78,8 @@ pub fn salesforce_read_projection_scope_matches(@catalog.ReadProjection, String,
 
 pub fn salesforce_read_projection_soql(@catalog.ReadProjection) -> String
 
+pub fn salesforce_recheck_read_projection(@catalog.ReadProjection, @catalog.CatalogObservation) -> Unit raise SalesforceCatalogBridgeIssue
+
 // Errors
 pub(all) suberror SalesforceCatalogBridgeIssue {
   Listing(@catalog.ListingIssue)

@@ -90,6 +90,8 @@ pub fn read_projection_observation(ReadProjection) -> String
 
 pub fn read_projection_soql(ReadProjection) -> String
 
+pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]
+
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -299,6 +301,8 @@ pub(all) enum ReadProjectionIssue {
   QueryLimit
   UnconfirmedNullability(String)
   UnsupportedReadType(String)
+  ForeignCurrentObservation
+  SchemaChanged(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResourceDescribeOutcome {
