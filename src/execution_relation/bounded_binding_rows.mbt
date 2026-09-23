@@ -1105,7 +1105,7 @@ pub fn start_bounded_binding_rows(
     bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
-  if take_range is Some(_) && !admit_metadata(output_width) {
+  if (select_mode || take_range is Some(_)) && !admit_metadata(output_width) {
     return Err(InvalidExecution)
   }
   if sort_kernel is Some(sort) &&
