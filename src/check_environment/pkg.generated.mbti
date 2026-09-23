@@ -114,6 +114,8 @@ pub fn check_lookup_capacities(CatalogReferences, LookupCapacityLimits) -> Resul
 
 pub fn check_lookup_execution(WireEnvironment, LookupExecutionLimits) -> Result[LookupExecution, LookupExecutionIssue]
 
+pub fn check_mapping_contract_shapes(WireEnvironment, Limits, Int) -> Result[MappingContractShapes, MappingShapeIssue]
+
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_pushdown_body_dependencies(PushdownContracts, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
@@ -223,6 +225,32 @@ pub fn lookup_facts_at(LookupCapacities, Int) -> LookupFacts?
 pub fn lookup_facts_capacity(LookupFacts) -> LookupCapacity?
 
 pub fn lookup_facts_envelope(LookupFacts) -> ContractEnvelope
+
+pub fn mapping_shape_at(MappingContractShapes, Int) -> MappingContractShape?
+
+pub fn mapping_shape_cid(MappingContractShape) -> String
+
+pub fn mapping_shape_count(MappingContractShapes) -> Int
+
+pub fn mapping_shape_environment(MappingContractShapes) -> WireEnvironment
+
+pub fn mapping_shape_for(MappingContractShapes, String) -> MappingContractShape?
+
+pub fn mapping_shape_member(MappingContractShape) -> Member
+
+pub fn mapping_shape_primary_identity(MappingContractShape) -> String
+
+pub fn mapping_shape_reference(MappingContractShape) -> String
+
+pub fn mapping_shape_required_fields(MappingContractShape) -> Array[String]
+
+pub fn mapping_shape_target(MappingContractShape) -> String
+
+pub fn mapping_shape_target_schema(MappingContractShape) -> @relation_schema.Schema
+
+pub fn mapping_shape_work(MappingContractShapes) -> Int
+
+pub fn mapping_shape_writable_fields(MappingContractShape) -> Array[String]
 
 pub fn member_at(WireEnvironment, Section, Int) -> Member?
 
@@ -690,6 +718,35 @@ pub(all) struct LookupExecutionLimits {
 type LookupExecutionPolicy
 
 type LookupFacts
+
+pub struct MappingContractShape {
+  item : Member
+  mapping_ref : String
+  target_ref : String
+  cid : String
+  target_schema : @relation_schema.Schema
+  primary_identity : String
+  writable_fields : Array[String]
+  required_fields : Array[String]
+}
+
+pub struct MappingContractShapes {
+  environment : WireEnvironment
+  entries : Array[MappingContractShape]
+  by_ref : Map[String, Int]
+  work : Int
+}
+
+pub(all) enum MappingShapeIssue {
+  InvalidLimits
+  MappingLimit
+  WorkLimit
+  InvalidMapping(Int)
+  IdentityMismatch(Int)
+  TargetSchemaMismatch(Int)
+  InvalidTargetSchema(Int)
+  DuplicateMapping(String)
+} derive(Eq, @debug.Debug)
 
 type Member
 

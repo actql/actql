@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
 import {checkLookupCapacity} from './check-lookup-capacity.mjs';
@@ -138,6 +139,36 @@ test('source data policy body is closed and retains unknown classification',()=>
       classification:{enum:['public','internal','confidential','restricted','unknown']},
     },
   });
+});
+test('Mapping 0.1 body pins the complete resolved target and permission dimensions',()=>{
+  const mapping=contract.mapping_contract_bodies;
+  const schema=mapping.schema;
+  const fixture=read('portability/corpus/mapping-contract.json');
+  const body=fixture.body;
+  assert.equal(fixture.version,'actql-mapping-contract-vectors/0.1');
+  assert.equal(schema.additionalProperties,false);
+  assert.deepEqual(Object.keys(body).sort(),[...schema.required].sort());
+  assert.equal(schema.properties.schema.const,'actql.mapping_contract/0.1');
+  assert.equal(schema.required.includes('target_schema_reference'),false);
+  assert.deepEqual(schema.properties.target_schema_reference.required,
+    ['id','version','cid']);
+  assert.equal(schema.properties.mapping_ref.pattern,
+    '^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$');
+  assert.equal(schema.properties.minimum_approval.enum.join(','),'none,required');
+  assert.equal(schema.properties.permission_rules.items.additionalProperties,false);
+  assert.deepEqual(schema.properties.permission_rules.items.required,
+    ['effect_kind','selector_class','write_fields','permissions']);
+  assert.equal(schema.properties.permission_rules.items.properties.permissions.minItems,1);
+  assert.equal(schema.properties.row_mapping.additionalProperties.oneOf.length,2);
+  verifyIdentity(body.target_schema,body.target_schema_identity);
+  const {mapping_contract_cid,...preimage}=body;
+  verifyIdentity(preimage,mapping_contract_cid);
+  assert.equal(mapping.semantics.preimage,'entire_canonical_body_except_mapping_contract_cid');
+  assert.equal(mapping.semantics.authority,
+    'static_contract_not_current_resource_permission_or_apply_permit');
+  const changed={...preimage,target_ref:'connector://crm/contact'};
+  assert.notEqual(createHash('sha256').update(canonicalText(changed)).digest('hex'),
+    mapping_contract_cid.slice('sha256:'.length));
 });
 // Only the explicit envelope schema subset; component admission is separate.
 function shape(value){

@@ -1298,6 +1298,256 @@
       }
     }
   },
+  "mapping_contract_bodies": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "mapping_ref",
+        "version",
+        "target_ref",
+        "connector_manifest_cid",
+        "resource_identity_cid",
+        "target_schema_identity",
+        "target_schema",
+        "primary_identity",
+        "writable_fields",
+        "required_fields",
+        "conversions",
+        "permission_rules",
+        "required_permissions",
+        "minimum_approval",
+        "row_mapping",
+        "mapping_contract_cid"
+      ],
+      "properties": {
+        "schema": {
+          "const": "actql.mapping_contract/0.1"
+        },
+        "mapping_ref": {
+          "type": "string",
+          "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_ref": {
+          "type": "string",
+          "pattern": "^connector://"
+        },
+        "connector_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resource_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "target_schema_identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "target_schema_reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "version",
+            "cid"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "target_schema": {
+          "type": "object"
+        },
+        "primary_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "writable_fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "conversions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target_field",
+              "source_contract_cid",
+              "conversion_law_cid"
+            ],
+            "properties": {
+              "target_field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "conversion_law_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "permission_rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "effect_kind",
+              "selector_class",
+              "write_fields",
+              "permissions"
+            ],
+            "properties": {
+              "effect_kind": {
+                "enum": [
+                  "create",
+                  "update",
+                  "upsert",
+                  "delete",
+                  "store"
+                ]
+              },
+              "selector_class": {
+                "enum": [
+                  "none",
+                  "id",
+                  "match",
+                  "ids",
+                  "external_id",
+                  "where",
+                  "key"
+                ]
+              },
+              "write_fields": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "permissions": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "required_permissions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "minimum_approval": {
+          "enum": [
+            "none",
+            "required"
+          ]
+        },
+        "row_mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "field",
+                  "null_behavior"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "null_behavior": {
+                    "enum": [
+                      "reject",
+                      "write_null",
+                      "omit"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "literal",
+                  "null_behavior"
+                ],
+                "properties": {
+                  "literal": {},
+                  "null_behavior": {
+                    "enum": [
+                      "reject",
+                      "write_null",
+                      "omit"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "mapping_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "semantics": {
+      "preimage": "entire_canonical_body_except_mapping_contract_cid",
+      "target_schema_identity": "canonical_cid_of_complete_target_schema_or_exact_external_schema_reference",
+      "permission_selection": "exactly_one_nonempty_rule_for_effect_kind_selector_class_and_exact_write_fields",
+      "row_mapping": "explicit_target_field_sources_no_implicit_same_name_copy",
+      "authority": "static_contract_not_current_resource_permission_or_apply_permit"
+    }
+  },
   "contract_bodies": {
     "carrier_facts": {
       "type": "object",
