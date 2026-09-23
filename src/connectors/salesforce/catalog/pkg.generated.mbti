@@ -60,6 +60,8 @@ pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Res
 
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
 
+pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
+
 pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn query_page_done(QueryPage) -> Bool
@@ -117,6 +119,12 @@ pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int
 pub fn write_body_json(WriteBody) -> String
 
 pub fn write_body_projection(WriteBody) -> WriteProjection
+
+pub fn write_collection_response_sha256(WriteCollectionResponse) -> String
+
+pub fn write_collection_result_at(WriteCollectionResponse, Int) -> WriteRowResult?
+
+pub fn write_collection_result_count(WriteCollectionResponse) -> Int
 
 pub fn write_projection_fields(WriteProjection) -> Array[String]
 
@@ -393,6 +401,31 @@ pub(all) struct WriteBodyLimits {
   max_depth : Int
 }
 
+pub(all) enum WriteCollectionKind {
+  CollectionCreate
+  CollectionUpdate
+  CollectionUpsert
+} derive(Eq, @debug.Debug)
+
+pub struct WriteCollectionResponse {
+  results : Array[WriteRowResult]
+  response_sha256 : String
+}
+
+pub(all) enum WriteCollectionResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  CountMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteCollectionResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+}
+
 pub(all) enum WriteOperation {
   WriteCreate
   WriteUpdateById
@@ -419,6 +452,17 @@ pub(all) enum WriteProjectionIssue {
   UnsupportedWriteType(String)
   ForeignCurrentObservation
   SchemaChanged(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteProviderError {
+  status_code : String
+  message : String
+  fields : Array[String]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteRowResult {
+  RowApplied(String, Bool)
+  RowFailed(Array[WriteProviderError])
 } derive(Eq, @debug.Debug)
 
 // Type aliases
