@@ -350,7 +350,14 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'RelA' && route.operation === 'take') {
+    if (route.selected_entrypoint?.symbol !==
+      'selected_binding_rows_execution' ||
+      route.ordinary_entrypoint?.symbol !==
+        'selected_binding_rows_execution') {
+      fail(`${label}: bounded selected and ordinary entrypoints are required`);
+    }
     for (const role of [
+      'ordinary_take_quantum_and_lifetime',
       'mixed_stage_sort_quantum_and_lifetime',
       'mixed_stage_sort_cancel_and_cleanup',
       'key_completion_work_exact_one_short',
@@ -359,6 +366,9 @@ for (const [index, route] of routeEntries.entries()) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
       }
+    }
+    if (!environmentRoles.has('selected_take_host_timer')) {
+      fail(`${label}: selected take Host timer evidence is missing`);
     }
   }
   if (route.family === 'RelA' && route.operation === 'sort') {

@@ -146,6 +146,14 @@ physical task view and reserves capacity across the selected task set. Other
 selected Relation kernels and their environment-delivered cancellation remain
 open.
 
+Ordinary one-step `take`, including the bound-count form, now enters the same
+bounded Relation provider as selected `take`. A quantum-one managed fixture
+checks output, both downstream Computes, independent release, and final
+reclamation on JS, Wasm, and native. The route inventory binds the ordinary
+and selected entrypoints separately. This does not establish the exact,
+one-short, and in-flight cancellation roles for every admitted `take`
+representation; the resource-completion gate remains open.
+
 ## Local family correction branch
 
 The following fixes are committed after the `8cae50b6` common baseline. They
