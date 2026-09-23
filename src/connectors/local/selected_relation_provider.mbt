@@ -6,6 +6,7 @@ fn selected_binding_rows_issue(
   step : Int,
 ) -> @connector.FixedComputeIssue {
   match issue {
+    @execution.InputLimit => @connector.Execution(@execution.InputLimit)
     @execution.Rows(row_issue) =>
       @connector.Execution(@execution.Rows(step, row_issue))
     @execution.Capture(capture_issue) =>
@@ -29,6 +30,7 @@ fn selected_binding_rows_execution(
       sequence,
       input,
       execution.rows.max_rows,
+      execution.rows.input_values,
       execution.rows.output_values,
       execution.max_work,
       execution.max_frames,

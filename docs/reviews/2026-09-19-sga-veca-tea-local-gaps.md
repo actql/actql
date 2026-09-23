@@ -37,6 +37,17 @@ readable coverage manifest is authoritative for individual operation status.
   not yet prove each operation's own exact, one-short, cancellation, and
   cleanup evidence. A passing route gate alone is not completion evidence.
 
+The bounded binding-row API now takes separate input and output value limits.
+This is a low-level source signature change, not a standard Host or wire
+contract change. Both in-repository product callers (the common selected
+Relation provider and the VecA provider) and the direct fixtures pass the
+input limit explicitly. The generated package interface changes with them.
+Independent two-row vectors establish the input boundary at 16 value nodes,
+22 UTF-8 name bytes, and 38 value-work units; one node less fails before
+publication. Input admission is spread over row and field advances. A single
+large structured cell still uses the existing bounded-by-value-limit measure,
+so its environment cancellation latency remains part of the shared gap.
+
 ## Local family correction branch
 
 The following fixes are committed after the `8cae50b6` common baseline. They

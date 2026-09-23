@@ -80,6 +80,7 @@ fn bounded_binding_rows_fixture(
   rows : String,
   following_step? : Bool = false,
   filter? : Bool = false,
+  input_limits? : ValueLimits? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(rows)
   let receiver = bounded_binding_rows_receiver(
@@ -110,6 +111,7 @@ fn bounded_binding_rows_fixture(
     generated,
     input,
     100,
+    input_limits.unwrap_or_else(() => run_limits().input_values),
     run_limits().output_values,
     100000,
     100,
@@ -236,6 +238,7 @@ fn bounded_binding_rows_ordered_fixture() -> (
     generated,
     input,
     100,
+    run_limits().input_values,
     run_limits().output_values,
     100000,
     100,
@@ -285,7 +288,7 @@ test "bounded binding rows cancel without publishing partial output" {
   let (control, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
   )
-  for i = 0; i < 8; i = i + 1 {
+  for i = 0; i < 15; i = i + 1 {
     assert_true(
       advance_bounded_binding_rows(execution, 1)
       is Ok(BoundedBindingRowsContinue(..)),
@@ -355,7 +358,7 @@ test "bounded selected filter cancels before publication" {
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
     filter=true,
   )
-  for _ in 0..<6 {
+  for _ in 0..<15 {
     assert_true(
       advance_bounded_binding_rows(execution, 1)
       is Ok(BoundedBindingRowsContinue(..)),
@@ -369,6 +372,52 @@ test "bounded selected filter cancels before publication" {
   assert_true(bounded_binding_rows_cleanup_pending(execution))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded binding input value admission has an exact boundary" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Each row contributes one row node, one number node, two vector nodes,
+  // and four vector components. Names contribute 2 + 4 + 5 UTF-8 bytes.
+  let exact : ValueLimits = {
+    max_nodes: 16,
+    max_text_bytes: 22,
+    max_depth: 3,
+    max_work: 38,
+  }
+  let (_, accepted, _) = bounded_binding_rows_fixture(
+    rows,
+    input_limits=Some(exact),
+  )
+  let mut complete = false
+  while !complete {
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        complete = true
+      }
+      BoundedBindingRowsFailed(_, ..) => fail("exact input limit failed")
+      BoundedBindingRowsStopped(_, ..) => fail("exact input limit stopped")
+    }
+  }
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  let (_, rejected, input) = bounded_binding_rows_fixture(
+    rows,
+    input_limits=Some({ ..exact, max_nodes: 15, }),
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) => fail("short input limit completed")
+      _ => fail("short input limit had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
 }
 
 ///|

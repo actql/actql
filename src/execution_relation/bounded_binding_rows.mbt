@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedBindingRowsPhase {
+  ChargeInput
   RetainInputs
   BeginRow
   SnapshotRow
@@ -42,6 +43,7 @@ priv struct BoundedBindingRowsState {
   ordered : Bool
   output_schema : @schema.Schema
   admitted_limits : @admitted.Limits
+  input_values : ValueBudget
   output_values : ValueBudget
   logical : LogicalBudget
   scope : ExpressionRoots
@@ -54,6 +56,9 @@ priv struct BoundedBindingRowsState {
   accepted : Ref[Bool]
   port : TrustedOutputPort[Unit]
   mut phase : BoundedBindingRowsPhase
+  mut charge_row : Int
+  mut charge_column : Int
+  mut charge_open : Bool
   mut input_row : Int
   mut row : Int
   mut column : Int
@@ -69,6 +74,7 @@ priv struct BoundedBindingRowsState {
 ///|
 pub(all) enum BoundedBindingRowsIssue {
   InvalidExecution
+  InputLimit
   Rows(RowIssue)
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
@@ -174,6 +180,36 @@ fn bounded_binding_rows_step(
       return fail_bounded_binding_rows(InvalidExecution, progress, used)
     }
     match state.phase {
+      ChargeInput => {
+        if state.charge_row == count {
+          state.phase = RetainInputs
+          continue
+        }
+        if !state.charge_open {
+          if !spend_control(state.control, 1) ||
+            !charge_node(state.input_values, 1) {
+            return fail_bounded_binding_rows(InputLimit, progress, used)
+          }
+          state.charge_open = true
+          used += 1
+        } else if state.charge_column < state.input_names.length() {
+          let column = state.charge_column
+          guard producer_read_cell(state.input, state.charge_row, column)
+            is Some(value) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          if !charge_text(state.input_values, state.input_names[column]) ||
+            !measure_result(value, state.input_values) {
+            return fail_bounded_binding_rows(InputLimit, progress, used)
+          }
+          state.charge_column += 1
+          used += 1
+        } else {
+          state.charge_row += 1
+          state.charge_column = 0
+          state.charge_open = false
+        }
+      }
       RetainInputs => {
         if state.input_row == count {
           state.phase = BeginRow
@@ -505,6 +541,7 @@ pub fn start_bounded_binding_rows(
   generated : GeneratedSequence,
   input : ProducerRead,
   max_rows : Int,
+  input_values : ValueLimits,
   values : ValueLimits,
   max_work : Int,
   max_frames : Int,
@@ -611,6 +648,13 @@ pub fn start_bounded_binding_rows(
       return Err(Capture(issue))
     }
   }
+  let input_values = match value_budget(input_values) {
+    Ok(value) => value
+    Err(issue) => {
+      cancel_admitted_output(output) |> ignore
+      return Err(Capture(issue))
+    }
+  }
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
@@ -651,6 +695,7 @@ pub fn start_bounded_binding_rows(
       max_depth: values.max_depth,
       max_text_bytes: values.max_text_bytes,
     },
+    input_values,
     output_values,
     logical,
     scope: expression_roots(logical, max_frames),
@@ -662,7 +707,10 @@ pub fn start_bounded_binding_rows(
     live,
     accepted,
     port,
-    phase: RetainInputs,
+    phase: ChargeInput,
+    charge_row: 0,
+    charge_column: 0,
+    charge_open: false,
     input_row: 0,
     row: 0,
     column: 0,
