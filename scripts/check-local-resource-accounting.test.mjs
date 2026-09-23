@@ -41,7 +41,26 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 2 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 3 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('selected filter retains its shared expression accounting rule', () => {
+  assert.match(run(undefined, routes => {
+    const filter = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    delete filter.shared_resource_rule;
+  }), /RelA filter: selected filter lacks its shared expression resource rule/);
+  assert.match(run(undefined, routes => {
+    const filter = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.shared_resource_rule.selected_entrypoint.roles.pop();
+  }), /RelA filter: selected_entrypoint shared resource rule lacks reachability or evidence/);
+  assert.match(run(undefined, routes => {
+    const filter = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.shared_resource_rule.selected_entrypoint.caller =
+      'src/execution_relation/stable_order.mbt';
+  }), /RelA filter: selected_entrypoint shared resource rule lacks reachability or evidence/);
 });
 
 test('assured path claims retain the completed selection routes', () => {

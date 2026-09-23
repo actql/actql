@@ -551,6 +551,50 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  const sharedRules = route.shared_resource_rule ?? {};
+  if (route.family === 'RelA' && route.operation === 'filter' &&
+    resourceAssurance.selected_entrypoint !== undefined &&
+    sharedRules.selected_entrypoint === undefined) {
+    fail(`${label}: selected filter lacks its shared expression resource rule`);
+  }
+  if (!sharedRules || typeof sharedRules !== 'object' ||
+    Array.isArray(sharedRules)) {
+    fail(`${label}: shared resource rules must be an object`);
+  } else {
+    for (const [pathName, rule] of Object.entries(sharedRules)) {
+      const caller = rule?.caller;
+      const shared = rule?.shared_entrypoint;
+      const roles = rule?.roles;
+      const requiredFilterRoles = [
+        'filter_shared_nested_workspace',
+        'filter_shared_text_work',
+        'filter_shared_branch_demand',
+      ];
+      if (!requiredPaths.includes(pathName) ||
+        resourceAssurance[pathName] === undefined ||
+        typeof caller !== 'string' ||
+        typeof shared !== 'string' ||
+        !caller.startsWith('src/') ||
+        !shared.startsWith('src/') ||
+        !fs.existsSync(path.join(root, caller)) ||
+        !fs.existsSync(path.join(root, shared)) ||
+        typeof rule.shared_symbol !== 'string' ||
+        !/^[a-z][a-z0-9_]*$/u.test(rule.shared_symbol) ||
+        !fs.readFileSync(path.join(root, caller), 'utf8')
+          .includes(`${rule.shared_symbol}(`) ||
+        !new RegExp(`(?:^|\\n)fn\\s+${rule.shared_symbol}\\s*\\(`, 'u')
+          .test(fs.readFileSync(path.join(root, shared), 'utf8')) ||
+        !Array.isArray(roles) ||
+        roles.length !== 3 ||
+        new Set(roles).size !== roles.length ||
+        roles.some(role => !boundaryRoles.has(role)) ||
+        (route.family === 'RelA' && route.operation === 'filter' &&
+          requiredFilterRoles.some(role => !roles.includes(role))) ||
+        typeof rule.reason !== 'string' || rule.reason.length < 100) {
+        fail(`${label}: ${pathName} shared resource rule lacks reachability or evidence`);
+      }
+    }
+  }
   const allowedReuse = Array.isArray(route.shared_proof_reuse)
     ? route.shared_proof_reuse
     : [];
