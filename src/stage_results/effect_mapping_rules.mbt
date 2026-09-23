@@ -5,6 +5,7 @@ pub(all) enum EffectMappingRuleIssueKind {
   InvalidBody
   MissingRequiredField(String)
   MissingResultField(String)
+  IncompatibleSourceType(String)
   RowFields(@environment.MappingRowFieldsIssue)
   Conversion(@environment.MappingConversionIssue)
   Permission(@environment.MappingPermissionIssue)
@@ -159,6 +160,7 @@ fn effect_mapping_rule_required(
 fn effect_mapping_rule_sources(
   rows : @environment.MappingRowFields,
   effect : EffectResultBinding,
+  mapping : @environment.MappingContractShape,
   remaining : Ref[Int],
   header : @syntax.EffectHeader,
 ) -> Result[Unit, EffectMappingRuleIssue] {
@@ -173,9 +175,88 @@ fn effect_mapping_rule_sources(
   }
   let schema = @results.output_schema(result)
   for index in 0..<count {
-    let (_, source) = @environment.mapping_row_fields_source_at(rows, index).unwrap()
-    if source is Some(name) && @schema.lookup_reference(schema, name) is None {
-      return Err(effect_mapping_rule_issue(MissingResultField(name), header))
+    let (target, source) = @environment.mapping_row_fields_source_at(
+      rows, index,
+    ).unwrap()
+    if source is Some(name) {
+      let field = match @schema.lookup_reference(schema, name) {
+        Some(value) => value
+        None =>
+          return Err(
+            effect_mapping_rule_issue(MissingResultField(name), header),
+          )
+      }
+      match
+        effect_mapping_rule_direct_type(
+          target,
+          @schema.field_contract(field),
+          mapping,
+          remaining,
+          header,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Check the non-null value shape only. Mapping null behavior and registered
+/// conversion laws must be admitted before these bindings become executable.
+fn effect_mapping_rule_direct_type(
+  target : String,
+  source : @contract.Contract,
+  mapping : @environment.MappingContractShape,
+  remaining : Ref[Int],
+  header : @syntax.EffectHeader,
+) -> Result[Unit, EffectMappingRuleIssue] {
+  let field = match
+    @schema.lookup_reference(
+      @environment.mapping_shape_target_schema(mapping),
+      target,
+    ) {
+    Some(value) => value
+    None => return Err(effect_mapping_rule_issue(InvalidBody, header))
+  }
+  let (compatible, used) = @contract.assignable_usage(
+    @contract.with_nullability(source, false),
+    @contract.with_nullability(@schema.field_contract(field), false),
+    remaining.val,
+  ) catch {
+    _ => return Err(effect_mapping_rule_issue(WorkLimit, header))
+  }
+  remaining.val -= used
+  if !compatible {
+    return Err(
+      effect_mapping_rule_issue(IncompatibleSourceType(target), header),
+    )
+  }
+  Ok(())
+}
+
+///|
+fn effect_mapping_rule_bound_values(
+  effect : EffectResultBinding,
+  mapping : @environment.MappingContractShape,
+  remaining : Ref[Int],
+  header : @syntax.EffectHeader,
+) -> Result[Unit, EffectMappingRuleIssue] {
+  for index in 0..<effect_result_field_binding_count(effect) {
+    let binding = effect_result_field_binding_at(effect, index).unwrap()
+    if effect_result_field_binding_role(binding) is EffectValue(target) {
+      match
+        effect_mapping_rule_direct_type(
+          target,
+          @schema.field_contract(effect_result_field_binding_field(binding)),
+          mapping,
+          remaining,
+          header,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
     }
   }
   Ok(())
@@ -183,8 +264,9 @@ fn effect_mapping_rule_sources(
 
 ///|
 /// Derive the selector and complete write-field set from retained checked
-/// Effect headers, then select a static Mapping rule. Result-field values,
-/// conversion laws, current authority and Preview guards remain separate.
+/// Effect headers, check direct source value shapes, then select a static
+/// Mapping rule. Literal values, null behavior, conversion laws, current
+/// authority and Preview guards remain separate.
 pub fn bind_effect_mapping_rules(
   shapes : EffectMappingShapes,
   max_work : Int,
@@ -276,6 +358,7 @@ pub fn bind_effect_mapping_rules(
           effect_mapping_rule_sources(
             admitted,
             effect_mapping_shape_effect(binding),
+            mapping,
             remaining,
             header,
           ) {
@@ -285,6 +368,16 @@ pub fn bind_effect_mapping_rules(
         @environment.mapping_row_fields_names(admitted)
       }
       _ => abort("closed Mapping Effect kind")
+    }
+    match
+      effect_mapping_rule_bound_values(
+        effect_mapping_shape_effect(binding),
+        mapping,
+        remaining,
+        header,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     let selected = match
       @environment.select_mapping_permissions(
