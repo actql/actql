@@ -112,3 +112,23 @@ test "runtime recheck enforces array depth and item count" {
     is None,
   )
 }
+
+///|
+test "runtime recheck preserves admitted decimal coefficients" {
+  let contract = @contract.decimal_contract(38, 2, nullable=false).unwrap()
+  let value = decimal_from_coefficient("100", 38, 2).unwrap()
+  let exact : Limits = { max_nodes: 1, max_depth: 0, max_text_bytes: 3, }
+  assert_true(recheck_runtime_value(value, contract, exact) is Some(_))
+  assert_true(
+    recheck_runtime_value(value, contract, { ..exact, max_text_bytes: 2, })
+    is None,
+  )
+  assert_true(
+    recheck_runtime_value(
+      value,
+      @contract.decimal_contract(38, 1, nullable=false).unwrap(),
+      exact,
+    )
+    is None,
+  )
+}

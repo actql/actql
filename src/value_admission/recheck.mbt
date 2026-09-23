@@ -96,7 +96,8 @@ fn recheck_value(
       recheck_text(text, budget) is Some(_) && valid_timestamp(text)
     (Decimal(decimal_value), @contract.Decimal(precision~, scale~)) => {
       guard recheck_text(decimal_value.coefficient, budget) is Some(_) &&
-        decimal(decimal_value.coefficient, precision, scale) is Some(canonical) else {
+        decimal_from_coefficient(decimal_value.coefficient, precision, scale)
+        is Some(Decimal(canonical)) else {
         return false
       }
       decimal_value.precision == canonical.precision &&
