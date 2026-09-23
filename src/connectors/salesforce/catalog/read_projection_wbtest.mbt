@@ -35,6 +35,36 @@ test "read projection uses only the supplied complete resource view" {
   )
   assert_eq(read_projection_fields(plan), ["Id"])
   assert_true(
+    read_projection_matches_site_scope(
+      plan,
+      binding.tenant,
+      binding.principal,
+      binding.environment,
+      binding.site_key,
+      binding.site_generation,
+      binding.connector_registration,
+      binding.connector_revision,
+      binding.resource_origin,
+      binding.run_invocation_cid,
+      binding.dispatch_request_cid,
+    ),
+  )
+  assert_false(
+    read_projection_matches_site_scope(
+      plan,
+      binding.tenant,
+      binding.principal,
+      binding.environment,
+      binding.site_key,
+      binding.site_generation + 1,
+      binding.connector_registration,
+      binding.connector_revision,
+      binding.resource_origin,
+      binding.run_invocation_cid,
+      binding.dispatch_request_cid,
+    ),
+  )
+  assert_true(
     prepare_read_projection(observation, binding, "Account", ["Id"], 21)
     is Err(QueryLimit),
   )

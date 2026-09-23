@@ -39,7 +39,7 @@ fn observation_test_sync() -> CatalogSync {
     "Account",
     @utf8.encode(
       (
-        #|{"name":"Account","queryable":true,"fields":[{"name":"Id","type":"id"}]}
+        #|{"name":"Account","queryable":true,"fields":[{"name":"Id","type":"id","nillable":false}]}
       ),
     ),
     {

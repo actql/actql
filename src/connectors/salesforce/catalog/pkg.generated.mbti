@@ -2,11 +2,14 @@
 package "actql/actql/connectors/salesforce/catalog"
 
 import {
+  "actql/actql/decode_core",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
+
+pub fn begin_query_read(ReadProjection, String, QueryPageLimits, Int, Int64) -> Result[QueryRead, QueryReadIssue]
 
 pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
@@ -36,15 +39,41 @@ pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
+pub fn interrupt_query_read(QueryRead) -> Bool
+
 pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
+pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
+
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
 
+pub fn query_page_done(QueryPage) -> Bool
+
+pub fn query_page_next_url(QueryPage) -> String?
+
+pub fn query_page_response_sha256(QueryPage) -> String
+
+pub fn query_page_row_count(QueryPage) -> Int
+
+pub fn query_page_total_size(QueryPage) -> Int64
+
+pub fn query_read_accept_page(QueryRead, String, Bytes) -> Result[QueryPage, QueryReadIssue]
+
+pub fn query_read_complete(QueryRead) -> Bool
+
+pub fn query_read_next_path(QueryRead) -> String?
+
+pub fn query_read_page_count(QueryRead) -> Int
+
+pub fn query_read_row_count(QueryRead) -> Int64
+
 pub fn read_projection_fields(ReadProjection) -> Array[String]
+
+pub fn read_projection_matches_site_scope(ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn read_projection_observation(ReadProjection) -> String
 
@@ -174,8 +203,63 @@ pub(all) enum ListingIssue {
   DuplicateResource(String)
 } derive(Eq, @debug.Debug)
 
+pub enum QueryCell {
+  Null
+  Value(@decode_core.Cursor)
+}
+
+pub struct QueryPage {
+  rows : Array[Array[QueryCell]]
+  done : Bool
+  next_url : String?
+  total_size : Int64
+  response_sha256 : String
+}
+
+pub(all) enum QueryPageIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidLocator
+  MissingRequiredField(String)
+  NullRequiredField(String)
+  UnexpectedField(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct QueryPageLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_locator_units : Int
+}
+
+pub struct QueryRead {
+  plan : ReadProjection
+  api_version : String
+  page_limits : QueryPageLimits
+  max_pages : Int
+  max_total_rows : Int64
+  mut next_path : String?
+  mut page_count : Int
+  mut row_count : Int64
+  mut interrupted : Bool
+}
+
+pub(all) enum QueryReadIssue {
+  InvalidLimits
+  InvalidQuery
+  AlreadyFinished
+  Interrupted
+  WrongRequest
+  PageLimit
+  RowLimit
+  Page(QueryPageIssue)
+} derive(Eq, @debug.Debug)
+
 pub struct ReadProjection {
   observation_cid : String
+  binding : CatalogObservationBinding
   resource : String
   fields : Array[FieldMetadata]
   soql : String
