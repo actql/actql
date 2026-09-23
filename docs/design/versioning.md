@@ -32,6 +32,47 @@ decision, compatibility analysis and coordinated updates of affected checks and
 this policy. Evaluate each contract's compatibility independently; do not infer
 compatibility or force all version domains to advance in lockstep.
 
+## When to keep or advance a contract version
+
+Decide per contract, not per feature branch. Through the initial ActQL 0.1
+development phase, owned contracts remain at 0.1. A version identifies one
+normative contract and, where applicable, one canonical signed preimage. The
+following rules apply before a writer emits a changed body:
+
+- Keep the version for an implementation fix that enforces the existing
+  contract without changing accepted canonical bytes, meaning, or references.
+  A code revision, Connector revision, or different signed bundle instance
+  does not itself advance the format version.
+- Before the initial 0.1 release, correct an unfinished 0.1 contract within
+  0.1 only when its prior bodies are development fixtures or otherwise known
+  not to require compatibility. Replace all writers, readers, schema, pins,
+  independent vectors and dependent identities together. There must be one
+  accepted canonical body for that version; do not accept an old field set by
+  silently filling in new fields.
+- A persisted or distributed instance outside controlled development fixtures
+  needs an explicit compatibility and migration decision before the correction.
+  Preserve its exact bytes and historical identity. Do not overwrite or re-sign
+  it as if it had used the corrected contract. If compatibility cannot be
+  resolved within 0.1, stop and decide whether a new version is required.
+- After a contract has supported consumers, advance its own version when its
+  accepted field set, canonicalization, signature preimage, identity-bearing
+  references or normative interpretation changes incompatibly. Version
+  advances are deliberate, not a workaround for an incomplete 0.1 feature.
+
+An explicit version decision records the old and corrected canonical bodies,
+the inventory of stored records and consumers, reader/writer support, any
+migration or historical retention, and the affected product capabilities. It
+also records independent body/CID/signature vectors and affected schema, pins
+and documentation. A correction does not narrow the original acceptance
+criteria.
+
+Roll out a corrected contract in this order: admit and independently verify
+the corrected body; implement physical custody and all consuming adapters;
+then make it the standard writer for its declared scope. During implementation,
+unsupported combinations fail closed, but rejection alone is not completion.
+Historical records may need separate handling, but an old body must not become
+an alternative canonical 0.1 body or current execution authority by default.
+
 ## AoA identifier conventions
 
 Versioned AoA contract identifiers use `/0.1`, including the kernel, pipeline,
