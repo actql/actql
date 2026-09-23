@@ -122,3 +122,34 @@ test('Client Host negotiates a profile only after authentication and consent', a
   assert.equal(observed.length, 1);
   assert.equal(observed[0].principalId, 'principal-a');
 });
+
+test('local-owned Hybrid Cloud ref reaches Host authorization before use',
+  async () => {
+    const authorized = [];
+    const handler = createClientHttpHandler({
+      authenticate: () => 'principal-a',
+      authorizeConnection: facts => {
+        authorized.push(facts.connection.cloudConnectionRef);
+        return facts.connection.cloudConnectionRef === 'registered-cloud-a';
+      },
+      negotiate: ({connection}) => ({mode: connection.mode,
+        owner: connection.owner}),
+    });
+    await withServer(handler, async base => {
+      const send = connection => fetch(`${base}/actql/client/0.1/connect`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection}),
+      });
+      const connection = {mode: 'hybrid', owner: 'local',
+        consentRefs: ['grant-a'], runners: [],
+        movementPolicyRef: 'movement-a',
+        cloudConnectionRef: 'registered-cloud-a'};
+      assert.equal((await send(connection)).status, 200);
+      assert.equal((await send({...connection,
+        cloudConnectionRef: undefined})).status, 400);
+      assert.equal((await send({...connection,
+        cloudConnectionRef: 'foreign-cloud'})).status, 403);
+    });
+    assert.deepEqual(authorized,
+      ['registered-cloud-a', 'foreign-cloud']);
+  });
