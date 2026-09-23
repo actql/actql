@@ -6,6 +6,8 @@ pub(all) enum ReadProjectionIssue {
   QueryLimit
   UnconfirmedNullability(String)
   UnsupportedReadType(String)
+  ForeignCurrentObservation
+  SchemaChanged(String)
 } derive(Eq, Debug)
 
 ///|
@@ -115,6 +117,59 @@ pub fn read_projection_soql(plan : ReadProjection) -> String {
 ///|
 pub fn read_projection_observation(plan : ReadProjection) -> String {
   plan.observation_cid
+}
+
+///|
+/// Recheck the fields used by this historical plan against a newly observed
+/// Resource Catalog. The new sync occurrence and dispatch are independent;
+/// the connection, authority, and Site must still be exact. This does not
+/// establish a provider-wide point-in-time snapshot or grant query access.
+pub fn recheck_read_projection(
+  plan : ReadProjection,
+  current : CatalogObservation,
+) -> Result[Unit, ReadProjectionIssue] {
+  let old = plan.binding
+  let next = current.binding
+  if old.tenant != next.tenant ||
+    old.principal != next.principal ||
+    old.environment != next.environment ||
+    old.connection_revision != next.connection_revision ||
+    old.site_key != next.site_key ||
+    old.site_generation != next.site_generation ||
+    old.connector_registration != next.connector_registration ||
+    old.connector_revision != next.connector_revision ||
+    old.resource_origin != next.resource_origin ||
+    old.run_invocation_cid != next.run_invocation_cid {
+    return Err(ForeignCurrentObservation)
+  }
+  let resource = match
+    catalog_observation_resource(current, next, plan.resource) {
+    Ok(value) => value
+    Err(issue) => return Err(Observation(issue))
+  }
+  let names = read_projection_fields(plan)
+  let fields = match require_read_fields(resource, names) {
+    Ok(value) => value
+    Err(issue) => return Err(Requirement(issue))
+  }
+  for index in 0..<fields.length() {
+    let before = plan.fields[index]
+    let after = fields[index]
+    if before.native_type != after.native_type ||
+      !after.nullability_confirmed ||
+      before.nullable != after.nullable ||
+      before.filterable != after.filterable ||
+      before.sortable != after.sortable ||
+      before.reference_to.length() != after.reference_to.length() {
+      return Err(SchemaChanged(before.name))
+    }
+    for reference in 0..<before.reference_to.length() {
+      if before.reference_to[reference] != after.reference_to[reference] {
+        return Err(SchemaChanged(before.name))
+      }
+    }
+  }
+  Ok(())
 }
 
 ///|

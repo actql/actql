@@ -90,6 +90,52 @@ test "read projection uses only the supplied complete resource view" {
 }
 
 ///|
+test "read projection rechecks a new observation without reusing its dispatch" {
+  let (observation, binding) = read_test_observation()
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Account",
+    ["Id"],
+    100,
+  ).unwrap()
+  let sync = observation_test_sync()
+  finish_catalog_sync(sync).unwrap()
+  let response_digest = match catalog_sync_outcome(sync, "Account") {
+    Some(Described(resource)) => resource.response_sha256
+    _ => abort("expected described Account")
+  }
+  let refreshed = prepare_catalog_observation(
+    sync,
+    {
+      ..binding,
+      dispatch_request_cid: "sha256:" + "e".repeat(64),
+      sync_occurrence: "refresh-b",
+    },
+    "sha256:" + "f".repeat(64),
+    [Some("sha256:" + "1".repeat(64))],
+    [Some(response_digest)],
+    4096,
+  ).unwrap()
+  assert_true(recheck_read_projection(plan, refreshed) is Ok(_))
+  let foreign = prepare_catalog_observation(
+    sync,
+    {
+      ..binding,
+      connection_revision: "connection-revision-b",
+      sync_occurrence: "refresh-c",
+    },
+    "sha256:" + "f".repeat(64),
+    [Some("sha256:" + "1".repeat(64))],
+    [Some(response_digest)],
+    4096,
+  ).unwrap()
+  assert_true(
+    recheck_read_projection(plan, foreign) is Err(ForeignCurrentObservation),
+  )
+}
+
+///|
 test "read projection preserves missing-field and foreign-binding diagnostics" {
   let (observation, binding) = read_test_observation()
   assert_true(

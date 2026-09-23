@@ -295,6 +295,18 @@ pub fn salesforce_read_projection_observation_cid(
 }
 
 ///|
+#export_name("salesforceRecheckReadProjection")
+pub fn salesforce_recheck_read_projection(
+  plan : @catalog.ReadProjection,
+  current : @catalog.CatalogObservation,
+) -> Unit raise SalesforceCatalogBridgeIssue {
+  match @catalog.recheck_read_projection(plan, current) {
+    Ok(_) => ()
+    Err(issue) => raise ReadProjection(issue)
+  }
+}
+
+///|
 #export_name("salesforceReadProjectionScopeMatches")
 pub fn salesforce_read_projection_scope_matches(
   plan : @catalog.ReadProjection,
