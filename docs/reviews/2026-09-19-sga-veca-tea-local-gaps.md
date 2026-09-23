@@ -41,10 +41,12 @@ readable coverage manifest is authoritative for individual operation status.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
-  cleanup evidence. The take route now registers bounded mixed-stage quantum,
-  lifetime, cancellation, and cleanup fixtures; its added-sort exact and
-  one-short limits are still missing. A passing route gate alone is not
-  completion evidence.
+  cleanup evidence. The take route registers bounded mixed-stage quantum,
+  lifetime, cancellation, and cleanup fixtures. Its key-completion sort also
+  has independent exact/one-short control-work and peak-workspace fixtures,
+  including overlap with the selected output row. These direct fixtures are
+  paired with the standard Host route rather than substituted for it. A
+  passing route gate alone is not completion evidence.
 
 The bounded binding-row API now takes separate input and output value limits.
 This is a low-level source signature change, not a standard Host or wire
@@ -72,8 +74,9 @@ control work, cancellation before publication, and cleanup. The Vectors
 bridge's Relation output uses this no-sort route in the standard Host, then
 feeds two consumers and formal publication. Graph-to-Relation take requires
 an added key-completion sort; its sort and row charging now advance in
-bounded steps. The added sort's exact and one-short operation limits still
-need their own registered evidence.
+bounded steps. Exact/one-short work and workspace fixtures exercise that
+added sort on all three targets. Other selected Relation kernels and
+environment-delivered cancellation remain open.
 
 ## Local family correction branch
 

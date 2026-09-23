@@ -113,7 +113,28 @@ test('resource gate rejects a reviewed operation without its exact boundary fixt
 
 test('resource gate rejects an ordered take without its cancellation fixture', () => {
   assert.match(run(undefined, value => {
-    value.routes.find(entry => entry.family === 'RelA' &&
-      entry.operation === 'take').boundary_tests.pop();
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    take.boundary_tests = take.boundary_tests.filter(item =>
+      item.role !== 'mixed_stage_sort_cancel_and_cleanup');
   }), /RelA take: reviewed mixed_stage_sort_cancel_and_cleanup fixture is missing/);
+});
+
+test('resource gate rejects a take without exact sort-work evidence', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    take.boundary_tests = take.boundary_tests.filter(item =>
+      item.role !== 'key_completion_work_exact_one_short');
+  }), /RelA take: reviewed key_completion_work_exact_one_short fixture is missing/);
+});
+
+test('resource gate rejects a fixture connected to a foreign suite', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    take.boundary_tests.find(item =>
+      item.role === 'key_completion_workspace_exact_one_short').suite =
+      'moon:query_integration';
+  }), /RelA take: boundary evidence must be suite-connected on all targets/);
 });

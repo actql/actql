@@ -264,6 +264,78 @@ fn bounded_binding_rows_ordered_fixture() -> (
 }
 
 ///|
+fn bounded_binding_rows_keyed_take_fixture(
+  max_work : Int,
+  max_entries? : Int = 10000,
+) -> (BoundedBindingRowsExecution, ProducerRead) raise {
+  let source_owner = take_key_owner("[{\"sort\":[]}]")
+  let source_sequence = prepared_sequence(source_owner)
+  let source_generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    source_sequence,
+    [],
+    ["sort_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let captured = capture_input(
+    source_owner,
+    0,
+    [
+      input_cursor("{\"n\":3,\"s\":\"third\"}"),
+      input_cursor("{\"n\":1,\"s\":\"first\"}"),
+      input_cursor("{\"n\":2,\"s\":\"second\"}"),
+    ],
+    max_rows=3,
+    run_limits().input_values,
+  ).unwrap()
+  let source = completed_output(
+    execute_generated_sequence(
+      source_generated,
+      [captured],
+      compute_test_limits(),
+    ).unwrap(),
+    @pipeline.Step(0),
+  ).unwrap()
+  let producer = @pipeline.produced_input(
+    @lower.pipeline(@lower.bound_preparation(source_owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  let receiver = sort_input_owner(
+    @pipeline.ProducedInput(producer),
+    "[{\"take\":1}]",
+  )
+  let sequence = prepared_sequence(receiver)
+  guard @lower.node_at(@lower.bound_preparation(receiver), 0) is Some(node) &&
+    @lower.order_node_id(node) is Some(_) else {
+    fail("take requires an inherited key-completion sort")
+  }
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    ["limit_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let bound = bind_completed_input(receiver, 0, source_owner, source).unwrap()
+  let input = prepare_producer_read(receiver, bound, 100, 10000).unwrap()
+  let execution = start_bounded_binding_rows(
+    @bounded.control(),
+    generated,
+    input,
+    100,
+    run_limits().input_values,
+    run_limits().output_values,
+    max_work,
+    100,
+    max_entries,
+    10000,
+  ).unwrap()
+  (execution, input)
+}
+
+///|
 test "bounded binding rows resume vector expressions and complete exactly" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
@@ -576,6 +648,82 @@ test "bounded selected take has an exact control-work boundary" {
       BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
       BoundedBindingRowsComplete(_, ..) => fail("short take work completed")
       _ => fail("short take work had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
+test "bounded selected take admits exact key-completion work" {
+  // Control: input 6, sort names 4, rows 3, term 2, sort polls 15,
+  // comparisons 3, sorted rows 9, output names 4, copied row 3.
+  let (execution, input) = bounded_binding_rows_keyed_take_fixture(49)
+  let mut completed = false
+  while !completed {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, work~, ..) => {
+        assert_eq(completed_row_count(output), 1)
+        assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
+        assert_eq(work, 52L)
+        completed = true
+      }
+      _ => fail("exact key-completion work failed")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+
+  let (rejected, input) = bounded_binding_rows_keyed_take_fixture(48)
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) =>
+        fail("one-short key-completion work completed")
+      _ => fail("one-short key-completion work had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
+test "bounded selected take bounds key-completion workspace and output overlap" {
+  // Metadata 9 and sort indices 6 overlap. After sorting, retained indices 3
+  // overlap both output-row slots and both checked-value slots: peak 16.
+  let (execution, input) = bounded_binding_rows_keyed_take_fixture(
+    100000,
+    max_entries=16,
+  )
+  let mut completed = false
+  while !completed {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 1)
+        completed = true
+      }
+      _ => fail("key-completion workspace failed")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+
+  let (rejected, input) = bounded_binding_rows_keyed_take_fixture(
+    100000,
+    max_entries=15,
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) =>
+        fail("one-short key-completion workspace completed")
+      _ => fail("one-short key-completion workspace had another outcome")
     }
   }
   assert_true(producer_read_available(input))

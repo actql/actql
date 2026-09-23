@@ -226,10 +226,14 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: boundary roles must be named and unique`);
     }
     boundaryRoles.add(item.role);
-    if (item.suite !== 'moon:query_integration' ||
+    const suiteDirectory = {
+      'moon:query_integration': 'query_integration',
+      'moon:execution_relation': 'execution_relation',
+    }[item.suite];
+    if (!suiteDirectory ||
       JSON.stringify(item.targets) !== JSON.stringify(['js', 'wasm', 'native']) ||
       typeof item.path !== 'string' ||
-      !item.path.startsWith('src/query_integration/') ||
+      !item.path.startsWith(`src/${suiteDirectory}/`) ||
       !item.path.endsWith('_wbtest.mbt') ||
       typeof item.fixture !== 'string') {
       fail(`${label}: boundary evidence must be suite-connected on all targets`);
@@ -250,6 +254,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'mixed_stage_sort_quantum_and_lifetime',
       'mixed_stage_sort_cancel_and_cleanup',
+      'key_completion_work_exact_one_short',
+      'key_completion_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
