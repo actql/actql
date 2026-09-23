@@ -13,6 +13,7 @@ pub(all) suberror NodeHostFailure {
   EffectSetProgress(@effect.EffectSetProgressIssue)
   EffectFootprint(@effect.EffectFootprintIssue)
   EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
+  EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
   EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
@@ -7052,6 +7053,51 @@ pub fn strategy_effect_preview_footprint_conflicts_check(
     ) {
     Ok(_) => true
     Err(issue) => raise EffectPreviewFootprint(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewIdentities")
+pub fn strategy_effect_preview_identities(
+  preview_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Array[String] raise NodeHostFailure {
+  match
+    @publication.derive_effect_preview_identities(
+      preview_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok((preview_cid, member_cids)) => {
+      let identities = [preview_cid]
+      for cid in member_cids {
+        identities.push(cid)
+      }
+      identities
+    }
+    Err(issue) => raise EffectPreviewIdentity(@effect.Preview(issue))
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewApplyIdentityAdmit")
+pub fn strategy_effect_preview_apply_identity_admit(
+  preview_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  scope : @effect.LogicalRequestScope,
+  expected_keys : Array[Array[@effect.EffectDispatchKey]],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @effect.admit_effect_preview_apply_identity(
+      preview_wire, expected_run_identity_cid, expected_authoring_context_cid, scope,
+      expected_keys, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(identity) => @publication.effect_preview_semantic_identity(identity)
+    Err(issue) => raise EffectPreviewIdentity(issue)
   }
 }
 

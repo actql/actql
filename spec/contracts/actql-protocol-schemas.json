@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:1895f20b5b383cfd038398402563f52ca7fe8fb904037bf4b1f066f2a3d14ea5",
+  "artifact_registry_cid": "sha256:f146b3d15d2213bdeb15d0d29b0408213c9704dce5e9f7917180d5fce19d62d7",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10683,7 +10683,7 @@
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
     "executable_plan": "sha256:496a8d9d57fb426e228c8796222b7974eb1667f004502f97c4683ecc03b412a8",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2",
+    "effect_preview": "sha256:ffacfcbd6992627eb07489e40ffff7b33db144e8d34ff80ac7d06221dcf45712",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26",
@@ -36134,6 +36134,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-effect-preview-0.1.json",
       "title": "actql-effect-preview-0.1",
+      "$comment": "Semantic CID omits effect_preview_cid, run_identity_cid, authoring_context, and nested changes[].row_idempotency_key only. Each effect_member_preview_cid is the CID of {version:actql-effect-member-preview/0.1,member:MemberSemanticBody}, where MemberSemanticBody omits that self CID and nested row_idempotency_key only. Excluded transport fields still require exact apply binding.",
       "type": "object",
       "additionalProperties": false,
       "required": [

@@ -48,6 +48,12 @@ function effectApplicationControl(moon) {
     checkPreviewFootprintConflicts: (...args) => checked(
       moon.strategyEffectPreviewFootprintConflictsCheck(...args),
     ),
+    derivePreviewIdentities: (...args) => checked(
+      moon.strategyEffectPreviewIdentities(...args),
+    ),
+    admitPreviewApplyIdentity: (...args) => checked(
+      moon.strategyEffectPreviewApplyIdentityAdmit(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),

@@ -189,6 +189,13 @@ context, plus its own CID and restricted/encrypted retention metadata.
 An Effect review projection MUST include each Effect's kind, target, count,
 and every row identity with the following strength-specific evidence:
 
+<!-- requirement-block: review-artifacts.effect-preview-semantic-exclusions-do-not-waive-exact-apply-binding -->
+The exact 0.1 member and set CID preimages, including the exclusion of derived
+row idempotency keys and physical Run identity, are defined in
+[Effect preview, approval, and application](../execution.md#effect-application).
+Those exclusions MUST NOT waive exact Run, authoring, request, or
+authorization binding at apply.
+
 <!-- requirement-block: review-artifacts.row-variant-required-review-evidence-full-diff -->
 | Row variant | Required review evidence |
 | --- | --- |
@@ -363,7 +370,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:ffacfcbd6992627eb07489e40ffff7b33db144e8d34ff80ac7d06221dcf45712
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26
