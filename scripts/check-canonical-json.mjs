@@ -112,6 +112,15 @@ function fixtures() {
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
+  const previewRows = read('portability/corpus/effect-preview-row.json');
+  assert.equal(previewRows.version, 'actql-effect-preview-row-vectors/0.1');
+  for (const row of previewRows.cases) {
+    assert.equal(canonicalText(row.preimage), row.expected_canonical_bytes);
+    assert.equal(cid(row.expected_canonical_bytes), row.expected_cid);
+    result.push({id: 'Effect Preview row ' + row.id,
+      value: row.preimage, cid: row.expected_cid,
+      text: row.expected_canonical_bytes});
+  }
   assert.equal(localContracts.version, 'actql-local-contract-closure-vectors/0.1');
   for (const c of localContracts.cases) {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});

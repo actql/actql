@@ -55,6 +55,9 @@ function effectApplicationControl(moon) {
     derivePreviewIdentities: (...args) => checked(
       moon.strategyEffectPreviewIdentities(...args),
     ),
+    derivePreviewRowIdentities: (...args) => checked(
+      moon.strategyEffectPreviewRowIdentities(...args),
+    ),
     admitPreviewApplyIdentity: (...args) => checked(
       moon.strategyEffectPreviewApplyIdentityAdmit(...args),
     ),

@@ -1,0 +1,52 @@
+{
+  "version": "actql-effect-preview-row-vectors/0.1",
+  "cases": [
+    {
+      "id": "guarded update with approved field change",
+      "preimage": {
+        "version": "actql-effect-preview-row/0.1",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "invocation_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "effect_identity_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "resolved_contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "operation": "update",
+        "target_row_identity": "001000000000001",
+        "preview_strength": "full_diff",
+        "target_guard": {
+          "state": "version",
+          "version_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "intended_changes": {
+          "state": "present",
+          "value": {"Name": "After"}
+        },
+        "before": {"state": "present", "value": {"Name": "Before"}},
+        "after": {"state": "present", "value": {"Name": "After"}}
+      },
+      "expected_cid": "sha256:4531682e916a81a555998f41de7fef4c505a841b83d794d09d95db899d6e55c8",
+      "expected_canonical_bytes": "{\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}},\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}},\"effect_identity_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}},\"invocation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation\":\"update\",\"preview_strength\":\"full_diff\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"resolved_contract_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"target_guard\":{\"state\":\"version\",\"version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"target_row_identity\":\"001000000000001\",\"version\":\"actql-effect-preview-row/0.1\"}"
+    },
+    {
+      "id": "create with no target guard and explicit null",
+      "preimage": {
+        "version": "actql-effect-preview-row/0.1",
+        "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "invocation_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "effect_identity_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "resolved_contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "operation": "create",
+        "target_row_identity": "001000000000003",
+        "preview_strength": "full_diff",
+        "target_guard": {"state": "not_applicable"},
+        "intended_changes": {
+          "state": "present",
+          "value": {"Enabled": true, "Name": null}
+        },
+        "before": {"state": "absent"},
+        "after": {"state": "present", "value": {"Enabled": true, "Name": null}}
+      },
+      "expected_cid": "sha256:3d1058cbbe4f30db582b39d6328d5eefb18b14cd76f8daf2e3efb250a9b48af0",
+      "expected_canonical_bytes": "{\"after\":{\"state\":\"present\",\"value\":{\"Enabled\":true,\"Name\":null}},\"before\":{\"state\":\"absent\"},\"effect_identity_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"intended_changes\":{\"state\":\"present\",\"value\":{\"Enabled\":true,\"Name\":null}},\"invocation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation\":\"create\",\"preview_strength\":\"full_diff\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"resolved_contract_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"target_guard\":{\"state\":\"not_applicable\"},\"target_row_identity\":\"001000000000003\",\"version\":\"actql-effect-preview-row/0.1\"}"
+    }
+  ]
+}

@@ -1493,7 +1493,7 @@ body and are established first by the row preimage in
 The set `effect_preview_cid` MUST be the CID of the canonical complete private
 Preview body with only `effect_preview_cid`, `run_identity_cid`,
 `authoring_context`, and every `changes[].row_idempotency_key` removed.
-Computed member CIDs remain in the set preimage. Establish row preview CIDs,
+Computed member CIDs remain in the set preimage. Establish and verify row preview CIDs,
 then member CIDs, then the set CID, and only then derive row idempotency keys.
 No other semantic field is excluded. The omitted physical Run, Authoring
 Context, and derived keys remain required fields of the transported Preview;
