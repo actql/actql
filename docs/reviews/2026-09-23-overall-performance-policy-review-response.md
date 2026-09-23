@@ -218,3 +218,24 @@ The probe's failed report is retained in workspace scratch. Candidate
 infeasibility must be represented explicitly in calibration rather than
 converted to a fabricated rate. It does not change the fixed-revision result
 above.
+
+At clean revision `5d40c3025`, the revised equivalent runner completed 13 of
+27 registered cases before the diagnostic run was stopped. Nine completed
+cases failed an unchanged gate, two were incomplete because the ordinary
+placement selected Local but the comparator required DuckDB-only task phases,
+and two were indeterminate. The fourteenth case had one pair and is not a
+completed sample. The raw partial progress is in workspace scratch
+`equivalent-matrix-full-5d40/progress.json`, SHA-256
+`d1e178f6a997995572faab74e5b378a6236cb397bfecdef9cabacd1cddb0a2b6`.
+This partial diagnostic neither replaces the earlier full 27-case inventory
+nor establishes formal acceptance.
+
+That run also exposed unequal configured DuckDB memory: the retained product
+leg used the example's 128 MiB default despite its 4 GiB execution ledger,
+while the independent equivalent leg assigned 2 GiB to DuckDB from the same
+ledger ceiling. Revision `391e03174` makes the retained example's native
+session and MoonBit resident profile use the ledger-derived half-DB allowance.
+It passed JS/Wasm/native checks, the example's JS test, the focused Node
+configuration test, format, and one real-DuckDB 100-row retained diagnostic.
+The changed revision still needs a fresh fixed-SHA performance assessment;
+the old timings must not be reused as its result.
