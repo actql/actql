@@ -218,6 +218,59 @@ test "bounded selected sort cancels after work without publishing rows" {
 }
 
 ///|
+test "bounded selected sort admits its exact workspace peak" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // The retained typed view and schema metadata overlap with the two merge
+  // indices. Later, one index and both three-cell row arrays are live.
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    sort=true,
+    max_entries=21,
+  )
+  let mut completed = false
+  let mut advances = 0
+  while !completed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+        assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+        completed = true
+      }
+      _ => fail("exact sort workspace boundary failed")
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected sort rejects a workspace one entry short" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    sort=true,
+    max_entries=20,
+  )
+  let mut failed = false
+  let mut advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      _ => fail("one-short sort workspace boundary had another outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
 test "bounded selected empty sort reuses the input order" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":3,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]},{\"id\":2,\"left\":[5,6],\"right\":[7,8]}]",

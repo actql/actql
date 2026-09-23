@@ -74,7 +74,8 @@ readable coverage manifest is authoritative for individual operation status.
   identity and existing evidence without claiming release completion.
   Checked Relation sort after a Carrier projection now has a selected task
   and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
-  output order, stable ties, and cancellation without partial publication.
+  output order, stable ties, cancellation without partial publication, and
+  an independently fixed 21-entry peak workspace with a 20-entry rejection.
   A Node standard Host timer reaches this selected sort after Graph
   construction, normalization, and node projection. Other selected Relation
   fallback kernels remain synchronous and unverified for in-flight cancel.
@@ -90,7 +91,9 @@ readable coverage manifest is authoritative for individual operation status.
   environment diagnostics, not a universal deadline or proof for every
   admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
-  profiles exceed the accepted response behavior.
+  profiles exceed the accepted response behavior. This evidence is for the
+  selected bounded path; the other production sort path remains in the route
+  inventory without whole-operation boundary assurance.
   The checked `assert_rows` where branch now also uses the bounded Relation
   session after a Carrier projection. Its false/NULL predicate is an assertion
   failure, never a filter omission; a later failure leaves no completion.

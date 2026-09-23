@@ -359,9 +359,15 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'RelA' && route.operation === 'sort') {
+    if (route.selected_entrypoint?.symbol !==
+      'selected_binding_rows_execution') {
+      fail(`${label}: bounded selected sort entrypoint is missing`);
+    }
     for (const role of [
       'mixed_stage_sort_quantum_and_lifetime',
       'selected_sort_cancel_cleanup',
+      'selected_sort_workspace_exact',
+      'selected_sort_workspace_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
