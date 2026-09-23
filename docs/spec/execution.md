@@ -1700,6 +1700,19 @@ continuation does not override whole-set preflight or the Effect Set's separate
 `attempt_all` member policy. Receipt partitions retain all five outcomes;
 `accepted` does not assert provider completion ([Outcomes and reconciliation](#reconciliation)).
 
+<!-- requirement-block: preview-strength.effect-set-receipt-must-match-member-partitions preview-strength.repeated-member-outcome-must-match-exact-value -->
+An Effect Set apply receipt MUST agree with the referenced member receipts.
+Each entry's state reflects its member's row partition: `unknown` takes
+precedence; any failed row, or unattempted rows mixed with success, yields
+`failed`; only unattempted rows yield `unattempted`; otherwise any accepted
+row yields `accepted`, and the remaining case is `applied`.
+The set status is `unknown_outcome` if any row is unknown; otherwise it is
+`partial_failure` for both successful and failed/unattempted rows, `failed`
+for only failed/unattempted rows, `accepted` if any row is accepted, and
+`applied` otherwise. An entry that repeats its member's `outcome` MUST repeat
+the exact admitted value. This consistency check does not prove the physical
+row outcomes; their evidence remains a separate Host admission obligation.
+
 <!-- requirement-block: preview-strength.the-host-must-not-silently-regenerate-a-new-preview-and -->
 Apply admission revalidates the exact source binding, resolved mapping
 contract CID, capability evidence CID, authority-scope CID, and every target
