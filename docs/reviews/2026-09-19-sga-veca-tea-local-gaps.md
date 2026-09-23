@@ -87,8 +87,12 @@ independent RowTable copy is bounded and workspace-admitted, but the ordinary
 providerless compute call still runs a whole checked sequence in one resume.
 That is an unresolved execution-lane defect, not a completed cancellation
 path. The normal route gate reports 68 mapped operations and 15 with
-operation-specific boundary records; its zero fully work/workspace-assured
-routes make resource completion separately open. The strict completion gate
+operation-specific boundary records. `SGA.graph_bounds` and `SGA.degree` now
+have full work/workspace assurance for their registered entrypoints. Their
+independent fixtures fix control work, value work, and structural workspace
+at exact and one-short boundaries. The other routes keep resource completion
+separately open. The
+strict completion gate
 remains red by design. Standard Host fixtures are not evidence for the
 Distribution-owned ordinary Run entry; that integration is also open. These
 are three separate acceptance conditions, so closing one must not change the

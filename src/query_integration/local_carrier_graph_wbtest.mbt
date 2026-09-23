@@ -3044,7 +3044,7 @@ test "degree metrics preserve directions and admitted execution" {
     assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
     let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
     let completion = task_test_completion(owner)
-    let start = fn(workspace, control_work_limit) {
+    let start = fn(workspace, control_work_limit, value_work_limit) {
       @local_sga.start_graph_degree(
         @bounded.control(),
         completion,
@@ -3056,7 +3056,7 @@ test "degree metrics preserve directions and admitted execution" {
           max_nodes: 1000,
           max_text_bytes: 1000,
           max_depth: 10,
-          max_work: 10000,
+          max_work: value_work_limit,
         },
         workspace,
         1000,
@@ -3065,8 +3065,10 @@ test "degree metrics preserve directions and admitted execution" {
         control_work_limit=Some(control_work_limit),
       )
     }
-    assert_true(start(7, 18) is Err(@local_sga.GraphBoundsWorkspaceLimit))
-    let execution = start(8, 18).unwrap()
+    assert_true(
+      start(7, 18, 10000) is Err(@local_sga.GraphBoundsWorkspaceLimit),
+    )
+    let execution = start(8, 18, 10000).unwrap()
     let output = finish_graph_degree(execution).unwrap()
     assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
     assert_eq(@execution.completed_row_count(output), 2)
@@ -3081,11 +3083,24 @@ test "degree metrics preserve directions and admitted execution" {
     // Two nodes and two edges cost four steps. Sorting the two nodes takes
     // three merge steps and two copy steps. The two selected rows cost two
     // candidate steps, four field reads, two commits, and one finish: 18.
-    let one_short = start(8, 17).unwrap()
+    let one_short = start(8, 17, 10000).unwrap()
     assert_true(
       finish_graph_degree(one_short) is Err(@local_sga.GraphBoundsWorkLimit),
     )
     assert_eq(@local_sga.cleanup_graph_degree(one_short), Ok(true))
+    // Each of two rows has an object and two scalar values: six nodes.
+    // The "node" and "degree" field names cost 4 + 6 bytes per row.
+    // The independently calculated value-work requirement is 6 + 20 = 26.
+    let value_exact = start(8, 18, 26).unwrap()
+    let value_output = finish_graph_degree(value_exact).unwrap()
+    assert_eq(@execution.completed_row_count(value_output), 2)
+    assert_eq(@local_sga.cleanup_graph_degree(value_exact), Ok(true))
+    let value_short = start(8, 18, 25).unwrap()
+    assert_true(
+      finish_graph_degree(value_short)
+      is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+    )
+    assert_eq(@local_sga.cleanup_graph_degree(value_short), Ok(true))
     assert_true(@graphs.discard_completed(graph))
     assert_true(@execution.completed_output_available(output))
   }
