@@ -47,6 +47,48 @@ pub fn effect_result_binding_issue_field(
 pub struct EffectResultBinding {
   header : @syntax.EffectHeader
   result : @results.ResultDefinition?
+  fields : Array[EffectResultFieldBinding]
+}
+
+///|
+pub(all) enum EffectResultFieldRole {
+  EffectSelector
+  EffectUpsertKey
+  EffectCommandTarget
+  EffectValue(String)
+} derive(Eq, Debug)
+
+///|
+pub struct EffectResultFieldBinding {
+  role : EffectResultFieldRole
+  field : @schema.Field
+}
+
+///|
+pub fn effect_result_field_binding_role(
+  binding : EffectResultFieldBinding,
+) -> EffectResultFieldRole {
+  binding.role
+}
+
+///|
+pub fn effect_result_field_binding_field(
+  binding : EffectResultFieldBinding,
+) -> @schema.Field {
+  binding.field
+}
+
+///|
+pub fn effect_result_field_binding_count(binding : EffectResultBinding) -> Int {
+  binding.fields.length()
+}
+
+///|
+pub fn effect_result_field_binding_at(
+  binding : EffectResultBinding,
+  index : Int,
+) -> EffectResultFieldBinding? {
+  binding.fields.get(index)
 }
 
 ///|
@@ -120,11 +162,10 @@ fn binding_field(
   header : @syntax.EffectHeader,
   result : @results.ResultDefinition,
   name : String,
-) -> Result[Unit, EffectResultBindingIssue] {
-  if @schema.lookup_reference(@results.output_schema(result), name) is None {
-    Err(binding_issue(MissingField, header, field=Some(name)))
-  } else {
-    Ok(())
+) -> Result[@schema.Field, EffectResultBindingIssue] {
+  match @schema.lookup_reference(@results.output_schema(result), name) {
+    None => Err(binding_issue(MissingField, header, field=Some(name)))
+    Some(field) => Ok(field)
   }
 }
 
@@ -142,10 +183,10 @@ fn binding_charge(
 }
 
 ///|
-/// Bind an authored Result field to the admitted Stage Result schema. This
-/// establishes Result ownership and field existence only. Mapping/Command
-/// closure, field types, current authority, Preview, and apply admission are
-/// separate obligations; this value is not an execution permit.
+/// Bind authored member fields to the admitted Stage Result schema. This
+/// retains exact Result ownership and checked field contracts, but does not
+/// establish Mapping/Command compatibility, current authority, Preview, or
+/// apply admission. The binding is not an execution permit.
 pub fn bind_effect_results(
   headers : @syntax.EffectHeaders,
   checked : Checked,
@@ -179,6 +220,7 @@ pub fn bind_effect_results(
   let members : Array[EffectResultBinding] = []
   for index in 0..<count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
+    let fields : Array[EffectResultFieldBinding] = []
     let result = match @syntax.effect_header_source_result(header) {
       None => None
       Some(name) => {
@@ -197,6 +239,7 @@ pub fn bind_effect_results(
       let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
       let kind = @syntax.effect_header_kind(header)
       let mut direct : @decode.Cursor? = None
+      let mut direct_role = EffectSelector
       if kind == "update" || kind == "delete" {
         if @decode.lookup(body, "id") is Some(value) {
           direct = Some(value)
@@ -206,9 +249,11 @@ pub fn bind_effect_results(
         }
       } else if kind == "upsert" {
         direct = @decode.lookup(body, "key")
+        direct_role = EffectUpsertKey
       } else if kind == "command" {
         let target = @decode.lookup(body, "target").unwrap()
         direct = @decode.lookup(@decode.open_object(target).unwrap(), "field")
+        direct_role = EffectCommandTarget
       }
       if direct is Some(cursor) {
         remaining = match binding_charge(header, remaining, 1) {
@@ -217,7 +262,7 @@ pub fn bind_effect_results(
         }
         let name = @decode.text(cursor).unwrap()
         match binding_field(header, definition, name) {
-          Ok(_) => ()
+          Ok(field) => fields.push({ role: direct_role, field, })
           Err(issue) => return Err(issue)
         }
       }
@@ -235,19 +280,19 @@ pub fn bind_effect_results(
           Err(issue) => return Err(issue)
         }
         for i in 0..<n {
-          let (_, value) = @decode.field_at(map, i).unwrap()
+          let (target, value) = @decode.field_at(map, i).unwrap()
           let wrapper = @decode.open_object(value).unwrap()
           if @decode.lookup(wrapper, "field") is Some(field) {
             let name = @decode.text(field).unwrap()
             match binding_field(header, definition, name) {
-              Ok(_) => ()
+              Ok(field) => fields.push({ role: EffectValue(target), field, })
               Err(issue) => return Err(issue)
             }
           }
         }
       }
     }
-    members.push({ header, result, })
+    members.push({ header, result, fields, })
   }
   Ok({ owner: checked, headers, members, work: max_work - remaining, })
 }
