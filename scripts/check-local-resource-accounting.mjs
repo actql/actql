@@ -249,6 +249,27 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: missing operation boundary fixture ${item.fixture}`);
     }
   }
+  const environmentRoles = new Set();
+  for (const item of route.environment_tests ?? []) {
+    if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
+      fail(`${label}: environment roles must be named and unique`);
+    }
+    environmentRoles.add(item.role);
+    const suitePath = {
+      'node:duckdb_standard_host':
+        'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
+    }[item.suite];
+    if (!suitePath || item.path !== suitePath ||
+      JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
+      typeof item.fixture !== 'string') {
+      fail(`${label}: environment evidence must name an executable suite`);
+      continue;
+    }
+    const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+    if (!sourceText.includes(`name: '${item.fixture}'`)) {
+      fail(`${label}: missing environment fixture ${item.fixture}`);
+    }
+  }
   if (['traverse', 'apply_graph_delta'].includes(route.operation) &&
     route.family === 'SGA' &&
     !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
@@ -290,6 +311,9 @@ for (const [index, route] of routeEntries.entries()) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
       }
+    }
+    if (!environmentRoles.has('selected_sort_wide_comparison_host_timer')) {
+      fail(`${label}: selected sort Host timer evidence is missing`);
     }
   }
   if (route.family === 'RelA' && route.operation === 'assert_rows') {

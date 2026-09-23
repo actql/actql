@@ -2770,6 +2770,9 @@ async function exerciseStrategyGraph(
       force: true,
     });
   }
+  const stressSortKeys = Array.from(
+    {length: 5}, (_, index) => `sort_key_${index + 1}`,
+  );
   const graphCancellationCases = [{
     name: 'concise-graph-construction',
     concise: true,
@@ -2834,6 +2837,28 @@ async function exerciseStrategyGraph(
       from: 'projected', sort: [{id: 'desc'}], as: 'out',
     }],
     fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-sort-wide-comparison',
+    rows: 2,
+    sortStress: true,
+    cancelAfterSortAdvances: 70,
+    advanceQuantum: 1,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected',
+      sort: [
+        {node_name: 'asc'},
+        ...stressSortKeys.map(key => ({[key]: 'asc'})),
+        {id: 'asc'},
+      ],
+      as: 'out',
+    }],
+    fields: ['id', 'node_name', ...stressSortKeys],
   }, {
     name: 'normalize-assert',
     rows: 40,
@@ -4080,6 +4105,21 @@ async function exerciseStrategyGraph(
           weight: index + 1,
         }));
     }
+    if (graphFamily && cancellationCase.sortStress) {
+      const valueStep = graphCancellationProgram.stages[1].steps[0].values;
+      for (const key of stressSortKeys) {
+        valueStep.schema[key] = {type: 'string', nullable: false};
+      }
+      for (const row of valueStep.rows) {
+        row.node_name = 'x'.repeat(165);
+        for (const key of stressSortKeys) row[key] = 'x'.repeat(165);
+      }
+      graphCancellationProgram.stages[1].results.r.fields.push(
+        ...stressSortKeys,
+      );
+      graphCancellationProgram.stages[graphStageIndex].steps[0]
+        .graph.nodes.fields.push(...stressSortKeys);
+    }
     if (graphFamily) {
       if (cancellationCase.concise === true) {
         graphCancellationProgram.stages[graphStageIndex].steps[0] = {
@@ -4204,6 +4244,8 @@ async function exerciseStrategyGraph(
     let cancellationDeliveredAt;
     let stopObservedAt;
     let managedStarts = 0;
+    let maxSortResumeMs = 0;
+    let selectedSortAdvances = 0;
     const advanceObservations = [];
     const finalizationObservations = [];
     const lifecycleObservations = [];
@@ -4287,10 +4329,28 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const selectedQuantum = cancellationCase.advanceQuantum ??
                     quantum;
+                  const resumeStartedAt = cancellationCase.sortStress &&
+                    start === 5
+                    ? performance.now() : 0;
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
                   advanceObservations.push({start, observation});
-                  if (!cancellationCase.cancelDuringFinalization &&
+                  if (cancellationCase.sortStress && start === 5) {
+                    maxSortResumeMs = Math.max(
+                      maxSortResumeMs,
+                      performance.now() - resumeStartedAt,
+                    );
+                    selectedSortAdvances++;
+                  }
+                  if (cancellationCase.cancelAfterSortAdvances !== undefined &&
+                      start === 5 && observation?.complete === false &&
+                      selectedSortAdvances >=
+                        cancellationCase.cancelAfterSortAdvances &&
+                      !cancellationScheduled) {
+                    sawOperationWork = true;
+                    cancellationScheduled = true;
+                    setTimeout(() => graphCancellation.abort(), 0);
+                  } else if (!cancellationCase.cancelDuringFinalization &&
                       cancellationCase.cancelOnManagedStart === start &&
                       observation?.complete === false &&
                       observation.work > 0n && !cancellationScheduled) {
@@ -4311,6 +4371,7 @@ async function exerciseStrategyGraph(
                       setTimeout(() => graphCancellation.abort(), 0);
                     }
                   } else if (!cancellationCase.cancelDuringFinalization &&
+                      cancellationCase.cancelAfterSortAdvances === undefined &&
                       cancellationCase.cancelOnManagedStart === undefined &&
                       constructionComplete &&
                       observation?.complete === false &&
@@ -4363,10 +4424,24 @@ async function exerciseStrategyGraph(
           failure: cancellationExecution.failure?.message,
         }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
       );
+      if (cancellationCase.sortStress) {
+        assert(selectedSortAdvances >=
+          cancellationCase.cancelAfterSortAdvances);
+        assert(Number.isFinite(maxSortResumeMs));
+      }
       assert.equal(graphCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(cancellationDeliveredAt), true);
       assert.equal(Number.isFinite(stopObservedAt), true);
       assert(stopObservedAt >= cancellationDeliveredAt);
+      if (cancellationCase.sortStress) {
+        console.log('ACTQL_SORT_CANCEL_PROFILE', JSON.stringify({
+          maxResumeMs: maxSortResumeMs,
+          stopAfterDeliveryMs: stopObservedAt - cancellationDeliveredAt,
+          selectedSortAdvances,
+          keys: stressSortKeys.length + 2,
+          textBytesPerKey: 165,
+        }));
+      }
       if (cancellationCase.cancelDuringFinalization) {
         assert.equal(
           finalizationObservations.some(value =>

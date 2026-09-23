@@ -69,11 +69,17 @@ readable coverage manifest is authoritative for individual operation status.
   construction, normalization, and node projection. Other selected Relation
   fallback kernels remain synchronous and unverified for in-flight cancel.
   The sort's outer merge is bounded, but each comparison still processes all
-  ordering terms and long text operands synchronously. Maximum-profile
-  equal-prefix and many-key inputs need measured per-resume and Host timer
-  cancellation evidence. No response-time violation has yet been reproduced;
-  split comparison work or select a stoppable execution placement if the
-  measured non-interruptible interval exceeds the accepted profile.
+  ordering terms and long text operands synchronously. A Node standard Host
+  stress case now uses the maximum ten-column fixture schema and seven sort
+  keys, including six equal 165-byte text values (990 text bytes per row
+  under the fixture's 1,000 `max_value_bytes` setting). It measures the maximum
+  resume duration, delivers a real timer cancellation after 70 quantum-one
+  advances, and verifies stop and cleanup. A local run measured
+  0.347 ms maximum resume and 0.099 ms from delivery to stop. These are
+  environment diagnostics, not a universal deadline or proof for every
+  admitted representation. No response-time violation has been reproduced;
+  split comparison work or select a stoppable placement if further admitted
+  profiles exceed the accepted response behavior.
   The checked `assert_rows` where branch now also uses the bounded Relation
   session after a Carrier projection. Its false/NULL predicate is an assertion
   failure, never a filter omission; a later failure leaves no completion.
