@@ -48,8 +48,9 @@ pub(all) struct EffectSetFrontier {
 ///|
 /// This is progress over already admitted and durably recorded members, not
 /// permission to send. Every member is independent; halt affects only rows of
-/// that member. An unsettled physical request prevents a new row of its member
-/// from starting, but it does not suppress another member in the Effect Set.
+/// that member. One continue-member collection may leave several rows sending
+/// or settle them separately. An unsettled physical request prevents a new
+/// row of its member from starting, but does not suppress another member.
 pub fn effect_set_frontier(
   members : Array[EffectMemberProgress],
   max_members : Int,
@@ -99,18 +100,18 @@ pub fn effect_set_frontier(
       match current.rows[row_index] {
         ItemUnattempted => if next < 0 { next = row_index }
         ItemSending => {
-          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
+          if next >= 0 || (current.policy is HaltMember && (sending || blocked)) {
             return Err(InvalidHistory)
           }
           sending = true
           any_sending = true
         }
         ItemApplied | ItemAccepted =>
-          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
+          if next >= 0 || (current.policy is HaltMember && (sending || blocked)) {
             return Err(InvalidHistory)
           }
         ItemFailed => {
-          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
+          if next >= 0 || (current.policy is HaltMember && (sending || blocked)) {
             return Err(InvalidHistory)
           }
           any_failed = true
@@ -119,7 +120,7 @@ pub fn effect_set_frontier(
           }
         }
         ItemUnknown => {
-          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
+          if next >= 0 || (current.policy is HaltMember && (sending || blocked)) {
             return Err(InvalidHistory)
           }
           any_unknown = true
@@ -255,6 +256,7 @@ fn effect_set_frontier_from_ledger_entries(
     }
     total_rows += bases.length()
     let rows : Array[EffectItemProgress] = []
+    let mut sending_request : String? = None
     for row_index in 0..<bases.length() {
       work += 1
       if work >= max_work {
@@ -270,6 +272,14 @@ fn effect_set_frontier_from_ledger_entries(
         Some(entry) => {
           if !effect_ledger_entry_matches_basis(entry, bases[row_index]) {
             return Err(ForeignLedgerEntry(member_index, row_index))
+          }
+          if entry.state == Dispatching {
+            match sending_request {
+              None => sending_request = Some(entry.canonical_request_cid)
+              Some(cid) if cid != entry.canonical_request_cid =>
+                return Err(InvalidHistory)
+              _ => ()
+            }
           }
           match entry.state {
             Prepared => ItemUnattempted
