@@ -335,6 +335,28 @@ test "placement policy wire admits only exact authenticated pending decision" {
   )
   assert_true(
     @strategy.admit_placement_policy_response_json(
+      wire.replace_all(
+        old=request.candidate_set_cid,
+        new="sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      ),
+      request,
+      "cloud",
+    )
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.admit_placement_policy_response_json(
+      wire.replace_all(
+        old="\"deadline_ms\":\"100\"",
+        new="\"deadline_ms\":\"101\"",
+      ),
+      request,
+      "cloud",
+    )
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.admit_placement_policy_response_json(
       wire.replace_all(old="\"position\":7", new="\"position\":7,\"extra\":1"),
       request,
       "cloud",
@@ -343,6 +365,15 @@ test "placement policy wire admits only exact authenticated pending decision" {
   )
   assert_true(
     @strategy.commit_strategy_policy_decision(choices, request, response, 101L)
+    is Err(InvalidPreference),
+  )
+  let unknown = @strategy.admit_placement_policy_response_json(
+    wire.replace_all(old="\"position\":7", new="\"position\":8"),
+    request,
+    "cloud",
+  ).unwrap()
+  assert_true(
+    @strategy.commit_strategy_policy_decision(choices, request, unknown, 1L)
     is Err(InvalidPreference),
   )
   guard @strategy.commit_strategy_policy_decision(
