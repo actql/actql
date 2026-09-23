@@ -18,6 +18,13 @@ const cid = value => typeof value === 'string' &&
 const count = value => Number.isSafeInteger(value) && value >= 0;
 const physicalDigest = bytes =>
   createHash('sha256').update(bytes).digest('hex');
+const responseDigest = row => createHash('sha256')
+  .update('actql-effect-physical-response/0.1\0')
+  .update(`${row.logical_item_locator_cid}|${row.dispatch_entry_cid}|`)
+  .update(`${row.logical_request_scope_cid}|${row.credential_use_cid}|`)
+  .update(`${row.status_code}|`)
+  .update(row.response_bytes)
+  .digest('hex');
 
 function transaction(database, action) {
   database.exec('BEGIN IMMEDIATE');
@@ -38,11 +45,13 @@ export function openSqliteEffectLedger(root, {
   authorityScopeCid,
   maxEntries = 100_000,
   maxEntryBytes = 1_048_576,
+  maxResponseBytes = 1_000_000,
   maxStoredBytes = 134_217_728,
 } = {}) {
   if (typeof root !== 'string' || root.length === 0 ||
       !cid(authorityScopeCid) || !count(maxEntries) || maxEntries === 0 ||
       !count(maxEntryBytes) || maxEntryBytes === 0 ||
+      !count(maxResponseBytes) || maxResponseBytes === 0 ||
       !count(maxStoredBytes) || maxStoredBytes === 0) {
     fail('InvalidEffectLedgerConfiguration');
   }
@@ -85,6 +94,19 @@ export function openSqliteEffectLedger(root, {
             REFERENCES effect_ledger_entries
               (logical_item_locator_cid, revision)
         ) STRICT;
+        CREATE TABLE IF NOT EXISTS effect_ledger_responses (
+          logical_item_locator_cid TEXT NOT NULL,
+          dispatch_entry_cid TEXT NOT NULL UNIQUE,
+          logical_request_scope_cid TEXT NOT NULL,
+          credential_use_cid TEXT NOT NULL,
+          status_code INTEGER NOT NULL CHECK
+            (status_code >= 100 AND status_code <= 599),
+          response_bytes BLOB NOT NULL,
+          physical_sha256 TEXT NOT NULL,
+          PRIMARY KEY (logical_item_locator_cid, dispatch_entry_cid),
+          FOREIGN KEY (dispatch_entry_cid)
+            REFERENCES effect_ledger_entries (entry_cid)
+        ) STRICT;
       `);
       const metadata = database.prepare(
         'SELECT value FROM effect_ledger_metadata WHERE key = ?',
@@ -112,13 +134,21 @@ export function openSqliteEffectLedger(root, {
   }
 
   const usage = database.prepare(`
-    SELECT COUNT(*) AS entries,
-      COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0) AS bytes
-    FROM effect_ledger_entries
+    SELECT
+      (SELECT COUNT(*) FROM effect_ledger_entries) +
+      (SELECT COUNT(*) FROM effect_ledger_responses) AS entries,
+      (SELECT COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0)
+        FROM effect_ledger_entries) +
+      (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
+        FROM effect_ledger_responses) AS bytes,
+      (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
+        FROM effect_ledger_responses) AS max_response_bytes
   `);
   const initialUsage = usage.get();
   if (!count(initialUsage.entries) || !count(initialUsage.bytes) ||
+      !count(initialUsage.max_response_bytes) ||
       initialUsage.entries > maxEntries ||
+      initialUsage.max_response_bytes > maxResponseBytes ||
       initialUsage.bytes > maxStoredBytes) {
     database.close();
     fail('EffectLedgerCapacityExceeded');
@@ -133,6 +163,16 @@ export function openSqliteEffectLedger(root, {
     SELECT logical_item_locator_cid, revision, entry_cid, entry_json,
       physical_sha256 FROM effect_ledger_entries
     WHERE logical_item_locator_cid = ? AND revision = ?
+  `);
+  const readResponse = database.prepare(`
+    SELECT logical_item_locator_cid, dispatch_entry_cid,
+      logical_request_scope_cid, credential_use_cid, status_code,
+      response_bytes, physical_sha256
+    FROM effect_ledger_responses WHERE dispatch_entry_cid = ?
+  `);
+  const readDispatchEntry = database.prepare(`
+    SELECT logical_item_locator_cid FROM effect_ledger_entries
+    WHERE entry_cid = ?
   `);
   const materialize = (row, scopeCid) => {
     if (row === undefined) fail('EffectLedgerEntryMissing');
@@ -170,8 +210,93 @@ export function openSqliteEffectLedger(root, {
     }
     return entry;
   };
+  const materializeResponse = row => {
+    if (row === undefined) return undefined;
+    if (!cid(row.logical_item_locator_cid) ||
+        !cid(row.dispatch_entry_cid) ||
+        !cid(row.logical_request_scope_cid) ||
+        !cid(row.credential_use_cid) ||
+        !count(row.status_code) || row.status_code < 100 ||
+        row.status_code > 599 ||
+        !(row.response_bytes instanceof Uint8Array) ||
+        row.response_bytes.byteLength > maxResponseBytes ||
+        responseDigest(row) !== row.physical_sha256 ||
+        readDispatchEntry.get(row.dispatch_entry_cid)
+          ?.logical_item_locator_cid !== row.logical_item_locator_cid) {
+      fail('EffectLedgerIntegrityFailed');
+    }
+    return Object.freeze({
+      logicalItemLocatorCid: row.logical_item_locator_cid,
+      dispatchEntryCid: row.dispatch_entry_cid,
+      logicalRequestScopeCid: row.logical_request_scope_cid,
+      credentialUseCid: row.credential_use_cid,
+      statusCode: row.status_code,
+      responseBytes: Buffer.from(row.response_bytes),
+    });
+  };
   return Object.freeze({
     current,
+    response(dispatchEntryCid) {
+      active();
+      if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
+      return materializeResponse(readResponse.get(dispatchEntryCid));
+    },
+    recordResponse({logicalRequestScopeCid, logicalItemLocatorCid,
+      dispatchEntryCid, credentialUseCid, statusCode, responseBytes}) {
+      active();
+      if (!cid(logicalRequestScopeCid) ||
+          !cid(logicalItemLocatorCid) || !cid(dispatchEntryCid) ||
+          !cid(credentialUseCid) || !count(statusCode) ||
+          statusCode < 100 || statusCode > 599 ||
+          !(responseBytes instanceof Uint8Array) ||
+          responseBytes.byteLength > maxResponseBytes) {
+        fail('InvalidEffectPhysicalResponse');
+      }
+      return transaction(database, () => {
+        const existing = materializeResponse(
+          readResponse.get(dispatchEntryCid));
+        if (existing !== undefined) {
+          if (existing.logicalRequestScopeCid !== logicalRequestScopeCid ||
+              existing.logicalItemLocatorCid !== logicalItemLocatorCid ||
+              existing.credentialUseCid !== credentialUseCid ||
+              existing.statusCode !== statusCode ||
+              !existing.responseBytes.equals(Buffer.from(responseBytes))) {
+            fail('EffectPhysicalResponseCollision');
+          }
+          return Object.freeze({response: existing, created: false});
+        }
+        const head = readHead.get(logicalItemLocatorCid);
+        if (head?.logical_request_scope_cid !== logicalRequestScopeCid ||
+            head.entry_cid !== dispatchEntryCid) {
+          fail('EffectDispatchNotCurrent');
+        }
+        const currentUsage = usage.get();
+        if (currentUsage.entries >= maxEntries ||
+            currentUsage.bytes > maxStoredBytes - responseBytes.byteLength) {
+          fail('EffectLedgerCapacityExceeded');
+        }
+        database.prepare(`
+          INSERT INTO effect_ledger_responses (
+            logical_item_locator_cid, dispatch_entry_cid,
+            logical_request_scope_cid, credential_use_cid,
+            status_code, response_bytes, physical_sha256
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(logicalItemLocatorCid, dispatchEntryCid,
+          logicalRequestScopeCid, credentialUseCid,
+          statusCode, responseBytes, responseDigest({
+            logical_item_locator_cid: logicalItemLocatorCid,
+            dispatch_entry_cid: dispatchEntryCid,
+            logical_request_scope_cid: logicalRequestScopeCid,
+            credential_use_cid: credentialUseCid,
+            status_code: statusCode,
+            response_bytes: responseBytes,
+          }));
+        return Object.freeze({
+          response: materializeResponse(readResponse.get(dispatchEntryCid)),
+          created: true,
+        });
+      });
+    },
     append({
       logicalRequestScopeCid,
       logicalItemLocatorCid,
