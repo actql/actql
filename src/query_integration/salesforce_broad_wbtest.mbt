@@ -430,8 +430,13 @@ priv struct SalesforceIssuedFixture {
 }
 
 ///|
-fn salesforce_issued_fixture() -> SalesforceIssuedFixture raise {
-  let requirement = salesforce_broad_requirement()
+fn salesforce_issued_fixture(
+  requirement? : @planning.QueryRequirement? = None,
+) -> SalesforceIssuedFixture raise {
+  let requirement = match requirement {
+    Some(value) => value
+    None => salesforce_broad_requirement()
+  }
   let preparation = @salesforce_query.prepare_salesforce_broad_query(
     requirement,
     salesforce_broad_plan(),
@@ -589,6 +594,20 @@ test "Salesforce completion requires selected attempt and settled transport" {
     ),
   )
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+  let source = @salesforce_query.salesforce_broad_captured_source(
+    fixture.issuer,
+    settled,
+    observation,
+  ).unwrap()
+  assert_true(
+    @query.captured_source_matches(
+      source,
+      @planning.query_requirement_program(fixture.requirement),
+      owner,
+    ),
+  )
+  assert_eq(@query.captured_source_row_count(source), Some(2))
+  let source_input = @query.bind_captured_source(source, receiver, 0).unwrap()
   let input = @salesforce_query.bind_captured_salesforce_broad_input(
     fixture.issuer,
     settled,
@@ -611,6 +630,19 @@ test "Salesforce completion requires selected attempt and settled transport" {
   assert_eq(@execution.completed_row_count(output), 2)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
   assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
+  let source_attempt = @execution.prepare_local_compute_attempt(
+    generated,
+    [source_input],
+    3,
+  ).unwrap()
+  let source_completed = @execution.execute_local_compute_attempt(
+    source_attempt,
+    compute_test_limits(),
+  ).unwrap()
+  let source_output = @execution.completed_output(source_completed, Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(source_output), 2)
+  assert_true(@execution.completed_cell(source_output, 0, 0) is Some(Number(3)))
+  assert_true(@execution.completed_cell(source_output, 1, 0) is Some(Number(2)))
   let foreign = salesforce_issued_read(fixture)
   fixture.settled.push(foreign)
   assert_true(
@@ -633,7 +665,24 @@ test "Salesforce completion requires selected attempt and settled transport" {
     )
     is Err(Attempt(InvalidState)),
   )
+  fixture.settled.clear()
+  assert_true(!@query.captured_source_available(source))
+  assert_true(
+    @query.bind_captured_source(source, receiver, 0) is Err(Unavailable),
+  )
   @salesforce_query.close_salesforce_broad_issuer(fixture.issuer)
+  assert_true(!@query.captured_source_available(source))
+  assert_true(
+    @query.bind_captured_source(source, receiver, 0) is Err(Unavailable),
+  )
+  assert_true(
+    @salesforce_query.salesforce_broad_captured_source(
+      fixture.issuer,
+      settled,
+      observation,
+    )
+    is Err(Unavailable),
+  )
   assert_true(
     @salesforce_query.prepare_issued_salesforce_broad_attempt(
       fixture.issuer,
@@ -642,4 +691,62 @@ test "Salesforce completion requires selected attempt and settled transport" {
     )
     is Err(IssuerClosed),
   )
+}
+
+///|
+test "Salesforce captured source opens the checked DAG for downstream consumers" {
+  let program = query_checked_program_fixture(dag=true)
+  let sequence = query_checked_sequence(program)
+  let requirement = @planning.prepare_query_requirement(
+    @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
+    @program_check.source_identity(program),
+    { max_rows: 2, max_value_bytes: 100, },
+    query_material_limits(),
+  ).unwrap()
+  let fixture = salesforce_issued_fixture(requirement=Some(requirement))
+  let attempt = salesforce_issued_read(fixture)
+  fixture.settled.push(attempt)
+  let observation = @salesforce_query.complete_salesforce_broad_capture(
+    fixture.issuer,
+    attempt,
+    salesforce_completion_limits(),
+  ).unwrap()
+  let source = @salesforce_query.salesforce_broad_captured_source(
+    fixture.issuer,
+    attempt,
+    observation,
+  ).unwrap()
+  let owners = physical_graph_owners(program)
+  owners[0] = @query.query_sequence_owner(sequence)
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program) + 100,
+    1000,
+  ).unwrap()
+  let ledger = @resources.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 32000000L,
+    execution_bytes: 134217728L,
+  }).unwrap()
+  let run = @strategy.open_captured_dag(graph, source, ledger).unwrap()
+  assert_eq(@strategy.next_captured_task(run), Some(1))
+  captured_graph_local(run, 1).unwrap()
+  captured_graph_local(run, 2).unwrap()
+  @salesforce_query.close_salesforce_broad_issuer(fixture.issuer)
+  captured_graph_local(run, 3).unwrap()
+  assert_true(@strategy.next_captured_task(run) is None)
+  for (task, expected) in [(1, [3.0]), (2, [3.0, 2.0]), (3, [3.0])] {
+    let output = @strategy.captured_task_output(run, task, Step(1)).unwrap()
+    assert_eq(@execution.completed_row_count(output), expected.length())
+    for i, value in expected {
+      assert_true(
+        @execution.completed_cell(output, i, 0) is Some(Number(actual)) &&
+        actual == value,
+      )
+    }
+  }
 }
