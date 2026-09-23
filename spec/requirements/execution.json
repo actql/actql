@@ -1708,6 +1708,28 @@
       }
     },
     {
+      "requirement_id": "actql.execution/preview-strength.effect-set-receipt-must-match-member-partitions",
+      "statement_sha256": "4b44355ec90e9fe436c6eba6c99e3875a61146f8b73877a26a70db95f7982761",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "preview-strength",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/preview-strength.repeated-member-outcome-must-match-exact-value",
+      "statement_sha256": "a9e05c8145ee03d823ca6eecee219488e687381209a8d81060791b54a1c41e89",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "preview-strength",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/preview-strength.the-host-must-not-silently-regenerate-a-new-preview-and",
       "statement_sha256": "1232b0178317d4e45fcadf57a26133d98392db0b5eb0e80e35c6d481f6faf6c1",
       "status": "pending",
