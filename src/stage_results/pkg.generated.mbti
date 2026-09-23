@@ -160,6 +160,16 @@ pub fn effect_result_field_binding_field(EffectResultFieldBinding) -> @relation_
 
 pub fn effect_result_field_binding_role(EffectResultFieldBinding) -> EffectResultFieldRole
 
+pub fn effect_static_candidate_command_targets(EffectStaticCandidate) -> EffectCommandTargets
+
+pub fn effect_static_candidate_mapping_literals(EffectStaticCandidate) -> EffectMappingLiterals
+
+pub fn effect_static_candidate_mapping_rules(EffectStaticCandidate) -> EffectMappingRules
+
+pub fn effect_static_candidate_results(EffectStaticCandidate) -> EffectResultBindings
+
+pub fn effect_static_candidate_work(EffectStaticCandidate) -> Int
+
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
 pub fn export_count(ResultWiring) -> Int
@@ -203,6 +213,8 @@ pub fn local_source_values(PreparedLocalSource) -> @parameter_binding.BoundValue
 pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
+
+pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogContents, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
 
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
@@ -433,6 +445,36 @@ pub(all) enum EffectResultFieldRole {
   EffectUpsertKey
   EffectCommandTarget
   EffectValue(String)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectStaticCandidate {
+  results : EffectResultBindings
+  mapping_shapes : EffectMappingShapes
+  mapping_rules : EffectMappingRules
+  mapping_literals : EffectMappingLiterals
+  command_targets : EffectCommandTargets
+  work : Int
+}
+
+pub(all) enum EffectStaticCandidateIssue {
+  InvalidLimits
+  MemberLimit
+  ForeignEnvironment
+  WorkLimit
+  Results(EffectResultBindingIssue)
+  MappingShapes(EffectMappingShapeIssue)
+  MappingRules(EffectMappingRuleIssue)
+  MappingLiterals(EffectMappingLiteralIssue)
+  CommandTargets(EffectCommandTargetIssue)
+  IncompleteInventory
+}
+
+pub(all) struct EffectStaticCandidateLimits {
+  max_members : Int
+  max_work : Int
+  max_value_nodes : Int
+  max_value_depth : Int
+  max_value_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ImportIssue {
