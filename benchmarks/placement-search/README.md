@@ -43,3 +43,20 @@ This shows a finite observed execution cost for the seven-task bounded
 fixture. A release Host profile at larger task counts and with actual provider
 capabilities is still required to close PERF-2; this diagnostic must not be
 used as its substitute.
+
+At clean revision `7b20284c8c0d5018e55b161bbdd223ea71dce051` on macOS
+arm64 with Node 22.23.2, the release test bundle passed 553/553 and three
+100-repetition runs produced:
+
+| Profile | Incremental fixture ms (three runs) | 100-repeat process peak RSS KiB (three runs) |
+| --- | --- | --- |
+| Seven tasks, five offers each | 14.566, 15.122, 18.022 | 359792, 360144, 354544 |
+| Seven tasks, one and two offers | 27.432, 27.502, 26.688 | 474864, 473552, 471152 |
+
+The release build does not change the benchmark's scope. The second profile
+still executes two complete configurations per repetition. The raw JSON is in
+`workspace/.codex-scratch/placement-search-7b20284-release-run[1-3].json`
+with SHA-256 values
+`c9ac9ef070989b255cfb9cfdff9aec309b3709482a382981d625de70dc6ded0a`,
+`1ba62c6dcc0e41d62bcde564169d322a7296ee9c7c7a298640a3a6ed2f0934b7`
+and `aa659d32b4aca51c1502bb44ae506facf546a0e3197ffd7b40255a69fdce6286`.
