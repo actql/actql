@@ -69,6 +69,7 @@ async function fixture(t) {
   let requests = 0;
   let redirected = 0;
   const mutationBodies = [];
+  const exactTargets = [];
   const server = createServer({cert, key}, (request, response) => {
     requests++;
     if (request.url === '/redirected') redirected++;
@@ -93,6 +94,16 @@ async function fixture(t) {
     } else if (request.url === '/mutation-redirect' &&
         request.method === 'POST') {
       response.writeHead(302, {location: '/redirected'}).end();
+    } else if (request.url.startsWith('/exact/') &&
+        ['GET', 'POST', 'PATCH'].includes(request.method)) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.once('end', () => {
+        exactTargets.push({method: request.method, path: request.url,
+          body: Buffer.concat(chunks).toString('utf8')});
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end('{}');
+      });
     } else {
       response.writeHead(404).end();
     }
@@ -128,6 +139,7 @@ async function fixture(t) {
     requests: () => requests,
     redirected: () => redirected,
     mutationBodies: () => [...mutationBodies],
+    exactTargets: () => [...exactTargets],
   });
 }
 
@@ -193,6 +205,58 @@ test('scoped credential is claimed before an authenticated HTTPS request',
       {code: 'RemoteCredentialUseAlreadyClaimed'},
     );
     assert.equal(setup.requests(), 1);
+  });
+
+test('HTTPS request-target is sent exactly as admitted before the use claim',
+  async t => {
+    const setup = await fixture(t);
+    const targets = [
+      '/exact/.',
+      '/exact/..',
+      '/exact/a.b',
+      '/exact/%2E',
+      '/exact/a%2Fb',
+      '/exact/100%25',
+      '/exact/%C3%A9',
+      '/exact/a%3Fb%23c',
+    ];
+    for (let index = 0; index < targets.length; index++) {
+      const operation = `records:exact:${index}`;
+      const grantScope = scope(setup.origin, operation);
+      const grant = control.prepare(grantScope);
+      setup.journal.acceptGrant(setup.sign(grant), control);
+      const body = JSON.stringify({index});
+      const result = await call(setup, grant, grantScope, `exact-use-${index}`, {
+        operations: new Map([[operation,
+          {method: 'PATCH', path: targets[index], body}]]),
+      });
+      assert.equal(result.accepted, true);
+      assert.deepEqual(setup.exactTargets()[index],
+        {method: 'PATCH', path: targets[index], body});
+    }
+    const priorRequests = setup.requests();
+    const priorUses = setup.journal.recover().length;
+    for (const [index, path] of [
+      '/exact/raw#fragment',
+      '/exact/raw space',
+      '/exact/\\backslash',
+      '/exact/é',
+      '/exact/%2',
+    ].entries()) {
+      const operation = `records:invalid:${index}`;
+      const grantScope = scope(setup.origin, operation);
+      const grant = control.prepare(grantScope);
+      setup.journal.acceptGrant(setup.sign(grant), control);
+      await assert.rejects(
+        call(setup, grant, grantScope, `invalid-use-${index}`, {
+          operations: new Map([[operation,
+            {method: 'PATCH', path, body: '{}'}]]),
+        }),
+        {code: 'InvalidRemoteCredentialOperation'},
+      );
+    }
+    assert.equal(setup.requests(), priorRequests);
+    assert.equal(setup.journal.recover().length, priorUses);
   });
 
 test('expiry during secret resolution consumes use without external I/O',
