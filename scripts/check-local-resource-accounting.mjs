@@ -15,6 +15,8 @@ const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const manifest = readJson(manifestPath);
 const errors = [];
 const fail = message => errors.push(message);
+const requireBoundaryComplete =
+  process.argv.includes('--require-boundary-complete');
 
 if (manifest.version !== 'actql-local-resource-accounting-audit/0.1') {
   fail(`unexpected manifest version: ${manifest.version}`);
@@ -270,6 +272,34 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
   }
+  const boundaryAssurance = route.boundary_assurance;
+  if (boundaryAssurance !== undefined) {
+    const requiredProofs = [
+      'exact_limit',
+      'one_short_limit',
+      'in_flight_cancel',
+      'cleanup',
+    ];
+    if (!boundaryAssurance || typeof boundaryAssurance !== 'object' ||
+      Array.isArray(boundaryAssurance) ||
+      Object.keys(boundaryAssurance).length !== requiredProofs.length ||
+      requiredProofs.some(proof =>
+        typeof boundaryAssurance[proof] !== 'string')) {
+      fail(`${label}: boundary assurance must name all four proof roles`);
+    } else {
+      for (const proof of requiredProofs) {
+        const role = boundaryAssurance[proof];
+        const roles = proof === 'in_flight_cancel'
+          ? environmentRoles
+          : boundaryRoles;
+        if (!roles.has(role)) {
+          fail(`${label}: ${proof} does not bind an executable fixture`);
+        }
+      }
+    }
+  } else if (requireBoundaryComplete) {
+    fail(`${label}: boundary assurance is missing`);
+  }
   if (['traverse', 'apply_graph_delta'].includes(route.operation) &&
     route.family === 'SGA' &&
     !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
@@ -378,11 +408,14 @@ if (errors.length > 0) {
 } else {
   const boundaryRoutes = routeEntries.filter(route =>
     (route.boundary_tests ?? []).length > 0).length;
+  const assuredRoutes = routeEntries.filter(route =>
+    route.boundary_assurance !== undefined).length;
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
     `${Object.keys(profiles).length} implementation profiles, ` +
     `${routeEntries.length} production routes mapped, ` +
-    `${boundaryRoutes} with operation-specific boundary records; ` +
+    `${boundaryRoutes} with operation-specific boundary records, ` +
+    `${assuredRoutes} with complete boundary assurance; ` +
     `full boundary completion is not asserted.`,
   );
 }

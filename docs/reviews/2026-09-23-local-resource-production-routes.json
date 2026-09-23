@@ -56,7 +56,13 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "normalize-filter"
         }
-      ]
+      ],
+      "boundary_assurance": {
+        "exact_limit": "filter_input_exact",
+        "one_short_limit": "filter_input_one_short",
+        "in_flight_cancel": "filter_in_flight_host_timer",
+        "cleanup": "filter_cancel_cleanup"
+      }
     },
     {
       "inventory": "rela",
