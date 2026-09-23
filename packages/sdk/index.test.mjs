@@ -460,7 +460,8 @@ test('submit fixes Program and parameters before asynchronous token lookup',
 
 test('request lookup distinguishes retained Run, absence and malformed Host reply',
   async t => {
-    let reply = {kind: 'found', ref, durability: 'durable',
+    let reply = {kind: 'found', requestId: 'saved-id', ref,
+      durability: 'durable',
       lookupExpiresAt: '2026-09-24T00:00:00.000Z'};
     const requests = [];
     mock.method(globalThis, 'fetch', async (url, init) => {
@@ -473,12 +474,18 @@ test('request lookup distinguishes retained Run, absence and malformed Host repl
     assert.deepEqual(await client.lookupRequest('saved-id'), reply);
     reply = {kind: 'not_found'};
     assert.deepEqual(await client.lookupRequest('missing'), reply);
+    reply = {kind: 'found', requestId: 'other-id', ref,
+      durability: 'durable',
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'};
+    await assert.rejects(client.lookupRequest('saved-id'),
+      {code: 'InvalidHostRequestLookup'});
     reply = {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
       durability: 'durable', lookupExpiresAt: 'tomorrow'};
     await assert.rejects(client.lookupRequest('saved-id'),
       {code: 'InvalidHostRequestLookup'});
     assert.deepEqual(requests.map(item => item.operation),
-      ['connect', 'lookup-request', 'lookup-request', 'lookup-request']);
+      ['connect', 'lookup-request', 'lookup-request',
+        'lookup-request', 'lookup-request']);
   });
 
 test('delivery attempt lookup binds the existing Host evidence to the request',
