@@ -142,6 +142,8 @@ pub fn single_write_request_grant_operation(SingleWriteRequest) -> String
 
 pub fn single_write_request_kind(SingleWriteRequest) -> WriteSingleKind
 
+pub fn single_write_request_matches_preview_row_target(SingleWriteRequest, String, Int) -> Result[Bool, WriteCollectionRequestIssue]
+
 pub fn single_write_request_matches_site_scope(SingleWriteRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn single_write_request_method(SingleWriteRequest) -> String
@@ -169,6 +171,8 @@ pub fn write_collection_request_cid(WriteCollectionRequest, String, Int) -> Resu
 pub fn write_collection_request_effect_kind(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_grant_operation(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_matches_preview_row_target(WriteCollectionRequest, Int, String, Int) -> Result[Bool, WriteCollectionRequestIssue]
 
 pub fn write_collection_request_matches_site_scope(WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
 

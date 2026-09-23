@@ -140,3 +140,74 @@ pub fn prepare_write_target_identity(
   }
   Ok({ boundary_cid, scheme_cid, object_cid, })
 }
+
+///|
+/// The private Preview's update/upsert row identity names the provider key.
+/// Compare it under the admitted Catalog matching law, not as raw JSON text.
+fn write_target_matches_preview_correlation(
+  projection : WriteProjection,
+  target : WriteTargetValue,
+  correlation_wire : String,
+  max_target_bytes : Int,
+  max_identity_bytes : Int,
+) -> Result[Bool, WriteCollectionRequestIssue] {
+  if max_identity_bytes < 1 || max_target_bytes < 1 {
+    return Err(InvalidLimits)
+  }
+  let parsed = match
+    @source.parse_json(correlation_wire, {
+      max_input_bytes: max_identity_bytes,
+      max_nodes: 2,
+      max_depth: 1,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidTarget)
+  }
+  let admitted = match
+    @decode.admit(parsed, {
+      max_nodes: 2,
+      max_depth: 1,
+      max_string_bytes: max_target_bytes,
+      max_total_string_bytes: max_target_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidTarget)
+  }
+  let preview_target = match (projection.operation, target) {
+    (WriteUpdateById, RecordId(_)) =>
+      match @decode.text(admitted) {
+        Ok(value) => RecordId(value)
+        Err(_) => return Err(InvalidTarget)
+      }
+    (WriteUpsertByExternalId(_), ExternalText(_)) =>
+      match @decode.text(admitted) {
+        Ok(value) => ExternalText(value)
+        Err(_) => return Err(InvalidTarget)
+      }
+    (WriteUpsertByExternalId(_), ExternalInt(_)) =>
+      match @decode.int32(admitted) {
+        Ok(value) => ExternalInt(value)
+        Err(_) => return Err(InvalidTarget)
+      }
+    _ => return Err(InvalidTarget)
+  }
+  let physical = match
+    prepare_write_target_identity(
+      projection, target, max_target_bytes, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let preview = match
+    prepare_write_target_identity(
+      projection, preview_target, max_target_bytes, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    physical.boundary_cid == preview.boundary_cid &&
+    physical.scheme_cid == preview.scheme_cid &&
+    physical.object_cid == preview.object_cid,
+  )
+}
