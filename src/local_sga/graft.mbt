@@ -479,7 +479,8 @@ fn merge_set_property(
     Ok(@value_set.Continue(_)) => MergePending
     Ok(@value_set.Complete(value, ..)) => {
       let slots = @value_set.workspace_slots(execution)
-      if !@value_set.cleanup(execution).unwrap_or(false) {
+      if @value_set.cleanup(execution) is Err(_) ||
+        @value_set.cleanup_pending(execution) {
         return MergeFailed(InvalidGraftKernel)
       }
       state.set_execution = None
@@ -492,12 +493,16 @@ fn merge_set_property(
     }
     Ok(@value_set.Failed(issue, ..)) => {
       @value_set.cleanup(execution) |> ignore
-      state.set_execution = None
+      if !@value_set.cleanup_pending(execution) {
+        state.set_execution = None
+      }
       MergeFailed(GraftSet(issue))
     }
     Ok(@value_set.Stopped(reason, ..)) => {
       @value_set.cleanup(execution) |> ignore
-      state.set_execution = None
+      if !@value_set.cleanup_pending(execution) {
+        state.set_execution = None
+      }
       MergeStopped(reason)
     }
   }
@@ -1538,15 +1543,18 @@ fn graft_step(
 ///|
 fn cleanup_graft_state(state : GraftState) -> Bool {
   if state.set_execution is Some(execution) {
-    @bounded.request_cancel(state.set_control) |> ignore
-    match @value_set.advance(execution, 1) {
-      Ok(@value_set.Stopped(_)) => ()
-      _ => return false
+    if !@value_set.stopped(execution) {
+      @bounded.request_cancel(state.set_control) |> ignore
+      @value_set.advance(execution, 1) |> ignore
+      if !@value_set.stopped(execution) {
+        return false
+      }
     }
-    match @value_set.cleanup(execution) {
-      Ok(_) => state.set_execution = None
-      Err(_) => return false
+    if @value_set.cleanup(execution) is Err(_) ||
+      @value_set.cleanup_pending(execution) {
+      return false
     }
+    state.set_execution = None
   }
   state.set_results.clear()
   state.set_cached_slots = 0
