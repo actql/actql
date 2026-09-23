@@ -21,6 +21,8 @@ pub(all) enum WriteRequestIssue {
   TargetTypeMismatch
   InvalidUnicode
   CapacityExceeded
+  InvalidOrigin
+  Encoding
 } derive(Eq, Debug)
 
 ///|
@@ -30,6 +32,7 @@ pub struct SingleWriteRequest {
   verb : String
   path : String
   body : String
+  kind : WriteSingleKind
 }
 
 ///|
@@ -45,6 +48,48 @@ pub fn single_write_request_path(value : SingleWriteRequest) -> String {
 ///|
 pub fn single_write_request_body(value : SingleWriteRequest) -> String {
   value.body
+}
+
+///|
+pub fn single_write_request_kind(value : SingleWriteRequest) -> WriteSingleKind {
+  value.kind
+}
+
+///|
+/// The exact provider origin and outbound REST bytes form the immutable
+/// request identity retained by the common Effect ledger before dispatch.
+pub fn single_write_request_cid(
+  value : SingleWriteRequest,
+  resource_origin : String,
+  max_wire_bytes : Int,
+) -> Result[String, WriteRequestIssue] {
+  if max_wire_bytes < 1 || max_wire_bytes > 1000000 {
+    return Err(InvalidLimits)
+  }
+  if !resource_origin.has_prefix("https://") || resource_origin.length() <= 8 {
+    return Err(InvalidOrigin)
+  }
+  let writer = @encode.hashing_writer(max_wire_bytes, 16, 2) catch {
+    _ => return Err(Encoding)
+  }
+  let digest = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "body")
+    @encode.string_value(writer, value.body)
+    @encode.key(writer, "method")
+    @encode.string_value(writer, value.verb)
+    @encode.key(writer, "path")
+    @encode.string_value(writer, value.path)
+    @encode.key(writer, "resource_origin")
+    @encode.string_value(writer, resource_origin)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-salesforce-rest-request/0.1")
+    @encode.end_object(writer)
+    @encode.finish_hash(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
+  Ok("sha256:" + digest)
 }
 
 ///|
@@ -150,13 +195,13 @@ pub fn prepare_single_write_request(
     "/sobjects/" +
     projection.resource +
     "/"
-  let (verb, suffix) = match (projection.operation, target) {
-    (WriteCreate, NoWriteTarget) => ("POST", "")
+  let (verb, suffix, kind) = match (projection.operation, target) {
+    (WriteCreate, NoWriteTarget) => ("POST", "", SingleCreate)
     (WriteUpdateById, RecordId(id)) => {
       if !write_record_id_valid(id) {
         return Err(InvalidTarget)
       }
-      ("PATCH", id)
+      ("PATCH", id, SingleUpdateById(id))
     }
     (WriteUpsertByExternalId(name), ExternalText(value)) => {
       guard projection.external_target is Some(field) else {
@@ -170,7 +215,7 @@ pub fn prepare_single_write_request(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      ("PATCH", name + "/" + encoded)
+      ("PATCH", name + "/" + encoded, SingleUpsert)
     }
     (WriteUpsertByExternalId(name), ExternalInt(value)) => {
       guard projection.external_target is Some(field) else {
@@ -183,7 +228,7 @@ pub fn prepare_single_write_request(
       if rendered.length() > limits.max_target_bytes {
         return Err(CapacityExceeded)
       }
-      ("PATCH", name + "/" + rendered)
+      ("PATCH", name + "/" + rendered, SingleUpsert)
     }
     _ => return Err(InvalidTarget)
   }
@@ -196,5 +241,5 @@ pub fn prepare_single_write_request(
     Err(@scalar.MalformedUtf16(_)) => return Err(InvalidUnicode)
     Err(_) => return Err(CapacityExceeded)
   }
-  Ok({ verb, path: prefix + suffix, body: text, })
+  Ok({ verb, path: prefix + suffix, body: text, kind, })
 }

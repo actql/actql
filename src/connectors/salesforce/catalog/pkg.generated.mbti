@@ -122,6 +122,10 @@ pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> 
 
 pub fn single_write_request_body(SingleWriteRequest) -> String
 
+pub fn single_write_request_cid(SingleWriteRequest, String, Int) -> Result[String, WriteRequestIssue]
+
+pub fn single_write_request_kind(SingleWriteRequest) -> WriteSingleKind
+
 pub fn single_write_request_method(SingleWriteRequest) -> String
 
 pub fn single_write_request_path(SingleWriteRequest) -> String
@@ -410,6 +414,7 @@ pub struct SingleWriteRequest {
   verb : String
   path : String
   body : String
+  kind : WriteSingleKind
 }
 
 pub struct WriteBody {
@@ -533,6 +538,8 @@ pub(all) enum WriteRequestIssue {
   TargetTypeMismatch
   InvalidUnicode
   CapacityExceeded
+  InvalidOrigin
+  Encoding
 } derive(Eq, @debug.Debug)
 
 pub(all) struct WriteRequestLimits {

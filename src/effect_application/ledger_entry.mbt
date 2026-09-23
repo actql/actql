@@ -223,6 +223,24 @@ pub fn effect_ledger_entry_wire(entry : EffectLedgerEntry) -> String {
 }
 
 ///|
+/// The physical adapter must additionally confirm that this exact entry is
+/// the durable Store head. A valid in-memory entry alone is not send authority.
+pub fn effect_ledger_entry_admits_dispatch(
+  entry : EffectLedgerEntry,
+  scope : LogicalRequestScope,
+  locator : LogicalItemLocator,
+  key : EffectDispatchKey,
+  canonical_request_cid : String,
+) -> Bool {
+  entry.state == Dispatching &&
+  entry.logical_request_scope_cid == scope.cid &&
+  entry.logical_item_locator_cid == locator.cid &&
+  entry.effect_preview_cid == key.effect_preview_cid &&
+  entry.dispatch_key_cid == key.cid &&
+  entry.canonical_request_cid == canonical_request_cid
+}
+
+///|
 /// Validate the immutable intent and append-only chain. Physical CAS still
 /// belongs to the Store; this check alone never admits an HTTP mutation.
 pub fn effect_ledger_entry_follows(

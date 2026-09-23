@@ -62,6 +62,7 @@ function effectApplicationControl(moon) {
     ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
     ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
     ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
+    ledgerEntryAdmitsDispatch: moon.strategyEffectLedgerEntryAdmitsDispatch,
     ledgerBasis: (...args) => checked(moon.strategyEffectLedgerBasis(...args)),
     issuePreparedLedgerEntry: (...args) => checked(
       moon.strategyEffectIssuePreparedLedgerEntry(...args),
