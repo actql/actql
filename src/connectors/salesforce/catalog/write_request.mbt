@@ -63,6 +63,22 @@ fn write_record_id_valid(id : String) -> Bool {
 }
 
 ///|
+fn write_api_major(api_version : String) -> Int? {
+  if api_version.length() > 10 || !query_api_version_valid(api_version) {
+    return None
+  }
+  let mut major = 0
+  for index = 1; index < api_version.length(); index = index + 1 {
+    let digit = api_version[index]
+    if digit == '.' {
+      break
+    }
+    major = major * 10 + digit.to_int() - '0'.to_int()
+  }
+  Some(major)
+}
+
+///|
 fn percent_encoded_target(
   value : String,
   max_bytes : Int,
@@ -120,19 +136,11 @@ pub fn prepare_single_write_request(
     limits.max_body_bytes < 1 {
     return Err(InvalidLimits)
   }
-  if api_version.length() > 10 || !query_api_version_valid(api_version) {
+  guard write_api_major(api_version) is Some(major) else {
     return Err(InvalidVersion)
   }
   let projection = body.projection
   if projection.operation is WriteUpsertByExternalId(_) {
-    let mut major = 0
-    for index = 1; index < api_version.length(); index = index + 1 {
-      let digit = api_version[index]
-      if digit == '.' {
-        break
-      }
-      major = major * 10 + digit.to_int() - '0'.to_int()
-    }
     if major < 46 {
       return Err(InvalidVersion)
     }
