@@ -104,7 +104,7 @@ async function driveQueryPages({
   const pages = [];
   try {
     while (true) {
-      const path = owner.nextPath();
+      const path = checked(owner.nextPath());
       if (path === undefined || path === null) break;
       signal?.throwIfAborted();
       const authorization = pages.length === 0

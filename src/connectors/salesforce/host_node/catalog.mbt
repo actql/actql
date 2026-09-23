@@ -355,8 +355,13 @@ pub fn salesforce_begin_query_read(
 
 ///|
 #export_name("salesforceQueryReadNextPath")
-pub fn salesforce_query_read_next_path(read : @catalog.QueryRead) -> String? {
-  @catalog.query_read_next_path(read)
+pub fn salesforce_query_read_next_path(
+  read : @catalog.QueryRead,
+) -> String? raise SalesforceCatalogBridgeIssue {
+  match @catalog.query_read_next_path(read) {
+    Ok(path) => path
+    Err(issue) => raise QueryRead(issue)
+  }
 }
 
 ///|
@@ -454,8 +459,11 @@ pub fn salesforce_prepare_managed_query(
 #export_name("salesforceManagedQueryNextPath")
 pub fn salesforce_managed_query_next_path(
   query : @acquisition.ManagedQuery,
-) -> String? {
-  @acquisition.managed_query_next_path(query)
+) -> String? raise SalesforceCatalogBridgeIssue {
+  match @acquisition.managed_query_next_path(query) {
+    Ok(path) => path
+    Err(issue) => raise ManagedQuery(issue)
+  }
 }
 
 ///|

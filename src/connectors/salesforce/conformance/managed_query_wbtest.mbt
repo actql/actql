@@ -137,7 +137,7 @@ test "Salesforce pages enter common managed output in schema order" {
     3L,
     output_values("string"),
   ).unwrap()
-  let first = @acquisition.managed_query_next_path(query).unwrap()
+  let first = @acquisition.managed_query_next_path(query).unwrap().unwrap()
   assert_eq(
     first, "/services/data/v62.0/query?q=SELECT%20Name%2CId%20FROM%20Account",
   )
@@ -152,7 +152,7 @@ test "Salesforce pages enter common managed output in schema order" {
   ).unwrap()
   assert_false(@catalog.query_page_matches_projection(page, plan))
   assert_eq(@acquisition.managed_query_row_count(query), 1L)
-  let last = @acquisition.managed_query_next_path(query).unwrap()
+  let last = @acquisition.managed_query_next_path(query).unwrap().unwrap()
   @acquisition.accept_managed_query_page(
     query,
     last,
@@ -182,7 +182,7 @@ test "empty terminal Salesforce query produces a measured empty output" {
   assert_false(@acquisition.managed_query_complete(query))
   @acquisition.accept_managed_query_page(
     query,
-    @acquisition.managed_query_next_path(query).unwrap(),
+    @acquisition.managed_query_next_path(query).unwrap().unwrap(),
     @utf8.encode(
       (
         #|{"totalSize":0,"done":true,"records":[]}
@@ -222,7 +222,7 @@ test "failed later Salesforce page cancels the common output owner" {
   ).unwrap()
   @acquisition.accept_managed_query_page(
     query,
-    @acquisition.managed_query_next_path(query).unwrap(),
+    @acquisition.managed_query_next_path(query).unwrap().unwrap(),
     @utf8.encode(
       (
         #|{"totalSize":2,"done":false,"nextRecordsUrl":"/services/data/v62.0/query/01gABC-2000","records":[{"Id":"001A","Name":"One"}]}
@@ -233,7 +233,7 @@ test "failed later Salesforce page cancels the common output owner" {
   assert_true(
     @acquisition.accept_managed_query_page(
       query,
-      @acquisition.managed_query_next_path(query).unwrap(),
+      @acquisition.managed_query_next_path(query).unwrap().unwrap(),
       @utf8.encode(
         (
           #|{"totalSize":2,"done":true,"records":[{"Id":42,"Name":null}]}
@@ -243,6 +243,32 @@ test "failed later Salesforce page cancels the common output owner" {
     is Err(Query(_)),
   )
   assert_false(@acquisition.managed_query_complete(query))
-  assert_eq(@acquisition.managed_query_next_path(query), None)
+  assert_true(@acquisition.managed_query_next_path(query) is Ok(None))
+  assert_true(@acquisition.finish_managed_query(query) is Err(Closed))
+}
+
+///|
+test "managed Salesforce page ceiling cancels before a continuation request" {
+  let query = @acquisition.prepare_managed_query(
+    plan(),
+    "v62.0",
+    query_limits(),
+    1,
+    3L,
+    output_values("string"),
+  ).unwrap()
+  let first = @acquisition.managed_query_next_path(query).unwrap().unwrap()
+  @acquisition.accept_managed_query_page(
+    query,
+    first,
+    @utf8.encode(
+      (
+        #|{"totalSize":2,"done":false,"nextRecordsUrl":"/services/data/v62.0/query/01gABC-2000","records":[{"Id":"001A","Name":"One"}]}
+      ),
+    ),
+  ).unwrap()
+  |> ignore
+  assert_true(@acquisition.managed_query_next_path(query) is Err(Query(_)))
+  assert_false(@acquisition.managed_query_complete(query))
   assert_true(@acquisition.finish_managed_query(query) is Err(Closed))
 }
