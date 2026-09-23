@@ -2798,8 +2798,13 @@ async function exerciseStrategyGraph(
     step: {from: 'g', edge_rows: true, as: 'out'},
     fields: ['src', 'dst', 'weight'],
   }, {
-    name: 'normalize',
+    name: 'normalize-fused-kernel',
     rows: 40,
+    advanceQuantum: 1,
+    // The first 80 steps construct 40 nodes and 40 edges.
+    constructionProgress: 80,
+    managedStarts: 2,
+    completedTasks: [1],
     steps: [{
       from: 'g', normalize_graph: true, as: 'normalized',
     }, {

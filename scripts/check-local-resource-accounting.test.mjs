@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 0 with complete boundary assurance, 4 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 1 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -214,6 +214,15 @@ test('resource gate rejects a removed SGA normalization proof role', () => {
   }), /SGA normalize_graph: reviewed normalize_one_short_node_capacity fixture is missing/);
 });
 
+test('resource gate rejects a missing normalization edge limit', () => {
+  assert.match(run(undefined, value => {
+    const normalization = value.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'normalize_graph');
+    normalization.boundary_tests = normalization.boundary_tests.filter(item =>
+      item.role !== 'normalize_view_one_short_edge_capacity');
+  }), /SGA normalize_graph: reviewed normalize_view_one_short_edge_capacity fixture is missing/);
+});
+
 test('resource gate requires the normalization managed-view route', () => {
   assert.match(run(undefined, value => {
     const normalization = value.routes.find(entry =>
@@ -228,6 +237,15 @@ test('resource gate rejects normalization without its Host timer', () => {
       entry.family === 'SGA' && entry.operation === 'normalize_graph');
     normalization.environment_tests = [];
   }), /SGA normalize_graph: selected_entrypoint in_flight_cancel lacks an executable fixture/);
+});
+
+test('resource gate rejects normalization without fused Host cancellation', () => {
+  assert.match(run(undefined, value => {
+    const normalization = value.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'normalize_graph');
+    normalization.environment_tests = normalization.environment_tests.filter(
+      item => item.role !== 'normalize_fused_in_flight_host_timer');
+  }), /SGA normalize_graph: entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects an ordered take without its cancellation fixture', () => {
