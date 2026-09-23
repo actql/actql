@@ -131,6 +131,41 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected filter cancels before publication"
+        },
+        {
+          "role": "filter_comparison_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected filter admits exact work and workspace"
+        },
+        {
+          "role": "filter_comparison_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected filter admits exact work and workspace"
+        },
+        {
+          "role": "filter_shared_nested_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "fixture": "nested expression views share row workspace and release on success"
+        },
+        {
+          "role": "filter_shared_text_work",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "fixture": "text comparison charges UTF-8 size in addition to control transitions"
+        },
+        {
+          "role": "filter_shared_branch_demand",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "fixture": "selected branches only execute; eager boolean still evaluates failure"
         }
       ],
       "environment_tests": [
@@ -148,6 +183,31 @@
           "one_short_limit": "filter_input_one_short",
           "in_flight_cancel": "filter_in_flight_host_timer",
           "cleanup": "filter_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "filter_comparison_work_exact_one_short",
+            "one_short_limit": "filter_comparison_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "filter_comparison_workspace_exact_one_short",
+            "one_short_limit": "filter_comparison_workspace_exact_one_short"
+          }
+        }
+      },
+      "shared_resource_rule": {
+        "selected_entrypoint": {
+          "caller": "src/execution_relation/bounded_binding_rows.mbt",
+          "shared_entrypoint": "src/execution_relation/expression.mbt",
+          "shared_symbol": "expression_frame",
+          "roles": [
+            "filter_shared_nested_workspace",
+            "filter_shared_text_work",
+            "filter_shared_branch_demand"
+          ],
+          "reason": "Every checked filter expression reaches the same bounded expression_frame with the selected row's cumulative control and workspace budgets; the comparison fixture covers that call edge, while nested, text, and branch tests cover shared expression-specific costs and demand."
         }
       }
     },

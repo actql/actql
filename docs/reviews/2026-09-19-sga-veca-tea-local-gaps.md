@@ -85,10 +85,13 @@ readable coverage manifest is authoritative for individual operation status.
   merge comparisons; its resource proof is not borrowed from the ordered
   branch. The synchronous and ordinary sort paths remain unassured. A passing
   route gate alone is not operation-completion evidence. An independent audit
-  claim now names the two resource-assured selected paths, and the default
+  claim now names the resource-assured selected paths, and the default
   gate rejects deleting their route proofs, inventing another claimed path,
-  or silently dropping one claim. This does not assert full assurance for
-  either operation or the other 66 operations.
+  or silently dropping one claim. Selected filter now has an exact/one-short
+  comparison work and workspace fixture. Its shared expression rule records
+  the production call edge and separate nested-workspace, text-work, and
+  branch-demand fixtures. This establishes a third path-scoped resource proof,
+  not full assurance for filter, sort, take, or the other 65 operations.
   The RelA cross-join route now pairs an independently calculated 2-by-2
   work/workspace exact-and-one-short kernel fixture with a managed
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
@@ -105,7 +108,10 @@ readable coverage manifest is authoritative for individual operation status.
   now pair independent four-row/three-row output and ten-slot/nine-slot
   workspace boundaries with in-flight cancellation after charged work. A Node
   standard Host timer reaches the same graph-bounds operation, giving its
-  direct entrypoint all four proof roles. The degree route uses the same
+  direct entrypoint all four proof roles. Its kernel reports cumulative work,
+  but its direct start has no local cumulative work ceiling. The Host ceiling
+  needs an exact/one-short product-path fixture before this dimension closes.
+  The degree route uses the same
   resumable diagnostic kernel, but has its own workspace eight/seven and
   output two/one exact-boundary fixtures. Its direct
   fixture cancels after charged work and confirms cleanup; a Node standard Host

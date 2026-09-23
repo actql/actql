@@ -1085,6 +1085,61 @@ test "bounded selected filter cancels before publication" {
 }
 
 ///|
+test "bounded selected filter admits exact work and workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // The fixed two-row comparison fixture has a 59-unit control boundary.
+  // Metadata, retained roots, predicate scratch, and row views peak at 20.
+  let (_, accepted, input) = bounded_binding_rows_fixture(
+    rows,
+    filter=true,
+    max_work=59,
+    max_entries=20,
+  )
+  let mut completed = false
+  let mut advances = 0
+  while !completed && advances < 500 {
+    advances += 1
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 1)
+        assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+        completed = true
+      }
+      _ => fail("exact selected filter resources failed")
+    }
+  }
+  assert_true(completed)
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  for (work, slots) in [(58, 20), (59, 19)] {
+    let (_, rejected, input) = bounded_binding_rows_fixture(
+      rows,
+      filter=true,
+      max_work=work,
+      max_entries=slots,
+    )
+    let mut failed = false
+    let mut polls = 0
+    while !failed && polls < 500 {
+      polls += 1
+      match advance_bounded_binding_rows(rejected, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+        BoundedBindingRowsComplete(_, ..) =>
+          fail("one-short selected filter resources completed")
+        _ => fail("one-short selected filter had another outcome")
+      }
+    }
+    assert_true(failed)
+    assert_true(producer_read_available(input))
+    assert_true(bounded_binding_rows_cleanup_pending(rejected))
+    assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  }
+}
+
+///|
 test "bounded selected filter admits its exact input boundary" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
