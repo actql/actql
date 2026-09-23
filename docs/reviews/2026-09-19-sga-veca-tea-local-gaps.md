@@ -78,14 +78,23 @@ readable coverage manifest is authoritative for individual operation status.
   Rename and drop now have separate ordinary-route quantum and lifetime
   fixtures over their named source forms. These do not establish their exact,
   one-short, delivered-cancel, or cleanup assurance.
+  The production-route manifest now scopes completion proofs to each registered
+  entrypoint, ordinary entrypoint, and selected entrypoint. A selected proof
+  cannot close the synchronous or ordinary path. The where and unique_by
+  assertion forms have distinct selected proof sets; mixing their limit,
+  cancellation, or cleanup roles is rejected. Reusing one fixture across
+  different production paths requires a recorded reason and the same exact
+  implementation entrypoint.
   A successful route gate does not establish boundary closure for the other 58
   operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
-  explicit proof roles on every route. Filter, select, and assert_rows have
-  selected-path proof bindings, each including real Host timer cancellation.
+  explicit proof roles on every route. Filter and select have selected-path
+  proof bindings. The where and unique_by `assert_rows` variants have separate
+  selected-path proof sets so one variant cannot borrow the other's bound or
+  cancellation result. Each set includes real Host timer cancellation.
   Their ordinary or multi-step fallback paths are not covered by those
   selected fixtures. No operation is currently marked whole-route complete;
   the completion command intentionally fails. The ordinary resource command

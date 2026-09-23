@@ -46,35 +46,80 @@ test('resource gate accepts every normative Local operation', () => {
 
 test('resource completion rejects every unassured operation', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /RelA filter: boundary assurance is missing/);
+    /RelA filter: entrypoint boundary assurance is missing/);
 });
 
 test('resource completion also rejects an unassured SGA route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /SGA shortest_path: boundary assurance is missing/);
+    /SGA shortest_path: entrypoint boundary assurance is missing/);
 });
 
 test('resource completion rejects borrowed proof roles on another route', () => {
   assert.match(run(undefined, value => {
     const path = value.routes.find(entry => entry.family === 'SGA' &&
       entry.operation === 'shortest_path');
-    path.boundary_assurance = {
+    path.path_assurance = {
+      entrypoint: {
+        exact_limit: 'select_input_exact',
+        one_short_limit: 'select_input_one_short',
+        in_flight_cancel: 'select_in_flight_host_timer',
+        cleanup: 'select_cancel_cleanup',
+      },
+    };
+  }, ['--require-boundary-complete']),
+  /SGA shortest_path: entrypoint exact_limit lacks an executable fixture/);
+});
+
+test('resource completion requires every registered selection path', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.path_assurance.entrypoint =
+      selection.path_assurance.selected_entrypoint;
+  }, ['--require-boundary-complete']),
+  /RelA select: select_input_exact is reused across production paths/);
+});
+
+test('resource gate rejects reuse justified by a different entrypoint', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.path_assurance.entrypoint =
+      selection.path_assurance.selected_entrypoint;
+    selection.shared_proof_reuse = [
+      'select_input_exact',
+      'select_input_one_short',
+      'select_in_flight_host_timer',
+      'select_cancel_cleanup',
+    ].map(role => ({
+      role,
+      paths: ['entrypoint', 'selected_entrypoint'],
+      reason: 'Both paths are claimed to share all resource behavior.',
+    }));
+  }), /RelA select: shared proof reuse lacks an exact common entrypoint/);
+});
+
+test('resource completion rejects incomplete path assurance', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.path_assurance.entrypoint = {
       exact_limit: 'select_input_exact',
       one_short_limit: 'select_input_one_short',
       in_flight_cancel: 'select_in_flight_host_timer',
       cleanup: 'select_cancel_cleanup',
     };
   }, ['--require-boundary-complete']),
-  /SGA shortest_path: full exact_limit lacks an executable fixture/);
+  /RelA select: ordinary_entrypoint boundary assurance is missing/);
 });
 
 test('resource gate rejects a false in-flight assurance', () => {
   assert.match(run(undefined, value => {
     const filter = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'filter');
-    filter.selected_boundary_assurance.in_flight_cancel =
+    filter.path_assurance.selected_entrypoint.in_flight_cancel =
       'filter_cancel_cleanup';
-  }), /RelA filter: selected in_flight_cancel lacks an executable fixture/);
+  }), /RelA filter: selected_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects selected assurance without its product route', () => {
@@ -82,7 +127,7 @@ test('resource gate rejects selected assurance without its product route', () =>
     const filter = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'filter');
     delete filter.selected_entrypoint;
-  }), /RelA filter: selected assurance has no selected entrypoint/);
+  }), /RelA filter: assurance names an unregistered production path/);
 });
 
 test('resource gate rejects an omitted operation', () => {
@@ -289,6 +334,32 @@ test('resource gate rejects unique assertion without Host cancellation', () => {
       entry.operation === 'assert_rows');
     assertion.environment_tests = [];
   }), /RelA assert_rows: assert_where_in_flight_host_timer fixture is missing/);
+});
+
+test('resource gate rejects mixed assertion-variant proof roles', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.path_assurance.selected_entrypoint.variants.where.in_flight_cancel =
+      'assert_unique_in_flight_host_timer';
+  }), /RelA assert_rows: selected_entrypoint where in_flight_cancel uses another variant's proof/);
+});
+
+test('resource gate rejects an omitted assertion variant', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    delete assertion.path_assurance.selected_entrypoint.variants.unique_by;
+  }), /RelA assert_rows: selected_entrypoint assertion variants need separate proof sets/);
+});
+
+test('resource gate rejects flat assertion assurance', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.path_assurance.selected_entrypoint =
+      assertion.path_assurance.selected_entrypoint.variants.where;
+  }), /RelA assert_rows: selected_entrypoint assertion variants need separate proof sets/);
 });
 
 test('resource gate rejects assertion without exact input admission', () => {

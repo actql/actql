@@ -36,6 +36,14 @@ const rela = fs.existsSync(relaPath) ? readJson(relaPath) : {operations: []};
 const families = fs.existsSync(familyPath)
   ? readJson(familyPath)
   : {operations: []};
+const assertionVariants = new Set(
+  rela.operations.find(entry => entry.operation === 'assert_rows')
+    ?.variant_scope ?? [],
+);
+if (!assertionVariants.has('where') ||
+  !assertionVariants.has('unique_by')) {
+  fail('RelA assert_rows: formal where and unique_by variants are required');
+}
 
 const requiredFacets = manifest.required_facets ?? [];
 const expectedFacets = [
@@ -175,7 +183,7 @@ if (actualKeys.length !== expectedKeys.length ||
 const routes = fs.existsSync(routesPath)
   ? readJson(routesPath)
   : {routes: []};
-if (routes.version !== 'actql-local-resource-production-routes/0.1') {
+if (routes.version !== 'actql-local-resource-production-routes/0.2') {
   fail(`unexpected production route version: ${routes.version}`);
 }
 const routeEntries = routes.routes ?? [];
@@ -278,20 +286,14 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
   }
-  for (const [scope, boundaryAssurance] of [
-    ['full', route.boundary_assurance],
-    ['selected', route.selected_boundary_assurance],
-  ]) {
-    if (boundaryAssurance === undefined) continue;
+  const validateAssurance = (scope, boundaryAssurance, rolePrefix) => {
+    if (boundaryAssurance === undefined) return;
     const requiredProofs = [
       'exact_limit',
       'one_short_limit',
       'in_flight_cancel',
       'cleanup',
     ];
-    if (scope === 'selected' && route.selected_entrypoint === undefined) {
-      fail(`${label}: selected assurance has no selected entrypoint`);
-    }
     if (!boundaryAssurance || typeof boundaryAssurance !== 'object' ||
       Array.isArray(boundaryAssurance) ||
       Object.keys(boundaryAssurance).length !== requiredProofs.length ||
@@ -304,14 +306,109 @@ for (const [index, route] of routeEntries.entries()) {
         const roles = proof === 'in_flight_cancel'
           ? environmentRoles
           : boundaryRoles;
+        if (rolePrefix && !role.startsWith(rolePrefix)) {
+          fail(`${label}: ${scope} ${proof} uses another variant's proof`);
+        }
         if (!roles.has(role)) {
           fail(`${label}: ${scope} ${proof} lacks an executable fixture`);
         }
       }
     }
+  };
+  const requiredPaths = [
+    'entrypoint',
+    ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
+    ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+  ];
+  const pathAssurance = route.path_assurance ?? {};
+  const proofPaths = new Map();
+  const recordProofPaths = (pathName, assurance) => {
+    const proofSets = route.family === 'RelA' &&
+      route.operation === 'assert_rows'
+      ? Object.values(assurance?.variants ?? {})
+      : [assurance];
+    for (const proofSet of proofSets) {
+      for (const role of Object.values(proofSet ?? {})) {
+        if (typeof role !== 'string') continue;
+        if (!proofPaths.has(role)) proofPaths.set(role, new Set());
+        proofPaths.get(role).add(pathName);
+      }
+    }
+  };
+  if (route.boundary_assurance !== undefined ||
+    route.selected_boundary_assurance !== undefined ||
+    route.selected_variant_assurance !== undefined) {
+    fail(`${label}: flat or legacy assurance bypasses production paths`);
   }
-  if (requireBoundaryComplete && route.boundary_assurance === undefined) {
-    fail(`${label}: boundary assurance is missing`);
+  if (!pathAssurance || typeof pathAssurance !== 'object' ||
+    Array.isArray(pathAssurance)) {
+    fail(`${label}: path assurance must be an object`);
+  } else {
+    for (const pathName of Object.keys(pathAssurance)) {
+      if (!requiredPaths.includes(pathName)) {
+        fail(`${label}: assurance names an unregistered production path`);
+        continue;
+      }
+      const assurance = pathAssurance[pathName];
+      if (route.family === 'RelA' && route.operation === 'assert_rows') {
+        const variants = assurance?.variants ?? {};
+        if (Object.keys(assurance ?? {}).length !== 1 ||
+          Object.keys(variants).length !== 2 ||
+          !variants.where || !variants.unique_by) {
+          fail(`${label}: ${pathName} assertion variants need separate proof sets`);
+        }
+        for (const [variant, prefix] of [
+          ['where', 'assert_where_'],
+          ['unique_by', 'assert_unique_'],
+        ]) {
+          validateAssurance(
+            `${pathName} ${variant}`,
+            variants[variant],
+            prefix,
+          );
+        }
+      } else {
+        validateAssurance(pathName, assurance);
+      }
+      recordProofPaths(pathName, assurance);
+    }
+  }
+  const allowedReuse = Array.isArray(route.shared_proof_reuse)
+    ? route.shared_proof_reuse
+    : [];
+  if (route.shared_proof_reuse !== undefined &&
+    !Array.isArray(route.shared_proof_reuse)) {
+    fail(`${label}: shared proof reuse must be an array`);
+  }
+  for (const grant of allowedReuse) {
+    const paths = grant?.paths ?? [];
+    if (typeof grant?.role !== 'string' ||
+      !Array.isArray(paths) || paths.length < 2 ||
+      new Set(paths).size !== paths.length ||
+      typeof grant.reason !== 'string' || grant.reason.length < 40 ||
+      !paths.every(pathName => requiredPaths.includes(pathName)) ||
+      !paths.every(pathName =>
+        route[pathName]?.path === route[paths[0]]?.path &&
+        route[pathName]?.symbol === route[paths[0]]?.symbol) ||
+      !proofPaths.has(grant.role) ||
+      [...proofPaths.get(grant.role)].some(pathName =>
+        !paths.includes(pathName)) ||
+      paths.some(pathName => !proofPaths.get(grant.role).has(pathName))) {
+      fail(`${label}: shared proof reuse lacks an exact common entrypoint`);
+    }
+  }
+  for (const [role, paths] of proofPaths) {
+    if (paths.size > 1 &&
+      !allowedReuse.some(grant => grant?.role === role)) {
+      fail(`${label}: ${role} is reused across production paths`);
+    }
+  }
+  if (requireBoundaryComplete) {
+    for (const pathName of requiredPaths) {
+      if (pathAssurance[pathName] === undefined) {
+        fail(`${label}: ${pathName} boundary assurance is missing`);
+      }
+    }
   }
   if (['traverse', 'apply_graph_delta'].includes(route.operation) &&
     route.family === 'SGA' &&
@@ -489,10 +586,14 @@ if (errors.length > 0) {
 } else {
   const boundaryRoutes = routeEntries.filter(route =>
     (route.boundary_tests ?? []).length > 0).length;
-  const assuredRoutes = routeEntries.filter(route =>
-    route.boundary_assurance !== undefined).length;
+  const assuredRoutes = routeEntries.filter(route => [
+    'entrypoint',
+    ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
+    ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+  ].every(pathName => route.path_assurance?.[pathName] !== undefined)).length;
   const selectedAssuredRoutes = routeEntries.filter(route =>
-    route.selected_boundary_assurance !== undefined).length;
+    route.path_assurance?.selected_entrypoint !== undefined &&
+    Object.keys(route.path_assurance).length === 1).length;
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
     `${Object.keys(profiles).length} implementation profiles, ` +
