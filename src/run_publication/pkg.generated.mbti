@@ -585,6 +585,7 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   ForeignEffectId(Int)
   ForeignMemberReceipt(Int)
   MemberStateMismatch(Int)
+  MemberOutcomeMismatch(Int)
   SetStatusMismatch
 } derive(@debug.Debug)
 
