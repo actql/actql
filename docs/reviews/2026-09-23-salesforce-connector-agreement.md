@@ -20,6 +20,14 @@ Base SHA: `8cae50b6c6c3d9ae5c5cf215e5820358d94b59fe`.
   One query and its complete locator chain form one finite observation, not a
   point-in-time Salesforce snapshot. A failed chain cannot be extended by a new
   query under the old observation identity.
+
+The first implemented predicate pushdown is a bound, checked comparison of a
+selected `int` field against an exactly representable 32-bit integer. It also
+requires current `filterable` metadata and the admitted SOQL length bound.
+Unsupported predicates keep the broad query; all queries retain the checked
+Local residual. In particular, text comparison is not advertised as exact:
+Salesforce normally applies case-insensitive, user-locale comparison, unlike
+ActQL text equality ([Salesforce comparison operators](https://developer.salesforce.com/docs/platform/salesforce-soql-sosl/guide/sforce-api-calls-soql-select-comparisonoperators.html)).
 - Implement single-record REST, then sObject Collections, for create, ID-based
   update, and external-ID upsert through the existing Effect contract. Bulk is
   later. Collections group eligible rows within one Effect Set member, map each

@@ -90,6 +90,87 @@ test "read projection uses only the supplied complete resource view" {
 }
 
 ///|
+test "integer comparison prefilter requires exact metadata and bounded SQL" {
+  let listing = project_resource_listing(
+    @utf8.encode(
+      (
+        #|{"sobjects":[{"name":"Account","queryable":true}]}
+      ),
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = begin_catalog_sync(listing)
+  let description = @utf8.encode(
+    (
+      #|{"name":"Account","queryable":true,"fields":[{"name":"Score__c","type":"int","nillable":true,"filterable":true}]}
+    ),
+  )
+  catalog_sync_describe(sync, "Account", description, {
+    max_bytes: 1000,
+    max_nodes: 100,
+    max_depth: 10,
+    max_fields: 10,
+    max_name_units: 100,
+  }).unwrap()
+  finish_catalog_sync(sync).unwrap()
+  let binding = observation_test_binding()
+  let observed = prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [Some(catalog_response_sha256(description))],
+    4096,
+  ).unwrap()
+  let broad = prepare_read_projection(
+    observed,
+    binding,
+    "Account",
+    ["Score__c"],
+    100,
+  ).unwrap()
+  let filtered = with_exact_int_comparison(broad, "Score__c", GreaterEqual, 4).unwrap()
+  assert_eq(
+    read_projection_soql(filtered),
+    "SELECT Score__c FROM Account WHERE Score__c >= 4",
+  )
+  assert_true(with_exact_int_comparison(filtered, "Score__c", Less, 8) is None)
+  let negative = with_exact_int_comparison(broad, "Score__c", Less, -3).unwrap()
+  assert_eq(
+    query_read_next_path(
+      begin_query_read(negative, "v62.0", query_test_limits(), 1, 10L).unwrap(),
+    ).unwrap(),
+    Some(
+      "/services/data/v62.0/query?q=SELECT%20Score__c%20FROM%20Account%20WHERE%20Score__c%20%3C%20%2D3",
+    ),
+  )
+  assert_eq(
+    query_read_next_path(
+      begin_query_read(filtered, "v62.0", query_test_limits(), 1, 10L).unwrap(),
+    ).unwrap(),
+    Some(
+      "/services/data/v62.0/query?q=SELECT%20Score__c%20FROM%20Account%20WHERE%20Score__c%20%3E%3D%204",
+    ),
+  )
+  assert_true(with_exact_int_comparison(broad, "Other__c", Equal, 4) is None)
+  let limited = prepare_read_projection(
+    observed,
+    binding,
+    "Account",
+    ["Score__c"],
+    "SELECT Score__c FROM Account".length(),
+  ).unwrap()
+  assert_true(with_exact_int_comparison(limited, "Score__c", Less, 4) is None)
+}
+
+///|
 test "read projection rechecks a new observation without reusing its dispatch" {
   let (observation, binding) = read_test_observation()
   let plan = prepare_read_projection(
