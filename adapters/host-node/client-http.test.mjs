@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createClientHttpHandler} from './client-http.mjs';
 
+const ref = {tenantId: 'tenant-a',
+  authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+  runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+
 async function withServer(handler, run) {
   const server = createServer(handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -44,7 +48,7 @@ test('Client Host rejects missing movement consent and oversized bodies', async 
       headers: {'content-type': 'application/json'},
       body: JSON.stringify({connection: {mode: 'hybrid', owner: 'cloud',
         runners: ['runner-a'], consentRefs: [],
-        movementPolicyRef: 'metadata-only'}, ref: {}})});
+        movementPolicyRef: 'metadata-only'}, ref})});
     assert.equal(denied.status, 403);
     assert.deepEqual(await denied.json(), {code: 'ClientConnectionDenied'});
     const large = await fetch(path, {method: 'POST',
@@ -52,6 +56,38 @@ test('Client Host rejects missing movement consent and oversized bodies', async 
       body: JSON.stringify({payload: 'x'.repeat(2000)})});
     assert.equal(large.status, 413);
   });
+});
+
+test('malformed wire is rejected before connection authorization', async () => {
+  let authorized = 0;
+  const handler = createClientHttpHandler({
+    authenticate: () => 'principal-a',
+    authorizeConnection: () => { authorized++; return true; },
+  });
+  await withServer(handler, async base => {
+    const send = body => fetch(`${base}/actql/client/0.1/status`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const badModes = [
+      {mode: 'remote', owner: 'cloud', runners: [], consentRefs: []},
+      {mode: 'local', owner: 'local', runners: ['unapproved'],
+        consentRefs: []},
+      {mode: 'hybrid', owner: 'cloud', runners: ['runner-a'],
+        consentRefs: []},
+      {mode: 'remote', owner: 'remote', runners: [], consentRefs: [],
+        unexpected: true},
+    ];
+    for (const connection of badModes) {
+      const response = await send({connection, ref});
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), {code: 'InvalidClientRequest'});
+    }
+    assert.equal((await send({connection: {mode: 'remote',
+      owner: 'remote', runners: [], consentRefs: []},
+    ref: {...ref, runDefinitionCid: 'opaque-handle'}})).status, 400);
+  });
+  assert.equal(authorized, 0);
 });
 
 test('Client Host negotiates a profile only after authentication and consent', async () => {
