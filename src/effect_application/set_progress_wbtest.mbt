@@ -63,14 +63,12 @@ test "in-flight row blocks only its own member" {
 }
 
 ///|
-test "an in-flight row cannot coexist with a later attempted row" {
+test "a halted member cannot advance past an in-flight row" {
   for later in [ItemSending, ItemApplied, ItemAccepted, ItemFailed, ItemUnknown] {
-    for policy in [HaltMember, ContinueMember] {
-      let members : Array[EffectMemberProgress] = [
-        { effect_id: "first", policy, rows: [ItemSending, later], },
-      ]
-      assert_true(effect_set_frontier(members, 1, 2, 8) is Err(InvalidHistory))
-    }
+    let members : Array[EffectMemberProgress] = [
+      { effect_id: "first", policy: HaltMember, rows: [ItemSending, later], },
+    ]
+    assert_true(effect_set_frontier(members, 1, 2, 8) is Err(InvalidHistory))
   }
   let valid : Array[EffectMemberProgress] = [
     {
@@ -82,6 +80,23 @@ test "an in-flight row cannot coexist with a later attempted row" {
   let frontier = effect_set_frontier(valid, 1, 3, 8).unwrap()
   assert_eq(frontier.ready.length(), 0)
   assert_eq(frontier.outcome, SetRunning)
+}
+
+///|
+test "continue member observes all rows of one in-flight collection" {
+  for later in [ItemSending, ItemApplied, ItemAccepted, ItemFailed, ItemUnknown] {
+    let members : Array[EffectMemberProgress] = [
+      {
+        effect_id: "first",
+        policy: ContinueMember,
+        rows: [ItemSending, later, ItemUnattempted],
+      },
+      { effect_id: "second", policy: HaltMember, rows: [ItemUnattempted], },
+    ]
+    let frontier = effect_set_frontier(members, 2, 4, 16).unwrap()
+    assert_eq(frontier.outcome, SetRunning)
+    assert_eq(frontier.ready, [(1, 0)])
+  }
 }
 
 ///|
@@ -190,6 +205,55 @@ test "durable ledger heads own Effect Set progress after restart" {
   ).unwrap()
   assert_eq(pending.outcome, SetRunning)
   assert_eq(pending.ready, [(1, 0)])
+  let second_prepared = issue_prepared_effect_ledger_entry(second, 4096, 64, 3).unwrap()
+  let second_sending = issue_next_effect_ledger_entry(
+    second_prepared,
+    "dispatching",
+    None,
+    4096,
+    64,
+    3,
+  ).unwrap()
+  let collection_pending = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [1, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, second], [third]],
+    [[Some(sending), Some(second_sending)], [None]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(collection_pending.outcome, SetRunning)
+  assert_eq(collection_pending.ready, [(1, 0)])
+  let foreign_second = {
+    ..second,
+    canonical_request_cid: ledger_test_cid("9"),
+  }
+  let foreign_prepared = issue_prepared_effect_ledger_entry(
+    foreign_second, 4096, 64, 3,
+  ).unwrap()
+  let foreign_sending = issue_next_effect_ledger_entry(
+    foreign_prepared,
+    "dispatching",
+    None,
+    4096,
+    64,
+    3,
+  ).unwrap()
+  assert_true(
+    effect_set_frontier_from_ledger_entries(
+      ["first", "second"],
+      [1, 1],
+      [[first_locator, second_locator], [third_locator]],
+      [[first, foreign_second], [third]],
+      [[Some(sending), Some(foreign_sending)], [None]],
+      2,
+      3,
+      24,
+    )
+    is Err(InvalidHistory),
+  )
   let unknown = issue_next_effect_ledger_entry(
     sending,
     "unknown",
