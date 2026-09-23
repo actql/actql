@@ -454,6 +454,15 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
         const outbound = checked(
           salesforceMoon.salesforcePrepareSingleWriteRequest(
             body, 'v62.0', 2, target, 0, 256, 128, 1024));
+        const requestTarget = checked(
+          salesforceMoon.salesforceSingleWriteRequestTargetIdentity(
+            outbound, 4096));
+        const admittedTarget = checked(
+          salesforceMoon.salesforcePrepareWriteTargetIdentity(
+            projection, 2, target, 0, 128, 4096));
+        assert.equal(salesforceMoon.salesforceWriteTargetObjectCid(
+          requestTarget), salesforceMoon.salesforceWriteTargetObjectCid(
+          admittedTarget));
         const expectedPath = prefix + suffix;
         const expectedBody = '{"Name":"new value"}';
         assert.equal(salesforceMoon.salesforceSingleWriteRequestPath(outbound),
@@ -817,6 +826,19 @@ test('Site Collections use exact update and external-ID upsert authority',
           salesforceMoon.salesforcePrepareContinueWriteCollection(
             [cid('1')], [body], [scenario.targetCode], [scenario.target],
             [0], 'v62.0', 256, 128, 1024, 64, 6, 200));
+        const requestTarget = checked(
+          salesforceMoon.salesforceCollectionWriteRequestTargetIdentity(
+            outbound, 0, 4096));
+        const admittedTarget = checked(
+          salesforceMoon.salesforcePrepareWriteTargetIdentity(
+            projection, scenario.targetCode, scenario.target, 0, 128,
+            4096));
+        assert.equal(salesforceMoon.salesforceWriteTargetObjectCid(
+          requestTarget), salesforceMoon.salesforceWriteTargetObjectCid(
+          admittedTarget));
+        assert.throws(() => checked(
+          salesforceMoon.salesforceCollectionWriteRequestTargetIdentity(
+            outbound, 1, 4096)));
         const result = await writeSalesforceContinueCollection({
           moon: salesforceMoon, request: outbound,
           currentObservation: catalog.observation,

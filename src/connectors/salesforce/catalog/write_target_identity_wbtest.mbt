@@ -121,3 +121,98 @@ test "external target identity follows only confirmed metadata matching" {
     is Err(InvalidTarget),
   )
 }
+
+///|
+test "physical requests retain their own target footprint evidence" {
+  let body = write_request_body(WriteUpdateById)
+  let short = prepare_single_write_request(
+    body,
+    "v66.0",
+    RecordId("001000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  let long = prepare_single_write_request(
+    body,
+    "v66.0",
+    RecordId("001000000000001AAA"),
+    write_request_test_limits(),
+  ).unwrap()
+  let short_identity = single_write_request_target_identity(short, 4096)
+    .unwrap()
+    .unwrap()
+  let long_identity = single_write_request_target_identity(long, 4096)
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    write_target_object_cid(short_identity),
+    write_target_object_cid(long_identity),
+  )
+  assert_true(
+    single_write_request_target_identity(
+      prepare_single_write_request(
+        write_request_body(WriteCreate),
+        "v66.0",
+        NoWriteTarget,
+        write_request_test_limits(),
+      ).unwrap(),
+      4096,
+    )
+    is Ok(None),
+  )
+  let rows_short : Array[WriteCollectionItem] = [
+    {
+      row_preview_cid: collection_request_test_cid("1"),
+      body,
+      target: RecordId("001000000000001"),
+    },
+  ]
+  let rows_long : Array[WriteCollectionItem] = [
+    {
+      row_preview_cid: collection_request_test_cid("1"),
+      body,
+      target: RecordId("001000000000001AAA"),
+    },
+  ]
+  let collection_short = prepare_continue_write_collection(
+    rows_short,
+    "v66.0",
+    collection_request_test_limits(),
+  ).unwrap()
+  let collection_long = prepare_continue_write_collection(
+    rows_long,
+    "v66.0",
+    collection_request_test_limits(),
+  ).unwrap()
+  let collection_identity = write_collection_request_target_identity(
+      collection_short, 0, 4096,
+    )
+    .unwrap()
+    .unwrap()
+  let collection_alias = write_collection_request_target_identity(
+      collection_long, 0, 4096,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    write_target_object_cid(collection_identity),
+    write_target_object_cid(short_identity),
+  )
+  assert_eq(
+    write_target_object_cid(collection_identity),
+    write_target_object_cid(collection_alias),
+  )
+  assert_true(
+    write_collection_request_target_identity(collection_short, 1, 4096)
+    is Err(InvalidRows),
+  )
+  let unknown_matching = prepare_single_write_request(
+    collection_case_write_body(""),
+    "v66.0",
+    ExternalText("ABC123"),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_true(
+    single_write_request_target_identity(unknown_matching, 4096)
+    is Err(InvalidTarget),
+  )
+}
