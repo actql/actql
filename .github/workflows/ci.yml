@@ -74,6 +74,10 @@ jobs:
         run: npm run check:checkpoint-runtime
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
+      - name: Test distribution Client wire, Host and packed Node assembly
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: npm run check:distribution-client
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
