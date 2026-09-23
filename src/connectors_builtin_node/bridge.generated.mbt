@@ -7042,9 +7042,10 @@ pub fn strategy_effect_set_frontier(
 ///|
 #export_name("strategyEffectSetFrontierFromLedger")
 pub fn strategy_effect_set_frontier_from_ledger(
-  effect_ids : Array[String],
-  policies : Array[Int],
+  preview : @publication.EffectPreviewIdentity,
+  scopes : Array[Array[@effect.LogicalRequestScope]],
   locators : Array[Array[@effect.LogicalItemLocator]],
+  keys : Array[Array[@effect.EffectDispatchKey]],
   expected_bases : Array[Array[@effect.EffectLedgerBasis]],
   heads : Array[Array[@effect.EffectLedgerEntry?]],
   max_members : Int,
@@ -7052,8 +7053,8 @@ pub fn strategy_effect_set_frontier_from_ledger(
   max_work : Int,
 ) -> @effect.EffectSetFrontier raise NodeHostFailure {
   match
-    @effect.effect_set_frontier_from_ledger_entries(
-      effect_ids, policies, locators, expected_bases, heads, max_members, max_rows,
+    @effect.effect_set_frontier_from_preview_ledger_entries(
+      preview, scopes, locators, keys, expected_bases, heads, max_members, max_rows,
       max_work,
     ) {
     Ok(value) => value
