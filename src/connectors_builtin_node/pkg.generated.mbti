@@ -298,7 +298,7 @@ pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_app
 
 pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
 
-pub fn strategy_effect_row_recovery_action(@effect_application.EffectDispatchKey, String, String, String, Int, Bool) -> Int
+pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
