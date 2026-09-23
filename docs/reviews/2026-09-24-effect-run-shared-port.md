@@ -128,6 +128,11 @@ corresponding admitted Preview row, not merely to a target somewhere in the
 member footprint. The Salesforce Site suite passes 104/104 at
 `6415fd2ab31058f829f735089f553a882017babc`, including local HTTPS target,
 row-swap rejection, and whole-set footprint tests.
+The common MoonBit frontier now reads a durable Collections batch as several
+in-flight rows of one `continue` member. It withholds that member's next row,
+allows independent members to proceed, and rejects concurrent in-flight rows
+whose ledger heads name different physical requests. A real SQLite restart
+fixture covers the batch claim and exact retry without another send claim.
 These component results do not close SF-3: the ordinary checked Program,
 standard Host, complete multi-member Preview/apply admission, final receipt,
 and restart-safe reconciliation still require one connected product test path.
