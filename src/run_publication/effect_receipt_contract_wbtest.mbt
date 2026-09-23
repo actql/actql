@@ -256,6 +256,7 @@ fn effect_receipt_test_two_member_wire(
     preview_cid,
   )
   let parsed = parse_effect_preview_shape(base, 16384, 512, 16).unwrap()
+  let first_row = derive_effect_preview_row_identities(base, 16384, 512, 16).unwrap()[0][0]
   let first = match @json.object_field(parsed, "effects") {
     Some(@json.Array(items)) =>
       @json.stringify_value(@json.array_values(items)[0], 8192, 256, 12) catch {
@@ -273,11 +274,11 @@ fn effect_receipt_test_two_member_wire(
       new="\"effect_member_preview_cid\":\"" + second_cid + "\"",
     )
     .replace_all(
-      old="\"row_preview_cid\":\"" + effect_receipt_test_cid("3") + "\"",
+      old="\"row_preview_cid\":\"" + first_row + "\"",
       new="\"row_preview_cid\":\"" + effect_receipt_test_cid("5") + "\"",
     )
     .replace_all(
-      old="\"row_order\":[\"" + effect_receipt_test_cid("3") + "\"]",
+      old="\"row_order\":[\"" + first_row + "\"]",
       new="\"row_order\":[\"" + effect_receipt_test_cid("5") + "\"]",
     )
     .replace_all(
@@ -296,10 +297,12 @@ fn effect_receipt_test_two_member_wire(
         effect_receipt_test_cid("2") +
         "\"]",
     )
-  base.replace_all(
+  let provisional = base.replace_all(
     old="\"effects\":[" + first + "]",
     new="\"effects\":[" + first + "," + second + "]",
   )
+  let rows = derive_effect_preview_row_identities(provisional, 16384, 512, 16).unwrap()
+  provisional.replace_all(old=effect_receipt_test_cid("5"), new=rows[1][0])
 }
 
 ///|
@@ -369,7 +372,7 @@ test "Effect apply receipt partitions exactly one admitted member inventory" {
   let preview = effect_receipt_test_preview()
   let preview_cid = effect_preview_semantic_identity(preview)
   let member_cid = effect_preview_member_identity(preview, 0).unwrap()
-  let row = effect_receipt_test_cid("3")
+  let row = effect_preview_row_identity(preview, 0, 0).unwrap()
   let good = seal_publication_contract(
     "effect_apply_receipt",
     effect_receipt_test_member_body(
@@ -559,7 +562,7 @@ test "Effect Set receipt references every exact Preview member receipt" {
     effect_receipt_test_member_body(
       preview_cid,
       member_cid,
-      "[\"" + effect_receipt_test_cid("3") + "\"]",
+      "[\"" + effect_preview_row_identity(preview, 0, 0).unwrap() + "\"]",
       "[]",
       "applied",
       "{\"state\":\"applied\",\"result\":{}}",
@@ -672,7 +675,7 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
       effect_receipt_test_member_body(
         preview_cid,
         member_cids[0],
-        "[\"" + effect_receipt_test_cid("3") + "\"]",
+        "[\"" + effect_preview_row_identity(preview, 0, 0).unwrap() + "\"]",
         "[]",
         "applied",
         "{\"state\":\"applied\",\"result\":{}}",
@@ -686,7 +689,7 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
       effect_receipt_test_member_body(
         preview_cid,
         member_cids[1],
-        "[\"" + effect_receipt_test_cid("5") + "\"]",
+        "[\"" + effect_preview_row_identity(preview, 1, 0).unwrap() + "\"]",
         "[]",
         "applied",
         "{\"state\":\"applied\",\"result\":{}}",
@@ -842,7 +845,7 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
       member_cids[1],
       "[]",
       "[{\"row_preview_cid\":\"" +
-      effect_receipt_test_cid("5") +
+      effect_preview_row_identity(preview, 1, 0).unwrap() +
       "\",\"error_cid\":\"" +
       effect_receipt_test_cid("7") +
       "\"}]",

@@ -154,6 +154,8 @@ pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], 
 
 pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Array[String]] raise NodeHostFailure
+
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
 pub fn strategy_effect_row_recovery_action_from_entry(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry?, Bool) -> Int

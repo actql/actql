@@ -146,6 +146,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/preview-row-state.common-preview-admission-must-recompute-every-row-cid",
+      "statement_sha256": "880abe64dcb21e2db254c98eb94deac9127669cab84e89a05013cf1acdb27307",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "preview-row-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/preview-row-state.target-guard-and-intended-changes-are-required-closed-forms",
+      "statement_sha256": "30b048d8ad3d380b2681b2984c0e7e7baabbc35ff5db7d9a41b096513adb2276",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "preview-row-state",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/preview-row-state.rowstate",
       "statement_sha256": "97f4caaca72525be1b5a338c2aeb2e2e742596b6e1dcee1484360dd5682dc21e",
       "status": "pending",
@@ -301,7 +323,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "7c09c9a3e1b689f9356d137f7ae313d16310231e6d7b4dac7b91018db7bd509e",
+      "statement_sha256": "94a75fa5df72550942b53a96e601a19a9c01311f814c1aeffe3671a25028b626",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

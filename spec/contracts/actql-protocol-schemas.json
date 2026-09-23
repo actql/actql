@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:d8a4b80937674cc08c56a1db36e9c49a11c42e6f5ef2a8aa8ff3854c676947e3",
+  "artifact_registry_cid": "sha256:8b3b81d53cb133c35aad5367249a4f183b0b86a1dd00e41fde559e350e40c740",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10683,7 +10683,7 @@
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
     "executable_plan": "sha256:496a8d9d57fb426e228c8796222b7974eb1667f004502f97c4683ecc03b412a8",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:ffacfcbd6992627eb07489e40ffff7b33db144e8d34ff80ac7d06221dcf45712",
+    "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
@@ -36509,6 +36509,8 @@
                   "additionalProperties": false,
                   "required": [
                     "target_row_identity",
+                    "target_guard",
+                    "intended_changes",
                     "before",
                     "after",
                     "row_preview_cid",
@@ -36553,6 +36555,69 @@
                         }
                       ]
                     },
+                    "target_guard": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "version_cid"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "version"
+                            },
+                            "version_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "not_applicable"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "intended_changes": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "value"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "present"
+                            },
+                            "value": {}
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "not_applicable"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "before": {},
                     "after": {},
                     "row_preview_cid": {
@@ -36560,10 +36625,6 @@
                       "pattern": "^sha256:[0-9a-f]{64}$"
                     },
                     "row_idempotency_key": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "target_version": {
                       "type": "string",
                       "pattern": "^sha256:[0-9a-f]{64}$"
                     }
