@@ -7101,6 +7101,7 @@ pub fn strategy_effect_preview_footprint_conflicts_check(
   preview_wire : String,
   declared_effect_ids : Array[String],
   declared_failure_policies : Array[Int],
+  declared_effect_identity_cids : Array[String],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -7110,8 +7111,8 @@ pub fn strategy_effect_preview_footprint_conflicts_check(
 ) -> Bool raise NodeHostFailure {
   match
     @effect.check_effect_preview_footprint_conflicts(
-      preview_wire, declared_effect_ids, declared_failure_policies, max_wire_bytes,
-      max_nodes, max_depth, max_members, max_targets, max_work,
+      preview_wire, declared_effect_ids, declared_failure_policies, declared_effect_identity_cids,
+      max_wire_bytes, max_nodes, max_depth, max_members, max_targets, max_work,
     ) {
     Ok(_) => true
     Err(issue) => raise EffectPreviewFootprint(issue)
