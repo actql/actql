@@ -205,6 +205,38 @@ test('an unserializable Program is rejected before submit', async t => {
   assert.deepEqual(requests, ['connect']);
 });
 
+test('submit fixes Program and parameters before asynchronous token lookup',
+  async t => {
+    let releaseToken;
+    const delayedToken = new Promise(resolve => { releaseToken = resolve; });
+    let tokenCalls = 0;
+    const requests = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      requests.push({operation, body: JSON.parse(init.body)});
+      return Response.json(operation === 'connect' ? profile : admission);
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect({...options,
+      token: () => ++tokenCalls === 1 ? 'token' : delayedToken});
+    const program = {version: 'actql/0.1', marker: 'original'};
+    const parameters = {value: 'original'};
+    const submitted = client.start(program, {
+      requestId: 'saved-id', parameters,
+    });
+    program.marker = 'changed';
+    parameters.value = 'changed';
+    releaseToken('token');
+    await submitted;
+    assert.deepEqual(requests[1].body, {
+      connection: {mode: 'remote', owner: 'remote',
+        consentRefs: [], runners: []},
+      requestId: 'saved-id', kind: 'program',
+      input: {version: 'actql/0.1', marker: 'original'},
+      parameters: {value: 'original'},
+    });
+  });
+
 test('request lookup distinguishes retained Run, absence and malformed Host reply',
   async t => {
     let reply = {kind: 'found', ref, durability: 'durable',

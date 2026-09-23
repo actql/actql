@@ -116,14 +116,14 @@ export async function connect(options) {
   let closed = false;
   const exchange = async (operation, body = {}, signal, submitContext) => {
     if (closed) fail('ClientClosed');
-    const credential = typeof selected.token === 'function'
-      ? await selected.token() : selected.token;
-    if (typeof credential !== 'string' || !credential ||
-        /[\r\n]/u.test(credential)) fail('InvalidConnectionToken');
     let payload;
     try { payload = JSON.stringify({connection: selected.wire, ...body}); }
     catch { fail('InvalidClientPayload'); }
     if (typeof payload !== 'string') fail('InvalidClientPayload');
+    const credential = typeof selected.token === 'function'
+      ? await selected.token() : selected.token;
+    if (typeof credential !== 'string' || !credential ||
+        /[\r\n]/u.test(credential)) fail('InvalidConnectionToken');
     let response;
     try {
       response = await fetch(new URL(
