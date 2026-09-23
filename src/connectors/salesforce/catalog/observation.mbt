@@ -25,6 +25,7 @@ pub(all) enum CatalogObservationIssue {
   EvidenceCountMismatch
   OutputLimit
   ForeignBinding
+  DescribeUnavailable(DescribeFailure)
   Resource(ResourceSelectionIssue)
 } derive(Eq, Debug)
 
@@ -311,7 +312,8 @@ pub fn catalog_observation_resource(
 ) -> Result[ResourceMetadata, CatalogObservationIssue] {
   match catalog_observation_resource_outcome(observation, current, name) {
     Ok(Described(resource)) => Ok(resource)
-    Ok(_) => Err(Resource(DescribeRequired))
+    Ok(Unavailable(reason)) => Err(DescribeUnavailable(reason))
+    Ok(Pending) => Err(IncompleteSync)
     Err(issue) => Err(issue)
   }
 }
