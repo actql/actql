@@ -290,3 +290,23 @@ cumulative Host value-node ceiling rather than observed DB table size. A
 replacement must keep shared DB capacity, independent file retention, and
 runtime overflow/cleanup obligations distinct; simply substituting observed
 buffer-manager bytes for the declared allowance would not be safe.
+
+At clean revision `e249f845b`, the retained large-output narrow/100000 case
+completed seven alternating equivalent-obligation pairs. Ordinary placement
+selected the resident DuckDB path for all three compute tasks, and every pair
+passed the result identity, independent holding, resource-accounting, and
+cleanup eligibility checks. The unchanged 1.25 execution-time ratio gate
+failed: the estimate was 2.294, with a 95% bootstrap interval of 2.196–2.403
+over 10,000 resamples. The one-case assessment remains incomplete for the
+registered 27-case experiment. Its `assessment.json` and `case-00.json` are in
+workspace scratch `equivalent-narrow-e249f845`, with SHA-256 digests
+`0c9e3b5169e9b9d9ca8523ab3ce1d49f21cd805dc00d25e264603c52a51a5be6`
+and `01a3af535b6ec7977123485dc4d67e69906b3b5a8865139329ce2064c6b71425`.
+This result does not show that the native appender is slower than the previous
+path: the paired comparator, runtime conditions, and release artifact differ
+across revisions, so their ratios cannot be compared as an A/B experiment.
+The same-revision result does show that the current product path misses the
+registered gate. The next investigation must account for repeated resident
+input verification and output reception without waiving each consumer's
+logical demand or the independent holding obligation. The standard Host
+regression passed after this revision (one monolithic test, 74.7 seconds).
