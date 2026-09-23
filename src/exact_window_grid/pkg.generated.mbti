@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/exact_window_grid"
+
+import {
+  "moonbitlang/core/bigint",
+}
+
+// Values
+pub fn compare(Coordinate, @bigint.BigInt) -> Int
+
+pub fn exact_binary64_boundary(@bigint.BigInt) -> Double?
+
+pub fn from_finite_number(Double) -> Coordinate?
+
+pub fn from_timestamp_milliseconds(Int64) -> Coordinate
+
+pub fn latest_start(Coordinate, Int64, Int64) -> @bigint.BigInt
+
+// Errors
+
+// Types and methods
+pub struct Coordinate {
+  coefficient : @bigint.BigInt
+  exponent : Int
+}
+
+// Type aliases
+
+// Traits

@@ -10,12 +10,6 @@ priv enum EventWindowPhase {
 }
 
 ///|
-priv enum EventWindowCoordinate {
-  Exact(Int64)
-  Binary(Double)
-}
-
-///|
 priv struct EventWindowState {
   input : @records.ProducerRead
   source : @storage.Storage
@@ -37,11 +31,9 @@ priv struct EventWindowState {
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut emission : Array[(@schema.FieldName, @value.CheckedValue)]
   mut time : @value.CheckedValue?
-  mut coordinate : EventWindowCoordinate?
-  mut exact_current : Int64
-  mut exact_latest : Int64
-  mut binary_current : Double
-  mut binary_latest : Double
+  mut coordinate : @grid.Coordinate?
+  mut current : @bigint.BigInt
+  mut latest : @bigint.BigInt
 }
 
 ///|
@@ -76,79 +68,23 @@ pub(all) enum EventWindowIssue {
 } derive(Eq, Debug)
 
 ///|
-fn event_window_floor_mod(value : Int64, divisor : Int64) -> Int64 {
-  let remainder = value % divisor
-  if remainder < 0L {
-    remainder + divisor
-  } else {
-    remainder
-  }
-}
-
-///|
-fn event_window_latest_exact(
-  time : Int64,
-  step : Int64,
-  offset : Int64,
-) -> Int64? {
-  let grid = event_window_floor_mod(offset, step)
-  let remainder = event_window_floor_mod(time, step)
-  let delta = event_window_floor_mod(remainder - grid, step)
-  if time < -9223372036854775807L - 1L + delta {
-    None
-  } else {
-    Some(time - delta)
-  }
-}
-
-///|
-fn event_window_latest_binary(
-  time : Double,
-  step : Double,
-  offset : Double,
-) -> Double? {
-  let shifted = (time - offset) / step
-  if shifted.is_nan() || shifted.is_inf() {
-    return None
-  }
-  let start = shifted.floor() * step + offset
-  if start.is_nan() || start.is_inf() || start > time {
-    None
-  } else {
-    Some(if start == 0.0 { 0.0 } else { start })
-  }
-}
-
-///|
-fn event_window_exact_double(value : Int64) -> Double? {
-  if value < -9007199254740991L || value > 9007199254740991L {
-    None
-  } else {
-    Some(value.to_double())
-  }
-}
-
-///|
 fn event_window_coordinate(
   value : @value.CheckedValue,
   timestamp : Bool,
-) -> EventWindowCoordinate? {
+) -> @grid.Coordinate? {
   if timestamp {
     guard value.value is @value.Timestamp(text) &&
       @value.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
       return None
     }
-    Some(Exact(milliseconds))
+    Some(@grid.from_timestamp_milliseconds(milliseconds))
   } else {
     guard value.value is @value.Number(number) &&
       !number.is_nan() &&
       !number.is_inf() else {
       return None
     }
-    match @scalar.read_safe_integer(number.floor()) {
-      Some(floor) => Some(Exact(floor))
-      None => Some(Binary(number))
-    }
+    @grid.from_finite_number(number)
   }
 }
 
@@ -214,48 +150,19 @@ fn event_window_prepare_membership(
     return Err(InvalidEventWindowTime(state.record))
   }
   state.coordinate = Some(coordinate)
-  match coordinate {
-    Exact(time_floor) => {
-      guard event_window_latest_exact(time_floor, state.step, state.offset)
-        is Some(latest) else {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      if latest > 9223372036854775807L - state.size {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      if time_floor < latest || time_floor >= latest + state.size {
-        state.fields = []
-        state.time = None
-        state.coordinate = None
-        state.record += 1
-        state.phase = BeginRecord
-        return Ok(())
-      }
-      state.exact_current = latest
-      state.exact_latest = latest
-    }
-    Binary(time_value) => {
-      let step = state.step.to_double()
-      let grid = event_window_floor_mod(state.offset, state.step).to_double()
-      guard event_window_latest_binary(time_value, step, grid) is Some(latest) else {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      let end = latest + state.size.to_double()
-      if end.is_nan() || end.is_inf() || end <= latest {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      if time_value < latest || time_value >= end {
-        state.fields = []
-        state.time = None
-        state.coordinate = None
-        state.record += 1
-        state.phase = BeginRecord
-        return Ok(())
-      }
-      state.binary_current = latest
-      state.binary_latest = latest
-    }
+  let latest = @grid.latest_start(coordinate, state.step, state.offset)
+  let end = latest + @bigint.BigInt::from_int64(state.size)
+  if @grid.compare(coordinate, latest) < 0 ||
+    @grid.compare(coordinate, end) >= 0 {
+    state.fields = []
+    state.time = None
+    state.coordinate = None
+    state.record += 1
+    state.phase = BeginRecord
+    return Ok(())
   }
+  state.current = latest
+  state.latest = latest
   state.phase = SeekEarliest
   Ok(())
 }
@@ -269,35 +176,11 @@ fn event_window_seek_earliest(
     return Ok(())
   }
   match state.coordinate {
-    Some(Exact(time_floor)) => {
-      if state.exact_current < -9223372036854775807L - 1L + state.step {
-        state.phase = BuildMembership
-        return Ok(())
-      }
-      let candidate = state.exact_current - state.step
-      if candidate > 9223372036854775807L - state.size {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      let end = candidate + state.size
-      if candidate <= time_floor && time_floor < end {
-        state.exact_current = candidate
-      } else {
-        state.phase = BuildMembership
-      }
-    }
-    Some(Binary(time_value)) => {
-      let candidate = state.binary_current - state.step.to_double()
-      let end = candidate + state.size.to_double()
-      if candidate.is_nan() ||
-        candidate.is_inf() ||
-        candidate >= state.binary_current ||
-        end.is_nan() ||
-        end.is_inf() ||
-        end <= candidate {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      if candidate <= time_value && time_value < end {
-        state.binary_current = candidate
+    Some(time) => {
+      let candidate = state.current - @bigint.BigInt::from_int64(state.step)
+      let end = candidate + @bigint.BigInt::from_int64(state.size)
+      if @grid.compare(time, candidate) >= 0 && @grid.compare(time, end) < 0 {
+        state.current = candidate
       } else {
         state.phase = BuildMembership
       }
@@ -311,26 +194,13 @@ fn event_window_seek_earliest(
 fn event_window_build_membership(
   state : EventWindowState,
 ) -> Result[Unit, EventWindowIssue] {
-  let (start, end) = match state.coordinate {
-    Some(Exact(_)) => {
-      if state.exact_current > 9223372036854775807L - state.size {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      guard event_window_exact_double(state.exact_current) is Some(start) &&
-        event_window_exact_double(state.exact_current + state.size) is Some(end) else {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      (start, end)
-    }
-    Some(Binary(_)) => {
-      let start = state.binary_current
-      let end = start + state.size.to_double()
-      if end.is_nan() || end.is_inf() || end <= start {
-        return Err(EventWindowArithmetic(state.record))
-      }
-      (start, end)
-    }
-    None => return Err(InvalidEventWindowTime(state.record))
+  guard state.coordinate is Some(_) &&
+    @grid.exact_binary64_boundary(state.current) is Some(start) &&
+    @grid.exact_binary64_boundary(
+      state.current + @bigint.BigInt::from_int64(state.size),
+    )
+    is Some(end) else {
+    return Err(EventWindowArithmetic(state.record))
   }
   guard @value.checked_number_value(start, state.start_contract)
     is Some(start_value) &&
@@ -355,11 +225,7 @@ fn event_window_commit_membership(
     Err(issue) => Err(EventWindowOutput(issue))
     Ok(_) => {
       state.emission = []
-      let last = match state.coordinate {
-        Some(Exact(_)) => state.exact_current == state.exact_latest
-        Some(Binary(_)) => state.binary_current == state.binary_latest
-        None => true
-      }
+      let last = state.current == state.latest
       if last {
         state.fields = []
         state.time = None
@@ -367,22 +233,7 @@ fn event_window_commit_membership(
         state.record += 1
         state.phase = BeginRecord
       } else {
-        match state.coordinate {
-          Some(Exact(_)) => {
-            if state.exact_current > 9223372036854775807L - state.step {
-              return Err(EventWindowArithmetic(state.record))
-            }
-            state.exact_current += state.step
-          }
-          Some(Binary(_)) => {
-            let next = state.binary_current + state.step.to_double()
-            if next.is_nan() || next.is_inf() || next <= state.binary_current {
-              return Err(EventWindowArithmetic(state.record))
-            }
-            state.binary_current = next
-          }
-          None => return Err(InvalidEventWindowTime(state.record))
-        }
+        state.current += @bigint.BigInt::from_int64(state.step)
         state.phase = BuildMembership
       }
       Ok(last)
@@ -597,10 +448,8 @@ pub fn start_event_window(
     emission: [],
     time: None,
     coordinate: None,
-    exact_current: 0L,
-    exact_latest: 0L,
-    binary_current: 0.0,
-    binary_latest: 0.0,
+    current: @bigint.BigInt::from_int(0),
+    latest: @bigint.BigInt::from_int(0),
   }
   let (session, token) = @bounded.start(
     control, state, event_window_step, cleanup_event_window_state, @records.discard_completed,

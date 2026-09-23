@@ -285,15 +285,17 @@ test "fixed and sliding event windows preserve order with bounded steps" {
 }
 
 ///|
-test "event windows terminate when binary grid subtraction cannot progress" {
+// Expectations are transcribed from the separately authored
+// portability/corpus/event-window-boundaries.json.
+test "event windows use exact grids and reject unrepresentable boundaries" {
   let producer = event_window_producer()
   let live = Ref(true)
   for
     (time, step, arithmetic) in [
-      (9007199254740992.0, 1, false),
+      (9007199254740992.0, 1, true),
       (9007199254740992.0, 2, false),
       (18014398509481984.0, 1, true),
-      (18014398509481984.0, 2, false),
+      (18014398509481984.0, 2, true),
       (18014398509481984.0, 4, false),
       (-9007199254740992.0, 1, true),
       (-9007199254740992.0, 2, false),
@@ -361,6 +363,74 @@ test "event windows terminate when binary grid subtraction cannot progress" {
     assert_true(@records.discard_completed(output))
     assert_true(@records.discard_completed(source))
   }
+}
+
+///|
+test "event windows distinguish exact membership from boundary encoding" {
+  let producer = event_window_producer()
+  let live = Ref(true)
+  for
+    (time, body, expected_start, expected_end) in [
+      (-0.5, "{\"kind\":\"fixed\",\"size\":10}", -10.0, 0.0),
+      (0.5, "{\"kind\":\"fixed\",\"size\":10}", 0.0, 10.0),
+      (
+        9007199254740992.0, "{\"kind\":\"fixed\",\"size\":8}", 9007199254740992.0,
+        9007199254741000.0,
+      ),
+      (
+        18014398509481984.0, "{\"kind\":\"fixed\",\"size\":4}", 18014398509481984.0,
+        18014398509481988.0,
+      ),
+      (
+        9223372036854775808.0, "{\"kind\":\"fixed\",\"size\":2048}", 9223372036854775808.0,
+        9223372036854777856.0,
+      ),
+      (
+        -9223372036854775808.0, "{\"kind\":\"fixed\",\"size\":2048}", -9223372036854775808.0,
+        -9223372036854773760.0,
+      ),
+    ] {
+    let owner = event_window_owner(producer, body)
+    let source = event_window_source(producer, [time], live)
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let (output, _) = event_window_finish(
+      start_event_window(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        read,
+        event_window_limits(),
+        4096L,
+        fn() { true },
+      ).unwrap(),
+    )
+    let storage = @records.completed_storage(output).unwrap()
+    assert_eq(@storage.record_count(storage), 1)
+    assert_eq(event_window_field(storage, 0, "window_start_ms"), expected_start)
+    assert_eq(event_window_field(storage, 0, "window_end_ms"), expected_end)
+    assert_true(@records.discard_completed(output))
+    assert_true(@records.discard_completed(source))
+  }
+  let owner = event_window_owner(
+    producer, "{\"kind\":\"sliding\",\"size\":1,\"step\":3,\"offset\":1}",
+  )
+  let source = event_window_source(producer, [9007199254740992.0], live)
+  let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let (output, _) = event_window_finish(
+    start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      read,
+      event_window_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap(),
+  )
+  let storage = @records.completed_storage(output).unwrap()
+  assert_eq(@storage.record_count(storage), 0)
+  assert_true(@records.discard_completed(output))
+  assert_true(@records.discard_completed(source))
 }
 
 ///|
