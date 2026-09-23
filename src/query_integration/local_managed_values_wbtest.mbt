@@ -92,6 +92,64 @@ test "Local managed execution admits checked zero-input values without a dummy p
 }
 
 ///|
+test "Local managed zero-input values stop after bounded cell work" {
+  let (run, issuer) = captured_graph_fixture(values=true)
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+  captured_graph_local(run, 1).unwrap()
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    2,
+    [],
+    [],
+  )
+  let first = (operations.advance)(1).unwrap()
+  assert_false(first.complete)
+  assert_eq(first.work, 1L)
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  assert_true(
+    (operations.complete)(7, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  assert_true((operations.cleanup_refresh)())
+  assert_false(@strategy.captured_task_completed(run, 2))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "Local managed zero-input values feed two downstream Computes" {
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
@@ -120,6 +178,7 @@ test "Local managed zero-input values feed two downstream Computes" {
   ).unwrap()
 
   let values_live = Ref(true)
+  let values_advances = Ref(0)
   let (values_ops, values) = run_local_managed_test_task(
     installed,
     run,
@@ -128,7 +187,10 @@ test "Local managed zero-input values feed two downstream Computes" {
     [],
     1,
     values_live,
+    execution_quantum=1,
+    execution_advances=Some(values_advances),
   )
+  assert_eq(values_advances.val, 11)
   let rows = local_managed_test_rows(values_ops)
   assert_eq(rows, [
     "{\"id\":null,\"label\":\"none\"}", "{\"id\":1,\"label\":\"one\"}",

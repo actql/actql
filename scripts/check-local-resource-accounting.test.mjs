@@ -41,7 +41,26 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 14 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 5 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 15 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 6 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('zero-input values bind their bounded production provider', () => {
+  assert.match(run(undefined, routes => {
+    const values = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    delete values.zero_input_entrypoint;
+  }), /RelA values: bounded zero-input Values route lacks its production evidence/);
+  assert.match(run(undefined, routes => {
+    const values = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.boundary_tests = values.boundary_tests.filter(item =>
+      item.role !== 'zero_input_cancel_cleanup');
+  }), /RelA values: bounded zero-input Values route lacks its production evidence/);
+  assert.match(run(undefined, routes => {
+    const values = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.environment_tests[0].fixture = 'missing-values-timer';
+  }), /RelA values: missing environment fixture missing-values-timer/);
 });
 
 test('selected projection loses its resource proof when the fixture is removed', () => {

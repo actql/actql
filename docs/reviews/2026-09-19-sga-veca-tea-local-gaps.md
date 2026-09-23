@@ -53,8 +53,14 @@ after a pair has been emitted and verifies stop, nonpublication, and cleanup.
 Direct fixtures check independently calculated exact and one-short work and
 structural workspace limits. The former multi-step cross-join fixture still
 uses the providerless lane; its pre-execution cancellation fixture must not
-be relabeled as in-flight cancellation. Zero-input values and other unmatched
-multi-step Relation sequences can also still reach that lane. A Node standard
+be relabeled as in-flight cancellation. One-step zero-input `values` now uses
+a bounded provider: row and cell construction advance within the requested
+quantum, and a managed-driver fixture stops after cell work without
+publishing output. A separate standard Node Host fixture delivers a timer
+cancel after values work, observes stop, rejects partial publication, and
+reclaims the attempt. Multi-step
+sequences beginning with `values`, and other unmatched Relation sequences,
+can still reach that lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;
 it verifies delivered cancellation, observed stop, nonpublication of the
 cross-join output, and final reclamation. The independent left and right
@@ -80,7 +86,7 @@ closure conditions. At `357af5e18fcf959015c04a9e507da5ce17776387`, the
 independent RowTable copy is bounded and workspace-admitted, but the ordinary
 providerless compute call still runs a whole checked sequence in one resume.
 That is an unresolved execution-lane defect, not a completed cancellation
-path. The normal route gate reports 68 mapped operations and 14 with
+path. The normal route gate reports 68 mapped operations and 15 with
 operation-specific boundary records; its zero fully work/workspace-assured
 routes make resource completion separately open. The strict completion gate
 remains red by design. Standard Host fixtures are not evidence for the
@@ -88,10 +94,10 @@ Distribution-owned ordinary Run entry; that integration is also open. These
 are three separate acceptance conditions, so closing one must not change the
 status of the others.
 
-The ordinary one-step filter, select, sort, take, and external-input cross
-join forms use bounded Relation providers. Other accepted Relation forms,
-including zero-input, same-sequence binary, and multi-step sequences, can
-still use the providerless lane.
+The ordinary one-step filter, select, sort, take, external-input cross join,
+and zero-input values forms use bounded Relation providers. Other accepted
+Relation forms, including same-sequence binary and multi-step sequences,
+can still use the providerless lane.
 Moving ordinary derive or assertions onto the selected bounded evaluator
 requires a representation-preservation check: a direct route experiment
 changed the serialized field order in the existing Host fixture. In

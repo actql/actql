@@ -1019,6 +1019,69 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
+      },
+      "zero_input_entrypoint": {
+        "path": "src/connectors/local/values_provider.mbt",
+        "symbol": "values_provider"
+      },
+      "boundary_tests": [
+        {
+          "role": "zero_input_quantum_and_output",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_values_wbtest.mbt",
+          "fixture": "bounded values build checked zero-input rows within quantum"
+        },
+        {
+          "role": "zero_input_work_and_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_values_wbtest.mbt",
+          "fixture": "bounded values reject one-short work and workspace"
+        },
+        {
+          "role": "zero_input_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "Local managed zero-input values stop after bounded cell work"
+        },
+        {
+          "role": "zero_input_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "Local managed zero-input values feed two downstream Computes"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "zero_input_node_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "zero-input-values-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "zero_input_entrypoint": {
+          "exact_limit": "zero_input_work_and_workspace",
+          "one_short_limit": "zero_input_work_and_workspace",
+          "in_flight_cancel": "zero_input_node_timer_cancel_cleanup",
+          "cleanup": "zero_input_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "zero_input_entrypoint": {
+          "work": {
+            "exact_limit": "zero_input_work_and_workspace",
+            "one_short_limit": "zero_input_work_and_workspace"
+          },
+          "workspace": {
+            "exact_limit": "zero_input_work_and_workspace",
+            "one_short_limit": "zero_input_work_and_workspace"
+          }
+        }
       }
     },
     {
