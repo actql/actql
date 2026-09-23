@@ -206,6 +206,13 @@ pub fn ${name}_managed_start(
 }
 dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
+if (existsSync(join(root, 'src', bridgePackage,
+  'client_program_bridge.mbt'))) {
+  dependencies.set('actql/actql/check_environment', 'check_environment');
+  dependencies.set('actql/actql/program_check', 'program_check');
+  dependencies.set('actql/actql/stage_syntax', 'stage_syntax');
+  dependencies.set('moonbitlang/core/encoding/utf8', 'utf8');
+}
 // A bridge package may also contain the handwritten Carrier adapter. Keep its
 // runtime dependency after generated connector aliases so their stable names
 // continue to match that adapter. Other generated bridge packages do not gain
