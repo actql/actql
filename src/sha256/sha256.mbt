@@ -196,13 +196,40 @@ pub fn update_ascii_range(
     raise InvalidAsciiRange
   }
   admit_length(h, (end - start).to_uint64())
-  for index in start..<end {
+  let mut index = start
+  while h.used != 0 && index < end {
     let unit = input[index].to_int()
     if unit >= 128 {
       h.closed = true
       raise InvalidAsciiRange
     }
     append(h, unit.to_byte())
+    index += 1
+  }
+  while end - index >= 64 {
+    for word in 0..<16 {
+      let mut value = 0U
+      for part in 0..<4 {
+        let unit = input[index + word * 4 + part].to_int()
+        if unit >= 128 {
+          h.closed = true
+          raise InvalidAsciiRange
+        }
+        value = (value << 8) | unit.reinterpret_as_uint()
+      }
+      h.words[word] = value
+    }
+    compress_words(h)
+    index += 64
+  }
+  while index < end {
+    let unit = input[index].to_int()
+    if unit >= 128 {
+      h.closed = true
+      raise InvalidAsciiRange
+    }
+    append(h, unit.to_byte())
+    index += 1
   }
 }
 

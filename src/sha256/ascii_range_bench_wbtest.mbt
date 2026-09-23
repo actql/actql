@@ -2,6 +2,23 @@
 let ascii_bench_span : String = "x".repeat(256)
 
 ///|
+fn hash_ascii_checked_loop_bench() -> Bytes raise HashFailure {
+  let h = hasher()
+  for _ in 0..<1024 {
+    admit_length(h, ascii_bench_span.length().to_uint64())
+    for index in 0..<ascii_bench_span.length() {
+      let unit = ascii_bench_span[index].to_int()
+      if unit >= 128 {
+        h.closed = true
+        raise InvalidAsciiRange
+      }
+      append(h, unit.to_byte())
+    }
+  }
+  finish_digest(h)
+}
+
+///|
 fn hash_ascii_byte_bench() -> Bytes raise HashFailure {
   let h = hasher()
   for _ in 0..<1024 {
@@ -26,6 +43,17 @@ test "bench SHA-256 byte updates for 256 KiB ASCII" (it : @bench.T) {
   it.bench(fn() {
     it.keep(
       hash_ascii_byte_bench() catch {
+        _ => abort("unexpected hash error")
+      },
+    )
+  })
+}
+
+///|
+test "bench SHA-256 checked per-byte ASCII spans for 256 KiB" (it : @bench.T) {
+  it.bench(fn() {
+    it.keep(
+      hash_ascii_checked_loop_bench() catch {
         _ => abort("unexpected hash error")
       },
     )

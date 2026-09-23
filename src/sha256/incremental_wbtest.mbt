@@ -114,3 +114,42 @@ test "ASCII range hashing matches byte updates across block boundaries" {
     },
   )
 }
+
+///|
+test "ASCII range hashing completes partial blocks and closes on invalid full blocks" {
+  for prefix in [0, 1, 17, 63, 64, 65] {
+    for length in [0, 1, 63, 64, 65, 128, 129] {
+      let h = hasher()
+      update_ascii_range(h, "p".repeat(prefix), 0, prefix)
+      update_ascii_range(h, "head" + "x".repeat(length), 4, 4 + length)
+      let expected : Array[Byte] = []
+      for _ in 0..<prefix {
+        expected.push(0x70)
+      }
+      for _ in 0..<length {
+        expected.push(0x78)
+      }
+      assert_eq(finish_hex(h), hex(Bytes::from_array(expected)))
+    }
+  }
+  let h = hasher()
+  let input = "x".repeat(80) + "é" + "x".repeat(80)
+  assert_true(
+    try {
+      update_ascii_range(h, input, 0, input.length())
+      false
+    } catch {
+      InvalidAsciiRange => true
+      _ => false
+    },
+  )
+  assert_true(
+    try {
+      ignore(finish_hex(h))
+      false
+    } catch {
+      ClosedHasher => true
+      _ => false
+    },
+  )
+}
