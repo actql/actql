@@ -202,6 +202,9 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.selected_entrypoint !== undefined) {
     productionSources.push(['selected_entrypoint', route.selected_entrypoint]);
   }
+  if (route.ordinary_entrypoint !== undefined) {
+    productionSources.push(['ordinary_entrypoint', route.ordinary_entrypoint]);
+  }
   for (const [role, value] of productionSources) {
     if (typeof value.path !== 'string' ||
       !value.path.startsWith('src/') ||
@@ -363,7 +366,12 @@ for (const [index, route] of routeEntries.entries()) {
       'selected_binding_rows_execution') {
       fail(`${label}: bounded selected sort entrypoint is missing`);
     }
+    if (route.ordinary_entrypoint?.symbol !==
+      'selected_binding_rows_execution') {
+      fail(`${label}: bounded ordinary sort entrypoint is missing`);
+    }
     for (const role of [
+      'ordinary_sort_quantum_and_lifetime',
       'mixed_stage_sort_quantum_and_lifetime',
       'selected_sort_cancel_cleanup',
       'selected_sort_workspace_exact',
