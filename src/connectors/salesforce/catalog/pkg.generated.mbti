@@ -132,6 +132,8 @@ pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> 
 
 pub fn single_write_request_body(SingleWriteRequest) -> String
 
+pub fn single_write_request_boundary_cid(SingleWriteRequest, Int) -> Result[String, WriteCollectionRequestIssue]
+
 pub fn single_write_request_cid(SingleWriteRequest, String, Int) -> Result[String, WriteRequestIssue]
 
 pub fn single_write_request_effect_kind(SingleWriteRequest) -> String
@@ -148,6 +150,8 @@ pub fn single_write_request_org_id(SingleWriteRequest) -> String
 
 pub fn single_write_request_path(SingleWriteRequest) -> String
 
+pub fn single_write_request_resource(SingleWriteRequest) -> String
+
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
@@ -157,6 +161,8 @@ pub fn write_body_json(WriteBody) -> String
 pub fn write_body_projection(WriteBody) -> WriteProjection
 
 pub fn write_collection_request_body(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_boundary_cid(WriteCollectionRequest, Int) -> Result[String, WriteCollectionRequestIssue]
 
 pub fn write_collection_request_cid(WriteCollectionRequest, String, Int) -> Result[String, WriteRequestIssue]
 
@@ -172,6 +178,8 @@ pub fn write_collection_request_org_id(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_path(WriteCollectionRequest) -> String
 
+pub fn write_collection_request_resource(WriteCollectionRequest) -> String
+
 pub fn write_collection_request_row_cid(WriteCollectionRequest, Int) -> String?
 
 pub fn write_collection_request_row_count(WriteCollectionRequest) -> Int
@@ -183,6 +191,8 @@ pub fn write_collection_response_sha256(WriteCollectionResponse) -> String
 pub fn write_collection_result_at(WriteCollectionResponse, Int) -> WriteRowResult?
 
 pub fn write_collection_result_count(WriteCollectionResponse) -> Int
+
+pub fn write_projection_boundary_cid(WriteProjection, Int) -> Result[String, WriteCollectionRequestIssue]
 
 pub fn write_projection_fields(WriteProjection) -> Array[String]
 
