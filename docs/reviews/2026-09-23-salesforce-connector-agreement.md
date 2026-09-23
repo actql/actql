@@ -222,9 +222,10 @@ header tests therefore advance SF-3 without closing its product-path review.
 A bounded binding step joins those headers to the checked Result
 occurrences of the same Program. It rejects foreign Program owners and absent
 Result-side selector, key, command target, and EffectValue fields before any
-Effect can be admitted. This establishes Result ownership and field existence,
-not field-type compatibility, Mapping/Command closure, Preview validity,
-authorization, or an Effectful Run. SF-3 remains open until the ordinary Host
+Effect can be admitted. It retains the admitted field contracts and their
+selector/key/value roles without claiming field-type compatibility,
+Mapping/Command closure, Preview validity, authorization, or an Effectful Run.
+SF-3 remains open until the ordinary Host
 path and its fault-injection matrix are connected.
 
 ## Capability comparison with Smooth Cloud
