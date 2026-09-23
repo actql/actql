@@ -79,9 +79,13 @@ fn Parser::parse_string(
     if unit == 0x22 {
       ignore(self.advance_scalar(path))
       let text = output.to_string()
-      let decoded = match @canonical.normalize_nfc_lf(text) {
-        Ok(value) => value
-        Err(_) => self.fail(InvalidUnicodeEscape, path)
+      let decoded = if self.normalize_text {
+        match @canonical.normalize_nfc_lf(text) {
+          Ok(value) => value
+          Err(_) => self.fail(InvalidUnicodeEscape, path)
+        }
+      } else {
+        text
       }
       return (decoded, self.span(start))
     }

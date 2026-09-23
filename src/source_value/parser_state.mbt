@@ -10,6 +10,7 @@ priv struct Parser {
   source : String
   source_path : String
   limits : ParseLimits
+  normalize_text : Bool
   path : Array[PathSegment]
   mut offset : Int
   mut byte_offset : Int
@@ -24,12 +25,14 @@ fn Parser::make(
   source : String,
   source_path : String,
   limits : ParseLimits,
+  normalize_text? : Bool = true,
 ) -> Parser {
   let bom = source.length() > 0 && source[0].to_int() == 0xfeff
   {
     source,
     source_path,
     limits,
+    normalize_text,
     path: [],
     offset: if bom {
       1
