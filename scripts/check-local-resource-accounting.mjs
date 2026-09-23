@@ -440,6 +440,18 @@ for (const [index, route] of routeEntries.entries()) {
       !boundaryRoles.has('direct_product_host_two_consumers'))) {
     fail(`${label}: bounded same-stage cross join evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'distinct') {
+    for (const role of [
+      'selected_distinct_workspace_exact_one_short',
+      'selected_distinct_work_exact_one_short',
+      'selected_keyed_distinct_workspace_exact_one_short',
+      'selected_keyed_distinct_work_exact_one_short',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {

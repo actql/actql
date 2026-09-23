@@ -317,6 +317,122 @@ test "bounded distinct admits exact and one-short structural workspace" {
 }
 
 ///|
+test "bounded distinct admits exact and one-short control work" {
+  let rows = "[{\"id\":2,\"tag\":\"b\"},{\"id\":1,\"tag\":\"a\"}]"
+  // Two distinct terms and two rows account for 31 control units across
+  // input admission, indexed ordering, marking, and output construction.
+  for budget in [31, 30] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      distinct=true,
+      max_work=budget,
+      max_entries=14,
+    )
+    let mut done = false
+    for _ in 0..<1000 {
+      if done {
+        break
+      }
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_eq(budget, 31)
+          assert_eq(completed_row_count(output), 2)
+          assert_eq(completed_column_count(output), 2)
+          done = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_eq(budget, 30)
+          assert_true(bounded_binding_rows_cleanup_pending(execution))
+          done = true
+        }
+        _ => fail("distinct control-work boundary had another outcome")
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "bounded keyed distinct admits exact and one-short control work" {
+  let rows = "[{\"id\":2,\"tag\":\"b\"},{\"id\":1,\"tag\":\"a\"}]"
+  // The keyed projection retains one output field and one sort term;
+  // input admission still covers both source fields.
+  for budget in [24, 23] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      distinct_keyed=true,
+      max_work=budget,
+    )
+    let mut done = false
+    for _ in 0..<1000 {
+      if done {
+        break
+      }
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_eq(budget, 24)
+          assert_eq(completed_row_count(output), 2)
+          assert_eq(completed_column_count(output), 1)
+          done = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_eq(budget, 23)
+          assert_true(bounded_binding_rows_cleanup_pending(execution))
+          done = true
+        }
+        _ => fail("keyed distinct control-work boundary had another outcome")
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "bounded keyed distinct admits exact and one-short workspace" {
+  let rows = "[{\"id\":2,\"tag\":\"b\"},{\"id\":1,\"tag\":\"a\"}]"
+  // Eight metadata slots overlap with one key term and two sort indices;
+  // the keep bitmap replaces an index array after ordering.
+  for slots in [11, 10] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      distinct_keyed=true,
+      max_work=24,
+      max_entries=slots,
+    )
+    let mut done = false
+    for _ in 0..<1000 {
+      if done {
+        break
+      }
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_eq(slots, 11)
+          assert_eq(completed_row_count(output), 2)
+          assert_eq(completed_column_count(output), 1)
+          done = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_eq(slots, 10)
+          assert_true(bounded_binding_rows_cleanup_pending(execution))
+          done = true
+        }
+        _ => fail("keyed distinct workspace boundary had another outcome")
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
 test "bounded selected sort preserves stable ties with one-work advances" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":3,\"left\":[2,1],\"right\":[4,3]},{\"id\":3,\"left\":[5,6],\"right\":[7,8]},{\"id\":2,\"left\":[9,10],\"right\":[11,12]}]",
