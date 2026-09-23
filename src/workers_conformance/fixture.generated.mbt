@@ -50,6 +50,7 @@ fn captured_graph_fixture(
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
+  linear_compute_stages? : Int = 0,
   join_steps? : Array[Int] = [0],
   managed_publication? : Bool = false,
   nullable? : Bool = false,
@@ -110,6 +111,7 @@ fn captured_graph_fixture(
     local_values_nest_chain~,
     local_values_unary_chain~,
     local_select_qualified_chain~,
+    linear_compute_stages~,
     join_steps~,
     managed_publication~,
     compute_filter~,
@@ -461,6 +463,31 @@ fn join_graph_capacity_material(
       Join(step=steps[i], output=@wire.mixed_limit_at(mixed, i).unwrap())
     }),
   }
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn linear_compute_program(count : Int) -> String raise {
+  if count < 1 || count > 32 {
+    fail("invalid linear compute fixture")
+  }
+  let stages = Array::makei(count, index => {
+    let prior = if index == 0 {
+      "a"
+    } else {
+      "linear_" + (index - 1).to_string()
+    }
+    ",{\"id\":\"linear_" +
+    index.to_string() +
+    "\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"" +
+    prior +
+    "\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id >= 0\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}}"
+  }).join("")
+  "{\"version\":\"actql/0.1\",\"id\":\"linear-placement\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}" +
+  stages +
+  "],\"results\":{\"out\":{\"from\":{\"stage\":\"linear_" +
+  (count - 1).to_string() +
+  "\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -3435,6 +3462,7 @@ fn query_checked_program_fixture(
   local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
+  linear_compute_stages? : Int = 0,
   join_steps? : Array[Int] = [0],
   managed_publication? : Bool = false,
   acquisition_filter? : String = "id > $minimum",
@@ -3814,6 +3842,11 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = if linear_compute_stages > 0 {
+    linear_compute_program(linear_compute_stages)
+  } else {
+    text
+  }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let text = text.replace(old="id > 2", new=compute_filter)
   let input_limits : @syntax.Limits = {
@@ -3824,7 +3857,7 @@ fn query_checked_program_fixture(
       max_string_bytes: 1000000,
       max_total_string_bytes: 1000000,
     },
-    max_stages: 10,
+    max_stages: Int::max(10, linear_compute_stages + 1),
   }
   let program = @syntax.parse(text, input_limits, format=Json).unwrap()
   let policies = @environment.value_contract_policies(
@@ -4190,13 +4223,17 @@ fn query_checked_program_fixture(
       {
         input: input_limits,
         compilation: query_checked_limits(
-          if local_carrier_graph_variant == "graph_apply_changes" {
-            12
-          } else if local_values_join_chain && local_values_join_kind == "full" {
-            20
-          } else {
-            10
-          },
+          Int::max(
+            2 * (linear_compute_stages + 1),
+            if local_carrier_graph_variant == "graph_apply_changes" {
+              12
+            } else if local_values_join_chain &&
+              local_values_join_kind == "full" {
+              20
+            } else {
+              10
+            },
+          ),
           parameter_count=if local_carrier_vectors_variant == "score_parameter" ||
             local_carrier_events_variant == "window_parameter" {
             2
