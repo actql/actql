@@ -51,6 +51,55 @@ pub fn prepared_client_result_name(
 }
 
 ///|
+pub(all) enum ClientTaskSequenceIssue {
+  MissingTask
+  EmptyTask
+  Sequence(@lower.SequenceIssue)
+  Generated(@execution.SequenceRunIssue)
+}
+
+///|
+/// Compile the exact checked task owner for an installed Local realization.
+/// Runtime expression contexts and registered contracts remain explicit
+/// adapter inputs; this does not select a Site or grant execution.
+pub fn prepare_client_task_sequence(
+  value : PreparedClientProgram,
+  task : Int,
+  contracts : @execution.RegisteredRelationContracts,
+  contexts : Array[@execution.FragmentRuntimeContext],
+  limits : @lower.SequenceLimits,
+  max_work : Int,
+  max_entries : Int,
+) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return Err(MissingTask)
+  }
+  let sequence = match @lower.prepare_sequence(owner, limits) {
+    Ok(result) => result
+    Err(issue) => return Err(Sequence(issue))
+  }
+  let count = @lower.sequence_count(sequence)
+  if count == 0 {
+    return Err(EmptyTask)
+  }
+  guard @lower.node_at(@lower.bound_preparation(owner), count - 1) is Some(last) else {
+    return Err(EmptyTask)
+  }
+  match
+    @execution.prepare_generated_sequence(
+      contracts,
+      sequence,
+      contexts,
+      [@lower.node_id(last)],
+      max_work,
+      max_entries,
+    ) {
+    Ok(generated) => Ok(generated)
+    Err(issue) => Err(Generated(issue))
+  }
+}
+
+///|
 /// Use the ordinary parser and semantic checker. Every lowered owner is
 /// derived from that same CheckedProgram; callers cannot inject a parallel
 /// graph, Result list or effect-free claim.
