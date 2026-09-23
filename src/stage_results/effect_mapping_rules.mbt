@@ -41,6 +41,7 @@ pub fn effect_mapping_rule_issue_effect(
 pub struct EffectMappingRuleBinding {
   effect : EffectMappingShapeBinding
   conversions : @environment.MappingConversions
+  row_fields : @environment.MappingRowFields?
   selection : @environment.MappingPermissionSelection
 }
 
@@ -63,6 +64,13 @@ pub fn effect_mapping_rule_conversions(
   value : EffectMappingRuleBinding,
 ) -> @environment.MappingConversions {
   value.conversions
+}
+
+///|
+pub fn effect_mapping_rule_row_fields(
+  value : EffectMappingRuleBinding,
+) -> @environment.MappingRowFields? {
+  value.row_fields
 }
 
 ///|
@@ -324,6 +332,7 @@ pub fn bind_effect_mapping_rules(
         admitted
       }
     }
+    let mut row_fields : @environment.MappingRowFields? = None
     let fields = match kind {
       "update" | "upsert" => {
         let source = @decode.lookup(object, "set").unwrap()
@@ -354,6 +363,7 @@ pub fn bind_effect_mapping_rules(
             return Err(effect_mapping_rule_issue(RowFields(issue), header))
         }
         remaining.val -= @environment.mapping_row_fields_work(admitted)
+        row_fields = Some(admitted)
         match
           effect_mapping_rule_sources(
             admitted,
@@ -394,7 +404,12 @@ pub fn bind_effect_mapping_rules(
         return Err(effect_mapping_rule_issue(Permission(issue), header))
     }
     remaining.val -= @environment.mapping_permission_work(selected)
-    entries.push({ effect: binding, conversions, selection: selected, })
+    entries.push({
+      effect: binding,
+      conversions,
+      row_fields,
+      selection: selected,
+    })
   }
   Ok({ shapes, entries, work: max_work - remaining.val, })
 }
