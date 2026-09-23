@@ -400,6 +400,24 @@ one-comparator series still cannot certify the
 The 27-case equivalent assessor also requires one generated release-artifact
 digest across every completed case; mixed builds make the matrix incomplete.
 
+`run-equivalent-matrix.mjs` executes this one comparator over the registered
+matrix. Give it an empty output directory outside the checkout. For each case
+it measures a distinct registered training size in the same workload/layout,
+creates a separate held-out source, then runs seven alternating pairs against
+that immutable source. It writes every attempted pair and every case failure
+before continuing, followed by `assessment.json` and `assessment.md`:
+
+```sh
+node benchmarks/retained-results/run-equivalent-matrix.mjs \
+  /path/to/workspace-scratch/equivalent-matrix
+```
+
+An optional second argument selects one exact registered case for a rehearsal;
+the 27-case result remains incomplete. The runner never turns a calibration,
+timeout, failed pair or missing case into a passing sample. It covers only the
+equivalent-obligations comparator; baseline and raw-engine comparisons remain
+separate requirements of the registered experiment.
+
 The statistic is the ratio of paired arithmetic means for ratios, or their
 difference for absolute overhead. A reproducible seeded bootstrap resamples whole
 pairs and reports a two-sided percentile interval. Its upper endpoint must meet

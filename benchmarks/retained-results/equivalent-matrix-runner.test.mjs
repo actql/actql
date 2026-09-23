@@ -1,0 +1,63 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {retainedMatrix} from './fixtures.mjs';
+import {runEquivalentMatrix} from './equivalent-matrix-runner.mjs';
+
+const checkout = new URL('../../', import.meta.url).pathname;
+
+test('one failed calibration does not drop any of the 27 registered cases', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-matrix-'));
+  const outputDirectory = join(directory, 'results');
+  const [first] = retainedMatrix();
+  let calls = 0;
+  try {
+    const result = await runEquivalentMatrix({checkout, outputDirectory,
+      inspect: async () => ({revision: 'a'.repeat(40), dirty: false}),
+      calibrate: async ({target}) => {
+        if (target.id === first.id) throw new Error('CalibratorUnavailable');
+        return {directory, database: join(directory, 'unused.duckdb')};
+      },
+      runPair: async ({fixture, index}) => {
+        calls++;
+        return {index, caseId: fixture.id, status: 'failed',
+          acceptanceEligible: false};
+      }});
+    assert.equal(result.assessment.status, 'incomplete');
+    assert.equal(result.assessment.receivedRecords, 27);
+    assert.equal(calls, 26 * 7);
+    const firstRecord = JSON.parse(await readFile(join(outputDirectory,
+      'case-00.json')));
+    assert.equal(firstRecord.error.message, 'CalibratorUnavailable');
+    const finalRecord = JSON.parse(await readFile(join(outputDirectory,
+      'case-26.json')));
+    assert.equal(finalRecord.pairs.length, 7);
+    const progress = JSON.parse(await readFile(join(outputDirectory,
+      'progress.json')));
+    assert.equal(progress.completedCases, 27);
+    assert.equal(progress.records.length, 27);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
+
+test('a one-case rehearsal remains incomplete for the full matrix', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-matrix-'));
+  const outputDirectory = join(directory, 'results');
+  const target = retainedMatrix()[1];
+  try {
+    const result = await runEquivalentMatrix({checkout, outputDirectory,
+      inspect: async () => ({revision: 'a'.repeat(40), dirty: false}),
+      caseId: target.id,
+      calibrate: async () => ({directory, database: join(directory, 'unused.duckdb')}),
+      runPair: async ({fixture, index}) => ({index, caseId: fixture.id,
+        status: 'failed', acceptanceEligible: false})});
+    assert.equal(result.assessment.status, 'incomplete');
+    assert.equal(result.assessment.receivedRecords, 1);
+    assert.equal(result.assessment.cases.length, 27);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
