@@ -18,6 +18,8 @@ pub fn cancel_weighted_mean(Mean) -> Bool
 
 pub fn finish_weighted_mean(Mean) -> Result[Double, Issue]
 
+pub fn pairwise_mean(Double, Double) -> Result[Double, Issue]
+
 pub fn prepare_weight_sum(Int) -> Result[WeightSum, Issue]
 
 pub fn prepare_weighted_mean(Int) -> Result[Mean, Issue]
