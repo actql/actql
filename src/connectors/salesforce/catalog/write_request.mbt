@@ -34,6 +34,8 @@ pub struct SingleWriteRequest {
   body : String
   kind : WriteSingleKind
   projection : WriteProjection
+  target : WriteTargetValue
+  max_target_bytes : Int
 }
 
 ///|
@@ -54,6 +56,29 @@ pub fn single_write_request_body(value : SingleWriteRequest) -> String {
 ///|
 pub fn single_write_request_org_id(value : SingleWriteRequest) -> String {
   value.projection.binding.org_id
+}
+
+///|
+/// Derive the provider footprint from the exact admitted physical request,
+/// never from a separately supplied target. Create has no existing target.
+pub fn single_write_request_target_identity(
+  value : SingleWriteRequest,
+  max_identity_bytes : Int,
+) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue] {
+  match value.target {
+    NoWriteTarget => Ok(None)
+    target =>
+      match
+        prepare_write_target_identity(
+          value.projection,
+          target,
+          value.max_target_bytes,
+          max_identity_bytes,
+        ) {
+        Ok(identity) => Ok(Some(identity))
+        Err(issue) => Err(issue)
+      }
+  }
 }
 
 ///|
@@ -348,5 +373,13 @@ pub fn prepare_single_write_request(
     Err(@scalar.MalformedUtf16(_)) => return Err(InvalidUnicode)
     Err(_) => return Err(CapacityExceeded)
   }
-  Ok({ verb, path: prefix + suffix, body: text, kind, projection, })
+  Ok({
+    verb,
+    path: prefix + suffix,
+    body: text,
+    kind,
+    projection,
+    target,
+    max_target_bytes: limits.max_target_bytes,
+  })
 }

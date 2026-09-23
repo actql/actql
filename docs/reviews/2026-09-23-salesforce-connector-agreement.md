@@ -117,6 +117,12 @@ The Connector derives two distinct identities:
   boundary, scheme, resource, and canonical target value. These are bounded,
   versioned canonical JSON preimages; they are not physical request CIDs.
 
+An admitted single or Collections request retains its own target values and
+exposes the corresponding footprint identities. Whole-set preflight must use
+these request-derived identities, not a second caller-supplied target list.
+Create requests have no existing exact target and require collection or opaque
+footprint handling under the common Effect contract.
+
 RecordIds use case-sensitive 15-character values with validated 18-character
 extensions. A 15-character value and its valid 18-character extension have one
 target identity. Distinct 15-character casing is not collapsed. For unique

@@ -147,6 +147,19 @@ pub fn salesforce_single_write_request_org_id(
 }
 
 ///|
+#export_name("salesforceSingleWriteRequestTargetIdentity")
+pub fn salesforce_single_write_request_target_identity(
+  request : @catalog.SingleWriteRequest,
+  max_identity_bytes : Int,
+) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.single_write_request_target_identity(request, max_identity_bytes) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
+}
+
+///|
 #export_name("salesforceSingleWriteRequestGrantOperation")
 pub fn salesforce_single_write_request_grant_operation(
   request : @catalog.SingleWriteRequest,
@@ -374,6 +387,22 @@ pub fn salesforce_collection_write_request_org_id(
   request : @catalog.WriteCollectionRequest,
 ) -> String {
   @catalog.write_collection_request_org_id(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestTargetIdentity")
+pub fn salesforce_collection_write_request_target_identity(
+  request : @catalog.WriteCollectionRequest,
+  index : Int,
+  max_identity_bytes : Int,
+) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.write_collection_request_target_identity(
+      request, index, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
 }
 
 ///|
