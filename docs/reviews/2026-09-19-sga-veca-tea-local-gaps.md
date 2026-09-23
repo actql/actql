@@ -41,8 +41,11 @@ Direct fixtures check independently calculated exact and one-short work and
 structural workspace limits. The former multi-step cross-join fixture still
 uses the providerless lane; its pre-execution cancellation fixture must not
 be relabeled as in-flight cancellation. Zero-input values and other unmatched
-multi-step Relation sequences can also still reach that lane. A Node Host timer
-fixture has not yet shown cancellation delivery during cross-join pair work.
+multi-step Relation sequences can also still reach that lane. A Node standard
+Host timer now cancels the external-input provider after pair work has begun;
+it verifies delivered cancellation, observed stop, nonpublication of the
+cross-join output, and final reclamation. The independent left and right
+producer completions remain intact.
 This remains a release blocker independently
 of the operation-specific resource proof count below. The providerless lane
 must use admitted bounded execution or an explicitly isolated stoppable
@@ -53,7 +56,8 @@ workspace admission, source-loss rejection between resumes, and cancellation
 after copy work starts. Each destination container entry is reserved before
 append against the existing Site execution-capacity allowance; completed
 storage takes custody when the copy finishes.
-They do not prove Node Host timer delivery. The strict resource-completion gate
+These direct copy fixtures do not prove Node Host timer delivery during copy.
+The strict resource-completion gate
 still rejects the providerless
 lane even if route evidence is added elsewhere. Its source
 check is a blocker guard, not a positive proof that a replacement is bounded.

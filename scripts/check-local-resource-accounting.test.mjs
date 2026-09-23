@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 14 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 4 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 14 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 5 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('selected projection loses its resource proof when the fixture is removed', () => {
@@ -573,6 +573,25 @@ test('resource gate rejects cross join without independent limits', () => {
     join.boundary_tests = join.boundary_tests.filter(item =>
       item.role !== 'product_work_workspace_exact_one_short');
   }), /RelA cross_join: reviewed product_work_workspace_exact_one_short fixture is missing/);
+});
+
+test('resource gate rejects cross join without delivered Host cancellation', () => {
+  assert.match(run(undefined, value => {
+    const join = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    join.environment_tests.find(item =>
+      item.role === 'external_product_node_timer_cancel_cleanup').fixture =
+      'missing-external-cross-join-timer';
+  }), /RelA cross_join: missing environment fixture/);
+});
+
+test('resource gate rejects an unbound external cross join work proof', () => {
+  assert.match(run(undefined, value => {
+    const join = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    join.resource_assurance.external_input_entrypoint.work.exact_limit =
+      'missing-external-work-proof';
+  }), /RelA cross_join: external_input_entrypoint operation work lacks an executable fixture/);
 });
 
 test('resource gate rejects sort without mixed-stage evidence', () => {

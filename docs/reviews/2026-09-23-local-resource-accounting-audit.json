@@ -9,7 +9,8 @@
     {"family": "RelA", "operation": "filter", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "select", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "sort", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "take", "path": "selected_entrypoint"}
+    {"family": "RelA", "operation": "take", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "cross_join", "path": "external_input_entrypoint"}
   ],
   "required_facets": [
     "admission_before_allocation",

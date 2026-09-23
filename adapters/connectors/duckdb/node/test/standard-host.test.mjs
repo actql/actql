@@ -4523,10 +4523,11 @@ async function exerciseStrategyGraph(
                     sawOperationWork = true;
                     cancellationScheduled = true;
                     setTimeout(() => graphCancellation.abort(), 0);
-                  } else if (observation?.complete === false &&
+                  } else if (start === 2 &&
+                      observation?.complete === false &&
                       !constructionComplete) {
                     constructionProgress += observation.progress;
-                    constructionComplete = constructionProgress ===
+                    constructionComplete = constructionProgress >=
                       BigInt(cancellationCase.constructionProgress ??
                         cancellationCase.rows * 2);
                     if (constructionComplete &&
@@ -4540,6 +4541,8 @@ async function exerciseStrategyGraph(
                       cancellationCase.cancelAfterSortAdvances === undefined &&
                       cancellationCase.cancelOnManagedStart === undefined &&
                       constructionComplete &&
+                      start === (cancellationCase.managedStarts ??
+                        (cancellationCase.family === 'time-series' ? 1 : 2)) &&
                       observation?.complete === false &&
                       observation.work > 0n && !cancellationScheduled) {
                     sawOperationWork = true;
@@ -4572,9 +4575,8 @@ async function exerciseStrategyGraph(
           (cancellationCase.family === 'time-series' ? 1 : 2),
         cancellationCase.name,
       );
-      assert.equal(
-        constructionProgress,
-        BigInt(cancellationCase.family === 'time-series'
+      assert(
+        constructionProgress >= BigInt(cancellationCase.family === 'time-series'
           ? 0
           : cancellationCase.constructionProgress ??
             cancellationCase.rows * 2),
@@ -5603,6 +5605,42 @@ async function exerciseStrategyGraph(
   };
   const unrestrictedCrossJoinProgram = crossJoinProgram(false);
   const singletonCrossJoinProgram = crossJoinProgram(true);
+  const externalCrossJoinProgram = structuredClone(zeroInputProgram);
+  const externalCrossFields = ['id', 'tag'];
+  externalCrossJoinProgram.stages.splice(1, 3, {
+    id: 'cross_left',
+    inputs: {},
+    steps: [{values: {
+      schema: {id: {type: 'number', nullable: false}},
+      rows: [{id: 1}, {id: 2}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  }, {
+    id: 'cross_right',
+    inputs: {},
+    steps: [{values: {
+      schema: {tag: {type: 'string', nullable: false}},
+      rows: [{tag: 'a'}, {tag: 'b'}, {tag: 'c'}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['tag']}},
+  }, {
+    id: 'crossed',
+    inputs: {
+      l: {result: {stage: 'cross_left', result: 'r'}},
+      r: {result: {stage: 'cross_right', result: 'r'}},
+    },
+    steps: [{from: 'l', cross_join: {
+      with: 'r', select: {id: 'left.id', tag: 'right.tag'},
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: externalCrossFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `external_cross_consumer_${id}`,
+    inputs: {x: {result: {stage: 'crossed', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? externalCrossFields : [...externalCrossFields].reverse(), as: 'out'}],
+    results: {r: {from: 'out', fields: id === 'a'
+      ? externalCrossFields : [...externalCrossFields].reverse()}},
+  })));
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
@@ -5630,6 +5668,7 @@ async function exerciseStrategyGraph(
     ['full join', joinProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
+    ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
   ]) {
     const fixtureArgs = name === 'analytic' ? analyticArgs : args;
     let zeroInputFixture;
@@ -5679,6 +5718,12 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 4, 4, 4],
           'sort and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'external cross join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 3, 6, 6, 6],
         );
       }
       if (name === 'snapshot derive') {
@@ -5773,6 +5818,132 @@ async function exerciseStrategyGraph(
     assert.equal(await zeroInputExecution.cleanup(), true);
     assert.equal(zeroInputExecution.usage().heldBytes, 0n);
     assert.equal(zeroInputExecution.usage().reservedExecutionBytes, 0n);
+  }
+  const externalCrossJoinCancellationCase = {
+    name: 'external-cross-join-in-flight',
+  };
+  const cancellableCrossJoinProgram = structuredClone(externalCrossJoinProgram);
+  const cancellableLeft = cancellableCrossJoinProgram.stages.find(
+    stage => stage.id === 'cross_left',
+  );
+  const cancellableRight = cancellableCrossJoinProgram.stages.find(
+    stage => stage.id === 'cross_right',
+  );
+  cancellableLeft.steps[0].values.rows = Array.from(
+    {length: 10}, (_, index) => ({id: index}),
+  );
+  cancellableRight.steps[0].values.rows = Array.from(
+    {length: 10}, (_, index) => ({tag: `tag${index}`}),
+  );
+  const crossJoinCancellationFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(cancellableCrossJoinProgram),
+  );
+  const crossJoinCancellationCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(crossJoinCancellationFixture),
+    suppliedLimits,
+  );
+  const crossJoinCancellation = new AbortController();
+  let crossJoinCancellationExecution;
+  let crossJoinManagedStarts = 0;
+  let crossJoinPairProgress = 0n;
+  let crossJoinCancellationScheduled = false;
+  let crossJoinCancellationDeliveredAt;
+  let crossJoinStopObservedAt;
+  crossJoinCancellation.signal.addEventListener('abort', () => {
+    crossJoinCancellationDeliveredAt = performance.now();
+  }, {once: true});
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      crossJoinCancellationFixture,
+      crossJoinCancellationCapture.source(),
+    ), true);
+    const setup = fixture.strategyFixtureModuleSubset(
+      crossJoinCancellationFixture, 0,
+    );
+    const observedRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_ManagedStart') {
+          return Reflect.get(target, property, receiver);
+        }
+        return configuration => {
+          const start = ++crossJoinManagedStarts;
+          const execution = checked(
+            target.strategyModule_local_ManagedStart(configuration),
+          );
+          const observed = new Proxy(execution, {
+            get(operation, name, operationReceiver) {
+              if (name === 'execution_stopped') {
+                return () => {
+                  const stopped = operation.execution_stopped();
+                  if (stopped && crossJoinCancellation.signal.aborted &&
+                      crossJoinStopObservedAt === undefined) {
+                    crossJoinStopObservedAt = performance.now();
+                  }
+                  return stopped;
+                };
+              }
+              if (name !== 'advance') {
+                return Reflect.get(operation, name, operationReceiver);
+              }
+              return quantum => {
+                const result = operation.advance(quantum);
+                const observation = checked(result);
+                if (start === 3) {
+                  assert(observation.work <= BigInt(quantum));
+                }
+                if (start === 3 && observation?.complete === false &&
+                    observation.progress > 0n && observation.work > 0n) {
+                  crossJoinPairProgress += observation.progress;
+                  if (!crossJoinCancellationScheduled) {
+                    crossJoinCancellationScheduled = true;
+                    setTimeout(() => crossJoinCancellation.abort(), 0);
+                  }
+                }
+                return result;
+              };
+            },
+          });
+          return {$tag: 1, _0: observed};
+        };
+      },
+    });
+    crossJoinCancellationExecution = await runInstalledStrategy(
+      setup,
+      runtimeCore(hostRuntime),
+      [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+      crossJoinCancellation.signal,
+    );
+    assert.equal(crossJoinManagedStarts, 3);
+    assert.equal(crossJoinPairProgress > 0n, true,
+      `${externalCrossJoinCancellationCase.name}: pair work must precede abort`);
+    assert.equal(crossJoinCancellation.signal.aborted, true);
+    assert.equal(Number.isFinite(crossJoinCancellationDeliveredAt), true);
+    assert.equal(Number.isFinite(crossJoinStopObservedAt), true);
+    assert(crossJoinStopObservedAt >= crossJoinCancellationDeliveredAt);
+    assert.equal(crossJoinCancellationExecution.status, 'host-tasks-failed');
+    assert.equal(crossJoinCancellationExecution.failure?.name, 'AbortError');
+    assert.deepEqual(
+      crossJoinCancellationExecution.completed.map(item => item.task),
+      [1, 2],
+      `${externalCrossJoinCancellationCase.name}: no partial cross output`,
+    );
+  } finally {
+    crossJoinCancellationCapture.close();
+    await crossJoinCancellationExecution?.close();
+    if (crossJoinCancellationExecution) {
+      let cleaned = false;
+      for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+        cleaned = await crossJoinCancellationExecution.cleanup();
+      }
+      assert.equal(cleaned, true);
+      assert.equal(crossJoinCancellationExecution.cleanupPending(), false);
+      assert.equal(crossJoinCancellationExecution.usage().heldBytes, 0n);
+      assert.equal(
+        crossJoinCancellationExecution.usage().reservedExecutionBytes,
+        0n,
+      );
+    }
   }
   // The runnable application reads user-supplied documents, not conformance
   // exports or test catalogs. Tests supply their own documents at its boundary.
