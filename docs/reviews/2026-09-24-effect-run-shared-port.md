@@ -40,6 +40,9 @@ complete checked Effect Set.
 It now rejects missing required inline-create fields and missing mapped
 source fields in retained Results; target type and conversion proofs remain
 open.
+The same bridge validates the Mapping's conversion inventory before rule
+selection, but retains each law as an obligation pending registered
+implementation and type evidence.
 The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member

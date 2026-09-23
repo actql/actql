@@ -16,10 +16,10 @@ fn effect_mapping_rule_inputs(
 test "checked create derives exact Mapping permission from retained source" {
   let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"}}}}"
   let shapes = effect_mapping_rule_inputs(effects, 4)
-  let rules = bind_effect_mapping_rules(shapes, 18).unwrap()
+  let rules = bind_effect_mapping_rules(shapes, 19).unwrap()
   assert_true(physical_equal(effect_mapping_rules_shapes(rules), shapes))
   assert_eq(effect_mapping_rule_count(rules), 2)
-  assert_eq(effect_mapping_rules_work(rules), 18)
+  assert_eq(effect_mapping_rules_work(rules), 19)
   let first = effect_mapping_rule_at(rules, 0).unwrap()
   assert_true(
     physical_equal(
@@ -28,6 +28,8 @@ test "checked create derives exact Mapping permission from retained source" {
     ),
   )
   let selection = effect_mapping_rule_selection(first)
+  let conversions = effect_mapping_rule_conversions(first)
+  assert_eq(@environment.mapping_conversion_count(conversions), 0)
   assert_eq(
     @environment.mapping_permission_rule(selection),
     ("create", "none", ["Name"]),
@@ -36,7 +38,7 @@ test "checked create derives exact Mapping permission from retained source" {
   assert_true(effect_mapping_rule_at(rules, 2) is None)
   assert_eq(
     effect_mapping_rule_issue_kind(
-      bind_effect_mapping_rules(shapes, 17).unwrap_err(),
+      bind_effect_mapping_rules(shapes, 18).unwrap_err(),
     ),
     WorkLimit,
   )
@@ -46,7 +48,7 @@ test "checked create derives exact Mapping permission from retained source" {
 test "inline create and invalid write fields use exact authored keys" {
   let source = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":\"example\"}}}}"
   let shapes = effect_mapping_rule_inputs(source, 4)
-  let rules = bind_effect_mapping_rules(shapes, 16).unwrap()
+  let rules = bind_effect_mapping_rules(shapes, 17).unwrap()
   assert_eq(effect_mapping_rule_count(rules), 2)
   let foreign = source.replace(
     old="\"Name\":\"example\"",
