@@ -1,0 +1,27 @@
+{
+  "version": "actql/0.1",
+  "id": "client-values",
+  "stages": [
+    {
+      "id": "source",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "id": {"type": "number", "nullable": false}
+            },
+            "rows": [{"id": 1}, {"id": 2}]
+          },
+          "as": "selected"
+        }
+      ],
+      "results": {
+        "rows": {"from": "selected", "fields": ["id"]}
+      }
+    }
+  ],
+  "results": {
+    "answer": {"from": {"stage": "source", "result": "rows"}}
+  }
+}
