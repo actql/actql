@@ -2,16 +2,31 @@
 package "actql/actql/connectors/salesforce/acquisition"
 
 import {
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
+  "actql/actql/query_planning",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub fn accept_managed_query_page(ManagedQuery, String, Bytes) -> Result[@catalog.QueryPage, ManagedQueryIssue]
 
+pub fn accept_salesforce_broad_page(SalesforceBroadQuery, String, Bytes) -> Result[@catalog.QueryPage, SalesforceBroadIssue]
+
+pub fn begin_salesforce_broad_query(SalesforceBroadPreparation, String, @catalog.QueryPageLimits, Int, Int64, Int, @execution_relation.ValueLimits) -> Result[SalesforceBroadQuery, SalesforceBroadIssue]
+
 pub fn cancel_managed_query(ManagedQuery) -> Bool
 
+pub fn cancel_salesforce_broad_query(SalesforceBroadQuery) -> Bool
+
+pub fn execute_salesforce_broad_residual(SalesforceBroadPreparation, @execution_relation.CapturedRows, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @execution_query.QueryGuardIssue]
+
 pub fn finish_managed_query(ManagedQuery) -> Result[@execution_relation.ManagedOutputValueReceipt, ManagedQueryIssue]
+
+pub fn finish_salesforce_broad_query(SalesforceBroadQuery) -> Result[@execution_relation.CapturedRows, SalesforceBroadIssue]
 
 pub fn managed_query_complete(ManagedQuery) -> Bool
 
@@ -20,6 +35,22 @@ pub fn managed_query_next_path(ManagedQuery) -> String?
 pub fn managed_query_row_count(ManagedQuery) -> Int64
 
 pub fn prepare_managed_query(@catalog.ReadProjection, String, @catalog.QueryPageLimits, Int, Int64, @execution_relation.ManagedOutputValues) -> Result[ManagedQuery, ManagedQueryIssue]
+
+pub fn prepare_salesforce_broad_query(@query_planning.QueryRequirement, @catalog.ReadProjection, String) -> Result[SalesforceBroadPreparation, SalesforceBroadIssue]
+
+pub fn salesforce_broad_candidate(@connector_sdk.CapabilityRegistration, SalesforceBroadPreparation, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@query_planning.PreparedAcquisition[SalesforceBroadPreparation], @query_planning.QueryPlanningIssue]
+
+pub fn salesforce_broad_complete(SalesforceBroadQuery) -> Bool
+
+pub fn salesforce_broad_next_path(SalesforceBroadQuery) -> String?
+
+pub fn salesforce_broad_plan(SalesforceBroadPreparation) -> @catalog.ReadProjection
+
+pub fn salesforce_broad_requirement(SalesforceBroadPreparation) -> @query_planning.QueryRequirement
+
+pub fn salesforce_broad_row_count(SalesforceBroadQuery) -> Int64
+
+pub fn salesforce_broad_work_at(Int) -> SalesforceBroadWork?
 
 // Errors
 
@@ -39,6 +70,30 @@ pub(all) enum ManagedQueryIssue {
   Closed
   Incomplete
 }
+
+pub(all) enum SalesforceBroadIssue {
+  ForeignSource
+  InvalidInputSchema
+  Query(@catalog.QueryReadIssue)
+  Capture(@execution_relation.CaptureIssue)
+  Closed
+  Incomplete
+} derive(Eq, @debug.Debug)
+
+type SalesforceBroadPreparation
+
+type SalesforceBroadQuery
+
+pub(all) enum SalesforceBroadWork {
+  CatalogRefresh
+  SourceQuery
+  ReceiptTransfer
+  ReceiptConversion
+  LocalResidual
+  ObservationCapture
+  Retention
+  Cleanup
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

@@ -88,6 +88,8 @@ pub fn read_projection_matches_site_scope(ReadProjection, String, String, String
 
 pub fn read_projection_observation(ReadProjection) -> String
 
+pub fn read_projection_resource(ReadProjection) -> String
+
 pub fn read_projection_soql(ReadProjection) -> String
 
 pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]

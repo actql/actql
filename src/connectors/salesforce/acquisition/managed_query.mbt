@@ -21,12 +21,11 @@ pub struct ManagedQuery {
 }
 
 ///|
-fn output_columns(
+fn projection_columns(
   plan : @catalog.ReadProjection,
-  values : @execution.ManagedOutputValues,
+  schema : @schema.Schema,
 ) -> (Array[Int], @catalog.ReadProjection)? {
   let names = @catalog.read_projection_fields(plan)
-  let schema = @execution.managed_output_values_schema(values)
   if @schema.field_count(schema) != names.length() {
     return None
   }
@@ -60,6 +59,14 @@ fn output_columns(
   @catalog.bind_read_projection_contracts(plan, exact).map(bound => {
     (columns, bound)
   })
+}
+
+///|
+fn output_columns(
+  plan : @catalog.ReadProjection,
+  values : @execution.ManagedOutputValues,
+) -> (Array[Int], @catalog.ReadProjection)? {
+  projection_columns(plan, @execution.managed_output_values_schema(values))
 }
 
 ///|
