@@ -1,0 +1,37 @@
+{
+  "version": "actql-mapping-contract-vectors/0.1",
+  "body": {
+    "schema": "actql.mapping_contract/0.1",
+    "mapping_ref": "mapping:crm.account.v1",
+    "version": "salesforce-v1",
+    "target_ref": "connector://crm/account",
+    "connector_manifest_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "target_schema_identity": "sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66",
+    "target_schema": {
+      "additional_properties": false,
+      "fields": {
+        "Id": {"nullable": false, "type": "string"},
+        "Name": {"nullable": true, "type": "string"}
+      },
+      "nullable": false,
+      "type": "object"
+    },
+    "primary_identity": "Id",
+    "writable_fields": ["Name"],
+    "required_fields": [],
+    "conversions": [],
+    "permission_rules": [
+      {
+        "effect_kind": "create",
+        "selector_class": "none",
+        "write_fields": ["Name"],
+        "permissions": ["scope:create"]
+      }
+    ],
+    "required_permissions": [],
+    "minimum_approval": "none",
+    "row_mapping": {"Name": {"field": "name", "null_behavior": "reject"}},
+    "mapping_contract_cid": "sha256:41bcd5581a4f02e507940c7aba8c0ee698904dd23c4533641d843f433379ce7e"
+  }
+}

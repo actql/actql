@@ -5,6 +5,7 @@ import {
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
+  "actql/actql/contract_reference" @contract_ref,
   "actql/actql/canonical_value" @unicode,
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,

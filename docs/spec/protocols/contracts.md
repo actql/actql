@@ -870,7 +870,24 @@ technical provider requirements, not execution-account grants or approval
 policy. When no external schema reference exists,
 `target_schema_identity` is the canonical CID of the complete resolved target
 field contract. Changing any member changes the CID and therefore the effect
-preview identity.
+preview identity. The 0.1 resolved body uses the closed
+`actql.mapping_contract/0.1` shape in the Check Environment machine contract.
+Its `mapping_contract_cid` is SHA-256 of the complete canonical body except
+that self field; it is the CID carried as `resolved_mapping_contract_cid` in
+Plan and Preview. `target_schema` is the complete checked object field contract.
+Without `target_schema_reference`, `target_schema_identity` is that contract's
+canonical CID; with one, it binds the exact external schema reference CID and
+the referenced body still requires separate closure admission.
+`primary_identity` names one non-null scalar target field. `writable_fields`
+is an explicit subset of that schema, and `required_fields` is the subset
+required for writes. A conversion entry binds one target field,
+one source-contract CID and one declared conversion-law CID; an empty list
+does not authorize implicit coercion. Each permission rule carries effect kind,
+selector class, exact write-field set and its non-empty permission set.
+`row_mapping` binds each written create/store target field to one explicit
+result field or literal and one null behavior (`reject`, `write_null`, or
+`omit`). Contract integrity and these static facts do not establish current
+provider authority, schema freshness, uniqueness, or apply permission.
 
 <!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
 The resolved mapping contract MUST derive exactly one non-empty permission set
@@ -1447,7 +1464,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:d6ec4aed854d53b3e85cfb6aa6fc9d11989a46cd8a4fd13800483d6687a76e8e
+../../../spec/contracts/actql-check-environment.json# sha256:123b23f425df95044e74f4fd4773e790f45a8443ebee5741fb0dabc76de24761
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
