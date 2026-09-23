@@ -6,6 +6,7 @@ pub(all) enum EffectMappingRuleIssueKind {
   MissingRequiredField(String)
   MissingResultField(String)
   RowFields(@environment.MappingRowFieldsIssue)
+  Conversion(@environment.MappingConversionIssue)
   Permission(@environment.MappingPermissionIssue)
 } derive(Eq, Debug)
 
@@ -38,6 +39,7 @@ pub fn effect_mapping_rule_issue_effect(
 ///|
 pub struct EffectMappingRuleBinding {
   effect : EffectMappingShapeBinding
+  conversions : @environment.MappingConversions
   selection : @environment.MappingPermissionSelection
 }
 
@@ -53,6 +55,13 @@ pub fn effect_mapping_rule_selection(
   value : EffectMappingRuleBinding,
 ) -> @environment.MappingPermissionSelection {
   value.selection
+}
+
+///|
+pub fn effect_mapping_rule_conversions(
+  value : EffectMappingRuleBinding,
+) -> @environment.MappingConversions {
+  value.conversions
 }
 
 ///|
@@ -185,6 +194,7 @@ pub fn bind_effect_mapping_rules(
   }
   let remaining = Ref(max_work)
   let entries : Array[EffectMappingRuleBinding] = []
+  let checked_conversions : Map[String, @environment.MappingConversions] = Map([])
   for index in 0..<effect_mapping_shape_count(shapes) {
     let binding = effect_mapping_shape_at(shapes, index).unwrap()
     let header = effect_result_binding_header(
@@ -215,6 +225,23 @@ pub fn bind_effect_mapping_rules(
       _ => return Err(effect_mapping_rule_issue(InvalidBody, header))
     }
     let mapping = effect_mapping_shape_contract(binding)
+    let conversions = match
+      checked_conversions.get(@environment.mapping_shape_cid(mapping)) {
+      Some(value) => value
+      None => {
+        let admitted = match
+          @environment.check_mapping_conversions(mapping, remaining.val) {
+          Ok(value) => value
+          Err(@environment.WorkLimit) =>
+            return Err(effect_mapping_rule_issue(WorkLimit, header))
+          Err(issue) =>
+            return Err(effect_mapping_rule_issue(Conversion(issue), header))
+        }
+        remaining.val -= @environment.mapping_conversions_work(admitted)
+        checked_conversions[@environment.mapping_shape_cid(mapping)] = admitted
+        admitted
+      }
+    }
     let fields = match kind {
       "update" | "upsert" => {
         let source = @decode.lookup(object, "set").unwrap()
@@ -274,7 +301,7 @@ pub fn bind_effect_mapping_rules(
         return Err(effect_mapping_rule_issue(Permission(issue), header))
     }
     remaining.val -= @environment.mapping_permission_work(selected)
-    entries.push({ effect: binding, selection: selected, })
+    entries.push({ effect: binding, conversions, selection: selected, })
   }
   Ok({ shapes, entries, work: max_work - remaining.val, })
 }
