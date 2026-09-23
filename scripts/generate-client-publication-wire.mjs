@@ -21,6 +21,13 @@ function project(schema) {
   for (const key of Object.keys(schema)) {
     if (!allowed.has(key)) throw new Error(`UnsupportedPublicationSchema:${key}`);
   }
+  if (schema.type !== undefined &&
+      !['object', 'array', 'string', 'integer'].includes(schema.type)) {
+    throw new Error(`UnsupportedPublicationType:${schema.type}`);
+  }
+  if (schema.uniqueItems && schema.items?.type !== 'string') {
+    throw new Error('UnsupportedPublicationUniqueItems');
+  }
   const result = {};
   for (const key of ['type', 'additionalProperties', 'required',
     'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'minimum',
