@@ -79,11 +79,25 @@ test('MoonBit-issued prepared and dispatching entries are durable before use',
       key, cid('f')), true);
     assert.equal(effect.ledgerEntryAdmitsDispatch(dispatching, scope, locator,
       key, cid('9')), false);
+    const response = {
+      dispatching, scope, locator, key,
+      canonicalRequestCid: cid('f'),
+      credentialUseCid: cid('a'),
+      statusCode: 201,
+      responseBytes: Buffer.from('{"success":true}'),
+    };
+    assert.equal(ledger.recordResponse(response).created, true);
+    assert.equal(ledger.recordResponse(response).created, false);
+    assert.throws(() => ledger.recordResponse({
+      ...response, canonicalRequestCid: cid('9'),
+    }), {code: 'EffectDispatchBindingMismatch'});
     ledger.close();
     const restarted = open(root);
     t.after(() => restarted.close());
     assert.equal(restarted.current(effect.logicalItemLocatorCid(locator)).entryCid,
       effect.ledgerEntryCid(dispatching));
+    assert.deepEqual(restarted.response(effect.ledgerEntryCid(dispatching))
+      .responseBytes, response.responseBytes);
   });
 
 test('MoonBit-admitted Effect facts survive restart without duplicate send',
