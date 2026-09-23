@@ -91,6 +91,172 @@ test "standard Host commits an authenticated external policy before dispatch" {
 }
 
 ///|
+test "native standard Host consults mTLS policy and retains a failed choice" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(http_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL") is Some(origin) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA") is Some(ca) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT") is Some(cert) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY") is Some(key) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_POLICY_CLOCK") is Some(clock_path) else {
+    return
+  }
+  let http = @native_http.load_library(http_path).unwrap()
+  let client = http.create_client(ca, cert, key, 4096L, 2000, 5000).unwrap()
+  let sqlite = @native_sqlite.load_library(sqlite_path).unwrap()
+  let clock = @native_clock.open(
+    sqlite, clock_path, "placement-policy-test", "coordinator",
+  ).unwrap()
+  let (run, _) = captured_graph_fixture()
+  let host = adaptive_host(run, search_registry())
+  @dbhost.configure_dispatch_estimates(host, adaptive_profiles(), {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 2,
+  }).unwrap()
+  let now = clock.observe().unwrap()
+  let consultation = @native_host.prepare_native_standard_policy_consultation(
+      host,
+      client,
+      clock,
+      origin + "/placement-policy/choose",
+      "configured-policy",
+      "native-policy-request",
+      "native-policy-run",
+      "native-coordinator",
+      now + 5000L,
+      65536,
+      (_, _) => true,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
+  @native_host.consult_native_standard_policy(consultation).unwrap()
+  assert_true(
+    @native_host.consult_native_standard_policy(consultation)
+    is Err(@native_host.AlreadyCommitted),
+  )
+  assert_eq(
+    @dbhost.dispatch_task(@dbhost.prepare_next_dispatch(host).unwrap().unwrap()),
+    1,
+  )
+  let (retry_run, _) = captured_graph_fixture()
+  let retry_host = adaptive_host(retry_run, search_registry())
+  @dbhost.configure_dispatch_estimates(retry_host, adaptive_profiles(), {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 2,
+  }).unwrap()
+  let retry = @native_host.prepare_native_standard_policy_consultation(
+      retry_host,
+      client,
+      clock,
+      origin + "/placement-policy/flaky",
+      "configured-policy",
+      "native-retry-request",
+      "native-retry-run",
+      "native-coordinator",
+      clock.observe().unwrap() + 5000L,
+      65536,
+      (_, _) => true,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(
+    @native_host.consult_native_standard_policy(retry)
+    is Err(@native_host.Transport(_)),
+  )
+  assert_true(@dbhost.prepare_next_dispatch(retry_host) is Err(NoStrategy))
+  @native_host.consult_native_standard_policy(retry).unwrap()
+  assert_eq(
+    @dbhost.dispatch_task(
+      @dbhost.prepare_next_dispatch(retry_host).unwrap().unwrap(),
+    ),
+    1,
+  )
+  let routes = [
+    "/disconnect", "/placement-policy/foreign", "/placement-policy/late",
+  ]
+  for index = 0; index < routes.length(); index = index + 1 {
+    let route = routes[index]
+    let (other_run, _) = captured_graph_fixture()
+    let other = adaptive_host(other_run, search_registry())
+    @dbhost.configure_dispatch_estimates(other, adaptive_profiles(), {
+      max_offers: 6,
+      max_strategies: 8,
+      max_work: 1000,
+      max_revisions: 2,
+    }).unwrap()
+    let duration = if index == 2 { 100L } else { 5000L }
+    let consultation = @native_host.prepare_native_standard_policy_consultation(
+        other,
+        client,
+        clock,
+        origin + route,
+        "configured-policy",
+        "native-failure-" + index.to_string(),
+        "native-failure-run-" + index.to_string(),
+        "native-coordinator",
+        clock.observe().unwrap() + duration,
+        65536,
+        (_, _) => true,
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(
+      @native_host.consult_native_standard_policy(consultation) is Err(_),
+    )
+    assert_true(@dbhost.prepare_next_dispatch(other) is Err(NoStrategy))
+    assert_true(@strategy.captured_dag_strategy(other_run) is None)
+  }
+  let (denied_run, _) = captured_graph_fixture()
+  let denied_host = adaptive_host(denied_run, search_registry())
+  @dbhost.configure_dispatch_estimates(denied_host, adaptive_profiles(), {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 2,
+  }).unwrap()
+  let denied = @native_host.prepare_native_standard_policy_consultation(
+      denied_host,
+      client,
+      clock,
+      origin + "/placement-policy/choose",
+      "configured-policy",
+      "native-denied-request",
+      "native-denied-run",
+      "native-coordinator",
+      clock.observe().unwrap() + 5000L,
+      65536,
+      (_, _) => false,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(
+    @native_host.consult_native_standard_policy(denied)
+    is Err(@native_host.DisclosureDenied),
+  )
+  assert_true(@dbhost.prepare_next_dispatch(denied_host) is Err(NoStrategy))
+  assert_true(clock.close())
+  assert_true(client.close())
+}
+
+///|
 test "observed completion revises only the unstarted suffix without resetting resources" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()

@@ -22,6 +22,19 @@ choice is pending. This keeps the product Host on the same common admission
 path as an internal policy decision; the environment still owns HTTPS,
 authenticated endpoint mapping, disclosure and the fresh clock observation.
 
+The native standard Host adapter prepares one consultation from that exact
+pending choice. Its configured HTTPS endpoint is verified by the maintained
+mTLS client, and the configured policy ID is passed to common admission rather
+than accepted from the response. A required Host disclosure callback sees the
+exact request and candidate projection before any network call. The adapter
+uses a durable monotonic clock before sending and after receiving, bounds the
+request and response, and retains the same pending consultation after a
+transport failure. A retry sends the same request ID and candidate CID; it
+does not dispatch or silently select the offline policy. The caller must
+retain the consultation owner until it commits or explicitly ends the Run.
+An environment without native HTTPS uses the same portable standard Host
+contract with its own physical adapter.
+
 The response is a closed JSON object with exactly these fields:
 
 | Field | Type | Meaning |

@@ -13,6 +13,9 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/platform_native/run_publication" @native_publication,
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/trusted_clock" @clock,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/run_publication_host" @publication_host,
 }
 

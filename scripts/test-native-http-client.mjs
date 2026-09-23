@@ -180,6 +180,7 @@ let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
 let outboundPolls = 0;
+let placementPolicyAttempts = 0;
 let nativeTransferCid;
 let nativeTransferChunks = 0;
 let nativeTransferManifest = [];
@@ -357,6 +358,10 @@ try {
           '/outbound/status-observation',
           '/outbound/stale-observation',
           '/standard-transfer/queue',
+          '/placement-policy/choose',
+          '/placement-policy/foreign',
+          '/placement-policy/late',
+          '/placement-policy/flaky',
         ]
           .includes(request.url))) {
       response.writeHead(404).end();
@@ -374,6 +379,39 @@ try {
     }
     const bodyBytes = Buffer.concat(chunks);
     const body = bodyBytes.toString('utf8');
+    if (request.url?.startsWith('/placement-policy/')) {
+      let envelope;
+      try { envelope = JSON.parse(body); }
+      catch {
+        response.writeHead(400).end();
+        return;
+      }
+      if (request.headers['content-type'] !== 'application/json' ||
+          envelope?.request?.version !== 'actql-placement-policy/0.1' ||
+          typeof envelope?.candidates !== 'object' ||
+          envelope.request.candidate_set_cid === undefined) {
+        response.writeHead(400).end();
+        return;
+      }
+      if (request.url === '/placement-policy/flaky' &&
+          ++placementPolicyAttempts === 1) {
+        request.socket.destroy();
+        return;
+      }
+      if (request.url === '/placement-policy/late') {
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({
+        ...envelope.request,
+        explanation: 'mTLS policy fixture',
+        policy_id: request.url === '/placement-policy/foreign'
+          ? 'foreign-policy' : 'configured-policy',
+        policy_revision: 'fixture-1',
+        position: 0,
+      }));
+      return;
+    }
     if (request.url === '/standard-transfer/queue') {
       if (standardGateway === undefined || remoteSiteControl === undefined) {
         response.writeHead(503).end();
@@ -1037,6 +1075,7 @@ try {
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+    ACTQL_TEST_NATIVE_POLICY_CLOCK: join(root, 'placement-policy-clock.sqlite'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
     ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
     ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),

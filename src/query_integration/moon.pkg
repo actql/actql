@@ -68,6 +68,7 @@ import {
   "actql/actql/platform_native/remote_transfer_client" @native_transfer,
   "actql/actql/platform_native/remote_transfer_journal" @native_transfer_journal,
   "actql/actql/platform_native/http_client" @native_http,
+  "actql/actql/platform_native/trusted_clock" @native_clock,
   "actql/actql/platform_native/runtime_bundle" @native_runtime_bundle,
   "actql/actql/platform_native/signature" @native_signature,
   "actql/actql/platform_native/sqlite" @native_sqlite,

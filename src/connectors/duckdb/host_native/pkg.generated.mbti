@@ -12,7 +12,9 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/run_publication",
+  "actql/actql/platform_native/trusted_clock",
   "actql/actql/run_publication_host",
   "moonbitlang/core/debug",
 }
@@ -29,6 +31,8 @@ pub fn close_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[B
 pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn consult_native_standard_policy(NativeStandardPolicyConsultation) -> Result[Unit, NativeStandardPolicyIssue]
 
 pub fn execute_and_publish_native_standard_strategy_run(NativeStandardStrategyRun, @run_publication.NativeRunPublicationService, @run_publication.NativeEffectFreeRunContext, Array[@run_publication.NativeCapturedResultPublicationContext], @run_publication.NativeRunPublicationIntent, @run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication.NativeRunPublicationResult, NativeStandardRunPublicationIssue]
 
@@ -59,6 +63,8 @@ pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> R
 pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
 
 pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
+
+pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
 
 pub fn start_native_acquisition_runtime(@host.NativeHostConfiguration, String, @native.Database) -> Result[NativeAcquisitionRuntime, @host.NativeHostIssue]
 
@@ -123,6 +129,32 @@ pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@native.NativeDuckDBIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct NativeStandardPolicyConsultation {
+  dispatch : @standard_host.StrategyHostDispatch
+  client : @http_client.Client
+  clock : @trusted_clock.NativeTrustedClock
+  endpoint : String
+  policy_id : String
+  request : @physical_strategy.PolicyRequest
+  candidates : @physical_strategy.PolicyCandidateSet
+  authorize_disclosure : (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool
+  max_envelope_bytes : Int
+  mut committed : Bool
+}
+
+pub(all) enum NativeStandardPolicyIssue {
+  InvalidConfiguration
+  DisclosureDenied
+  EnvelopeTooLarge
+  AlreadyCommitted
+  InvalidResponse
+  HttpStatus(Int)
+  Dispatch(@standard_host.DispatchIssue)
+  Clock(@trusted_clock.NativeTrustedClockIssue)
+  Transport(@http_client.NativeHttpIssue)
+  Wire(@physical_strategy.SearchIssue)
+}
 
 pub(all) enum NativeStandardRunPublicationIssue {
   Strategy(NativeStandardStrategyRunIssue)
