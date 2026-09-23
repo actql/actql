@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 0 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 10 with operation-specific boundary records, 0 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -383,4 +383,20 @@ test('resource gate rejects selection without delivered Host cancellation', () =
       entry.operation === 'select');
     selection.environment_tests = [];
   }), /RelA select: in-flight Host cancellation fixture is missing/);
+});
+
+test('resource gate rejects rename without its ordinary evidence', () => {
+  assert.match(run(undefined, value => {
+    const rename = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'rename');
+    rename.boundary_tests = [];
+  }), /RelA rename: reviewed ordinary_rename_quantum_and_lifetime fixture is missing/);
+});
+
+test('resource gate rejects drop without its bounded entrypoint', () => {
+  assert.match(run(undefined, value => {
+    const drop = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'drop');
+    delete drop.ordinary_entrypoint;
+  }), /RelA drop: bounded ordinary entrypoint is missing/);
 });

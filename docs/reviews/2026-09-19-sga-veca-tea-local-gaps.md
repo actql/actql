@@ -45,11 +45,11 @@ readable coverage manifest is authoritative for individual operation status.
 - Ordinary single-step text, structured, and NULL filters now use the same
   bounded Relation provider as selected Carrier projections. Quantum-one
   standard Host fixtures retain two real consumers and final reclamation on
-  all three targets. The direct select form remains on its existing path:
-  its authored projection order is distinct from the canonical schema order,
-  and routing it through the current bounded row builder changes the output
-  order witness. This is an unresolved connection boundary, not permission
-  to erase the authored order.
+  all three targets. Direct select, rename, and drop forms now use the bounded
+  projection path as well. Direct select preserves authored output-field order
+  separately from canonical schema order, including typed Decimal values.
+  Quantum-one source-form fixtures retain two real downstream Computes across
+  ordinary rename and drop variants.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
@@ -64,7 +64,7 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Eight of the 68 production routes currently bind operation-specific boundary
+  Ten of the 68 production routes currently bind operation-specific boundary
   fixtures. The selected RelA filter route adds an independent exact/one-short
   input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
@@ -75,7 +75,10 @@ readable coverage manifest is authoritative for individual operation status.
   fixture preserves authored projection order through two downstream Computes,
   including typed Decimal values, at quantum one. Its ordinary-route exact,
   one-short, delivered-cancel, and cleanup assurance is still unregistered.
-  A successful route gate does not establish boundary closure for the other 60
+  Rename and drop now have separate ordinary-route quantum and lifetime
+  fixtures over their named source forms. These do not establish their exact,
+  one-short, delivered-cancel, or cleanup assurance.
+  A successful route gate does not establish boundary closure for the other 58
   operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for

@@ -366,6 +366,19 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: in-flight Host cancellation fixture is missing`);
     }
   }
+  for (const [operation, role] of [
+    ['rename', 'ordinary_rename_quantum_and_lifetime'],
+    ['drop', 'ordinary_drop_quantum_and_lifetime'],
+  ]) {
+    if (route.family !== 'RelA' || route.operation !== operation) continue;
+    if (route.ordinary_entrypoint?.symbol !==
+      'selected_binding_rows_execution') {
+      fail(`${label}: bounded ordinary entrypoint is missing`);
+    }
+    if (!boundaryRoles.has(role)) {
+      fail(`${label}: reviewed ${role} fixture is missing`);
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'take') {
     if (route.selected_entrypoint?.symbol !==
       'selected_binding_rows_execution' ||
