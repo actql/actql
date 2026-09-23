@@ -62,6 +62,17 @@ pub struct StrategyAssessment {
 }
 
 ///|
+/// Exact planner-side counts. `peak_index_cells` counts live frontier path
+/// entries before truncation; it is not process RSS or allocator telemetry.
+pub(all) struct StrategySearchDiagnostics {
+  complete : Bool
+  evaluated_assignments : Int
+  generated_prefixes : Int
+  peak_frontier_states : Int
+  peak_index_cells : Int
+}
+
+///|
 struct StrategyRevision {
   number : Int
   generation : Int
@@ -134,6 +145,7 @@ struct StrategyChoiceSet {
   feasible : Array[StrategyRevision]
   durations : Array[@cost.DurationEstimate]
   priority : Array[Int]?
+  diagnostics : StrategySearchDiagnostics
   mut committed : Bool
   mut pending_policy_request : PolicyRequest?
   mut pending_policy_candidates : PolicyCandidateSet?
@@ -337,6 +349,14 @@ priv struct SearchFrontier {
 }
 
 ///|
+priv struct BoundedFrontierResult {
+  selected : Array[Array[Int]]
+  generated : Int
+  peak_states : Int
+  peak_index_cells : Int
+}
+
+///|
 fn frontier_duration(offer : TaskOffer) -> Int64 {
   match offer.duration {
     @cost.Complete(value) => value
@@ -359,10 +379,13 @@ fn bounded_strategy_frontier(
   groups : Array[Array[TaskOffer]],
   max_strategies : Int,
   work : SearchWork,
-) -> Result[Array[Array[Int]], SearchIssue] {
+) -> Result[BoundedFrontierResult, SearchIssue] {
   let mut frontier : Array[SearchFrontier] = [
     { indices: [], duration: 0L, retention: 0L, },
   ]
+  let mut generated = 0
+  let mut peak_states = 1
+  let mut peak_index_cells = 0
   for task in tasks {
     let next : Array[SearchFrontier] = []
     for state in frontier {
@@ -371,6 +394,7 @@ fn bounded_strategy_frontier(
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }
+        generated += 1
         let indices = state.indices.copy()
         indices.push(index)
         next.push({
@@ -382,6 +406,16 @@ fn bounded_strategy_frontier(
           ),
         })
       }
+    }
+    let live_states = next.length() + frontier.length()
+    if live_states > peak_states {
+      peak_states = live_states
+    }
+    let depth = frontier[0].indices.length()
+    let live_index_cells = next.length() * (depth + 1) +
+      frontier.length() * depth
+    if live_index_cells > peak_index_cells {
+      peak_index_cells = live_index_cells
     }
     next.sort_by((left, right) => {
       let by_duration = left.duration.compare(right.duration)
@@ -426,7 +460,7 @@ fn bounded_strategy_frontier(
       selected[selected.length() - 1] = last
     }
   }
-  Ok(selected)
+  Ok({ selected, generated, peak_states, peak_index_cells, })
 }
 
 ///|
@@ -498,13 +532,13 @@ fn prepare_strategy_choices_with_mode(
     }
     tasks.push(task)
   }
-  let sampled = if truncated {
+  let frontier = if truncated {
     match bounded_strategy_frontier(tasks, groups, combinations, work) {
-      Ok(value) => value
+      Ok(value) => Some(value)
       Err(issue) => return Err(issue)
     }
   } else {
-    []
+    None
   }
   // Host priority addresses original enumeration positions, before resource
   // rejection. Validate the whole permutation in charged, correctable preflight.
@@ -550,7 +584,8 @@ fn prepare_strategy_choices_with_mode(
   let usage = @resources.ledger_usage(run.ledger)
   for position in 0..<combinations {
     if truncated {
-      let candidate = sampled[position]
+      guard frontier is Some(frontier) else { return Err(StrategyLimit) }
+      let candidate = frontier.selected[position]
       for index in 0..<indices.length() {
         indices[index] = candidate[index]
       }
@@ -730,6 +765,17 @@ fn prepare_strategy_choices_with_mode(
     feasible,
     durations,
     priority: feasible_priority,
+    diagnostics: {
+      complete: !truncated,
+      evaluated_assignments: combinations,
+      generated_prefixes: frontier.map(value => value.generated).unwrap_or(0),
+      peak_frontier_states: frontier
+      .map(value => value.peak_states)
+      .unwrap_or(0),
+      peak_index_cells: frontier
+      .map(value => value.peak_index_cells)
+      .unwrap_or(0),
+    },
     committed: false,
     pending_policy_request: None,
     pending_policy_candidates: None,
@@ -758,6 +804,13 @@ fn strategy_search_resources(run : CapturedDAG) -> SearchResources {
 ///|
 pub fn strategy_choice_count(choices : StrategyChoiceSet) -> Int {
   choices.feasible.length()
+}
+
+///|
+pub fn strategy_search_diagnostics(
+  choices : StrategyChoiceSet,
+) -> StrategySearchDiagnostics {
+  choices.diagnostics
 }
 
 ///|

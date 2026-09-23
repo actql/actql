@@ -194,6 +194,9 @@ policy exposure. The candidate projection includes an `assessment_complete`
 bit, and a partial selection is never reported as globally fastest. A partial
 frontier with no feasible sampled assignment is deferred, not proof that no
 assignment exists. The explicit exhaustive API keeps its `StrategyLimit` rule.
+`strategy_search_diagnostics` reports evaluated complete assignments, generated
+prefixes, and the peak live frontier state/index counts. These are planner
+metadata counts, not elapsed time or process RSS.
 An external consultation now has one versioned `PolicyRequest`. It binds the
 Host-supplied Run and authority identities, request occurrence, planning
 generation and revision, deadline, and the common planner's digest of the

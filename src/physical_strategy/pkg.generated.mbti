@@ -422,6 +422,8 @@ pub fn strategy_resident_profile(StrategyRevision, Int) -> ResidentProfile?
 
 pub fn strategy_revision_number(StrategyRevision) -> Int
 
+pub fn strategy_search_diagnostics(StrategyChoiceSet) -> StrategySearchDiagnostics
+
 pub fn strategy_selection_source(StrategyRevision) -> StrategySelectionSource
 
 pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
@@ -728,6 +730,14 @@ pub enum StrategyDecision {
 }
 
 type StrategyRevision
+
+pub(all) struct StrategySearchDiagnostics {
+  complete : Bool
+  evaluated_assignments : Int
+  generated_prefixes : Int
+  peak_frontier_states : Int
+  peak_index_cells : Int
+}
 
 pub(all) enum StrategySelectionSource {
   OfflineLatency

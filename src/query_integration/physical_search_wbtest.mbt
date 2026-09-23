@@ -11,6 +11,19 @@ fn search_registry() -> @connector.CapabilityRegistry {
 }
 
 ///|
+fn wide_search_registry() -> @connector.CapabilityRegistry {
+  @connector.prepare_capability_registry(
+    Array::makei(5, index => {
+      name: "candidate-" + index.to_string(),
+      acquisition: false,
+      fixed_compute: true,
+    }),
+    5,
+    100,
+  ).unwrap()
+}
+
+///|
 fn search_offers(
   run : @strategy.CapturedDAG,
   registry : @connector.CapabilityRegistry,
@@ -200,6 +213,125 @@ test "bounded placement respects one, two and five candidate ceilings" {
     ).unwrap()
     assert_eq(@strategy.strategy_choice_count(choices), ceiling)
   }
+}
+
+///|
+test "bounded placement retains a feasible fifth-offer endpoint" {
+  let (run, _) = captured_graph_fixture()
+  let registry = wide_search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 15,
+    max_strategies: 8,
+    max_work: 10000,
+    max_revisions: 1,
+  }).unwrap()
+  let offers = []
+  for task in [1, 2, 3] {
+    for index in 0..<5 {
+      offers.push(
+        @strategy.prepare_task_offer(
+          run,
+          task,
+          @connector.capability_registration_at(registry, index).unwrap(),
+          1,
+          [
+            {
+              work_slots: [0],
+              milliseconds: Some([1L, 2L, 3L, 4L, 5L][index]),
+            },
+          ],
+          {
+            transfer_bytes: 0L,
+            retained_bytes: if index == 4 {
+              100L
+            } else {
+              2305843009213693951L
+            },
+            execution_bytes: 1L,
+          },
+          100,
+        ).unwrap(),
+      )
+    }
+  }
+  let choices = @strategy.prepare_bounded_strategy_choices(
+    run, offers, registry,
+  ).unwrap()
+  assert_eq(@strategy.strategy_choice_count(choices), 1)
+  let position = @strategy.strategy_choice_assessment(choices, 0).unwrap().position
+  guard @strategy.commit_strategy_choice(choices, Some(position)).unwrap()
+    is Selected(revision) else {
+    abort("selected")
+  }
+  let last = @connector.capability_registration_at(registry, 4).unwrap()
+  for task in [1, 2, 3] {
+    assert_true(
+      physical_equal(
+        @strategy.strategy_registration(revision, task).unwrap(),
+        last,
+      ),
+    )
+  }
+  assert_true(
+    @strategy.explain_captured_strategy(run, 100000, 10000)
+    .unwrap()
+    .contains("\"assessment_complete\":false"),
+  )
+}
+
+///|
+test "bounded placement scales across a segmented seven-task carrier graph" {
+  let (run, _) = captured_graph_fixture(
+    local_carrier_events_chain=true,
+    local_carrier_events_variant="session_filter",
+  )
+  let registry = wide_search_registry()
+  let graph = @strategy.captured_dag_graph(run)
+  let task_count = @strategy.graph_task_count(graph) - 1
+  assert_eq(task_count, 7)
+  @strategy.configure_strategy_search(run, {
+    max_offers: task_count * 5,
+    max_strategies: 64,
+    max_work: 10000,
+    max_revisions: 1,
+  }).unwrap()
+  let offers = []
+  for task in 1..<=task_count {
+    for index in 0..<5 {
+      offers.push(
+        @strategy.prepare_task_offer(
+          run,
+          task,
+          @connector.capability_registration_at(registry, index).unwrap(),
+          1,
+          [
+            {
+              work_slots: [0],
+              milliseconds: Some([1L, 2L, 3L, 4L, 5L][index]),
+            },
+          ],
+          { transfer_bytes: 0L, retained_bytes: 100L, execution_bytes: 1L, },
+          100,
+        ).unwrap(),
+      )
+    }
+  }
+  let choices = @strategy.prepare_bounded_strategy_choices(
+    run, offers, registry,
+  ).unwrap()
+  assert_true(@strategy.strategy_choice_count(choices) <= 64)
+  assert_true(@strategy.strategy_choice_count(choices) > 0)
+  let diagnostics = @strategy.strategy_search_diagnostics(choices)
+  assert_true(!diagnostics.complete)
+  assert_eq(diagnostics.evaluated_assignments, 64)
+  assert_eq(diagnostics.generated_prefixes, 1435)
+  assert_eq(diagnostics.peak_frontier_states, 384)
+  assert_eq(diagnostics.peak_index_cells, 2624)
+  assert_true(
+    @strategy.explain_captured_strategy(run, 100000, 10000)
+    .unwrap()
+    .contains("\"assessment_complete\":false"),
+  )
 }
 
 ///|
