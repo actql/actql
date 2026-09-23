@@ -97,7 +97,23 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "mixed_stage_sort_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "standard Host composes Graph projection and Relation take"
+        },
+        {
+          "role": "mixed_stage_sort_cancel_and_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "standard Host cancels ordered Graph projection take before completion"
+        }
+      ]
     },
     {
       "inventory": "rela",

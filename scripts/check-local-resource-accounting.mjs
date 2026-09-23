@@ -246,6 +246,16 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
     fail(`${label}: reviewed exact/cancel boundary fixture is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'take') {
+    for (const role of [
+      'mixed_stage_sort_quantum_and_lifetime',
+      'mixed_stage_sort_cancel_and_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+  }
 }
 
 for (const entry of rela.operations) {

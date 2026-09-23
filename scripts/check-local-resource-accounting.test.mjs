@@ -110,3 +110,10 @@ test('resource gate rejects a reviewed operation without its exact boundary fixt
       .boundary_tests.shift();
   }), /SGA apply_graph_delta: reviewed exact\/cancel boundary fixture is missing/);
 });
+
+test('resource gate rejects an ordered take without its cancellation fixture', () => {
+  assert.match(run(undefined, value => {
+    value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take').boundary_tests.pop();
+  }), /RelA take: reviewed mixed_stage_sort_cancel_and_cleanup fixture is missing/);
+});
