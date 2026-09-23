@@ -2896,7 +2896,16 @@
       "entrypoint": {
         "path": "src/local_bridge/graph.mbt",
         "symbol": "start_graph_to_rows"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "node_rows_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph node rows admit exact workspace and stop after field work"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -2910,7 +2919,16 @@
       "entrypoint": {
         "path": "src/local_bridge/graph.mbt",
         "symbol": "start_graph_to_rows"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "edge_rows_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph edge rows admit exact workspace and stop after field work"
+        }
+      ]
     },
     {
       "inventory": "families",

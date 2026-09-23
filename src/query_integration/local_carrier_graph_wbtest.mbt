@@ -6066,6 +6066,100 @@ test "Graph bridge cancellation stops before cleanup and preserves inputs" {
 }
 
 ///|
+fn graph_rows_projection_workspace_and_cancel(
+  projection : String,
+  width : Int,
+) -> Unit raise {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_owner(source_owner, projection~)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let values : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  assert_true(
+    @local_bridge.start_graph_to_rows(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      10,
+      values,
+      width - 1,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_bridge.GraphWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = @local_bridge.start_graph_to_rows(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    values,
+    width,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  match @local_bridge.advance_graph_to_rows(execution, 1).unwrap() {
+    @local_bridge.Continue(progress~, work~) => {
+      assert_eq(progress, 0L)
+      assert_eq(work, 1L)
+    }
+    _ => fail("Graph projection did not report bounded field work")
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_graph_to_rows(execution, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_true(@local_bridge.graph_to_rows_cleanup_pending(execution))
+  assert_eq(@local_bridge.cleanup_graph_to_rows(execution), Ok(true))
+  assert_false(@local_bridge.graph_to_rows_cleanup_pending(execution))
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "Graph node rows admit exact workspace and stop after field work" {
+  graph_rows_projection_workspace_and_cancel("node_rows", 2)
+}
+
+///|
+test "Graph edge rows admit exact workspace and stop after field work" {
+  graph_rows_projection_workspace_and_cancel("edge_rows", 4)
+}
+
+///|
 test "registered Graph provider expands repeated semantic input positions" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)
