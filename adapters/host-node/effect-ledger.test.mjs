@@ -69,10 +69,16 @@ test('MoonBit-issued prepared and dispatching entries are durable before use',
       cid('1'), cid('2'));
     const prepared = effect.issuePreparedLedgerEntry(basis, 4096, 64, 3);
     assert.equal(ledger.append(effect.ledgerEntryWire(prepared)).created, true);
+    assert.equal(effect.ledgerEntryAdmitsDispatch(prepared, scope, locator,
+      key, cid('f')), false);
     const dispatching = effect.issueNextLedgerEntry(prepared, 'dispatching',
       '', 4096, 64, 3);
     assert.equal(ledger.append(effect.ledgerEntryWire(dispatching)).created,
       true);
+    assert.equal(effect.ledgerEntryAdmitsDispatch(dispatching, scope, locator,
+      key, cid('f')), true);
+    assert.equal(effect.ledgerEntryAdmitsDispatch(dispatching, scope, locator,
+      key, cid('9')), false);
     ledger.close();
     const restarted = open(root);
     t.after(() => restarted.close());
