@@ -20,6 +20,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
 | Resource accounting audit | Incomplete: all 68 operations are bound to profiles and checked production routes, but operation-specific exact/one-short/cancel/cleanup evidence is not yet complete | Bind executable boundary fixtures to every production route |
+| Ordinary Program integration | Open: Local standard Host fixtures do not prove the Distribution Run entry | Add a representative mixed Carrier-to-Relation Program through the Distribution-owned ordinary Run port, without a Local substitute |
 
 ## Current cross-operation review gaps
 
@@ -39,9 +40,15 @@ readable coverage manifest is authoritative for individual operation status.
   selected take after Graph construction, normalization, and node projection
   in one authored Stage. It confirms stop after delivery, leaves the take
   completion unpublished, and reclaims the attempt while preserving earlier
-  independent task completions. Other selected Relation fallback kernels and
-  their environment-delivered cancellation remain unverified. These are
-  connection gaps, not new normative operations.
+  independent task completions. A separate Node timer now reaches the fused
+  Graph construction, subgraph selection, and node projection prefix after
+  construction has progressed through all 40 nodes and 40 edges. It confirms
+  delivered cancellation, stop, no partial prefix completion, and cleanup
+  while preserving the earlier values task. The existing portable Host fixture
+  executes that prefix through the subsequent Relation filter and two real
+  consumers. This proves one unselected Graph-prefix cancellation path, not
+  every Events, Vectors, or selected Relation fallback path. Those remaining
+  paths are connection gaps, not new normative operations.
 - Ordinary single-step text, structured, and NULL filters now use the same
   bounded Relation provider as selected Carrier projections. Quantum-one
   standard Host fixtures retain two real consumers and final reclamation on
@@ -117,12 +124,11 @@ readable coverage manifest is authoritative for individual operation status.
   selected-path proof sets so one variant cannot borrow the other's bound or
   cancellation result. Each set includes real Host timer cancellation.
   Their ordinary or multi-step fallback paths are not covered by those
-  selected fixtures. Graph normalization and graph bounds are currently marked
-  whole-route
-  complete; the completion command still intentionally fails. The ordinary
-  resource command
-  checks route identity and existing scoped evidence without claiming release
-  completion.
+  selected fixtures. Graph normalization and graph bounds have all four
+  lifecycle proof roles, but neither has independently registered exact and
+  one-short work and workspace evidence. The completion command intentionally
+  fails. The ordinary resource command checks route identity and existing
+  scoped evidence without claiming release completion.
   Checked Relation sort after a Carrier projection now has a selected task
   and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
   output order, stable ties, cancellation without partial publication, and

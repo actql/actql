@@ -2812,6 +2812,26 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'subgraph-fused-filter',
+    rows: 40,
+    advanceQuantum: 1,
+    // The prefix must remain active after graph construction completes.
+    constructionProgress: 80,
+    managedStarts: 2,
+    completedTasks: [1],
+    steps: [{
+      from: 'g',
+      subgraph: {
+        nodes: {ids: Array.from({length: 40}, (_, index) => index + 1)},
+      },
+      as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'normalize-filter',
     rows: 40,
     advanceQuantum: 1,

@@ -1,5 +1,25 @@
 {
   "version": "actql-local-resource-production-routes/0.2",
+  "mixed_paths": [
+    {
+      "id": "graph_subgraph_node_rows_filter",
+      "carrier": "Graph",
+      "operations": ["subgraph", "node_rows", "filter"],
+      "standalone_prefix_provider": false,
+      "standard_host": {
+        "suite": "moon:query_integration",
+        "targets": ["js", "wasm", "native"],
+        "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "fixture": "standard Host runs a fused Graph prefix before Relation filter and two consumers"
+      },
+      "in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "subgraph-fused-filter"
+      }
+    }
+  ],
   "routes": [
     {
       "inventory": "rela",
