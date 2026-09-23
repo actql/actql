@@ -92,7 +92,7 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       ]
     "distinct" =>
       [
-        "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
+        "{\"amount\":20,\"id\":2}", "{\"amount\":10,\"id\":1}", "{\"amount\":30,\"id\":2}",
       ]
     "distinct_keyed_nullable" =>
       [
@@ -227,6 +227,10 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
     ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
   } else if kind == "take_parameter" {
     ["{\"id\":1,\"amount\":10}"]
+  } else if kind == "distinct" {
+    [
+      "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
+    ]
   } else {
     local_managed_unary_expected(kind)
   }

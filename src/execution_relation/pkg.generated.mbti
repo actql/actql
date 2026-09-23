@@ -1021,6 +1021,7 @@ type BoundedBindingRowsExecution
 
 pub(all) enum BoundedBindingRowsIssue {
   InvalidExecution
+  UnsupportedDistinctField(@relation_schema.FieldName)
   InputLimit
   Rows(RowIssue)
   Capture(CaptureIssue)

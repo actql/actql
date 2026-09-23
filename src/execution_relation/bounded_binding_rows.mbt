@@ -1,5 +1,8 @@
 ///|
 priv enum BoundedBindingRowsPhase {
+  PrepareDistinctTerms
+  InitializeDistinctKeep
+  MarkDistinct
   CheckUniqueKeys
   CheckUniquePairs
   ChargeInput
@@ -78,6 +81,9 @@ priv struct BoundedBindingRowsState {
   predicate : @lower.Expression?
   assertion : Bool
   unique_keys : Array[@schema.FieldName]?
+  distinct : Bool
+  mut distinct_keep : Array[Bool]
+  mut distinct_cursor : Int
   input_names : Array[String]
   output_names : Array[String]
   input_ordinals : Map[String, Int]
@@ -130,6 +136,7 @@ priv struct BoundedBindingRowsState {
 ///|
 pub(all) enum BoundedBindingRowsIssue {
   InvalidExecution
+  UnsupportedDistinctField(@schema.FieldName)
   InputLimit
   Rows(RowIssue)
   Capture(CaptureIssue)
@@ -203,6 +210,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   }
   state.sort_orders = []
   state.sorted_indices = None
+  state.distinct_keep = []
   if state.binding_execution is Some(execution) {
     cancel_ordered_bindings_execution(execution)
     state.binding_execution = None
@@ -258,6 +266,95 @@ fn bounded_binding_rows_step(
       return fail_bounded_binding_rows(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareDistinctTerms => {
+        if state.column == state.output_names.length() {
+          state.column = 0
+          state.phase = ChargeInput
+          continue
+        }
+        guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if !supported_comparison(field.contract, field.contract) {
+          return fail_bounded_binding_rows(
+            UnsupportedDistinctField(field.name),
+            progress,
+            used,
+          )
+        }
+        if !reserve_slots(state.workspace, 1) ||
+          !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        guard state.projection_ordinals is Some(projection) &&
+          projection.get(@schema.reference_name(field.name)) is Some(source) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        state.sort_orders.push({
+          column: source,
+          descending: false,
+          nulls_first: false,
+        })
+        state.column += 1
+        used += 1
+      }
+      InitializeDistinctKeep => {
+        if state.distinct_keep.length() == count {
+          state.distinct_cursor = 0
+          state.phase = MarkDistinct
+          continue
+        }
+        if !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        state.distinct_keep.push(false)
+        used += 1
+      }
+      MarkDistinct => {
+        if state.distinct_cursor == count {
+          release_slots(state.workspace, count + state.sort_orders.length())
+          state.sorted_indices = None
+          state.sort_orders = []
+          state.row = 0
+          state.phase = BeginRow
+          continue
+        }
+        guard state.sorted_indices is Some(indices) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        let first = if state.distinct_cursor == 0 {
+          true
+        } else {
+          let rows : ProducerReadIndexedRows = {
+            input: state.input,
+            width: state.input_names.length(),
+          }
+          match
+            compare_row_indices(
+              rows,
+              indices[state.distinct_cursor - 1],
+              indices[state.distinct_cursor],
+              state.sort_orders,
+              state.control,
+            ) {
+            Ok(comparison) => comparison != 0
+            Err(issue) =>
+              return fail_bounded_binding_rows(
+                Rows(ordering_row_issue(issue)),
+                progress,
+                used + 1,
+              )
+          }
+        }
+        if first {
+          state.distinct_keep[indices[state.distinct_cursor]] = true
+        }
+        state.distinct_cursor += 1
+        used += 1
+      }
       CheckUniqueKeys => {
         guard state.unique_keys is Some(keys) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
@@ -388,6 +485,10 @@ fn bounded_binding_rows_step(
         }
       }
       RetainInputs => {
+        if state.distinct {
+          state.phase = StartSort
+          continue
+        }
         if state.take_range is Some(_) {
           state.column = 0
           state.phase = if state.sort_kernel is Some(_) {
@@ -529,7 +630,12 @@ fn bounded_binding_rows_step(
       SortIdentityRows => {
         if state.sort_row == count {
           state.sort_row = 0
-          state.phase = if state.sort_only {
+          state.phase = if state.distinct {
+            if !reserve_slots(state.workspace, count) {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            InitializeDistinctKeep
+          } else if state.sort_only {
             BeginRow
           } else {
             ChargeSortedRows
@@ -569,6 +675,11 @@ fn bounded_binding_rows_step(
             state.sort_charge_open = false
             state.phase = if state.unique_keys is Some(_) {
               CheckUniquePairs
+            } else if state.distinct {
+              if !reserve_slots(state.workspace, count) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              InitializeDistinctKeep
             } else if state.sort_only {
               BeginRow
             } else {
@@ -643,6 +754,16 @@ fn bounded_binding_rows_step(
         if state.row == count {
           state.phase = FinishOutput
           continue
+        }
+        if state.distinct {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          if !state.distinct_keep[state.row] {
+            state.row += 1
+            used += 1
+            continue
+          }
         }
         if state.control.remaining == 0 {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
@@ -970,6 +1091,10 @@ fn bounded_binding_rows_step(
           release_slots(state.workspace, count)
           state.sorted_indices = None
         }
+        if state.distinct {
+          release_slots(state.workspace, state.distinct_keep.length())
+          state.distinct_keep = []
+        }
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
@@ -1051,6 +1176,7 @@ pub fn start_bounded_binding_rows(
       ([], false, Some(expression), false, None, None)
     @lower.AssertUnique(_) => ([], false, None, false, None, None)
     @lower.Select(_) => ([], false, None, true, None, None)
+    @lower.DistinctRows => ([], false, None, false, None, None)
     @lower.StableSort(_) =>
       (
         [],
@@ -1091,6 +1217,7 @@ pub fn start_bounded_binding_rows(
     return Err(InvalidExecution)
   }
   let sort_only = body is @lower.StableSort(_)
+  let distinct = body is @lower.DistinctRows
   let assertion = body is @lower.AssertAll(_)
   let unique_keys = match body {
     @lower.AssertUnique(keys) => Some(keys)
@@ -1101,11 +1228,13 @@ pub fn start_bounded_binding_rows(
   }
   if take_range is None &&
     !select_mode &&
+    !distinct &&
     unique_keys is None &&
     bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
-  if (select_mode || take_range is Some(_)) && !admit_metadata(output_width) {
+  if (select_mode || take_range is Some(_) || distinct) &&
+    !admit_metadata(output_width) {
     return Err(InvalidExecution)
   }
   if sort_kernel is Some(sort) &&
@@ -1124,7 +1253,7 @@ pub fn start_bounded_binding_rows(
       }
     }
   }
-  if !select_mode && unique_keys is None && take_range is None {
+  if !select_mode && !distinct && unique_keys is None && take_range is None {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
       admit_logical_rows(logical, producer_read_row_count(input).to_int64()) {
@@ -1160,6 +1289,32 @@ pub fn start_bounded_binding_rows(
           return Err(InvalidExecution)
         }
         projection[output_name] = index
+      }
+      if projection.length() != output_width {
+        return Err(InvalidExecution)
+      }
+      Some(projection)
+    }
+    @lower.DistinctRows => {
+      let projection : Map[String, Int] = Map([])
+      match @lower.kernel_distinct_projection(kernel) {
+        Some(view) =>
+          for field in @lower.projection_fields(view) {
+            let output_name = @schema.reference_name(field.output)
+            guard input_ordinals.get(@schema.reference_name(field.input))
+              is Some(index) &&
+              !projection.contains(output_name) else {
+              return Err(InvalidExecution)
+            }
+            projection[output_name] = index
+          }
+        None =>
+          for name in output_names {
+            guard input_ordinals.get(name) is Some(index) else {
+              return Err(InvalidExecution)
+            }
+            projection[name] = index
+          }
       }
       if projection.length() != output_width {
         return Err(InvalidExecution)
@@ -1231,6 +1386,9 @@ pub fn start_bounded_binding_rows(
     predicate,
     assertion,
     unique_keys,
+    distinct,
+    distinct_keep: [],
+    distinct_cursor: 0,
     input_names,
     output_names,
     input_ordinals,
@@ -1268,7 +1426,9 @@ pub fn start_bounded_binding_rows(
     live,
     accepted,
     port,
-    phase: if unique_keys is Some(_) {
+    phase: if distinct {
+      PrepareDistinctTerms
+    } else if unique_keys is Some(_) {
       CheckUniqueKeys
     } else {
       ChargeInput

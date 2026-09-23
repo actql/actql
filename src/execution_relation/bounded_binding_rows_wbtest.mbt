@@ -2,11 +2,17 @@
 fn bounded_binding_rows_source(
   rows : String,
   id_nullable? : Bool = false,
+  distinct? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":" +
     (if id_nullable { "true" } else { "false" }) +
-    "},\"left\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"right\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}},\"rows\":" +
+    (if distinct {
+      "},\"tag\":{\"type\":\"string\",\"nullable\":true}}"
+    } else {
+      "},\"left\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"right\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}}"
+    }) +
+    ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]",
   )
@@ -38,6 +44,8 @@ fn bounded_binding_rows_receiver(
   take? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
+  distinct? : Bool = false,
+  distinct_keyed? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -46,7 +54,11 @@ fn bounded_binding_rows_receiver(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[" +
-      (if take {
+      (if distinct_keyed {
+        "{\"distinct\":[\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if distinct {
+        "{\"distinct\":true,\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if take {
         "{\"take\":{\"count\":1,\"offset\":1},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if sort || sort_empty {
         "{\"sort\":" +
@@ -107,12 +119,18 @@ fn bounded_binding_rows_fixture(
   take? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
+  distinct? : Bool = false,
+  distinct_keyed? : Bool = false,
   id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
   max_entries? : Int = 10000,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
-  let (source_owner, source) = bounded_binding_rows_source(rows, id_nullable~)
+  let (source_owner, source) = bounded_binding_rows_source(
+    rows,
+    id_nullable~,
+    distinct=distinct || distinct_keyed,
+  )
   let receiver = bounded_binding_rows_receiver(
     source_owner,
     following_step~,
@@ -123,13 +141,21 @@ fn bounded_binding_rows_fixture(
     take~,
     sort~,
     sort_empty~,
+    distinct~,
+    distinct_keyed~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    if select || assert_unique || take || sort || sort_empty {
+    if select ||
+      assert_unique ||
+      take ||
+      sort ||
+      sort_empty ||
+      distinct ||
+      distinct_keyed {
       []
     } else {
       [sequence_fragment_context(sequence, 0, 2L)]
@@ -159,6 +185,135 @@ fn bounded_binding_rows_fixture(
     10000,
   ).unwrap()
   (control, execution, input)
+}
+
+///|
+test "bounded distinct preserves first occurrence and null equality" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":2,\"tag\":\"b\"},{\"id\":1,\"tag\":\"a\"},{\"id\":2,\"tag\":\"b\"},{\"id\":null,\"tag\":null},{\"id\":null,\"tag\":null}]",
+    distinct=true,
+    id_nullable=true,
+  )
+  let mut advances = 0
+  let mut completed : CompletedOutput? = None
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      BoundedBindingRowsFailed(_, ..) => fail("bounded distinct failed")
+      BoundedBindingRowsStopped(_, ..) => fail("bounded distinct stopped")
+    }
+  }
+  guard completed is Some(output) else {
+    fail("bounded distinct did not finish")
+  }
+  assert_true(advances > 5)
+  assert_eq(completed_row_count(output), 3)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 2, 0) is Some(Null))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded keyed distinct compares only projected fields" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":2,\"tag\":\"a\"},{\"id\":1,\"tag\":\"b\"},{\"id\":2,\"tag\":\"c\"},{\"id\":null,\"tag\":\"d\"},{\"id\":null,\"tag\":\"e\"}]",
+    distinct_keyed=true,
+    id_nullable=true,
+  )
+  let mut completed : CompletedOutput? = None
+  for _ in 0..<1000 {
+    if completed is Some(_) {
+      break
+    }
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("bounded keyed distinct failed")
+    }
+  }
+  guard completed is Some(output) else { fail("keyed distinct did not finish") }
+  assert_eq(completed_row_count(output), 3)
+  assert_eq(completed_column_count(output), 1)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 2, 0) is Some(Null))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded distinct cancels during index work without output" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":2,\"tag\":\"b\"},{\"id\":1,\"tag\":\"a\"},{\"id\":2,\"tag\":\"b\"},{\"id\":null,\"tag\":null}]",
+    distinct=true,
+    id_nullable=true,
+  )
+  for _ in 0..<12 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded distinct admits exact and one-short structural workspace" {
+  let rows = "[{\"id\":2,\"tag\":\"b\"},{\"id\":1,\"tag\":\"a\"}]"
+  // Eight metadata slots overlap with two terms and two index arrays.
+  // After sorting, the keep bitmap replaces one index array.
+  let (_, accepted, accepted_input) = bounded_binding_rows_fixture(
+    rows,
+    distinct=true,
+    max_entries=14,
+  )
+  let mut completed = false
+  for _ in 0..<1000 {
+    if completed {
+      break
+    }
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        completed = true
+      }
+      _ => fail("exact distinct workspace rejected")
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+  assert_true(producer_read_available(accepted_input))
+  let (_, rejected, rejected_input) = bounded_binding_rows_fixture(
+    rows,
+    distinct=true,
+    max_entries=13,
+  )
+  let mut failed = false
+  for _ in 0..<1000 {
+    if failed {
+      break
+    }
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      _ => fail("one-short distinct workspace had another outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  assert_true(producer_read_available(rejected_input))
 }
 
 ///|
