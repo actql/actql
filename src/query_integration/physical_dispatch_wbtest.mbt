@@ -46,8 +46,13 @@ test "installed dispatch follows exact registration not its label or registry po
   let (run, _) = captured_graph_fixture()
   let registry = @connector.prepare_capability_registry(
     [
-      { name: "local", acquisition: false, fixed_compute: true, },
-      { name: "duckdb", acquisition: false, fixed_compute: true, },
+      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
+      {
+        name: "duckdb",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
     ],
     2,
     100,

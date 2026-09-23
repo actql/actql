@@ -2,17 +2,19 @@
 /// Rebuild-time module contributions. Capability presence comes from actual
 /// entrypoints, not a second list of capability flags. These factories are
 /// trusted, pure bootstrap code; they receive their exact Host registration.
-pub(all) struct CapabilityBundle[A, C] {
+pub(all) struct CapabilityBundle[A, C, E] {
   name : String
   acquisition : ((CapabilityRegistry, CapabilityRegistration) -> A)?
   fixed_compute : ((CapabilityRegistry, CapabilityRegistration) -> C)?
+  effect : ((CapabilityRegistry, CapabilityRegistration) -> E)?
 }
 
 ///|
-struct InstalledBundles[A, C] {
+struct InstalledBundles[A, C, E] {
   registry : CapabilityRegistry
   acquisition : CapabilityImplementations[A]
   fixed_compute : CapabilityImplementations[C]
+  effect : CapabilityImplementations[E]
 }
 
 ///|
@@ -20,11 +22,11 @@ struct InstalledBundles[A, C] {
 /// snapshots the contributions; there is no append, replacement or dynamic
 /// load operation. Resource bindings and fixed input locations are not module
 /// identities and are supplied to the installed operations separately.
-pub fn[A, C] install_bundles(
-  bundles : Array[CapabilityBundle[A, C]],
+pub fn[A, C, E] install_bundles(
+  bundles : Array[CapabilityBundle[A, C, E]],
   max_entries : Int,
   max_name_units : Int,
-) -> Result[InstalledBundles[A, C], CapabilityRegistrationIssue] {
+) -> Result[InstalledBundles[A, C, E], CapabilityRegistrationIssue] {
   if max_entries < 0 || max_name_units < 0 {
     return Err(InvalidLimits)
   }
@@ -38,6 +40,7 @@ pub fn[A, C] install_bundles(
         name: bundle.name,
         acquisition: bundle.acquisition is Some(_),
         fixed_compute: bundle.fixed_compute is Some(_),
+        effect: bundle.effect is Some(_),
       }),
       max_entries,
       max_name_units,
@@ -47,6 +50,7 @@ pub fn[A, C] install_bundles(
   }
   let acquisition = []
   let fixed_compute = []
+  let effect = []
   for index, bundle in owned {
     let registration = registry.entries[index]
     if bundle.acquisition is Some(prepare) {
@@ -54,6 +58,9 @@ pub fn[A, C] install_bundles(
     }
     if bundle.fixed_compute is Some(prepare) {
       fixed_compute.push((registration, prepare(registry, registration)))
+    }
+    if bundle.effect is Some(prepare) {
+      effect.push((registration, prepare(registry, registration)))
     }
   }
   // The arrays above contain exactly this registry's registrations once each.
@@ -63,26 +70,34 @@ pub fn[A, C] install_bundles(
     registry,
     acquisition: { registry, entries: acquisition, },
     fixed_compute: { registry, entries: fixed_compute, },
+    effect: { registry, entries: effect, },
   })
 }
 
 ///|
-pub fn[A, C] installed_bundle_registry(
-  installed : InstalledBundles[A, C],
+pub fn[A, C, E] installed_bundle_registry(
+  installed : InstalledBundles[A, C, E],
 ) -> CapabilityRegistry {
   installed.registry
 }
 
 ///|
-pub fn[A, C] installed_acquisition_implementations(
-  installed : InstalledBundles[A, C],
+pub fn[A, C, E] installed_acquisition_implementations(
+  installed : InstalledBundles[A, C, E],
 ) -> CapabilityImplementations[A] {
   installed.acquisition
 }
 
 ///|
-pub fn[A, C] installed_compute_implementations(
-  installed : InstalledBundles[A, C],
+pub fn[A, C, E] installed_compute_implementations(
+  installed : InstalledBundles[A, C, E],
 ) -> CapabilityImplementations[C] {
   installed.fixed_compute
+}
+
+///|
+pub fn[A, C, E] installed_effect_implementations(
+  installed : InstalledBundles[A, C, E],
+) -> CapabilityImplementations[E] {
+  installed.effect
 }

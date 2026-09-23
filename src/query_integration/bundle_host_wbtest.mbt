@@ -10,6 +10,7 @@ test "Compute-only bundle executes a shared captured DAG through common Host dis
         @connector.SynchronousCompute,
         @local_connector.LocalModuleIssue,
       ],
+      Unit,
     ],
   ] = [
     {
@@ -34,6 +35,7 @@ test "Compute-only bundle executes a shared captured DAG through common Host dis
           )
         }
       }),
+      effect: None,
     },
   ]
   let installed = @connector.install_bundles(manifest, 1, 100).unwrap()

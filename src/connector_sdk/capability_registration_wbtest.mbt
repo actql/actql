@@ -4,6 +4,7 @@ test "capability registration is bounded owned and independent of caller arrays"
     name: "duckdb",
     acquisition: true,
     fixed_compute: true,
+    effect: false,
   }
   let input = [description]
   let registry = prepare_capability_registry(input, 1, 6).unwrap()
@@ -30,6 +31,7 @@ test "capability declaration failures do not create a partial registry" {
     name: "local",
     acquisition: false,
     fixed_compute: true,
+    effect: false,
   }
   assert_true(prepare_capability_registry([entry], -1, 5) is Err(InvalidLimits))
   assert_true(prepare_capability_registry([entry], 1, -1) is Err(InvalidLimits))
@@ -44,7 +46,11 @@ test "capability declaration failures do not create a partial registry" {
     is Err(EmptyName(0)),
   )
   assert_true(
-    prepare_capability_registry([{ ..entry, fixed_compute: false, }], 1, 5)
+    prepare_capability_registry(
+      [{ ..entry, fixed_compute: false, effect: false, }],
+      1,
+      5,
+    )
     is Err(NoCapabilities(0)),
   )
   assert_true(prepare_capability_registry([], 0, 0) is Ok(_))

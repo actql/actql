@@ -43,9 +43,14 @@ test "generated assembly registry ordering preserves Host preference and input o
 fn installation_registry() -> CapabilityRegistry {
   prepare_capability_registry(
     [
-      { name: "first", acquisition: false, fixed_compute: true, },
-      { name: "second", acquisition: true, fixed_compute: false, },
-      { name: "third", acquisition: false, fixed_compute: true, },
+      { name: "first", acquisition: false, fixed_compute: true, effect: false, },
+      {
+        name: "second",
+        acquisition: true,
+        fixed_compute: false,
+        effect: false,
+      },
+      { name: "third", acquisition: false, fixed_compute: true, effect: false, },
     ],
     3,
     100,

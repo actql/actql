@@ -1,7 +1,14 @@
 ///|
 test "multiple resource bindings share an implementation without sharing identity" {
   let registry = prepare_capability_registry(
-    [{ name: "compute", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "compute",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()
@@ -16,7 +23,14 @@ test "multiple resource bindings share an implementation without sharing identit
     physical_equal(resource_binding_registration(second), registration),
   )
   let other = prepare_capability_registry(
-    [{ name: "compute", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "compute",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()
