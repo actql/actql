@@ -39,6 +39,12 @@ export type RequestLookup =
   | Readonly<{kind: 'not_found'}>
   | Readonly<{kind: 'unknown'; reason: string}>;
 
+export type DeliveryAttemptLookup =
+  | Readonly<{kind: 'not_found'}>
+  | Readonly<{kind: 'found'; attempt: Readonly<Record<string, unknown>>;
+      record: Readonly<Record<string, unknown>> | null;
+      hostReleaseReceipt: Readonly<Record<string, unknown>> | null}>;
+
 export declare class ClientError extends Error {
   readonly code: string;
   readonly hint?: string;
@@ -69,7 +75,7 @@ export interface Result {
   one(options?: ReadOptions): Promise<unknown>;
   scalar(options?: ReadOptions): Promise<unknown>;
   deliveryAttempt(attemptId: string,
-    options?: {signal?: AbortSignal}): Promise<unknown>;
+    options?: {signal?: AbortSignal}): Promise<DeliveryAttemptLookup>;
 }
 
 export interface Execution {
