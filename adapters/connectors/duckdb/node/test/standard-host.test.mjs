@@ -2832,6 +2832,26 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'subgraph-selected-filter',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      subgraph: {
+        nodes: {ids: Array.from({length: 40}, (_, index) => index + 1)},
+      },
+      as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'normalize-filter',
     rows: 40,
     advanceQuantum: 1,
@@ -3335,6 +3355,19 @@ async function exerciseStrategyGraph(
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
+    name: 'dedupe-events-selected-filter',
+    family: 'tea',
+    operation: 'dedupe',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+  }, {
     name: 'session',
     family: 'tea',
     rows: 40,
@@ -3423,6 +3456,18 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
+    fields: ['id', 'embedding'],
+  }, {
+    name: 'vector-normalize-selected-filter',
+    family: 'veca',
+    operation: 'normalize',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
     fields: ['id', 'embedding'],
   }, {
     name: 'vector-expression',

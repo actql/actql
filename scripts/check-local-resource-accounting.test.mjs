@@ -47,7 +47,16 @@ test('resource gate accepts every normative Local operation', () => {
 test('mixed-path gate rejects missing delivered prefix cancellation', () => {
   assert.match(run(undefined, value => {
     value.mixed_paths[0].in_flight_cancel.fixture = 'missing-prefix-case';
-  }), /mixed path graph_subgraph_node_rows_filter: missing delivered in-flight cancellation fixture/);
+  }), /mixed path graph_subgraph_node_rows_filter: missing delivered prefix cancellation fixture/);
+});
+
+test('mixed-path gate rejects missing selected Relation cancellation', () => {
+  for (const carrier of ['Graph', 'Events', 'Vectors']) {
+    assert.match(run(undefined, value => {
+      value.mixed_paths.find(path => path.carrier === carrier)
+        .selected_in_flight_cancel.fixture = 'missing-selected-case';
+    }), new RegExp(`mixed path .*: missing delivered selected Relation cancellation fixture`));
+  }
 });
 
 test('mixed-path gate preserves Carrier, Bridge, and Relation roles', () => {
