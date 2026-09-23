@@ -11,6 +11,8 @@ pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, 
 
 pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
+pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
+
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -51,7 +53,19 @@ pub fn delivery_record_retry_action_code(DeliveryRecordRetryAction) -> Int
 
 pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String, Array[String]), EffectPreviewIdentityIssue]
+
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
+
+pub fn effect_preview_member_count(EffectPreviewIdentity) -> Int
+
+pub fn effect_preview_member_identity(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_row_count(EffectPreviewIdentity, Int) -> Int?
+
+pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
@@ -481,6 +495,25 @@ pub(all) struct DurableResultRowFrameSummary {
 } derive(Eq, @debug.Debug)
 
 type DurableResultRowFrames
+
+pub struct EffectPreviewIdentity {
+  semantic_cid : String
+  member_cids : Array[String]
+  row_keys : Array[Array[String]]
+  run_identity_cid : String
+  authoring_context_cid : String
+}
+
+pub(all) enum EffectPreviewIdentityIssue {
+  PreviewShape(PublicationContractIssue)
+  InvalidMember
+  MemberIdentityMismatch(Int)
+  PreviewIdentityMismatch
+  RunBindingMismatch
+  AuthoringBindingMismatch
+  AuthoringIdentityMismatch
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryConfirmSucceededRecord

@@ -1537,6 +1537,25 @@ Preview MUST:
 - emit the complete `effect_preview_cid`; and
 - report `executed: false`.
 
+<!-- requirement-block: effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings -->
+For the private `actql-effect-preview/0.1` body, a member's
+`effect_member_preview_cid` MUST be the CID of the canonical envelope
+`{version: "actql-effect-member-preview/0.1", member: MemberSemanticBody}`.
+`MemberSemanticBody` is the complete member object with only its
+`effect_member_preview_cid` and every
+`changes[].row_idempotency_key` removed. The row preview CIDs remain in this
+body and are established first by the row preimage in
+[Private preview row state](protocols/run.md#preview-row-state).
+
+The set `effect_preview_cid` MUST be the CID of the canonical complete private
+Preview body with only `effect_preview_cid`, `run_identity_cid`,
+`authoring_context`, and every `changes[].row_idempotency_key` removed.
+Computed member CIDs remain in the set preimage. Establish row preview CIDs,
+then member CIDs, then the set CID, and only then derive row idempotency keys.
+No other semantic field is excluded. The omitted physical Run, Authoring
+Context, and derived keys remain required fields of the transported Preview;
+apply admission checks their exact bindings independently of the semantic CID.
+
 <!-- requirement-block: effect-application.when-a-delegated-decision-is-deferred-the-runtime-must-pause-at-one effect-application.the-host-must-preflight-every-member-before-the-first-mutation effect-application.before-the-first-mutation-dispatch-a-data-connector-must-advertise -->
 Application remains a separate host-authorized phase inside that Run.
 When a delegated commit decision is deferred, the runtime MUST pause at one Effect Commit

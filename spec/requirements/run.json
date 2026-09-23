@@ -223,6 +223,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/review-artifacts.effect-preview-semantic-exclusions-do-not-waive-exact-apply-binding",
+      "statement_sha256": "c0bf606d82dfb1967d45f4bec07958f1145f28c3aaf97253a281e8d80a44baac",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "review-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/review-artifacts.row-variant-required-review-evidence-full-diff",
       "statement_sha256": "218665f40d415256815696bc98a2b8521c1e6d2bfc3297d2ac79596fdc7c40c8",
       "status": "pending",
