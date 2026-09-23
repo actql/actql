@@ -10,6 +10,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
+import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const authorityScopeCid = cid('a');
@@ -167,7 +168,8 @@ test('durable row heads determine multi-member progress after restart',
     assert.deepEqual(ready(first), [[0, 0], [1, 0]]);
     const ownership = first.claimDispatch(firstMember[0]);
     assert.equal(ownership.claimed, true);
-    assert.deepEqual(ready(first), [[1, 0]]);
+    // A durable claim alone is possible dispatch, not an active call.
+    assert.deepEqual(ready(first), [[0, 1], [1, 0]]);
     const unknown = effect.issueNextLedgerEntry(ownership.dispatching,
       'unknown', '', 4096, 64, 4);
     first.append(effect.ledgerEntryWire(unknown));
@@ -203,7 +205,7 @@ test('durable row heads determine multi-member progress after restart',
     ], 48), {code: 'MoonBitHostFailure'});
   });
 
-test('one Collections claim keeps its member in flight after restart',
+test('one Collections claim remains possible dispatch after restart',
   async t => {
     const root = await fixture(t);
     const first = open(root);
@@ -243,6 +245,48 @@ test('one Collections claim keeps its member in flight after restart',
     restarted.append(effect.ledgerEntryWire(completed));
     assert.deepEqual(progress(restarted), {outcome: 3, ready: []});
   });
+
+test('physical flight is distinct from durable possible-dispatch', async t => {
+  const root = await fixture(t);
+  const first = open(root);
+  const other = open(root);
+  t.after(() => first.close());
+  t.after(() => other.close());
+  const {admitted, members, claims} = admittedProgressFixture();
+  const ready = ledger => {
+    const frontier = ledger.frontierFromDurableHeads(admitted, members, 48);
+    return Array.from({length: effect.setFrontierReadyCount(frontier)},
+      (_, index) => [effect.setFrontierReadyMember(frontier, index),
+        effect.setFrontierReadyRow(frontier, index)]);
+  };
+  let entered;
+  let release;
+  const started = new Promise(resolve => { entered = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  const call = captureClaimedEffectResponse({
+    ledger: first,
+    claim: claims[0][0],
+    requestCid: claims[0][0].canonicalRequestCid,
+    execute: async () => {
+      entered();
+      await gate;
+      throw new Error('response lost');
+    },
+  });
+  await started;
+  assert.deepEqual(ready(first), [[1, 0]]);
+  assert.deepEqual(ready(other), [[1, 0]]);
+  release();
+  await assert.rejects(call, /response lost/);
+  assert.deepEqual(ready(first), [[0, 1], [1, 0]]);
+  first.close();
+  const restarted = open(root);
+  t.after(() => restarted.close());
+  assert.deepEqual(ready(restarted), [[0, 1], [1, 0]]);
+  const retry = restarted.claimDispatch(claims[0][0]);
+  assert.equal(retry.claimed, false);
+  assert.equal(retry.action, 3);
+});
 
 test('admitted Preview fixes halt policy and rejects foreign row bindings',
   async t => {
