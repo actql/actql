@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 10 with operation-specific boundary records, 0 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 0 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -195,6 +195,23 @@ test('resource gate rejects a reviewed operation without its exact boundary fixt
     value.routes.find(entry => entry.operation === 'apply_graph_delta')
       .boundary_tests.shift();
   }), /SGA apply_graph_delta: reviewed exact\/cancel boundary fixture is missing/);
+});
+
+test('resource gate rejects missing SGA normalization boundary evidence', () => {
+  assert.match(run(undefined, value => {
+    const normalization = value.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'normalize_graph');
+    normalization.boundary_tests[0].fixture = 'missing exact node capacity';
+  }), /SGA normalize_graph: missing operation boundary fixture/);
+});
+
+test('resource gate rejects a removed SGA normalization proof role', () => {
+  assert.match(run(undefined, value => {
+    const normalization = value.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'normalize_graph');
+    normalization.boundary_tests = normalization.boundary_tests.filter(item =>
+      item.role !== 'normalize_one_short_node_capacity');
+  }), /SGA normalize_graph: reviewed normalize_one_short_node_capacity fixture is missing/);
 });
 
 test('resource gate rejects an ordered take without its cancellation fixture', () => {

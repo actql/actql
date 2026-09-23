@@ -814,7 +814,30 @@
       "entrypoint": {
         "path": "src/local_sga/normalize.mbt",
         "symbol": "start_normalize"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "normalize_exact_node_capacity",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize accepts the exact node capacity"
+        },
+        {
+          "role": "normalize_one_short_node_capacity",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize rejects one node less than the required capacity"
+        },
+        {
+          "role": "normalize_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize confirms cancellation before reclaiming partial output"
+        }
+      ]
     },
     {
       "inventory": "families",
