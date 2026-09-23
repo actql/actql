@@ -210,34 +210,42 @@ export async function connect(options) {
             const stream = response.body?.getReader();
             if (!stream) fail('InvalidResultStream');
             const decoder = new TextDecoder('utf-8', {fatal: true});
-            while (true) {
-              const {done, value} = await stream.read();
-              if (done) break;
-              wireBytes += value.byteLength;
-              if (wireBytes > maxWireBytes) fail('ResultWireLimit');
-              line += decoder.decode(value, {stream: true});
+            const acceptText = function* (text) {
+              line += text;
               let newline;
               while ((newline = line.indexOf('\n')) >= 0) {
                 const item = line.slice(0, newline);
                 line = line.slice(newline + 1);
+                if (!item) fail('InvalidResultStream');
                 if (new TextEncoder().encode(item).byteLength >
                     maxRowWireBytes) {
                   fail('ResultRowWireLimit');
                 }
-                if (item) {
-                  const row = JSON.parse(item);
-                  if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
-                    fail('ResultRowRetainedLimit');
-                  }
-                  yield row;
+                const row = JSON.parse(item);
+                if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
+                  fail('ResultRowRetainedLimit');
                 }
+                yield row;
               }
               if (new TextEncoder().encode(line).byteLength >
                   maxRowWireBytes) {
                 fail('ResultRowWireLimit');
               }
+            };
+            while (true) {
+              const {done, value} = await stream.read();
+              if (done) break;
+              wireBytes += value.byteLength;
+              if (wireBytes > maxWireBytes) fail('ResultWireLimit');
+              const sliceBytes = Math.min(8192, maxRowWireBytes);
+              for (let offset = 0; offset < value.byteLength;
+                offset += sliceBytes) {
+                yield* acceptText(decoder.decode(
+                  value.subarray(offset, offset + sliceBytes),
+                  {stream: true}));
+              }
             }
-            line += decoder.decode();
+            yield* acceptText(decoder.decode());
             if (line !== '\x1e') fail('IncompleteResultStream');
             state = 'complete';
           } catch (cause) {
