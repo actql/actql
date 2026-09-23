@@ -270,6 +270,13 @@ source-contract identities, and law CIDs before the static rule is exposed;
 equal Mapping bodies share one admitted inventory across Effect members.
 The law CID remains an unresolved obligation, not evidence that the Site has
 a registered converter or that its output matches the target type.
+The next bounded MoonBit step retains admitted literal values from inline
+create/update/upsert and contract-owned create/store row mappings. It checks
+target value types and known null behavior under aggregate work, node, depth,
+and text limits. A literal `null` with `reject` fails, while `omit` cannot
+satisfy a required target field. This is still not complete row evaluation:
+Result-field null behavior, registered conversions, current authority,
+complete Preview admission, and physical apply remain separate obligations.
 
 ## Capability comparison with Smooth Cloud
 
