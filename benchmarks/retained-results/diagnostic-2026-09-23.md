@@ -41,3 +41,29 @@ cost rates cannot serve as measured calibration. Any optimization must retain
 the same checked task boundaries, validation, identity obligations, holding,
 and cleanup. A smaller timer boundary or a forced native choice would not close
 this result.
+
+## Later fixed-revision paired diagnostic
+
+At clean revision `3f3b61e2c86bc40900e1386f79bfb0abf13c2c3b`, the same
+fixture and source hash were run in seven new alternating fresh-process pairs.
+Each pair passed the independent obligation admission. This revision uses a
+common Host task clock for its warm interval, so these numbers should not be
+pooled with the earlier table. Median product and direct execution cycles were
+699 ms and 34 ms. Median parent preparation, worker preparation and child
+start were 218 ms, 217 ms and 81 ms respectively.
+
+Applying the preregistered 10,000-resample, 95% paired timing helper to this
+one case produced:
+
+| Difference | Estimate | 95% interval | Registered limit | Result |
+| --- | ---: | ---: | ---: | --- |
+| Warm task interval | 29.0 ms | 27.3–30.6 ms | 10 ms | Fail |
+| Cold process interval | 712.1 ms | 694.3–722.7 ms | 100 ms | Fail |
+
+The pair runner still used the explicit example estimate rather than a
+measured, versioned placement profile, and this remains a single-case
+diagnostic. It is sufficient to identify a current blocker; it is not a
+complete formal experiment. The parent and child each perform application
+preparation, including a full Program check, before the retained completion.
+Removing that duplicate work or choosing a different normal execution profile
+must preserve independent validation, authority, holding and cleanup.
