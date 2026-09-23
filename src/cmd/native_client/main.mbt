@@ -278,13 +278,14 @@ fn valid_reference_member(fields : Map[String, Json]) -> Bool {
 }
 
 ///|
-fn valid_request_lookup(value : Json) -> Bool {
+fn valid_request_lookup(value : Json, expected_request_id : String) -> Bool {
   guard value is Object(fields) else { return false }
   match json_text(fields, "kind") {
     Some("not_found") => fields.length() == 1
     Some("unknown") => fields.length() == 2 && nonempty_member(fields, "reason")
     Some("found") =>
-      fields.length() == 4 &&
+      fields.length() == 5 &&
+      json_text(fields, "requestId") == Some(expected_request_id) &&
       valid_reference_member(fields) &&
       (
         json_text(fields, "durability") == Some("volatile") ||
@@ -678,7 +679,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     let value = @json.parse(text) catch {
       _ => stop("invalid JSON Host response")
     }
-    if route == "lookup-request" && !valid_request_lookup(value) {
+    if route == "lookup-request" &&
+      !valid_request_lookup(value, required(child, "request-id")) {
       stop("InvalidHostRequestLookup")
     }
     if route == "delivery-attempt" &&

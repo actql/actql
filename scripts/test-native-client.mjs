@@ -139,8 +139,13 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
       ? {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
         durability: 'durable', lookupExpiresAt: 'tomorrow'}
       : body.requestId === 'found-request'
-        ? {kind: 'found', ref, durability: 'durable',
+        ? {kind: 'found', requestId: body.requestId, ref,
+          durability: 'durable',
           lookupExpiresAt: '2026-09-24T00:00:00Z'}
+        : body.requestId === 'foreign-request'
+          ? {kind: 'found', requestId: 'OTHER', ref,
+            durability: 'durable',
+            lookupExpiresAt: '2026-09-24T00:00:00Z'}
         : {kind: 'unknown', reason: 'query_failed'}));
   } else if (operation === 'status') {
     response.end(JSON.stringify({status: 'succeeded'}));
@@ -296,9 +301,13 @@ try {
     '--request-id', 'found-request');
   assert.equal(foundRequest.code, 0, foundRequest.stderr);
   assert.deepEqual(JSON.parse(foundRequest.stdout), {
-    kind: 'found', ref, durability: 'durable',
+    kind: 'found', requestId: 'found-request', ref, durability: 'durable',
     lookupExpiresAt: '2026-09-24T00:00:00Z',
   });
+  const foreignRequest = await run('lookup-request',
+    '--request-id', 'foreign-request');
+  assert.notEqual(foreignRequest.code, 0);
+  assert.match(foreignRequest.stderr, /InvalidHostRequestLookup/);
   const badLookup = await run('lookup-request', '--request-id', 'bad-lookup');
   assert.notEqual(badLookup.code, 0);
   assert.match(badLookup.stderr, /InvalidHostRequestLookup/);
