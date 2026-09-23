@@ -171,7 +171,10 @@ fn selected_relation_provider(
         return Err(@connector.Execution(@execution.InputSet))
       }
       match @lower.kernel_body(kernel) {
-        @lower.SnapshotMap(_) | @lower.OrderedBindings(_) | @lower.Filter(_) =>
+        @lower.SnapshotMap(_)
+        | @lower.OrderedBindings(_)
+        | @lower.Filter(_)
+        | @lower.Select(_) =>
           return selected_binding_rows_execution(
             sequence, input, execution, max_value_bytes, step,
           )
