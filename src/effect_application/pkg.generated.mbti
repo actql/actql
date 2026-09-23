@@ -19,6 +19,8 @@ pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int]
 
 pub fn effect_apply_key_cid(EffectApplyKey) -> String
 
+pub fn effect_batch_rows_share_member(LogicalItemLocator, EffectDispatchKey, LogicalItemLocator, EffectDispatchKey) -> Bool
+
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String

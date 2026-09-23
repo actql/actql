@@ -137,8 +137,43 @@ test('collection claim never leaves a partial send when one row conflicts',
     assert.throws(() => ledger.claimDispatchBatch([
       claims[0], claims[0],
     ]), {code: 'EffectLedgerBatchBindingMismatch'});
+    assert.throws(() => ledger.claimDispatchBatch([
+      claims[0], {...claims[1], key: claims[0].key},
+    ]), {code: 'EffectLedgerBatchBindingMismatch'});
     assert.equal(ledger.current(
       effect.logicalItemLocatorCid(claims[0].locator)), undefined);
+  });
+
+test('collection cannot combine rows from different Effect members',
+  async t => {
+    const root = await fixture(t);
+    const ledger = open(root);
+    t.after(() => ledger.close());
+    const claims = batchClaims();
+    const second = claims[1];
+    const foreignLocator = effect.logicalItemLocator(
+      second.scope, 'program-1', 'node-1', 'WriteTwo',
+      JSON.stringify({row: 'row-2'}), 64, 128, 8, 3);
+    const foreignBasis = effect.ledgerBasis(
+      second.scope, foreignLocator, second.key,
+      cid('c'), cid('d'), cid('e'), second.canonicalRequestCid,
+      cid('0'), 'unavailable', cid('1'), cid('2'));
+    assert.throws(() => ledger.claimDispatchBatch([
+      claims[0], {...second, locator: foreignLocator, basis: foreignBasis},
+    ]), {code: 'EffectLedgerBatchBindingMismatch'});
+    const foreignKey = effect.dispatchKey(
+      second.scope, cid('8'), JSON.stringify('row-2'), 32, 8, 3);
+    const foreignPreviewBasis = effect.ledgerBasis(
+      second.scope, second.locator, foreignKey,
+      cid('c'), cid('d'), cid('e'), second.canonicalRequestCid,
+      cid('0'), 'unavailable', cid('1'), cid('2'));
+    assert.throws(() => ledger.claimDispatchBatch([
+      claims[0], {...second, key: foreignKey, basis: foreignPreviewBasis},
+    ]), {code: 'EffectLedgerBatchBindingMismatch'});
+    for (const claim of claims) {
+      assert.equal(ledger.current(
+        effect.logicalItemLocatorCid(claim.locator)), undefined);
+    }
   });
 
 test('a previously dispatched row prevents a partial collection retry',
