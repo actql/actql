@@ -49,6 +49,7 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 
 ///|
 fn carrier_events_relation_followup(variant : String) -> Bool {
+  variant == "dedupe_filter" ||
   variant == "session_filter" ||
   variant == "session_select" ||
   variant == "session_derive" ||
@@ -57,7 +58,7 @@ fn carrier_events_relation_followup(variant : String) -> Bool {
 
 ///|
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
-  let dedupe = variant == "dedupe"
+  let dedupe = variant == "dedupe" || variant == "dedupe_filter"
   let window = variant == "window_fixed" ||
     variant == "window_sliding" ||
     variant == "window_parameter"
