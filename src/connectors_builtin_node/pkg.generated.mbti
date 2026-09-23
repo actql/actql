@@ -140,6 +140,16 @@ pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequ
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
+pub fn strategy_effect_set_frontier(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
+
+pub fn strategy_effect_set_frontier_outcome(@effect_application.EffectSetFrontier) -> Int
+
+pub fn strategy_effect_set_frontier_ready_count(@effect_application.EffectSetFrontier) -> Int
+
+pub fn strategy_effect_set_frontier_ready_member(@effect_application.EffectSetFrontier, Int) -> Int
+
+pub fn strategy_effect_set_frontier_ready_row(@effect_application.EffectSetFrontier, Int) -> Int
+
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_feed_durable_result_row_frames(@run_publication.DurableResultRowFrames, Bytes) -> Array[String] raise NodeHostFailure
@@ -1198,6 +1208,7 @@ pub(all) suberror NodeHostFailure {
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
   EffectIdentity(@effect_application.EffectIdentityIssue)
+  EffectSetProgress(@effect_application.EffectSetProgressIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)

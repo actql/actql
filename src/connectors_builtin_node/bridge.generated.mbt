@@ -10,6 +10,7 @@ pub(all) suberror NodeHostFailure {
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
   EffectIdentity(@effect.EffectIdentityIssue)
+  EffectSetProgress(@effect.EffectSetProgressIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
@@ -7013,6 +7014,59 @@ pub fn strategy_effect_row_recovery_action(
     stored_locator_cid, stored_fingerprint_cid, stored_key_cid, stored_request_cid,
     stored_state, active_owner,
   )
+}
+
+///|
+#export_name("strategyEffectSetFrontier")
+pub fn strategy_effect_set_frontier(
+  effect_ids : Array[String],
+  policies : Array[Int],
+  row_states : Array[Array[Int]],
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> @effect.EffectSetFrontier raise NodeHostFailure {
+  match
+    @effect.effect_set_frontier_from_codes(
+      effect_ids, policies, row_states, max_members, max_rows, max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectSetProgress(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectSetFrontierOutcome")
+pub fn strategy_effect_set_frontier_outcome(
+  frontier : @effect.EffectSetFrontier,
+) -> Int {
+  @effect.effect_set_frontier_outcome_code(frontier)
+}
+
+///|
+#export_name("strategyEffectSetFrontierReadyCount")
+pub fn strategy_effect_set_frontier_ready_count(
+  frontier : @effect.EffectSetFrontier,
+) -> Int {
+  @effect.effect_set_frontier_ready_count(frontier)
+}
+
+///|
+#export_name("strategyEffectSetFrontierReadyMember")
+pub fn strategy_effect_set_frontier_ready_member(
+  frontier : @effect.EffectSetFrontier,
+  index : Int,
+) -> Int {
+  @effect.effect_set_frontier_ready_member(frontier, index)
+}
+
+///|
+#export_name("strategyEffectSetFrontierReadyRow")
+pub fn strategy_effect_set_frontier_ready_row(
+  frontier : @effect.EffectSetFrontier,
+  index : Int,
+) -> Int {
+  @effect.effect_set_frontier_ready_row(frontier, index)
 }
 
 ///|
