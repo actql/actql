@@ -944,10 +944,25 @@ fn advance_mean_state(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
           if retained {
-            state.retain_candidate = true
-            state.property = 0
-            state.properties.clear()
-            state.phase = BeginEdgeProperties
+            let edge = state.edges[state.candidate]
+            let source_key = match mean_value_key(state, edge.source) {
+              Ok(value) => value
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+            let target_key = match mean_value_key(state, edge.target) {
+              Ok(value) => value
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+            if state.retained_nodes.contains(source_key) &&
+              state.retained_nodes.contains(target_key) {
+              state.retain_candidate = true
+              state.property = 0
+              state.properties.clear()
+              state.phase = BeginEdgeProperties
+            } else {
+              state.candidate += 1
+              state.phase = BeginEdgeSupport
+            }
           } else {
             state.candidate += 1
             state.phase = BeginEdgeSupport
@@ -991,31 +1006,20 @@ fn advance_mean_state(
           return @bounded.Failed(InvalidMeanKernel, progress, used)
         }
         let edge = state.edges[state.candidate]
-        let source_key = match mean_value_key(state, edge.source) {
-          Ok(value) => value
-          Err(issue) => return @bounded.Failed(issue, progress, used)
+        guard state.output is Some(output) else {
+          return @bounded.Failed(InvalidMeanKernel, progress, used)
         }
-        let target_key = match mean_value_key(state, edge.target) {
-          Ok(value) => value
-          Err(issue) => return @bounded.Failed(issue, progress, used)
-        }
-        if state.retained_nodes.contains(source_key) &&
-          state.retained_nodes.contains(target_key) {
-          guard state.output is Some(output) else {
-            return @bounded.Failed(InvalidMeanKernel, progress, used)
-          }
-          match
-            @graph.append_edge(
-              output,
-              edge.source,
-              edge.target,
-              edge.label,
-              state.properties,
-            ) {
-            Ok(_) => ()
-            Err(issue) =>
-              return @bounded.Failed(MeanOutput(issue), progress, used)
-          }
+        match
+          @graph.append_edge(
+            output,
+            edge.source,
+            edge.target,
+            edge.label,
+            state.properties,
+          ) {
+          Ok(_) => ()
+          Err(issue) =>
+            return @bounded.Failed(MeanOutput(issue), progress, used)
         }
         state.retain_candidate = false
         state.properties.clear()
