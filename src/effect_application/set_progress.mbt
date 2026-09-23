@@ -97,18 +97,18 @@ pub fn effect_set_frontier(
       match current.rows[row_index] {
         ItemUnattempted => if next < 0 { next = row_index }
         ItemSending => {
-          if next >= 0 || (current.policy is HaltMember && blocked) {
+          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
             return Err(InvalidHistory)
           }
           sending = true
           any_sending = true
         }
         ItemApplied | ItemAccepted =>
-          if next >= 0 || (current.policy is HaltMember && blocked) {
+          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
             return Err(InvalidHistory)
           }
         ItemFailed => {
-          if next >= 0 || (current.policy is HaltMember && blocked) {
+          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
             return Err(InvalidHistory)
           }
           any_failed = true
@@ -117,7 +117,7 @@ pub fn effect_set_frontier(
           }
         }
         ItemUnknown => {
-          if next >= 0 || (current.policy is HaltMember && blocked) {
+          if next >= 0 || sending || (current.policy is HaltMember && blocked) {
             return Err(InvalidHistory)
           }
           any_unknown = true
