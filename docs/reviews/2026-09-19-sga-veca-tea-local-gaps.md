@@ -5,6 +5,16 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 
+Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
+one-short structural workspace admission, one field of bounded work before
+cancellation, stop, cleanup, and continued availability of the Graph input.
+They run on JS, Wasm, and native. They do not establish exact work limits or
+Host-delivered in-flight cancellation for either projection. The existing
+Node Host cancellation fixture schedules these two cases at the construction
+boundary, so it must not be counted as Bridge in-flight evidence. An attempt
+to delay cancellation exposed a managed failure at that transition; its
+underlying cause still needs a product-path regression and diagnosis.
+
 The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` is applied
 to the current branch by separating three gates. The same-Stage
 `values → distinct → values → distinct → cross_join` path now has five
