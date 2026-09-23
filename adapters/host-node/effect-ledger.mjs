@@ -1,5 +1,10 @@
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
+import {realpathSync} from 'node:fs';
+
+// Process-local observations of physical calls. Durable dispatch entries are
+// possible sends after restart, never proof that a call is still in progress.
+const activePhysicalFlights = new Map();
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -34,6 +39,9 @@ export function openEffectLedger({
     authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes,
     maxStoredBytes,
   });
+  const flightPrefix = `${realpathSync(root)}\0${scopeCid}\0`;
+  const flightKey = entry =>
+    `${flightPrefix}${control.ledgerEntryCid(entry)}`;
   const admit = wire => control.admitLedgerEntry(
     wire, maxEntryBytes, maxNodes, maxDepth,
   );
@@ -114,6 +122,7 @@ export function openEffectLedger({
       const keys = [];
       const bases = [];
       const heads = [];
+      const activeOwners = [];
       const seen = new Set();
       let totalRows = 0;
       for (const member of members) {
@@ -127,6 +136,7 @@ export function openEffectLedger({
         const memberLocators = [];
         const memberKeys = [];
         const memberHeads = [];
+        const memberActiveOwners = [];
         for (const claim of member.claims) {
           if (!claim?.basis || !claim.scope || !claim.locator ||
               !claim.key || typeof claim.canonicalRequestCid !== 'string' ||
@@ -153,17 +163,63 @@ export function openEffectLedger({
           memberLocators.push(claim.locator);
           memberKeys.push(claim.key);
           memberBases.push(claim.basis);
-          memberHeads.push(validateStored(physical.current(locatorCid))?.entry);
+          const head = validateStored(physical.current(locatorCid))?.entry;
+          memberHeads.push(head);
+          memberActiveOwners.push(head !== undefined &&
+            activePhysicalFlights.has(flightKey(head)));
         }
         scopes.push(memberScopes);
         locators.push(memberLocators);
         keys.push(memberKeys);
         bases.push(memberBases);
         heads.push(memberHeads);
+        activeOwners.push(memberActiveOwners);
       }
       return control.setFrontierFromLedger(
-        admittedPreview, scopes, locators, keys, bases, heads,
+        admittedPreview, scopes, locators, keys, bases, heads, activeOwners,
         members.length, totalRows, maxWork);
+    },
+    // The caller must have won the durable send claim. This observation ends
+    // when the physical call settles, independently of response persistence.
+    beginPhysicalFlight(dispatching, claims) {
+      const entries = Array.isArray(dispatching)
+        ? dispatching : [dispatching];
+      const binding = Array.isArray(claims) ? claims : [claims];
+      if (entries.length === 0 || entries.length !== binding.length) {
+        fail('InvalidEffectPhysicalFlight');
+      }
+      const token = Symbol('effect-physical-flight');
+      const keys = entries.map((entry, index) => {
+        const claim = binding[index];
+        if (!entry || !claim ||
+            control.ledgerEntryScopeCid(entry) !== scopeCid ||
+            !control.ledgerEntryAdmitsDispatch(
+              entry, claim.scope, claim.locator, claim.key,
+              claim.canonicalRequestCid)) {
+          fail('InvalidEffectPhysicalFlight');
+        }
+        const locatorCid = control.ledgerEntryLocatorCid(entry);
+        const current = validateStored(physical.current(locatorCid));
+        if (current?.row.entryCid !== control.ledgerEntryCid(entry)) {
+          fail('EffectPhysicalFlightHeadMismatch');
+        }
+        return flightKey(entry);
+      });
+      if (new Set(keys).size !== keys.length ||
+          keys.some(key => activePhysicalFlights.has(key))) {
+        fail('EffectPhysicalFlightCollision');
+      }
+      for (const key of keys) activePhysicalFlights.set(key, token);
+      let ended = false;
+      return () => {
+        if (ended) return;
+        ended = true;
+        for (const key of keys) {
+          if (activePhysicalFlights.get(key) === token) {
+            activePhysicalFlights.delete(key);
+          }
+        }
+      };
     },
     response(dispatchEntryCid) {
       const row = physical.response(dispatchEntryCid);
