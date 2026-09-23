@@ -204,6 +204,7 @@ pub fn ${name}_managed_start(
     }
   }
 }
+dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
 // A bridge package may also contain the handwritten Carrier adapter. Keep its
 // runtime dependency after generated connector aliases so their stable names
