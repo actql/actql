@@ -38,9 +38,17 @@ pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 
+pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
+
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
+
+pub fn read_projection_fields(ReadProjection) -> Array[String]
+
+pub fn read_projection_observation(ReadProjection) -> String
+
+pub fn read_projection_soql(ReadProjection) -> String
 
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
@@ -56,7 +64,9 @@ pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> 
 
 // Types and methods
 pub struct CatalogObservation {
-  sync : CatalogSync
+  names : Array[String]
+  resources : Array[ResourceMetadata?]
+  truncated : Bool
   binding : CatalogObservationBinding
   body : String
   cid : String
@@ -128,7 +138,7 @@ pub(all) struct DescribeLimits {
   max_name_units : Int
 }
 
-pub(all) struct FieldMetadata {
+pub struct FieldMetadata {
   name : String
   native_type : String
   nullable : Bool
@@ -150,7 +160,7 @@ pub(all) struct ListLimits {
   max_name_units : Int
 }
 
-pub(all) struct ListedResource {
+pub struct ListedResource {
   name : String
   queryable : Bool
   createable : Bool
@@ -164,20 +174,34 @@ pub(all) enum ListingIssue {
   DuplicateResource(String)
 } derive(Eq, @debug.Debug)
 
+pub struct ReadProjection {
+  observation_cid : String
+  resource : String
+  fields : Array[FieldMetadata]
+  soql : String
+}
+
+pub(all) enum ReadProjectionIssue {
+  Observation(CatalogObservationIssue)
+  Requirement(ResourceRequirementIssue)
+  EmptyProjection
+  QueryLimit
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ResourceDescribeOutcome {
   Pending
   Described(ResourceMetadata)
   Unavailable(DescribeFailure)
 }
 
-pub(all) struct ResourceListing {
+pub struct ResourceListing {
   selected : Array[ListedResource]
   visible_count : Int
   truncated : Bool
   response_sha256 : String
 }
 
-pub(all) struct ResourceMetadata {
+pub struct ResourceMetadata {
   name : String
   queryable : Bool
   createable : Bool
