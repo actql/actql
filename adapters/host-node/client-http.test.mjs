@@ -123,6 +123,34 @@ test('Client Host negotiates a profile only after authentication and consent', a
   assert.equal(observed[0].principalId, 'principal-a');
 });
 
+test('Client Host binds a found request reply before sending its Run ref',
+  async () => {
+    let reply = {kind: 'found', requestId: 'saved-id', ref,
+      durability: 'volatile',
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'};
+    const handler = createClientHttpHandler({
+      authenticate: () => 'principal-a',
+      authorizeConnection: () => true,
+      lookupRequest: () => reply,
+    });
+    await withServer(handler, async base => {
+      const send = () => fetch(`${base}/actql/client/0.1/lookup-request`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, requestId: 'saved-id'}),
+      });
+      assert.deepEqual(await (await send()).json(), reply);
+      reply = {...reply, requestId: 'OTHER'};
+      const foreign = await send();
+      assert.equal(foreign.status, 500);
+      assert.deepEqual(await foreign.json(), {code: 'ClientHostFailure'});
+      reply = {kind: 'not_found'};
+      assert.deepEqual(await (await send()).json(), reply);
+      reply = {kind: 'unknown', reason: 'store_query_failed'};
+      assert.deepEqual(await (await send()).json(), reply);
+    });
+  });
+
 test('local-owned Hybrid Cloud ref reaches Host authorization before use',
   async () => {
     const authorized = [];
