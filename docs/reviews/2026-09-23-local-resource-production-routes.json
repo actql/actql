@@ -1071,7 +1071,7 @@
           "fixture": "cross join exact and one-short work and workspace boundaries"
         },
         {
-          "role": "managed_cancel_cleanup",
+          "role": "managed_pre_execution_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",

@@ -803,11 +803,17 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'cross_join') {
     for (const role of [
       'product_work_workspace_exact_one_short',
-      'managed_cancel_cleanup',
+      'managed_pre_execution_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
       }
+    }
+    // Closing before execute cannot prove a delivered in-flight stop.
+    // A future unrelated environment fixture must not close this route.
+    if (requireBoundaryComplete &&
+      !environmentRoles.has('cross_join_in_flight_host_timer')) {
+      fail(`${label}: in-flight Host cancellation evidence is missing`);
     }
   }
 }
