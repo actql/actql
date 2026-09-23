@@ -5,6 +5,8 @@ pub(all) enum QueryReadIssue {
   AlreadyFinished
   Interrupted
   WrongRequest
+  PageAwaitingConsumption
+  WrongPage
   PageLimit
   RowLimit
   Page(QueryPageIssue)
@@ -20,6 +22,7 @@ pub struct QueryRead {
   max_pages : Int
   max_total_rows : Int64
   mut next_path : String?
+  mut pending_page : QueryPage?
   mut page_count : Int
   mut row_count : Int64
   mut interrupted : Bool
@@ -80,6 +83,7 @@ pub fn begin_query_read(
     max_pages,
     max_total_rows,
     next_path: Some(initial),
+    pending_page: None,
     page_count: 0,
     row_count: 0L,
     interrupted: false,
@@ -88,7 +92,7 @@ pub fn begin_query_read(
 
 ///|
 pub fn query_read_next_path(read : QueryRead) -> String? {
-  if read.interrupted {
+  if read.interrupted || read.pending_page is Some(_) {
     None
   } else {
     read.next_path
@@ -105,6 +109,9 @@ pub fn query_read_accept_page(
 ) -> Result[QueryPage, QueryReadIssue] {
   if read.interrupted {
     return Err(Interrupted)
+  }
+  if read.pending_page is Some(_) {
+    return Err(PageAwaitingConsumption)
   }
   let path = match read.next_path {
     Some(value) => value
@@ -135,25 +142,48 @@ pub fn query_read_accept_page(
     read.next_path = None
     return Err(RowLimit)
   }
-  read.page_count += 1
-  read.row_count += page_rows
-  read.next_path = page.next_url
+  read.pending_page = Some(page)
   Ok(page)
 }
 
 ///|
+/// A page becomes part of this observation only after its consumer has
+/// accepted the typed values. The pending page blocks further physical I/O.
+pub fn acknowledge_query_page(
+  read : QueryRead,
+  page : QueryPage,
+) -> Result[Unit, QueryReadIssue] {
+  if read.interrupted {
+    return Err(Interrupted)
+  }
+  guard read.pending_page is Some(pending) else { return Err(AlreadyFinished) }
+  if !physical_equal(pending, page) {
+    return Err(WrongPage)
+  }
+  read.page_count += 1
+  read.row_count += page.rows.length().to_int64()
+  read.next_path = page.next_url
+  read.pending_page = None
+  Ok(())
+}
+
+///|
 pub fn interrupt_query_read(read : QueryRead) -> Bool {
-  if read.interrupted || read.next_path is None {
+  if read.interrupted || (read.next_path is None && read.pending_page is None) {
     return false
   }
   read.interrupted = true
   read.next_path = None
+  read.pending_page = None
   true
 }
 
 ///|
 pub fn query_read_complete(read : QueryRead) -> Bool {
-  !read.interrupted && read.page_count > 0 && read.next_path is None
+  !read.interrupted &&
+  read.page_count > 0 &&
+  read.next_path is None &&
+  read.pending_page is None
 }
 
 ///|
