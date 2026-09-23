@@ -584,6 +584,8 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   DuplicateMember(Int)
   ForeignEffectId(Int)
   ForeignMemberReceipt(Int)
+  MemberStateMismatch(Int)
+  SetStatusMismatch
 } derive(@debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
