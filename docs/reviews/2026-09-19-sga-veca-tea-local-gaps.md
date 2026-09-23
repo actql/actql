@@ -83,15 +83,15 @@ readable coverage manifest is authoritative for individual operation status.
   fallback kernels remain synchronous and unverified for in-flight cancel.
   The sort's outer merge is bounded, but each comparison still processes all
   ordering terms and long text operands synchronously. A Node standard Host
-  stress case now uses the maximum ten-column fixture schema and seven sort
-  keys, including six equal 165-byte text values (990 text bytes per row
-  under the fixture's 1,000 `max_value_bytes` setting). It measures the maximum
-  resume duration, delivers a real timer cancellation after 70 quantum-one
-  advances, and verifies stop and cleanup. Two local runs measured 0.347
-  and 0.601 ms maximum resume, with 0.099 and 0.137 ms from cancellation
-  delivery to stop. These are
-  environment diagnostics, not a universal deadline or proof for every
-  admitted representation. No response-time violation has been reproduced;
+  stress case uses the maximum ten-column fixture schema and seven sort keys,
+  including six equal 660-byte text values (3,960 text bytes per row). The
+  1,024-byte-per-key probe did not reach the managed sort task. The admitted
+  stress case reports bounded-step work and maximum resume duration, then
+  delivers a real timer cancellation after 70
+  quantum-one advances, and verifies stop and cleanup. A local run measured
+  0.529 ms maximum resume and 0.207 ms from cancellation delivery to stop.
+  These are environment diagnostics, not a universal deadline or proof for
+  every admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
   profiles exceed the accepted response behavior. This evidence is for the
   selected bounded path. Ordinary one-step sort now also uses that bounded
