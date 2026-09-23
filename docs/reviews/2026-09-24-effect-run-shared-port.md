@@ -38,8 +38,8 @@ from those same retained headers and the explicit Mapping row field map, then
 selects the exact static permission rule. This is not a current grant or a
 complete checked Effect Set.
 It now rejects missing required inline-create fields and missing mapped
-source fields in retained Results; target type and conversion proofs remain
-open.
+source fields in retained Results. Direct Result-field copies check target
+value shapes; literal values, null behavior, and conversion proofs remain open.
 The same bridge validates the Mapping's conversion inventory before rule
 selection, but retains each law as an obligation pending registered
 implementation and type evidence.
