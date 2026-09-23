@@ -37,6 +37,7 @@ new delivery attempt; a reader exposes `attemptId` before iteration.
 without sending payload. A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
+An empty JSONL record fails the attempt instead of silently omitting a row.
 
 The read limits use separate byte measures:
 
@@ -54,3 +55,5 @@ value, property name and object entry. It is a deterministic admission bound,
 not measured JavaScript heap or process RSS. Network stream chunks and runtime
 overhead can make peak memory higher. An exceeded limit fails the delivery
 attempt without cancelling its Run; `all()` never returns a truncated result.
+The reader decodes a received transport chunk in slices no larger than 8 KiB
+or the selected row wire limit, whichever is smaller.
