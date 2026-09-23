@@ -4,4 +4,15 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/run_publication" @publication,
+  "actql/actql/program_check" @checked,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/parameter_references" @parameters,
+  "actql/actql/pipeline_check_context" @context,
 }
+
+import {
+  "actql/actql/check_environment" @environment,
+  "moonbitlang/core/encoding/utf8",
+} for "test"
