@@ -1141,10 +1141,20 @@ test "native bundle Store verifies all signed v0.1 components" {
   ignore(final_store.drain(cid).unwrap())
   let copy_record = load_catalog(final_store).unwrap().component_copies[0]
   let physical = cleanup_operations(final_store)
+  let mut reclaim_failures = 1
   let mut sync_failures = 1
   let injected : NativeRuntimeBundleCleanupOperations = {
     inspect: physical.inspect,
-    reclaim: physical.reclaim,
+    reclaim: fn(name, generation) {
+      if reclaim_failures > 0 {
+        reclaim_failures = reclaim_failures - 1
+        Err(
+          Filesystem(@filesystem.Cleanup("injected component reclaim failure")),
+        )
+      } else {
+        (physical.reclaim)(name, generation)
+      }
+    },
     sync: fn() {
       if sync_failures > 0 {
         sync_failures = sync_failures - 1
@@ -1154,6 +1164,12 @@ test "native bundle Store verifies all signed v0.1 components" {
       }
     },
   }
+  assert_true(
+    recover_component_copy_with_operations(final_store, copy_record, injected)
+    is Err(Filesystem(@filesystem.Cleanup(_))),
+  )
+  assert_true(final_store.root.verify_generation(copy_name, copy_generation))
+  assert_eq(final_store.capacity_usage().unwrap().reserved_bytes, 33L)
   assert_true(
     recover_component_copy_with_operations(final_store, copy_record, injected)
     is Err(Filesystem(@filesystem.Cleanup(_))),
