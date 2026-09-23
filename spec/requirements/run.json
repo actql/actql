@@ -212,6 +212,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/review-artifacts.each-member-apply-receipt-must-bind-exact-member-preview",
+      "statement_sha256": "904f351a60b477a89bfc3c55835e718cf7011239c0ce35f5320335bc42f81c26",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "review-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/review-artifacts.an-effect-review-projection-must-include-each-effect-s-kind-target",
       "statement_sha256": "1a444a0cd9f8372a947980b2bdd199a700c726dcf290aa662f7ca8de7fd8be22",
       "status": "pending",

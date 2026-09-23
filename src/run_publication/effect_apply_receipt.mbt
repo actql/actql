@@ -3,6 +3,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
   Receipt(PublicationContractIssue)
   InvalidMember
   ForeignPreview
+  ForeignMember
   RowPartitionMismatch
 } derive(Debug)
 
@@ -151,6 +152,10 @@ pub fn admit_effect_apply_receipt_for_member(
   if contract_string(receipt, "effect_preview_cid") !=
     Some(preview.semantic_cid) {
     return Err(ForeignPreview)
+  }
+  if contract_string(receipt, "effect_member_preview_cid") !=
+    preview.member_cids.get(member_index) {
+    return Err(ForeignMember)
   }
   let seen : Array[String] = []
   for field in ["applied", "accepted", "unknown", "unattempted"] {
