@@ -102,3 +102,46 @@ test "read projection preserves missing-field and foreign-binding diagnostics" {
     is Err(Observation(Resource(NotVisible))),
   )
 }
+
+///|
+test "read projection does not infer nullability from partial metadata" {
+  let listing = project_resource_listing(
+    @utf8.encode(
+      (
+        #|{"sobjects":[{"name":"Account","queryable":true}]}
+      ),
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = begin_catalog_sync(listing)
+  let description =
+    #|{"name":"Account","queryable":true,"fields":[{"name":"Name","type":"string"}]}
+  catalog_sync_describe(sync, "Account", @utf8.encode(description), {
+    max_bytes: 1000,
+    max_nodes: 100,
+    max_depth: 10,
+    max_fields: 10,
+    max_name_units: 100,
+  }).unwrap()
+  finish_catalog_sync(sync).unwrap()
+  let binding = observation_test_binding()
+  let observation = prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [Some(@sha.hex(@utf8.encode(description)))],
+    4096,
+  ).unwrap()
+  assert_true(
+    prepare_read_projection(observation, binding, "Account", ["Name"], 100)
+    is Err(UnconfirmedNullability("Name")),
+  )
+}
