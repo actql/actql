@@ -212,14 +212,13 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       const batch = !appender && batchRows > 1 ? createImportBatch(columns, batchRows, limits,
         compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
       let appendedSinceFlush = 0;
-      const append = async parameters => {
+      const append = parameters => {
         if (!appender) return batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
         appender.append(parameters);
         if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
           appender.flush();
           appendedSinceFlush = 0;
-          await yieldToHost();
-          signal?.throwIfAborted();
+          return yieldToHost().then(() => signal?.throwIfAborted());
         }
       };
       if (material != null) {
@@ -236,9 +235,9 @@ export async function importResidentStrategyInput(environment, producer, tableBy
           wire, maxFrameBytes));
         const frames = createMoonBitRetainedRowFrames(moon,
           {maxBytes: wire.max_bytes, maxRows: count,
-          maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, async row => {
+          maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, row => {
           const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
-          await append(parameters);
+          return append(parameters);
         });
         try {
           storageReadUnconfirmed = true;

@@ -50,7 +50,8 @@ export function createMoonBitRetainedRowFrames(moon, limits, accept) {
         }
         for (const row of rows) {
           signal?.throwIfAborted();
-          await accept(row);
+          const accepted = accept(row);
+          if (accepted && typeof accepted.then === 'function') await accepted;
         }
         signal?.throwIfAborted();
       } catch (error) {
