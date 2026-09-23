@@ -169,6 +169,7 @@ export async function runResidentFixedCompute(
     const workStarted = performance.now();
     let boundary = workStarted;
     const phases = {};
+    const callbackStart = session.usage().receiveCallbackMilliseconds;
     let directInputScans = 0;
     let reusedInputIdentities = 0;
     let reusedInputValues = 0;
@@ -194,12 +195,16 @@ export async function runResidentFixedCompute(
       }
     }
     endPhase('inputVerificationMilliseconds');
+    const inputCallbackMilliseconds = session.usage().receiveCallbackMilliseconds - callbackStart;
     for (const sql of resident.viewSqls()) await session.command(sql, [], discard);
     endPhase('viewPreparationMilliseconds');
     await session.command(resident.createResultSql(), port.queryParameters(), discard);
     endPhase('materializationMilliseconds');
+    const outputCallbackStart = session.usage().receiveCallbackMilliseconds;
     const fields = await session.command(resident.readResultSql(), [], consume);
     endPhase('receiveMilliseconds');
+    const outputCallbackMilliseconds = session.usage().receiveCallbackMilliseconds -
+      outputCallbackStart;
     // Includes empty-result metadata. Throwing here rolls back this task only.
     await validate(fields);
     endPhase('finalizationMilliseconds');
@@ -208,7 +213,8 @@ export async function runResidentFixedCompute(
     }
     endPhase('temporaryCleanupMilliseconds');
     return Object.freeze({ fields, importedRows: 0, importedCells: 0,
-      diagnostics: Object.freeze({...phases, directInputScans, reusedInputIdentities, reusedInputValues,
+      diagnostics: Object.freeze({...phases, inputCallbackMilliseconds,
+        outputCallbackMilliseconds, directInputScans, reusedInputIdentities, reusedInputValues,
         workMilliseconds: boundary - workStarted}) });
   }, signal, accounting);
   // Preserve completed Host-output provenance independently of future DB loss.
