@@ -20,7 +20,8 @@ import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
 import {createSalesforceCliSecretResolver} from './salesforce-cli-secret.mjs';
-import {readSalesforceManagedQuery, readSalesforceQuery} from
+import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
+  readSalesforceQuery} from
   './salesforce-query-read.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
@@ -701,6 +702,61 @@ test('managed physical driver rejects a wrong typed value before receipt',
     })), {code: 'MoonBitHostFailure'});
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 1);
+  });
+
+test('issued broad Site driver leaves completion to the Host verifier',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const attempt = Object.freeze({selected: true});
+    let read;
+    let state = 'pending';
+    const moon = {
+      ...salesforceMoon,
+      salesforceIssuedBroadPlan: selected => {
+        assert.equal(selected, attempt);
+        return plan;
+      },
+      salesforceIssuedBroadBegin(selected, ...args) {
+        assert.equal(selected, attempt);
+        assert.equal(state, 'pending');
+        read = checked(salesforceMoon.salesforceBeginQueryRead(
+          plan, ...args.slice(0, 8)));
+        state = 'reading';
+        return {$tag: 1, _0: true};
+      },
+      salesforceIssuedBroadNextPath: () =>
+        salesforceMoon.salesforceQueryReadNextPath(read),
+      salesforceIssuedBroadAcceptPage(_selected, path, body) {
+        const page = checked(salesforceMoon.salesforceQueryReadAcceptPage(
+          read, path, body));
+        checked(salesforceMoon.salesforceQueryReadAcknowledgePage(read, page));
+        return {$tag: 1, _0: page};
+      },
+      salesforceIssuedBroadComplete: () =>
+        salesforceMoon.salesforceQueryReadComplete(read),
+      salesforceIssuedBroadRowCount: () =>
+        salesforceMoon.salesforceQueryReadRowCount(read),
+      salesforceIssuedBroadFinish: () => {
+        assert.equal(state, 'reading');
+        state = 'awaiting-cleanup';
+        return {$tag: 1, _0: true};
+      },
+      salesforceIssuedBroadAbort: () => {
+        state = 'aborted';
+      },
+    };
+    const result = await readSalesforceIssuedBroad(queryRequest(setup, plan, {
+      moon, attempt, maxCaptureRows: 3,
+      captureLimits: {maxNodes: 100, maxTextBytes: 1000,
+        maxDepth: 10, maxWork: 1000},
+    }));
+    assert.equal(state, 'awaiting-cleanup');
+    assert.equal(result.attempt, attempt);
+    assert.equal(result.rowCount, 2n);
+    assert.equal(result.pages.length, 2);
+    assert.equal(Object.hasOwn(result, 'receipt'), false);
+    assert.equal(Object.hasOwn(result, 'observation'), false);
   });
 
 test('invalid physical caller is rejected before a query owner or HTTP use',

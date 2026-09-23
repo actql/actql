@@ -6,6 +6,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   ReadProjection(@catalog.ReadProjectionIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@acquisition.ManagedQueryIssue)
+  BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
   InvalidResource
 }
 

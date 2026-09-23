@@ -164,6 +164,33 @@ pub fn salesforce_broad_attempt_identity(
 }
 
 ///|
+pub fn salesforce_broad_attempt_plan(
+  attempt : SalesforceBroadAttempt,
+) -> @catalog.ReadProjection {
+  attempt.preparation.plan
+}
+
+///|
+pub fn salesforce_broad_attempt_read_complete(
+  attempt : SalesforceBroadAttempt,
+) -> Bool {
+  match attempt.state {
+    Reading(read) => salesforce_broad_complete(read)
+    _ => false
+  }
+}
+
+///|
+pub fn salesforce_broad_attempt_read_row_count(
+  attempt : SalesforceBroadAttempt,
+) -> Result[Int64, SalesforceBroadAttemptIssue] {
+  match attempt.state {
+    Reading(read) => Ok(salesforce_broad_row_count(read))
+    _ => Err(InvalidState)
+  }
+}
+
+///|
 pub fn close_salesforce_broad_issuer(issuer : SalesforceBroadIssuer) -> Unit {
   issuer.live = false
   issuer.transport_matches = _ => false
