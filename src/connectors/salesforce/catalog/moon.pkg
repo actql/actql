@@ -7,5 +7,6 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @admitted,
+  "actql/actql/canonical_value" @canonical,
   "moonbitlang/core/encoding/utf8",
 }

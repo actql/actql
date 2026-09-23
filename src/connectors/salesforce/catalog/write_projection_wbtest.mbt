@@ -161,6 +161,45 @@ test "write candidates reject foreign views and incomplete field authority" {
 }
 
 ///|
+test "write candidates reject unconfirmed nullability and unmodeled types" {
+  let binding = observation_test_binding()
+  let without_nullability = @utf8.encode(
+    (
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"Value__c","type":"string","createable":true,"updateable":true}]}
+    ),
+  )
+  let observation = write_test_observation_with(without_nullability, binding)
+  assert_true(
+    prepare_write_projection(
+      observation,
+      binding,
+      "ActQL_Test_Record__c",
+      WriteUpdateById,
+      ["Value__c"],
+      1,
+    )
+    is Err(UnconfirmedNullability("Value__c")),
+  )
+  let unmodeled = @utf8.encode(
+    (
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"Value__c","type":"multipicklist","nillable":true,"createable":true,"updateable":true}]}
+    ),
+  )
+  let observation = write_test_observation_with(unmodeled, binding)
+  assert_true(
+    prepare_write_projection(
+      observation,
+      binding,
+      "ActQL_Test_Record__c",
+      WriteUpdateById,
+      ["Value__c"],
+      1,
+    )
+    is Err(UnsupportedWriteType("Value__c")),
+  )
+}
+
+///|
 test "write recheck accepts a new sync but rejects authority and schema drift" {
   let (observation, binding) = write_test_observation()
   let created = prepare_write_projection(
