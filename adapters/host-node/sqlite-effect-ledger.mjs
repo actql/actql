@@ -38,10 +38,12 @@ export function openSqliteEffectLedger(root, {
   authorityScopeCid,
   maxEntries = 100_000,
   maxEntryBytes = 1_048_576,
+  maxStoredBytes = 134_217_728,
 } = {}) {
   if (typeof root !== 'string' || root.length === 0 ||
       !cid(authorityScopeCid) || !count(maxEntries) || maxEntries === 0 ||
-      !count(maxEntryBytes) || maxEntryBytes === 0) {
+      !count(maxEntryBytes) || maxEntryBytes === 0 ||
+      !count(maxStoredBytes) || maxStoredBytes === 0) {
     fail('InvalidEffectLedgerConfiguration');
   }
   mkdirSync(root, {recursive: true, mode: 0o700});
@@ -107,6 +109,19 @@ export function openSqliteEffectLedger(root, {
   } catch (error) {
     database.close();
     throw error;
+  }
+
+  const usage = database.prepare(`
+    SELECT COUNT(*) AS entries,
+      COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0) AS bytes
+    FROM effect_ledger_entries
+  `);
+  const initialUsage = usage.get();
+  if (!count(initialUsage.entries) || !count(initialUsage.bytes) ||
+      initialUsage.entries > maxEntries ||
+      initialUsage.bytes > maxStoredBytes) {
+    database.close();
+    fail('EffectLedgerCapacityExceeded');
   }
 
   const active = () => { if (closed) fail('EffectLedgerClosed'); };
@@ -195,9 +210,10 @@ export function openSqliteEffectLedger(root, {
             conflict: true,
           });
         }
-        if (database.prepare(
-          'SELECT COUNT(*) AS count FROM effect_ledger_entries',
-        ).get().count >= maxEntries) {
+        const currentUsage = usage.get();
+        const entryBytes = Buffer.byteLength(entryJson);
+        if (currentUsage.entries >= maxEntries ||
+            currentUsage.bytes > maxStoredBytes - entryBytes) {
           fail('EffectLedgerCapacityExceeded');
         }
         const nextRevision = revision + 1;

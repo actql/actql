@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -51,6 +52,33 @@ async function fixture(t) {
 
 const open = root => openEffectLedger({moon, root, authorityScopeCid,
   callerRequestId: 'request-1', maxEntryBytes: 4096});
+const effect = runtimeCore(moon).effectApplicationControl;
+
+test('MoonBit-issued prepared and dispatching entries are durable before use',
+  async t => {
+    const root = await fixture(t);
+    const ledger = open(root);
+    t.after(() => ledger.close());
+    const scope = effect.logicalRequestScope(authorityScopeCid,
+      'request-1', 32);
+    const key = effect.dispatchKey(scope, cid('b'), '"row-1"', 32, 8, 3);
+    const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+      'WriteOne', '{"row":"record-1"}', 64, 128, 8, 3);
+    const basis = effect.ledgerBasis(scope, locator, key,
+      cid('c'), cid('d'), cid('e'), cid('f'), cid('0'), 'unavailable',
+      cid('1'), cid('2'));
+    const prepared = effect.issuePreparedLedgerEntry(basis, 4096, 64, 3);
+    assert.equal(ledger.append(effect.ledgerEntryWire(prepared)).created, true);
+    const dispatching = effect.issueNextLedgerEntry(prepared, 'dispatching',
+      '', 4096, 64, 3);
+    assert.equal(ledger.append(effect.ledgerEntryWire(dispatching)).created,
+      true);
+    ledger.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    assert.equal(restarted.current(effect.logicalItemLocatorCid(locator)).entryCid,
+      effect.ledgerEntryCid(dispatching));
+  });
 
 test('MoonBit-admitted Effect facts survive restart without duplicate send',
   async t => {

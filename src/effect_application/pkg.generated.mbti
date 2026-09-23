@@ -44,6 +44,10 @@ pub fn effect_set_frontier_ready_member(EffectSetFrontier, Int) -> Int
 
 pub fn effect_set_frontier_ready_row(EffectSetFrontier, Int) -> Int
 
+pub fn issue_next_effect_ledger_entry(EffectLedgerEntry, String, String?, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
+pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
 pub fn logical_request_scope_cid(LogicalRequestScope) -> String
@@ -51,6 +55,8 @@ pub fn logical_request_scope_cid(LogicalRequestScope) -> String
 pub fn prepare_effect_apply_key(LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
 
 pub fn prepare_effect_dispatch_key(LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+
+pub fn prepare_effect_ledger_basis(LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
 
 pub fn prepare_logical_item_locator(LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
 
@@ -102,6 +108,21 @@ pub(all) enum EffectItemProgress {
   ItemUnknown
 } derive(Eq, @debug.Debug)
 
+pub struct EffectLedgerBasis {
+  logical_request_scope_cid : String
+  logical_item_locator_cid : String
+  unit_definition_cid : String
+  original_membership_cid : String
+  intent_fingerprint_cid : String
+  effect_preview_cid : String
+  dispatch_key_cid : String
+  canonical_request_cid : String
+  recovery_contract_cid : String
+  capability : String
+  reservation_evidence_cid : String
+  retention_contract_cid : String
+}
+
 pub struct EffectLedgerEntry {
   wire : String
   cid : String
@@ -116,8 +137,8 @@ pub struct EffectLedgerEntry {
   recovery_contract_cid : String
   capability : String
   state : EffectRowState
-  fence : Int
-  attempt_sequence : Int
+  fence : Int64
+  attempt_sequence : Int64
   prior_entry_cid : String?
   outcome_receipt_cid : String?
   reservation_evidence_cid : String
