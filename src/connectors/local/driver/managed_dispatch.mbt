@@ -574,6 +574,10 @@ pub fn[T] start_local_managed_dispatch(
     None,
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
+  let row_copy_execution : Ref[@execution.BoundedIndependentRowCopy?] = Ref(
+    None,
+  )
+  let row_copy_work = Ref(0L)
   let execution_finished = Ref(false)
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
@@ -695,6 +699,11 @@ pub fn[T] start_local_managed_dispatch(
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
+            if row_copy_execution.val is Some(active) {
+              ignore(
+                @execution.request_bounded_independent_row_copy_cancel(active),
+              )
+            }
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
             }
@@ -705,6 +714,11 @@ pub fn[T] start_local_managed_dispatch(
             cancel_finalization()
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
+            }
+            if row_copy_execution.val is Some(active) {
+              ignore(
+                @execution.request_bounded_independent_row_copy_cancel(active),
+              )
             }
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
@@ -842,7 +856,9 @@ pub fn[T] start_local_managed_dispatch(
     // Disposal prevents starting work, but an already-started bounded
     // provider must still receive one final advance after cancellation so it
     // can report an actual stop. Cleanup cannot substitute for that report.
-    if (!live.val || disposed.val) && provider_execution.val is None {
+    if (!live.val || disposed.val) &&
+      provider_execution.val is None &&
+      row_copy_execution.val is None {
       return Err(Configuration(InputUnavailable))
     }
     let exact = reads.filter_map(value => value)
@@ -928,6 +944,42 @@ pub fn[T] start_local_managed_dispatch(
         }
       }
       None => {
+        if row_copy_execution.val is Some(active) {
+          return match
+            @execution.advance_bounded_independent_row_copy(active, quantum) {
+            Err(issue) => Err(ManagedCopy(issue))
+            Ok(@execution.RowCopyContinue(progress~, work~)) => {
+              let delta = work - row_copy_work.val
+              row_copy_work.val = work
+              if delta <= 0L || delta > quantum.to_int64() {
+                Err(Configuration(InvalidLimits))
+              } else {
+                Ok({ complete: false, progress, work: delta, })
+              }
+            }
+            Ok(@execution.RowCopyComplete(output, progress~, work~)) => {
+              let delta = work - row_copy_work.val
+              row_copy_work.val = work
+              if delta < 0L || delta > quantum.to_int64() {
+                return Err(Configuration(InvalidLimits))
+              }
+              ordinary.val = Some(output)
+              execution_finished.val = true
+              for bridge in bridges {
+                @execution.close_managed_producer_bridge(bridge)
+              }
+              Ok({ complete: true, progress, work: delta, })
+            }
+            Ok(@execution.RowCopyFailed(issue, ..)) => {
+              execution_finished.val = true
+              Err(ManagedCopy(issue))
+            }
+            Ok(@execution.RowCopyStopped(_, ..)) => {
+              execution_finished.val = true
+              Err(Configuration(InputUnavailable))
+            }
+          }
+        }
         if setup.provider_inputs.length() != exact.length() ||
           setup.provider_inputs.any(input => {
             input is PreparedSupplied(_) || input is PreparedCarrier(_)
@@ -959,6 +1011,24 @@ pub fn[T] start_local_managed_dispatch(
           !@strategy.seal_task_numeric_reductions(setup.run, execution) {
           execution_finished.val = true
           return Err(Execution(ForeignCandidate))
+        }
+        if @execution.completed_output_has_row_table(output) {
+          let control = @bounded.control()
+          let copy = match
+            @execution.start_bounded_independent_row_copy(
+              control,
+              output,
+              setup.execution.rows.max_rows,
+              setup.imports.wire.max_columns,
+            ) {
+            Ok(value) => value
+            Err(issue) => {
+              execution_finished.val = true
+              return Err(ManagedCopy(issue))
+            }
+          }
+          row_copy_execution.val = Some(copy)
+          return Ok({ complete: false, progress: 0L, work: 1L, })
         }
         let independent = match
           @execution.copy_completed_output_independent(
@@ -1001,13 +1071,21 @@ pub fn[T] start_local_managed_dispatch(
       let changed = live.val
       live.val = false
       cancel_finalization()
+      if row_copy_execution.val is Some(active) {
+        ignore(@execution.request_bounded_independent_row_copy_cancel(active))
+      }
       @strategy.close_task_execution(setup.run, execution)
       changed
     },
     execution_stopped: fn() {
       let compute_stopped = match provider_execution.val {
         Some(active) => @local.managed_provider_stopped(active)
-        None => execution_finished.val || !live.val
+        None =>
+          match row_copy_execution.val {
+            Some(active) =>
+              @execution.bounded_independent_row_copy_stopped(active)
+            None => execution_finished.val || !live.val
+          }
       }
       compute_stopped &&
       (
@@ -1601,12 +1679,31 @@ pub fn[T] start_local_managed_dispatch(
     close: fn() {
       live.val = false
       cancel_finalization()
+      if row_copy_execution.val is Some(active) {
+        ignore(@execution.request_bounded_independent_row_copy_cancel(active))
+      }
       if carrier.val is Some(material) {
         @carrier_runtime.reclaim_material(material) |> ignore
       }
       @strategy.close_task_execution(setup.run, execution)
     },
     cleanup_refresh: fn() {
+      let copy_reclaimed = match row_copy_execution.val {
+        None => true
+        Some(active) =>
+          if @execution.bounded_independent_row_copy_stopped(active) {
+            match @execution.cleanup_bounded_independent_row_copy(active) {
+              Ok(_) =>
+                !@execution.bounded_independent_row_copy_cleanup_pending(active)
+              Err(_) => false
+            }
+          } else {
+            false
+          }
+      }
+      if !copy_reclaimed {
+        return false
+      }
       let provider_reclaimed = match provider_execution.val {
         None => true
         Some(active) =>
