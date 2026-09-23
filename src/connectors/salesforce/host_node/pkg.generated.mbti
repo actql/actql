@@ -53,6 +53,26 @@ pub fn salesforce_catalog_response_sha256(Bytes) -> String
 
 pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_collection_write_request_body(@catalog.WriteCollectionRequest) -> String
+
+pub fn salesforce_collection_write_request_cid(@catalog.WriteCollectionRequest, String, Int) -> String raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_collection_write_request_grant_operation(@catalog.WriteCollectionRequest) -> String
+
+pub fn salesforce_collection_write_request_method(@catalog.WriteCollectionRequest) -> String
+
+pub fn salesforce_collection_write_request_path(@catalog.WriteCollectionRequest) -> String
+
+pub fn salesforce_collection_write_request_row_cid(@catalog.WriteCollectionRequest, Int) -> String?
+
+pub fn salesforce_collection_write_request_row_count(@catalog.WriteCollectionRequest) -> Int
+
+pub fn salesforce_collection_write_request_scope_matches(@catalog.WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
+
+pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollectionResponse, Int) -> Bool
+
+pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
+
 pub fn salesforce_issued_broad_abort(@acquisition.SalesforceBroadAttempt) -> Unit
 
 pub fn salesforce_issued_broad_accept_page(@acquisition.SalesforceBroadAttempt, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
@@ -83,6 +103,8 @@ pub fn salesforce_managed_query_row_count(@acquisition.ManagedQuery) -> Int64
 
 pub fn salesforce_prepare_catalog_observation(@catalog.CatalogSync, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String?], Array[String?], Int) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_prepare_continue_write_collection(Array[String], Array[@catalog.WriteBody], Array[Int], Array[String], Array[Int], String, Int, Int, Int, Int, Int, Int) -> @catalog.WriteCollectionRequest raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @acquisition.ManagedQuery raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String], Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
@@ -92,6 +114,8 @@ pub fn salesforce_prepare_single_write_request(@catalog.WriteBody, String, Int, 
 pub fn salesforce_prepare_write_body(@catalog.WriteProjection, Bytes, Int, Int, Int) -> @catalog.WriteBody raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_write_projection(@catalog.CatalogObservation, String, String, String, String, String, Int, String, String, String, String, String, String, String, Int, String, Array[String], Int) -> @catalog.WriteProjection raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_project_collection_write_response(@catalog.WriteCollectionRequest, Int, Bytes, Int, Int, Int, Int) -> @catalog.WriteCollectionResponse raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_project_listing(Bytes, Int, Int, Int, Int, Int, Int) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
 
@@ -120,6 +144,8 @@ pub fn salesforce_read_projection_observation_cid(@catalog.ReadProjection) -> St
 pub fn salesforce_read_projection_scope_matches(@catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn salesforce_read_projection_soql(@catalog.ReadProjection) -> String
+
+pub fn salesforce_recheck_collection_write_request(@catalog.WriteCollectionRequest, @catalog.CatalogObservation) -> Bool raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_recheck_read_projection(@catalog.ReadProjection, @catalog.CatalogObservation) -> Unit raise SalesforceCatalogBridgeIssue
 
@@ -151,6 +177,8 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteBody(@catalog.WriteBodyIssue)
   WriteRequest(@catalog.WriteRequestIssue)
   WriteSingleResponse(@catalog.WriteSingleResponseIssue)
+  WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)
+  WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@acquisition.ManagedQueryIssue)
   BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)

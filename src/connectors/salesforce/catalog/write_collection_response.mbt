@@ -10,6 +10,7 @@ pub(all) struct WriteCollectionResponseLimits {
 pub(all) enum WriteCollectionResponseIssue {
   InvalidLimits
   BudgetExceeded
+  UnexpectedStatus
   InvalidResponse
   CountMismatch
 } derive(Eq, Debug)
@@ -60,6 +61,26 @@ pub fn write_collection_response_sha256(
   value : WriteCollectionResponse,
 ) -> String {
   value.response_sha256
+}
+
+///|
+/// The admitted request fixes both the operation and the row count. Neither
+/// may be supplied afresh when classifying a physical HTTP observation.
+pub fn project_write_collection_response_for_request(
+  http_status : Int,
+  bytes : Bytes,
+  request : WriteCollectionRequest,
+  limits : WriteCollectionResponseLimits,
+) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue] {
+  if http_status != 200 {
+    return Err(UnexpectedStatus)
+  }
+  project_write_collection_response(
+    bytes,
+    request.kind,
+    request.row_preview_cids.length(),
+    limits,
+  )
 }
 
 ///|

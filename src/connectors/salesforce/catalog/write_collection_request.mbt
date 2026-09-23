@@ -36,6 +36,8 @@ pub struct WriteCollectionRequest {
   verb : String
   path : String
   body : String
+  kind : WriteCollectionKind
+  projection : WriteProjection
   row_preview_cids : Array[String]
 }
 
@@ -57,6 +59,54 @@ pub fn write_collection_request_body(value : WriteCollectionRequest) -> String {
 }
 
 ///|
+pub fn write_collection_request_grant_operation(
+  value : WriteCollectionRequest,
+) -> String {
+  match value.kind {
+    CollectionCreate => "salesforce:record:create"
+    CollectionUpdate => "salesforce:record:update"
+    CollectionUpsert => "salesforce:record:upsert"
+  }
+}
+
+///|
+pub fn recheck_write_collection_request(
+  value : WriteCollectionRequest,
+  current : CatalogObservation,
+) -> Result[Unit, WriteProjectionIssue] {
+  recheck_write_projection(value.projection, current)
+}
+
+///|
+pub fn write_collection_request_matches_site_scope(
+  value : WriteCollectionRequest,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
+  write_binding_matches_site_scope(
+    value.projection.binding,
+    tenant,
+    principal,
+    environment,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+  )
+}
+
+///|
 pub fn write_collection_request_row_count(
   value : WriteCollectionRequest,
 ) -> Int {
@@ -69,6 +119,50 @@ pub fn write_collection_request_row_cid(
   index : Int,
 ) -> String? {
   value.row_preview_cids.get(index)
+}
+
+///|
+/// Bind the physical REST bytes and their ordered Preview-row correlation.
+/// A byte-identical body with a different member row inventory is a distinct
+/// batch request for ledger and response-mapping purposes.
+pub fn write_collection_request_cid(
+  value : WriteCollectionRequest,
+  resource_origin : String,
+  max_wire_bytes : Int,
+) -> Result[String, WriteRequestIssue] {
+  if max_wire_bytes < 1 || max_wire_bytes > 1000000 {
+    return Err(InvalidLimits)
+  }
+  if !resource_origin.has_prefix("https://") || resource_origin.length() <= 8 {
+    return Err(InvalidOrigin)
+  }
+  let writer = @encode.hashing_writer(max_wire_bytes, 1000, 3) catch {
+    _ => return Err(Encoding)
+  }
+  let digest = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "body")
+    @encode.string_value(writer, value.body)
+    @encode.key(writer, "method")
+    @encode.string_value(writer, value.verb)
+    @encode.key(writer, "path")
+    @encode.string_value(writer, value.path)
+    @encode.key(writer, "resource_origin")
+    @encode.string_value(writer, resource_origin)
+    @encode.key(writer, "row_preview_cids")
+    @encode.begin_array(writer)
+    for cid in value.row_preview_cids {
+      @encode.string_value(writer, cid)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-salesforce-collection-request/0.1")
+    @encode.end_object(writer)
+    @encode.finish_hash(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
+  Ok("sha256:" + digest)
 }
 
 ///|
@@ -335,5 +429,10 @@ pub fn prepare_continue_write_collection(
     _ => return Err(CapacityExceeded)
   }
   let body = @encode.finish(writer) catch { _ => return Err(CapacityExceeded) }
-  Ok({ verb, path, body, row_preview_cids: row_cids, })
+  let kind = match first.operation {
+    WriteCreate => CollectionCreate
+    WriteUpdateById => CollectionUpdate
+    WriteUpsertByExternalId(_) => CollectionUpsert
+  }
+  Ok({ verb, path, body, kind, projection: first, row_preview_cids: row_cids, })
 }
