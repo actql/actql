@@ -15,6 +15,7 @@ fn query_checked_program_fixture(
   local_values_two_consumer_assert? : Bool = false,
   local_values_two_consumer_assert_unique? : Bool = false,
   local_values_two_consumer_sort_take? : Bool = false,
+  local_values_two_consumer_relation_variant? : String = "",
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
@@ -170,6 +171,16 @@ fn query_checked_program_fixture(
       program.replace(
         old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
         new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"filter\":\"id > 0\",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_relation_variant == "take" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"take\":1,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_relation_variant == "select" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"select\":[\"id\",\"label\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
       )
     } else {
       program

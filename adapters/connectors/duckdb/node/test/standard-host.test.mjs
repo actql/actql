@@ -4873,6 +4873,22 @@ async function exerciseStrategyGraph(
   splitValuesStage.steps.push({
     from: 'values_rows', filter: 'id > 0', as: 'out',
   });
+  const splitValuesSelectProgram = structuredClone(zeroInputProgram);
+  const splitValuesSelectStage = splitValuesSelectProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesSelectStage.steps[0].as = 'values_rows';
+  splitValuesSelectStage.steps.push({
+    from: 'values_rows', select: ['id', 'label'], as: 'out',
+  });
+  const splitValuesTakeProgram = structuredClone(zeroInputProgram);
+  const splitValuesTakeStage = splitValuesTakeProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesTakeStage.steps[0].as = 'values_rows';
+  splitValuesTakeStage.steps.push({
+    from: 'values_rows', take: 1, as: 'out',
+  });
   const splitValuesAssertProgram = structuredClone(zeroInputProgram);
   const splitValuesAssertStage = splitValuesAssertProgram.stages.find(
     stage => stage.id === 'values_a',
@@ -5772,6 +5788,8 @@ async function exerciseStrategyGraph(
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['split values', splitValuesProgram, [1, 2, 3, 4]],
+    ['split values select', splitValuesSelectProgram, [1, 2, 3, 4]],
+    ['split values take', splitValuesTakeProgram, [1, 2, 3, 4]],
     ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
@@ -5856,6 +5874,12 @@ async function exerciseStrategyGraph(
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 1, 1, 1],
+        );
+      }
+      if (name === 'split values select' || name === 'split values take') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'split values select' ? [2, 2, 2, 2] : [2, 1, 1, 1],
         );
       }
       if (name === 'split values sort/take') {
@@ -6353,6 +6377,10 @@ async function exerciseStrategyGraph(
       cancelAtStart: 2},
     {name: 'split-values-in-flight', program: splitValuesProgram,
       cancelAtStart: 2},
+    {name: 'split-values-select-in-flight',
+      program: splitValuesSelectProgram, cancelAtStart: 3},
+    {name: 'split-values-take-in-flight',
+      program: splitValuesTakeProgram, cancelAtStart: 3},
     {name: 'split-values-assert-in-flight',
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
@@ -6417,10 +6445,13 @@ async function exerciseStrategyGraph(
                   return Reflect.get(operation, name, operationReceiver);
                 }
                 return quantum => {
-                  const result = operation.advance(quantum);
+                  const stepQuantum = start === cancelAtStart &&
+                    cancellationName === 'split-values-take-in-flight'
+                    ? Math.min(quantum, 7) : quantum;
+                  const result = operation.advance(stepQuantum);
                   const observation = checked(result);
                   if (start === cancelAtStart) {
-                    assert(observation.work <= BigInt(quantum));
+                    assert(observation.work <= BigInt(stepQuantum));
                   }
                   if (start === cancelAtStart &&
                       observation?.complete === false &&
@@ -6442,7 +6473,8 @@ async function exerciseStrategyGraph(
         [localStrategyContribution(observedRuntime, setup, checked, undefined)],
         valuesCancellation.signal,
       );
-      assert.equal(valuesManagedStarts, cancelAtStart);
+      assert.equal(valuesManagedStarts, cancelAtStart,
+        valuesCancellationCase.name);
       assert.equal(valuesWorkObserved, true, valuesCancellationCase.name);
       assert.equal(valuesCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(valuesCancellationDeliveredAt), true);

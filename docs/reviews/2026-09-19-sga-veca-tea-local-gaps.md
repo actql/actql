@@ -82,6 +82,16 @@ identity across the split. Node Host timers check cancellation after each
 assertion's work begins, stop confirmation, nonpublication, and cleanup.
 These connection fixtures do not establish an exact combined-stage peak
 reservation for every assertion variant.
+Direct `values → select` and `values → take` stages now use the same bounded
+producer and selected Relation handoff. Three-target standard Host fixtures
+exercise both actual downstream Computes, overlapping retention, independent
+release, and final reclamation. Node timers deliver cancellation after the
+selected step reports positive work and verify stop, nonpublication, and
+cleanup. These fixtures close those two connection forms, not the remaining
+same-sequence forms or the providerless lane in general.
+The direct-take timer fixture caps each product advance to seven work units
+through its observation wrapper because the small input finishes within the
+default Host quantum; it still delivers abort through the standard Host.
 Other multi-step sequences beginning with `values` and unmatched Relation
 sequences can still reach the providerless lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;

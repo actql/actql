@@ -749,6 +749,7 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'ordinary_select_quantum_and_lifetime',
       'select_mixed_stage_lifetime',
+      'values_split_select_lifetime',
       'select_input_exact',
       'select_input_one_short',
       'select_cancel_cleanup',
@@ -759,6 +760,9 @@ for (const [index, route] of routeEntries.entries()) {
     }
     if (!environmentRoles.has('select_in_flight_host_timer')) {
       fail(`${label}: in-flight Host cancellation fixture is missing`);
+    }
+    if (!environmentRoles.has('values_split_select_in_flight_host_timer')) {
+      fail(`${label}: split values/select Host timer fixture is missing`);
     }
   }
   for (const [operation, role] of [
@@ -788,6 +792,7 @@ for (const [index, route] of routeEntries.entries()) {
     }
     for (const role of [
       'ordinary_take_quantum_and_lifetime',
+      'values_split_take_lifetime',
       'mixed_stage_sort_quantum_and_lifetime',
       'mixed_stage_sort_cancel_and_cleanup',
       'key_completion_work_exact_one_short',
@@ -799,6 +804,9 @@ for (const [index, route] of routeEntries.entries()) {
     }
     if (!environmentRoles.has('selected_take_host_timer')) {
       fail(`${label}: selected take Host timer evidence is missing`);
+    }
+    if (!environmentRoles.has('values_split_take_in_flight_host_timer')) {
+      fail(`${label}: split values/take Host timer fixture is missing`);
     }
   }
   if (route.family === 'RelA' && route.operation === 'sort') {
