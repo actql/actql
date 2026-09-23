@@ -46,10 +46,41 @@ export function openEffectLedger({
     }
     return Object.freeze({row, entry});
   };
+  const append = entryJson => {
+    const next = admit(entryJson);
+    if (control.ledgerEntryScopeCid(next) !== scopeCid) {
+      fail('EffectLedgerScopeMismatch');
+    }
+    const locatorCid = control.ledgerEntryLocatorCid(next);
+    const existing = validateStored(physical.current(locatorCid));
+    if (existing?.row.entryCid === control.ledgerEntryCid(next)) {
+      if (existing.row.entryJson !== entryJson) {
+        fail('EffectLedgerEntryCollision');
+      }
+      return Object.freeze({entry: existing.row, created: false});
+    }
+    if (!control.ledgerEntryFollows(existing?.entry, next)) {
+      fail('EffectLedgerInvalidTransition');
+    }
+    const result = physical.append({
+      logicalRequestScopeCid: scopeCid,
+      logicalItemLocatorCid: locatorCid,
+      expectedRevision: existing?.row.revision ?? 0,
+      entryCid: control.ledgerEntryCid(next),
+      entryJson,
+    });
+    return Object.freeze({
+      ...result,
+      entry: validateStored(result.entry).row,
+    });
+  };
   return Object.freeze({
     scopeCid,
     current(locatorCid) {
       return validateStored(physical.current(locatorCid))?.row;
+    },
+    currentAdmitted(locatorCid) {
+      return validateStored(physical.current(locatorCid))?.entry;
     },
     history(locatorCid, maxRevisions) {
       const rows = physical.history(locatorCid, maxRevisions);
@@ -87,33 +118,64 @@ export function openEffectLedger({
         responseBytes,
       });
     },
-    append(entryJson) {
-      const next = admit(entryJson);
-      if (control.ledgerEntryScopeCid(next) !== scopeCid) {
-        fail('EffectLedgerScopeMismatch');
+    append,
+    claimDispatch({scope, locator, key, basis,
+      intentFingerprintCid, canonicalRequestCid}) {
+      const prepared = control.issuePreparedLedgerEntry(
+        basis, maxEntryBytes, maxNodes, maxDepth);
+      const draftAction = control.recoveryActionFromEntry(
+        locator, intentFingerprintCid, key, canonicalRequestCid,
+        prepared, false);
+      const draftDispatching = control.issueNextLedgerEntry(
+        prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
+      if (draftAction !== 1 ||
+          !control.ledgerEntryAdmitsDispatch(
+            draftDispatching, scope, locator, key, canonicalRequestCid) ||
+          control.ledgerEntryScopeCid(prepared) !== scopeCid) {
+        fail('EffectDispatchBindingMismatch');
       }
-      const locatorCid = control.ledgerEntryLocatorCid(next);
-      const existing = validateStored(physical.current(locatorCid));
-      if (existing?.row.entryCid === control.ledgerEntryCid(next)) {
-        if (existing.row.entryJson !== entryJson) {
-          fail('EffectLedgerEntryCollision');
+      const locatorCid = control.logicalItemLocatorCid(locator);
+      for (let retry = 0; retry < 8; retry++) {
+        const stored = validateStored(physical.current(locatorCid));
+        if (stored !== undefined &&
+            !control.ledgerEntryMatchesBasis(stored.entry, basis)) {
+          fail('EffectLedgerIntentConflict');
         }
-        return Object.freeze({entry: existing.row, created: false});
+        const action = control.recoveryActionFromEntry(
+          locator, intentFingerprintCid, key, canonicalRequestCid,
+          stored?.entry, false);
+        if (action === 0) {
+          try { append(control.ledgerEntryWire(prepared)); }
+          catch (error) {
+            if (error?.code !== 'EffectLedgerInvalidTransition') throw error;
+          }
+          continue;
+        }
+        if (action === 1) {
+          const dispatching = control.issueNextLedgerEntry(
+            stored.entry, 'dispatching', '',
+            maxEntryBytes, maxNodes, maxDepth);
+          try {
+            const result = append(control.ledgerEntryWire(dispatching));
+            if (result.created) {
+              return Object.freeze({action, claimed: true, dispatching});
+            }
+          } catch (error) {
+            if (error?.code !== 'EffectLedgerInvalidTransition') throw error;
+          }
+          continue;
+        }
+        if (action >= 3 && action <= 7) {
+          return Object.freeze({
+            action, claimed: false, entry: stored.entry,
+            response: action === 3
+              ? physical.response(control.ledgerEntryCid(stored.entry))
+              : undefined,
+          });
+        }
+        fail('EffectLedgerIntentConflict');
       }
-      if (!control.ledgerEntryFollows(existing?.entry, next)) {
-        fail('EffectLedgerInvalidTransition');
-      }
-      const result = physical.append({
-        logicalRequestScopeCid: scopeCid,
-        logicalItemLocatorCid: locatorCid,
-        expectedRevision: existing?.row.revision ?? 0,
-        entryCid: control.ledgerEntryCid(next),
-        entryJson,
-      });
-      return Object.freeze({
-        ...result,
-        entry: validateStored(result.entry).row,
-      });
+      fail('EffectLedgerClaimContention');
     },
     close: () => physical.close(),
   });

@@ -163,7 +163,7 @@ test('bounded physical responses survive restart without becoming outcomes',
     }), {code: 'EffectPhysicalResponseCollision'});
     assert.throws(() => ledger.recordResponse({
       ...response, dispatchEntryCid: cid('9'),
-    }), {code: 'EffectDispatchNotCurrent'});
+    }), {code: 'EffectDispatchNotOwned'});
     assert.throws(() => ledger.recordResponse({
       ...response, responseBytes: Buffer.alloc(33),
     }), {code: 'InvalidEffectPhysicalResponse'});

@@ -156,3 +156,34 @@ pub fn effect_row_recovery_action_from_store(
     ),
   )
 }
+
+///|
+/// Preserve the typed ledger fact when the Host decides whether a physical
+/// request may be claimed. A stored dispatching fact without an active owner
+/// is possible-dispatch evidence, never automatic resend authority.
+pub fn effect_row_recovery_action_from_entry(
+  expected_locator : LogicalItemLocator,
+  intent_fingerprint_cid : String,
+  expected_key : EffectDispatchKey,
+  canonical_request_cid : String,
+  stored : EffectLedgerEntry?,
+  active_owner : Bool,
+) -> Int {
+  let record = match stored {
+    None => None
+    Some(entry) =>
+      Some({
+        logical_item_locator_cid: entry.logical_item_locator_cid,
+        intent_fingerprint_cid: entry.intent_fingerprint_cid,
+        dispatch_key_cid: entry.dispatch_key_cid,
+        canonical_request_cid: entry.canonical_request_cid,
+        state: entry.state,
+      })
+  }
+  effect_row_action_code(
+    effect_row_recovery_action(
+      expected_locator, intent_fingerprint_cid, expected_key, canonical_request_cid,
+      record, active_owner,
+    ),
+  )
+}
