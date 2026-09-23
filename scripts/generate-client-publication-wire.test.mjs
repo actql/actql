@@ -29,4 +29,9 @@ test('owner schema changes invalidate generated Client bindings', () => {
     true;
   assert.throws(() => buildClientPublicationWire(changed),
     /UnsupportedPublicationSchema:newRule/u);
+  delete changed[runPath].schemas.delivery_attempt.properties.result_name.newRule;
+  changed[runPath].schemas.delivery_attempt.properties.result_name.type =
+    'number';
+  assert.throws(() => buildClientPublicationWire(changed),
+    /UnsupportedPublicationType:number/u);
 });
