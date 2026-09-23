@@ -349,6 +349,7 @@ test('reference preparation propagates fatal failures instead of hiding them as 
 test('Local delegates zero-input and identity applicability to MoonBit', async () => {
   const setup = {}, registration = {}, configuration = {};
   const seen = [];
+  let nextTask = 1;
   const entry = localStrategyContribution({
     ...portableRuntime,
     strategyModule_local_Registration: owner => {
@@ -361,7 +362,7 @@ test('Local delegates zero-input and identity applicability to MoonBit', async (
     },
     strategyHostNextTask: owner => {
       assert.equal(owner, setup);
-      return 1;
+      return nextTask;
     },
     strategyHostManagedProducers: owner => {
       assert.equal(owner, setup);
@@ -393,10 +394,14 @@ test('Local delegates zero-input and identity applicability to MoonBit', async (
       return [0n, 0n];
     },
   }, setup, checked);
-  const prepared = await entry.prepareNext(new Map());
-  assert.equal(prepared.configuration, configuration);
-  assert.deepEqual(prepared.inputs, []);
-  assert.deepEqual(seen, [[]]);
+  for (const task of [1, 0]) {
+    nextTask = task;
+    const prepared = await entry.prepareNext(new Map());
+    assert.equal(prepared.task, task);
+    assert.equal(prepared.configuration, configuration);
+    assert.deepEqual(prepared.inputs, []);
+  }
+  assert.deepEqual(seen, [[], []]);
 });
 
 test('Local keeps supplied inputs inside the MoonBit Run boundary', async () => {
