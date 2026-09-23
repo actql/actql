@@ -247,3 +247,80 @@ test "durable ledger heads own Effect Set progress after restart" {
     is Err(ForeignLedgerEntry(0, 0)),
   )
 }
+
+///|
+test "admitted Preview fixes durable frontier member and row identity" {
+  let a = ledger_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let scope = prepare_logical_request_scope(a, "request-1", 32).unwrap()
+  let (wire, key) = preview_apply_test_wire(scope, "halt")
+  let preview = admit_effect_preview_apply_identity(
+    wire,
+    a,
+    authoring,
+    scope,
+    [[key]],
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let locator = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "write", "\"row-1\"", 64, 128, 8, 3,
+  ).unwrap()
+  let basis = prepare_effect_ledger_basis(
+    scope,
+    locator,
+    key,
+    ledger_test_cid("c"),
+    ledger_test_cid("d"),
+    ledger_test_cid("e"),
+    ledger_test_cid("f"),
+    ledger_test_cid("0"),
+    "unavailable",
+    ledger_test_cid("1"),
+    ledger_test_cid("2"),
+  ).unwrap()
+  let frontier = effect_set_frontier_from_preview_ledger_entries(
+    preview,
+    [[scope]],
+    [[locator]],
+    [[key]],
+    [[basis]],
+    [[None]],
+    1,
+    1,
+    12,
+  ).unwrap()
+  assert_eq(frontier.ready, [(0, 0)])
+  let foreign = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "foreign", "\"row-1\"", 64, 128, 8, 3,
+  ).unwrap()
+  assert_true(
+    effect_set_frontier_from_preview_ledger_entries(
+      preview,
+      [[scope]],
+      [[foreign]],
+      [[key]],
+      [[basis]],
+      [[None]],
+      1,
+      1,
+      12,
+    )
+    is Err(ForeignPreviewRow(0, 0)),
+  )
+  assert_true(
+    effect_set_frontier_from_preview_ledger_entries(
+      preview,
+      [[scope]],
+      [[locator]],
+      [[key]],
+      [[basis]],
+      [[None]],
+      1,
+      1,
+      2,
+    )
+    is Err(CapacityExceeded),
+  )
+}

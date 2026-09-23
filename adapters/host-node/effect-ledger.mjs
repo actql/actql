@@ -101,34 +101,31 @@ export function openEffectLedger({
     },
     // Read each admitted row's authenticated durable head. MoonBit checks the
     // immutable basis and decides the common Effect frontier.
-    // The caller must obtain member IDs, policies, and claims from the checked
-    // Program and admitted Preview; this is progress, never send admission.
-    frontierFromDurableHeads(members, maxWork) {
-      if (!Array.isArray(members) || members.length === 0 ||
+    // The caller must obtain the admitted Preview and claims from the checked
+    // Program; this is progress, never send admission.
+    frontierFromDurableHeads(admittedPreview, members, maxWork) {
+      if (!admittedPreview || !Array.isArray(members) || members.length === 0 ||
           members.length > 1000 || !Number.isSafeInteger(maxWork) ||
           maxWork < 1 || maxWork > 100_000_000) {
         fail('InvalidEffectProgressInventory');
       }
-      const effectIds = [];
-      const policies = [];
+      const scopes = [];
       const locators = [];
+      const keys = [];
       const bases = [];
       const heads = [];
       const seen = new Set();
       let totalRows = 0;
       for (const member of members) {
-        if (typeof member?.effectId !== 'string' ||
-            !Array.isArray(member.claims) ||
-            !Number.isSafeInteger(member.policy) ||
-            (member.policy !== 0 && member.policy !== 1) ||
+        if (!Array.isArray(member?.claims) ||
             member.claims.length > maxEntries - totalRows) {
           fail('InvalidEffectProgressInventory');
         }
-        effectIds.push(member.effectId);
-        policies.push(member.policy);
         totalRows += member.claims.length;
+        const memberScopes = [];
         const memberBases = [];
         const memberLocators = [];
+        const memberKeys = [];
         const memberHeads = [];
         for (const claim of member.claims) {
           if (!claim?.basis || !claim.scope || !claim.locator ||
@@ -152,16 +149,20 @@ export function openEffectLedger({
           const locatorCid = control.logicalItemLocatorCid(claim.locator);
           if (seen.has(locatorCid)) fail('EffectProgressDuplicateLocator');
           seen.add(locatorCid);
+          memberScopes.push(claim.scope);
           memberLocators.push(claim.locator);
+          memberKeys.push(claim.key);
           memberBases.push(claim.basis);
           memberHeads.push(validateStored(physical.current(locatorCid))?.entry);
         }
+        scopes.push(memberScopes);
         locators.push(memberLocators);
+        keys.push(memberKeys);
         bases.push(memberBases);
         heads.push(memberHeads);
       }
       return control.setFrontierFromLedger(
-        effectIds, policies, locators, bases, heads,
+        admittedPreview, scopes, locators, keys, bases, heads,
         members.length, totalRows, maxWork);
     },
     response(dispatchEntryCid) {

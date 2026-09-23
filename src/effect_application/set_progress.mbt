@@ -36,6 +36,7 @@ pub(all) enum EffectSetProgressIssue {
   CapacityExceeded
   InvalidHistory
   ForeignLedgerEntry(Int, Int)
+  ForeignPreviewRow(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -208,12 +209,10 @@ pub fn effect_set_frontier_from_codes(
 }
 
 ///|
-/// Derive progress from exact durable row heads, not caller-supplied state
-/// codes. The expected bases must come from the admitted checked Preview and
-/// physical request. A dispatching head remains in flight/uncertain until a
-/// separate reconciliation transition establishes its outcome; this function
-/// never authorizes another physical send.
-pub fn effect_set_frontier_from_ledger_entries(
+/// Fold exact durable row heads after the public Preview-bound admission.
+/// A dispatching head remains in flight/uncertain until reconciliation; this
+/// function never authorizes another physical send.
+fn effect_set_frontier_from_ledger_entries(
   effect_ids : Array[String],
   policies : Array[Int],
   locators : Array[Array[LogicalItemLocator]],
@@ -287,6 +286,124 @@ pub fn effect_set_frontier_from_ledger_entries(
     members.push({ effect_id: effect_ids[member_index], policy, rows, })
   }
   effect_set_frontier(members, max_members, max_rows, max_work - work)
+}
+
+///|
+/// Read-only progress for one admitted Preview. The Preview fixes the complete
+/// member inventory, row order and failure policies; the supplied row owners
+/// must match its exact keys and correlations before ledger state is interpreted.
+/// This is not current apply authorization or physical send admission.
+pub fn effect_set_frontier_from_preview_ledger_entries(
+  preview : @publication.EffectPreviewIdentity,
+  scopes : Array[Array[LogicalRequestScope]],
+  locators : Array[Array[LogicalItemLocator]],
+  keys : Array[Array[EffectDispatchKey]],
+  expected_bases : Array[Array[EffectLedgerBasis]],
+  heads : Array[Array[EffectLedgerEntry?]],
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> Result[EffectSetFrontier, EffectSetProgressIssue] {
+  let count = @publication.effect_preview_member_count(preview)
+  if max_members < 1 ||
+    max_rows < 0 ||
+    max_work < 1 ||
+    count < 1 ||
+    count > max_members ||
+    scopes.length() != count ||
+    locators.length() != count ||
+    keys.length() != count ||
+    expected_bases.length() != count ||
+    heads.length() != count {
+    return Err(InvalidLimits)
+  }
+  let effect_ids : Array[String] = []
+  let policies : Array[Int] = []
+  let mut total_rows = 0
+  let mut work = 0
+  let preview_cid = @publication.effect_preview_semantic_identity(preview)
+  for member_index in 0..<count {
+    work += 1
+    if work >= max_work {
+      return Err(CapacityExceeded)
+    }
+    let effect_id = match
+      @publication.effect_preview_member_effect_id(preview, member_index) {
+      Some(value) => value
+      None => return Err(InvalidMember)
+    }
+    let effect_kind = match
+      @publication.effect_preview_member_kind(preview, member_index) {
+      Some(value) => value
+      None => return Err(InvalidMember)
+    }
+    let policy = match
+      @publication.effect_preview_member_failure_policy(preview, member_index) {
+      Some("halt") => 0
+      Some("continue") => 1
+      _ => return Err(InvalidMember)
+    }
+    let row_count = match
+      @publication.effect_preview_row_count(preview, member_index) {
+      Some(value) => value
+      None => return Err(InvalidMember)
+    }
+    if row_count > max_rows - total_rows ||
+      scopes[member_index].length() != row_count ||
+      locators[member_index].length() != row_count ||
+      keys[member_index].length() != row_count ||
+      expected_bases[member_index].length() != row_count ||
+      heads[member_index].length() != row_count {
+      return Err(InvalidLimits)
+    }
+    total_rows += row_count
+    effect_ids.push(effect_id)
+    policies.push(policy)
+    for row_index in 0..<row_count {
+      // The member-slice admission scans this exact row as well.
+      work += 2
+      if work >= max_work {
+        return Err(CapacityExceeded)
+      }
+      let row_cid = @publication.effect_preview_ordered_row_identity(
+        preview, member_index, row_index,
+      ).unwrap()
+      let scope = scopes[member_index][row_index]
+      let locator = locators[member_index][row_index]
+      let key = keys[member_index][row_index]
+      let basis = expected_bases[member_index][row_index]
+      if basis.effect_preview_cid != preview_cid ||
+        basis.logical_request_scope_cid != scope.cid ||
+        basis.dispatch_key_cid != key.cid ||
+        basis.logical_item_locator_cid != locator.cid ||
+        admit_effect_member_slice(
+          preview,
+          member_index,
+          row_index,
+          effect_kind,
+          false,
+          scope,
+          [row_cid],
+          [locator],
+          [key],
+          1,
+          2,
+        )
+        is Err(_) {
+        return Err(ForeignPreviewRow(member_index, row_index))
+      }
+    }
+  }
+  effect_set_frontier_from_ledger_entries(
+    effect_ids,
+    policies,
+    locators,
+    expected_bases,
+    heads,
+    max_members,
+    max_rows,
+    max_work - work,
+  )
 }
 
 ///|

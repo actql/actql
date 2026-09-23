@@ -57,7 +57,7 @@ pub fn effect_set_frontier(Array[EffectMemberProgress], Int, Int, Int) -> Result
 
 pub fn effect_set_frontier_from_codes(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
 
-pub fn effect_set_frontier_from_ledger_entries(Array[String], Array[Int], Array[Array[LogicalItemLocator]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+pub fn effect_set_frontier_from_preview_ledger_entries(@run_publication.EffectPreviewIdentity, Array[Array[LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
 
 pub fn effect_set_frontier_outcome_code(EffectSetFrontier) -> Int
 
@@ -285,6 +285,7 @@ pub(all) enum EffectSetProgressIssue {
   CapacityExceeded
   InvalidHistory
   ForeignLedgerEntry(Int, Int)
+  ForeignPreviewRow(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct LogicalItemLocator {
