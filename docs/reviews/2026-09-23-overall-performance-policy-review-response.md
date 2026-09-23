@@ -24,6 +24,11 @@ existing small-case pairs are correctly incomplete at this boundary because
 their retained leg uses the example's uncalibrated estimate. This does not
 close PERF-1: qualified execution and the other comparator/matrix gates remain.
 
+The registered narrow-100 Program also runs through a Node-free native Host
+probe with real DuckDB acquisition and an independently checked final CID.
+This isolates the JS process setup cost but still lacks independent holding,
+a fresh consumer and a matched comparator; it supplies no PERF-1 sample.
+
 Review regressions to add before closing PERF-1: missing pair, missing case,
 changed Program or implementation hash, unconfirmed cleanup, and a baseline
 capacity exception incorrectly converted into a finite speed ratio.
