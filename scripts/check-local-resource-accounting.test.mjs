@@ -142,6 +142,15 @@ test('graph bounds work evidence cannot disappear from its route', () => {
   }), /SGA graph_bounds: exact work boundary fixture is missing/);
 });
 
+test('degree control-work evidence cannot disappear from its route', () => {
+  assert.match(run(undefined, routes => {
+    const degree = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'degree');
+    degree.boundary_tests = degree.boundary_tests.filter(item =>
+      item.role !== 'degree_control_work_exact_one_short');
+  }), /SGA degree: exact control-work boundary fixture is missing/);
+});
+
 test('resource completion cannot accept the synchronous providerless lane', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
     /providerless managed execution still computes and copies synchronously/);

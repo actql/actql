@@ -3044,7 +3044,7 @@ test "degree metrics preserve directions and admitted execution" {
     assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
     let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
     let completion = task_test_completion(owner)
-    let start = fn(workspace) {
+    let start = fn(workspace, control_work_limit) {
       @local_sga.start_graph_degree(
         @bounded.control(),
         completion,
@@ -3062,10 +3062,11 @@ test "degree metrics preserve directions and admitted execution" {
         1000,
         1000,
         [external],
+        control_work_limit=Some(control_work_limit),
       )
     }
-    assert_true(start(7) is Err(@local_sga.GraphBoundsWorkspaceLimit))
-    let execution = start(8).unwrap()
+    assert_true(start(7, 18) is Err(@local_sga.GraphBoundsWorkspaceLimit))
+    let execution = start(8, 18).unwrap()
     let output = finish_graph_degree(execution).unwrap()
     assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
     assert_eq(@execution.completed_row_count(output), 2)
@@ -3077,6 +3078,14 @@ test "degree metrics preserve directions and admitted execution" {
     }
     assert_eq(first, expected)
     assert_eq(second, expected)
+    // Two nodes and two edges cost four steps. Sorting the two nodes takes
+    // three merge steps and two copy steps. The two selected rows cost two
+    // candidate steps, four field reads, two commits, and one finish: 18.
+    let one_short = start(8, 17).unwrap()
+    assert_true(
+      finish_graph_degree(one_short) is Err(@local_sga.GraphBoundsWorkLimit),
+    )
+    assert_eq(@local_sga.cleanup_graph_degree(one_short), Ok(true))
     assert_true(@graphs.discard_completed(graph))
     assert_true(@execution.completed_output_available(output))
   }
