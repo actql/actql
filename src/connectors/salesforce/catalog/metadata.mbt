@@ -33,6 +33,7 @@ pub struct FieldMetadata {
   sortable : Bool
   external_id : Bool
   unique : Bool
+  case_sensitive : Bool?
   reference_to : Array[String]
 }
 
@@ -161,6 +162,14 @@ fn project_field(
     sortable,
     external_id,
     unique,
+    case_sensitive: match @decode.lookup(object, "caseSensitive") {
+      Some(value) =>
+        match @decode.boolean(value) {
+          Ok(flag) => Some(flag)
+          Err(_) => return Err(InvalidField(name))
+        }
+      None => None
+    },
     reference_to,
   })
 }

@@ -281,6 +281,7 @@ pub struct FieldMetadata {
   sortable : Bool
   external_id : Bool
   unique : Bool
+  case_sensitive : Bool?
   reference_to : Array[String]
 }
 
