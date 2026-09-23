@@ -6,6 +6,7 @@ priv enum BoundedBindingRowsPhase {
   ChargeSortRows
   PrepareSortTerms
   StartSort
+  SortIdentityRows
   SortRows
   ChargeSortedRows
   ChargeTakeNames
@@ -80,6 +81,7 @@ priv struct BoundedBindingRowsState {
   projection_ordinals : Map[String, Int]?
   take_range : (Int, Int)?
   sort_kernel : @lower.PreparedKernel?
+  sort_only : Bool
   engine : @bounded.Control
   mut sort_orders : Array[ColumnOrder]
   mut sort_execution : BoundedIndexSort?
@@ -374,6 +376,15 @@ fn bounded_binding_rows_step(
         used += 1
       }
       StartSort => {
+        if state.sort_orders.is_empty() {
+          if !reserve_slots(state.workspace, count) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          state.sorted_indices = Some([])
+          state.sort_row = 0
+          state.phase = SortIdentityRows
+          continue
+        }
         // The merge owns two index arrays. Reserve both before its first step.
         if count > (state.workspace.limit - state.workspace.live) / 2 ||
           !reserve_slots(state.workspace, count * 2) {
@@ -401,6 +412,26 @@ fn bounded_binding_rows_step(
         state.phase = SortRows
         used += 1
       }
+      SortIdentityRows => {
+        if state.sort_row == count {
+          state.sort_row = 0
+          state.phase = if state.sort_only {
+            BeginRow
+          } else {
+            ChargeSortedRows
+          }
+          continue
+        }
+        if !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        guard state.sorted_indices is Some(indices) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        indices.push(state.sort_row)
+        state.sort_row += 1
+        used += 1
+      }
       SortRows => {
         guard state.sort_execution is Some(execution) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
@@ -422,7 +453,11 @@ fn bounded_binding_rows_step(
             state.sort_row = 0
             state.sort_column = 0
             state.sort_charge_open = false
-            state.phase = ChargeSortedRows
+            state.phase = if state.sort_only {
+              BeginRow
+            } else {
+              ChargeSortedRows
+            }
             used += 1
           }
         }
@@ -888,6 +923,15 @@ pub fn start_bounded_binding_rows(
     @lower.Filter(expression) =>
       ([], false, Some(expression), false, None, None)
     @lower.Select(_) => ([], false, None, true, None, None)
+    @lower.StableSort(_) =>
+      (
+        [],
+        false,
+        None,
+        false,
+        Some((0, producer_read_row_count(input))),
+        Some(kernel),
+      )
     @lower.Limit(take_count, offset, _) => {
       let prepared = @lower.bound_preparation(owner)
       guard @lower.node_at(prepared, step) is Some(node) &&
@@ -912,6 +956,7 @@ pub fn start_bounded_binding_rows(
     }
     _ => return Err(InvalidExecution)
   }
+  let sort_only = @lower.kernel_body(kernel) is @lower.StableSort(_)
   if take_range is None && !select_mode && bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
@@ -977,7 +1022,7 @@ pub fn start_bounded_binding_rows(
       }
       Some(projection)
     }
-    @lower.Limit(_, _, _) => {
+    @lower.StableSort(_) | @lower.Limit(_, _, _) => {
       let projection : Map[String, Int] = Map([])
       for name in output_names {
         guard input_ordinals.get(name) is Some(index) else {
@@ -1047,6 +1092,7 @@ pub fn start_bounded_binding_rows(
     projection_ordinals,
     take_range,
     sort_kernel,
+    sort_only,
     engine,
     sort_orders: [],
     sort_execution: None,

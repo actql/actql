@@ -182,6 +182,10 @@ fn selected_relation_provider(
           return selected_binding_rows_execution(
             sequence, input, execution, max_value_bytes, step,
           )
+        @lower.StableSort(_) =>
+          return selected_binding_rows_execution(
+            sequence, input, execution, max_value_bytes, step,
+          )
         _ => ()
       }
       let terminated = Ref(false)

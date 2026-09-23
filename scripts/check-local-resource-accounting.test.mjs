@@ -147,3 +147,12 @@ test('resource gate rejects cross join without independent limits', () => {
       item.role !== 'product_work_workspace_exact_one_short');
   }), /RelA cross_join: reviewed product_work_workspace_exact_one_short fixture is missing/);
 });
+
+test('resource gate rejects sort without mixed-stage evidence', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    sort.boundary_tests = sort.boundary_tests.filter(item =>
+      item.role !== 'mixed_stage_sort_quantum_and_lifetime');
+  }), /RelA sort: reviewed mixed_stage_sort_quantum_and_lifetime fixture is missing/);
+});
