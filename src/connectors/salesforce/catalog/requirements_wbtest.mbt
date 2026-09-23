@@ -41,6 +41,20 @@ test "resource requirements preserve field-level read and write boundaries" {
     require_unique_external_id(resource, "Optional_Value__c")
     is Err(ExternalIdNotUnique("Optional_Value__c")),
   )
+  assert_eq(
+    require_upsert_fields(resource, "External_Key__c", ["Optional_Value__c"])
+    .unwrap()
+    .length(),
+    1,
+  )
+  assert_true(
+    require_upsert_fields(resource, "Optional_Value__c", ["External_Key__c"])
+    is Err(ExternalIdNotUnique("Optional_Value__c")),
+  )
+  assert_true(
+    require_upsert_fields(resource, "External_Key__c", ["External_Key__c"])
+    is Err(ExternalTargetInBody("External_Key__c")),
+  )
 }
 
 ///|
