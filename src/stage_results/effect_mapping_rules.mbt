@@ -6,6 +6,7 @@ pub(all) enum EffectMappingRuleIssueKind {
   MissingRequiredField(String)
   MissingResultField(String)
   IncompatibleSourceType(String)
+  IncompatibleNullBehavior(String)
   RowFields(@environment.MappingRowFieldsIssue)
   Conversion(@environment.MappingConversionIssue)
   Permission(@environment.MappingPermissionIssue)
@@ -194,16 +195,48 @@ fn effect_mapping_rule_sources(
             effect_mapping_rule_issue(MissingResultField(name), header),
           )
       }
-      match
+      let target_contract = match
         effect_mapping_rule_direct_type(
           target,
           @schema.field_contract(field),
           mapping,
           remaining,
           header,
+          true,
         ) {
-        Ok(_) => ()
+        Ok(value) => value
         Err(issue) => return Err(issue)
+      }
+      if @contract.contract_nullable(@schema.field_contract(field)) {
+        let behavior = @environment.mapping_row_fields_null_behavior_at(
+          rows, index,
+        ).unwrap()
+        if behavior == "write_null" &&
+          !@contract.contract_nullable(target_contract) {
+          return Err(
+            effect_mapping_rule_issue(IncompatibleNullBehavior(target), header),
+          )
+        }
+        if behavior == "omit" {
+          let required = @environment.mapping_shape_required_field_count(
+            mapping,
+          )
+          if required > remaining.val {
+            return Err(effect_mapping_rule_issue(WorkLimit, header))
+          }
+          remaining.val -= required
+          for at in 0..<required {
+            if @environment.mapping_shape_required_field_at(mapping, at) ==
+              Some(target) {
+              return Err(
+                effect_mapping_rule_issue(
+                  IncompatibleNullBehavior(target),
+                  header,
+                ),
+              )
+            }
+          }
+        }
       }
     }
   }
@@ -211,15 +244,16 @@ fn effect_mapping_rule_sources(
 }
 
 ///|
-/// Check the non-null value shape only. Mapping null behavior and registered
-/// conversion laws must be admitted before these bindings become executable.
+/// Check direct assignment, allowing root nullability to be handled only by
+/// an explicit row-mapping null policy. Converter laws remain separate.
 fn effect_mapping_rule_direct_type(
   target : String,
   source : @contract.Contract,
   mapping : @environment.MappingContractShape,
   remaining : Ref[Int],
   header : @syntax.EffectHeader,
-) -> Result[Unit, EffectMappingRuleIssue] {
+  row_null_policy : Bool,
+) -> Result[@contract.Contract, EffectMappingRuleIssue] {
   let field = match
     @schema.lookup_reference(
       @environment.mapping_shape_target_schema(mapping),
@@ -228,9 +262,15 @@ fn effect_mapping_rule_direct_type(
     Some(value) => value
     None => return Err(effect_mapping_rule_issue(InvalidBody, header))
   }
+  let checked_source = if row_null_policy {
+    @contract.with_nullability(source, false)
+  } else {
+    source
+  }
+  let target_contract = @schema.field_contract(field)
   let (compatible, used) = @contract.assignable_usage(
-    @contract.with_nullability(source, false),
-    @contract.with_nullability(@schema.field_contract(field), false),
+    checked_source,
+    target_contract,
     remaining.val,
   ) catch {
     _ => return Err(effect_mapping_rule_issue(WorkLimit, header))
@@ -241,7 +281,7 @@ fn effect_mapping_rule_direct_type(
       effect_mapping_rule_issue(IncompatibleSourceType(target), header),
     )
   }
-  Ok(())
+  Ok(target_contract)
 }
 
 ///|
@@ -261,6 +301,7 @@ fn effect_mapping_rule_bound_values(
           mapping,
           remaining,
           header,
+          false,
         ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)

@@ -199,3 +199,101 @@ test "inline set Result field must fit its exact Mapping target type" {
     IncompatibleSourceType("Name"),
   )
 }
+
+///|
+test "nullable inline Result value cannot enter a nonnullable write field" {
+  let effects = "{\"update\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"},\"id\":\"amount\",\"set\":{\"Name\":{\"field\":\"amount\"}}}}}"
+  let (checked, headers) = effect_binding_inputs(effects, amount_nullable=true)
+  let bindings = bind_effect_results(headers, checked, 8).unwrap()
+  let rule = "[{\"effect_kind\":\"update\",\"permissions\":[\"scope:update\"],\"selector_class\":\"id\",\"write_fields\":[\"Name\"]}]"
+  let mapping = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[]",
+    "amount",
+    target_nullable=false,
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, mapping, 2).unwrap()
+  let issue = bind_effect_mapping_rules(shapes, 50).unwrap_err()
+  assert_eq(
+    effect_mapping_rule_issue_kind(issue),
+    IncompatibleSourceType("Name"),
+  )
+  let nullable = effect_mapping_shape_fixture_with_body(rule, "[]", "amount")
+  let shapes = bind_effect_mapping_shapes(bindings, nullable, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_count(bind_effect_mapping_rules(shapes, 50).unwrap()),
+    2,
+  )
+}
+
+///|
+test "nullable row Mapping must respect write_null and omit constraints" {
+  let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"}}}}"
+  let (checked, headers) = effect_binding_inputs(effects, amount_nullable=true)
+  let bindings = bind_effect_results(headers, checked, 4).unwrap()
+  let rule = "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}]"
+  let write_null = "{\"Name\":{\"field\":\"amount\",\"null_behavior\":\"write_null\"}}"
+  let nonnull = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[]",
+    "amount",
+    target_nullable=false,
+    row_mapping=write_null,
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, nonnull, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_issue_kind(
+      bind_effect_mapping_rules(shapes, 100).unwrap_err(),
+    ),
+    IncompatibleNullBehavior("Name"),
+  )
+  let reject = "{\"Name\":{\"field\":\"amount\",\"null_behavior\":\"reject\"}}"
+  let nonnull = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[]",
+    "amount",
+    target_nullable=false,
+    row_mapping=reject,
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, nonnull, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_count(bind_effect_mapping_rules(shapes, 100).unwrap()),
+    2,
+  )
+  let nullable = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[]",
+    "amount",
+    row_mapping=write_null,
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, nullable, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_count(bind_effect_mapping_rules(shapes, 100).unwrap()),
+    2,
+  )
+  let omit = "{\"Name\":{\"field\":\"amount\",\"null_behavior\":\"omit\"}}"
+  let required = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[\"Name\"]",
+    "amount",
+    row_mapping=omit,
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, required, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_issue_kind(
+      bind_effect_mapping_rules(shapes, 100).unwrap_err(),
+    ),
+    IncompatibleNullBehavior("Name"),
+  )
+  let optional = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[]",
+    "amount",
+    row_mapping=omit,
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, optional, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_count(bind_effect_mapping_rules(shapes, 100).unwrap()),
+    2,
+  )
+}
