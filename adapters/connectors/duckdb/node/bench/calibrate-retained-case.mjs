@@ -33,6 +33,8 @@ const unchanged = async () => {
   }
 };
 const sha256 = value => createHash('sha256').update(value).digest('hex');
+const serialize = value => JSON.stringify(value, (_, item) =>
+  typeof item === 'bigint' ? item.toString() : item, 2);
 const read = path => readFile(new URL(path,
   new URL('../../../../../', import.meta.url)), 'utf8');
 const fileHash = async path => {
@@ -115,7 +117,7 @@ try {
         'CalibrationSourceChanged');
       observations.push(observation);
       await writeFile(join(directory, `training-${round}-${candidate}.json`),
-        JSON.stringify(observation, null, 2));
+        serialize(observation));
       console.log(JSON.stringify({event: 'training', round, candidate,
         elapsed: observation.taskElapsedMilliseconds,
         cleanupMs: observation.cleanupMs}));
@@ -135,7 +137,7 @@ try {
     expectedRowsCid: expectedCid, runtime: process.version,
     method: 'three alternating forced-choice training rounds per registered case; median task interval rounded up to milliseconds',
     acceptanceEligible: false, observations};
-  const trainingBytes = JSON.stringify(training, null, 2);
+  const trainingBytes = serialize(training);
   const trainingSha256 = sha256(trainingBytes);
   const profile = {version: 'actql-retained-estimate-profile/0.1', revision,
     caseId: fixture.id, trainingSha256,
@@ -146,13 +148,13 @@ try {
     acceptanceEligible: false,
     scope: 'measured training profile requiring held-out selection and obligation admission'};
   await writeFile(join(directory, 'training.json'), trainingBytes);
-  await writeFile(join(directory, 'profile.json'), JSON.stringify(profile, null, 2));
+  await writeFile(join(directory, 'profile.json'), serialize(profile));
   console.log(JSON.stringify({event: 'finished', directory, caseId: fixture.id,
     trainingSha256, localTaskMilliseconds: profile.localTaskMilliseconds,
     nativeTaskMilliseconds: profile.nativeTaskMilliseconds}));
 } catch (error) {
-  await writeFile(join(directory, 'failure.json'), JSON.stringify({caseId: fixture.id,
+  await writeFile(join(directory, 'failure.json'), serialize({caseId: fixture.id,
     revision, sourceSha256, observations,
-    error: {name: error.name, message: error.message, code: error.code}}, null, 2));
+    error: {name: error.name, message: error.message, code: error.code}}));
   throw error;
 }
