@@ -174,6 +174,8 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   assert_eq(effect_preview_footprint_target_cid(footprint, 1), None)
   assert_true(effect_preview_member_footprint(admitted, 1) is None)
   assert_eq(effect_preview_row_identity(admitted, 0, 0), Some(row))
+  assert_eq(effect_preview_row_guard_version_cid(admitted, 0, 0), Some(a))
+  assert_eq(effect_preview_row_guard_version_cid(admitted, 0, 1), None)
   assert_eq(effect_preview_row_index(admitted, 0, row), Some(0))
   assert_eq(
     effect_preview_row_intended_value_wire(admitted, 0, 0),

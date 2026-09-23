@@ -25,6 +25,7 @@ pub struct EffectPreviewIdentity {
   row_indices : Array[Map[String, Int]]
   row_correlation_wires : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
+  row_guard_version_cids : Array[Array[String]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
   row_order : Array[Array[String]]
@@ -385,7 +386,14 @@ fn effect_member_row_inventory(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  (Array[String], Array[String], Array[String], Array[String], Array[String]),
+  (
+    Array[String],
+    Array[String],
+    Array[String],
+    Array[String],
+    Array[String],
+    Array[String],
+  ),
   EffectPreviewIdentityIssue,
 ] {
   let changes = match @json.object_field(effect, "changes") {
@@ -403,6 +411,7 @@ fn effect_member_row_inventory(
   let rows : Array[String] = []
   let correlations : Array[String] = []
   let intended_values : Array[String] = []
+  let guard_versions : Array[String] = []
   for row_index in 0..<changes.length() {
     let change = changes[row_index]
     match
@@ -451,6 +460,20 @@ fn effect_member_row_inventory(
           None => return Err(InvalidMember)
         }
         intended_values.push(intended_value)
+        let guard_version = match @json.object_field(change, "target_guard") {
+          Some(guard_value) =>
+            match @json.object_field(guard_value, "state") {
+              Some(@json.String("version")) =>
+                match @json.object_field(guard_value, "version_cid") {
+                  Some(@json.String(version_cid)) => version_cid
+                  _ => return Err(InvalidMember)
+                }
+              Some(@json.String("not_applicable")) => ""
+              _ => return Err(InvalidMember)
+            }
+          None => return Err(InvalidMember)
+        }
+        guard_versions.push(guard_version)
       }
       _ => return Err(InvalidMember)
     }
@@ -471,7 +494,7 @@ fn effect_member_row_inventory(
       _ => return Err(RowInventoryMismatch(index))
     }
   }
-  Ok((keys, rows, order, correlations, intended_values))
+  Ok((keys, rows, order, correlations, intended_values, guard_versions))
 }
 
 ///|
@@ -560,6 +583,7 @@ pub fn admit_effect_preview_identity(
   let row_indices : Array[Map[String, Int]] = []
   let row_correlation_wires : Array[Array[String]] = []
   let row_intended_value_wires : Array[Array[String]] = []
+  let row_guard_version_cids : Array[Array[String]] = []
   let ordered_row_correlation_wires : Array[Array[String]] = []
   let ordered_row_intended_value_wires : Array[Array[String]] = []
   let row_order : Array[Array[String]] = []
@@ -595,6 +619,7 @@ pub fn admit_effect_preview_identity(
       member_order,
       member_correlations,
       member_intended_values,
+      member_guard_versions,
     ) = match
       effect_member_row_inventory(
         preview, effect, index, max_wire_bytes, max_nodes, max_depth,
@@ -627,6 +652,7 @@ pub fn admit_effect_preview_identity(
     row_cids.push(member_rows)
     row_correlation_wires.push(member_correlations)
     row_intended_value_wires.push(member_intended_values)
+    row_guard_version_cids.push(member_guard_versions)
     ordered_row_correlation_wires.push(ordered_correlations)
     ordered_row_intended_value_wires.push(ordered_intended_values)
     row_order.push(member_order)
@@ -699,6 +725,7 @@ pub fn admit_effect_preview_identity(
     row_indices,
     row_correlation_wires,
     row_intended_value_wires,
+    row_guard_version_cids,
     ordered_row_correlation_wires,
     ordered_row_intended_value_wires,
     row_order,
@@ -804,6 +831,25 @@ pub fn effect_preview_row_intended_value_wire(
   row_index : Int,
 ) -> String? {
   match value.row_intended_value_wires.get(member_index) {
+    Some(rows) =>
+      match rows.get(row_index) {
+        Some("") => None
+        other => other
+      }
+    None => None
+  }
+}
+
+///|
+/// The approved version/content guard is retained from the private Preview.
+/// None means the row has a not-applicable guard or the index is invalid;
+/// callers checking all rows must use the admitted row count for traversal.
+pub fn effect_preview_row_guard_version_cid(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  match value.row_guard_version_cids.get(member_index) {
     Some(rows) =>
       match rows.get(row_index) {
         Some("") => None
