@@ -4881,6 +4881,15 @@ async function exerciseStrategyGraph(
   splitValuesSelectStage.steps.push({
     from: 'values_rows', select: ['id', 'label'], as: 'out',
   });
+  const splitValuesDeriveProgram = structuredClone(zeroInputProgram);
+  const splitValuesDeriveStage = splitValuesDeriveProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesDeriveStage.steps[0].as = 'values_rows';
+  splitValuesDeriveStage.steps.push({
+    from: 'values_rows', derive: {copy: 'label'}, as: 'out',
+  });
+  splitValuesDeriveStage.results.r.fields = ['id', 'label', 'copy'];
   const splitValuesTakeProgram = structuredClone(zeroInputProgram);
   const splitValuesTakeStage = splitValuesTakeProgram.stages.find(
     stage => stage.id === 'values_a',
@@ -5798,6 +5807,7 @@ async function exerciseStrategyGraph(
     ['values', zeroInputProgram, [1, 2, 3]],
     ['split values', splitValuesProgram, [1, 2, 3, 4]],
     ['split values select', splitValuesSelectProgram, [1, 2, 3, 4]],
+    ['split values derive', splitValuesDeriveProgram, [1, 2, 3, 4]],
     ['split values take', splitValuesTakeProgram, [1, 2, 3, 4]],
     ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
@@ -5920,7 +5930,7 @@ async function exerciseStrategyGraph(
           `${name}: bounded producers and binary consumer retain output`,
         );
       }
-      if (name === 'snapshot derive') {
+      if (name === 'snapshot derive' || name === 'split values derive') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 2],
@@ -6408,6 +6418,8 @@ async function exerciseStrategyGraph(
       cancelAtStart: 2},
     {name: 'split-values-select-in-flight',
       program: splitValuesSelectProgram, cancelAtStart: 3},
+    {name: 'split-values-derive-in-flight',
+      program: splitValuesDeriveProgram, cancelAtStart: 3},
     {name: 'split-values-take-in-flight',
       program: splitValuesTakeProgram, cancelAtStart: 3},
     {name: 'split-values-assert-in-flight',

@@ -123,6 +123,21 @@ test('zero-input values bind their bounded production provider', () => {
   }), /RelA values: missing environment fixture missing-values-timer/);
 });
 
+test('same-stage values derive needs its connected cancellation fixture', () => {
+  assert.match(run(undefined, routes => {
+    const values = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.environment_tests = values.environment_tests.filter(item =>
+      item.role !== 'zero_input_derive_timer_cancel_cleanup');
+  }), /RelA values: same-stage derive timer evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'derive');
+    derive.boundary_tests = derive.boundary_tests.filter(item =>
+      item.role !== 'same_stage_values_derive_two_consumers');
+  }), /RelA derive: same-stage values derive evidence is missing/);
+});
+
 test('resource gate requires mixed-stage values execution evidence', () => {
   assert.match(run(undefined, value => {
     const values = value.routes.find(entry => entry.family === 'RelA' &&
