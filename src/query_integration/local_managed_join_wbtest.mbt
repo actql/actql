@@ -47,16 +47,35 @@ fn run_local_managed_join_case(
     None,
   ).unwrap()
 
-  let left_live = Ref(true)
-  let (left_ops, left) = run_local_managed_test_task(
+  let left_source_live = Ref(true)
+  let (left_source_ops, left_source) = run_local_managed_test_task(
     installed,
     run,
     1,
     [],
     [],
     1,
-    left_live,
+    left_source_live,
+    require_provider=imported_full,
+    execution_quantum=if imported_full { 1 } else { 0 },
   )
+  let left_source_rows = local_managed_test_rows(left_source_ops)
+  let left_live = if imported_full { Ref(true) } else { left_source_live }
+  let (left_ops, left) = if imported_full {
+    run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [left_source],
+      [left_source_rows],
+      2,
+      left_live,
+      require_provider=true,
+      execution_quantum=1,
+    )
+  } else {
+    (left_source_ops, left_source)
+  }
   let left_rows = local_managed_test_rows(left_ops)
   assert_eq(
     left_rows,
@@ -72,16 +91,36 @@ fn run_local_managed_join_case(
     },
   )
 
-  let right_live = Ref(true)
-  let (right_ops, right) = run_local_managed_test_task(
+  let right_source_live = Ref(true)
+  let right_source_task = if imported_full { 3 } else { 2 }
+  let (right_source_ops, right_source) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    right_source_task,
     [],
     [],
-    2,
-    right_live,
+    right_source_task,
+    right_source_live,
+    require_provider=imported_full,
+    execution_quantum=if imported_full { 1 } else { 0 },
   )
+  let right_source_rows = local_managed_test_rows(right_source_ops)
+  let right_live = if imported_full { Ref(true) } else { right_source_live }
+  let (right_ops, right) = if imported_full {
+    run_local_managed_test_task(
+      installed,
+      run,
+      4,
+      [right_source],
+      [right_source_rows],
+      4,
+      right_live,
+      require_provider=true,
+      execution_quantum=1,
+    )
+  } else {
+    (right_source_ops, right_source)
+  }
   let right_rows = local_managed_test_rows(right_ops)
   assert_eq(
     right_rows,
@@ -99,43 +138,46 @@ fn run_local_managed_join_case(
   )
 
   let join_live = Ref(true)
+  let join_task = if imported_full { 5 } else { 3 }
   let (join_ops, joined) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    join_task,
     [left, right],
     [left_rows, right_rows],
-    3,
+    join_task,
     join_live,
   )
   let joined_rows = local_managed_test_rows(join_ops)
   assert_eq(joined_rows, expected_joined)
 
   let first_live = Ref(true)
+  let first_task = if imported_full { 6 } else { 4 }
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    first_task,
     [joined],
     [joined_rows],
-    4,
+    first_task,
     first_live,
   )
   let second_live = Ref(true)
+  let second_task = if imported_full { 7 } else { 5 }
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
+    second_task,
     [joined],
     [joined_rows],
-    5,
+    second_task,
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), joined_rows)
   assert_eq(local_managed_test_rows(second_ops), expected_second)
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, first_task)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -143,21 +185,31 @@ fn run_local_managed_join_case(
   assert_true(@execution.managed_completed_output_available(joined))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, second_task)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   join_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, join_task)
   (join_ops.close)()
   (join_ops.cleanup_refresh)() |> ignore
   left_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, if imported_full { 2 } else { 1 })
   (left_ops.close)()
   (left_ops.cleanup_refresh)() |> ignore
   right_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, if imported_full { 4 } else { 2 })
   (right_ops.close)()
   (right_ops.cleanup_refresh)() |> ignore
+  if imported_full {
+    left_source_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (left_source_ops.close)()
+    (left_source_ops.cleanup_refresh)() |> ignore
+    right_source_live.val = false
+    @strategy.close_captured_task_output(run, 3)
+    (right_source_ops.close)()
+    (right_source_ops.cleanup_refresh)() |> ignore
+  }
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

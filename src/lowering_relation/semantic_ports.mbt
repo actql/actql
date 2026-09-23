@@ -110,6 +110,7 @@ pub fn node_supports_bounded_managed_prefix(
   match (node.payload, consumer.payload) {
     (Values(_), Where(_))
     | (Values(_), Derive(_))
+    | (Values(_), Distinct(_))
     | (Values(_), Select(_))
     | (Values(_), Sort(_))
     | (Values(_), Limit(_))

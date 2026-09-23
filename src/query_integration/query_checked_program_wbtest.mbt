@@ -188,6 +188,11 @@ fn query_checked_program_fixture(
         old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
         new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"derive\":{\"copy\":\"label\"},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\",\"copy\"]}}},{\"id\":\"consumer_a\"",
       )
+    } else if local_values_two_consumer_relation_variant == "distinct" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"distinct\":true,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
     } else {
       program
     }
