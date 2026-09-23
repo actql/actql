@@ -122,6 +122,15 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
           {'content-type': 'application/json'});
         response.end(collectionResponse);
       });
+    } else if (request.method === 'PATCH' && request.url.startsWith(
+      '/services/data/v62.0/sobjects/Test_Record__c/External_Key__c/')) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.on('end', () => {
+        observed.body = Buffer.concat(chunks).toString('utf8');
+        response.writeHead(404, {'content-type': 'application/json'});
+        response.end('[{"errorCode":"NOT_FOUND"}]');
+      });
     } else if (request.url ===
       '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account') {
       response.writeHead(200, {'content-type': 'application/json'});
@@ -382,6 +391,98 @@ test('Site sends one scoped Salesforce write and keeps response as observation',
       '/services/data/v62.0/sobjects/Test_Record__c/',
       '{"External_Key__c":"key-1"}',
     ]]);
+  });
+
+test('Salesforce request CID binds the exact HTTPS upsert request-target',
+  async t => {
+    const metadata = JSON.stringify({name: 'Test_Record__c',
+      queryable: true, createable: true, updateable: true, fields: [
+        {name: 'External_Key__c', type: 'string', externalId: true,
+          unique: true, nillable: false, defaultedOnCreate: false,
+          createable: true, updateable: true},
+        {name: 'Name', type: 'string', nillable: false,
+          defaultedOnCreate: false, createable: true, updateable: true},
+      ]});
+    const prefix = '/services/data/v62.0/sobjects/' +
+      'Test_Record__c/External_Key__c/';
+    for (const [name, target, suffix] of [
+      ['dot', '.', '.'],
+      ['dot-dot', '..', '..'],
+      ['ordinary dot', 'a.b', 'a.b'],
+      ['encoded-dot text', '%2E', '%252E'],
+      ['slash', 'a/b', 'a%2Fb'],
+      ['percent', '100%', '100%25'],
+      ['unicode', 'é', '%C3%A9'],
+      ['query and hash text', 'a?b#c', 'a%3Fb%23c'],
+    ]) {
+      await t.test(name, async child => {
+        const setup = await fixture(child, {customResponse: metadata});
+        const catalog = await syncSalesforceCatalog(request(setup));
+        const binding = setup.list.scope;
+        const projection = checked(
+          salesforceMoon.salesforcePrepareWriteProjection(
+            catalog.observation,
+            binding.tenant, binding.principal, binding.environment,
+            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            binding.connectorRegistration, binding.connectorRevision,
+            binding.resourceOrigin, binding.runInvocationCid,
+            binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+            2, 'External_Key__c', ['Name'], 2));
+        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+          projection, Buffer.from('{"Name":"new value"}'), 1024, 32, 5));
+        const outbound = checked(
+          salesforceMoon.salesforcePrepareSingleWriteRequest(
+            body, 'v62.0', 2, target, 0, 256, 128, 1024));
+        const expectedPath = prefix + suffix;
+        const expectedBody = '{"Name":"new value"}';
+        assert.equal(salesforceMoon.salesforceSingleWriteRequestPath(outbound),
+          expectedPath);
+        const requestCid = checked(
+          salesforceMoon.salesforceSingleWriteRequestCid(
+            outbound, binding.resourceOrigin, 4096));
+        const independentPreimage = JSON.stringify({body: expectedBody,
+          method: 'PATCH', path: expectedPath,
+          resource_origin: binding.resourceOrigin,
+          version: 'actql-salesforce-rest-request/0.1'});
+        assert.equal(requestCid, `sha256:${createHash('sha256')
+          .update(independentPreimage).digest('hex')}`);
+        const effect = runtimeCore(commonMoon).effectApplicationControl;
+        const authorityScopeCid = cid('8');
+        const scope = effect.logicalRequestScope(authorityScopeCid,
+          `exact-target-${name}`, 128);
+        const key = effect.dispatchKey(scope, cid('7'), '"row-1"', 32, 8, 3);
+        const locator = effect.logicalItemLocator(scope, 'program-1',
+          'node-1', 'UpsertOne', JSON.stringify({target}), 64, 128, 8, 3);
+        const basis = effect.ledgerBasis(scope, locator, key,
+          cid('6'), cid('5'), cid('4'), requestCid, cid('3'),
+          'unavailable', cid('2'), cid('1'));
+        const claim = {scope, locator, key, basis,
+          intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
+        const ledgerRoot = await mkdtemp(join(tmpdir(),
+          'actql-salesforce-exact-target-'));
+        child.after(() => rm(ledgerRoot, {recursive: true, force: true}));
+        const ledger = openEffectLedger({moon: commonMoon, root: ledgerRoot,
+          authorityScopeCid, callerRequestId: `exact-target-${name}`,
+          maxEntryBytes: 4096});
+        child.after(() => ledger.close());
+        const result = await captureSalesforceSingleEffectWrite({
+          ledger, claim, moon: salesforceMoon, request: outbound,
+          currentObservation: catalog.observation,
+          authorization: {...setup.writeUpsert, useId: 'exact-target-use'},
+          credential: setup.credential,
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 32, maxDepth: 5},
+        });
+        assert.equal(result.claimed, true);
+        assert.equal(result.physical.kind, 'provider-response');
+        assert.ok(ledger.current(effect.logicalItemLocatorCid(locator)));
+        assert.deepEqual(setup.seen.filter(item => item.method === 'PATCH')
+          .map(item => ({method: item.method, path: item.path,
+            body: item.body})), [
+          {method: 'PATCH', path: expectedPath, body: expectedBody},
+        ]);
+      });
+    }
   });
 
 test('Host claim owns one local HTTPS write', async t => {
