@@ -66,11 +66,12 @@ readable coverage manifest is authoritative for individual operation status.
   synchronous Cartesian-product loop.
   Eleven of the 68 production routes currently bind operation-specific boundary
   fixtures. Graph normalization now has independent exact/tight node-capacity
-  fixtures on all three targets, plus direct cancellation and cleanup. A
-  standard Host cancellation case covers the normalize pipeline, but does not
-  yet attribute stop to the normalize kernel. Its direct storage-read and
-  managed-view starts are distinct, so this evidence does not close whole-route
-  assurance. The selected RelA filter route adds an independent exact/one-short
+  fixtures on all three targets, plus direct cancellation and cleanup. The
+  managed-view start now has its own exact/one-short and cancel/cleanup fixtures
+  on all three targets. A standard Host cancellation case covers the normalize
+  pipeline, but does not yet attribute stop to each normalize entrypoint.
+  Therefore this evidence does not close whole-route assurance. The selected
+  RelA filter route adds an independent exact/one-short
   input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
   after measured work, then confirms stop without exposing a partial result. A

@@ -815,6 +815,10 @@
         "path": "src/local_sga/normalize.mbt",
         "symbol": "start_normalize"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/normalize.mbt",
+        "symbol": "start_normalize_view"
+      },
       "boundary_tests": [
         {
           "role": "normalize_exact_node_capacity",
@@ -836,6 +840,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_sga/normalize_wbtest.mbt",
           "fixture": "normalize confirms cancellation before reclaiming partial output"
+        },
+        {
+          "role": "normalize_view_exact_node_capacity",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize managed view accepts the exact node capacity"
+        },
+        {
+          "role": "normalize_view_one_short_node_capacity",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize managed view rejects one node less than required"
+        },
+        {
+          "role": "normalize_view_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize managed view cancels and reclaims partial output"
         }
       ]
     },

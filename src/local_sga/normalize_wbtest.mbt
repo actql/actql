@@ -416,6 +416,96 @@ test "normalize rejects one node less than the required capacity" {
 }
 
 ///|
+test "normalize managed view accepts the exact node capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let execution = start_normalize_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    { ..storage_limits(), max_nodes: 2, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  guard advance_normalize(execution, 1).unwrap()
+    is Complete(completed, progress=3L, work=3L) else {
+    fail("exact managed-view node capacity must complete")
+  }
+  assert_eq(
+    @storage.node_count(@graph.completed_storage(completed).unwrap()),
+    2,
+  )
+  assert_eq(
+    @storage.edge_count(@graph.completed_storage(completed).unwrap()),
+    1,
+  )
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize managed view rejects one node less than required" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let execution = start_normalize_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    { ..storage_limits(), max_nodes: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.NodeLimit)), progress=1L, work=1L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
+test "normalize managed view cancels and reclaims partial output" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let control = @bounded.control()
+  let execution = start_normalize_view(
+    control,
+    sequence(owner),
+    0,
+    view,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Stopped(@bounded.Cancelled, progress=1L, work=1L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
 test "normalize rejects foreign kernels and bounded output overflow" {
   let producer = source_owner()
   let source = source_graph(producer, Ref(true))

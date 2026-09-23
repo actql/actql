@@ -214,6 +214,14 @@ test('resource gate rejects a removed SGA normalization proof role', () => {
   }), /SGA normalize_graph: reviewed normalize_one_short_node_capacity fixture is missing/);
 });
 
+test('resource gate requires the normalization managed-view route', () => {
+  assert.match(run(undefined, value => {
+    const normalization = value.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'normalize_graph');
+    delete normalization.selected_entrypoint;
+  }), /SGA normalize_graph: managed-view production route is missing/);
+});
+
 test('resource gate rejects an ordered take without its cancellation fixture', () => {
   assert.match(run(undefined, value => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&
