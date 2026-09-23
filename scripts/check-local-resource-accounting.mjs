@@ -947,6 +947,9 @@ for (const [index, route] of routeEntries.entries()) {
       'selected_distinct_workspace_exact_one_short',
       'selected_distinct_kernel_cancel_cleanup',
       'same_stage_distinct_two_consumers',
+      'same_stage_values_distinct_two_consumers',
+      'same_stage_values_distinct_dag_selection',
+      'same_stage_keyed_distinct_join',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: selected ${role} fixture is missing`);

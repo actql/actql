@@ -807,6 +807,21 @@ test('resource gate retains same-stage distinct timer evidence', () => {
   }), /RelA distinct: same-stage distinct timer fixture is missing/);
 });
 
+test('resource gate requires the direct values-distinct split', () => {
+  for (const role of [
+    'same_stage_values_distinct_two_consumers',
+    'same_stage_values_distinct_dag_selection',
+    'same_stage_keyed_distinct_join',
+  ]) {
+    assert.match(run(undefined, value => {
+      const distinct = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'distinct');
+      distinct.boundary_tests = distinct.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA distinct: selected ${role} fixture is missing`));
+  }
+});
+
 test('resource gate requires mixed-stage cross join execution evidence', () => {
   assert.match(run(undefined, value => {
     const join = value.routes.find(entry => entry.family === 'RelA' &&

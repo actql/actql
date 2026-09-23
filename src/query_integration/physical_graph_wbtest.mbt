@@ -433,6 +433,47 @@ test "physical DAG separates bounded values from sort and take" {
 }
 
 ///|
+test "physical DAG separates bounded values from distinct" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="distinct",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits imported full join sources at distinct" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_join_chain=true,
+    local_values_join_kind="full",
+    local_values_join_imported_full=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG admits Carrier segmentation before allocation" {
   let program = query_checked_program_fixture(
     dag=true,

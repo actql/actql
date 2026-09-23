@@ -16,6 +16,12 @@ equality, quantum-one cancellation, and independently calculated exact and
 one-short structural workspace. These proofs do not cover all providerless
 sequences, all 68 operation-specific resource assurances, or the
 Distribution-owned ordinary Run port. The strict completion gate remains red.
+The simpler `values → distinct` Stage also selects two bounded tasks;
+three-target standard Host fixtures exercise two downstream Computes and
+reclamation, while the physical DAG fixture checks the actual split.
+Imported full-join sources with keyed distinct now split on both sides;
+the managed join fixture advances each distinct within quantum one and
+retains both producer identities through the two-consumer join.
 
 ## Shared blockers
 
@@ -94,13 +100,15 @@ identity across the split. Node Host timers check cancellation after each
 assertion's work begins, stop confirmation, nonpublication, and cleanup.
 These connection fixtures do not establish an exact combined-stage peak
 reservation for every assertion variant.
-Direct `values → select`, `values → take`, and `values → derive` stages now
+Direct `values → select`, `values → take`, `values → derive`, and
+`values → distinct` stages now
 use the same bounded
 producer and selected Relation handoff. Three-target standard Host fixtures
 exercise both actual downstream Computes, overlapping retention, independent
 release, and final reclamation. Node timers deliver cancellation after the
-selected step reports positive work and verify stop, nonpublication, and
-cleanup. These fixtures close those three connection forms, not the remaining
+select, take, and derive steps report positive work, and the five-step
+distinct path has a timer cancellation after distinct work begins. These
+fixtures close those four connection forms, not the remaining
 same-sequence forms or the providerless lane in general.
 The direct-take timer fixture caps each product advance to seven work units
 through its observation wrapper because the small input finishes within the

@@ -1156,6 +1156,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
           "fixture": "Local managed cross join reaches two consumers in left-major order"
+        },
+        {
+          "role": "same_stage_values_distinct_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from distinct"
+        },
+        {
+          "role": "same_stage_values_distinct_dag_selection",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/physical_graph_wbtest.mbt",
+          "fixture": "physical DAG separates bounded values from distinct"
+        },
+        {
+          "role": "same_stage_keyed_distinct_join",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_join_wbtest.mbt",
+          "fixture": "Local managed full join imports both producer identities"
         }
       ],
       "environment_tests": [

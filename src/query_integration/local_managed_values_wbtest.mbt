@@ -325,7 +325,10 @@ fn run_standard_host_values_relation_step(
     [
       "{\"copy\":\"none\",\"id\":null,\"label\":\"none\"}", "{\"copy\":\"one\",\"id\":1,\"label\":\"one\"}",
     ]
-  } else if assertion || unique || relation_variant == "select" {
+  } else if assertion ||
+    unique ||
+    relation_variant == "select" ||
+    relation_variant == "distinct" {
     values_rows
   } else {
     ["{\"id\":1,\"label\":\"one\"}"]
@@ -364,6 +367,7 @@ fn run_standard_host_values_relation_step(
   } else if assertion ||
     unique ||
     relation_variant == "select" ||
+    relation_variant == "distinct" ||
     relation_variant == "derive" {
     ["{\"label\":\"none\",\"id\":null}", "{\"label\":\"one\",\"id\":1}"]
   } else {
@@ -424,6 +428,11 @@ test "standard Host splits zero-input values from take" {
 ///|
 test "standard Host splits zero-input values from derive" {
   run_standard_host_values_relation_step(false, relation_variant="derive")
+}
+
+///|
+test "standard Host splits zero-input values from distinct" {
+  run_standard_host_values_relation_step(false, relation_variant="distinct")
 }
 
 ///|
