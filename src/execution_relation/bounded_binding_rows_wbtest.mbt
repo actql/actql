@@ -28,6 +28,7 @@ fn bounded_binding_rows_source(
 fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
   following_step? : Bool = false,
+  filter? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -35,7 +36,12 @@ fn bounded_binding_rows_receiver(
   ).unwrap()
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\",\"as\":\"derived\"}" +
+      "[" +
+      (if filter {
+        "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
+      } else {
+        "{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\",\"as\":\"derived\"}"
+      }) +
       (if following_step {
         ",{\"select\":[\"score\"],\"from\":\"derived\"}"
       } else {
@@ -73,15 +79,21 @@ fn bounded_binding_rows_receiver(
 fn bounded_binding_rows_fixture(
   rows : String,
   following_step? : Bool = false,
+  filter? : Bool = false,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(rows)
-  let receiver = bounded_binding_rows_receiver(source_owner, following_step~)
+  let receiver = bounded_binding_rows_receiver(
+    source_owner,
+    following_step~,
+    filter~,
+  )
   let sequence = prepared_sequence(receiver)
+  let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
     [sequence_fragment_context(sequence, 0, 2L)],
-    ["derive_0"],
+    [@lower.node_id(first)],
     100000,
     10000,
   ).unwrap()
@@ -310,6 +322,53 @@ test "selected binding rows stop within a larger checked sequence" {
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_false(bounded_binding_rows_cleanup_pending(execution))
+}
+
+///|
+test "bounded selected filter evaluates demanded rows once" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    filter=true,
+  )
+  let mut advances = 0
+  let mut completed : CompletedOutput? = None
+  while completed is None {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      BoundedBindingRowsFailed(_, ..) => fail("unexpected filter failure")
+      BoundedBindingRowsStopped(_, ..) => fail("unexpected filter stop")
+    }
+  }
+  assert_true(advances > 6)
+  let output = completed.unwrap()
+  assert_eq(completed_row_count(output), 1)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected filter cancels before publication" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    filter=true,
+  )
+  for _ in 0..<6 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
 }
 
 ///|

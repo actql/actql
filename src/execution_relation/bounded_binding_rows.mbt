@@ -4,6 +4,7 @@ priv enum BoundedBindingRowsPhase {
   BeginRow
   SnapshotRow
   EvaluateBindings
+  EvaluatePredicate
   BuildOutputRow
   CheckOutputRow
   CommitOutputRow
@@ -33,6 +34,7 @@ priv struct BoundedBindingRowsState {
   input : ProducerRead
   available : () -> Bool
   bindings : Array[(String, @lower.Expression)]
+  predicate : @lower.Expression?
   input_names : Array[String]
   output_names : Array[String]
   input_ordinals : Map[String, Int]
@@ -57,6 +59,7 @@ priv struct BoundedBindingRowsState {
   mut column : Int
   mut snapshot : Map[String, Value]
   mut binding_execution : OrderedBindingsExecution?
+  mut predicate_execution : ExpressionFrame?
   mut values : Array[Value]
   mut slot_roots : Array[ExpressionRootLease]
   mut output_row : Array[Value]
@@ -121,6 +124,10 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   if state.binding_execution is Some(execution) {
     cancel_ordered_bindings_execution(execution)
     state.binding_execution = None
+  }
+  if state.predicate_execution is Some(execution) {
+    close_expression_frame(execution)
+    state.predicate_execution = None
   }
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
@@ -231,28 +238,57 @@ fn bounded_binding_rows_step(
       }
       SnapshotRow => {
         if state.column == state.input_names.length() {
-          state.binding_execution = Some(
-            if state.ordered {
-              start_ordered_bindings_execution(
-                state.bindings,
-                state.snapshot,
-                state.control,
-                state.workspace,
-                state.scope,
-                state.row,
+          match state.predicate {
+            Some(predicate) => {
+              if !reserve_slots(state.workspace, 2) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              state.predicate_execution = match
+                expression_frame(
+                  predicate,
+                  state.snapshot,
+                  [],
+                  state.control,
+                  state.workspace,
+                  Some(
+                    expression_roots(state.logical, state.control.max_frames),
+                  ),
+                ) {
+                Ok(value) => Some(value)
+                Err(issue) =>
+                  return fail_bounded_binding_rows(
+                    Rows(evaluation_row_issue(state.row, 0, issue)),
+                    progress,
+                    used,
+                  )
+              }
+              state.phase = EvaluatePredicate
+            }
+            None => {
+              state.binding_execution = Some(
+                if state.ordered {
+                  start_ordered_bindings_execution(
+                    state.bindings,
+                    state.snapshot,
+                    state.control,
+                    state.workspace,
+                    state.scope,
+                    state.row,
+                  )
+                } else {
+                  start_snapshot_bindings_execution(
+                    state.bindings,
+                    state.snapshot,
+                    state.control,
+                    state.workspace,
+                    state.scope,
+                    state.row,
+                  )
+                },
               )
-            } else {
-              start_snapshot_bindings_execution(
-                state.bindings,
-                state.snapshot,
-                state.control,
-                state.workspace,
-                state.scope,
-                state.row,
-              )
-            },
-          )
-          state.phase = EvaluateBindings
+              state.phase = EvaluateBindings
+            }
+          }
           continue
         }
         if !reserve_slots(state.workspace, 1) ||
@@ -282,6 +318,63 @@ fn bounded_binding_rows_step(
             state.binding_execution = None
             state.column = 0
             state.phase = BuildOutputRow
+            used += 1
+          }
+        }
+      }
+      EvaluatePredicate => {
+        guard state.predicate_execution is Some(execution) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        match advance_expression_frame(execution) {
+          Err(issue) =>
+            return fail_bounded_binding_rows(
+              Rows(evaluation_row_issue(state.row, 0, issue)),
+              progress,
+              used,
+            )
+          Ok(None) => used += 1
+          Ok(Some(evaluated)) => {
+            state.predicate_execution = None
+            release_slots(state.workspace, 2)
+            if evaluated.root is Some(root) {
+              match release_logical_root(root.owner, root) {
+                Err(issue) =>
+                  return fail_bounded_binding_rows(
+                    Rows(LogicalRows(issue)),
+                    progress,
+                    used,
+                  )
+                Ok(_) => ()
+              }
+            }
+            match evaluated.value {
+              Boolean(true) => {
+                state.column = 0
+                state.phase = BuildOutputRow
+              }
+              Boolean(false) | Null => {
+                match release_expression_root(state.input_roots[state.row]) {
+                  Err(issue) =>
+                    return fail_bounded_binding_rows(
+                      Rows(LogicalRows(issue)),
+                      progress,
+                      used,
+                    )
+                  Ok(_) => ()
+                }
+                release_slots(state.workspace, state.snapshot.length())
+                state.snapshot = Map([])
+                state.row += 1
+                state.phase = BeginRow
+              }
+              Number(_) | Text(_) | Captured(_) =>
+                return fail_bounded_binding_rows(
+                  Rows(InvalidRows),
+                  progress,
+                  used,
+                )
+            }
             used += 1
           }
         }
@@ -463,9 +556,10 @@ pub fn start_bounded_binding_rows(
     !admit_metadata(binding_count) {
     return Err(InvalidExecution)
   }
-  let (bindings, ordered) = match @lower.kernel_body(kernel) {
-    @lower.OrderedBindings(bindings) => (bindings, true)
-    @lower.SnapshotMap(bindings) => (bindings, false)
+  let (bindings, ordered, predicate) = match @lower.kernel_body(kernel) {
+    @lower.OrderedBindings(bindings) => (bindings, true, None)
+    @lower.SnapshotMap(bindings) => (bindings, false, None)
+    @lower.Filter(expression) => ([], false, Some(expression))
     _ => return Err(InvalidExecution)
   }
   if bindings.length() != binding_count {
@@ -545,6 +639,7 @@ pub fn start_bounded_binding_rows(
     input,
     available: fn() { producer_read_available(input) },
     bindings,
+    predicate,
     input_names,
     output_names,
     input_ordinals,
@@ -573,6 +668,7 @@ pub fn start_bounded_binding_rows(
     column: 0,
     snapshot: Map([]),
     binding_execution: None,
+    predicate_execution: None,
     values: [],
     slot_roots: [],
     output_row: [],

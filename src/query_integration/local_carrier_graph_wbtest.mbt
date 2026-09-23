@@ -528,6 +528,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"as\":\"same_carrier\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
   } else if variant == "normalize_filter" ||
+    variant == "normalize_filter_false" ||
     variant == "normalize_select" ||
     variant == "normalize_derive" ||
     variant == "normalize_take" {
@@ -541,6 +542,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"derive\":{\"copy\":\"id\"}"
     } else if variant == "normalize_take" {
       "\"take\":1"
+    } else if variant == "normalize_filter_false" {
+      "\"filter\":\"false\""
     } else {
       "\"filter\":\"true\""
     }) +
@@ -8432,9 +8435,17 @@ fn run_standard_host_mixed_graph_relation_path(
     obligations?=graph_publication_obligations(run, true),
   )
   let filtered_rows = local_managed_test_rows(filtered_ops)
-  let expected_rows = if variant == "normalize_take" { 1 } else { 2 }
+  let expected_rows = if variant == "normalize_take" {
+    1
+  } else if variant == "normalize_filter_false" {
+    0
+  } else {
+    2
+  }
   assert_eq(filtered_rows.length(), expected_rows)
-  if variant == "normalize_filter" {
+  if variant == "normalize_filter_false" {
+    assert_true(filtered_rows.is_empty())
+  } else if variant == "normalize_filter" {
     assert_eq(filtered_rows, projected_rows)
     assert_true(filtered_rows[0].contains("\"id\":1"))
     assert_true(filtered_rows[1].contains("\"id\":2"))
@@ -8516,6 +8527,11 @@ fn run_standard_host_mixed_graph_relation_path(
 ///|
 test "standard Host composes Graph projection and Relation filter" {
   run_standard_host_mixed_graph_relation_path()
+}
+
+///|
+test "standard Host suppresses rows after a Graph projection and false filter" {
+  run_standard_host_mixed_graph_relation_path(variant="normalize_filter_false")
 }
 
 ///|
