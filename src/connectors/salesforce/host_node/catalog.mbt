@@ -2,6 +2,7 @@
 pub(all) suberror SalesforceCatalogBridgeIssue {
   Listing(@catalog.ListingIssue)
   Sync(@catalog.CatalogSyncIssue)
+  Observation(@catalog.CatalogObservationIssue)
   InvalidResource
 }
 
@@ -163,4 +164,70 @@ pub fn salesforce_catalog_http_failure(
     InvalidMetadata => 4
     Cancelled => 5
   }
+}
+
+///|
+#export_name("salesforcePrepareCatalogObservation")
+pub fn salesforce_prepare_catalog_observation(
+  sync : @catalog.CatalogSync,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  list_use_cid : String,
+  describe_use_cids : Array[String?],
+  describe_response_sha256 : Array[String?],
+  max_bytes : Int,
+) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.prepare_catalog_observation(
+      sync, binding, list_use_cid, describe_use_cids, describe_response_sha256, max_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
+#export_name("salesforceCatalogObservationJson")
+pub fn salesforce_catalog_observation_json(
+  observation : @catalog.CatalogObservation,
+) -> String {
+  @catalog.catalog_observation_json(observation)
+}
+
+///|
+#export_name("salesforceCatalogObservationCid")
+pub fn salesforce_catalog_observation_cid(
+  observation : @catalog.CatalogObservation,
+) -> String {
+  @catalog.catalog_observation_identity(observation)
+}
+
+///|
+#export_name("salesforceCatalogResponseSha256")
+pub fn salesforce_catalog_response_sha256(bytes : Bytes) -> String {
+  @catalog.catalog_response_sha256(bytes)
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
@@ -135,6 +135,9 @@ function request(setup, overrides = {}) {
   return {
     moon: salesforceMoon,
     apiVersion: 'v62.0',
+    connectionRevision: 'connection-revision-a',
+    syncOccurrence: 'catalog-sync-a',
+    maxObservationBytes: 10000,
     listAuthorization: {...setup.list, useId: 'list-use'},
     authorizationForDescribe: async name => ({
       ...setup.describe, useId: `describe-${name}`,
@@ -151,6 +154,14 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
     const setup = await fixture(t);
     const result = await syncSalesforceCatalog(request(setup));
     assert.equal(result.status, 'complete');
+    assert.equal(result.observationCid,
+      salesforceMoon.salesforceCatalogObservationCid(result.observation));
+    assert.equal(result.observationCid, `sha256:${createHash('sha256')
+      .update(result.observationJson).digest('hex')}`);
+    assert.equal(JSON.parse(result.observationJson).binding.connection_revision,
+      'connection-revision-a');
+    assert.deepEqual(JSON.parse(result.observationJson).listed_resources.map(
+      entry => entry.outcome), ['described', 'described']);
     assert.equal(result.describeUseCids.length, 2);
     assert.equal(salesforceMoon.salesforceCatalogResourceState(
       result.sync, 'Account'), 1);
@@ -173,6 +184,12 @@ test('rate-limited describe remains partial with its physical use failed',
       customResponse: '[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]'});
     const result = await syncSalesforceCatalog(request(setup));
     assert.equal(result.status, 'partial');
+    assert.deepEqual(JSON.parse(result.observationJson).listed_resources.map(
+      entry => entry.outcome), ['described', 'rate_limited']);
+    assert.equal(JSON.parse(result.observationJson).listed_resources[1]
+      .response_sha256, createHash('sha256')
+      .update('[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]')
+      .digest('hex'));
     assert.equal(salesforceMoon.salesforceCatalogResourceState(
       result.sync, 'Account'), 1);
     assert.equal(salesforceMoon.salesforceCatalogResourceState(
@@ -193,6 +210,8 @@ test('foreign Site generation is rejected before a describe request',
       }),
     }));
     assert.equal(result.status, 'interrupted');
+    assert.deepEqual(JSON.parse(result.observationJson).listed_resources.map(
+      entry => entry.use_cid === null), [true, true]);
     assert.equal(result.interruptionCode, 'ForeignSalesforceCatalogBinding');
     assert.equal(setup.seen.length, 1);
     assert.equal(salesforceMoon.salesforceCatalogResourceState(

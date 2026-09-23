@@ -12,7 +12,8 @@ const bindingKeys = Object.freeze([
   'runInvocationCid', 'taskAttempt', 'dispatchRequestCid',
 ]);
 
-const count = value => Number.isSafeInteger(value) && value >= 0;
+const count = value => Number.isInteger(value) && value >= 0 &&
+  value <= 2_147_483_647;
 const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
@@ -31,7 +32,8 @@ function validateLimits(limits) {
 function validateAuthorization(authorization, operation, originalScope) {
   if (!authorization || typeof authorization.useId !== 'string' ||
       authorization.useId.length === 0 || !authorization.grant ||
-      !authorization.scope || authorization.scope.operation !== operation) {
+      !authorization.scope || authorization.scope.operation !== operation ||
+      !count(authorization.scope.siteGeneration)) {
     fail('InvalidSalesforceCatalogAuthorization');
   }
   if (originalScope !== undefined && bindingKeys.some(
@@ -62,6 +64,9 @@ async function scopedGet({authorization, path, maxBytes, credential,
 export async function syncSalesforceCatalog({
   moon,
   apiVersion,
+  connectionRevision,
+  syncOccurrence,
+  maxObservationBytes,
   listAuthorization,
   authorizationForDescribe,
   credential,
@@ -71,6 +76,10 @@ export async function syncSalesforceCatalog({
   signal,
 }) {
   if (!moon || !versionPattern.test(apiVersion) ||
+      typeof connectionRevision !== 'string' ||
+      connectionRevision.length === 0 ||
+      typeof syncOccurrence !== 'string' || syncOccurrence.length === 0 ||
+      !count(maxObservationBytes) || maxObservationBytes === 0 ||
       typeof authorizationForDescribe !== 'function' ||
       !credential || typeof callResource !== 'function') {
     fail('InvalidSalesforceCatalogSync');
@@ -108,7 +117,9 @@ export async function syncSalesforceCatalog({
     listLimits.maxNameUnits,
   ));
   const sync = moon.salesforceCatalogBegin(listing);
+  const selectedNames = moon.salesforceCatalogResourceNames(listing);
   const describeUseCids = [];
+  const describeResponseSha256 = [];
   let interruptionCode;
   while (true) {
     const name = moon.salesforceCatalogNext(sync);
@@ -131,6 +142,8 @@ export async function syncSalesforceCatalog({
         signal,
       });
       describeUseCids.push(response.useCid);
+      describeResponseSha256.push(
+        moon.salesforceCatalogResponseSha256(response.body));
       if (response.accepted) {
         checked(moon.salesforceCatalogDescribe(
           sync, name, response.body,
@@ -158,14 +171,41 @@ export async function syncSalesforceCatalog({
     }
   }
   const complete = checked(moon.salesforceCatalogFinish(sync));
+  while (describeUseCids.length < selectedNames.length) {
+    describeUseCids.push(undefined);
+    describeResponseSha256.push(undefined);
+  }
+  const observation = checked(moon.salesforcePrepareCatalogObservation(
+    sync,
+    listScope.tenant,
+    listScope.principal,
+    listScope.environment,
+    connectionRevision,
+    listScope.siteKey,
+    listScope.siteGeneration,
+    listScope.connectorRegistration,
+    listScope.connectorRevision,
+    listScope.resourceOrigin,
+    listScope.runInvocationCid,
+    listScope.dispatchRequestCid,
+    syncOccurrence,
+    listResponse.useCid,
+    describeUseCids,
+    describeResponseSha256,
+    maxObservationBytes,
+  ));
   return Object.freeze({
     sync,
     listing,
+    observation,
+    observationCid: moon.salesforceCatalogObservationCid(observation),
+    observationJson: moon.salesforceCatalogObservationJson(observation),
     status: interruptionCode !== undefined
       ? 'interrupted'
       : complete ? 'complete' : 'partial',
     interruptionCode,
     listUseCid: listResponse.useCid,
     describeUseCids: Object.freeze(describeUseCids),
+    describeResponseSha256: Object.freeze(describeResponseSha256),
   });
 }
