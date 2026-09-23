@@ -255,6 +255,78 @@ try {
   const recovered = await run('recover');
   assert.equal(recovered.length, 2);
   assert.ok(recovered.every(value => value.state[1] === '3'));
+  const multiExecutable = Buffer.from('native-multi-runtime');
+  const multiLibrary = Buffer.from('native-multi-library');
+  const multiManifest = control.prepare({
+    issuerAuthority: 'bundle-authority-a',
+    bundleName: 'native-site-runtime',
+    revision: 'multi',
+    targetTriple,
+    components: [
+      {
+        role: 'duckdb_library',
+        cid: `sha256:${createHash('sha256')
+          .update(multiLibrary).digest('hex')}`,
+        bytes: BigInt(multiLibrary.byteLength),
+      },
+      {
+        role: 'runtime_executable',
+        cid: `sha256:${createHash('sha256')
+          .update(multiExecutable).digest('hex')}`,
+        bytes: BigInt(multiExecutable.byteLength),
+      },
+    ],
+    connectorRegistration: 'local',
+    connectorRevision: 'local/multi',
+    strategyRevision: 'strategy/multi',
+  });
+  const multiEnvelope = signRemoteRuntimeBundle(multiManifest, control, {
+    keyId: 'key-b',
+    privateKey: keysB.privateKey,
+  });
+  await Promise.all([
+    writeFile(join(inputRoot, 'multi-library.bin'), multiLibrary),
+    writeFile(join(inputRoot, 'multi-executable.bin'), multiExecutable),
+    writeFile(join(inputRoot, 'multi-manifest.json'), multiEnvelope.body),
+    writeFile(join(inputRoot, 'multi-signature.txt'),
+      multiEnvelope.signature),
+  ]);
+  const multiCid = control.identity(multiManifest);
+  const multiArguments = [
+    'install',
+    '--signature-key-id', 'key-b',
+    '--bundle-cid', multiCid,
+    '--input-root', inputRoot,
+    '--manifest-name', 'multi-manifest.json',
+    '--signature-name', 'multi-signature.txt',
+  ];
+  await assert.rejects(
+    run(...multiArguments, '--install-id', 'multi-missing',
+      '--component-file', 'runtime_executable=multi-executable.bin'),
+    error => `${error.stdout}\n${error.stderr}`
+      .includes('component-file inventory mismatch'),
+  );
+  await assert.rejects(
+    run(...multiArguments, '--install-id', 'multi-swapped',
+      '--component-file', 'duckdb_library=multi-executable.bin',
+      '--component-file', 'runtime_executable=multi-library.bin'),
+    error => `${error.stdout}\n${error.stderr}`
+      .includes('component'),
+  );
+  assert.deepEqual((await run(
+    ...multiArguments,
+    '--install-id', 'multi-valid',
+    '--component-file', 'duckdb_library=multi-library.bin',
+    '--component-file', 'runtime_executable=multi-executable.bin',
+  )).state, ['0', '0', '0']);
+  assert.equal((await run('verify', '--bundle-cid', multiCid))
+    .runtime_bundle_cid, multiCid);
+  assert.equal((await run('capacity')).reserved_bytes,
+    String(multiLibrary.byteLength + multiExecutable.byteLength));
+  await run('activate', '--bundle-cid', multiCid);
+  await run('drain', '--bundle-cid', multiCid);
+  await run('reclaim', '--bundle-cid', multiCid);
+  assert.equal((await run('capacity')).reserved_bytes, '0');
   for (let number = 3; number <= 13; number += 1) {
     const bundle = await prepare(
       number,
@@ -264,8 +336,8 @@ try {
     );
     await install(number, bundle);
   }
-  assert.equal((await run('list')).length, 13);
-  assert.equal((await run('recover')).length, 13);
+  assert.equal((await run('list')).length, 14);
+  assert.equal((await run('recover')).length, 14);
   console.log('Native runtime bundle CLI lifecycle passed');
 } finally {
   await rm(root, {recursive: true, force: true});

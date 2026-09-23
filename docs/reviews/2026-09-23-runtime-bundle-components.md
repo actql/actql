@@ -18,9 +18,13 @@ single-component JSON body is not admitted by defaulting a missing inventory.
 The old single-component API now prepares a one-entry inventory. It does not
 give a DuckDB Site authority to load an unbound library. Fixed native test
 signatures and CIDs have been regenerated independently for the corrected
-body. Node and native Stores still reject a multi-component inventory because
-their physical custody remains single-component; this is an intermediate
-fail-closed state, not product completion.
+body. The native Store now retains the component bytes as one bounded physical
+allocation, concatenated in the signed role order. Signed lengths frame the
+allocation, and each component is hashed independently before activation.
+Its install command accepts an exact `role=name` mapping for each component.
+The Node Store still rejects a multi-component inventory. Native DuckDB
+execution also remains blocked until its loader consumes the Store-owned
+library component rather than an independent path.
 
 Repository fixtures and tests include signed single-component bodies,
 including native Store restart cases; those vectors were regenerated as
@@ -34,9 +38,11 @@ authority just because a historical signature verifies.
 ## Completion conditions
 
 Each signed component needs exact byte verification, bounded physical custody,
-capacity accounting, durable retention, release and cleanup. The Node and
-native bundle Stores currently own one component; a multi-component manifest
-must remain inadmissible there until the complete physical lifecycle exists.
+capacity accounting, durable retention, release and cleanup. Native custody
+uses one allocation for the complete ordered inventory, so reclaim and
+capacity account for the whole bundle rather than an untracked sidecar.
+The Node Store must remain fail-closed for multi-component manifests until it
+has a corresponding physical lifecycle.
 The native loader must consume the admitted library generation, not an
 independent path argument, and must not create unaccounted temporary copies or
 lose cleanup responsibility. Existing single-component installation must

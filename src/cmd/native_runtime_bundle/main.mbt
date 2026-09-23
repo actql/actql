@@ -326,6 +326,167 @@ fn write_snapshots_with_limits(
 }
 
 ///|
+fn close_failed_component_read(
+  reader : @filesystem.Reader,
+  message : String,
+) -> String {
+  match reader.close() {
+    Ok(_) => message
+    Err(issue) => message + "; source close " + filesystem_issue_code(issue)
+  }
+}
+
+///|
+fn append_bundle_component(
+  root : @filesystem.Root,
+  name : String,
+  expected_bytes : Int64,
+  installer : @runtime_bundle.NativeRuntimeBundleInstaller,
+) -> Result[Unit, String] {
+  let generation = match root.inspect_generation(name) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err("component missing")
+    Err(issue) => return Err("component " + filesystem_issue_code(issue))
+  }
+  if generation.size != expected_bytes {
+    return Err("component size mismatch")
+  }
+  let reader = match root.open_reader(name, generation) {
+    Ok(value) => value
+    Err(issue) => return Err("component " + filesystem_issue_code(issue))
+  }
+  let mut eof = false
+  while !eof {
+    let chunk = match reader.next(65536) {
+      Ok(value) => value
+      Err(issue) => {
+        return Err(close_failed_component_read(
+          reader, "component " + filesystem_issue_code(issue),
+        ))
+      }
+    }
+    if !chunk.bytes.is_empty() {
+      match installer.append(chunk.bytes) {
+        Ok(_) => ()
+        Err(issue) => {
+          return Err(close_failed_component_read(
+            reader, "install " + store_issue_code(issue),
+          ))
+        }
+      }
+    }
+    eof = chunk.eof
+  }
+  match reader.finish() {
+    Ok(_) => ()
+    Err(issue) => {
+      return Err(close_failed_component_read(
+        reader, "component " + filesystem_issue_code(issue),
+      ))
+    }
+  }
+  match reader.close() {
+    Ok(_) => Ok(())
+    Err(issue) => Err("component close " + filesystem_issue_code(issue))
+  }
+}
+
+///|
+fn cancel_failed_install(
+  installer : @runtime_bundle.NativeRuntimeBundleInstaller,
+  message : String,
+) -> Result[@runtime_bundle.NativeRuntimeBundleSnapshot, String] {
+  match installer.cancel() {
+    Ok(_) => Err(message)
+    Err(issue) =>
+      Err(message + "; destination cleanup " + store_issue_code(issue))
+  }
+}
+
+///|
+fn install_multi_bundle(
+  store : @runtime_bundle.NativeRuntimeBundleStore,
+  matches : @argparse.Matches,
+  signature_key_id : String,
+  body : String,
+  signature : String,
+  manifest : @bundle.RemoteBundleManifest,
+) -> Result[@runtime_bundle.NativeRuntimeBundleSnapshot, String] {
+  if matches.values.get("component-name") is Some(_) {
+    return Err("multi-component install requires --component-file")
+  }
+  let components = @bundle.bundle_manifest_components_projection(manifest)
+  let supplied = matches.values.get("component-file").unwrap_or([])
+  if supplied.length() != components.length() {
+    return Err("component-file inventory mismatch")
+  }
+  let names : Array[String] = []
+  for component in components {
+    let prefix = component[0] + "="
+    let mut selected : String? = None
+    for mapping in supplied {
+      if mapping.has_prefix(prefix) {
+        if selected is Some(_) {
+          return Err("repeated component-file role")
+        }
+        selected = Some(mapping[prefix.length():].to_owned())
+      }
+    }
+    guard selected is Some(name) && !name.is_empty() else {
+      return Err("missing component-file role")
+    }
+    names.push(name)
+  }
+  let input_root_path = match option(matches, "input-root") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let input_root = match @filesystem.open_root(input_root_path) {
+    Ok(value) => value
+    Err(issue) => return Err("component " + filesystem_issue_code(issue))
+  }
+  let install_id = match option(matches, "install-id") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let version = match option(matches, "signature-version") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let cid = match option(matches, "bundle-cid") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let installer = match
+    store.begin_install(
+      install_id, version, signature_key_id, cid, body, signature,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err("install " + store_issue_code(issue))
+  }
+  for index = 0; index < components.length(); index = index + 1 {
+    let expected_bytes : Int64 = @string.from_str(components[index][2]) catch {
+      _ => return cancel_failed_install(installer, "invalid component length")
+    }
+    match
+      append_bundle_component(
+        input_root,
+        names[index],
+        expected_bytes,
+        installer,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return cancel_failed_install(installer, issue)
+    }
+  }
+  match installer.seal() {
+    Ok(value) => Ok(value)
+    Err(issue) =>
+      cancel_failed_install(installer, "install " + store_issue_code(issue))
+  }
+}
+
+///|
 fn install_bundle(
   store : @runtime_bundle.NativeRuntimeBundleStore,
   matches : @argparse.Matches,
@@ -334,6 +495,41 @@ fn install_bundle(
   let input_root_path = match option(matches, "input-root") {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let manifest_name = match option(matches, "manifest-name") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let signature_name = match option(matches, "signature-name") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let claimed_cid = match option(matches, "bundle-cid") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let manifest_body = match
+    read_text_file(input_root_path, manifest_name, 65536L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let parsed = match
+    @bundle.admit_bundle_manifest_json(manifest_body, claimed_cid) {
+    Ok(value) => value
+    Err(_) => return Err("invalid signed bundle manifest")
+  }
+  if @bundle.bundle_manifest_component_count(parsed) > 1 {
+    let signature = match
+      read_text_file(input_root_path, signature_name, 4096L) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    return install_multi_bundle(
+      store, matches, signature_key_id, manifest_body, signature, parsed,
+    )
+  }
+  if matches.values.get("component-file") is Some(_) {
+    return Err("single-component install uses --component-name")
   }
   let component_name = match option(matches, "component-name") {
     Ok(value) => value
@@ -603,7 +799,12 @@ fn command() -> @argparse.Command {
           @argparse.OptionArg("input-root", required=true),
           @argparse.OptionArg("manifest-name", required=true),
           @argparse.OptionArg("signature-name", required=true),
-          @argparse.OptionArg("component-name", required=true),
+          @argparse.OptionArg("component-name"),
+          @argparse.OptionArg(
+            "component-file",
+            about="Repeated role=name mapping for signed components",
+            action=Append,
+          ),
         ],
       ),
       @argparse.Command("activate", options=[cid]),

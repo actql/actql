@@ -44,6 +44,30 @@ fn native_bundle_signature(revision : String) -> String {
 }
 
 ///|
+fn native_multi_component_body() -> String {
+  "{\"bundle_name\":\"native-runtime\",\"components\":[{" +
+  "\"bytes\":\"11\",\"cid\":\"sha256:" +
+  "35ef6ad3a76f64e3c6f2ede2ba4e7928a0a6a30596f55db828e393bc5f2867d2\"," +
+  "\"role\":\"duckdb_library\"},{\"bytes\":\"11\",\"cid\":\"sha256:" +
+  "5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f\"," +
+  "\"role\":\"runtime_executable\"}]," +
+  "\"connector_registration\":\"local\",\"connector_revision\":\"local/multi\"," +
+  "\"issuer_authority\":\"bundle-authority-a\",\"revision\":\"native/multi\"," +
+  "\"strategy_revision\":\"strategy/1\",\"target_triple\":\"aarch64-apple-darwin\"," +
+  "\"version\":\"actql-remote-runtime-bundle/0.1\"}"
+}
+
+///|
+fn native_multi_component_cid() -> String {
+  "sha256:9f915475d99825b4008ac79d4fab4c83f7c12acc52b304808f7517b6ec7bbf61"
+}
+
+///|
+fn native_multi_component_signature() -> String {
+  "w25OutirsHgPKNo0Q5sLBvevrmDckxqYBm9WcOVUnTzodGs6UPkbG2nMJCKvXvUINo-KzlG9A55IUlvuVfM9Bg"
+}
+
+///|
 fn native_bundle_authorities() -> Array[NativeRuntimeBundleAuthority] {
   [
     {
@@ -429,7 +453,7 @@ test "native bundle adoption rejects altered authority and generation" {
 }
 
 ///|
-test "single-component native Store rejects a signed library inventory" {
+test "native Store rejects an incomplete signed component allocation" {
   guard native_bundle_fixture("multi-component")
     is Some((store, generation, artifact_name, _, _)) else {
     return
@@ -453,15 +477,17 @@ test "single-component native Store rejects a signed library inventory" {
       "actql-remote-runtime-bundle-signature/0.1", "key-a", cid, body, signature,
       artifact_name, generation,
     )
-    is Err(AdmissionRejected),
+    is Err(ComponentMismatch),
   )
-  assert_true(
-    store.begin_install(
+  let installer = store
+    .begin_install(
       "multi-component", "actql-remote-runtime-bundle-signature/0.1", "key-a", cid,
       body, signature,
     )
-    is Err(AdmissionRejected),
-  )
+    .unwrap()
+  installer.append(b"runtime-one").unwrap()
+  assert_true(installer.seal() is Err(ComponentMismatch))
+  installer.cancel().unwrap()
   assert_eq(store.list().unwrap().length(), original_count)
   let final_usage = store.capacity_usage().unwrap()
   assert_eq(final_usage.reserved_bytes, original_usage.reserved_bytes)
@@ -873,4 +899,76 @@ test "rotated bundle key verifies history without admitting new bundles" {
   current.drain(installed.runtime_bundle_cid).unwrap() |> ignore
   current.reclaim(installed.runtime_bundle_cid).unwrap() |> ignore
   assert_true(current.close().unwrap())
+}
+
+///|
+test "native bundle Store verifies all signed v0.1 components" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_MULTI_STORE_ROOT")
+    is Some(root_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY")
+    is Some(crypto_path) else {
+    return
+  }
+  let sqlite = @sqlite.load_library(sqlite_path).unwrap()
+  let crypto = @signature.load_library(crypto_path).unwrap()
+  let store = open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    native_bundle_authorities(),
+    "aarch64-apple-darwin",
+    22L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  let body = native_multi_component_body()
+  let signature = native_multi_component_signature()
+  let cid = native_multi_component_cid()
+  let wrong = store
+    .begin_install(
+      "multi-wrong", "actql-remote-runtime-bundle-signature/0.1", "key-a", cid, body,
+      signature,
+    )
+    .unwrap()
+  wrong.append(b"runtime-one").unwrap()
+  wrong.append(b"library-two").unwrap()
+  assert_true(wrong.seal() is Err(ComponentMismatch))
+  wrong.cancel().unwrap()
+  let installer = store
+    .begin_install(
+      "multi-correct", "actql-remote-runtime-bundle-signature/0.1", "key-a", cid,
+      body, signature,
+    )
+    .unwrap()
+  installer.append(b"library-two").unwrap()
+  installer.append(b"runtime-one").unwrap()
+  let installed = installer.seal().unwrap()
+  assert_eq(installed.runtime_bundle_cid, cid)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 22L)
+  ignore(store.close().unwrap())
+  let reopened = open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    native_bundle_authorities(),
+    "aarch64-apple-darwin",
+    22L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 22L)
+  ignore(reopened.verify(cid).unwrap())
+  ignore(reopened.activate(cid).unwrap())
+  ignore(reopened.drain(cid).unwrap())
+  ignore(reopened.reclaim(cid).unwrap())
+  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 0L)
+  ignore(reopened.close().unwrap())
 }

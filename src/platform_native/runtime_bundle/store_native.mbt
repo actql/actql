@@ -70,9 +70,30 @@ struct NativeRuntimeBundleInstaller {
   runtime_bundle_cid : String
   physical : @filesystem.Writer
   hash : @sha.Hasher
+  component_count : Int
   mut sealed_generation : @filesystem.NativeFileGeneration?
   mut sealed_digest : String
   mut closed : Bool
+}
+
+///|
+/// A Store allocation contains component bytes concatenated in the signed
+/// manifest order. Exact lengths make the framing unambiguous without a
+/// second, unsigned index or a second physical allocation.
+fn bundle_allocation_bytes(
+  manifest : @bundle.RemoteBundleManifest,
+) -> Result[Int64, NativeRuntimeBundleStoreIssue] {
+  let mut total = 0L
+  for component in @bundle.bundle_manifest_components_projection(manifest) {
+    let size : Int64 = @string.from_str(component[2]) catch {
+      _ => return Err(ComponentMismatch)
+    }
+    if size < 0L || size > 9223372036854775807L - total {
+      return Err(CapacityExceeded)
+    }
+    total = total + size
+  }
+  Ok(total)
 }
 
 ///|
@@ -669,8 +690,10 @@ fn decode_staging(
     Err(_) => raise NativeBundleCatalogStop
   }
   let component_bytes = signed_int64(text(object, "component_bytes"))
-  let projection = @bundle.bundle_manifest_projection(manifest)
-  let expected_bytes = signed_int64(projection[6])
+  let expected_bytes = match bundle_allocation_bytes(manifest) {
+    Ok(value) => value
+    Err(_) => raise NativeBundleCatalogStop
+  }
   let install_id = text(object, "install_id")
   let artifact_name = text(object, "artifact_name")
   let staging_name = text(object, "staging_name")
@@ -1223,9 +1246,9 @@ fn verify_component(
   store : NativeRuntimeBundleStore,
   entry : NativeRuntimeBundleEntry,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  let projection = @bundle.bundle_manifest_projection(entry.manifest)
-  let expected_bytes : Int64 = @string.from_str(projection[6]) catch {
-    _ => return Err(ComponentMismatch)
+  let expected_bytes = match bundle_allocation_bytes(entry.manifest) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   if entry.generation.size != expected_bytes ||
     !store.root.verify_generation(entry.artifact_name, entry.generation) {
@@ -1238,29 +1261,63 @@ fn verify_component(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let hash = @sha.hasher()
   let mut total = 0L
-  let mut eof = false
-  while !eof {
-    let chunk = match filesystem_result(reader.next(65536)) {
-      Ok(value) => value
-      Err(issue) => {
-        ignore(reader.close())
-        return Err(issue)
-      }
-    }
-    @sha.update(hash, chunk.bytes) catch {
+  for component in @bundle.bundle_manifest_components_projection(entry.manifest) {
+    let expected_component_bytes : Int64 = @string.from_str(component[2]) catch {
       _ => {
         ignore(reader.close())
         return Err(ComponentMismatch)
       }
     }
-    total = total + chunk.bytes.length().to_int64()
-    if total > expected_bytes {
+    let hash = @sha.hasher()
+    let mut remaining = expected_component_bytes
+    while remaining > 0L {
+      let limit = if remaining < 65536L { remaining.to_int() } else { 65536 }
+      let chunk = match filesystem_result(reader.next(limit)) {
+        Ok(value) => value
+        Err(issue) => {
+          ignore(reader.close())
+          return Err(issue)
+        }
+      }
+      if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > remaining {
+        ignore(reader.close())
+        return Err(ComponentMismatch)
+      }
+      @sha.update(hash, chunk.bytes) catch {
+        _ => {
+          ignore(reader.close())
+          return Err(ComponentMismatch)
+        }
+      }
+      remaining = remaining - chunk.bytes.length().to_int64()
+      total = total + chunk.bytes.length().to_int64()
+      if chunk.eof && remaining > 0L {
+        ignore(reader.close())
+        return Err(ComponentMismatch)
+      }
+    }
+    let digest = @sha.finish_hex(hash) catch {
+      _ => {
+        ignore(reader.close())
+        return Err(ComponentMismatch)
+      }
+    }
+    if "sha256:" + digest != component[1] {
       ignore(reader.close())
       return Err(ComponentMismatch)
     }
-    eof = chunk.eof
+  }
+  let terminal = match filesystem_result(reader.next(1)) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(reader.close())
+      return Err(issue)
+    }
+  }
+  if !terminal.eof || !terminal.bytes.is_empty() {
+    ignore(reader.close())
+    return Err(ComponentMismatch)
   }
   match filesystem_result(reader.finish()) {
     Ok(_) => ()
@@ -1273,10 +1330,7 @@ fn verify_component(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let digest = @sha.finish_hex(hash) catch {
-    _ => return Err(ComponentMismatch)
-  }
-  if total != expected_bytes || "sha256:" + digest != projection[5] {
+  if total != expected_bytes {
     Err(ComponentMismatch)
   } else {
     Ok(())
@@ -1603,14 +1657,9 @@ pub fn NativeRuntimeBundleStore::begin_install(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  // This installer owns exactly one physical component. A bundle with a
-  // library sidecar requires the multi-component custody path.
-  if @bundle.bundle_manifest_component_count(manifest) != 1 {
-    return Err(AdmissionRejected)
-  }
-  let projection = @bundle.bundle_manifest_projection(manifest)
-  let component_bytes : Int64 = @string.from_str(projection[6]) catch {
-    _ => return Err(ComponentMismatch)
+  let component_bytes = match bundle_allocation_bytes(manifest) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   if component_bytes < 0L {
     return Err(ComponentMismatch)
@@ -1701,6 +1750,7 @@ pub fn NativeRuntimeBundleStore::begin_install(
     runtime_bundle_cid,
     physical,
     hash: @sha.hasher(),
+    component_count: @bundle.bundle_manifest_component_count(manifest),
     sealed_generation: None,
     sealed_digest: "",
     closed: false,
@@ -1719,8 +1769,10 @@ pub fn NativeRuntimeBundleInstaller::append(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  @sha.update(self.hash, chunk) catch {
-    _ => return Err(StateCollision)
+  if self.component_count == 1 {
+    @sha.update(self.hash, chunk) catch {
+      _ => return Err(StateCollision)
+    }
   }
   Ok(())
 }
@@ -1750,11 +1802,13 @@ pub fn NativeRuntimeBundleInstaller::seal(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let digest = @sha.finish_hex(self.hash) catch {
-      _ => return Err(ComponentMismatch)
-    }
     self.sealed_generation = Some(generation)
-    self.sealed_digest = "sha256:" + digest
+    if self.component_count == 1 {
+      let digest = @sha.finish_hex(self.hash) catch {
+        _ => return Err(ComponentMismatch)
+      }
+      self.sealed_digest = "sha256:" + digest
+    }
   }
   let generation = self.sealed_generation.unwrap()
   expected = match expected.phase {
@@ -1776,7 +1830,7 @@ pub fn NativeRuntimeBundleInstaller::seal(
     Intent => return Err(StateCollision)
   }
   let projection = @bundle.bundle_manifest_projection(expected.manifest)
-  if self.sealed_digest != projection[5] {
+  if self.component_count == 1 && self.sealed_digest != projection[5] {
     return Err(ComponentMismatch)
   }
   if generation.size != expected.component_bytes ||
@@ -1793,6 +1847,12 @@ pub fn NativeRuntimeBundleInstaller::seal(
     record: @bundle.open_bundle_record(expected.manifest),
     holds: [],
     reclaim_pending: false,
+  }
+  if self.component_count > 1 {
+    match verify_component(self.store, candidate) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   let current = match load_catalog(self.store) {
     Ok(value) => value
@@ -1917,12 +1977,9 @@ pub fn NativeRuntimeBundleStore::adopt(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if @bundle.bundle_manifest_component_count(manifest) != 1 {
-    return Err(AdmissionRejected)
-  }
-  let projection = @bundle.bundle_manifest_projection(manifest)
-  let component_bytes : Int64 = @string.from_str(projection[6]) catch {
-    _ => return Err(ComponentMismatch)
+  let component_bytes = match bundle_allocation_bytes(manifest) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   if generation.size != component_bytes {
     return Err(ComponentMismatch)
