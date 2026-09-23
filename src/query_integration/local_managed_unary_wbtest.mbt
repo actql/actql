@@ -313,6 +313,12 @@ fn run_local_managed_unary_case(
     unary_live,
     obligations?=unary_obligations,
     execution_quantum=if kind == "select" ||
+      kind == "rename" ||
+      kind == "rename_swap" ||
+      kind == "rename_empty" ||
+      kind == "drop" ||
+      kind == "drop_empty" ||
+      kind == "drop_repeated" ||
       kind == "filter_text" ||
       kind == "filter_structured" ||
       kind == "filter_null" ||
@@ -327,6 +333,12 @@ fn run_local_managed_unary_case(
     execution_advances=Some(bounded_advances),
   )
   if kind == "select" ||
+    kind == "rename" ||
+    kind == "rename_swap" ||
+    kind == "rename_empty" ||
+    kind == "drop" ||
+    kind == "drop_empty" ||
+    kind == "drop_repeated" ||
     kind == "filter_text" ||
     kind == "filter_structured" ||
     kind == "filter_null" ||
@@ -470,6 +482,20 @@ test "ordinary Local filters resume within quantum" {
 ///|
 test "ordinary Local select preserves authored order within quantum" {
   run_local_managed_unary_case("select")
+}
+
+///|
+test "ordinary Local rename resumes within quantum" {
+  for kind in ["rename", "rename_swap", "rename_empty"] {
+    run_local_managed_unary_case(kind)
+  }
+}
+
+///|
+test "ordinary Local drop resumes within quantum" {
+  for kind in ["drop", "drop_empty", "drop_repeated"] {
+    run_local_managed_unary_case(kind)
+  }
 }
 
 ///|
