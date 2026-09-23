@@ -20,6 +20,18 @@ pub fn effect_row_recovery_action(LogicalItemLocator, String, EffectDispatchKey,
 
 pub fn effect_row_recovery_action_from_store(LogicalItemLocator, String, EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
+pub fn effect_set_frontier(Array[EffectMemberProgress], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+
+pub fn effect_set_frontier_from_codes(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+
+pub fn effect_set_frontier_outcome_code(EffectSetFrontier) -> Int
+
+pub fn effect_set_frontier_ready_count(EffectSetFrontier) -> Int
+
+pub fn effect_set_frontier_ready_member(EffectSetFrontier, Int) -> Int
+
+pub fn effect_set_frontier_ready_row(EffectSetFrontier, Int) -> Int
+
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
 pub fn logical_request_scope_cid(LogicalRequestScope) -> String
@@ -64,6 +76,26 @@ pub(all) enum EffectIdentityIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
+pub(all) enum EffectItemFailurePolicy {
+  HaltMember
+  ContinueMember
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectItemProgress {
+  ItemUnattempted
+  ItemSending
+  ItemApplied
+  ItemAccepted
+  ItemFailed
+  ItemUnknown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectMemberProgress {
+  effect_id : String
+  policy : EffectItemFailurePolicy
+  rows : Array[EffectItemProgress]
+}
+
 pub(all) enum EffectRowAction {
   PersistPrepared
   ClaimPrepared
@@ -92,6 +124,25 @@ pub(all) enum EffectRowState {
   Accepted
   Failed
   Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectSetFrontier {
+  ready : Array[(Int, Int)]
+  outcome : EffectSetOutcome
+}
+
+pub(all) enum EffectSetOutcome {
+  SetRunning
+  SetSucceeded
+  SetFailed
+  SetNeedsReconciliation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectSetProgressIssue {
+  InvalidLimits
+  InvalidMember
+  CapacityExceeded
+  InvalidHistory
 } derive(Eq, @debug.Debug)
 
 pub struct LogicalItemLocator {

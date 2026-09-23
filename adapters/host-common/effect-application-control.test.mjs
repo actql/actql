@@ -33,3 +33,16 @@ test('standard Host bridge uses the portable logical Effect identities', () => {
     effect.logicalItemLocatorCid(locator), cid('d'),
     effect.dispatchKeyCid(key), cid('c'), 2, false), 8);
 });
+
+test('Effect Set frontier keeps member order independent of row halt', () => {
+  const frontier = effect.setFrontier(
+    ['first', 'second'],
+    [0, 1],
+    [[2, 4, 0], [5, 0]],
+    2, 5, 24,
+  );
+  assert.equal(effect.setFrontierOutcome(frontier), 0);
+  assert.equal(effect.setFrontierReadyCount(frontier), 1);
+  assert.equal(effect.setFrontierReadyMember(frontier, 0), 1);
+  assert.equal(effect.setFrontierReadyRow(frontier, 0), 1);
+});
