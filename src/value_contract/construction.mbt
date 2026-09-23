@@ -30,6 +30,13 @@ pub fn with_nullability(value : Contract, nullable : Bool) -> Contract {
 }
 
 ///|
+/// Root nullability of an admitted contract. Nested field nullability is
+/// inspected through the corresponding nested contract instead.
+pub fn contract_nullable(value : Contract) -> Bool {
+  value.nullable
+}
+
+///|
 /// The kind of a non-null value-level ResourceRef. This does not establish
 /// that the reference exists or that the caller may use its target.
 pub fn nonnull_resource_ref_kind(value : Contract) -> String? {
