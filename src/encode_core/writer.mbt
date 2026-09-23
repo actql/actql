@@ -164,6 +164,22 @@ fn hash_byte(
   @sha256.update_byte(h, byte.to_byte()) catch {
     @sha256.ClosedHasher => fail(w, ClosedWriter)
     @sha256.MessageTooLong => fail(w, OutputLimit)
+    @sha256.InvalidAsciiRange => fail(w, InvalidUnicode)
+  }
+}
+
+///|
+fn hash_ascii_range(
+  w : Writer,
+  h : @sha256.Hasher,
+  text : String,
+  start : Int,
+  end : Int,
+) -> Unit raise EncodeFailure {
+  @sha256.update_ascii_range(h, text, start, end) catch {
+    @sha256.ClosedHasher => fail(w, ClosedWriter)
+    @sha256.MessageTooLong => fail(w, OutputLimit)
+    @sha256.InvalidAsciiRange => fail(w, InvalidUnicode)
   }
 }
 
@@ -213,14 +229,9 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   match w.output {
     TextOutput(output) => output.write_string(text)
     MeasureOutput => ()
-    HashOutput(h) =>
-      for unit in text {
-        hash_byte(w, h, unit.to_int())
-      }
+    HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
     BufferedHashOutput(buffer) => {
-      for unit in text {
-        hash_byte(w, buffer.hash, unit.to_int())
-      }
+      hash_ascii_range(w, buffer.hash, text, 0, text.length())
       buffer.text.write_string(text)
     }
   }
@@ -332,14 +343,9 @@ fn ascii_span(
     MeasureOutput => ()
     TextOutput(output) =>
       output.write_string(text.unsafe_substring(start~, end~))
-    HashOutput(hash) =>
-      for i in start..<end {
-        hash_byte(w, hash, text[i].to_int())
-      }
+    HashOutput(hash) => hash_ascii_range(w, hash, text, start, end)
     BufferedHashOutput(buffer) => {
-      for i in start..<end {
-        hash_byte(w, buffer.hash, text[i].to_int())
-      }
+      hash_ascii_range(w, buffer.hash, text, start, end)
       buffer.text.write_string(text.unsafe_substring(start~, end~))
     }
   }
@@ -572,6 +578,7 @@ pub fn finish_hash_metrics(
   let hex = @sha256.finish_hex(h) catch {
     @sha256.ClosedHasher => fail(w, ClosedWriter)
     @sha256.MessageTooLong => fail(w, OutputLimit)
+    @sha256.InvalidAsciiRange => fail(w, InvalidUnicode)
   }
   (
     hex,

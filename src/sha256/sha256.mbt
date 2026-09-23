@@ -46,6 +46,7 @@ struct Hasher {
 pub(all) suberror HashFailure {
   ClosedHasher
   MessageTooLong
+  InvalidAsciiRange
 } derive(Debug)
 
 ///|
@@ -175,6 +176,34 @@ fn absorb(h : Hasher, input : Bytes) -> Unit {
 pub fn update_byte(h : Hasher, byte : Byte) -> Unit raise HashFailure {
   admit_length(h, 1UL)
   append(h, byte)
+}
+
+///|
+/// Adds a checked ASCII span with one length admission. The UTF-16 code units
+/// are the UTF-8 bytes only when every unit is ASCII. A malformed span closes
+/// the hasher so a partially absorbed input cannot be finalized as valid.
+pub fn update_ascii_range(
+  h : Hasher,
+  input : String,
+  start : Int,
+  end : Int,
+) -> Unit raise HashFailure {
+  if h.closed {
+    raise ClosedHasher
+  }
+  if start < 0 || end < start || end > input.length() {
+    h.closed = true
+    raise InvalidAsciiRange
+  }
+  admit_length(h, (end - start).to_uint64())
+  for index in start..<end {
+    let unit = input[index].to_int()
+    if unit >= 128 {
+      h.closed = true
+      raise InvalidAsciiRange
+    }
+    append(h, unit.to_byte())
+  }
 }
 
 ///|

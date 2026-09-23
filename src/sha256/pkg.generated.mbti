@@ -20,12 +20,15 @@ pub fn text_hex(String) -> Result[String, TextEncodingError]
 
 pub fn update(Hasher, Bytes) -> Unit raise HashFailure
 
+pub fn update_ascii_range(Hasher, String, Int, Int) -> Unit raise HashFailure
+
 pub fn update_byte(Hasher, Byte) -> Unit raise HashFailure
 
 // Errors
 pub(all) suberror HashFailure {
   ClosedHasher
   MessageTooLong
+  InvalidAsciiRange
 } derive(@debug.Debug)
 
 // Types and methods

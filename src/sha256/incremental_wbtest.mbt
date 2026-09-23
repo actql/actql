@@ -84,3 +84,33 @@ test "length overflow closes the hash state before accepting more bytes" {
     },
   )
 }
+
+///|
+test "ASCII range hashing matches byte updates across block boundaries" {
+  for length in [0, 1, 55, 56, 63, 64, 65, 127, 128, 257, 1024] {
+    let input = "x".repeat(length)
+    let h = hasher()
+    update_ascii_range(h, "prefix" + input + "suffix", 6, 6 + length)
+    assert_eq(finish_hex(h), hex(Bytes::from_array(Array::make(length, 0x78))))
+  }
+  let h = hasher()
+  update_ascii_range(h, "ok", 0, 2)
+  assert_true(
+    try {
+      update_ascii_range(h, "é", 0, 1)
+      false
+    } catch {
+      InvalidAsciiRange => true
+      _ => false
+    },
+  )
+  assert_true(
+    try {
+      ignore(finish_hex(h))
+      false
+    } catch {
+      ClosedHasher => true
+      _ => false
+    },
+  )
+}
