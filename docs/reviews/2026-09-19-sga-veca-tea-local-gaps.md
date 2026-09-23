@@ -26,10 +26,10 @@ readable coverage manifest is authoritative for individual operation status.
 - Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
   Vectors paths now connect to a Relation filter and two actual consumers in
   the standard Host. The fused prefix retains one checked owner and an exact
-  terminal output step. Selected derive bindings now use a bounded session;
-  a multi-step checked sequence can stop during binding evaluation without
-  publishing partial rows. Filter, select, and take still use synchronous
-  selected evaluation. Environment-delivered cancellation across this split
+  terminal output step. Selected derive and filter now use a bounded session;
+  a multi-step checked sequence can stop during expression evaluation without
+  publishing partial rows. Select and take still use synchronous selected
+  evaluation. Environment-delivered cancellation across this split
   and cross-task failure/cleanup combinations remain unverified. These are
   connection gaps, not new normative operations.
 - Resource accounting: the 68-operation gate now checks each production
