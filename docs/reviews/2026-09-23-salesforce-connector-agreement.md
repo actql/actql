@@ -179,6 +179,15 @@ This is not yet an apply permit: checked input provenance, exact Preview-to-
 physical payload equivalence, all-member preflight, current authorization,
 and final receipts still require the shared Effectful Run port above.
 
+The fixed-SHA review was rechecked at `3dc0322b972470025e262ef3886e9c7dd52368f8`.
+The targeted Node suites passed 109/109 tests on 2026-09-24. SF-1 and SF-2
+remain closed; their exact-target and provider-identity paths need no duplicate
+implementation. SF-3 remains an acceptance blocker until the ordinary checked
+Program and standard Host produce the complete multi-member Preview, apply
+admission, durable row outcomes, member and set receipts, and restart-safe
+reconciliation through real Site HTTP. The isolated org is still unavailable,
+so these local results make no live-provider claim.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
