@@ -7,6 +7,8 @@ import {
   "actql/actql/connectors/duckdb/adapters/native" @native_duckdb,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
+  "actql/actql/connectors/salesforce/acquisition" @salesforce_query,
+  "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
   "actql/actql/connectors/mock/acquisition" @mock,
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/reference_compute/driver" @reference_driver,
