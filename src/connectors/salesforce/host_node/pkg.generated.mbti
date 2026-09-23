@@ -34,6 +34,22 @@ pub fn salesforce_catalog_response_sha256(Bytes) -> String
 
 pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_issued_broad_abort(@acquisition.SalesforceBroadAttempt) -> Unit
+
+pub fn salesforce_issued_broad_accept_page(@acquisition.SalesforceBroadAttempt, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_issued_broad_begin(@acquisition.SalesforceBroadAttempt, String, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_issued_broad_complete(@acquisition.SalesforceBroadAttempt) -> Bool
+
+pub fn salesforce_issued_broad_finish(@acquisition.SalesforceBroadAttempt) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_issued_broad_next_path(@acquisition.SalesforceBroadAttempt) -> String? raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_issued_broad_plan(@acquisition.SalesforceBroadAttempt) -> @catalog.ReadProjection
+
+pub fn salesforce_issued_broad_row_count(@acquisition.SalesforceBroadAttempt) -> Int64 raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_managed_query_accept_page(@acquisition.ManagedQuery, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_managed_query_cancel(@acquisition.ManagedQuery) -> Bool
@@ -88,6 +104,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   ReadProjection(@catalog.ReadProjectionIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@acquisition.ManagedQueryIssue)
+  BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
   InvalidResource
 }
 

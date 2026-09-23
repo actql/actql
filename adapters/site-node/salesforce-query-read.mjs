@@ -136,10 +136,11 @@ async function driveQueryPages({
     if (!owner.complete()) {
       fail('SalesforceQueryIncomplete');
     }
+    const rowCount = owner.rowCount();
     return Object.freeze({
       ...owner.finish(),
       pages: Object.freeze(pages),
-      rowCount: owner.rowCount(),
+      rowCount,
     });
   } catch (error) {
     owner.interrupt();
@@ -201,4 +202,52 @@ export async function readSalesforceManagedQuery(options) {
     interrupt: () => moon.salesforceManagedQueryCancel(query),
   });
   return Object.freeze({...result, currentCatalog});
+}
+
+/// Read the exact selected Acquisition attempt through the same bounded Site
+/// transport. This moves the attempt only to AwaitingCleanup. The Host must
+/// separately confirm physical settlement, verify evidence, and capture it.
+export async function readSalesforceIssuedBroad(options) {
+  const {moon, attempt, apiVersion, limits, maxCaptureRows,
+    captureLimits} = options;
+  if (!moon || !attempt || typeof apiVersion !== 'string' ||
+      !count(maxCaptureRows) || !captureLimits ||
+      !count(captureLimits.maxNodes) ||
+      !count(captureLimits.maxTextBytes) ||
+      !count(captureLimits.maxDepth) ||
+      !count(captureLimits.maxWork)) {
+    fail('InvalidSalesforceIssuedBroadRead');
+  }
+  try {
+    const plan = moon.salesforceIssuedBroadPlan(attempt);
+    const physical = {...options, plan, consumePage: async () => {}};
+    const scope = validateRead(physical);
+    const currentCatalog = await recheckCurrentCatalog(physical);
+    checked(moon.salesforceIssuedBroadBegin(
+      attempt, apiVersion, limits.maxBytes, limits.maxNodes,
+      limits.maxDepth, limits.maxRows, limits.maxLocatorUnits,
+      limits.maxPages, BigInt(limits.maxTotalRows), maxCaptureRows,
+      captureLimits.maxNodes, captureLimits.maxTextBytes,
+      captureLimits.maxDepth, captureLimits.maxWork,
+    ));
+    const result = await driveQueryPages({
+      callResource: callHttpsCredentialResource,
+      ...physical,
+    }, scope, {
+      nextPath: () => moon.salesforceIssuedBroadNextPath(attempt),
+      acceptPage: (path, body) =>
+        moon.salesforceIssuedBroadAcceptPage(attempt, path, body),
+      complete: () => moon.salesforceIssuedBroadComplete(attempt),
+      rowCount: () => moon.salesforceIssuedBroadRowCount(attempt),
+      finish: () => {
+        checked(moon.salesforceIssuedBroadFinish(attempt));
+        return {attempt};
+      },
+      interrupt: () => moon.salesforceIssuedBroadAbort(attempt),
+    });
+    return Object.freeze({...result, currentCatalog});
+  } catch (error) {
+    moon.salesforceIssuedBroadAbort(attempt);
+    throw error;
+  }
 }
