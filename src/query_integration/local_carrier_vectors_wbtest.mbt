@@ -924,6 +924,24 @@ fn run_standard_host_mixed_vectors_relation_path(
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
+  if variant == "bridge_take" {
+    let mut bounded_take = false
+    for position in 0..<@execution.generated_sequence_step_count(sequences[3]) {
+      if @execution.generated_sequence_step_at(sequences[3], position)
+        is Some(@lower.RowStep(candidate)) &&
+        @lower.kernel_take(candidate) is Some(_) &&
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequences[3]),
+          ),
+          position,
+        )
+        is Some(node) {
+        bounded_take = @lower.order_node_id(node) is None
+      }
+    }
+    assert_true(bounded_take)
+  }
   let provider = @local_veca_provider.provider(
     carrier_vectors_storage_limits(),
     4096L,

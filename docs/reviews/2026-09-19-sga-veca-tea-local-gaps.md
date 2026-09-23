@@ -26,13 +26,15 @@ readable coverage manifest is authoritative for individual operation status.
 - Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
   Vectors paths now connect to a Relation filter and two actual consumers in
   the standard Host. The fused prefix retains one checked owner and an exact
-  terminal output step. Selected derive, filter, and select now use a bounded
-  session. A multi-step checked sequence can stop during expression
-  evaluation without publishing partial rows. Select validates every input
-  field before projecting output columns one at a time. Take still uses
-  synchronous selected evaluation. Environment-delivered cancellation across
-  this split and cross-task failure/cleanup combinations remain unverified.
-  These are connection gaps, not new normative operations.
+  terminal output step. Selected derive, filter, select, and take without an
+  additional sort now use a bounded session. A multi-step checked sequence
+  can stop without publishing partial rows. Select validates every input
+  field before projecting output columns one at a time. Take validates the
+  complete input before copying the requested rows. Take requiring a key
+  completion sort still uses synchronous selected evaluation. Cancellation
+  delivered by the environment across this split and cross-task failure/
+  cleanup combinations remain unverified. These are connection gaps, not new
+  normative operations.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
@@ -54,8 +56,16 @@ one projected field per resume step. The direct regression covers canonical
 output order, complete-input validation, one-node-short rejection, cancellation
 before publication, and cleanup. The Graph-to-Relation standard Host fixture
 continues through two consumers and formal publication on all three targets.
-This does not close synchronous `take` or environment-delivered cancellation
-after the mixed-stage split.
+This does not close environment-delivered cancellation after the mixed-stage
+split.
+
+Selected `take` without an added sort now copies one output field per resume
+step after admitting every input row. Independent direct fixtures cover the
+offset, empty output, an excluded-row input failure, exact and one-short
+control work, cancellation before publication, and cleanup. The Vectors
+bridge's Relation output uses this no-sort route in the standard Host, then
+feeds two consumers and formal publication. Graph-to-Relation take still
+requires an added key-completion sort and remains on the synchronous path.
 
 ## Local family correction branch
 
