@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/effect_application"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
+
+pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
+
+pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
+
+pub fn effect_row_action_code(EffectRowAction) -> Int
+
+pub fn effect_row_recovery_action(EffectDispatchKey, String, EffectRowRecord?, Bool) -> EffectRowAction
+
+pub fn effect_row_recovery_action_from_store(EffectDispatchKey, String, String, String, Int, Bool) -> Int
+
+pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+
+pub fn prepare_effect_dispatch_key(LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+
+pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, EffectIdentityIssue]
+
+// Errors
+
+// Types and methods
+pub struct EffectDispatchKey {
+  logical_request_scope_cid : String
+  effect_preview_cid : String
+  row_or_item_key_wire : String
+  cid : String
+}
+
+pub(all) enum EffectIdentityIssue {
+  InvalidAuthorityScope
+  InvalidPreview
+  InvalidCallerRequest
+  InvalidRowKey
+  InvalidLimits
+  CapacityExceeded
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectRowAction {
+  PersistPrepared
+  ClaimPrepared
+  JoinActive
+  ReconcilePossibleDispatch
+  ReconcileUnknown
+  ReturnApplied
+  ReturnAccepted
+  ReturnFailed
+  RequestConflict
+  InvalidRecord
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectRowRecord {
+  dispatch_key_cid : String
+  canonical_request_cid : String
+  state : EffectRowState
+}
+
+pub(all) enum EffectRowState {
+  Prepared
+  Dispatching
+  Applied
+  Accepted
+  Failed
+  Unknown
+} derive(Eq, @debug.Debug)
+
+pub struct LogicalRequestScope {
+  authority_scope_cid : String
+  caller_request_id : String
+  cid : String
+}
+
+// Type aliases
+
+// Traits

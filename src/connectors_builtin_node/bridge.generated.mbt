@@ -9,6 +9,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  EffectIdentity(@effect.EffectIdentityIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
@@ -6853,6 +6854,75 @@ pub fn strategy_remote_transfer_record_restore(
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
   }
+}
+
+///|
+/// The Host fixes the logical request independently of physical Runs.
+#export_name("strategyEffectLogicalRequestScope")
+pub fn strategy_effect_logical_request_scope(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  max_caller_bytes : Int,
+) -> @effect.LogicalRequestScope raise NodeHostFailure {
+  match
+    @effect.prepare_logical_request_scope(
+      authority_scope_cid, caller_request_id, max_caller_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectLogicalRequestScopeCid")
+pub fn strategy_effect_logical_request_scope_cid(
+  scope : @effect.LogicalRequestScope,
+) -> String {
+  @effect.logical_request_scope_cid(scope)
+}
+
+///|
+#export_name("strategyEffectDispatchKey")
+pub fn strategy_effect_dispatch_key(
+  scope : @effect.LogicalRequestScope,
+  effect_preview_cid : String,
+  row_or_item_key_wire : String,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> @effect.EffectDispatchKey raise NodeHostFailure {
+  match
+    @effect.prepare_effect_dispatch_key(
+      scope, effect_preview_cid, row_or_item_key_wire, max_key_bytes, max_key_nodes,
+      max_key_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectDispatchKeyCid")
+pub fn strategy_effect_dispatch_key_cid(
+  key : @effect.EffectDispatchKey,
+) -> String {
+  @effect.effect_dispatch_key_cid(key)
+}
+
+///|
+#export_name("strategyEffectRowRecoveryAction")
+pub fn strategy_effect_row_recovery_action(
+  expected_key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  stored_key_cid : String,
+  stored_request_cid : String,
+  stored_state : Int,
+  active_owner : Bool,
+) -> Int {
+  @effect.effect_row_recovery_action_from_store(
+    expected_key, canonical_request_cid, stored_key_cid, stored_request_cid, stored_state,
+    active_owner,
+  )
 }
 
 ///|
