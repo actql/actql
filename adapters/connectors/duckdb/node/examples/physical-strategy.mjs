@@ -95,6 +95,7 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
   nativeTaskMilliseconds, dataProfile}, resourceLimits) {
+  const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
     data,
@@ -151,7 +152,9 @@ export async function prepareExampleText({database, environmentCid, programText,
       (stored && retainedWorkMilliseconds === undefined)) {
     throw new Error('Invalid retained example configuration');
   }
+  const configuredAt = performance.now();
   const app = await import(runtimeUrl);
+  const importedAt = performance.now();
   const adopted = JSON.parse(adoptedText);
   let prepared;
   try {
@@ -162,6 +165,7 @@ export async function prepareExampleText({database, environmentCid, programText,
   } catch (cause) {
     throw new Error('Example preparation rejected: check the filter or join/count profile, Environment CID, Parameters and selected contracts', { cause });
   }
+  const preparedAt = performance.now();
   if (nativeTaskMilliseconds !== undefined && taskEstimates.length !== app.applicationComputeCount(prepared)) {
     throw new Error('Invalid native task estimate count');
   }
@@ -182,7 +186,15 @@ export async function prepareExampleText({database, environmentCid, programText,
   const ledger = resourceLimits === undefined ? app.applicationLedger() : checked(app.applicationBoundedLedger(resourceLimits));
   const taskReferences = Array.from({length: app.applicationComputeCount(prepared)},
     (_, index) => checked(app.applicationTaskReference(prepared, index + 1)));
+  const projectedAt = performance.now();
+  const preparationDiagnostics = Object.freeze({
+    configurationMs: configuredAt - preparationStarted,
+    moduleImportMs: importedAt - configuredAt,
+    applicationPreparationMs: preparedAt - importedAt,
+    hostProjectionMs: projectedAt - preparedAt,
+  });
   return Object.freeze({resourceLimits: Object.freeze({...app.applicationLedgerLimits(ledger)}),
+    preparationDiagnostics,
     taskIdentities: () => taskReferences.map(reference => app.applicationTaskIdentity(reference)),
     contentRead(task, descriptor) {
       return checked(app.applicationTaskContentRead(prepared, task, descriptor));
@@ -261,6 +273,7 @@ export async function prepareExampleText({database, environmentCid, programText,
         : app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), resident));
       const describe = execution => Object.freeze({ status: execution.status, program_success: false,
       estimate_model: 'supplied example estimates, not measured speed',
+      preparation_diagnostics: preparationDiagnostics,
       acquisition_evidence: capture.evidence(),
       acquisition_diagnostics: capture.diagnostics,
       completed: execution.completed,

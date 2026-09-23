@@ -35,6 +35,7 @@ export async function createManagedExampleHost(limits) {
       };
       const plan = await prepareExampleText(input, childLimits);
       finishPhase('parentPreparationMs');
+      phases.parentPreparationDetails = plan.preparationDiagnostics;
       if (!input.retainedOutput || input.localImportWorkMilliseconds === undefined) {
         throw new TypeError('ManagedExampleRequiresIndependentRetention');
       }
