@@ -621,6 +621,21 @@ test('resource gate rejects cross join without delivered Host cancellation', () 
   }), /RelA cross_join: missing environment fixture/);
 });
 
+test('resource gate requires mixed-stage cross join execution evidence', () => {
+  assert.match(run(undefined, value => {
+    const join = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    join.boundary_tests = join.boundary_tests.filter(item =>
+      item.role !== 'external_product_mixed_stage_two_consumers');
+  }), /RelA cross_join: reviewed external_product_mixed_stage_two_consumers fixture is missing/);
+  assert.match(run(undefined, value => {
+    const join = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    join.environment_tests = join.environment_tests.filter(item =>
+      item.role !== 'external_product_mixed_stage_timer_cancel_cleanup');
+  }), /RelA cross_join: mixed-stage timer cancellation fixture is missing/);
+});
+
 test('resource gate rejects an unbound external cross join work proof', () => {
   assert.match(run(undefined, value => {
     const join = value.routes.find(entry => entry.family === 'RelA' &&
