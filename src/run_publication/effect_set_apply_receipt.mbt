@@ -9,6 +9,7 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   ForeignEffectId(Int)
   ForeignMemberReceipt(Int)
   MemberStateMismatch(Int)
+  MemberOutcomeMismatch(Int)
   SetStatusMismatch
 } derive(Debug)
 
@@ -146,6 +147,24 @@ pub fn admit_effect_set_apply_receipt_references(
         }
         if outcome_state != state {
           return Err(MemberStateMismatch(position))
+        }
+        let member_outcome = match
+          @json.object_field(receipts[index].value, "outcome") {
+          Some(value) => value
+          None => return Err(MemberOutcomeMismatch(position))
+        }
+        let set_outcome_wire = @json.stringify_value(
+          outcome, max_wire_bytes, max_nodes, max_depth,
+        ) catch {
+          _ => return Err(MemberOutcomeMismatch(position))
+        }
+        let member_outcome_wire = @json.stringify_value(
+          member_outcome, max_wire_bytes, max_nodes, max_depth,
+        ) catch {
+          _ => return Err(MemberOutcomeMismatch(position))
+        }
+        if set_outcome_wire != member_outcome_wire {
+          return Err(MemberOutcomeMismatch(position))
         }
       }
       None => ()

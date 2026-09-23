@@ -782,6 +782,34 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     )
     is Err(MemberStateMismatch(0)),
   )
+  let wrong_outcome = seal_publication_contract(
+    "effect_set_apply_receipt",
+    "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
+    "\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"apply_policy\":\"attempt_all\",\"effects\":[" +
+    first.replace_all(
+      old="\"replayed\":false,",
+      new="\"outcome\":{\"state\":\"applied\",\"result\":{\"different\":true}},\"replayed\":false,",
+    ) +
+    "," +
+    second +
+    "],\"status\":\"applied\"}",
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    admit_effect_set_apply_receipt_references(
+      preview,
+      publication_contract_json(wrong_outcome),
+      wires,
+      16384,
+      512,
+      16,
+    )
+    is Err(MemberOutcomeMismatch(0)),
+  )
   let wrong_status = seal_publication_contract(
     "effect_set_apply_receipt",
     "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
