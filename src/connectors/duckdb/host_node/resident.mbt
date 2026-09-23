@@ -276,6 +276,17 @@ pub fn resident_import_count(
 }
 
 ///|
+#export_name("residentImportTableName")
+pub fn resident_import_table_name(
+  table : @duckdb_driver.DuckDBResidentTable,
+) -> String raise NodeHostFailure {
+  guard @duckdb_driver.resident_table_import(table) is Some(imported) else {
+    raise InvalidCommand
+  }
+  @duckdb.resident_import_table_name(imported)
+}
+
+///|
 #export_name("residentImportBatch")
 pub fn resident_import_batch(
   table : @duckdb_driver.DuckDBResidentTable,

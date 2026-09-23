@@ -8163,10 +8163,11 @@ async function exerciseStrategyGraph(
       const imported = await importResidentStrategyInput(environment, 0, 4000000n, importLimits, mapping);
       assert.equal(imported.importedRows, 3);
       assert.equal(imported.batchRows, batchedImport ? 2 : 1);
-      assert.equal(imported.usage.statements, batchedImport ? 3 : 4);
-      assert.equal(imported.usage.preparations, batchedImport ? 3 : 2,
-        'CREATE and each distinct bounded INSERT shape own their preparation');
+      assert.equal(imported.usage.statements, retainedSource ? 1 : batchedImport ? 3 : 4);
+      assert.equal(imported.usage.preparations, retainedSource ? 1 : batchedImport ? 3 : 2,
+        'retained rows use a typed appender; other imports prepare bounded INSERT shapes');
       if (retainedSource) {
+        assert.equal(imported.usage.appendedRows, 3);
         assert.equal(imported.usage.storageReadBytes,
           Buffer.byteLength('[{"id":3},{"id":2},{"id":3}]'));
         assert.equal(fixture.strategyFixtureUsage(f, 0), BigInt(imported.usage.transportBytes));

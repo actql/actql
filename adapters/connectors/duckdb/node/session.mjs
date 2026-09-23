@@ -4,6 +4,7 @@ import { realpath, stat, lstat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
 import { bindPhysicalValue, exportPhysicalValue, physicalType } from './physical-values.mjs';
+import {createPhysicalAppender} from './physical-appender.mjs';
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
 import {assertBoundedVectorRuntime, boundedVectorItem} from './bounded-vector.mjs';
@@ -89,8 +90,11 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   // At most one prepared INSERT, owned by this exact session. It replaces, not
   // supplements, the ordinary per-command statement allocation.
   let cachedInsert;
+  let activeAppender;
+  let appenderFailure;
   const inFlight = new Set();
   const usage = { rows: 0, cells: 0, transportBytes: 0, statements: 0, preparations: 0, chunks: 0,
+    appendedRows: 0,
     commandMilliseconds: 0, prepareMilliseconds: 0, receiveCallbackMilliseconds: 0, cleanupMilliseconds: 0 };
   const destroyCachedInsert = () => {
     cachedInsert?.prepared.destroySync();
@@ -110,6 +114,92 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     if (n > limits.maxTransportBytes - usage.transportBytes) throw new DuckDBTransportError('TransportBytes');
     accounting?.chargeTransfer(n);
     usage.transportBytes += n;
+  };
+  const openResidentAppender = async (table, columns) => {
+    assertLive();
+    if (busy || readonly || !shared || activeAppender ||
+        typeof table !== 'string' || !/^resident_(0|[1-9][0-9]{0,9})$/.test(table) ||
+        !Number.isSafeInteger(columns) || columns < 1 || columns > limits.maxColumns) {
+      throw new DuckDBTransportError('InvalidResidentAppender');
+    }
+    busy = true;
+    try {
+      pending = true;
+      activeAppender = await connection.createAppender(table, 'main');
+      pending = false;
+      assertLive();
+      const physical = createPhysicalAppender(activeAppender, columns);
+      let live = true;
+      const ensure = () => {
+        assertLive();
+        if (!live) throw new DuckDBTransportError('AppenderUnavailable');
+      };
+      return Object.freeze({
+        append(parameters) {
+          try {
+            ensure();
+            if (!Array.isArray(parameters) || parameters.length !== columns) {
+              throw new DuckDBTransportError('ImportColumns');
+            }
+            // Typed values cross the native ABI without a SQL/JSON parameter
+            // frame. Charge their bounded physical representation before use.
+            let bytes = 16;
+            for (const parameter of parameters) {
+              const value = parameter?.value;
+              if (value !== null && typeof value !== 'string' && typeof value !== 'boolean') {
+                throw new DuckDBTransportError('Parameters');
+              }
+              bytes += 8 + (typeof value === 'string' ? Buffer.byteLength(value, 'utf8') : 1);
+            }
+            if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
+              throw new DuckDBTransportError('ChunkBytes');
+            }
+            chargeBytes(bytes);
+            pending = true;
+            try { physical.append(parameters); }
+            finally { pending = false; }
+            usage.appendedRows++;
+          } catch (error) {
+            live = false;
+            appenderFailure ??= error;
+            throw error;
+          }
+        },
+        flush() {
+          try {
+            ensure();
+            pending = true;
+            try { activeAppender.flushSync(); }
+            finally { pending = false; }
+          } catch (error) {
+            live = false;
+            appenderFailure ??= error;
+            throw error;
+          }
+        },
+        finish() {
+          try {
+            ensure();
+            pending = true;
+            try {
+              activeAppender.closeSync();
+              activeAppender = undefined;
+              live = false;
+              busy = false;
+            } finally { pending = false; }
+          } catch (error) {
+            live = false;
+            appenderFailure ??= error;
+            throw error;
+          }
+        },
+      });
+    } catch (error) {
+      appenderFailure ??= error;
+      busy = false;
+      pending = false;
+      throw error;
+    }
   };
   const runCommand = async (sql, parameters, consume, reuseInsert = false,
     statementMode = 'ordinary') => {
@@ -313,7 +403,8 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   const cleanupErrors = [];
   let cleaning = false;
   const cleanupStatus = () => Object.freeze({
-    pending: cachedInsert !== undefined || connection !== undefined || instance !== undefined,
+    pending: activeAppender !== undefined || cachedInsert !== undefined ||
+      connection !== undefined || instance !== undefined,
     errors: Object.freeze([...cleanupErrors]),
   });
   const cleanOwnedResources = async () => {
@@ -321,6 +412,8 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     cleaning = true;
     const cleanupStarted = performance.now();
     try {
+      try { activeAppender?.closeSync(); activeAppender = undefined; }
+      catch (error) { cleanupErrors.push(error); }
       try { destroyCachedInsert(); }
       catch (error) { cleanupErrors.push(error); }
       try {
@@ -328,7 +421,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         transaction = false;
       } catch (error) { cleanupErrors.push(error); }
       try {
-        if (!cachedInsert) {
+        if (!activeAppender && !cachedInsert) {
           connection?.closeSync();
           connection = undefined;
           transaction = false; // closing the owned connection ends its transaction
@@ -373,6 +466,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     result = await body(Object.freeze({
       command,
       insert: (sql, parameters, consume) => command(sql, parameters, consume, true),
+      openResidentAppender,
       createFileView,
       // Installed Host operation only. The output path must be one of the exact
       // paths admitted when this private session was created; callers cannot
@@ -397,6 +491,8 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     assertLive();
     if (inFlight.size !== 0) throw new DuckDBTransportError('UnawaitedCommand');
     if (commandFailed) throw commandFailure;
+    if (appenderFailure) throw appenderFailure;
+    if (activeAppender) throw new DuckDBTransportError('UnclosedAppender');
     if (shared) {
       // The trusted body must finish provisional-output validation before
       // returning. Only successful transactions may publish resident tables.

@@ -118,6 +118,35 @@ test('resident Compute materializes once and validates before publishing its tab
   releaseFixedCompute(result);
   assert(!matchesFixedCompute(result, port, consume));
 });
+
+test('resident appender commits exact rows and rejects swallowed partial input', async () => {
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  try {
+    await db.run(limits, session =>
+      session.command('CREATE TABLE main.resident_0(id DOUBLE, text VARCHAR)', [], discard));
+    const imported = await db.run(limits, async session => {
+      const writer = await session.openResidentAppender('resident_0', 2);
+      writer.append([{type: {id: 'DOUBLE'}, value: '3ff0000000000000'},
+        {type: {id: 'VARCHAR'}, value: '日本語'}]);
+      writer.append([{type: {id: 'DOUBLE'}, value: null},
+        {type: {id: 'VARCHAR'}, value: '日本語'}]);
+      writer.flush();
+      writer.finish();
+    });
+    assert.equal(imported.usage.appendedRows, 2);
+    const ordered = await db.run(limits, session =>
+      collect(session, 'SELECT coalesce(text, \'\') FROM main.resident_0 ORDER BY rowid'));
+    assert.deepEqual(ordered.value, ['日本語', '日本語']);
+    await assert.rejects(db.run(limits, async session => {
+      await session.command('CREATE TABLE main.resident_1(id DOUBLE)', [], discard);
+      const writer = await session.openResidentAppender('resident_1', 1);
+      try { writer.append([{type: {id: 'VARCHAR'}, value: 'wrong'}]); }
+      catch { /* A swallowed native transport failure still aborts the task. */ }
+    }), {code: 'ImportPhysicalType'});
+    await db.run(limits, session =>
+      session.command('CREATE TABLE main.resident_1(id DOUBLE)', [], discard));
+  } finally { await db.close(); }
+});
 const collect = async (session, sql) => {
   const values = [];
   await session.command(sql, [], chunk => values.push(...chunk.columns[0]));

@@ -411,6 +411,8 @@ pub fn resident_import_stream_cancel(@adapter.ResidentImportStream) -> Unit
 
 pub fn resident_import_stream_finish(@adapter.ResidentImportStream) -> Unit raise NodeHostFailure
 
+pub fn resident_import_table_name(@driver.DuckDBResidentTable) -> String raise NodeHostFailure
+
 pub fn resident_input_scan_sql(@driver.DuckDBResidentInputs, Int, Int) -> String?
 
 pub fn resident_inputs_sql(@driver.DuckDBResidentInputs) -> Array[String]

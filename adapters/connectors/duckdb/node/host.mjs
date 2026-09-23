@@ -1,6 +1,7 @@
 // Standard source-checkout Host entry. Neither Program inputs nor ordinary
 // Connector registration can supply a replacement runtime/verifier/SQL callback.
 import { randomUUID } from 'node:crypto';
+import {setImmediate as yieldToHost} from 'node:timers/promises';
 import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
@@ -204,10 +205,23 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       const discard = () => {};
       await session.command(checked(moon.residentImportSql(table, false)), [], discard);
       const sql = checked(moon.residentImportSql(table, true));
-      const batch = batchRows > 1 ? createImportBatch(columns, batchRows, limits,
-        compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
-      const append = parameters => batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
       const material = checked(moon.residentImportMaterial(table));
+      const appender = material != null && limits.threads === 1
+        ? await session.openResidentAppender(checked(moon.residentImportTableName(table)), columns)
+        : undefined;
+      const batch = !appender && batchRows > 1 ? createImportBatch(columns, batchRows, limits,
+        compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
+      let appendedSinceFlush = 0;
+      const append = async parameters => {
+        if (!appender) return batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
+        appender.append(parameters);
+        if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
+          appender.flush();
+          appendedSinceFlush = 0;
+          await yieldToHost();
+          signal?.throwIfAborted();
+        }
+      };
       if (material != null) {
         const body = retainedStorageBody(material);
         const {wire, maxFrameBytes} = retainedStorageContract(material);
@@ -240,6 +254,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
           // Verify the complete immutable input before flushing its final
           // partial batch. Earlier writes remain transaction-local on failure.
           await batch?.finish();
+          appender?.finish();
         } finally {
           frames.cancel();
           moon.residentImportStreamCancel(stream);

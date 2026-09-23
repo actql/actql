@@ -121,6 +121,11 @@ pub fn resident_import_create_sql(value : ResidentImport) -> String {
 }
 
 ///|
+pub fn resident_import_table_name(value : ResidentImport) -> String {
+  value.table
+}
+
+///|
 pub fn resident_import_insert_sql(value : ResidentImport) -> String {
   value.insert_sql
 }

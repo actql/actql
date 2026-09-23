@@ -453,6 +453,8 @@ pub fn resident_import_scan_sql(ResidentImport, Int) -> Result[String, NativeQue
 
 pub fn resident_import_storage(ResidentImport) -> @execution_relation.ProducerStorage
 
+pub fn resident_import_table_name(ResidentImport) -> String
+
 pub fn resident_query_create_sql(ResidentQuery) -> String
 
 pub fn resident_query_drop_sql(ResidentQuery) -> String
