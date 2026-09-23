@@ -137,6 +137,14 @@ pub fn salesforce_single_write_request_body(
 }
 
 ///|
+#export_name("salesforceSingleWriteRequestGrantOperation")
+pub fn salesforce_single_write_request_grant_operation(
+  request : @catalog.SingleWriteRequest,
+) -> String {
+  @catalog.single_write_request_grant_operation(request)
+}
+
+///|
 #export_name("salesforceSingleWriteRequestCid")
 pub fn salesforce_single_write_request_cid(
   request : @catalog.SingleWriteRequest,
@@ -148,6 +156,39 @@ pub fn salesforce_single_write_request_cid(
     Ok(cid) => cid
     Err(issue) => raise WriteRequest(issue)
   }
+}
+
+///|
+#export_name("salesforceRecheckSingleWriteRequest")
+pub fn salesforce_recheck_single_write_request(
+  request : @catalog.SingleWriteRequest,
+  current : @catalog.CatalogObservation,
+) -> Bool raise SalesforceCatalogBridgeIssue {
+  match @catalog.recheck_single_write_request(request, current) {
+    Ok(_) => true
+    Err(issue) => raise WriteProjection(issue)
+  }
+}
+
+///|
+#export_name("salesforceSingleWriteRequestScopeMatches")
+pub fn salesforce_single_write_request_scope_matches(
+  request : @catalog.SingleWriteRequest,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
+  @catalog.single_write_request_matches_site_scope(
+    request, tenant, principal, environment, site_key, site_generation, connector_registration,
+    connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
+  )
 }
 
 ///|

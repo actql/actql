@@ -23,6 +23,7 @@ import {createSalesforceCliSecretResolver} from './salesforce-cli-secret.mjs';
 import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
   './salesforce-query-read.mjs';
+import {writeSalesforceSingleRecord} from './salesforce-single-write.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -48,7 +49,9 @@ function openssl(root, ...arguments_) {
 async function fixture(t, {customStatus = 200, customResponse = customBody,
   listStatus = 200, listResponse = listBody,
   accountRefreshResponse, querySecondStatus = 200,
-  queryFirstResponse} = {}) {
+  queryFirstResponse, writeStatus = 201,
+  writeResponse = JSON.stringify({id: 'a00123456789012',
+    success: true, errors: []})} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-catalog-'));
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out',
@@ -69,8 +72,9 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   const seen = [];
   let accountDescribeCount = 0;
   const server = createServer({cert, key}, (request, response) => {
-    seen.push({method: request.method, path: request.url,
-      authorization: request.headers.authorization});
+    const observed = {method: request.method, path: request.url,
+      authorization: request.headers.authorization};
+    seen.push(observed);
     if (request.headers.authorization !== 'Bearer test-only-secret') {
       response.writeHead(401).end();
     } else if (request.url === '/services/data/v62.0/sobjects/') {
@@ -85,6 +89,15 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
       '/services/data/v62.0/sobjects/Test_Record__c/describe') {
       response.writeHead(customStatus, {'content-type': 'application/json'});
       response.end(customResponse);
+    } else if (request.method === 'POST' && request.url ===
+      '/services/data/v62.0/sobjects/Test_Record__c/') {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.on('end', () => {
+        observed.body = Buffer.concat(chunks).toString('utf8');
+        response.writeHead(writeStatus, {'content-type': 'application/json'});
+        response.end(writeResponse);
+      });
     } else if (request.url ===
       '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account') {
       response.writeHead(200, {'content-type': 'application/json'});
@@ -142,8 +155,9 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   const list = authorize('salesforce:catalog:list');
   const describe = authorize('salesforce:catalog:describe');
   const query = authorize('salesforce:query:read');
+  const write = authorize('salesforce:record:create');
   return {
-    seen, journal, list, describe, query, ca,
+    seen, journal, list, describe, query, write, ca,
     credential: {
       control, journal,
       resolveSecret: async () => 'test-only-secret',
@@ -244,6 +258,21 @@ test('Salesforce write bridge binds a checked Catalog to one REST request',
       1024, 32, 5));
     const outbound = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
       body, 'v62.0', 0, '', 0, 256, 128, 1024));
+    assert.equal(checked(
+      salesforceMoon.salesforceRecheckSingleWriteRequest(
+        outbound, result.observation)), true);
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestScopeMatches(
+      outbound, binding.tenant, binding.principal, binding.environment,
+      binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid), true);
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestScopeMatches(
+      outbound, binding.tenant, binding.principal, binding.environment,
+      binding.siteKey, binding.siteGeneration + 1,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid), false);
     assert.equal(salesforceMoon.salesforceSingleWriteRequestMethod(outbound),
       'POST');
     assert.equal(salesforceMoon.salesforceSingleWriteRequestPath(outbound),
@@ -278,6 +307,100 @@ test('Salesforce write bridge binds a checked Catalog to one REST request',
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
       0, '', ['External_Key__c'], 2)), {code: 'MoonBitHostFailure'});
+  });
+
+test('Site sends one scoped Salesforce write and keeps response as observation',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+      catalog.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-a', binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+      0, '', ['External_Key__c'], 2));
+    const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"key-1"}'),
+      1024, 32, 5));
+    const outbound = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+      body, 'v62.0', 0, '', 0, 256, 128, 1024));
+    const options = {
+      moon: salesforceMoon,
+      request: outbound,
+      currentObservation: catalog.observation,
+      authorization: {...setup.write, useId: 'write-use'},
+      credential: setup.credential,
+      limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+        maxNodes: 32, maxDepth: 5},
+    };
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestGrantOperation(
+      outbound), 'salesforce:record:create');
+    await assert.rejects(writeSalesforceSingleRecord({
+      ...options,
+      authorization: {...setup.write, useId: 'foreign-write-use',
+        scope: {...setup.write.scope, siteGeneration: 5}},
+    }), {code: 'ForeignSalesforceSingleWrite'});
+    assert.equal(setup.seen.filter(item => item.method === 'POST').length, 0);
+    const result = await writeSalesforceSingleRecord(options);
+    assert.equal(result.kind, 'typed-success-response');
+    assert.deepEqual([result.result[0], result.result[1]],
+      ['a00123456789012', 'created']);
+    assert.equal(result.observation.statusCode, 201);
+    assert.equal(setup.journal.inspect(result.observation.useCid).outcome,
+      'succeeded');
+    assert.deepEqual(setup.seen.filter(item => item.method === 'POST').map(
+      item => [item.path, item.body]), [[
+      '/services/data/v62.0/sobjects/Test_Record__c/',
+      '{"External_Key__c":"key-1"}',
+    ]]);
+  });
+
+test('Site does not promote rejected or malformed writes to Effect success',
+  async t => {
+    for (const scenario of [
+      {writeStatus: 429, writeResponse: JSON.stringify([
+        {errorCode: 'REQUEST_LIMIT_EXCEEDED'},
+      ]), expected: 'provider-response'},
+      {writeStatus: 201, writeResponse: '{"success":true}',
+        expected: 'unclassified-response'},
+    ]) {
+      await t.test(scenario.expected, async child => {
+        const setup = await fixture(child, scenario);
+        const catalog = await syncSalesforceCatalog(request(setup));
+        const binding = setup.list.scope;
+        const projection = checked(
+          salesforceMoon.salesforcePrepareWriteProjection(
+            catalog.observation,
+            binding.tenant, binding.principal, binding.environment,
+            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            binding.connectorRegistration, binding.connectorRevision,
+            binding.resourceOrigin, binding.runInvocationCid,
+            binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+            0, '', ['External_Key__c'], 2));
+        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+          projection, Buffer.from('{"External_Key__c":"key-1"}'),
+          1024, 32, 5));
+        const outbound = checked(
+          salesforceMoon.salesforcePrepareSingleWriteRequest(
+            body, 'v62.0', 0, '', 0, 256, 128, 1024));
+        const result = await writeSalesforceSingleRecord({
+          moon: salesforceMoon,
+          request: outbound,
+          currentObservation: catalog.observation,
+          authorization: {...setup.write, useId: 'write-use'},
+          credential: setup.credential,
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 32, maxDepth: 5},
+        });
+        assert.equal(result.kind, scenario.expected);
+        assert.equal(result.observation.statusCode, scenario.writeStatus);
+        assert.equal(setup.seen.filter(item => item.method === 'POST').length,
+          1);
+      });
+    }
   });
 
 test('CLI alias supplies only Site secret for the authorized HTTPS path',
