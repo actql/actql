@@ -16,6 +16,47 @@ fn query_test_limits() -> QueryPageLimits {
 }
 
 ///|
+fn query_test_typed_plan(
+  names : Array[String],
+) -> Result[ReadProjection, ReadProjectionIssue] {
+  let listing_body =
+    #|{"sobjects":[{"name":"Account","queryable":true}]}
+  let listing = project_resource_listing(@utf8.encode(listing_body), {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 10,
+    max_resources: 10,
+    max_selected: 10,
+    max_name_units: 100,
+  }).unwrap()
+  let sync = begin_catalog_sync(listing)
+  let describe_body =
+    #|{"name":"Account","queryable":true,"fields":[{"name":"Id","type":"id","nillable":false},{"name":"Name","type":"string","nillable":true},{"name":"Active__c","type":"boolean","nillable":false},{"name":"Amount__c","type":"currency","nillable":true}]}
+  catalog_sync_describe(sync, "Account", @utf8.encode(describe_body), {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 10,
+    max_fields: 10,
+    max_name_units: 100,
+  }).unwrap()
+  finish_catalog_sync(sync).unwrap()
+  let binding = observation_test_binding()
+  let response_digest = match catalog_sync_outcome(sync, "Account") {
+    Some(Described(resource)) => resource.response_sha256
+    _ => abort("expected described Account")
+  }
+  let observation = prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [Some(response_digest)],
+    4096,
+  ).unwrap()
+  prepare_read_projection(observation, binding, "Account", names, 128)
+}
+
+///|
 test "query page projects a bounded batch and exact continuation" {
   let body =
     #|{"totalSize":2,"done":false,"nextRecordsUrl":"/services/data/v62.0/query/01gABC-2000","records":[{"attributes":{"type":"Account"},"Id":"001A"}]}
@@ -34,10 +75,7 @@ test "query page projects a bounded batch and exact continuation" {
   )
   assert_eq(query_page_total_size(page), 2L)
   assert_eq(query_page_response_sha256(page), @sha.hex(bytes))
-  match page.rows[0][0] {
-    Value(value) => assert_eq(@decode.text(value).unwrap(), "001A")
-    Null => abort("expected a value")
-  }
+  assert_true(page.rows[0][0].value is @admitted.Text("001A"))
 }
 
 ///|
@@ -149,5 +187,66 @@ test "query page distinguishes invalid records from budget exhaustion" {
   assert_true(
     project_query_page(body, plan, "v62.0/../", query_test_limits())
     is Err(InvalidLimits),
+  )
+}
+
+///|
+test "query page admits typed cells and preserves nullable missing values" {
+  let plan = query_test_typed_plan(["Id", "Name", "Active__c"]).unwrap()
+  let body =
+    #|{"totalSize":2,"done":true,"records":[{"Id":"001A","Active__c":true},{"Id":"001B","Name":null,"Active__c":false}]}
+  let page = project_query_page(
+    @utf8.encode(body),
+    plan,
+    "v62.0",
+    query_test_limits(),
+  ).unwrap()
+  assert_true(
+    query_page_cell(page, 0, 0).unwrap().value is @admitted.Text("001A"),
+  )
+  assert_true(query_page_cell(page, 0, 1).unwrap().value is @admitted.Null)
+  assert_true(
+    query_page_cell(page, 0, 2).unwrap().value is @admitted.Boolean(true),
+  )
+  assert_true(query_page_cell(page, 1, 1).unwrap().value is @admitted.Null)
+  assert_true(
+    query_page_cell(page, 1, 2).unwrap().value is @admitted.Boolean(false),
+  )
+  assert_true(query_page_cell(page, 2, 0) is None)
+}
+
+///|
+test "query value admission rejects type changes and noncanonical text" {
+  let plan = query_test_typed_plan(["Id", "Name", "Active__c"]).unwrap()
+  let wrong_type =
+    #|{"totalSize":1,"done":true,"records":[{"Id":"001A","Active__c":"true"}]}
+  assert_true(
+    project_query_page(
+      @utf8.encode(wrong_type),
+      plan,
+      "v62.0",
+      query_test_limits(),
+    )
+    is Err(ValueAdmission("Active__c", @admitted.Decode(_))),
+  )
+  let noncanonical =
+    #|{"totalSize":1,"done":true,"records":[{"Id":"001A","Name":"e\u0301","Active__c":true}]}
+  assert_true(
+    project_query_page(
+      @utf8.encode(noncanonical),
+      plan,
+      "v62.0",
+      query_test_limits(),
+    )
+    is Err(
+      ValueAdmission(
+        "Name",
+        @admitted.ValueIssue(@admitted.NonCanonicalText, ..)
+      )
+    ),
+  )
+  assert_true(
+    query_test_typed_plan(["Amount__c"])
+    is Err(UnsupportedReadType("Amount__c")),
   )
 }

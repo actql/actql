@@ -2,7 +2,8 @@
 package "actql/actql/connectors/salesforce/catalog"
 
 import {
-  "actql/actql/decode_core",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -50,6 +51,8 @@ pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadat
 pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
 
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
+
+pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn query_page_done(QueryPage) -> Bool
 
@@ -203,13 +206,8 @@ pub(all) enum ListingIssue {
   DuplicateResource(String)
 } derive(Eq, @debug.Debug)
 
-pub enum QueryCell {
-  Null
-  Value(@decode_core.Cursor)
-}
-
 pub struct QueryPage {
-  rows : Array[Array[QueryCell]]
+  rows : Array[Array[@value_admission.CheckedValue]]
   done : Bool
   next_url : String?
   total_size : Int64
@@ -224,6 +222,7 @@ pub(all) enum QueryPageIssue {
   MissingRequiredField(String)
   NullRequiredField(String)
   UnexpectedField(String)
+  ValueAdmission(String, @value_admission.Issue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QueryPageLimits {
@@ -262,6 +261,7 @@ pub struct ReadProjection {
   binding : CatalogObservationBinding
   resource : String
   fields : Array[FieldMetadata]
+  contracts : Array[@value_contract.Contract]
   soql : String
 }
 
@@ -270,6 +270,7 @@ pub(all) enum ReadProjectionIssue {
   Requirement(ResourceRequirementIssue)
   EmptyProjection
   QueryLimit
+  UnsupportedReadType(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResourceDescribeOutcome {

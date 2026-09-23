@@ -426,6 +426,22 @@ test('invalid locator fails closed before a second credential use',
       .length, 1);
   });
 
+test('Site rejects a provider value that violates the selected field type',
+  async t => {
+    const setup = await fixture(t, {queryFirstResponse: JSON.stringify({
+      totalSize: 1, done: true,
+      records: [{Id: 42}],
+    })});
+    const plan = await queryProjection(setup);
+    let delivered = 0;
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      consumePage: async () => { delivered += 1; },
+    })), {code: 'MoonBitHostFailure'});
+    assert.equal(delivered, 0);
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
+  });
+
 test('page consumer failure stops the locator chain instead of retrying',
   async t => {
     const setup = await fixture(t);
