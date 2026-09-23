@@ -405,6 +405,17 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: bounded zero-input Values route lacks its production evidence`);
     }
   }
+  if (route.family === 'RelA' && route.operation === 'append') {
+    for (const role of [
+      'append_work_workspace_exact_one_short',
+      'append_two_consumer_reclamation',
+      'append_self_occurrence_reclamation',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {

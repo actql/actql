@@ -207,6 +207,19 @@ Do not change its expected output merely to make a new provider route pass.
   synchronous Cartesian-product loop.
   The route gate reports the current number of operation-specific boundary
   records; that count is not the number of resource-complete operations.
+  The append route now binds an independently calculated control-work and
+  peak-workspace exact/one-short fixture, plus distinct-input and
+  self-occurrence two-consumer reclamation fixtures. This raises the
+  operation-specific record count to 16/68. Append still uses the synchronous
+  providerless lane for its fused execution; these fixtures do not establish
+  in-flight cancellation or full route assurance.
+  A trial global split of Relation-only filter/sort/take pipelines changed
+  physical tasks before connector selection and failed 106 of 576 JS query
+  integration tests, including non-Local strategy and task-identity cases.
+  That trial was reverted; the unchanged suite passed 574/574 afterward.
+  Closing the remaining Relation-only lane requires a placement-aware
+  bounded plan that preserves other registered whole-Stage candidates and
+  checked task identity, not an unconditional DAG rewrite.
   Graph normalization has separate exact/one-short node-capacity and
   cancel/cleanup fixtures for its direct and managed-view starts on all
   three targets. One standard Host timer cancels the fused normalize after its
