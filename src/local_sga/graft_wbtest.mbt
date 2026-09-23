@@ -1611,3 +1611,55 @@ test "structural subtraction observes cancellation and exact capacity" {
   )
   assert_eq(cleanup_graft(rejected), Ok(true))
 }
+
+///|
+test "graft cleanup reclaims a failed terminal nested set" {
+  let left = set_value("[\"a\"]")
+  let right = set_value("[]")
+  let limits : @value.Limits = {
+    max_nodes: 1,
+    max_depth: 1,
+    max_text_bytes: 0,
+  }
+  let control = @bounded.control()
+  let nested = @value_set.start(
+    control,
+    @value_set.Union,
+    left,
+    right,
+    left.contract,
+    limits,
+    100,
+  ).unwrap()
+  assert_true(
+    @value_set.advance(nested, 1).unwrap()
+    is @value_set.Failed(@value_set.ValueLimit, ..),
+  )
+  assert_true(@value_set.stopped(nested))
+  assert_true(@value_set.cleanup_pending(nested))
+  let state : GraftState = {
+    set_control: control,
+    sources: [],
+    mode: Add,
+    merge_shared: true,
+    retain_shared_nodes: true,
+    retain_shared_edges: true,
+    plans: [],
+    value_limits: limits,
+    output: None,
+    node_fields: 0,
+    edge_fields: 0,
+    input_index: 0,
+    phase: CopyNodes,
+    record_index: 0,
+    max_workspace_slots: 100,
+    set_execution: Some(nested),
+    set_token: 0,
+    set_cached_slots: 0,
+    set_results: Map([]),
+  }
+  assert_true(cleanup_graft_state(state))
+  assert_true(state.set_execution is None)
+  assert_false(@value_set.cleanup_pending(nested))
+  assert_eq(@value_set.cleanup(nested), Ok(false))
+}
