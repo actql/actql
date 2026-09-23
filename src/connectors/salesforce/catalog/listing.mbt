@@ -11,7 +11,7 @@ pub(all) struct ListLimits {
 }
 
 ///|
-pub(all) struct ListedResource {
+pub struct ListedResource {
   name : String
   queryable : Bool
   createable : Bool
@@ -19,7 +19,7 @@ pub(all) struct ListedResource {
 }
 
 ///|
-pub(all) struct ResourceListing {
+pub struct ResourceListing {
   selected : Array[ListedResource]
   visible_count : Int
   truncated : Bool
