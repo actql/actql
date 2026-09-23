@@ -100,6 +100,16 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
 }
 
 ///|
+/// A one-step fused prefix can use an existing bounded provider even when the
+/// operation cannot read an intermediate managed view as a selected step.
+pub fn node_supports_bounded_managed_prefix(node : PreparedNode) -> Bool {
+  match node.payload {
+    CrossJoinRows(_) => true
+    _ => false
+  }
+}
+
+///|
 /// Preserve an established fused Carrier provider when no later Relation
 /// consumer needs the selected-view handoff. Selection is still decided
 /// before execution, never as a retry after a provider failure.

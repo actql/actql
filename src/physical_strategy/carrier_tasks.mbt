@@ -88,7 +88,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     }
     suffix_start = step
   }
-  if suffix_start == count || suffix_start < 2 {
+  if suffix_start == count || suffix_start < 1 {
     return None
   }
   let terminal = suffix_start - 1
@@ -97,18 +97,27 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     @carrier.kind(carrier) == @carrier.RelationKind else {
     return None
   }
-  let mut carrier_prefix = false
-  for step in 0..<terminal {
-    guard @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
-      is Some(input_carrier) else {
+  if terminal == 0 {
+    // The prefix is independently bounded; its later Relation consumers can
+    // be split without executing the whole authored sequence synchronously.
+    guard @lower.node_at(prepared, 0) is Some(prefix) &&
+      @lower.node_supports_bounded_managed_prefix(prefix) else {
       return None
     }
-    if @carrier.kind(input_carrier) != @carrier.RelationKind {
-      carrier_prefix = true
+  } else {
+    let mut carrier_prefix = false
+    for step in 0..<terminal {
+      guard @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
+        is Some(input_carrier) else {
+        return None
+      }
+      if @carrier.kind(input_carrier) != @carrier.RelationKind {
+        carrier_prefix = true
+      }
     }
-  }
-  if !carrier_prefix {
-    return None
+    if !carrier_prefix {
+      return None
+    }
   }
   for result in graph.results {
     if result.task == stage {

@@ -51,9 +51,15 @@ fixture checks quantum-one pair work, two real consumers, independent release,
 and final reclamation on JS, Wasm, and native. Another Host fixture cancels
 after a pair has been emitted and verifies stop, nonpublication, and cleanup.
 Direct fixtures check independently calculated exact and one-short work and
-structural workspace limits. The former multi-step cross-join fixture still
-uses the providerless lane; its pre-execution cancellation fixture must not
-be relabeled as in-flight cancellation. One-step zero-input `values` now uses
+structural workspace limits. The original same-sequence values/distinct/cross-
+join fixture still uses the providerless lane; its pre-execution cancellation
+fixture must not be relabeled as in-flight cancellation. An external-input
+cross join followed by a Relation filter in the same Stage now splits at a
+typed provider boundary. The prefix and filter use their bounded providers.
+A standard Host fixture checks quantum-one progress, two downstream Computes,
+independent release, and final reclamation. Post-pair cancellation also covers
+this split form, but Node timer delivery during this exact form is not yet
+proven. One-step zero-input `values` now uses
 a bounded provider: row and cell construction advance within the requested
 quantum, and a managed-driver fixture stops after cell work without
 publishing output. A separate standard Node Host fixture delivers a timer
@@ -99,9 +105,11 @@ are three separate acceptance conditions, so closing one must not change the
 status of the others.
 
 The ordinary one-step filter, select, sort, take, external-input cross join,
-and zero-input values forms use bounded Relation providers. Other accepted
-Relation forms, including same-sequence binary and multi-step sequences,
-can still use the providerless lane.
+and zero-input values forms use bounded Relation providers. An external-input
+cross join followed by a selected Relation filter also uses these providers
+without changing the authored Stage. Other accepted Relation forms, including
+same-sequence binary and multi-step sequences, can still use the providerless
+lane.
 Moving ordinary derive or assertions onto the selected bounded evaluator
 requires a representation-preservation check: a direct route experiment
 changed the serialized field order in the existing Host fixture. In

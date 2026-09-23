@@ -38,6 +38,7 @@ fn query_checked_program_fixture(
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
   local_values_cross_external_chain? : Bool = false,
+  local_values_cross_external_filter? : Bool = false,
   local_values_cross_singleton? : Bool = false,
   local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
@@ -231,7 +232,15 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_values_cross_external_chain {
-    local_values_cross_external_program()
+    let program = local_values_cross_external_program()
+    if local_values_cross_external_filter {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"tag\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"crossed_rows\"},{\"from\":\"crossed_rows\",\"filter\":\"id > 0\",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"tag\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else {
+      program
+    }
   } else {
     text
   }

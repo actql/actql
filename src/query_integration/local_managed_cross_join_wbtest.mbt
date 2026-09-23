@@ -268,9 +268,169 @@ test "standard Host selects bounded external cross join for two consumers" {
 }
 
 ///|
-test "standard Host cancels external cross join after pair work" {
+test "standard Host splits cross join and filter before two consumers" {
   let (run, issuer) = captured_graph_fixture(
     local_values_cross_external_chain=true,
+    local_values_cross_external_filter=true,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 12,
+      holdings: 12,
+      transfer_bytes: 300000L,
+      retained_bytes: 64000000L,
+      execution_bytes: 268435456L,
+    }),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        max_bytes: 200,
+        max_nodes: 20,
+        max_depth: 4,
+        max_columns: 2,
+        max_order_work: 100,
+      },
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 256,
+    },
+    None,
+  ).unwrap()
+  let left_live = Ref(true)
+  let (left_ops, left) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    left_live,
+  )
+  let right_live = Ref(true)
+  let (right_ops, right) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    right_live,
+  )
+  let crossed_setup = @local_driver.prepare_local_managed_dispatch(
+      installed,
+      [left, right],
+      @strategy.captured_next_managed_obligations(run, 10).unwrap(),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(@local_driver.local_managed_dispatch_uses_provider(crossed_setup))
+  let crossed_live = Ref(true)
+  let crossed_advances = Ref(0)
+  let (crossed_ops, crossed) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [left, right],
+    [local_managed_test_rows(left_ops), local_managed_test_rows(right_ops)],
+    3,
+    crossed_live,
+    execution_quantum=1,
+    execution_advances=Some(crossed_advances),
+  )
+  assert_true(crossed_advances.val > 1)
+  let crossed_rows = local_managed_test_rows(crossed_ops)
+  let filtered_live = Ref(true)
+  let filtered_advances = Ref(0)
+  let (filtered_ops, filtered) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [crossed],
+    [crossed_rows],
+    4,
+    filtered_live,
+    execution_quantum=1,
+    execution_advances=Some(filtered_advances),
+  )
+  assert_true(filtered_advances.val > 1)
+  let filtered_rows = local_managed_test_rows(filtered_ops)
+  assert_eq(filtered_rows, crossed_rows)
+  let first_live = Ref(true)
+  let (first_ops, _) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [filtered],
+    [filtered_rows],
+    5,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    6,
+    [filtered],
+    [filtered_rows],
+    6,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops), filtered_rows)
+  assert_eq(local_managed_test_rows(second_ops).length(), 6)
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (first_ops.close)()
+  ignore((first_ops.cleanup_refresh)())
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(filtered))
+  second_live.val = false
+  filtered_live.val = false
+  crossed_live.val = false
+  right_live.val = false
+  left_live.val = false
+  for
+    (task, operations) in [
+      (6, second_ops),
+      (4, filtered_ops),
+      (3, crossed_ops),
+      (2, right_ops),
+      (1, left_ops),
+    ] {
+    @strategy.close_captured_task_output(run, task)
+    (operations.close)()
+    ignore((operations.cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+fn run_standard_host_cross_join_cancel_after_pair_work(
+  filtered : Bool,
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_cross_external_chain=true,
+    local_values_cross_external_filter=filtered,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 10,
@@ -374,6 +534,12 @@ test "standard Host cancels external cross join after pair work" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host cancels external cross join after pair work" {
+  run_standard_host_cross_join_cancel_after_pair_work(false)
+  run_standard_host_cross_join_cancel_after_pair_work(true)
 }
 
 ///|

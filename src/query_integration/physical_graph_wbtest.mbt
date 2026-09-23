@@ -224,6 +224,25 @@ test "physical DAG segments Vectors projection before Relation filter" {
 }
 
 ///|
+test "physical DAG separates bounded cross join from Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_cross_external_chain=true,
+    local_values_cross_external_filter=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG admits Carrier segmentation before allocation" {
   let program = query_checked_program_fixture(
     dag=true,
@@ -285,6 +304,7 @@ fn captured_graph_fixture(
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
   local_values_cross_external_chain? : Bool = false,
+  local_values_cross_external_filter? : Bool = false,
   local_values_cross_singleton? : Bool = false,
   local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
@@ -346,6 +366,7 @@ fn captured_graph_fixture(
     local_values_append_variant~,
     local_values_cross_chain~,
     local_values_cross_external_chain~,
+    local_values_cross_external_filter~,
     local_values_cross_singleton~,
     local_values_cross_output_guard~,
     local_values_set_operation~,
