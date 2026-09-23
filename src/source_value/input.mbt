@@ -22,8 +22,9 @@ fn parse_admitted(
   source_path : String,
   limits : ParseLimits,
   yaml : Bool,
+  normalize_text? : Bool = true,
 ) -> Result[ParsedSource, ParseError] {
-  let parser = Parser::make(source, source_path, limits)
+  let parser = Parser::make(source, source_path, limits, normalize_text~)
   let node = try {
     if yaml {
       parser.yaml_document()
@@ -71,6 +72,7 @@ fn parse_bytes_input(
   limits : ParseLimits,
   source_path : String,
   yaml : Bool,
+  normalize_text? : Bool = true,
 ) -> Result[ParsedSource, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
@@ -88,7 +90,7 @@ fn parse_bytes_input(
         ),
       )
   }
-  parse_admitted(text, source_path, limits, yaml)
+  parse_admitted(text, source_path, limits, yaml, normalize_text~)
 }
 
 ///|
@@ -111,6 +113,21 @@ pub fn parse_json_bytes(
   parse_bytes_input(source, limits, source_path, false).map(parsed => {
     parsed.node
   })
+}
+
+///|
+/// Decode strict bounded JSON without authoring-source text normalization.
+/// This preserves decoded external values and keys; consumers must perform
+/// domain admission or an explicitly declared provider conversion.
+pub fn parse_json_bytes_preserving(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[Node, ParseError] {
+  parse_bytes_input(source, limits, source_path, false, normalize_text=false).map(parsed => {
+      parsed.node
+    },
+  )
 }
 
 ///|

@@ -38,6 +38,13 @@ This is authoring-source normalization, not strict canonical-artifact admission.
 It does not verify canonical textual spelling, schemas, signatures or CIDs.
 Simply disabling normalization would not establish those guarantees either.
 
+`parse_json_bytes_preserving` is the bounded external-response entry. It uses
+the same strict UTF-8, JSON grammar, duplicate-key checks and parse limits,
+but retains decoded text and keys without NFC/LF normalization. A Connector
+must still admit the resulting values against its exact logical contract or
+declare and account for a provider-specific conversion. This entry does not
+turn raw response bytes into a canonical artifact or execution authority.
+
 ## Limits and failures
 
 `max_input_bytes` counts the entire original UTF-8 representation, including
