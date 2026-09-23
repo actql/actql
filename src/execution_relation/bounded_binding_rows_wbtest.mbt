@@ -30,6 +30,7 @@ fn bounded_binding_rows_receiver(
   following_step? : Bool = false,
   filter? : Bool = false,
   select? : Bool = false,
+  take? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -38,7 +39,9 @@ fn bounded_binding_rows_receiver(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[" +
-      (if select {
+      (if take {
+        "{\"take\":{\"count\":1,\"offset\":1},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if select {
         "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
@@ -84,7 +87,9 @@ fn bounded_binding_rows_fixture(
   following_step? : Bool = false,
   filter? : Bool = false,
   select? : Bool = false,
+  take? : Bool = false,
   input_limits? : ValueLimits? = None,
+  max_work? : Int = 100000,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(rows)
   let receiver = bounded_binding_rows_receiver(
@@ -92,13 +97,14 @@ fn bounded_binding_rows_fixture(
     following_step~,
     filter~,
     select~,
+    take~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    if select {
+    if select || take {
       []
     } else {
       [sequence_fragment_context(sequence, 0, 2L)]
@@ -122,7 +128,7 @@ fn bounded_binding_rows_fixture(
     100,
     input_limits.unwrap_or_else(() => run_limits().input_values),
     run_limits().output_values,
-    100000,
+    max_work,
     100,
     10000,
     10000,
@@ -458,6 +464,139 @@ test "bounded selected projection rejects an input one node short" {
       _ => fail("short input had another outcome")
     }
   }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected take validates the whole input before offset" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]},{\"id\":3,\"left\":[5,6],\"right\":[7,8]}]",
+    take=true,
+  )
+  let mut advances = 0
+  let mut completed : CompletedOutput? = None
+  while completed is None {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      BoundedBindingRowsFailed(_, ..) => fail("unexpected take failure")
+      BoundedBindingRowsStopped(_, ..) => fail("unexpected take stop")
+    }
+  }
+  assert_true(advances > 20)
+  let output = completed.unwrap()
+  assert_eq(completed_row_count(output), 1)
+  assert_eq(completed_column_count(output), 3)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected take rejects input beyond its output range" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]},{\"id\":3,\"left\":[5,6],\"right\":[7,8]}]",
+    take=true,
+    input_limits=Some({
+      max_nodes: 16,
+      max_text_bytes: 33,
+      max_depth: 3,
+      max_work: 57,
+    }),
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) => fail("undemanded output hid input")
+      _ => fail("short take input had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected take cancels before its output is public" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    take=true,
+  )
+  for _ in 0..<12 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected take has an exact control-work boundary" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Two whole-input passes, three schema names, then one three-field row.
+  // The schema names contain 2 + 4 + 5 UTF-8 bytes.
+  let (_, accepted, _) = bounded_binding_rows_fixture(
+    rows,
+    take=true,
+    max_work=22,
+  )
+  let mut complete = false
+  while !complete {
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 1)
+        complete = true
+      }
+      _ => fail("exact take work failed")
+    }
+  }
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  let (_, rejected, input) = bounded_binding_rows_fixture(
+    rows,
+    take=true,
+    max_work=21,
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) => fail("short take work completed")
+      _ => fail("short take work had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
+test "bounded selected take with offset beyond input completes empty" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]}]",
+    take=true,
+  )
+  let mut completed : CompletedOutput? = None
+  while completed is None {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("empty take failed")
+    }
+  }
+  assert_eq(completed_row_count(completed.unwrap()), 0)
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
 }

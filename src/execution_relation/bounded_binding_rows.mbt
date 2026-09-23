@@ -2,6 +2,7 @@
 priv enum BoundedBindingRowsPhase {
   ChargeInput
   RetainInputs
+  ChargeTakeNames
   BeginRow
   SnapshotRow
   EvaluateBindings
@@ -41,6 +42,7 @@ priv struct BoundedBindingRowsState {
   input_ordinals : Map[String, Int]
   binding_ordinals : Map[String, Int]
   projection_ordinals : Map[String, Int]?
+  take_range : (Int, Int)?
   ordered : Bool
   output_schema : @schema.Schema
   admitted_limits : @admitted.Limits
@@ -208,12 +210,23 @@ fn bounded_binding_rows_step(
           state.charge_column += 1
           used += 1
         } else {
+          if state.take_range is Some(_) && !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
           state.charge_row += 1
           state.charge_column = 0
           state.charge_open = false
+          if state.take_range is Some(_) {
+            used += 1
+          }
         }
       }
       RetainInputs => {
+        if state.take_range is Some(_) {
+          state.column = 0
+          state.phase = ChargeTakeNames
+          continue
+        }
         if state.logical is None {
           state.phase = BeginRow
           continue
@@ -257,7 +270,27 @@ fn bounded_binding_rows_step(
         state.input_row += 1
         used += 1
       }
+      ChargeTakeNames => {
+        if state.column == state.output_names.length() {
+          guard state.take_range is Some((start, _)) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          state.row = start
+          state.phase = BeginRow
+          continue
+        }
+        if !spend_control(state.control, 1) ||
+          !spend_control_text(state.control, state.output_names[state.column]) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        state.column += 1
+        used += 1
+      }
       BeginRow => {
+        if state.take_range is Some((_, end)) && state.row >= end {
+          state.phase = FinishOutput
+          continue
+        }
         if state.row == count {
           state.phase = FinishOutput
           continue
@@ -450,7 +483,11 @@ fn bounded_binding_rows_step(
           continue
         }
         if !reserve_slots(state.workspace, 1) ||
-          !spend_control_text(state.control, state.output_names[state.column]) {
+          (if state.take_range is Some(_) {
+            !spend_control(state.control, 1)
+          } else {
+            !spend_control_text(state.control, state.output_names[state.column])
+          }) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         let name = state.output_names[state.column]
@@ -637,15 +674,38 @@ pub fn start_bounded_binding_rows(
     !admit_metadata(binding_count) {
     return Err(InvalidExecution)
   }
-  let (bindings, ordered, predicate, select_mode) = match
+  let (bindings, ordered, predicate, select_mode, take_range) = match
     @lower.kernel_body(kernel) {
-    @lower.OrderedBindings(bindings) => (bindings, true, None, false)
-    @lower.SnapshotMap(bindings) => (bindings, false, None, false)
-    @lower.Filter(expression) => ([], false, Some(expression), false)
-    @lower.Select(_) => ([], false, None, true)
+    @lower.OrderedBindings(bindings) => (bindings, true, None, false, None)
+    @lower.SnapshotMap(bindings) => (bindings, false, None, false, None)
+    @lower.Filter(expression) => ([], false, Some(expression), false, None)
+    @lower.Select(_) => ([], false, None, true, None)
+    @lower.Limit(take_count, offset, _) => {
+      // A key-completion sort must run before take; this session only uses
+      // the already-proven input order.
+      let prepared = @lower.bound_preparation(owner)
+      guard @lower.node_at(prepared, step) is Some(node) &&
+        @lower.order_node_id(node) is None &&
+        take_count > 0L &&
+        offset >= 0L else {
+        return Err(InvalidExecution)
+      }
+      let size = producer_read_row_count(input)
+      let start = if offset >= size.to_int64() { size } else { offset.to_int() }
+      let remaining = size - start
+      let selected = if take_count >= remaining.to_int64() {
+        remaining
+      } else {
+        take_count.to_int()
+      }
+      ([], false, None, false, Some((start, start + selected)))
+    }
     _ => return Err(InvalidExecution)
   }
-  if !select_mode && bindings.length() != binding_count {
+  if take_range is None && !select_mode && bindings.length() != binding_count {
+    return Err(InvalidExecution)
+  }
+  if take_range is Some(_) && !admit_metadata(output_width) {
     return Err(InvalidExecution)
   }
   let mut logical : LogicalBudget? = None
@@ -660,7 +720,7 @@ pub fn start_bounded_binding_rows(
       }
     }
   }
-  if !select_mode {
+  if !select_mode && take_range is None {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
       admit_logical_rows(logical, producer_read_row_count(input).to_int64()) {
@@ -699,6 +759,19 @@ pub fn start_bounded_binding_rows(
         projection[output_name] = index
       }
       if projection.length() != output_width {
+        return Err(InvalidExecution)
+      }
+      Some(projection)
+    }
+    @lower.Limit(_, _, _) => {
+      let projection : Map[String, Int] = Map([])
+      for name in output_names {
+        guard input_ordinals.get(name) is Some(index) else {
+          return Err(InvalidExecution)
+        }
+        projection[name] = index
+      }
+      if projection.length() != output_width || input_width != output_width {
         return Err(InvalidExecution)
       }
       Some(projection)
@@ -758,6 +831,7 @@ pub fn start_bounded_binding_rows(
     input_ordinals,
     binding_ordinals,
     projection_ordinals,
+    take_range,
     ordered,
     output_schema,
     admitted_limits: {
