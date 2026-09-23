@@ -106,9 +106,13 @@ mapped operations and 16 with operation-specific boundary records. The
 registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
 one-short work/workspace assurance. The ordinary and selected one-step filter
 and select paths now share their respective bounded evaluators and have
-independently tested Host cancel delivery. This does not close their
-synchronous whole-sequence paths or any other unassured operation. The strict
-completion gate remains red.
+independently tested Host cancel delivery. Ordinary one-step sort and take
+now also have separate Host timer delivery after positive kernel work, with
+stop, nonpublication, and cleanup checks. Their selected and ordinary paths
+share the exact bounded evaluator and independently checked work/workspace
+fixtures for ordered/empty sort and keyed/unkeyed take. This does not close
+their synchronous whole-sequence paths or any other unassured operation.
+The strict completion gate remains red.
 Standard Host fixtures do not prove the Distribution-owned ordinary Run entry;
 that integration is also open. Closing one condition does not close the others.
 
@@ -179,14 +183,19 @@ Do not change its expected output merely to make a new provider route pass.
   persistent schema metadata and the selected row's checked values. The
   resource gate requires both variants and rejects missing or borrowed proof
   roles. These direct fixtures are paired with the standard Host route rather
-  than substituted for it. The synchronous and ordinary take paths still lack
-  corresponding full boundary assurance, so this is not operation completion.
+  than substituted for it. The ordinary one-step take path uses the same
+  bounded evaluator and has a separate delivered Host timer cancellation;
+  keyed and unkeyed resource fixtures are reused only across that exact
+  production entrypoint. The synchronous whole-sequence take path remains
+  unassured, so this is not operation completion.
   The selected sort path likewise binds independent work and workspace
   exact/one-short fixtures for both an authored ordering term and an empty
   ordering term. The empty branch uses charged identity indices rather than
   merge comparisons; its resource proof is not borrowed from the ordered
-  branch. The synchronous and ordinary sort paths remain unassured. A passing
-  route gate alone is not operation-completion evidence. An independent audit
+  branch. Ordinary one-step sort uses the same bounded evaluator and has a
+  separate delivered Host timer cancellation. The synchronous whole-sequence
+  sort path remains unassured. A passing route gate alone is not
+  operation-completion evidence. An independent audit
   claim now names the resource-assured selected paths, and the default
   gate rejects deleting their route proofs, inventing another claimed path,
   or silently dropping one claim. Selected filter now has an exact/one-short

@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 11 with path-scoped work\/workspace evidence, 3 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 13 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -484,6 +484,34 @@ test('ordinary filter requires its delivered Host cancellation fixture', () => {
     filter.environment_tests = filter.environment_tests.filter(item =>
       item.role !== 'ordinary_filter_in_flight_host_timer');
   }), /RelA filter: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
+});
+
+test('ordinary sort and take require delivered Host cancellation', () => {
+  for (const [operation, role] of [
+    ['sort', 'ordinary_sort_in_flight_host_timer'],
+    ['take', 'ordinary_take_in_flight_host_timer'],
+  ]) {
+    assert.match(run(undefined, value => {
+      const route = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(
+      `RelA ${operation}: ordinary_entrypoint in_flight_cancel lacks an executable fixture`,
+    ));
+  }
+});
+
+test('ordinary sort and take retain their exact resource variants', () => {
+  for (const [operation, variant] of [
+    ['sort', 'empty'], ['take', 'keyed'],
+  ]) {
+    assert.match(run(undefined, value => {
+      const route = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      delete route.resource_assurance.ordinary_entrypoint.variants[variant];
+    }), new RegExp(`RelA ${operation}: ordinary_entrypoint needs`));
+  }
 });
 
 test('resource gate rejects a false in-flight assurance', () => {
