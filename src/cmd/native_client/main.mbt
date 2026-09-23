@@ -278,22 +278,6 @@ fn valid_reference_member(fields : Map[String, Json]) -> Bool {
 }
 
 ///|
-fn object_or_null(value : Json?) -> Bool {
-  match value {
-    Some(Object(_)) | Some(Null) => true
-    _ => false
-  }
-}
-
-///|
-fn object_member(fields : Map[String, Json], name : String) -> Bool {
-  match fields.get(name) {
-    Some(Object(_)) => true
-    _ => false
-  }
-}
-
-///|
 fn valid_request_lookup(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   match json_text(fields, "kind") {
@@ -312,15 +296,81 @@ fn valid_request_lookup(value : Json) -> Bool {
 }
 
 ///|
-fn valid_attempt_lookup(value : Json) -> Bool {
-  guard value is Object(fields) else { return false }
+fn admitted_lookup_contract(
+  name : String,
+  value : Json,
+  maximum : Int,
+) -> @publication.PublicationContract? {
+  let writer = @encode.writer(maximum, 8192, 32) catch { _ => return None }
+  let wire = try {
+    @encode.emit_json(value, writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return None
+  }
+  match @publication.admit_publication_contract(name, wire, maximum, 8192, 32) {
+    Ok(contract) => Some(contract)
+    Err(_) => None
+  }
+}
+
+///|
+fn valid_attempt_lookup(
+  value : Json,
+  request_wire : Bytes,
+  maximum : Int,
+) -> Bool {
+  let request_text = @utf8.decode(request_wire) catch { _ => return false }
+  let request = @json.parse(request_text) catch { _ => return false }
+  guard request is Object(request_fields) &&
+    request_fields.get("ref") is Some(Object(reference)) &&
+    json_text(reference, "runDefinitionCid") is Some(run_definition) &&
+    json_text(request_fields, "attemptId") is Some(attempt_id) &&
+    json_text(request_fields, "resultName") is Some(result_name) &&
+    value is Object(fields) else {
+    return false
+  }
   match json_text(fields, "kind") {
     Some("not_found") => fields.length() == 1
-    Some("found") =>
-      fields.length() == 4 &&
-      object_member(fields, "attempt") &&
-      object_or_null(fields.get("record")) &&
-      object_or_null(fields.get("hostReleaseReceipt"))
+    Some("found") => {
+      guard fields.length() == 4 &&
+        fields.get("attempt") is Some(attempt_value) &&
+        attempt_value is Object(attempt_fields) &&
+        json_text(attempt_fields, "attempt_id") == Some(attempt_id) &&
+        json_text(attempt_fields, "run_definition_cid") == Some(run_definition) &&
+        json_text(attempt_fields, "result_name") == Some(result_name) &&
+        admitted_lookup_contract("delivery_attempt", attempt_value, maximum)
+        is Some(attempt) else {
+        return false
+      }
+      match (fields.get("record"), fields.get("hostReleaseReceipt")) {
+        (Some(Null), Some(Null)) => true
+        (Some(record_value), Some(receipt_value)) => {
+          guard record_value is Object(record_fields) &&
+            admitted_lookup_contract("delivery_record", record_value, maximum)
+            is Some(record) &&
+            json_text(record_fields, "delivery_attempt_cid") ==
+            Some(@publication.publication_contract_identity(attempt)) else {
+            return false
+          }
+          if json_text(record_fields, "state") == Some("succeeded") {
+            guard admitted_lookup_contract(
+                "result_delivery_receipt", receipt_value, maximum,
+              )
+              is Some(receipt) else {
+              return false
+            }
+            @publication.validate_delivery_success_evidence(
+              attempt, receipt, record,
+            )
+            is Ok(_)
+          } else {
+            receipt_value is Null
+          }
+        }
+        _ => false
+      }
+    }
     _ => false
   }
 }
@@ -631,7 +681,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     if route == "lookup-request" && !valid_request_lookup(value) {
       stop("InvalidHostRequestLookup")
     }
-    if route == "delivery-attempt" && !valid_attempt_lookup(value) {
+    if route == "delivery-attempt" &&
+      !valid_attempt_lookup(value, body, response_max) {
       stop("InvalidHostAttemptLookup")
     }
     text

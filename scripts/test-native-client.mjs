@@ -4,6 +4,7 @@ import {createServer} from 'node:https';
 import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {createHash} from 'node:crypto';
 
 const root = await mkdtemp(join(tmpdir(), 'actql-native-client-'));
 const openssl = (...args) => execFileSync('openssl', args,
@@ -29,6 +30,57 @@ const connection = {mode: 'remote', owner: 'remote',
 const ref = {tenantId: 'tenant-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+const deliveryTemplate = JSON.parse(await readFile(new URL(
+  '../packages/client-wire/fixtures/delivery-attempt.found.json',
+  import.meta.url), 'utf8'));
+const canonical = value => Array.isArray(value)
+  ? `[${value.map(canonical).join(',')}]`
+  : value !== null && typeof value === 'object'
+    ? `{${Object.keys(value).sort().map(key =>
+      `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+    : JSON.stringify(value);
+const seal = (body, identityField) => ({...body,
+  [identityField]: `sha256:${createHash('sha256')
+    .update(canonical(body)).digest('hex')}`});
+function deliveryReply(attemptId, {runDefinitionCid = ref.runDefinitionCid,
+  resultName = 'answer', state = 'succeeded'} = {}) {
+  const {delivery_attempt_cid: _attemptCid, ...attemptBody} =
+    deliveryTemplate.attempt;
+  const attempt = seal({...attemptBody, attempt_id: attemptId,
+    run_definition_cid: runDefinitionCid, result_name: resultName},
+  'delivery_attempt_cid');
+  const {result_delivery_receipt_cid: _receiptCid, ...receiptBody} =
+    deliveryTemplate.hostReleaseReceipt;
+  const hostReleaseReceipt = seal({...receiptBody,
+    run_definition_cid: runDefinitionCid, result_name: resultName},
+  'result_delivery_receipt_cid');
+  const {delivery_record_cid: _recordCid, ...recordBody} =
+    deliveryTemplate.record;
+  const record = seal({...recordBody,
+    delivery_attempt_cid: attempt.delivery_attempt_cid,
+    result_delivery_receipt_cid:
+      hostReleaseReceipt.result_delivery_receipt_cid,
+    state}, 'delivery_record_cid');
+  return {kind: 'found', attempt, record, hostReleaseReceipt};
+}
+const foundDelivery = deliveryReply('found-attempt');
+const deliveryReplies = {
+  'found-attempt': foundDelivery,
+  'pending-attempt': (() => {
+    const {attempt} = deliveryReply('pending-attempt');
+    return {kind: 'found', attempt, record: null, hostReleaseReceipt: null};
+  })(),
+  'wrong-attempt': foundDelivery,
+  'foreign-run': deliveryReply('foreign-run',
+    {runDefinitionCid: `sha256:${'c'.repeat(64)}`}),
+  'foreign-result': deliveryReply('foreign-result',
+    {resultName: 'foreign'}),
+  'empty-receipt': {...deliveryReply('empty-receipt'),
+    hostReleaseReceipt: {}},
+  'empty-record': {...deliveryReply('empty-record'), record: {}},
+  'failed-with-receipt': deliveryReply('failed-with-receipt',
+    {state: 'failed'}),
+};
 const profile = {version: 'actql-client-host/0.1',
   mode: 'remote', owner: 'remote', durability: 'durable',
   scopeRef: 'principal-a', capabilities: ['aql-document', 'result-jsonl'],
@@ -96,10 +148,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end(JSON.stringify(body.attemptId === 'bad-attempt'
       ? {kind: 'found', attempt: null, record: null,
         hostReleaseReceipt: null}
-      : body.attemptId === 'found-attempt'
-        ? {kind: 'found', attempt: {attempt_id: 'found-attempt'},
-          record: null, hostReleaseReceipt: null}
-        : {kind: 'not_found'}));
+      : deliveryReplies[body.attemptId] ?? {kind: 'not_found'}));
   } else if (operation === 'read') {
     response.end(body.attemptId === 'prefix' ? '{"value":7}\n'
       : '{"value":7}\n\x1e');
@@ -192,9 +241,21 @@ try {
   const foundAttempt = await run('delivery-attempt', '--ref-file', 'ref.json',
     '--result-name', 'answer', '--attempt-id', 'found-attempt');
   assert.equal(foundAttempt.code, 0, foundAttempt.stderr);
-  assert.deepEqual(JSON.parse(foundAttempt.stdout),
-    {kind: 'found', attempt: {attempt_id: 'found-attempt'},
-      record: null, hostReleaseReceipt: null});
+  assert.deepEqual(JSON.parse(foundAttempt.stdout), foundDelivery);
+  const pendingAttempt = await run('delivery-attempt',
+    '--ref-file', 'ref.json', '--result-name', 'answer',
+    '--attempt-id', 'pending-attempt');
+  assert.equal(pendingAttempt.code, 0, pendingAttempt.stderr);
+  assert.deepEqual(JSON.parse(pendingAttempt.stdout),
+    deliveryReplies['pending-attempt']);
+  for (const attemptId of ['wrong-attempt', 'foreign-run',
+    'foreign-result', 'empty-receipt', 'empty-record',
+    'failed-with-receipt']) {
+    const rejected = await run('delivery-attempt', '--ref-file', 'ref.json',
+      '--result-name', 'answer', '--attempt-id', attemptId);
+    assert.notEqual(rejected.code, 0);
+    assert.match(rejected.stderr, /InvalidHostAttemptLookup/);
+  }
   const badAttempt = await run('delivery-attempt', '--ref-file', 'ref.json',
     '--result-name', 'answer', '--attempt-id', 'bad-attempt');
   assert.notEqual(badAttempt.code, 0);
