@@ -21,6 +21,8 @@ const load = path => import(pathToFileURL(join(root, path)).href);
 const {retainedCase} = await load('benchmarks/retained-results/fixtures.mjs');
 const {runRetainedComparator} = await load('adapters/connectors/duckdb/node/bench/retained-comparator.mjs');
 const {admitRetainedEstimateProfile} = await load('benchmarks/retained-results/estimate-profile.mjs');
+const {admitRetainedProductSample} = await load(
+  'benchmarks/retained-results/product-sample-admission.mjs');
 const fixture = retainedCase(workload, layout, Number(rowText));
 const fileHash = async path => {
   const hash = createHash('sha256');
@@ -66,7 +68,8 @@ try {
       targetSourceSha256: targetSourceHash};
   }
   const report = await runRetainedComparator(fixture, contracts, resolve(database), resolve(directory),
-    {resident: true, nativeMilliseconds,
+    {resident: true,
+      nativeMilliseconds: estimates?.nativeTaskMilliseconds[0] ?? nativeMilliseconds,
       ...(estimates ? {localTaskMilliseconds: estimates.localTaskMilliseconds,
         nativeTaskMilliseconds: estimates.nativeTaskMilliseconds,
         estimateSource: estimates.estimateSource} : {})});
@@ -76,7 +79,11 @@ try {
   if (revision !== await git(['rev-parse', 'HEAD']) || await git(['status', '--porcelain'])) {
     throw Error('DiagnosticSourcesChanged');
   }
-  console.log(JSON.stringify({revision, acceptanceEligible: false,
+  const productAdmission = estimates ? admitRetainedProductSample({fixture,
+    estimates, calibration, report}) : undefined;
+  console.log(JSON.stringify({revision,
+    acceptanceEligible: productAdmission?.accepted === true,
+    productAdmission,
     calibration: calibration ?? 'explicit diagnostic estimates; not calibrated ordinary selection',
     initialPlacement: 'fixture database; no preexisting resident copies', report}));
 } catch (error) {
