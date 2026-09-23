@@ -10,4 +10,5 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/encode_core" @encode,
+  "actql/actql/run_publication" @publication,
 }

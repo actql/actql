@@ -59,6 +59,19 @@ pub fn single_write_request_org_id(value : SingleWriteRequest) -> String {
 }
 
 ///|
+pub fn single_write_request_resource(value : SingleWriteRequest) -> String {
+  value.projection.resource
+}
+
+///|
+pub fn single_write_request_boundary_cid(
+  value : SingleWriteRequest,
+  max_identity_bytes : Int,
+) -> Result[String, WriteCollectionRequestIssue] {
+  write_projection_boundary_cid(value.projection, max_identity_bytes)
+}
+
+///|
 /// Derive the provider footprint from the exact admitted physical request,
 /// never from a separately supplied target. Create has no existing target.
 pub fn single_write_request_target_identity(

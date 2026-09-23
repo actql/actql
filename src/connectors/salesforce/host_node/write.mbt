@@ -160,6 +160,78 @@ pub fn salesforce_single_write_request_target_identity(
 }
 
 ///|
+#export_name("salesforceSingleWriteRequestBoundaryCid")
+pub fn salesforce_single_write_request_boundary_cid(
+  request : @catalog.SingleWriteRequest,
+  max_identity_bytes : Int,
+) -> String raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.single_write_request_boundary_cid(request, max_identity_bytes) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
+}
+
+///|
+/// Check that one admitted physical REST request is among the target facts
+/// claimed by its private Preview member. Whole-set footprint admission,
+/// source-to-payload equivalence, and current apply authority remain separate.
+#export_name("salesforceSingleWriteRequestMatchesPreviewFootprint")
+pub fn salesforce_single_write_request_matches_preview_footprint(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  request : @catalog.SingleWriteRequest,
+  max_identity_bytes : Int,
+) -> Bool raise SalesforceCatalogBridgeIssue {
+  guard @publication.effect_preview_member_footprint(preview, member_index)
+    is Some(footprint) else {
+    return false
+  }
+  if @publication.effect_preview_footprint_provider_namespace(footprint) !=
+    "salesforce" ||
+    @publication.effect_preview_footprint_resource_kind(footprint) !=
+    @catalog.single_write_request_resource(request) {
+    return false
+  }
+  let boundary = salesforce_single_write_request_boundary_cid(
+    request, max_identity_bytes,
+  )
+  if @publication.effect_preview_footprint_provider_boundary_cid(footprint) !=
+    boundary {
+    return false
+  }
+  match
+    salesforce_single_write_request_target_identity(request, max_identity_bytes) {
+    None =>
+      (
+        @publication.effect_preview_footprint_kind(footprint) == "collection" ||
+        @publication.effect_preview_footprint_kind(footprint) == "opaque"
+      ) &&
+      @publication.effect_preview_footprint_target_count(footprint) == 0
+    Some(target) => {
+      if @publication.effect_preview_footprint_kind(footprint) !=
+        "exact_targets" ||
+        @publication.effect_preview_footprint_resource_identity_scheme_cid(
+          footprint,
+        ) !=
+        @catalog.write_target_scheme_cid(target) {
+        return false
+      }
+      for
+        index in 0..<@publication.effect_preview_footprint_target_count(
+          footprint,
+        ) {
+        if @publication.effect_preview_footprint_target_cid(footprint, index) ==
+          Some(@catalog.write_target_object_cid(target)) {
+          return true
+        }
+      }
+      false
+    }
+  }
+}
+
+///|
 #export_name("salesforceSingleWriteRequestGrantOperation")
 pub fn salesforce_single_write_request_grant_operation(
   request : @catalog.SingleWriteRequest,
@@ -411,6 +483,96 @@ pub fn salesforce_collection_write_request_target_identity(
     Ok(value) => value
     Err(issue) => raise WriteCollectionRequest(issue)
   }
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestBoundaryCid")
+pub fn salesforce_collection_write_request_boundary_cid(
+  request : @catalog.WriteCollectionRequest,
+  max_identity_bytes : Int,
+) -> String raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.write_collection_request_boundary_cid(request, max_identity_bytes) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
+}
+
+///|
+/// A Collections batch may cover a subset of one admitted member's rows,
+/// but every exact target in that batch must belong to that member's Preview.
+#export_name("salesforceCollectionWriteRequestMatchesPreviewFootprint")
+pub fn salesforce_collection_write_request_matches_preview_footprint(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  request : @catalog.WriteCollectionRequest,
+  max_identity_bytes : Int,
+  max_binding_work : Int,
+) -> Bool raise SalesforceCatalogBridgeIssue {
+  guard max_binding_work > 0 &&
+    @publication.effect_preview_member_footprint(preview, member_index)
+    is Some(footprint) else {
+    return false
+  }
+  if @publication.effect_preview_footprint_provider_namespace(footprint) !=
+    "salesforce" ||
+    @publication.effect_preview_footprint_resource_kind(footprint) !=
+    @catalog.write_collection_request_resource(request) ||
+    @publication.effect_preview_footprint_provider_boundary_cid(footprint) !=
+    salesforce_collection_write_request_boundary_cid(
+      request, max_identity_bytes,
+    ) {
+    return false
+  }
+  let count = @catalog.write_collection_request_row_count(request)
+  let target_count = @publication.effect_preview_footprint_target_count(
+    footprint,
+  )
+  let mut remaining = max_binding_work
+  for row in 0..<count {
+    remaining -= 1
+    if remaining < 0 {
+      return false
+    }
+    let target = salesforce_collection_write_request_target_identity(
+      request, row, max_identity_bytes,
+    )
+    match target {
+      None =>
+        if !(@publication.effect_preview_footprint_kind(footprint) ==
+          "collection" ||
+          @publication.effect_preview_footprint_kind(footprint) == "opaque") ||
+          target_count != 0 {
+          return false
+        }
+      Some(identity) => {
+        if @publication.effect_preview_footprint_kind(footprint) !=
+          "exact_targets" ||
+          @publication.effect_preview_footprint_resource_identity_scheme_cid(
+            footprint,
+          ) !=
+          @catalog.write_target_scheme_cid(identity) {
+          return false
+        }
+        let mut found = false
+        for index in 0..<target_count {
+          remaining -= 1
+          if remaining < 0 {
+            return false
+          }
+          if @publication.effect_preview_footprint_target_cid(footprint, index) ==
+            Some(@catalog.write_target_object_cid(identity)) {
+            found = true
+            break
+          }
+        }
+        if !found {
+          return false
+        }
+      }
+    }
+  }
+  true
 }
 
 ///|
