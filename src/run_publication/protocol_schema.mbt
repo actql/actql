@@ -129,6 +129,7 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
     3 => valid_version_token(value)
     4 => valid_digest(value)
     5 => value.has_prefix("$")
+    6 => value.has_prefix("command:")
     _ => false
   }
 }
@@ -318,4 +319,34 @@ fn validate_generated_protocol_shape(
     max_nodes,
     max_depth,
   })
+}
+
+///|
+/// Parse the closed private Effect Preview shape. This does not establish
+/// its semantic CID, nested identities, current authority, or apply admission.
+pub fn parse_effect_preview_shape(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, PublicationContractIssue] {
+  let value = match
+    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+    Ok(parsed) => parsed
+    Err(issue) => return Err(issue)
+  }
+  let canonical = @json.stringify_value(
+    value, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  if canonical != wire {
+    return Err(InvalidWire)
+  }
+  if !validate_generated_protocol_shape(
+      "effect_preview", value, true, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(InvalidField("effect_preview"))
+  }
+  Ok(value)
 }

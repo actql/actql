@@ -2,11 +2,14 @@
 package "actql/actql/effect_application"
 
 import {
+  "actql/actql/run_publication",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
+pub fn check_effect_preview_footprint_conflicts(String, Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
@@ -188,6 +191,12 @@ pub(all) struct EffectMemberProgress {
   policy : EffectItemFailurePolicy
   rows : Array[EffectItemProgress]
 }
+
+pub(all) enum EffectPreviewFootprintIssue {
+  PreviewShape(@run_publication.PublicationContractIssue)
+  InvalidPreviewFootprint
+  Conflict(EffectFootprintIssue)
+} derive(@debug.Debug)
 
 pub(all) enum EffectRowAction {
   PersistPrepared
