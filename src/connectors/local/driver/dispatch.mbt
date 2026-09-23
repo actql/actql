@@ -67,7 +67,15 @@ pub fn prepare_local_dispatch_module(
           Some(value) => value
           None => return Err(Configuration(ForeignPreparation))
         }
-      None => sequence
+      None =>
+        match @strategy.graph_task_prefix_end(graph, index + 1) {
+          Some(last) =>
+            match @execution.select_generated_sequence_prefix(sequence, last) {
+              Some(value) => value
+              None => return Err(Configuration(ForeignPreparation))
+            }
+          None => sequence
+        }
     }
     physical_sequences.push(physical)
   }

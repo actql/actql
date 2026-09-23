@@ -346,11 +346,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     is Some(asof_search_ceilings) else {
     return Err(Configuration(InvalidLimits))
   }
-  let selected_operation = @strategy.graph_task_selected_step(
-      @strategy.captured_dag_graph(installed.run),
-      task,
-    )
-    is Some(_)
+  let graph = @strategy.captured_dag_graph(installed.run)
+  let selected_operation = @strategy.graph_task_selected_step(graph, task)
+    is Some(_) ||
+    @strategy.graph_task_prefix_end(graph, task) is Some(_)
   let request_result = if selected_operation ||
     provider_inputs.any(input => input is PreparedCarrier(_)) ||
     relation_inputs.any(input => {

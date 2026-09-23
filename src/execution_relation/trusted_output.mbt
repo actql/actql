@@ -210,10 +210,7 @@ fn validate_trusted_output_contract_with_inputs(
     }
   }
   guard target is Step(index) &&
-    index ==
-    generated.selected_step.unwrap_or(
-      @lower.sequence_count(generated.sequence) - 1,
-    ) &&
+    index == completion_preparation_terminal_step(generated) &&
     @lower.node_at(prepared, index) is Some(node) &&
     @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(InvalidTarget)
