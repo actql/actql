@@ -50,6 +50,8 @@ pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, Strin
 
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
 
+pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
+
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
 pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
@@ -96,7 +98,19 @@ pub fn require_unique_external_id(ResourceMetadata, String) -> Result[FieldMetad
 
 pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
+pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn write_projection_fields(WriteProjection) -> Array[String]
+
+pub fn write_projection_matches_binding(WriteProjection, CatalogObservationBinding) -> Bool
+
+pub fn write_projection_observation(WriteProjection) -> String
+
+pub fn write_projection_operation(WriteProjection) -> WriteOperation
+
+pub fn write_projection_resource(WriteProjection) -> String
 
 // Errors
 
@@ -320,6 +334,7 @@ pub(all) enum ResourceRequirementIssue {
   FieldConstraintUnconfirmed(String)
   MissingRequiredCreateField(String)
   ExternalIdNotUnique(String)
+  ExternalTargetInBody(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResourceSelectionIssue {
@@ -327,6 +342,28 @@ pub(all) enum ResourceSelectionIssue {
   NotVisible
   DescribeRequired
   DescribeMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteOperation {
+  WriteCreate
+  WriteUpdateById
+  WriteUpsertByExternalId(String)
+} derive(Eq, @debug.Debug)
+
+pub struct WriteProjection {
+  observation_cid : String
+  binding : CatalogObservationBinding
+  resource : String
+  operation : WriteOperation
+  field_names : Array[String]
+}
+
+pub(all) enum WriteProjectionIssue {
+  Observation(CatalogObservationIssue)
+  Requirement(ResourceRequirementIssue)
+  FieldLimit
+  EmptyUpdate
+  TargetFieldInBody(String)
 } derive(Eq, @debug.Debug)
 
 // Type aliases
