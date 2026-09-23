@@ -14,6 +14,7 @@ import {
   mkdir,
   readFile,
   readdir,
+  rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
@@ -1655,13 +1656,31 @@ try {
   );
   const applicationComponent = await readFile(applicationExecutable);
   const applicationComponentCid = physicalCid(applicationComponent);
+  const duckdbLibrary = join(
+    repositoryRoot,
+    `adapters/connectors/duckdb/node/node_modules/@duckdb/` +
+      `node-bindings-${process.platform}-${process.arch}/` +
+      (process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
+  );
+  assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
+  const duckdbComponent = await readFile(duckdbLibrary);
   const applicationRuntimeManifest = runtimeControl.prepare({
     issuerAuthority: 'bundle-authority-a',
     bundleName: 'native-application-site',
     revision: 'native-application/1',
     targetTriple,
-    componentCid: applicationComponentCid,
-    componentBytes: BigInt(applicationComponent.byteLength),
+    components: [
+      {
+        role: 'duckdb_library',
+        cid: physicalCid(duckdbComponent),
+        bytes: BigInt(duckdbComponent.byteLength),
+      },
+      {
+        role: 'runtime_executable',
+        cid: applicationComponentCid,
+        bytes: BigInt(applicationComponent.byteLength),
+      },
+    ],
     connectorRegistration: 'local',
     connectorRevision: 'local/1',
     strategyRevision: 'strategy/1',
@@ -1705,6 +1724,11 @@ try {
       applicationComponent,
       {mode: 0o700},
     ),
+    writeFile(
+      join(applicationBundleInputRoot, 'duckdb.bin'),
+      duckdbComponent,
+      {mode: 0o600},
+    ),
   ]);
   const applicationBundleCommon = [
     '--store-root', applicationRuntimeRoot,
@@ -1729,7 +1753,8 @@ try {
       '--input-root', applicationBundleInputRoot,
       '--manifest-name', 'manifest.json',
       '--signature-name', 'signature.txt',
-      '--component-name', 'component.bin',
+      '--component-file', 'duckdb_library=duckdb.bin',
+      '--component-file', 'runtime_executable=component.bin',
     ],
   ).completed;
   assert.equal(
@@ -1980,13 +2005,6 @@ try {
   });
   let applicationOutputReceiveArguments;
   nativeTransferInjectLostReply = false;
-  const duckdbLibrary = join(
-    repositoryRoot,
-    `adapters/connectors/duckdb/node/node_modules/@duckdb/` +
-      `node-bindings-${process.platform}-${process.arch}/` +
-      (process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
-  );
-  assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
   const publicationAuthorityCid =
     physicalCid('native-application-publication-store');
   const resultDefinitionCid =
@@ -2162,6 +2180,8 @@ try {
   }
   let terminalStatusDropped = false;
   let interruptedCoordinatorExit;
+  const applicationProxyFailures = [];
+  let applicationControlRequests = 0;
   applicationControlProxy = createServer({
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
@@ -2169,6 +2189,7 @@ try {
     requestCert: true,
     rejectUnauthorized: true,
   }, async (incoming, outgoing) => {
+    applicationControlRequests += 1;
     const chunks = [];
     for await (const chunk of incoming) chunks.push(chunk);
     const body = Buffer.concat(chunks);
@@ -2192,6 +2213,7 @@ try {
     }
     const upstream = httpsRequest(`${coordinatorOrigin}${incoming.url}`, {
       method: incoming.method,
+      agent: false,
       cert: await readFile(join(root, 'client.crt')),
       key: await readFile(join(root, 'client.key')),
       ca: await readFile(join(root, 'ca.crt')),
@@ -2203,7 +2225,15 @@ try {
       });
       response.pipe(outgoing);
     });
-    upstream.on('error', error => outgoing.destroy(error));
+    upstream.on('error', error => {
+      applicationProxyFailures.push({
+        path: incoming.url,
+        bodyBytes: body.length,
+        code: error.code,
+        message: error.message,
+      });
+      outgoing.destroy(error);
+    });
     upstream.end(body);
   });
   applicationControlProxy.listen(0, nativeHttpHost);
@@ -2215,7 +2245,6 @@ try {
     '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
     '--crypto-library', cryptoLibrary,
     '--http-library', library,
-    '--duckdb-library', duckdbLibrary,
     '--application-root', applicationRoot,
     '--transfer-root', applicationTransferRoot,
     '--publication-root', applicationPublicationRoot,
@@ -2263,6 +2292,29 @@ try {
     mismatchedApplicationArguments,
   ).completed;
   assert.notEqual(mismatchedApplication.code, 0);
+  const applicationBundleName = `runtime-bundle-${createHash('sha256')
+    .update(applicationRuntimeEnvelope.runtimeBundleCid).digest('hex')}`;
+  const installedBundlePath = join(applicationRuntimeRoot,
+    applicationBundleName);
+  const preservedBundlePath = join(applicationRuntimeRoot,
+    `${applicationBundleName}.preserved`);
+  const requestsBeforeSubstitution = applicationControlRequests;
+  await rename(installedBundlePath, preservedBundlePath);
+  try {
+    const missingComponent = await runCaptured(
+      applicationExecutable, applicationArguments,
+    ).completed;
+    assert.notEqual(missingComponent.code, 0);
+    await writeFile(installedBundlePath, 'substituted bundle');
+    const substitutedComponent = await runCaptured(
+      applicationExecutable, applicationArguments,
+    ).completed;
+    assert.notEqual(substitutedComponent.code, 0);
+    assert.equal(applicationControlRequests, requestsBeforeSubstitution);
+  } finally {
+    await rm(installedBundlePath, {force: true});
+    await rename(preservedBundlePath, installedBundlePath);
+  }
   const applicationRun = runCaptured(
     applicationExecutable,
     applicationArguments,
@@ -2415,10 +2467,20 @@ try {
         );
       })()
     : Promise.resolve();
-  const [applicationExit] = await Promise.all([
-    applicationRun.completed,
-    destinationCompletion,
-  ]);
+  const applicationExit = await applicationRun.completed;
+  if (applicationExit.code !== 0) {
+    if (coordinatorRun.child.exitCode === null &&
+        coordinatorRun.child.signalCode === null) {
+      coordinatorRun.child.kill('SIGTERM');
+    }
+    const coordinatorFailure = await coordinatorRun.completed;
+    assert.fail(JSON.stringify({
+      applicationExit, coordinatorFailure, terminalStatusDropped,
+      applicationProxyFailures,
+      interruptedCoordinatorExit,
+    }));
+  }
+  await destinationCompletion;
   const coordinatorExit = await coordinatorRun.completed;
   assert.equal(interruptedCoordinatorExit?.signal, 'SIGKILL');
   assert.equal(

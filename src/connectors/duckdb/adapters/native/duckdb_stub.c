@@ -2,11 +2,15 @@
 #include "../../../../../vendor/duckdb/1.4.3/duckdb.h"
 
 #include <dlfcn.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "duckdb_environment_settings.generated.h"
 
@@ -469,22 +473,19 @@ static bool actql_load_symbol(
 #define ACTQL_LOAD(library, field, symbol) \
   actql_load_symbol((library), (void **)&((library)->field), (symbol))
 
-void *actql_native_duckdb_load_library(
-  moonbit_bytes_t path,
-  int32_t length
+static actql_native_duckdb_library *actql_native_duckdb_load_library_path(
+  const char *path_text
 ) {
   actql_native_duckdb_library *library = moonbit_make_external_object(
     actql_native_duckdb_library_finalize,
     sizeof(actql_native_duckdb_library)
   );
   memset(library, 0, sizeof(*library));
-  char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
     actql_replace_error(&library->error, "DuckDB library path allocation failed");
     return library;
   }
   library->dynamic_library = dlopen(path_text, RTLD_NOW | RTLD_LOCAL);
-  free(path_text);
   if (library->dynamic_library == NULL) {
     actql_replace_error(&library->error, dlerror());
     return library;
@@ -565,6 +566,179 @@ void *actql_native_duckdb_load_library(
     dlclose(library->dynamic_library);
     library->dynamic_library = NULL;
   }
+  return library;
+}
+
+void *actql_native_duckdb_load_library(
+  moonbit_bytes_t path,
+  int32_t length
+) {
+  char *path_text = actql_copy_text(path, length);
+  actql_native_duckdb_library *library =
+    actql_native_duckdb_load_library_path(path_text);
+  free(path_text);
+  return library;
+}
+
+typedef struct {
+  int source_fd;
+  char *error;
+  int64_t maximum;
+  int64_t total;
+  int32_t chunk_length;
+  bool finished;
+  uint8_t chunk[65536];
+} actql_native_duckdb_candidate;
+
+static int actql_native_duckdb_candidate_dispose(
+  actql_native_duckdb_candidate *candidate
+) {
+  int result = 0;
+  if (candidate->source_fd >= 0 && close(candidate->source_fd) != 0) {
+    result = -1;
+  }
+  candidate->source_fd = -1;
+  return result;
+}
+
+static void actql_native_duckdb_candidate_finalize(void *value) {
+  actql_native_duckdb_candidate *candidate = value;
+  actql_native_duckdb_candidate_dispose(candidate);
+  free(candidate->error);
+}
+
+void *actql_native_duckdb_open_candidate(
+  moonbit_bytes_t root_path,
+  int32_t root_length,
+  moonbit_bytes_t component_name,
+  int32_t name_length,
+  uint64_t device,
+  uint64_t inode,
+  int64_t maximum
+) {
+  actql_native_duckdb_candidate *candidate = moonbit_make_external_object(
+    actql_native_duckdb_candidate_finalize,
+    sizeof(actql_native_duckdb_candidate)
+  );
+  memset(candidate, 0, sizeof(*candidate));
+  candidate->source_fd = -1;
+  candidate->maximum = maximum;
+  char *root = actql_copy_text(root_path, root_length);
+  char *name = actql_copy_text(component_name, name_length);
+  if (root == NULL || name == NULL || maximum <= 0 ||
+      strlen(root) != (size_t)root_length ||
+      strlen(name) != (size_t)name_length ||
+      strchr(name, '/') != NULL || strcmp(name, ".") == 0 ||
+      strcmp(name, "..") == 0) {
+    actql_replace_error(&candidate->error, "invalid DuckDB library candidate");
+    goto done;
+  }
+  int root_fd = open(root, O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
+  struct stat root_stat;
+  if (root_fd < 0 || fstat(root_fd, &root_stat) != 0 ||
+      !S_ISDIR(root_stat.st_mode) || root_stat.st_uid != geteuid()) {
+    if (root_fd >= 0) close(root_fd);
+    actql_replace_error(&candidate->error, "DuckDB library Store root rejected");
+    goto done;
+  }
+  candidate->source_fd = openat(root_fd, name,
+    O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  close(root_fd);
+  struct stat source_stat;
+  if (candidate->source_fd < 0 ||
+      fstat(candidate->source_fd, &source_stat) != 0 ||
+      !S_ISREG(source_stat.st_mode) || source_stat.st_size != maximum ||
+      (uint64_t)source_stat.st_dev != device ||
+      (uint64_t)source_stat.st_ino != inode) {
+    actql_replace_error(&candidate->error, "DuckDB library generation rejected");
+    goto done;
+  }
+done:
+  free(root);
+  free(name);
+  if (candidate->error != NULL) actql_native_duckdb_candidate_dispose(candidate);
+  return candidate;
+}
+
+int32_t actql_native_duckdb_candidate_ready(
+  actql_native_duckdb_candidate *candidate
+) {
+  return candidate->error == NULL && candidate->source_fd >= 0 &&
+    candidate->maximum > 0;
+}
+
+moonbit_bytes_t actql_native_duckdb_candidate_error(
+  actql_native_duckdb_candidate *candidate
+) {
+  return actql_copy_bytes(candidate->error);
+}
+
+int32_t actql_native_duckdb_candidate_next(
+  actql_native_duckdb_candidate *candidate
+) {
+  if (!actql_native_duckdb_candidate_ready(candidate) || candidate->finished) {
+    return -1;
+  }
+  ssize_t count;
+  do {
+    count = read(candidate->source_fd, candidate->chunk,
+      sizeof(candidate->chunk));
+  } while (count < 0 && errno == EINTR);
+  if (count < 0 || count > candidate->maximum - candidate->total) {
+    actql_replace_error(&candidate->error, "DuckDB library read exceeds limit");
+    actql_native_duckdb_candidate_dispose(candidate);
+    return -1;
+  }
+  if (count == 0) {
+    candidate->finished = true;
+    candidate->chunk_length = 0;
+    return 1;
+  }
+  candidate->total += count;
+  candidate->chunk_length = (int32_t)count;
+  return 0;
+}
+
+moonbit_bytes_t actql_native_duckdb_candidate_chunk(
+  actql_native_duckdb_candidate *candidate
+) {
+  int32_t length = candidate->chunk_length;
+  moonbit_bytes_t result = moonbit_make_bytes_raw(length);
+  memcpy(result, candidate->chunk, (size_t)length);
+  return result;
+}
+
+int64_t actql_native_duckdb_candidate_total(
+  actql_native_duckdb_candidate *candidate
+) {
+  return candidate->total;
+}
+
+int32_t actql_native_duckdb_candidate_close(
+  actql_native_duckdb_candidate *candidate
+) {
+  return actql_native_duckdb_candidate_dispose(candidate);
+}
+
+void *actql_native_duckdb_candidate_load(
+  actql_native_duckdb_candidate *candidate
+) {
+  if (!actql_native_duckdb_candidate_ready(candidate) ||
+      !candidate->finished || candidate->total != candidate->maximum) {
+    actql_native_duckdb_candidate_dispose(candidate);
+    return actql_native_duckdb_load_library_path(NULL);
+  }
+  char descriptor_path[64];
+#ifdef __APPLE__
+  snprintf(descriptor_path, sizeof(descriptor_path), "/dev/fd/%d",
+    candidate->source_fd);
+#else
+  snprintf(descriptor_path, sizeof(descriptor_path), "/proc/self/fd/%d",
+    candidate->source_fd);
+#endif
+  actql_native_duckdb_library *library =
+    actql_native_duckdb_load_library_path(descriptor_path);
+  actql_native_duckdb_candidate_dispose(candidate);
   return library;
 }
 

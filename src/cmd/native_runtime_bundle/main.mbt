@@ -95,6 +95,7 @@ fn store_issue_code(
     @runtime_bundle.CapacityExceeded => "capacity-exceeded"
     @runtime_bundle.HoldCollision => "hold-collision"
     @runtime_bundle.StateCollision => "state-collision"
+    @runtime_bundle.UnsupportedCatalog => "unsupported-catalog"
     @runtime_bundle.ComponentMismatch => "component-mismatch"
     @runtime_bundle.RecoveryRequired => "recovery-required"
     @runtime_bundle.CleanupPending => "cleanup-pending"
@@ -359,31 +360,37 @@ fn append_bundle_component(
   while !eof {
     let chunk = match reader.next(65536) {
       Ok(value) => value
-      Err(issue) => {
-        return Err(close_failed_component_read(
-          reader, "component " + filesystem_issue_code(issue),
-        ))
-      }
+      Err(issue) =>
+        return Err(
+          close_failed_component_read(
+            reader,
+            "component " + filesystem_issue_code(issue),
+          ),
+        )
     }
     if !chunk.bytes.is_empty() {
       match installer.append(chunk.bytes) {
         Ok(_) => ()
-        Err(issue) => {
-          return Err(close_failed_component_read(
-            reader, "install " + store_issue_code(issue),
-          ))
-        }
+        Err(issue) =>
+          return Err(
+            close_failed_component_read(
+              reader,
+              "install " + store_issue_code(issue),
+            ),
+          )
       }
     }
     eof = chunk.eof
   }
   match reader.finish() {
     Ok(_) => ()
-    Err(issue) => {
-      return Err(close_failed_component_read(
-        reader, "component " + filesystem_issue_code(issue),
-      ))
-    }
+    Err(issue) =>
+      return Err(
+        close_failed_component_read(
+          reader,
+          "component " + filesystem_issue_code(issue),
+        ),
+      )
   }
   match reader.close() {
     Ok(_) => Ok(())

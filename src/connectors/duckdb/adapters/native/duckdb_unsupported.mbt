@@ -15,6 +15,13 @@ pub fn load_library(_path : String) -> Result[Library, NativeDuckDBIssue] {
 }
 
 ///|
+pub fn load_verified_component(
+  _source : @bundle.NativeRuntimeBundleComponentSource,
+) -> Result[Library, NativeDuckDBIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Library::version(_self : Library) -> String {
   ""
 }

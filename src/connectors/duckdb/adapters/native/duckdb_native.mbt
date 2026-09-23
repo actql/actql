@@ -15,6 +15,57 @@ type Database
 type Query
 
 ///|
+priv type VerifiedLibraryCandidate
+
+///|
+#borrow(root, name)
+extern "C" fn open_candidate_ffi(
+  root : Bytes,
+  root_length : Int,
+  name : Bytes,
+  name_length : Int,
+  device : UInt64,
+  inode : UInt64,
+  maximum : Int64,
+) -> VerifiedLibraryCandidate = "actql_native_duckdb_open_candidate"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_ready_ffi(candidate : VerifiedLibraryCandidate) -> Bool = "actql_native_duckdb_candidate_ready"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_error_ffi(
+  candidate : VerifiedLibraryCandidate,
+) -> Bytes = "actql_native_duckdb_candidate_error"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_next_ffi(candidate : VerifiedLibraryCandidate) -> Int = "actql_native_duckdb_candidate_next"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_chunk_ffi(
+  candidate : VerifiedLibraryCandidate,
+) -> Bytes = "actql_native_duckdb_candidate_chunk"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_total_ffi(
+  candidate : VerifiedLibraryCandidate,
+) -> Int64 = "actql_native_duckdb_candidate_total"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_close_ffi(candidate : VerifiedLibraryCandidate) -> Int = "actql_native_duckdb_candidate_close"
+
+///|
+#borrow(candidate)
+extern "C" fn candidate_load_ffi(
+  candidate : VerifiedLibraryCandidate,
+) -> Library = "actql_native_duckdb_candidate_load"
+
+///|
 #borrow(path)
 extern "C" fn load_library_ffi(path : Bytes, length : Int) -> Library = "actql_native_duckdb_load_library"
 
@@ -179,6 +230,82 @@ fn decode_message(bytes : Bytes) -> String {
 pub fn load_library(path : String) -> Result[Library, NativeDuckDBIssue] {
   let encoded = @utf8.encode(path)
   let library = load_library_ffi(encoded, encoded.length())
+  if library_ready_ffi(library) {
+    Ok(library)
+  } else {
+    Err(LibraryLoad(decode_message(library_error_ffi(library))))
+  }
+}
+
+///|
+/// Hash the exact Store-owned component on a held descriptor before dlopen.
+/// The signed component identity is supplied by the admitted bundle Store,
+/// not by a caller-selected path or digest.
+pub fn load_verified_component(
+  source : @bundle.NativeRuntimeBundleComponentSource,
+) -> Result[Library, NativeDuckDBIssue] {
+  let (_, role, expected_cid, expected_bytes, name, generation, offset) = @bundle.native_bundle_component_source_projection(
+    source,
+  )
+  let root = @bundle.native_bundle_component_source_root(source)
+  if expected_bytes <= 0L ||
+    generation.size != expected_bytes ||
+    offset != 0L ||
+    role != "duckdb_library" ||
+    expected_cid.length() != 71 ||
+    !expected_cid.has_prefix("sha256:") {
+    return Err(LibraryLoad("invalid DuckDB library component"))
+  }
+  let encoded_root = @utf8.encode(root)
+  let encoded_name = @utf8.encode(name)
+  let candidate = open_candidate_ffi(
+    encoded_root,
+    encoded_root.length(),
+    encoded_name,
+    encoded_name.length(),
+    generation.device,
+    generation.inode,
+    expected_bytes,
+  )
+  if !candidate_ready_ffi(candidate) {
+    return Err(LibraryLoad(decode_message(candidate_error_ffi(candidate))))
+  }
+  let hash = @bundle.begin_native_bundle_component_digest()
+  let mut issue : String? = None
+  let mut finished = false
+  while !finished && issue is None {
+    match candidate_next_ffi(candidate) {
+      0 => {
+        let chunk = candidate_chunk_ffi(candidate)
+        if chunk.is_empty() || chunk.length() > 65536 {
+          issue = Some("invalid DuckDB library chunk")
+        } else {
+          match hash.update(chunk) {
+            Ok(_) => ()
+            Err(_) => issue = Some("DuckDB library hash failed")
+          }
+        }
+      }
+      1 => finished = true
+      _ => issue = Some(decode_message(candidate_error_ffi(candidate)))
+    }
+  }
+  if issue is Some(message) {
+    ignore(candidate_close_ffi(candidate))
+    return Err(LibraryLoad(message))
+  }
+  let matched = match hash.matches_cid(expected_cid) {
+    Ok(value) => value
+    Err(_) => {
+      ignore(candidate_close_ffi(candidate))
+      return Err(LibraryLoad("DuckDB library hash failed"))
+    }
+  }
+  if candidate_total_ffi(candidate) != expected_bytes || !matched {
+    ignore(candidate_close_ffi(candidate))
+    return Err(LibraryLoad("DuckDB library component mismatch"))
+  }
+  let library = candidate_load_ffi(candidate)
   if library_ready_ffi(library) {
     Ok(library)
   } else {

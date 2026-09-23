@@ -38,17 +38,30 @@ priv struct NativeRuntimeBundleStaging {
 }
 
 ///|
+priv struct NativeRuntimeBundleComponentCopy {
+  runtime_bundle_cid : String
+  role : String
+  component_cid : String
+  component_bytes : Int64
+  artifact_name : String
+  staging_name : String
+  phase : NativeRuntimeBundleStagingPhase
+}
+
+///|
+/// Private Store journal. Its version is independent of the signed bundle.
 priv struct NativeRuntimeBundleCatalog {
   revision : Int64
-  format_version : Int
   active_bundle_cid : String?
   entries : Array[NativeRuntimeBundleEntry]
   staging : Array[NativeRuntimeBundleStaging]
+  component_copies : Array[NativeRuntimeBundleComponentCopy]
 }
 
 ///|
 struct NativeRuntimeBundleStore {
   root : @filesystem.Root
+  root_path : String
   lock : @filesystem.Lock
   database : @sqlite.Database
   signature_library : @signature.Library
@@ -201,6 +214,15 @@ fn staging_cid(value : NativeRuntimeBundleStaging) -> String {
 }
 
 ///|
+fn component_copy_names(
+  runtime_bundle_cid : String,
+  role : String,
+) -> (String, String) {
+  let key = @sha.hex(@utf8.encode(runtime_bundle_cid + "\u0000" + role))
+  ("runtime-copy-" + key, "runtime-copy-stage-" + key)
+}
+
+///|
 fn staging_snapshot(
   value : NativeRuntimeBundleStaging,
 ) -> NativeRuntimeBundleInstallSnapshot {
@@ -267,6 +289,14 @@ fn catalog_capacity_usage(
     reserved_bytes = reserved_bytes + staging.component_bytes
     allocations.push("staging\u0000" + staging.install_id)
   }
+  for copy in catalog.component_copies {
+    if copy.component_bytes < 0L ||
+      copy.component_bytes > 9223372036854775807L - reserved_bytes {
+      return Err(CapacityExceeded)
+    }
+    reserved_bytes = reserved_bytes + copy.component_bytes
+    allocations.push("component\u0000" + copy.artifact_name)
+  }
   Ok({ reserved_bytes, reserved_objects: allocations.length().to_int64(), })
 }
 
@@ -304,6 +334,21 @@ fn staging_index(
 ) -> Int? {
   for index = 0; index < catalog.staging.length(); index = index + 1 {
     if catalog.staging[index].install_id == install_id {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
+fn component_copy_index(
+  catalog : NativeRuntimeBundleCatalog,
+  runtime_bundle_cid : String,
+  role : String,
+) -> Int? {
+  for index = 0; index < catalog.component_copies.length(); index = index + 1 {
+    let copy = catalog.component_copies[index]
+    if copy.runtime_bundle_cid == runtime_bundle_cid && copy.role == role {
       return Some(index)
     }
   }
@@ -401,36 +446,33 @@ fn emit_entry(
 fn emit_staging(
   writer : @encode.Writer,
   staging : NativeRuntimeBundleStaging,
-  format_version : Int,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
-  if format_version >= 3 {
-    let (phase, device, inode, size) = match staging.phase {
-      Intent => ("intent", "", "", "")
-      StagingOwned(ownership) =>
-        (
-          "staging-owned",
-          ownership.device.to_string(),
-          ownership.inode.to_string(),
-          "",
-        )
-      Sealed(generation) =>
-        (
-          "sealed",
-          generation.device.to_string(),
-          generation.inode.to_string(),
-          generation.size.to_string(),
-        )
-    }
-    @encode.key(writer, "allocation_device")
-    @encode.string_value(writer, device)
-    @encode.key(writer, "allocation_inode")
-    @encode.string_value(writer, inode)
-    @encode.key(writer, "allocation_size")
-    @encode.string_value(writer, size)
-    @encode.key(writer, "allocation_state")
-    @encode.string_value(writer, phase)
+  let (phase, device, inode, size) = match staging.phase {
+    Intent => ("intent", "", "", "")
+    StagingOwned(ownership) =>
+      (
+        "staging-owned",
+        ownership.device.to_string(),
+        ownership.inode.to_string(),
+        "",
+      )
+    Sealed(generation) =>
+      (
+        "sealed",
+        generation.device.to_string(),
+        generation.inode.to_string(),
+        generation.size.to_string(),
+      )
   }
+  @encode.key(writer, "allocation_device")
+  @encode.string_value(writer, device)
+  @encode.key(writer, "allocation_inode")
+  @encode.string_value(writer, inode)
+  @encode.key(writer, "allocation_size")
+  @encode.string_value(writer, size)
+  @encode.key(writer, "allocation_state")
+  @encode.string_value(writer, phase)
   @encode.key(writer, "artifact_name")
   @encode.string_value(writer, staging.artifact_name)
   @encode.key(writer, "component_bytes")
@@ -456,6 +498,52 @@ fn emit_staging(
 }
 
 ///|
+fn emit_component_copy(
+  writer : @encode.Writer,
+  copy : NativeRuntimeBundleComponentCopy,
+) -> Unit raise @encode.EncodeFailure {
+  let (phase, device, inode, size) = match copy.phase {
+    Intent => ("intent", "", "", "")
+    StagingOwned(ownership) =>
+      (
+        "staging-owned",
+        ownership.device.to_string(),
+        ownership.inode.to_string(),
+        "",
+      )
+    Sealed(generation) =>
+      (
+        "sealed",
+        generation.device.to_string(),
+        generation.inode.to_string(),
+        generation.size.to_string(),
+      )
+  }
+  @encode.begin_object(writer)
+  @encode.key(writer, "allocation_device")
+  @encode.string_value(writer, device)
+  @encode.key(writer, "allocation_inode")
+  @encode.string_value(writer, inode)
+  @encode.key(writer, "allocation_size")
+  @encode.string_value(writer, size)
+  @encode.key(writer, "allocation_state")
+  @encode.string_value(writer, phase)
+  @encode.key(writer, "artifact_name")
+  @encode.string_value(writer, copy.artifact_name)
+  @encode.key(writer, "component_bytes")
+  @encode.string_value(writer, copy.component_bytes.to_string())
+  @encode.key(writer, "component_cid")
+  @encode.string_value(writer, copy.component_cid)
+  @encode.key(writer, "role")
+  @encode.string_value(writer, copy.role)
+  @encode.key(writer, "runtime_bundle_cid")
+  @encode.string_value(writer, copy.runtime_bundle_cid)
+  @encode.key(writer, "staging_name")
+  @encode.string_value(writer, copy.staging_name)
+  @encode.end_object(writer)
+}
+
+///|
 fn catalog_bytes(
   catalog : NativeRuntimeBundleCatalog,
   max_record_bytes : Int,
@@ -467,31 +555,26 @@ fn catalog_bytes(
     @encode.begin_object(writer)
     @encode.key(writer, "active_bundle_cid")
     @encode.string_value(writer, catalog.active_bundle_cid.unwrap_or(""))
+    @encode.key(writer, "component_copies")
+    @encode.begin_array(writer)
+    for copy in catalog.component_copies {
+      emit_component_copy(writer, copy)
+    }
+    @encode.end_array(writer)
     @encode.key(writer, "entries")
     @encode.begin_array(writer)
     for entry in catalog.entries {
       emit_entry(writer, entry)
     }
     @encode.end_array(writer)
-    if catalog.format_version >= 2 {
-      @encode.key(writer, "staging")
-      @encode.begin_array(writer)
-      for staging in catalog.staging {
-        emit_staging(writer, staging, catalog.format_version)
-      }
-      @encode.end_array(writer)
+    @encode.key(writer, "staging")
+    @encode.begin_array(writer)
+    for staging in catalog.staging {
+      emit_staging(writer, staging)
     }
+    @encode.end_array(writer)
     @encode.key(writer, "version")
-    @encode.string_value(
-      writer,
-      if catalog.format_version == 1 {
-        "actql-native-runtime-bundle-catalog/0.1"
-      } else if catalog.format_version == 2 {
-        "actql-native-runtime-bundle-catalog/0.2"
-      } else {
-        "actql-native-runtime-bundle-catalog/0.3"
-      },
-    )
+    @encode.string_value(writer, "actql-native-runtime-bundle-catalog/0.1")
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
@@ -651,24 +734,13 @@ fn decode_entry(
 fn decode_staging(
   store : NativeRuntimeBundleStore,
   cursor : @decode.Cursor,
-  format_version : Int,
 ) -> NativeRuntimeBundleStaging raise NativeBundleCatalogStop {
   let object = decoded(
-    @decode.closed_object(
-      cursor,
-      if format_version >= 3 {
-        [
-          "allocation_device", "allocation_inode", "allocation_size", "allocation_state",
-          "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
-          "signature", "signature_key_id", "signature_version", "staging_name",
-        ]
-      } else {
-        [
-          "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
-          "signature", "signature_key_id", "signature_version", "staging_name",
-        ]
-      },
-    ),
+    @decode.closed_object(cursor, [
+      "allocation_device", "allocation_inode", "allocation_size", "allocation_state",
+      "artifact_name", "component_bytes", "install_id", "manifest_json", "runtime_bundle_cid",
+      "signature", "signature_key_id", "signature_version", "staging_name",
+    ]),
   )
   let runtime_bundle_cid = text(object, "runtime_bundle_cid")
   let manifest_json = text(object, "manifest_json")
@@ -705,45 +777,41 @@ fn decode_staging(
     artifact_name == staging_name {
     raise NativeBundleCatalogStop
   }
-  let phase = if format_version < 3 {
-    Intent
-  } else {
-    let state = text(object, "allocation_state")
-    let device = text(object, "allocation_device")
-    let inode = text(object, "allocation_inode")
-    let size = text(object, "allocation_size")
-    match state {
-      "intent" => {
-        if !device.is_empty() || !inode.is_empty() || !size.is_empty() {
-          raise NativeBundleCatalogStop
-        }
-        Intent
+  let state = text(object, "allocation_state")
+  let device = text(object, "allocation_device")
+  let inode = text(object, "allocation_inode")
+  let size = text(object, "allocation_size")
+  let phase = match state {
+    "intent" => {
+      if !device.is_empty() || !inode.is_empty() || !size.is_empty() {
+        raise NativeBundleCatalogStop
       }
-      "staging-owned" => {
-        if device.is_empty() || inode.is_empty() || !size.is_empty() {
-          raise NativeBundleCatalogStop
-        }
-        StagingOwned({
-          device: unsigned_int64(device),
-          inode: unsigned_int64(inode),
-        })
-      }
-      "sealed" => {
-        if device.is_empty() || inode.is_empty() || size.is_empty() {
-          raise NativeBundleCatalogStop
-        }
-        let generation : @filesystem.NativeFileGeneration = {
-          device: unsigned_int64(device),
-          inode: unsigned_int64(inode),
-          size: signed_int64(size),
-        }
-        if generation.size < 0L || generation.size != component_bytes {
-          raise NativeBundleCatalogStop
-        }
-        Sealed(generation)
-      }
-      _ => raise NativeBundleCatalogStop
+      Intent
     }
+    "staging-owned" => {
+      if device.is_empty() || inode.is_empty() || !size.is_empty() {
+        raise NativeBundleCatalogStop
+      }
+      StagingOwned({
+        device: unsigned_int64(device),
+        inode: unsigned_int64(inode),
+      })
+    }
+    "sealed" => {
+      if device.is_empty() || inode.is_empty() || size.is_empty() {
+        raise NativeBundleCatalogStop
+      }
+      let generation : @filesystem.NativeFileGeneration = {
+        device: unsigned_int64(device),
+        inode: unsigned_int64(inode),
+        size: signed_int64(size),
+      }
+      if generation.size < 0L || generation.size != component_bytes {
+        raise NativeBundleCatalogStop
+      }
+      Sealed(generation)
+    }
+    _ => raise NativeBundleCatalogStop
   }
   {
     install_id,
@@ -754,6 +822,95 @@ fn decode_staging(
     artifact_name,
     staging_name,
     component_bytes,
+    phase,
+  }
+}
+
+///|
+fn decode_component_copy(
+  cursor : @decode.Cursor,
+  entries : Array[NativeRuntimeBundleEntry],
+) -> NativeRuntimeBundleComponentCopy raise NativeBundleCatalogStop {
+  let object = decoded(
+    @decode.closed_object(cursor, [
+      "allocation_device", "allocation_inode", "allocation_size", "allocation_state",
+      "artifact_name", "component_bytes", "component_cid", "role", "runtime_bundle_cid",
+      "staging_name",
+    ]),
+  )
+  let runtime_bundle_cid = text(object, "runtime_bundle_cid")
+  let role = text(object, "role")
+  let component_cid = text(object, "component_cid")
+  let component_bytes = signed_int64(text(object, "component_bytes"))
+  let (artifact_name, staging_name) = component_copy_names(
+    runtime_bundle_cid, role,
+  )
+  if text(object, "artifact_name") != artifact_name ||
+    text(object, "staging_name") != staging_name ||
+    component_bytes <= 0L {
+    raise NativeBundleCatalogStop
+  }
+  let mut found = false
+  for entry in entries {
+    if entry_cid(entry) == runtime_bundle_cid &&
+      @bundle.bundle_record_projection(entry.record)[1] != "3" {
+      for
+        component in @bundle.bundle_manifest_components_projection(
+          entry.manifest,
+        ) {
+        if component[0] == role &&
+          component[1] == component_cid &&
+          component[2] == component_bytes.to_string() {
+          found = true
+        }
+      }
+    }
+  }
+  if !found {
+    raise NativeBundleCatalogStop
+  }
+  let device = text(object, "allocation_device")
+  let inode = text(object, "allocation_inode")
+  let size = text(object, "allocation_size")
+  let phase = match text(object, "allocation_state") {
+    "intent" => {
+      if !device.is_empty() || !inode.is_empty() || !size.is_empty() {
+        raise NativeBundleCatalogStop
+      }
+      Intent
+    }
+    "staging-owned" => {
+      if device.is_empty() || inode.is_empty() || !size.is_empty() {
+        raise NativeBundleCatalogStop
+      }
+      StagingOwned({
+        device: unsigned_int64(device),
+        inode: unsigned_int64(inode),
+      })
+    }
+    "sealed" => {
+      if device.is_empty() || inode.is_empty() || size.is_empty() {
+        raise NativeBundleCatalogStop
+      }
+      let generation : @filesystem.NativeFileGeneration = {
+        device: unsigned_int64(device),
+        inode: unsigned_int64(inode),
+        size: signed_int64(size),
+      }
+      if generation.size != component_bytes {
+        raise NativeBundleCatalogStop
+      }
+      Sealed(generation)
+    }
+    _ => raise NativeBundleCatalogStop
+  }
+  {
+    runtime_bundle_cid,
+    role,
+    component_cid,
+    component_bytes,
+    artifact_name,
+    staging_name,
     phase,
   }
 }
@@ -785,28 +942,18 @@ fn admit_catalog(
     )
     let open = decoded(@decode.open_object(cursor))
     let version = text(open, "version")
-    let format_version = if version == "actql-native-runtime-bundle-catalog/0.1" {
-      1
-    } else if version == "actql-native-runtime-bundle-catalog/0.2" {
-      2
-    } else if version == "actql-native-runtime-bundle-catalog/0.3" {
-      3
-    } else {
-      raise NativeBundleCatalogStop
+    if version != "actql-native-runtime-bundle-catalog/0.1" {
+      return Err(UnsupportedCatalog)
     }
-    let object = if format_version == 1 {
-      decoded(
-        @decode.closed_object(cursor, [
-          "active_bundle_cid", "entries", "version",
-        ]),
-      )
-    } else {
-      decoded(
-        @decode.closed_object(cursor, [
-          "active_bundle_cid", "entries", "staging", "version",
-        ]),
-      )
+    if @decode.required(open, "component_copies") is Err(_) ||
+      @decode.required(open, "staging") is Err(_) {
+      return Err(UnsupportedCatalog)
     }
+    let object = decoded(
+      @decode.closed_object(cursor, [
+        "active_bundle_cid", "component_copies", "entries", "staging", "version",
+      ]),
+    )
     let active_text = text(object, "active_bundle_cid")
     let entries_cursor = decoded(@decode.required(object, "entries"))
     let entry_count = match @decode.array_length(entries_cursor) {
@@ -836,31 +983,20 @@ fn admit_catalog(
       }
       entries.push(entry)
     }
-    let staging_cursor = if format_version == 1 {
-      None
-    } else {
-      Some(decoded(@decode.required(object, "staging")))
-    }
-    let staging_count = match staging_cursor {
-      None => 0
-      Some(value) =>
-        match @decode.array_length(value) {
-          Some(length) => length
-          None => raise NativeBundleCatalogStop
-        }
+    let staging_cursor = decoded(@decode.required(object, "staging"))
+    let staging_count = match @decode.array_length(staging_cursor) {
+      Some(length) => length
+      None => raise NativeBundleCatalogStop
     }
     if entry_count + staging_count > store.max_bundles {
       raise NativeBundleCatalogStop
     }
     let staging : Array[NativeRuntimeBundleStaging] = []
     for index = 0; index < staging_count; index = index + 1 {
-      guard staging_cursor is Some(staging_values) else {
+      guard @decode.element_at(staging_cursor, index) is Some(stage_cursor) else {
         raise NativeBundleCatalogStop
       }
-      guard @decode.element_at(staging_values, index) is Some(stage_cursor) else {
-        raise NativeBundleCatalogStop
-      }
-      let stage = decode_staging(store, stage_cursor, format_version)
+      let stage = decode_staging(store, stage_cursor)
       for entry in entries {
         if entry_cid(entry) == staging_cid(stage) ||
           entry.artifact_name == stage.artifact_name {
@@ -879,6 +1015,27 @@ fn admit_catalog(
       }
       staging.push(stage)
     }
+    let component_copies : Array[NativeRuntimeBundleComponentCopy] = []
+    let copy_cursor = decoded(@decode.required(object, "component_copies"))
+    let copy_count = match @decode.array_length(copy_cursor) {
+      Some(value) => value
+      None => raise NativeBundleCatalogStop
+    }
+    if copy_count > store.max_bundles * 16 {
+      raise NativeBundleCatalogStop
+    }
+    for index = 0; index < copy_count; index = index + 1 {
+      guard @decode.element_at(copy_cursor, index) is Some(value) else {
+        raise NativeBundleCatalogStop
+      }
+      let copy = decode_component_copy(value, entries)
+      for prior in component_copies {
+        if prior.artifact_name == copy.artifact_name {
+          raise NativeBundleCatalogStop
+        }
+      }
+      component_copies.push(copy)
+    }
     let active_bundle_cid = if active_text.is_empty() {
       None
     } else {
@@ -896,10 +1053,10 @@ fn admit_catalog(
     }
     let catalog = {
       revision,
-      format_version,
       active_bundle_cid,
       entries,
       staging,
+      component_copies,
     }
     let canonical = match catalog_bytes(catalog, store.max_record_bytes) {
       Ok(value) => value
@@ -929,8 +1086,7 @@ fn admit_store_catalog(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if usage.reserved_bytes > store.capacity_bytes ||
-    usage.reserved_objects > store.max_bundles.to_int64() {
+  if usage.reserved_bytes > store.capacity_bytes {
     Err(CapacityExceeded)
   } else {
     Ok(catalog)
@@ -944,10 +1100,10 @@ fn initial_catalog_bytes(
   catalog_bytes(
     {
       revision: 0L,
-      format_version: 3,
       active_bundle_cid: None,
       entries: [],
       staging: [],
+      component_copies: [],
     },
     max_record_bytes,
   )
@@ -985,9 +1141,6 @@ fn persist_catalog(
   current : NativeRuntimeBundleCatalog,
   next : NativeRuntimeBundleCatalog,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  if next.format_version != 3 {
-    return Err(StateCollision)
-  }
   let body = match catalog_bytes(next, store.max_record_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1013,10 +1166,10 @@ fn with_catalog_revision(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
-    format_version: 3,
     active_bundle_cid,
     entries,
     staging: catalog.staging,
+    component_copies: catalog.component_copies,
   }
 }
 
@@ -1028,35 +1181,25 @@ fn with_catalog_staging(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
-    format_version: 3,
     active_bundle_cid: active_cid(catalog),
     entries,
     staging,
+    component_copies: catalog.component_copies,
   }
 }
 
 ///|
-fn migrate_catalog_if_needed(
-  store : NativeRuntimeBundleStore,
+fn with_catalog_copies(
   catalog : NativeRuntimeBundleCatalog,
-) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  if catalog.format_version == 3 {
-    return Ok(())
-  }
-  // Format 2 did not persist physical generation ownership for staging.
-  // Retain the original journal and reservation until an explicit recovery
-  // procedure can identify the allocation without relying on its path alone.
-  if !catalog.staging.is_empty() {
-    return Err(RecoveryRequired)
-  }
-  let next = {
+  copies : Array[NativeRuntimeBundleComponentCopy],
+) -> NativeRuntimeBundleCatalog {
+  {
     revision: catalog.revision + 1L,
-    format_version: 3,
     active_bundle_cid: active_cid(catalog),
     entries: catalog.entries,
-    staging: [],
+    staging: catalog.staging,
+    component_copies: copies,
   }
-  persist_catalog(store, catalog, next)
 }
 
 ///|
@@ -1107,6 +1250,7 @@ fn open_runtime_bundle_store_with_authorities(
   }
   let store = {
     root,
+    root_path,
     lock,
     database,
     signature_library,
@@ -1123,15 +1267,7 @@ fn open_runtime_bundle_store_with_authorities(
   match database.read("runtime_bundle", "catalog") {
     Ok(value) =>
       match admit_store_catalog(store, value.revision, value.body) {
-        Ok(catalog) =>
-          match migrate_catalog_if_needed(store, catalog) {
-            Ok(_) => Ok(store)
-            Err(issue) => {
-              database.close()
-              ignore(lock.close())
-              Err(issue)
-            }
-          }
+        Ok(_) => Ok(store)
         Err(issue) => {
           database.close()
           ignore(lock.close())
@@ -1153,15 +1289,7 @@ fn open_runtime_bundle_store_with_authorities(
           match database.read("runtime_bundle", "catalog") {
             Ok(value) =>
               match admit_store_catalog(store, value.revision, value.body) {
-                Ok(catalog) =>
-                  match migrate_catalog_if_needed(store, catalog) {
-                    Ok(_) => Ok(store)
-                    Err(issue) => {
-                      database.close()
-                      ignore(lock.close())
-                      Err(issue)
-                    }
-                  }
+                Ok(_) => Ok(store)
                 Err(issue) => {
                   database.close()
                   ignore(lock.close())
@@ -1402,6 +1530,121 @@ fn replace_staging_at(
 }
 
 ///|
+fn replace_copy_at(
+  copies : Array[NativeRuntimeBundleComponentCopy],
+  index : Int,
+  replacement : NativeRuntimeBundleComponentCopy,
+) -> Array[NativeRuntimeBundleComponentCopy] {
+  let result = copies.copy()
+  result[index] = replacement
+  result
+}
+
+///|
+fn remove_copy_at(
+  copies : Array[NativeRuntimeBundleComponentCopy],
+  index : Int,
+) -> Array[NativeRuntimeBundleComponentCopy] {
+  let result : Array[NativeRuntimeBundleComponentCopy] = []
+  for at = 0; at < copies.length(); at = at + 1 {
+    if at != index {
+      result.push(copies[at])
+    }
+  }
+  result
+}
+
+///|
+fn record_copy_phase(
+  store : NativeRuntimeBundleStore,
+  expected : NativeRuntimeBundleComponentCopy,
+  phase : NativeRuntimeBundleStagingPhase,
+) -> Result[NativeRuntimeBundleComponentCopy, NativeRuntimeBundleStoreIssue] {
+  let current = match load_catalog(store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard component_copy_index(
+      current,
+      expected.runtime_bundle_cid,
+      expected.role,
+    )
+    is Some(index) else {
+    return Err(StateCollision)
+  }
+  let actual = current.component_copies[index]
+  if actual.component_cid != expected.component_cid ||
+    actual.artifact_name != expected.artifact_name ||
+    !same_staging_phase(actual.phase, expected.phase) {
+    return Err(StateCollision)
+  }
+  let replacement = { ..actual, phase, }
+  let next = with_catalog_copies(
+    current,
+    replace_copy_at(current.component_copies, index, replacement),
+  )
+  match persist_catalog(store, current, next) {
+    Ok(_) => Ok(replacement)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn recover_component_copy_with_operations(
+  store : NativeRuntimeBundleStore,
+  expected : NativeRuntimeBundleComponentCopy,
+  operations : NativeRuntimeBundleCleanupOperations,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  match
+    recover_physical_allocation(
+      operations,
+      expected.phase,
+      expected.staging_name,
+      expected.artifact_name,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let current = match load_catalog(store) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard component_copy_index(
+      current,
+      expected.runtime_bundle_cid,
+      expected.role,
+    )
+    is Some(index) else {
+    return Err(StateCollision)
+  }
+  let actual = current.component_copies[index]
+  if actual.component_cid != expected.component_cid ||
+    !same_staging_phase(actual.phase, expected.phase) {
+    return Err(StateCollision)
+  }
+  persist_catalog(
+    store,
+    current,
+    with_catalog_copies(
+      current,
+      remove_copy_at(current.component_copies, index),
+    ),
+  )
+}
+
+///|
+fn recover_component_copy(
+  store : NativeRuntimeBundleStore,
+  expected : NativeRuntimeBundleComponentCopy,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  recover_component_copy_with_operations(
+    store,
+    expected,
+    cleanup_operations(store),
+  )
+}
+
+///|
 fn same_staging_phase(
   left : NativeRuntimeBundleStagingPhase,
   right : NativeRuntimeBundleStagingPhase,
@@ -1522,17 +1765,19 @@ fn reclaim_owned_name(
 }
 
 ///|
-fn recover_staging_allocation(
+fn recover_physical_allocation(
   operations : NativeRuntimeBundleCleanupOperations,
-  expected : NativeRuntimeBundleStaging,
+  phase : NativeRuntimeBundleStagingPhase,
+  staging_name : String,
+  artifact_name : String,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
-  match expected.phase {
+  match phase {
     Intent => {
-      let staging = match (operations.inspect)(expected.staging_name) {
+      let staging = match (operations.inspect)(staging_name) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      let artifact = match (operations.inspect)(expected.artifact_name) {
+      let artifact = match (operations.inspect)(artifact_name) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -1541,17 +1786,17 @@ fn recover_staging_allocation(
       }
     }
     StagingOwned(ownership) => {
-      match reclaim_owned_name(operations, expected.staging_name, ownership) {
+      match reclaim_owned_name(operations, staging_name, ownership) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      let artifact = match (operations.inspect)(expected.artifact_name) {
+      let artifact = match (operations.inspect)(artifact_name) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       match artifact {
         Some(generation) if allocation_is_owned_by(generation, ownership) =>
-          match (operations.reclaim)(expected.artifact_name, generation) {
+          match (operations.reclaim)(artifact_name, generation) {
             Ok(_) => ()
             Err(issue) => return Err(issue)
           }
@@ -1566,18 +1811,18 @@ fn recover_staging_allocation(
         device: generation.device,
         inode: generation.inode,
       }
-      match reclaim_owned_name(operations, expected.staging_name, ownership) {
+      match reclaim_owned_name(operations, staging_name, ownership) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      let artifact = match (operations.inspect)(expected.artifact_name) {
+      let artifact = match (operations.inspect)(artifact_name) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       match artifact {
         None => ()
         Some(actual) if actual == generation =>
-          match (operations.reclaim)(expected.artifact_name, actual) {
+          match (operations.reclaim)(artifact_name, actual) {
             Ok(_) => ()
             Err(issue) => return Err(issue)
           }
@@ -1586,6 +1831,19 @@ fn recover_staging_allocation(
     }
   }
   (operations.sync)()
+}
+
+///|
+fn recover_staging_allocation(
+  operations : NativeRuntimeBundleCleanupOperations,
+  expected : NativeRuntimeBundleStaging,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  recover_physical_allocation(
+    operations,
+    expected.phase,
+    expected.staging_name,
+    expected.artifact_name,
+  )
 }
 
 ///|
@@ -1714,7 +1972,6 @@ pub fn NativeRuntimeBundleStore::begin_install(
     Err(issue) => return Err(issue)
   }
   if usage.reserved_bytes > self.capacity_bytes ||
-    usage.reserved_objects >= self.max_bundles.to_int64() ||
     component_bytes > self.capacity_bytes - usage.reserved_bytes {
     return Err(CapacityExceeded)
   }
@@ -2039,7 +2296,6 @@ pub fn NativeRuntimeBundleStore::adopt(
       Err(issue) => return Err(issue)
     }
     if usage.reserved_bytes > self.capacity_bytes ||
-      usage.reserved_objects >= self.max_bundles.to_int64() ||
       component_bytes > self.capacity_bytes - usage.reserved_bytes {
       return Err(CapacityExceeded)
     }
@@ -2230,15 +2486,18 @@ pub fn NativeRuntimeBundleStore::active_component_source(
       _ => return Err(ComponentMismatch)
     }
     if component[0] == role {
-      return Ok(native_bundle_component_source(
-        binding.runtime_bundle_cid,
-        role,
-        component[1],
-        bytes,
-        entry.artifact_name,
-        entry.generation,
-        offset,
-      ))
+      return Ok(
+        native_bundle_component_source(
+          self.root_path,
+          binding.runtime_bundle_cid,
+          role,
+          component[1],
+          bytes,
+          entry.artifact_name,
+          entry.generation,
+          offset,
+        ),
+      )
     }
     if bytes < 0L || bytes > 9223372036854775807L - offset {
       return Err(ComponentMismatch)
@@ -2246,6 +2505,200 @@ pub fn NativeRuntimeBundleStore::active_component_source(
     offset = offset + bytes
   }
   Err(ComponentMismatch)
+}
+
+///|
+/// Materialize one signed component as a Store-owned allocation. The extra
+/// physical bytes are reserved before the bounded copy and remain charged
+/// through all failure and recovery states until deletion is confirmed.
+pub fn NativeRuntimeBundleStore::materialize_active_component(
+  self : NativeRuntimeBundleStore,
+  binding : NativeActiveRuntimeBinding,
+  role : String,
+) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue] {
+  let source = match self.active_component_source(binding, role) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let current = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match component_copy_index(current, source.runtime_bundle_cid, role) {
+    Some(index) => {
+      let copy = current.component_copies[index]
+      return match copy.phase {
+        Sealed(generation) =>
+          if !self.root.verify_generation(copy.artifact_name, generation) {
+            Err(ComponentMismatch)
+          } else {
+            Ok(
+              native_bundle_component_source(
+                self.root_path,
+                source.runtime_bundle_cid,
+                role,
+                source.component_cid,
+                source.component_bytes,
+                copy.artifact_name,
+                generation,
+                0L,
+              ),
+            )
+          }
+        _ => Err(RecoveryRequired)
+      }
+    }
+    None => ()
+  }
+  let usage = match catalog_capacity_usage(current) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if usage.reserved_bytes > self.capacity_bytes ||
+    source.component_bytes > self.capacity_bytes - usage.reserved_bytes {
+    return Err(CapacityExceeded)
+  }
+  let (artifact_name, staging_name) = component_copy_names(
+    source.runtime_bundle_cid,
+    role,
+  )
+  let intent : NativeRuntimeBundleComponentCopy = {
+    runtime_bundle_cid: source.runtime_bundle_cid,
+    role,
+    component_cid: source.component_cid,
+    component_bytes: source.component_bytes,
+    artifact_name,
+    staging_name,
+    phase: Intent,
+  }
+  let copies = current.component_copies.copy()
+  copies.push(intent)
+  match persist_catalog(self, current, with_catalog_copies(current, copies)) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let writer = match
+    filesystem_result(
+      self.root.create_writer(staging_name, source.component_bytes),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let owned = match
+    record_copy_phase(self, intent, StagingOwned(writer.ownership())) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(writer.cancel())
+      return Err(issue)
+    }
+  }
+  let reader = match
+    filesystem_result(
+      self.root.open_reader(source.artifact_name, source.generation),
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(writer.cancel())
+      return Err(issue)
+    }
+  }
+  let mut skip = source.offset
+  while skip > 0L {
+    let limit = if skip < 65536L { skip.to_int() } else { 65536 }
+    let chunk = match filesystem_result(reader.next(limit)) {
+      Ok(value) => value
+      Err(issue) => {
+        ignore(reader.close())
+        ignore(writer.cancel())
+        return Err(issue)
+      }
+    }
+    if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > skip {
+      ignore(reader.close())
+      ignore(writer.cancel())
+      return Err(ComponentMismatch)
+    }
+    skip = skip - chunk.bytes.length().to_int64()
+  }
+  let hash = @sha.hasher()
+  let mut remaining = source.component_bytes
+  while remaining > 0L {
+    let limit = if remaining < 65536L { remaining.to_int() } else { 65536 }
+    let chunk = match filesystem_result(reader.next(limit)) {
+      Ok(value) => value
+      Err(issue) => {
+        ignore(reader.close())
+        ignore(writer.cancel())
+        return Err(issue)
+      }
+    }
+    if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > remaining {
+      ignore(reader.close())
+      ignore(writer.cancel())
+      return Err(ComponentMismatch)
+    }
+    match filesystem_result(writer.append(chunk.bytes)) {
+      Ok(_) => ()
+      Err(issue) => {
+        ignore(reader.close())
+        ignore(writer.cancel())
+        return Err(issue)
+      }
+    }
+    @sha.update(hash, chunk.bytes) catch {
+      _ => {
+        ignore(reader.close())
+        ignore(writer.cancel())
+        return Err(ComponentMismatch)
+      }
+    }
+    remaining = remaining - chunk.bytes.length().to_int64()
+  }
+  match filesystem_result(reader.close()) {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(writer.cancel())
+      return Err(issue)
+    }
+  }
+  let digest = @sha.finish_hex(hash) catch {
+    _ => {
+      ignore(writer.cancel())
+      return Err(ComponentMismatch)
+    }
+  }
+  if "sha256:" + digest != source.component_cid {
+    ignore(writer.cancel())
+    return Err(ComponentMismatch)
+  }
+  let generation = match filesystem_result(writer.seal(artifact_name)) {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(writer.cancel())
+      return Err(issue)
+    }
+  }
+  let committed_copy = match
+    record_copy_phase(self, owned, Sealed(generation)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if committed_copy.component_bytes != generation.size ||
+    !self.root.verify_generation(artifact_name, generation) {
+    return Err(ComponentMismatch)
+  }
+  Ok(
+    native_bundle_component_source(
+      self.root_path,
+      source.runtime_bundle_cid,
+      role,
+      source.component_cid,
+      source.component_bytes,
+      artifact_name,
+      generation,
+      0L,
+    ),
+  )
 }
 
 ///|
@@ -2581,6 +3034,22 @@ pub fn NativeRuntimeBundleStore::reclaim(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let owned_copies : Array[NativeRuntimeBundleComponentCopy] = []
+  for copy in current.component_copies {
+    if copy.runtime_bundle_cid == runtime_bundle_cid {
+      owned_copies.push(copy)
+    }
+  }
+  for copy in owned_copies {
+    match recover_component_copy(self, copy) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  let current = match load_catalog(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard entry_index(current, runtime_bundle_cid) is Some(index) else {
     return Err(StateCollision)
   }
@@ -2642,6 +3111,19 @@ pub fn NativeRuntimeBundleStore::recover(
       Err(issue) => return Err(issue)
     }
   }
+  let pending_copies : Array[NativeRuntimeBundleComponentCopy] = []
+  for copy in initial.component_copies {
+    match copy.phase {
+      Sealed(_) => ()
+      _ => pending_copies.push(copy)
+    }
+  }
+  for copy in pending_copies {
+    match recover_component_copy(self, copy) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let current = match load_catalog(self) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -2692,6 +3174,12 @@ pub fn NativeRuntimeBundleStore::close(
   }
   if !catalog.staging.is_empty() {
     return Err(CleanupPending)
+  }
+  for copy in catalog.component_copies {
+    match copy.phase {
+      Sealed(_) => ()
+      _ => return Err(CleanupPending)
+    }
   }
   self.database.close()
   if !self.lock.close() {

@@ -6,11 +6,14 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_bundle",
+  "actql/actql/sha256",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit_signed_bundle(@signature.Library, Array[NativeRuntimeBundleAuthority], String, String, String, String, String, String) -> Result[@remote_bundle.RemoteBundleManifest, NativeRuntimeBundleIssue]
+
+pub fn begin_native_bundle_component_digest() -> NativeRuntimeBundleComponentDigest
 
 pub fn native_active_runtime_bundle_cid(NativeActiveRuntimeBinding) -> String
 
@@ -23,6 +26,8 @@ pub fn native_active_runtime_process_hold_id(NativeActiveRuntimeBinding) -> Stri
 pub fn native_active_runtime_target_triple(NativeActiveRuntimeBinding) -> String
 
 pub fn native_bundle_component_source_projection(NativeRuntimeBundleComponentSource) -> (String, String, String, Int64, String, @filesystem.NativeFileGeneration, Int64)
+
+pub fn native_bundle_component_source_root(NativeRuntimeBundleComponentSource) -> String
 
 pub fn open_runtime_bundle_store(@sqlite.Library, @signature.Library, String, Array[NativeRuntimeBundleAuthority], String, Int64, Int, Int, Int64) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreIssue]
 
@@ -47,7 +52,14 @@ pub(all) struct NativeRuntimeBundleAuthority {
   public_key_pem : String
 }
 
+pub struct NativeRuntimeBundleComponentDigest {
+  hasher : @sha256.Hasher
+}
+pub fn NativeRuntimeBundleComponentDigest::matches_cid(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleComponentDigest::update(Self, Bytes) -> Result[Unit, NativeRuntimeBundleStoreIssue]
+
 pub struct NativeRuntimeBundleComponentSource {
+  root_path : String
   runtime_bundle_cid : String
   role : String
   component_cid : String
@@ -101,6 +113,7 @@ pub fn NativeRuntimeBundleStore::drain(Self, String) -> Result[NativeRuntimeBund
 pub fn NativeRuntimeBundleStore::inspect(Self, String) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::inspect_install(Self, String) -> Result[NativeRuntimeBundleInstallSnapshot?, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::list(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::materialize_active_component(Self, NativeActiveRuntimeBinding, String) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::reclaim(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::recover(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::recover_install(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
@@ -121,6 +134,7 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   CapacityExceeded
   HoldCollision
   StateCollision
+  UnsupportedCatalog
   ComponentMismatch
   RecoveryRequired
   CleanupPending

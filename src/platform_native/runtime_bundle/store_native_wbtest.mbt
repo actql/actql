@@ -246,85 +246,87 @@ fn persist_test_staging(
 }
 
 ///|
-test "legacy migration preserves unresolved staging and its reservation" {
-  guard native_bundle_fixture("legacy-migration-owned")
-    is Some((store, _, _, _, _)) else {
+test "unsupported catalog does not overwrite pending custody" {
+  guard native_bundle_fixture("unsupported-catalog")
+    is Some((store, _, _, sqlite, crypto)) else {
     return
   }
-  let staging = native_staging_record(store, "legacy-pending", "4", Intent)
+  let staging = native_staging_record(store, "pending", "4", Intent)
   let writer = store.root.create_writer(staging.staging_name, 11L).unwrap()
   writer.append(b"runtime-one").unwrap()
-  let physical = store.root.inspect_generation(staging.staging_name).unwrap()
+  let generation = writer.seal(staging.artifact_name).unwrap()
   let current = load_catalog(store).unwrap()
-  let legacy : NativeRuntimeBundleCatalog = {
+  let pending : NativeRuntimeBundleCatalog = {
     revision: current.revision + 1L,
-    format_version: 2,
-    active_bundle_cid: current.active_bundle_cid,
-    entries: current.entries,
-    staging: [staging],
+    active_bundle_cid: None,
+    entries: [],
+    staging: [{ ..staging, phase: Sealed(generation), }],
+    component_copies: [],
   }
-  let legacy_bytes = catalog_bytes(legacy, store.max_record_bytes).unwrap()
-  assert_eq(
-    store.database.compare_exchange(
-      "runtime_bundle", "catalog", current.revision, legacy_bytes,
-    ).unwrap(),
-    legacy.revision,
+  let canonical = catalog_bytes(pending, store.max_record_bytes).unwrap()
+  let incomplete = @utf8.decode(canonical).replace_all(
+    old="\"component_copies\":[],",
+    new="",
   )
-  let before = store.database.read("runtime_bundle", "catalog").unwrap()
-  let admitted = admit_store_catalog(store, before.revision, before.body).unwrap()
-  assert_eq(catalog_capacity_usage(admitted).unwrap().reserved_bytes, 11L)
-  assert_true(migrate_catalog_if_needed(store, admitted) is Err(RecoveryRequired))
-  let after = store.database.read("runtime_bundle", "catalog").unwrap()
-  assert_eq(after.revision, before.revision)
-  assert_eq(after.body, before.body)
-  assert_eq(store.root.inspect_generation(staging.staging_name).unwrap(), physical)
-  writer.cancel().unwrap()
-  let recovered : NativeRuntimeBundleCatalog = {
-    revision: after.revision + 1L,
-    format_version: 3,
-    active_bundle_cid: current.active_bundle_cid,
-    entries: current.entries,
-    staging: [],
-  }
-  ignore(
-    store.database.compare_exchange(
-      "runtime_bundle", "catalog", after.revision,
-      catalog_bytes(recovered, store.max_record_bytes).unwrap(),
-    ).unwrap(),
-  )
-  assert_true(store.close().unwrap())
-}
-
-///|
-test "legacy empty catalogs migrate idempotently" {
-  guard native_bundle_fixture("legacy-migration-empty")
-    is Some((store, _, _, _, _)) else {
-    return
-  }
-  for version in [1, 2] {
-    let current = load_catalog(store).unwrap()
-    let legacy : NativeRuntimeBundleCatalog = {
-      revision: current.revision + 1L,
-      format_version: version,
-      active_bundle_cid: current.active_bundle_cid,
-      entries: current.entries,
-      staging: [],
-    }
-    ignore(
-      store.database.compare_exchange(
-        "runtime_bundle", "catalog", current.revision,
-        catalog_bytes(legacy, store.max_record_bytes).unwrap(),
-      ).unwrap(),
+  assert_true(@utf8.encode(incomplete) != canonical)
+  let invalid_bytes = @utf8.encode(incomplete)
+  let invalid_revision = store.database
+    .compare_exchange(
+      "runtime_bundle",
+      "catalog",
+      current.revision,
+      invalid_bytes,
     )
-    let read = load_catalog(store).unwrap()
-    migrate_catalog_if_needed(store, read).unwrap()
-    let migrated = load_catalog(store).unwrap()
-    assert_eq(migrated.format_version, 3)
-    let revision = migrated.revision
-    migrate_catalog_if_needed(store, migrated).unwrap()
-    assert_eq(load_catalog(store).unwrap().revision, revision)
-  }
-  assert_true(store.close().unwrap())
+    .unwrap()
+  assert_true(
+    admit_store_catalog(store, invalid_revision, invalid_bytes)
+    is Err(UnsupportedCatalog),
+  )
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  store.database.close()
+  ignore(store.lock.close())
+  assert_true(
+    open_runtime_bundle_store(
+      sqlite,
+      crypto,
+      root_path,
+      native_bundle_authorities(),
+      "aarch64-apple-darwin",
+      22L,
+      8,
+      8,
+      1048576L,
+    )
+    is Err(UnsupportedCatalog),
+  )
+  let database = sqlite
+    .open_database(root_path + "/.actql-runtime-bundle.sqlite3", 1048576L)
+    .unwrap()
+  let unchanged = database.read("runtime_bundle", "catalog").unwrap()
+  assert_eq(unchanged.revision, invalid_revision)
+  assert_eq(unchanged.body, invalid_bytes)
+  assert_true(store.root.verify_generation(staging.artifact_name, generation))
+  ignore(
+    database
+    .compare_exchange("runtime_bundle", "catalog", invalid_revision, canonical)
+    .unwrap(),
+  )
+  database.close()
+  let recovered = open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    native_bundle_authorities(),
+    "aarch64-apple-darwin",
+    22L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  assert_eq(recovered.capacity_usage().unwrap().reserved_bytes, 11L)
+  recovered.recover().unwrap() |> ignore
+  assert_eq(recovered.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(recovered.close().unwrap())
 }
 
 ///|
@@ -1079,13 +1081,89 @@ test "native bundle Store verifies all signed v0.1 components" {
     reopened.active_component_source(binding, "missing")
     is Err(ComponentMismatch),
   )
+  assert_true(
+    reopened.materialize_active_component(binding, "duckdb_library")
+    is Err(CapacityExceeded),
+  )
+  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 22L)
   ignore(reopened.release("runtime-process:multi").unwrap())
   assert_true(
     reopened.active_component_source(binding, "duckdb_library")
     is Err(MissingBundle),
   )
-  ignore(reopened.drain(cid).unwrap())
-  ignore(reopened.reclaim(cid).unwrap())
-  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 0L)
   ignore(reopened.close().unwrap())
+  let roomy = open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    native_bundle_authorities(),
+    "aarch64-apple-darwin",
+    33L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  let binding = roomy
+    .acquire_active_component(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "aarch64-apple-darwin", "runtime-process:materialized",
+    )
+    .unwrap()
+  let copy = roomy
+    .materialize_active_component(binding, "duckdb_library")
+    .unwrap()
+  let (_, _, _, _, copy_name, copy_generation, copy_offset) = native_bundle_component_source_projection(
+    copy,
+  )
+  assert_eq(copy_offset, 0L)
+  assert_eq(copy_generation.size, 11L)
+  assert_true(roomy.root.verify_generation(copy_name, copy_generation))
+  assert_eq(roomy.capacity_usage().unwrap().reserved_bytes, 33L)
+  assert_eq(
+    roomy.materialize_active_component(binding, "duckdb_library").unwrap()
+    |> native_bundle_component_source_projection,
+    native_bundle_component_source_projection(copy),
+  )
+  ignore(roomy.close().unwrap())
+  let final_store = open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    native_bundle_authorities(),
+    "aarch64-apple-darwin",
+    33L,
+    8,
+    8,
+    1048576L,
+  ).unwrap()
+  assert_eq(final_store.capacity_usage().unwrap().reserved_bytes, 33L)
+  ignore(final_store.release("runtime-process:materialized").unwrap())
+  ignore(final_store.drain(cid).unwrap())
+  let copy_record = load_catalog(final_store).unwrap().component_copies[0]
+  let physical = cleanup_operations(final_store)
+  let mut sync_failures = 1
+  let injected : NativeRuntimeBundleCleanupOperations = {
+    inspect: physical.inspect,
+    reclaim: physical.reclaim,
+    sync: fn() {
+      if sync_failures > 0 {
+        sync_failures = sync_failures - 1
+        Err(Filesystem(@filesystem.Cleanup("injected component sync failure")))
+      } else {
+        (physical.sync)()
+      }
+    },
+  }
+  assert_true(
+    recover_component_copy_with_operations(final_store, copy_record, injected)
+    is Err(Filesystem(@filesystem.Cleanup(_))),
+  )
+  assert_false(final_store.root.verify_generation(copy_name, copy_generation))
+  assert_eq(final_store.capacity_usage().unwrap().reserved_bytes, 33L)
+  recover_component_copy_with_operations(final_store, copy_record, injected).unwrap()
+  assert_eq(final_store.capacity_usage().unwrap().reserved_bytes, 22L)
+  ignore(final_store.reclaim(cid).unwrap())
+  assert_false(final_store.root.verify_generation(copy_name, copy_generation))
+  assert_eq(final_store.capacity_usage().unwrap().reserved_bytes, 0L)
+  ignore(final_store.close().unwrap())
 }

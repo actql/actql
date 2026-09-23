@@ -10,6 +10,7 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   CapacityExceeded
   HoldCollision
   StateCollision
+  UnsupportedCatalog
   ComponentMismatch
   RecoveryRequired
   CleanupPending
@@ -17,6 +18,38 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
   Signature(@signature.NativeSignatureIssue)
   Filesystem(@filesystem.NativeFilesystemIssue)
   Database(@sqlite.NativeSqliteIssue)
+}
+
+///|
+pub struct NativeRuntimeBundleComponentDigest {
+  hasher : @sha.Hasher
+}
+
+///|
+pub fn begin_native_bundle_component_digest() -> NativeRuntimeBundleComponentDigest {
+  { hasher: @sha.hasher(), }
+}
+
+///|
+pub fn NativeRuntimeBundleComponentDigest::update(
+  self : NativeRuntimeBundleComponentDigest,
+  chunk : Bytes,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  @sha.update(self.hasher, chunk) catch {
+    _ => return Err(ComponentMismatch)
+  }
+  Ok(())
+}
+
+///|
+pub fn NativeRuntimeBundleComponentDigest::matches_cid(
+  self : NativeRuntimeBundleComponentDigest,
+  expected_cid : String,
+) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
+  let digest = @sha.finish_hex(self.hasher) catch {
+    _ => return Err(ComponentMismatch)
+  }
+  Ok("sha256:" + digest == expected_cid)
 }
 
 ///|
@@ -57,6 +90,7 @@ pub struct NativeActiveRuntimeBinding {
 /// The offset is derived from the admitted component order and exact lengths,
 /// never from a caller-provided path or unsigned sidecar metadata.
 pub struct NativeRuntimeBundleComponentSource {
+  root_path : String
   runtime_bundle_cid : String
   role : String
   component_cid : String
@@ -69,6 +103,7 @@ pub struct NativeRuntimeBundleComponentSource {
 ///|
 #warnings("-unused_value")
 fn native_bundle_component_source(
+  root_path : String,
   runtime_bundle_cid : String,
   role : String,
   component_cid : String,
@@ -78,6 +113,7 @@ fn native_bundle_component_source(
   offset : Int64,
 ) -> NativeRuntimeBundleComponentSource {
   {
+    root_path,
     runtime_bundle_cid,
     role,
     component_cid,
@@ -86,6 +122,13 @@ fn native_bundle_component_source(
     generation,
     offset,
   }
+}
+
+///|
+pub fn native_bundle_component_source_root(
+  value : NativeRuntimeBundleComponentSource,
+) -> String {
+  value.root_path
 }
 
 ///|

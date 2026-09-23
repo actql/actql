@@ -23,14 +23,26 @@ allocation, concatenated in the signed role order. Signed lengths frame the
 allocation, and each component is hashed independently before activation.
 Its install command accepts an exact `role=name` mapping for each component.
 The Node Store still rejects a multi-component inventory. Native DuckDB
-execution also remains blocked until its loader consumes the Store-owned
-library component rather than an independent path.
+execution uses the Store-owned `duckdb_library` component. The product Site
+does not accept a caller-selected DuckDB library path.
 
 The native Store resolves a component source only for an exact active bundle
 with a live process holding. It derives the byte offset and length from the
 signed inventory and returns the observed Store generation. The physical
-loader must reopen that exact generation and verify the selected bytes before
-loading; a source projection alone is not execution authority.
+loader reopens that exact generation, hashes the selected bytes through a
+held descriptor and loads the verified image. A source projection alone is
+not execution authority.
+
+The bundle allocation contains all signed components. A dynamic library
+also needs a standalone file for the supported OS loaders. The Store
+reserves its additional bytes before copying, owns its exact generation,
+and retains the reservation until deletion and directory sync are confirmed.
+The C loader does not create another private disk copy. The Store has one
+private catalog schema for bundle and component-copy custody. Its version
+label is independent of the signed bundle's 0.1 version. Development-only
+catalog decoders and migrations have been removed. An unsupported existing
+catalog is rejected without mutation, including any unresolved allocation;
+it is never treated as an empty Store.
 
 Repository fixtures and tests include signed single-component bodies,
 including native Store restart cases; those vectors were regenerated as
@@ -45,8 +57,9 @@ authority just because a historical signature verifies.
 
 Each signed component needs exact byte verification, bounded physical custody,
 capacity accounting, durable retention, release and cleanup. Native custody
-uses one allocation for the complete ordered inventory, so reclaim and
-capacity account for the whole bundle rather than an untracked sidecar.
+uses one allocation for the complete ordered inventory and one separately
+accounted allocation when a library must be materialized for loading. Reclaim
+and capacity account for both; failed cleanup retains its exact owner.
 The Node Store must remain fail-closed for multi-component manifests until it
 has a corresponding physical lifecycle.
 The native loader must consume the admitted library generation, not an

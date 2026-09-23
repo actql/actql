@@ -158,6 +158,36 @@ fn application_issue_message(
       )
     ) => runtime_issue_message(runtime_issue)
     @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(@agent.Client(@client.HttpStatus(status)))
+      )
+    ) => "remote control HTTP status " + status.to_string()
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(
+          @agent.Client(@client.Http(@http.Transport(message)))
+        )
+      )
+    ) => "remote control transport failed: " + message
+    @application.Distribution(
+      @remote_standard.Component(@remote_standard.Agent(@agent.Client(_)))
+    ) => "remote control client failed"
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(@agent.ObservationMismatch)
+      )
+    ) => "remote observation mismatch"
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(@agent.ObservationMissing)
+      )
+    ) => "remote observation missing"
+    @application.Distribution(
+      @remote_standard.Component(
+        @remote_standard.Agent(@agent.CompletionObservationUnknown(_, _))
+      )
+    ) => "remote completion observation is unknown"
+    @application.Distribution(
       @remote_standard.Component(@remote_standard.Host(_))
     ) => "remote standard Host failed"
     @application.Distribution(
@@ -464,7 +494,6 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("sqlite-library", required=true),
       @argparse.OptionArg("crypto-library", required=true),
       @argparse.OptionArg("http-library", required=true),
-      @argparse.OptionArg("duckdb-library", required=true),
       @argparse.OptionArg("application-root", required=true),
       @argparse.OptionArg("transfer-root", required=true),
       @argparse.OptionArg("publication-root", required=true),
@@ -537,7 +566,6 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let sqlite_path = required(matches, "sqlite-library")
   let crypto_path = required(matches, "crypto-library")
   let http_path = required(matches, "http-library")
-  let duckdb_path = required(matches, "duckdb-library")
   let application_root = required(matches, "application-root")
   let transfer_root_path = required(matches, "transfer-root")
   let publication_root_path = required(matches, "publication-root")
@@ -707,7 +735,19 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       stop("HTTP client creation failed")
     }
   }
-  let native_duckdb = match @duckdb.load_library(duckdb_path) {
+  let duckdb_component = match
+    bundles.materialize_active_component(active_runtime, "duckdb_library") {
+    Ok(value) => value
+    Err(_) => {
+      ignore(client.close())
+      ignore(transfer_journal.close())
+      ignore(dispatch_journal.close())
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("signed DuckDB component materialization failed")
+    }
+  }
+  let native_duckdb = match @duckdb.load_verified_component(duckdb_component) {
     Ok(value) => value
     Err(_) => {
       ignore(client.close())

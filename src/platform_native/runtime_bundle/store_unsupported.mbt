@@ -200,6 +200,15 @@ pub fn NativeRuntimeBundleStore::active_component_source(
 }
 
 ///|
+pub fn NativeRuntimeBundleStore::materialize_active_component(
+  _self : NativeRuntimeBundleStore,
+  _binding : NativeActiveRuntimeBinding,
+  _role : String,
+) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn NativeRuntimeBundleStore::list(
   _self : NativeRuntimeBundleStore,
 ) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue] {
