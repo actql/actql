@@ -56,12 +56,31 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
+  Six of the 68 production routes currently bind operation-specific boundary
+  fixtures. A successful route gate does not establish boundary closure for
+  the other 62 operations. Reused evidence must identify the shared product
+  implementation and cover exact, one-short, in-flight cancellation, and
+  cleanup where applicable; the gate must reject a missing required role for
+  every route before this audit can be complete.
   Checked Relation sort after a Carrier projection now has a selected task
   and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
   output order, stable ties, and cancellation without partial publication.
   A Node standard Host timer reaches this selected sort after Graph
   construction, normalization, and node projection. Other selected Relation
   fallback kernels remain synchronous and unverified for in-flight cancel.
+  The sort's outer merge is bounded, but each comparison still processes all
+  ordering terms and long text operands synchronously. Maximum-profile
+  equal-prefix and many-key inputs need measured per-resume and Host timer
+  cancellation evidence. No response-time violation has yet been reproduced;
+  split comparison work or select a stoppable execution placement if the
+  measured non-interruptible interval exceeds the accepted profile.
+  The checked `assert_rows` where branch now also uses the bounded Relation
+  session after a Carrier projection. Its false/NULL predicate is an assertion
+  failure, never a filter omission; a later failure leaves no completion.
+  Three-target fixtures cover quantum-one execution, two consumers, formal
+  publication, cancellation, and cleanup. A Node standard Host timer delivers
+  cancellation during the selected assertion. The unique-key assertion branch
+  remains on the synchronous fallback and is not covered by this change.
 
 The bounded binding-row API now takes separate input and output value limits.
 This is a low-level source signature change, not a standard Host or wire

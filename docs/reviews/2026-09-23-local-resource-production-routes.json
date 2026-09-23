@@ -367,7 +367,30 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "assert_where_mixed_stage_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "standard Host composes Graph projection and bounded Relation assertion"
+        },
+        {
+          "role": "assert_where_failure_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected assertion preserves rows and rejects a later failure"
+        },
+        {
+          "role": "assert_where_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected assertion cancels without publishing rows"
+        }
+      ]
     },
     {
       "inventory": "rela",

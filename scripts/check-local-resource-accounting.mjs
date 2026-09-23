@@ -272,6 +272,17 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'RelA' && route.operation === 'assert_rows') {
+    for (const role of [
+      'assert_where_mixed_stage_lifetime',
+      'assert_where_failure_cleanup',
+      'assert_where_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'cross_join') {
     for (const role of [
       'product_work_workspace_exact_one_short',
