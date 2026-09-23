@@ -121,6 +121,64 @@ pub fn resident_import_create_sql(value : ResidentImport) -> String {
 }
 
 ///|
+/// Native ingestion of an exact retained file after its full storage scan.
+/// The caller must keep one thread, verify the file before use, and validate
+/// the resulting table through the normal resident consumer boundary.
+pub fn resident_import_file_sql(
+  value : ResidentImport,
+  max_row_bytes : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  let schema = @execution.producer_storage_schema(value.storage)
+  if !resident_import_available(value) ||
+    max_row_bytes <= 0 ||
+    max_sql_bytes <= 0 ||
+    @schema.field_count(schema) == 0 ||
+    !physical_column_names_unique(schema) {
+    return None
+  }
+  for index in 0..<@schema.field_count(schema) {
+    let field = @schema.field_at(schema, index).unwrap()
+    if @schema.reference_name(field.name).to_lower() == "rowid" {
+      return None
+    }
+    match field.contract.shape {
+      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+      _ => return None
+    }
+  }
+  let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(output, "CREATE TABLE main.")
+    sql_identifier(output, value.table)
+    sql_text(
+      output, " AS SELECT * FROM read_json(?, format='array', records=true, auto_detect=false, columns={",
+    )
+    for index in 0..<@schema.field_count(schema) {
+      let field = @schema.field_at(schema, index).unwrap()
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      sql_identifier(output, @schema.reference_name(field.name))
+      sql_text(output, ": '")
+      let kind = match field.contract.shape {
+        @contract.Number => "DOUBLE"
+        @contract.Boolean => "BOOLEAN"
+        _ => "VARCHAR"
+      }
+      sql_text(output, kind)
+      sql_text(output, "'")
+    }
+    sql_text(output, "}, maximum_object_size=")
+    sql_text(output, max_row_bytes.to_string())
+    sql_text(output, ", ignore_errors=false)")
+    Some(output.builder.to_string())
+  } catch {
+    _ => None
+  }
+}
+
+///|
 pub fn resident_import_insert_sql(value : ResidentImport) -> String {
   value.insert_sql
 }

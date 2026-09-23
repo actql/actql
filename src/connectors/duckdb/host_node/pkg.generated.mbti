@@ -397,6 +397,8 @@ pub fn resident_import_batch(@driver.DuckDBResidentTable, Int, Int, Int) -> (Int
 
 pub fn resident_import_count(@driver.DuckDBResidentTable, Bool) -> Int raise NodeHostFailure
 
+pub fn resident_import_file_sql(@driver.DuckDBResidentTable, Int, Int) -> String?
+
 pub fn resident_import_material(@driver.DuckDBResidentTable) -> @execution_relation.RetainedOutputMaterial? raise NodeHostFailure
 
 pub fn resident_import_parameter(@driver.DuckDBResidentTable, Int, Int, Int, Int) -> String raise NodeHostFailure
@@ -410,6 +412,8 @@ pub fn resident_import_stream_begin(@driver.DuckDBResidentTable, Int, @execution
 pub fn resident_import_stream_cancel(@adapter.ResidentImportStream) -> Unit
 
 pub fn resident_import_stream_finish(@adapter.ResidentImportStream) -> Unit raise NodeHostFailure
+
+pub fn resident_import_stream_verify(@adapter.ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise NodeHostFailure
 
 pub fn resident_input_scan_sql(@driver.DuckDBResidentInputs, Int, Int) -> String?
 
