@@ -32,6 +32,13 @@ Local's observed guard use available, but the equivalent-obligation comparator
 still has a DuckDB-specific per-task accounting model. These observations do
 not turn the six Local-selected matrix cases into admitted pairs.
 
+The wide reuse comparator now executes its acquisition query in the canonical
+field order it attests. At clean `db8508af4`, this and the calibrated-training
+fallback admitted all seven pairs for the registered numeric-64/10,000 case.
+Its ratio interval is 1.305–1.444 against the unchanged 1.25 limit, a genuine
+performance failure. The one-case result and raw-record digests are in
+`benchmarks/retained-results/equivalent-wide-reuse-db8508af4.md`.
+
 The native policy check used `ACTQL_TEST_SCRATCH_ROOT` pointing to a writable
 workspace scratch directory with `node scripts/test-native-http-client.mjs`.
 The real mTLS fixture covered success, lost response, foreign policy identity,
