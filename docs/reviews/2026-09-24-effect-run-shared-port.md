@@ -68,6 +68,12 @@ within-member failure policies, independent of Preview array order. This is
 one static inventory guard only: the normal Program checker still rejects
 Effects, and the Host has not yet bound that Preview to a Captured Run or
 admitted apply authority.
+The separate `EffectStaticCandidate` now combines Result binding, Mapping
+shape/rule/literal admission, and Command target binding under one bounded
+work budget and one exact Environment owner. It rejects missing coverage and
+foreign Program/Environment inputs. It is intentionally not a checked Effect
+Set: the standard checker must still bind the Environment and close registered
+conversions, Command inputs, policy, and runtime authority before execution.
 
 ## Required port and owners
 
