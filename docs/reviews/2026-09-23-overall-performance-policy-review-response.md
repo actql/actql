@@ -380,3 +380,21 @@ and `2e3df78a29de2c8d4b87e5b18e7b002e6a6ee3e42d8ec682097d7f6c6ba3ce68`.
 The full 27-case experiment remains incomplete. Product traces show three
 fresh 100,000-row input verifications and three large output receptions on
 the selected resident path; they dominate the SHA component improvement.
+
+Revision `585b0a3d2` admits already parsed physical JSON directly into the
+bounded decode tree. It removes the intermediate source-value tree from
+retained rows and DuckDB column frames while preserving raw Unicode, per-row
+and cumulative limits, field shape checks, and error precedence. The relevant
+803 tests passed on JS, Wasm, and native, and the real DuckDB standard Host
+test passed. A same-build release JS component benchmark over 1,000 parsed
+rows measured 664.54 microseconds through the former source copy and 546.27
+microseconds through direct admission. This is a component improvement, not a
+whole-Run speed claim. The registered narrow/100000 case completed seven
+eligible pairs with all non-timing obligations, but still failed the 1.25
+ratio gate: estimate 2.362, 95% bootstrap interval 2.159–2.611. Its raw
+assessment and case records are in workspace scratch `equivalent-narrow-585b0a3d2`,
+with SHA-256 digests `f9ab282d4073816c8a31469ee4be035cfc216254bef5190ff09b9f91c287bd42`
+and `cc453abffe516a9e696982e5bda740144eaa152bb9059897879214828261bee4`.
+This remains one failing case of the 27 registered cases. The repeated
+100,000-row consumer verification and output reception remain the primary
+optimization target; the component benchmark cannot close PERF-1.
