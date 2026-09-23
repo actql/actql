@@ -18,7 +18,18 @@
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
       },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
       "boundary_tests": [
+        {
+          "role": "ordinary_filter_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local filters resume within quantum"
+        },
         {
           "role": "filter_mixed_stage_lifetime",
           "suite": "moon:query_integration",

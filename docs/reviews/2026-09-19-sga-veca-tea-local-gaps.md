@@ -42,6 +42,14 @@ readable coverage manifest is authoritative for individual operation status.
   independent task completions. Other selected Relation fallback kernels and
   their environment-delivered cancellation remain unverified. These are
   connection gaps, not new normative operations.
+- Ordinary single-step text, structured, and NULL filters now use the same
+  bounded Relation provider as selected Carrier projections. Quantum-one
+  standard Host fixtures retain two real consumers and final reclamation on
+  all three targets. The direct select form remains on its existing path:
+  its authored projection order is distinct from the canonical schema order,
+  and routing it through the current bounded row builder changes the output
+  order witness. This is an unresolved connection boundary, not permission
+  to erase the authored order.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
@@ -61,7 +69,9 @@ readable coverage manifest is authoritative for individual operation status.
   input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
   after measured work, then confirms stop without exposing a partial result. A
-  successful route gate does not establish boundary closure for the other 60
+  separate ordinary filter fixture proves quantum-one execution and lifetime,
+  but its exact/one-short and delivered-cancel proof roles are not yet bound.
+  A successful route gate does not establish boundary closure for the other 60
   operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
