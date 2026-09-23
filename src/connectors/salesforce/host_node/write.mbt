@@ -180,6 +180,7 @@ pub fn salesforce_single_write_request_boundary_cid(
 pub fn salesforce_single_write_request_matches_preview_footprint(
   preview : @publication.EffectPreviewIdentity,
   member_index : Int,
+  row_index : Int,
   request : @catalog.SingleWriteRequest,
   max_identity_bytes : Int,
 ) -> Bool raise SalesforceCatalogBridgeIssue {
@@ -223,7 +224,19 @@ pub fn salesforce_single_write_request_matches_preview_footprint(
         ) {
         if @publication.effect_preview_footprint_target_cid(footprint, index) ==
           Some(@catalog.write_target_object_cid(target)) {
-          return true
+          guard @publication.effect_preview_row_correlation_wire(
+              preview, member_index, row_index,
+            )
+            is Some(correlation) else {
+            return false
+          }
+          return match
+            @catalog.single_write_request_matches_preview_row_target(
+              request, correlation, max_identity_bytes,
+            ) {
+            Ok(value) => value
+            Err(issue) => raise WriteCollectionRequest(issue)
+          }
         }
       }
       false
@@ -505,13 +518,17 @@ pub fn salesforce_collection_write_request_boundary_cid(
 pub fn salesforce_collection_write_request_matches_preview_footprint(
   preview : @publication.EffectPreviewIdentity,
   member_index : Int,
+  first_row : Int,
   request : @catalog.WriteCollectionRequest,
   max_identity_bytes : Int,
   max_binding_work : Int,
 ) -> Bool raise SalesforceCatalogBridgeIssue {
   guard max_binding_work > 0 &&
+    first_row >= 0 &&
     @publication.effect_preview_member_footprint(preview, member_index)
-    is Some(footprint) else {
+    is Some(footprint) &&
+    @publication.effect_preview_row_count(preview, member_index)
+    is Some(preview_count) else {
     return false
   }
   if @publication.effect_preview_footprint_provider_namespace(footprint) !=
@@ -525,6 +542,9 @@ pub fn salesforce_collection_write_request_matches_preview_footprint(
     return false
   }
   let count = @catalog.write_collection_request_row_count(request)
+  if first_row > preview_count || count > preview_count - first_row {
+    return false
+  }
   let target_count = @publication.effect_preview_footprint_target_count(
     footprint,
   )
@@ -568,6 +588,22 @@ pub fn salesforce_collection_write_request_matches_preview_footprint(
         }
         if !found {
           return false
+        }
+        guard @publication.effect_preview_row_correlation_wire(
+            preview,
+            member_index,
+            first_row + row,
+          )
+          is Some(correlation) else {
+          return false
+        }
+        match
+          @catalog.write_collection_request_matches_preview_row_target(
+            request, row, correlation, max_identity_bytes,
+          ) {
+          Ok(true) => ()
+          Ok(false) => return false
+          Err(issue) => raise WriteCollectionRequest(issue)
         }
       }
     }

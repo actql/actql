@@ -95,7 +95,7 @@ export async function captureSalesforceSingleEffectWrite({
     fail('InvalidSalesforceEffectRowBinding');
   }
   if (!checked(moon.salesforceSingleWriteRequestMatchesPreviewFootprint(
-      admittedPreview, memberIndex, request,
+      admittedPreview, memberIndex, rowIndex, request,
       physical.maxRequestIdentityBytes ?? 4096))) {
     fail('ForeignSalesforceEffectFootprint');
   }
@@ -167,7 +167,7 @@ export async function captureSalesforceCollectionEffectWrite({
   checked(moon.salesforceRecheckCollectionWriteRequest(
     request, currentObservation));
   if (!checked(moon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
-      admittedPreview, memberIndex, request,
+      admittedPreview, memberIndex, firstRow, request,
       maxRequestIdentityBytes, maxBindingWork))) {
     fail('ForeignSalesforceEffectFootprint');
   }

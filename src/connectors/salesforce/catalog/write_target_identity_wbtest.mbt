@@ -123,6 +123,91 @@ test "external target identity follows only confirmed metadata matching" {
 }
 
 ///|
+test "Preview row target must match the exact physical target" {
+  let body = write_request_body(WriteUpdateById)
+  let single = prepare_single_write_request(
+    body,
+    "v66.0",
+    RecordId("001000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_eq(
+    single_write_request_matches_preview_row_target(
+      single, "\"001000000000001AAA\"", 4096,
+    ),
+    Ok(true),
+  )
+  assert_eq(
+    single_write_request_matches_preview_row_target(
+      single, "\"001000000000002\"", 4096,
+    ),
+    Ok(false),
+  )
+  assert_true(
+    single_write_request_matches_preview_row_target(
+      single, "\"001000000000001AAB\"", 4096,
+    )
+    is Err(InvalidTarget),
+  )
+  let collection = prepare_continue_write_collection(
+    [
+      {
+        row_preview_cid: collection_request_test_cid("1"),
+        body,
+        target: RecordId("001000000000001"),
+      },
+      {
+        row_preview_cid: collection_request_test_cid("2"),
+        body,
+        target: RecordId("001000000000002"),
+      },
+    ],
+    "v66.0",
+    collection_request_test_limits(),
+  ).unwrap()
+  assert_eq(
+    write_collection_request_matches_preview_row_target(
+      collection, 0, "\"001000000000001AAA\"", 4096,
+    ),
+    Ok(true),
+  )
+  assert_eq(
+    write_collection_request_matches_preview_row_target(
+      collection, 1, "\"001000000000001\"", 4096,
+    ),
+    Ok(false),
+  )
+  assert_true(
+    write_collection_request_matches_preview_row_target(
+      collection, 2, "\"001000000000001\"", 4096,
+    )
+    is Err(InvalidRows),
+  )
+  let sensitive = collection_case_write_body(",\"caseSensitive\":true").projection
+  let insensitive = collection_case_write_body(",\"caseSensitive\":false").projection
+  assert_eq(
+    write_target_matches_preview_correlation(
+      sensitive,
+      ExternalText("abc123"),
+      "\"ABC123\"",
+      100,
+      4096,
+    ),
+    Ok(false),
+  )
+  assert_eq(
+    write_target_matches_preview_correlation(
+      insensitive,
+      ExternalText("abc123"),
+      "\"ABC123\"",
+      100,
+      4096,
+    ),
+    Ok(true),
+  )
+}
+
+///|
 test "physical requests retain their own target footprint evidence" {
   let body = write_request_body(WriteUpdateById)
   let short = prepare_single_write_request(
