@@ -1,4 +1,4 @@
-// Separate training observations for a registered retained-results case.
+// Separate training observations for registered retained-results cases.
 // These forced-choice runs are never performance acceptance samples.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -17,12 +17,17 @@ import {createManagedExampleHost} from '../examples/managed-host.mjs';
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
-const [workload, layout, rowsText, ...extra] = process.argv.slice(2);
+const [workload, layout, rowsText, heldOutRowsText, ...extra] = process.argv.slice(2);
 if (!workload || !layout || !/^(0|[1-9][0-9]*)$/.test(rowsText ?? '') ||
-    extra.length) {
+    (heldOutRowsText !== undefined && !/^(0|[1-9][0-9]*)$/.test(heldOutRowsText)) || extra.length) {
   throw new TypeError('InvalidCalibrationCaseArguments');
 }
 const fixture = retainedCase(workload, layout, Number(rowsText));
+const heldOut = heldOutRowsText === undefined ? fixture :
+  retainedCase(workload, layout, Number(heldOutRowsText));
+if (heldOutRowsText !== undefined && heldOut.id === fixture.id) {
+  throw new TypeError('CalibrationRequiresDistinctHeldOutCase');
+}
 const git = async args => (await run('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
 if (await git(['status', '--porcelain'])) throw Error('CalibrationRequiresCleanCheckout');
@@ -48,15 +53,24 @@ const contracts = {
   evidence: await read('spec/contracts/actql-query-process-evidence.json'),
   receipts: await read('spec/contracts/actql-query-two-receipt.json'),
 };
-const directory = await mkdtemp(join(tmpdir(), 'actql-retained-calibration-'));
+const directory = await mkdtemp(join(
+  process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir(), 'actql-retained-calibration-'));
 const database = join(directory, 'source.duckdb');
 console.log(JSON.stringify({event: 'started', revision, caseId: fixture.id,
-  directory, scope: 'forced-training-not-acceptance'}));
+  heldOutCaseId: heldOut.id, directory, scope: 'forced-training-not-acceptance'}));
 await run(process.execPath, [
   fileURLToPath(new URL('./create-retained-source.mjs', import.meta.url)),
   database, workload, layout, rowsText,
 ], {timeout: fixture.limits.timeoutMs});
 const sourceSha256 = await fileHash(database);
+const heldOutDatabase = heldOut === fixture ? database : join(directory, 'held-out-source.duckdb');
+if (heldOut !== fixture) {
+  await run(process.execPath, [
+    fileURLToPath(new URL('./create-retained-source.mjs', import.meta.url)),
+    heldOutDatabase, workload, layout, heldOutRowsText,
+  ], {timeout: heldOut.limits.timeoutMs});
+}
+const heldOutSourceSha256 = await fileHash(heldOutDatabase);
 const taskCount = workload === workloads[1] ? 4 : 3;
 const expensive = '2147483647';
 const plan = candidate => ({
@@ -66,8 +80,9 @@ const plan = candidate => ({
   nativeTaskMilliseconds: Array(taskCount).fill(candidate === 'duckdb' ? '1' : expensive),
   estimateSource: `sha256:${sha256(`calibration:${candidate}:${fixture.id}:${revision}`)}`,
 });
-async function runTrainingCandidate(candidate, round, selection = plan(candidate)) {
-  const config = managedCaseConfiguration(fixture, contracts, database, directory);
+async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
+  selectedDatabase = database, selection = plan(candidate)) {
+  const config = managedCaseConfiguration(selectedFixture, contracts, selectedDatabase, directory);
   const host = await createManagedExampleHost(config.limits);
   let result;
   let observation;
@@ -80,7 +95,8 @@ async function runTrainingCandidate(candidate, round, selection = plan(candidate
     const executionMs = performance.now() - started;
     assert.equal(result.report.status, 'host-tasks-completed');
     assert.equal(result.report.completed.length, taskCount);
-    assert.equal(result.completion(taskCount)?.descriptor.rows_cid, expectedCid);
+    const selectedExpectedCid = selectedFixture.identity().rowsCid;
+    assert.equal(result.completion(taskCount)?.descriptor.rows_cid, selectedExpectedCid);
     assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
     const tasks = result.report.completed;
     if (candidate !== 'ordinary') {
@@ -92,7 +108,7 @@ async function runTrainingCandidate(candidate, round, selection = plan(candidate
       'CalibrationMissingTaskInterval');
     observation = {round, candidate, taskElapsedMilliseconds: elapsed,
       executionMs, warmMs: elapsed.reduce((sum, value) => sum + value, 0),
-      selection, outputCid: expectedCid,
+      caseId: selectedFixture.id, selection, outputCid: selectedExpectedCid,
       taskRealizations: tasks.map(task => task.realization),
       tasks, hostPhases: result.phases,
       workerPreparationDetails: result.report.preparation_diagnostics,
@@ -153,26 +169,31 @@ try {
     scope: 'measured training profile requiring held-out selection and obligation admission'};
   await writeFile(join(directory, 'training.json'), trainingBytes);
   await writeFile(join(directory, 'profile.json'), serialize(profile));
-  const ordinary = await runTrainingCandidate('ordinary', 3, {
+  const ordinary = await runTrainingCandidate('ordinary', 3, heldOut, heldOutDatabase, {
     resident: true,
     nativeMilliseconds: '1',
     localTaskMilliseconds: profile.localTaskMilliseconds,
     nativeTaskMilliseconds: profile.nativeTaskMilliseconds,
     estimateSource: `sha256:${trainingSha256}`,
   });
-  assert.equal(await fileHash(database), sourceSha256,
-    'CalibrationSourceChanged');
+  assert.equal(await fileHash(heldOutDatabase), heldOutSourceSha256,
+    'CalibrationHeldOutSourceChanged');
   await writeFile(join(directory, 'ordinary-choice.json'), serialize({
-    ...ordinary, scope: 'same-case held-out execution, not held-out workload',
+    ...ordinary, scope: heldOut === fixture
+      ? 'same-case held-out execution, not held-out workload'
+      : 'distinct registered workload size, not formal calibration acceptance',
+    trainingCaseId: fixture.id,
+    heldOutSourceSha256,
     acceptanceEligible: false,
   }));
   console.log(JSON.stringify({event: 'finished', directory, caseId: fixture.id,
+    heldOutCaseId: heldOut.id,
     trainingSha256, localTaskMilliseconds: profile.localTaskMilliseconds,
     nativeTaskMilliseconds: profile.nativeTaskMilliseconds,
     ordinaryTaskRealizations: ordinary.taskRealizations}));
 } catch (error) {
   await writeFile(join(directory, 'failure.json'), serialize({caseId: fixture.id,
-    revision, sourceSha256, observations,
+    heldOutCaseId: heldOut.id, revision, sourceSha256, heldOutSourceSha256, observations,
     error: {name: error.name, message: error.message, code: error.code}}));
   throw error;
 }

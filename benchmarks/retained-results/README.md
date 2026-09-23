@@ -153,6 +153,20 @@ The [candidate-training diagnostic](calibration-diagnostic-2026-09-24.md)
 measures both installed Local and DuckDB paths for two small cases and tests
 one subsequent ordinary choice. Its same-case training and missing Local
 work-breakdown observation keep it outside formal selection qualification.
+The calibration runner accepts an optional fourth argument for a different
+registered row count in the same workload/layout. It constructs a separate
+immutable DuckDB source for that held-out case, verifies its independent output
+identity and cleanup, and records both source hashes. For example:
+
+```sh
+ACTQL_TEST_SCRATCH_ROOT=/path/to/workspace-scratch \
+  node adapters/connectors/duckdb/node/bench/calibrate-retained-case.mjs \
+  native-acquisition-full-validation-low-selectivity narrow 100 1000
+```
+
+This separates training from the chosen evaluation workload. It still does not
+qualify the estimate model, prove Local work-breakdown parity, or supply an
+accepted sample for the registered paired experiment.
 
 To compare ordinary and reused INSERTs through the actual bounded transport:
 
