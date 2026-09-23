@@ -44,6 +44,8 @@ pub fn advance_bounded_asof_join(BoundedAsOfJoinExecution, Int) -> Result[Bounde
 
 pub fn advance_bounded_binding_rows(BoundedBindingRowsExecution, Int) -> Result[BoundedBindingRowsPoll, BoundedBindingRowsIssue]
 
+pub fn advance_bounded_independent_row_copy(BoundedIndependentRowCopy, Int) -> Result[IndependentRowCopyPoll, ManagedIndependentOutputIssue]
+
 pub fn advance_bounded_interval_join(BoundedIntervalJoinExecution, Int) -> Result[BoundedIntervalJoinPoll, BoundedIntervalJoinIssue]
 
 pub fn advance_bounded_sequence_match(BoundedSequenceMatchExecution, Int) -> Result[BoundedSequenceMatchPoll, BoundedSequenceMatchIssue]
@@ -133,6 +135,10 @@ pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Val
 pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
 
 pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
+
+pub fn bounded_independent_row_copy_cleanup_pending(BoundedIndependentRowCopy) -> Bool
+
+pub fn bounded_independent_row_copy_stopped(BoundedIndependentRowCopy) -> Bool
 
 pub fn bounded_interval_join_cleanup_pending(BoundedIntervalJoinExecution) -> Bool
 
@@ -240,6 +246,8 @@ pub fn cleanup_bounded_asof_join(BoundedAsOfJoinExecution) -> Result[Bool, Bound
 
 pub fn cleanup_bounded_binding_rows(BoundedBindingRowsExecution) -> Result[Bool, BoundedBindingRowsIssue]
 
+pub fn cleanup_bounded_independent_row_copy(BoundedIndependentRowCopy) -> Result[Bool, ManagedIndependentOutputIssue]
+
 pub fn cleanup_bounded_interval_join(BoundedIntervalJoinExecution) -> Result[Bool, BoundedIntervalJoinIssue]
 
 pub fn cleanup_bounded_sequence_match(BoundedSequenceMatchExecution) -> Result[Bool, BoundedSequenceMatchIssue]
@@ -269,6 +277,8 @@ pub fn completed_has_cell_access(CompletedOutput) -> Bool
 pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
 
 pub fn completed_output_available(CompletedOutput) -> Bool
+
+pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
 pub fn completed_output_matches_inputs(CompletedOutput, Array[ProducerRead]) -> Bool
 
@@ -810,6 +820,8 @@ pub fn relation_schema_wire(RelationSchemaIdentity) -> String
 
 pub fn replay_completed_relation_export(CompletedOutputExport, CompletedRelationExportReceipt, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
+pub fn request_bounded_independent_row_copy_cancel(BoundedIndependentRowCopy) -> Bool
+
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
 pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
@@ -881,6 +893,8 @@ pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 pub fn start_bounded_asof_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedAsOfJoinExecution, BoundedAsOfJoinIssue]
 
 pub fn start_bounded_binding_rows(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedBindingRowsExecution, BoundedBindingRowsIssue]
+
+pub fn start_bounded_independent_row_copy(@bounded_execution.Control, CompletedOutput, Int, Int) -> Result[BoundedIndependentRowCopy, ManagedIndependentOutputIssue]
 
 pub fn start_bounded_interval_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedIntervalJoinExecution, BoundedIntervalJoinIssue]
 
@@ -1015,6 +1029,8 @@ pub enum BoundedBindingRowsPoll {
   BoundedBindingRowsFailed(BoundedBindingRowsIssue, progress~ : Int64, work~ : Int64)
   BoundedBindingRowsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
+
+type BoundedIndependentRowCopy
 
 type BoundedIntervalJoinExecution
 
@@ -1262,6 +1278,13 @@ pub(all) enum FragmentRuntimeIssue {
 
 type GeneratedSequence
 
+pub enum IndependentRowCopyPoll {
+  RowCopyContinue(progress~ : Int64, work~ : Int64)
+  RowCopyComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  RowCopyFailed(ManagedIndependentOutputIssue, progress~ : Int64, work~ : Int64)
+  RowCopyStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 pub(all) enum InputKeyIssue {
   WrongOrigin
   MissingField
@@ -1407,6 +1430,7 @@ pub(all) enum ManagedIndependentOutputIssue {
   Unavailable
   UnsupportedRepresentation
   Limit
+  Control(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)
 
 type ManagedInputBinding

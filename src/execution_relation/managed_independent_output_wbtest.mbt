@@ -16,3 +16,64 @@ test "independent managed copy outlives its exact scoped source" {
   assert_true(completed_cell(copy, 1, 0) is Some(_))
   assert_true(copy_completed_output_independent(copy, 1, 2) is Err(Limit))
 }
+
+///|
+test "bounded independent row copy respects quantum and source lifetime" {
+  let owner = capture_fixture()
+  let generated = compute_test_sequence(owner)
+  let completed = test_typed_completion(generated, 1)
+  let permission = Ref(true)
+  let source = restrict_completed_output(
+    completed_output(completed, Step(1)).unwrap(),
+    fn() { permission.val },
+  )
+  let control = @bounded.control()
+  let copy = start_bounded_independent_row_copy(control, source, 2, 2).unwrap()
+  let mut prior_work = 0L
+  let mut steps = 0
+  let mut result : CompletedOutput? = None
+  while result is None && steps < 32 {
+    match advance_bounded_independent_row_copy(copy, 1).unwrap() {
+      RowCopyContinue(work~, ..) => {
+        assert_eq(work - prior_work, 1L)
+        prior_work = work
+      }
+      RowCopyComplete(output, work~, ..) => {
+        assert_eq(work - prior_work, 1L)
+        result = Some(output)
+      }
+      RowCopyFailed(_, ..) => abort("unexpected copy failure")
+      RowCopyStopped(_, ..) => abort("unexpected copy stop")
+    }
+    steps += 1
+  }
+  assert_true(result is Some(_))
+  permission.val = false
+  assert_false(completed_output_available(source))
+  assert_true(completed_output_available(result.unwrap()))
+  assert_eq(completed_row_count(result.unwrap()), 2)
+  assert_true(completed_cell(result.unwrap(), 1, 0) is Some(_))
+  assert_true(cleanup_bounded_independent_row_copy(copy).unwrap())
+  assert_false(bounded_independent_row_copy_cleanup_pending(copy))
+}
+
+///|
+test "bounded independent row copy stops before partial output publication" {
+  let owner = capture_fixture()
+  let generated = compute_test_sequence(owner)
+  let completed = test_typed_completion(generated, 1)
+  let source = completed_output(completed, Step(1)).unwrap()
+  let control = @bounded.control()
+  let copy = start_bounded_independent_row_copy(control, source, 2, 2).unwrap()
+  assert_true(
+    advance_bounded_independent_row_copy(copy, 1) is Ok(RowCopyContinue(..)),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_independent_row_copy(copy, 1) is Ok(RowCopyStopped(_, ..)),
+  )
+  assert_true(bounded_independent_row_copy_stopped(copy))
+  assert_true(bounded_independent_row_copy_cleanup_pending(copy))
+  assert_true(cleanup_bounded_independent_row_copy(copy).unwrap())
+  assert_false(bounded_independent_row_copy_cleanup_pending(copy))
+}

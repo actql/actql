@@ -25,10 +25,12 @@ readable coverage manifest is authoritative for individual operation status.
 The fixed-SHA review of `f878797f2fa07749622e6f15fb06da41d33c3f82`
 identifies a separate execution-lane blocker. The current managed driver
 still uses the providerless branch for supported sequences without a
-registered provider. It executes the entire checked sequence and copies
-its output synchronously, then
-reports one unit of resume work. The one-unit report is not a bound on pair,
-row, or copy work. Ordinary one-step filter, select, sort, and take have a
+registered provider. It still executes the entire checked sequence
+synchronously and reports one unit of resume work for that execution.
+RowTable output relocation now uses a separate bounded session, while other
+output representations retain synchronous independent copy. The one-unit
+execution report is not a bound on pair or row work. Ordinary one-step filter,
+select, sort, and take have a
 registered bounded Relation provider; selected one-step row kernels use that
 provider when their typed input view is applicable. Zero-input values,
 binary RelA operations such as cross join, and other unmatched multi-step
@@ -39,9 +41,12 @@ an in-flight stop. Its route evidence is explicitly classified as
 separate Host timer fixture. This remains a release blocker independently
 of the operation-specific resource proof count below. The providerless lane
 must use admitted bounded execution or an explicitly isolated stoppable
-physical lane; it must not be counted as quantum-bounded because it returns
-`work=1`. The strict resource-completion gate rejects this known synchronous
-compute-and-copy lane even if route evidence is added elsewhere. Its source
+physical lane; it must not be counted as quantum-bounded because execution
+still returns `work=1`. Direct copy and managed driver fixtures confirm
+quantum-one RowTable relocation and cancellation after copy work starts.
+They do not prove cancellation during cross-join pair work or Node Host timer
+delivery. The strict resource-completion gate still rejects the providerless
+lane even if route evidence is added elsewhere. Its source
 check is a blocker guard, not a positive proof that a replacement is bounded.
 
 ## Current cross-operation review gaps

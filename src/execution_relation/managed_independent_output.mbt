@@ -7,6 +7,7 @@ pub(all) enum ManagedIndependentOutputIssue {
   Unavailable
   UnsupportedRepresentation
   Limit
+  Control(@bounded.Issue)
 } derive(Eq, Debug)
 
 ///|
@@ -121,4 +122,246 @@ pub fn copy_completed_output_independent(
     table: Some(table),
     representation: None,
   })
+}
+
+///|
+priv enum IndependentRowCopyPhase {
+  CopyNames
+  BeginRow
+  CopyCells
+  CommitRow
+  FinishCopy
+}
+
+///|
+priv struct IndependentRowCopyState {
+  mut source : CompletedOutput?
+  source_rows : Table
+  mut names : Array[String]
+  mut rows : Array[Array[Value]]
+  mut row_values : Array[Value]
+  mut row : Int
+  mut column : Int
+  mut phase : IndependentRowCopyPhase
+}
+
+///|
+struct BoundedIndependentRowCopy {
+  control : @bounded.Control
+  session : @bounded.Session[
+    IndependentRowCopyState,
+    CompletedOutput,
+    ManagedIndependentOutputIssue,
+  ]
+  mut token : @bounded.Token?
+}
+
+///|
+pub enum IndependentRowCopyPoll {
+  RowCopyContinue(progress~ : Int64, work~ : Int64)
+  RowCopyComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  RowCopyFailed(ManagedIndependentOutputIssue, progress~ : Int64, work~ : Int64)
+  RowCopyStopped(@bounded.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+///|
+fn independent_row_copy_step(
+  state : IndependentRowCopyState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[CompletedOutput, ManagedIndependentOutputIssue] {
+  let mut used = 0
+  let mut progress = 0
+  while used < quantum {
+    if @bounded.stop_requested(reader) is Some(reason) {
+      return @bounded.Stopped(reason, progress, used)
+    }
+    guard state.source is Some(source) && completed_output_available(source) else {
+      return @bounded.Failed(Unavailable, progress, used)
+    }
+    match state.phase {
+      CopyNames =>
+        if state.column < state.source_rows.names.length() {
+          state.names.push(state.source_rows.names[state.column])
+          state.column += 1
+          used += 1
+        } else {
+          state.column = 0
+          state.phase = BeginRow
+        }
+      BeginRow =>
+        if state.row < state.source_rows.rows.length() {
+          if state.source_rows.rows[state.row].length() != state.names.length() {
+            return @bounded.Failed(UnsupportedRepresentation, progress, used)
+          }
+          state.row_values = []
+          state.column = 0
+          state.phase = CopyCells
+          used += 1
+        } else {
+          state.phase = FinishCopy
+        }
+      CopyCells =>
+        if state.column < state.names.length() {
+          state.row_values.push(state.source_rows.rows[state.row][state.column])
+          state.column += 1
+          used += 1
+        } else {
+          state.phase = CommitRow
+        }
+      CommitRow => {
+        state.rows.push(state.row_values)
+        state.row_values = []
+        state.row += 1
+        state.phase = BeginRow
+        progress += 1
+        used += 1
+      }
+      FinishCopy => {
+        let table : CompletedTable = RowTable({
+          owner: state.source_rows.owner,
+          id: state.source_rows.id,
+          names: state.names,
+          rows: state.rows,
+        })
+        let prepared = @lower.bound_preparation(state.source_rows.owner)
+        let completion : CompletedSequence = {
+          ..source.completion,
+          result_identity: Ref(()),
+          store: ImportedStore(
+            @lower.preparation_input_count(prepared),
+            source.target,
+            table,
+          ),
+          _producer_inputs: [],
+          live: None,
+        }
+        state.names = []
+        state.rows = []
+        state.source = None
+        used += 1
+        return @bounded.Complete(
+          {
+            completion,
+            target: source.target,
+            table: Some(table),
+            representation: None,
+          },
+          progress,
+          used,
+        )
+      }
+    }
+  }
+  @bounded.Continue(progress, used)
+}
+
+///|
+fn cleanup_independent_row_copy_state(state : IndependentRowCopyState) -> Bool {
+  state.source = None
+  state.names = []
+  state.rows = []
+  state.row_values = []
+  true
+}
+
+///|
+pub fn start_bounded_independent_row_copy(
+  control : @bounded.Control,
+  output : CompletedOutput,
+  max_rows : Int,
+  max_columns : Int,
+) -> Result[BoundedIndependentRowCopy, ManagedIndependentOutputIssue] {
+  if max_rows < 0 || max_columns < 0 {
+    return Err(Limit)
+  }
+  if !completed_output_available(output) {
+    return Err(Unavailable)
+  }
+  guard output.table is Some(RowTable(source)) else {
+    return Err(UnsupportedRepresentation)
+  }
+  if source.rows.length() > max_rows || source.names.length() > max_columns {
+    return Err(Limit)
+  }
+  let state : IndependentRowCopyState = {
+    source: Some(output),
+    source_rows: source,
+    names: [],
+    rows: [],
+    row_values: [],
+    row: 0,
+    column: 0,
+    phase: CopyNames,
+  }
+  let (session, token) = @bounded.start(
+    control,
+    state,
+    independent_row_copy_step,
+    cleanup_independent_row_copy_state,
+    _output => true,
+  )
+  Ok({ control, session, token: Some(token), })
+}
+
+///|
+pub fn completed_output_has_row_table(output : CompletedOutput) -> Bool {
+  output.table is Some(RowTable(_))
+}
+
+///|
+pub fn advance_bounded_independent_row_copy(
+  value : BoundedIndependentRowCopy,
+  quantum : Int,
+) -> Result[IndependentRowCopyPoll, ManagedIndependentOutputIssue] {
+  guard value.token is Some(token) else {
+    return Err(Control(@bounded.Terminal))
+  }
+  match @bounded.advance(value.session, token, quantum) {
+    Err(issue) => Err(Control(issue))
+    Ok(@bounded.ContinueWith(next, progress~, work~)) => {
+      value.token = Some(next)
+      Ok(RowCopyContinue(progress~, work~))
+    }
+    Ok(@bounded.Completed(output, progress~, work~)) => {
+      value.token = None
+      Ok(RowCopyComplete(output, progress~, work~))
+    }
+    Ok(@bounded.FailedWith(issue, progress~, work~)) => {
+      value.token = None
+      Ok(RowCopyFailed(issue, progress~, work~))
+    }
+    Ok(@bounded.StoppedWith(reason, progress~, work~)) => {
+      value.token = None
+      Ok(RowCopyStopped(reason, progress~, work~))
+    }
+  }
+}
+
+///|
+pub fn request_bounded_independent_row_copy_cancel(
+  value : BoundedIndependentRowCopy,
+) -> Bool {
+  @bounded.request_cancel(value.control)
+}
+
+///|
+pub fn bounded_independent_row_copy_stopped(
+  value : BoundedIndependentRowCopy,
+) -> Bool {
+  @bounded.session_stopped(value.session)
+}
+
+///|
+pub fn cleanup_bounded_independent_row_copy(
+  value : BoundedIndependentRowCopy,
+) -> Result[Bool, ManagedIndependentOutputIssue] {
+  @bounded.cleanup(value.session).map_err(issue => Control(issue))
+}
+
+///|
+pub fn bounded_independent_row_copy_cleanup_pending(
+  value : BoundedIndependentRowCopy,
+) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
