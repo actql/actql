@@ -25,6 +25,18 @@ const responseDigest = row => createHash('sha256')
   .update(`${row.status_code}|`)
   .update(row.response_bytes)
   .digest('hex');
+const batchResponseDigest = (row, members) => {
+  const hash = createHash('sha256')
+    .update('actql-effect-physical-batch-response/0.1\0')
+    .update(`${row.batch_owner_cid}|${row.logical_request_scope_cid}|`)
+    .update(`${row.credential_use_cid}|${row.status_code}|`)
+    .update(`${members.length}|`);
+  for (const member of members) {
+    hash.update(`${member.position}|${member.logical_item_locator_cid}|`)
+      .update(`${member.dispatch_entry_cid}|`);
+  }
+  return hash.update(row.response_bytes).digest('hex');
+};
 
 function transaction(database, action) {
   database.exec('BEGIN IMMEDIATE');
@@ -107,6 +119,27 @@ export function openSqliteEffectLedger(root, {
           FOREIGN KEY (dispatch_entry_cid)
             REFERENCES effect_ledger_entries (entry_cid)
         ) STRICT;
+        CREATE TABLE IF NOT EXISTS effect_ledger_batch_responses (
+          batch_owner_cid TEXT PRIMARY KEY NOT NULL,
+          logical_request_scope_cid TEXT NOT NULL,
+          credential_use_cid TEXT NOT NULL,
+          status_code INTEGER NOT NULL CHECK
+            (status_code >= 100 AND status_code <= 599),
+          response_bytes BLOB NOT NULL,
+          member_count INTEGER NOT NULL CHECK (member_count >= 1),
+          physical_sha256 TEXT NOT NULL
+        ) STRICT;
+        CREATE TABLE IF NOT EXISTS effect_ledger_batch_members (
+          dispatch_entry_cid TEXT PRIMARY KEY NOT NULL,
+          batch_owner_cid TEXT NOT NULL,
+          position INTEGER NOT NULL CHECK (position >= 0),
+          logical_item_locator_cid TEXT NOT NULL,
+          UNIQUE (batch_owner_cid, position),
+          FOREIGN KEY (batch_owner_cid)
+            REFERENCES effect_ledger_batch_responses (batch_owner_cid),
+          FOREIGN KEY (dispatch_entry_cid)
+            REFERENCES effect_ledger_entries (entry_cid)
+        ) STRICT;
       `);
       const metadata = database.prepare(
         'SELECT value FROM effect_ledger_metadata WHERE key = ?',
@@ -136,13 +169,21 @@ export function openSqliteEffectLedger(root, {
   const usage = database.prepare(`
     SELECT
       (SELECT COUNT(*) FROM effect_ledger_entries) +
-      (SELECT COUNT(*) FROM effect_ledger_responses) AS entries,
+      (SELECT COUNT(*) FROM effect_ledger_responses) +
+      (SELECT COUNT(*) FROM effect_ledger_batch_responses) +
+      (SELECT COUNT(*) FROM effect_ledger_batch_members) AS entries,
       (SELECT COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0)
         FROM effect_ledger_entries) +
       (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
-        FROM effect_ledger_responses) AS bytes,
-      (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
-        FROM effect_ledger_responses) AS max_response_bytes
+        FROM effect_ledger_responses) +
+      (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
+        FROM effect_ledger_batch_responses) AS bytes,
+      MAX(
+        (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
+          FROM effect_ledger_responses),
+        (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
+          FROM effect_ledger_batch_responses)
+      ) AS max_response_bytes
   `);
   const initialUsage = usage.get();
   if (!count(initialUsage.entries) || !count(initialUsage.bytes) ||
@@ -173,6 +214,22 @@ export function openSqliteEffectLedger(root, {
   const readDispatchEntry = database.prepare(`
     SELECT logical_item_locator_cid FROM effect_ledger_entries
     WHERE entry_cid = ?
+  `);
+  const readBatchMember = database.prepare(`
+    SELECT dispatch_entry_cid, batch_owner_cid, position,
+      logical_item_locator_cid FROM effect_ledger_batch_members
+    WHERE dispatch_entry_cid = ?
+  `);
+  const readBatchResponse = database.prepare(`
+    SELECT batch_owner_cid, logical_request_scope_cid,
+      credential_use_cid, status_code, response_bytes, member_count,
+      physical_sha256 FROM effect_ledger_batch_responses
+    WHERE batch_owner_cid = ?
+  `);
+  const readBatchMembers = database.prepare(`
+    SELECT dispatch_entry_cid, batch_owner_cid, position,
+      logical_item_locator_cid FROM effect_ledger_batch_members
+    WHERE batch_owner_cid = ? ORDER BY position ASC
   `);
   const materialize = (row, scopeCid) => {
     if (row === undefined) fail('EffectLedgerEntryMissing');
@@ -234,13 +291,55 @@ export function openSqliteEffectLedger(root, {
       responseBytes: Buffer.from(row.response_bytes),
     });
   };
+  const materializeBatchResponse = dispatchEntryCid => {
+    const member = readBatchMember.get(dispatchEntryCid);
+    if (member === undefined) return undefined;
+    const row = readBatchResponse.get(member.batch_owner_cid);
+    const members = readBatchMembers.all(member.batch_owner_cid);
+    if (row === undefined || !cid(row.batch_owner_cid) ||
+        !cid(row.logical_request_scope_cid) ||
+        !cid(row.credential_use_cid) ||
+        !count(row.status_code) || row.status_code < 100 ||
+        row.status_code > 599 ||
+        !(row.response_bytes instanceof Uint8Array) ||
+        row.response_bytes.byteLength > maxResponseBytes ||
+        !count(row.member_count) || row.member_count === 0 ||
+        row.member_count !== members.length ||
+        row.batch_owner_cid !== members[0].dispatch_entry_cid ||
+        members.some((item, index) =>
+          !cid(item.dispatch_entry_cid) ||
+          !cid(item.logical_item_locator_cid) ||
+          item.batch_owner_cid !== row.batch_owner_cid ||
+          item.position !== index ||
+          readDispatchEntry.get(item.dispatch_entry_cid)
+            ?.logical_item_locator_cid !== item.logical_item_locator_cid) ||
+        batchResponseDigest(row, members) !== row.physical_sha256 ||
+        readHead.get(member.logical_item_locator_cid)
+          ?.logical_request_scope_cid !== row.logical_request_scope_cid) {
+      fail('EffectLedgerIntegrityFailed');
+    }
+    return Object.freeze({
+      logicalItemLocatorCid: member.logical_item_locator_cid,
+      dispatchEntryCid,
+      logicalRequestScopeCid: row.logical_request_scope_cid,
+      credentialUseCid: row.credential_use_cid,
+      statusCode: row.status_code,
+      responseBytes: Buffer.from(row.response_bytes),
+    });
+  };
+  const response = dispatchEntryCid => {
+    active();
+    if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
+    const single = materializeResponse(readResponse.get(dispatchEntryCid));
+    const batch = materializeBatchResponse(dispatchEntryCid);
+    if (single !== undefined && batch !== undefined) {
+      fail('EffectLedgerIntegrityFailed');
+    }
+    return single ?? batch;
+  };
   return Object.freeze({
     current,
-    response(dispatchEntryCid) {
-      active();
-      if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
-      return materializeResponse(readResponse.get(dispatchEntryCid));
-    },
+    response,
     recordResponse({logicalRequestScopeCid, logicalItemLocatorCid,
       dispatchEntryCid, credentialUseCid, statusCode, responseBytes}) {
       active();
@@ -255,6 +354,9 @@ export function openSqliteEffectLedger(root, {
       return transaction(database, () => {
         const existing = materializeResponse(
           readResponse.get(dispatchEntryCid));
+        if (readBatchMember.get(dispatchEntryCid) !== undefined) {
+          fail('EffectPhysicalResponseCollision');
+        }
         if (existing !== undefined) {
           if (existing.logicalRequestScopeCid !== logicalRequestScopeCid ||
               existing.logicalItemLocatorCid !== logicalItemLocatorCid ||
@@ -297,6 +399,100 @@ export function openSqliteEffectLedger(root, {
           response: materializeResponse(readResponse.get(dispatchEntryCid)),
           created: true,
         });
+      });
+    },
+    recordBatchResponse({logicalRequestScopeCid, credentialUseCid,
+      statusCode, responseBytes, members}) {
+      active();
+      if (!cid(logicalRequestScopeCid) || !cid(credentialUseCid) ||
+          !count(statusCode) || statusCode < 100 || statusCode > 599 ||
+          !(responseBytes instanceof Uint8Array) ||
+          responseBytes.byteLength > maxResponseBytes ||
+          !Array.isArray(members) || members.length === 0 ||
+          members.length > maxEntries) {
+        fail('InvalidEffectPhysicalBatchResponse');
+      }
+      const seenLocators = new Set();
+      const seenDispatches = new Set();
+      const indexed = members.map((member, position) => {
+        if (!cid(member?.logicalItemLocatorCid) ||
+            !cid(member.dispatchEntryCid) ||
+            seenLocators.has(member.logicalItemLocatorCid) ||
+            seenDispatches.has(member.dispatchEntryCid)) {
+          fail('InvalidEffectPhysicalBatchResponse');
+        }
+        seenLocators.add(member.logicalItemLocatorCid);
+        seenDispatches.add(member.dispatchEntryCid);
+        return {
+          logical_item_locator_cid: member.logicalItemLocatorCid,
+          dispatch_entry_cid: member.dispatchEntryCid,
+          position,
+        };
+      });
+      const batchOwnerCid = indexed[0].dispatch_entry_cid;
+      return transaction(database, () => {
+        const existing = readBatchResponse.get(batchOwnerCid);
+        if (existing !== undefined) {
+          const stored = materializeBatchResponse(batchOwnerCid);
+          const storedMembers = readBatchMembers.all(batchOwnerCid);
+          if (stored === undefined ||
+              stored.logicalRequestScopeCid !== logicalRequestScopeCid ||
+              stored.credentialUseCid !== credentialUseCid ||
+              stored.statusCode !== statusCode ||
+              !stored.responseBytes.equals(Buffer.from(responseBytes)) ||
+              storedMembers.length !== indexed.length ||
+              storedMembers.some((member, index) =>
+                member.logical_item_locator_cid !==
+                  indexed[index].logical_item_locator_cid ||
+                member.dispatch_entry_cid !==
+                  indexed[index].dispatch_entry_cid)) {
+            fail('EffectPhysicalResponseCollision');
+          }
+          return Object.freeze({created: false, batchOwnerCid});
+        }
+        for (const member of indexed) {
+          if (readResponse.get(member.dispatch_entry_cid) !== undefined ||
+              readBatchMember.get(member.dispatch_entry_cid) !== undefined ||
+              readHead.get(member.logical_item_locator_cid)
+                ?.logical_request_scope_cid !== logicalRequestScopeCid ||
+              readDispatchEntry.get(member.dispatch_entry_cid)
+                ?.logical_item_locator_cid !==
+                  member.logical_item_locator_cid) {
+            fail('EffectDispatchNotOwned');
+          }
+        }
+        const currentUsage = usage.get();
+        if (indexed.length + 1 > maxEntries - currentUsage.entries ||
+            responseBytes.byteLength > maxStoredBytes - currentUsage.bytes) {
+          fail('EffectLedgerCapacityExceeded');
+        }
+        const record = {
+          batch_owner_cid: batchOwnerCid,
+          logical_request_scope_cid: logicalRequestScopeCid,
+          credential_use_cid: credentialUseCid,
+          status_code: statusCode,
+          response_bytes: responseBytes,
+        };
+        database.prepare(`
+          INSERT INTO effect_ledger_batch_responses (
+            batch_owner_cid, logical_request_scope_cid,
+            credential_use_cid, status_code, response_bytes,
+            member_count, physical_sha256
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(batchOwnerCid, logicalRequestScopeCid, credentialUseCid,
+          statusCode, responseBytes, indexed.length,
+          batchResponseDigest(record, indexed));
+        const insertMember = database.prepare(`
+          INSERT INTO effect_ledger_batch_members (
+            dispatch_entry_cid, batch_owner_cid, position,
+            logical_item_locator_cid
+          ) VALUES (?, ?, ?, ?)
+        `);
+        for (const member of indexed) {
+          insertMember.run(member.dispatch_entry_cid, batchOwnerCid,
+            member.position, member.logical_item_locator_cid);
+        }
+        return Object.freeze({created: true, batchOwnerCid});
       });
     },
     append({
