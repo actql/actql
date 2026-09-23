@@ -1369,6 +1369,7 @@ try {
     child.stderr.on('data', chunk => stderr.push(chunk));
     return Object.freeze({
       child,
+      stdoutSnapshot: () => Buffer.concat(stdout).toString('utf8'),
       stderrSnapshot: () => Buffer.concat(stderr).toString('utf8'),
       completed: (async () => {
         const [code, signal] = await once(child, 'exit');
@@ -2358,7 +2359,15 @@ try {
           planBody,
           undefined,
           `native output plan unavailable: ${JSON.stringify(
-            lastPlanObservation,
+            {
+              lastPlanObservation,
+              applicationStdout: applicationRun.stdoutSnapshot(),
+              applicationStderr: applicationRun.stderrSnapshot(),
+              coordinatorStdout: coordinatorRun.stdoutSnapshot(),
+              coordinatorStderr: coordinatorRun.stderrSnapshot(),
+              terminalStatusDropped,
+              applicationProxyFailures,
+            },
           )}`,
         );
         const plan = JSON.parse(planBody);
