@@ -3,7 +3,8 @@
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {deliverAuthorizedResult,
   inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, validClientBody, validRequestLookup} from
+import {clientHostOperations, validClientAdmission, validClientBody,
+  validClientProfile, validDeliveryAttemptLookup, validRequestLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -139,11 +140,26 @@ export function createClientHttpHandler({
         response.end(JSON.stringify(value));
       };
       if (operation === 'connect') {
-        sendJson(await invoke(negotiate));
+        const profile = await invoke(negotiate);
+        if (!validClientProfile(profile, connection)) {
+          invalid('InvalidClientHostProfile');
+        }
+        sendJson(profile);
       } else if (operation === 'submit') {
-        sendJson(await invoke(submit));
+        const admission = await invoke(submit);
+        if (!validClientAdmission(admission, connection)) {
+          invalid('InvalidClientHostAdmission');
+        }
+        sendJson(admission);
       } else if (operation === 'attach') {
-        sendJson(await invoke(attach));
+        const admission = await invoke(attach);
+        if (!validClientAdmission(admission, connection) ||
+            admission.ref.tenantId !== ref.tenantId ||
+            admission.ref.authorityScopeCid !== ref.authorityScopeCid ||
+            admission.ref.runDefinitionCid !== ref.runDefinitionCid) {
+          invalid('InvalidClientHostAdmission');
+        }
+        sendJson(admission);
       } else if (operation === 'lookup-request') {
         const lookup = await invoke(lookupRequest);
         if (!validRequestLookup(lookup, body.requestId)) {
@@ -165,14 +181,20 @@ export function createClientHttpHandler({
       } else if (operation === 'reconcile') {
         sendJson(await invoke(reconcile));
       } else if (operation === 'delivery-attempt') {
-        sendJson(deliveryAttempt === undefined
+        const lookup = deliveryAttempt === undefined
           ? await inspectAuthorizedDeliveryAttempt(resultService, {
             indexKey: body.ref,
             principalId: principal,
             purpose: 'download',
             resultName: body.resultName,
             attemptId: body.attemptId,
-          }) : await invoke(deliveryAttempt));
+          }) : await invoke(deliveryAttempt);
+        if (!validDeliveryAttemptLookup(lookup, {
+          attemptId: body.attemptId,
+          runDefinitionCid: body.ref.runDefinitionCid,
+          resultName: body.resultName,
+        })) invalid('InvalidClientHostAttemptLookup');
+        sendJson(lookup);
       } else {
         if (!['json', 'jsonl', 'csv'].includes(body.format)) {
           invalid('InvalidClientRequest');
