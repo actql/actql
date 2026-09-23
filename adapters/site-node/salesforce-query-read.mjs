@@ -218,18 +218,20 @@ export async function readSalesforceIssuedBroad(options) {
       !count(captureLimits.maxWork)) {
     fail('InvalidSalesforceIssuedBroadRead');
   }
+  const plan = moon.salesforceIssuedBroadPlan(attempt);
+  const physical = {...options, plan, consumePage: async () => {}};
+  const scope = validateRead(physical);
+  // Claim the exact attempt before the first await. A rejected duplicate
+  // must not abort the owner that already holds this physical read.
+  checked(moon.salesforceIssuedBroadBegin(
+    attempt, apiVersion, limits.maxBytes, limits.maxNodes,
+    limits.maxDepth, limits.maxRows, limits.maxLocatorUnits,
+    limits.maxPages, BigInt(limits.maxTotalRows), maxCaptureRows,
+    captureLimits.maxNodes, captureLimits.maxTextBytes,
+    captureLimits.maxDepth, captureLimits.maxWork,
+  ));
   try {
-    const plan = moon.salesforceIssuedBroadPlan(attempt);
-    const physical = {...options, plan, consumePage: async () => {}};
-    const scope = validateRead(physical);
     const currentCatalog = await recheckCurrentCatalog(physical);
-    checked(moon.salesforceIssuedBroadBegin(
-      attempt, apiVersion, limits.maxBytes, limits.maxNodes,
-      limits.maxDepth, limits.maxRows, limits.maxLocatorUnits,
-      limits.maxPages, BigInt(limits.maxTotalRows), maxCaptureRows,
-      captureLimits.maxNodes, captureLimits.maxTextBytes,
-      captureLimits.maxDepth, captureLimits.maxWork,
-    ));
     const result = await driveQueryPages({
       callResource: callHttpsCredentialResource,
       ...physical,
