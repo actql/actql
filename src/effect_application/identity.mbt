@@ -203,3 +203,23 @@ pub fn effect_dispatch_key_preview_cid(key : EffectDispatchKey) -> String {
 pub fn effect_dispatch_key_scope_cid(key : EffectDispatchKey) -> String {
   key.logical_request_scope_cid
 }
+
+///|
+/// One physical batch may contain rows from only one member identity and
+/// Preview. Checked inventory admission is a separate obligation. Distinct
+/// row keys are checked by the dispatch owner.
+pub fn effect_batch_rows_share_member(
+  first_locator : LogicalItemLocator,
+  first_key : EffectDispatchKey,
+  next_locator : LogicalItemLocator,
+  next_key : EffectDispatchKey,
+) -> Bool {
+  first_locator.logical_request_scope_cid == first_key.logical_request_scope_cid &&
+  next_locator.logical_request_scope_cid == next_key.logical_request_scope_cid &&
+  first_locator.logical_request_scope_cid ==
+  next_locator.logical_request_scope_cid &&
+  first_locator.program_id == next_locator.program_id &&
+  first_locator.node_id == next_locator.node_id &&
+  first_locator.effect_id == next_locator.effect_id &&
+  first_key.effect_preview_cid == next_key.effect_preview_cid
+}

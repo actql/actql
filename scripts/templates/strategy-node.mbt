@@ -7397,6 +7397,19 @@ pub fn strategy_effect_dispatch_key_cid(key : @effect.EffectDispatchKey) -> Stri
 }
 
 ///|
+#export_name("strategyEffectBatchRowsShareMember")
+pub fn strategy_effect_batch_rows_share_member(
+  first_locator : @effect.LogicalItemLocator,
+  first_key : @effect.EffectDispatchKey,
+  next_locator : @effect.LogicalItemLocator,
+  next_key : @effect.EffectDispatchKey,
+) -> Bool {
+  @effect.effect_batch_rows_share_member(
+    first_locator, first_key, next_locator, next_key,
+  )
+}
+
+///|
 #export_name("strategyEffectLogicalItemLocator")
 pub fn strategy_effect_logical_item_locator(
   scope : @effect.LogicalRequestScope,

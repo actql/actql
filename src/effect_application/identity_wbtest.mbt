@@ -80,3 +80,50 @@ test "effect identity rejects foreign or noncanonical inputs" {
     is Err(InvalidRowKey),
   )
 }
+
+///|
+test "physical batch rows share one request member and Preview" {
+  let authority = "sha256:" + "a".repeat(64)
+  let preview = "sha256:" + "b".repeat(64)
+  let other_preview = "sha256:" + "c".repeat(64)
+  let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
+  let other_scope = prepare_logical_request_scope(authority, "request-2", 32).unwrap()
+  let first = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "WriteOne", "\"row-1\"", 64, 128, 8, 3,
+  ).unwrap()
+  let second = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "WriteOne", "\"row-2\"", 64, 128, 8, 3,
+  ).unwrap()
+  let first_key = prepare_effect_dispatch_key(
+    scope, preview, "\"row-1\"", 32, 8, 3,
+  ).unwrap()
+  let second_key = prepare_effect_dispatch_key(
+    scope, preview, "\"row-2\"", 32, 8, 3,
+  ).unwrap()
+  assert_true(
+    effect_batch_rows_share_member(first, first_key, second, second_key),
+  )
+  let foreign_preview_key = prepare_effect_dispatch_key(
+    scope, other_preview, "\"row-2\"", 32, 8, 3,
+  ).unwrap()
+  assert_false(
+    effect_batch_rows_share_member(
+      first, first_key, second, foreign_preview_key,
+    ),
+  )
+  let foreign_member = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "WriteTwo", "\"row-2\"", 64, 128, 8, 3,
+  ).unwrap()
+  assert_false(
+    effect_batch_rows_share_member(first, first_key, foreign_member, second_key),
+  )
+  let foreign_run = prepare_logical_item_locator(
+    other_scope, "program-1", "node-1", "WriteOne", "\"row-2\"", 64, 128, 8, 3,
+  ).unwrap()
+  let foreign_key = prepare_effect_dispatch_key(
+    other_scope, preview, "\"row-2\"", 32, 8, 3,
+  ).unwrap()
+  assert_false(
+    effect_batch_rows_share_member(first, first_key, foreign_run, foreign_key),
+  )
+}

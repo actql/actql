@@ -189,15 +189,21 @@ export function openEffectLedger({
       }
       const firstRequestCid = claims[0]?.canonicalRequestCid;
       const seen = new Set();
+      const seenKeys = new Set();
       for (const claim of claims) {
         const locatorCid = claim?.locator &&
           control.logicalItemLocatorCid(claim.locator);
+        const keyCid = claim?.key && control.dispatchKeyCid(claim.key);
         if (typeof firstRequestCid !== 'string' ||
             claim?.canonicalRequestCid !== firstRequestCid ||
-            typeof locatorCid !== 'string' || seen.has(locatorCid)) {
+            typeof locatorCid !== 'string' || seen.has(locatorCid) ||
+            typeof keyCid !== 'string' || seenKeys.has(keyCid) ||
+            !control.batchRowsShareMember(
+              claims[0].locator, claims[0].key, claim.locator, claim.key)) {
           fail('EffectLedgerBatchBindingMismatch');
         }
         seen.add(locatorCid);
+        seenKeys.add(keyCid);
         const prepared = control.issuePreparedLedgerEntry(
           claim.basis, maxEntryBytes, maxNodes, maxDepth);
         const dispatching = control.issueNextLedgerEntry(
