@@ -95,6 +95,14 @@ pub(all) struct PolicyRequest {
 } derive(Eq, Debug)
 
 ///|
+/// Exact bounded candidate data for a policy consultation. A Host may send
+/// these canonical bytes to an external ranker; no local offer handles escape.
+pub(all) struct PolicyCandidateSet {
+  cid : String
+  canonical_json : String
+} derive(Eq, Debug)
+
+///|
 /// A policy proposes a member of the exact request, never a new capability.
 pub(all) struct PolicyResponse {
   request : PolicyRequest
@@ -126,6 +134,7 @@ struct StrategyChoiceSet {
   priority : Array[Int]?
   mut committed : Bool
   mut pending_policy_request : PolicyRequest?
+  mut pending_policy_candidates : PolicyCandidateSet?
 }
 
 ///|
@@ -572,6 +581,7 @@ pub fn prepare_strategy_choices(
     priority: feasible_priority,
     committed: false,
     pending_policy_request: None,
+    pending_policy_candidates: None,
   })
 }
 
@@ -665,8 +675,8 @@ pub fn prepare_strategy_policy_request(
     Ok(_) => ()
     Err(issue) => return Err(Ledger(issue))
   }
-  let cid = match strategy_policy_candidate_set_cid(choices) {
-    Ok(cid) => cid
+  let candidates = match strategy_policy_candidate_set(choices) {
+    Ok(candidates) => candidates
     Err(issue) => return Err(issue)
   }
   let request = {
@@ -674,13 +684,22 @@ pub fn prepare_strategy_policy_request(
     request_id,
     run_identity,
     authority,
-    candidate_set_cid: cid,
+    candidate_set_cid: candidates.cid,
     generation: choices.generation,
     revision: choices.revision,
     deadline_ms,
   }
   choices.pending_policy_request = Some(request)
+  choices.pending_policy_candidates = Some(candidates)
   Ok(request)
+}
+
+///|
+/// Only a minted consultation can expose its immutable candidate projection.
+pub fn strategy_policy_candidates(
+  choices : StrategyChoiceSet,
+) -> PolicyCandidateSet? {
+  choices.pending_policy_candidates
 }
 
 ///|

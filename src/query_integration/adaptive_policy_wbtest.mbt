@@ -157,6 +157,8 @@ test "adaptive policy waits for an explicit feasible placement" {
   let request = @host_driver.prepare_adaptive_policy_request(
     policy, "plan-17", "run-17", "authority-1", 100L, 0L,
   ).unwrap()
+  let candidates = @host_driver.adaptive_policy_candidates(policy).unwrap()
+  assert_eq(candidates.cid, request.candidate_set_cid)
   @host_driver.commit_adaptive_policy_decision(
     policy,
     request,

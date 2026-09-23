@@ -166,6 +166,13 @@ pub fn[C, E] prepare_compute_host_policy_request(
 }
 
 ///|
+pub fn[C, E] compute_host_policy_candidates(
+  host : ComputeHost[C, E],
+) -> @strategy.PolicyCandidateSet? {
+  host.estimates.bind(policy => adaptive_policy_candidates(policy))
+}
+
+///|
 pub fn[C, E] prepare_next_compute_task(
   host : ComputeHost[C, E],
   context : C,

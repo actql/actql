@@ -1,10 +1,10 @@
 ///|
 /// A digest of the exact ordered, feasible assignment projection. The private
 /// offer handles remain local; the response can only select their positions.
-fn strategy_policy_candidate_set_cid(
+fn strategy_policy_candidate_set(
   choices : StrategyChoiceSet,
-) -> Result[String, SearchIssue] {
-  let writer = @encode.hashing_writer(8388608, 1000000, 24) catch {
+) -> Result[PolicyCandidateSet, SearchIssue] {
+  let writer = @encode.buffered_hashing_writer(8388608, 1000000, 24, 8388608) catch {
     _ => return Err(InvalidPreference)
   }
   try {
@@ -108,8 +108,9 @@ fn strategy_policy_candidate_set_cid(
     }
     @encode.end_array(writer)
     @encode.end_array(writer)
+    let canonical_json = @encode.drain_hash_output(writer)
     let (digest, _, _) = @encode.finish_hash_usage(writer)
-    Ok("sha256:" + digest)
+    Ok({ cid: "sha256:" + digest, canonical_json, })
   } catch {
     _ => Err(InvalidPreference)
   }

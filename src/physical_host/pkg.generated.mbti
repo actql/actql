@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn[E] adaptive_policy_candidates(AdaptiveDispatch[E]) -> @physical_strategy.PolicyCandidateSet?
+
 pub fn charge_compute_author_planning(ComputeAuthorContext, Int) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn check_dispatch_idle(DispatchDriver) -> Result[Unit, DispatchIssue]
@@ -33,6 +35,8 @@ pub fn[C, E] compute_host_exclusions(ComputeHost[C, E], Int) -> Result[Array[(In
 pub fn[C, E] compute_host_has_estimates(ComputeHost[C, E]) -> Bool
 
 pub fn[C, E] compute_host_max_entries(ComputeHost[C, E]) -> Int
+
+pub fn[C, E] compute_host_policy_candidates(ComputeHost[C, E]) -> @physical_strategy.PolicyCandidateSet?
 
 pub fn[C, E] compute_host_resident_inputs(ComputeHost[C, E], Int) -> Array[(Int, Int64, Int, Int)]?
 

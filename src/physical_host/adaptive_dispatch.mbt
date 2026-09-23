@@ -216,6 +216,15 @@ pub fn[E] prepare_adaptive_policy_request(
 }
 
 ///|
+pub fn[E] adaptive_policy_candidates(
+  policy : AdaptiveDispatch[E],
+) -> @strategy.PolicyCandidateSet? {
+  policy.pending_choice.bind(choices => {
+    @strategy.strategy_policy_candidates(choices)
+  })
+}
+
+///|
 pub fn[E] commit_adaptive_policy_decision(
   policy : AdaptiveDispatch[E],
   request : @strategy.PolicyRequest,

@@ -1,0 +1,21 @@
+# Performance and placement-policy review response
+
+The external review was fixed at `e4029354d452732d6c205fd6132ca54d74019248`.
+It distinguishes implementation defects, scale limits, and unfinished acceptance
+evidence. This response tracks those findings against this branch; none of the
+items below is declared complete merely because a diagnostic test passes.
+
+| Review item | Current result | Required closure |
+| --- | --- | --- |
+| PERF-1: formal 27-case acceptance | Open. The registered experiment remains `preregistered-not-measured`. The 27-case smoke and seven small diagnostic pairs are not acceptance samples. | Fix one clean revision and its release build, run all four comparators with at least seven alternating pairs per eligible case, preserve every failed case, verify obligations, holdings and cleanup, then apply the preregistered confidence and timing gates. The nine capacity-infeasible baseline cases have no baseline ratio but still require retained and equivalent-comparator results. |
+| PERF-2: candidate cross-product | Open scale constraint. The finite enumeration correctly fails closed at `max_strategies`; external policy cannot see assignments that were never enumerated. | Measure 1/2/5 offers per task, exact and one-short limits, late feasible assignments, peak metadata and work. A bounded frontier must preserve hard feasibility and record search truncation; it may not call a partial search globally optimal. |
+| PERF-3: remote policy contract | Partially connected. A pending request binds Run identity, authority, generation, revision, deadline and a canonical candidate-set CID. A response is checked by common admission. The candidate bytes are now available to the Host. | Define a closed, versioned public wire contract and Host authentication, exact metadata-disclosure rules, timeout policy, Site and estimate provenance, replay protection and fault tests. The local `PolicyDecisionRef` alone is not a remote authentication protocol. |
+
+The common Host now records the same per-task elapsed interval for Local and
+DuckDB. These measurements can inform an estimate model; they are neither
+calibration evidence by themselves nor proof of the small-case timing gate.
+Cost estimates, enforceable capacity and policy preferences remain separate.
+
+Review regressions to add before closing PERF-1: missing pair, missing case,
+changed Program or implementation hash, unconfirmed cleanup, and a baseline
+capacity exception incorrectly converted into a finite speed ratio.

@@ -202,6 +202,19 @@ these fields are not execution authority. A policy transport and deployment
 remain separate Host adapters. The offline path does not require a policy
 service.
 
+The minted consultation also exposes a bounded canonical JSON candidate-set
+projection. Its SHA-256 is the request's `candidate_set_cid`; the Host sends the
+bytes and CID together and the recipient checks their equality. The projection
+contains the Program definition CID, search generation and revision, feasible
+original assignment positions, task positions, registration selection keys,
+duration estimates and enforceable capacity envelopes. It never serializes
+opaque offer handles or raw rows. The candidate projection is a planning input,
+not a standalone grant or proof that the supplied estimates are measured.
+Statistics provenance, Site availability, disclosure consent and transport peer
+authentication remain Host responsibilities and must be bound to the exact
+consultation before a remote service is used. A fully deployed policy RPC is
+not established by this projection alone.
+
 ## Mock execution and capture separation
 
 The synchronous mock attempt copies only a bounded container of immutable source

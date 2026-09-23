@@ -109,9 +109,18 @@ test "placement policy provenance rejects empty metadata before commit" {
     registry,
     None,
   ).unwrap()
+  assert_true(@strategy.strategy_policy_candidates(choices) is None)
   let request = @strategy.prepare_strategy_policy_request(
     choices, "plan-1", "run-1", "authority-1", 100L, 0L,
   ).unwrap()
+  let candidates = @strategy.strategy_policy_candidates(choices).unwrap()
+  assert_eq(candidates.cid, request.candidate_set_cid)
+  assert_true(
+    candidates.canonical_json.has_prefix("[\"actql-policy-candidates/0.1\","),
+  )
+  assert_true(
+    candidates.canonical_json.contains("\"actql-policy-candidates/0.1\""),
+  )
   assert_true(request.candidate_set_cid.has_prefix("sha256:"))
   assert_eq(
     request.candidate_set_cid,

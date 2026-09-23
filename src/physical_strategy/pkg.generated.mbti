@@ -404,6 +404,8 @@ pub fn strategy_history_at(CapturedDAG, Int) -> StrategyRevision?
 
 pub fn strategy_history_count(CapturedDAG) -> Int
 
+pub fn strategy_policy_candidates(StrategyChoiceSet) -> PolicyCandidateSet?
+
 pub fn strategy_registration(StrategyRevision, Int) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_report_at(CapturedDAG, Int) -> StrategyAssessment?
@@ -603,6 +605,11 @@ pub(all) struct PhysicalEnvelope {
   transfer_bytes : Int64
   retained_bytes : Int64
   execution_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PolicyCandidateSet {
+  cid : String
+  canonical_json : String
 } derive(Eq, @debug.Debug)
 
 pub(all) struct PolicyDecisionRef {
