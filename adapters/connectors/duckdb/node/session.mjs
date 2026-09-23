@@ -319,8 +319,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
           const vectors = fields.map((_, i) => chunk.getColumnVector(i).slice(start, maximumRows));
           let rowCount = 0;
           let batchBytes = emptyFrameBytes;
+          const candidate = [];
           while (rowCount < maximumRows) {
-            const candidate = [];
+            candidate.length = 0;
             let nextBytes = batchBytes + String(rowCount + 1).length - String(rowCount).length;
             for (let i = 0; i < fields.length; i++) {
               const item = bounded

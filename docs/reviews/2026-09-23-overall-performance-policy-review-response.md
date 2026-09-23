@@ -330,3 +330,20 @@ and `dfae98f251b49d9ae3c32f2c2e5d7f5ce0e219029246063a98b63f1fec6f186e`.
 Cross-revision timing differences cannot establish the SHA change's effect on
 the whole Host. The larger remaining work is the product's repeated import,
 input verification, and output reception under the registered obligations.
+
+At clean revision `932ca174b`, the installed Node transport raised its row
+ceiling from 128 to 512 while splitting on the exact serialized byte ceiling.
+The split preserves row order, cumulative transfer charges, cancellation and
+bounded variable-width decoding. The standard Host regression passed, and the
+same registered narrow/100000 case completed seven eligible alternating pairs
+with resident placement and exact output/holding checks. It still failed the
+1.25 equivalent-obligations execution-time gate: estimate 2.462, 95% bootstrap
+interval 2.127–2.801. Only one of 27 registered cases was measured, so the
+full assessment remains incomplete. The raw `assessment.json` and
+`case-00.json` are in workspace scratch `equivalent-narrow-932ca174b`, with
+SHA-256 digests
+`5c151a0cc5e653f55e506c7c955ff87a43da882cdeea15463467275d847e34b4`
+and `e69e3dae7a26db1e9d0c964077256fa4ad16866665b89c72d6a584a748c030a3`.
+This result does not isolate the batch-size effect: the comparator timings and
+machine conditions also varied. Product task traces continue to show a fresh
+input verification scan and output reception for each resident consumer.
