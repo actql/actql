@@ -4,6 +4,7 @@ pub(all) enum EffectPreviewFootprintIssue {
   InvalidPreviewFootprint
   InventoryMismatch
   FailurePolicyMismatch
+  EffectIdentityMismatch
   Conflict(EffectFootprintIssue)
 } derive(Debug)
 
@@ -22,11 +23,14 @@ fn preview_footprint_text(
 /// Compare the complete private Preview to a checked Stage's Effect inventory
 /// before deriving its write footprints. The caller must supply the inventory
 /// from a sealed checked Plan, never from the Preview or an authored override.
+/// The claimed Effect identity must also be checked against the admitted
+/// Effect semantics; this comparison alone does not establish that claim.
 /// This is not semantic Preview CID or current authority admission.
 pub fn check_effect_preview_footprint_conflicts(
   preview_wire : String,
   declared_effect_ids : Array[String],
   declared_failure_policies : Array[Int],
+  declared_effect_identity_cids : Array[String],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -49,7 +53,8 @@ pub fn check_effect_preview_footprint_conflicts(
     effects.is_empty() ||
     effects.length() > max_members ||
     declared_effect_ids.length() != effects.length() ||
-    declared_failure_policies.length() != effects.length() {
+    declared_failure_policies.length() != effects.length() ||
+    declared_effect_identity_cids.length() != effects.length() {
     return Err(InventoryMismatch)
   }
   if max_work < 1 {
@@ -60,6 +65,8 @@ pub fn check_effect_preview_footprint_conflicts(
   let mut remaining = max_work
   for effect in effects {
     guard preview_footprint_text(effect, "effect_id") is Some(effect_id) &&
+      preview_footprint_text(effect, "effect_identity_cid")
+      is Some(effect_identity_cid) &&
       preview_footprint_text(effect, "on_item_failure") is Some(policy) &&
       @json.object_field(effect, "write_footprint") is Some(footprint) &&
       preview_footprint_text(footprint, "kind") is Some(kind_text) &&
@@ -93,6 +100,10 @@ pub fn check_effect_preview_footprint_conflicts(
     }
     if matched < 0 {
       return Err(InventoryMismatch)
+    }
+    if !effect_cid_valid(declared_effect_identity_cids[matched]) ||
+      effect_identity_cid != declared_effect_identity_cids[matched] {
+      return Err(EffectIdentityMismatch)
     }
     let declared_policy = declared_failure_policies[matched]
     if (policy == "halt" && declared_policy != 0) ||
