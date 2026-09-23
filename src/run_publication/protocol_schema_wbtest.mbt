@@ -80,3 +80,15 @@ test "generated fixed values reject validly typed substitutions" {
   assert_true(protocol_test_accepts(nodes, index, "\"approved\""))
   assert_false(protocol_test_accepts(nodes, index, "\"denied\""))
 }
+
+///|
+test "protocol conjunction checks both branches" {
+  let nodes = [
+    protocol_string_rule(None, [], 0, 0),
+    protocol_string_rule(Some("expected"), [], 0, 0),
+    AllOfRule([0, 1]),
+  ]
+  assert_true(protocol_test_accepts(nodes, 2, "\"expected\""))
+  assert_false(protocol_test_accepts(nodes, 2, "\"different\""))
+  assert_false(protocol_test_accepts(nodes, 2, "42"))
+}

@@ -1,4 +1,7 @@
 ///|
+// The generator emits this variant only when a oneOf schema also has
+// constraining sibling keywords. Keep the validator ready for that case.
+#warnings("-unused_constructor")
 priv enum ProtocolSchemaRule {
   AnyRule
   NullRule
