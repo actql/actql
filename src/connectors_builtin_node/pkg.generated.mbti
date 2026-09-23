@@ -156,6 +156,8 @@ pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_app
 
 pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
 
+pub fn strategy_effect_preview_footprint_conflicts_check(String, Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
 pub fn strategy_effect_set_footprint_conflicts_check(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Bool raise NodeHostFailure
@@ -1230,6 +1232,7 @@ pub(all) suberror NodeHostFailure {
   EffectIdentity(@effect_application.EffectIdentityIssue)
   EffectSetProgress(@effect_application.EffectSetProgressIssue)
   EffectFootprint(@effect_application.EffectFootprintIssue)
+  EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
   EffectLedger(@effect_application.EffectLedgerIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
