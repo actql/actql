@@ -112,9 +112,12 @@ records and exact scope are in the same diagnostic document. These failures
 make startup/coordination and native bounded holding implementation work, not
 mere missing measurement paperwork.
 
-Review regressions to add before closing PERF-1: missing pair, missing case,
-changed Program or implementation hash, unconfirmed cleanup, and a baseline
-capacity exception incorrectly converted into a finite speed ratio.
+The equivalent-comparator assessor now has regressions for a missing pair or
+case, changed Program or release hash, and unconfirmed cleanup. The baseline
+capacity audit also keeps the nine impossible cases in the registered set and
+never reports its lower bound as a performance pass. Whole-experiment
+assessment still needs a regression proving that a capacity exception cannot
+be converted into a finite speed ratio for the baseline comparator.
 
 At clean revision `4d8da8dec`, a distinct 100-row training case produced a
 verified estimate profile for the registered 1,000-row evaluation case. One
