@@ -33,6 +33,30 @@ readable coverage manifest is authoritative for individual operation status.
   not yet prove each operation's own exact, one-short, cancellation, and
   cleanup evidence. A passing route gate alone is not completion evidence.
 
+## Local family correction branch
+
+The following fixes are committed after the `8cae50b6` common baseline. They
+close specific correctness and cleanup findings, not the shared blockers above.
+
+| Commit | Corrected boundary | Product evidence |
+|---|---|---|
+| `4ad05dca8` | Exact structural pairwise mean, rounded once | Independent midpoint vectors and three-target SGA tests |
+| `d1b7bb9ac` | Typed Relation and Events grouping order | Three-target grouping and Carrier regressions |
+| `8ab36b721` | Minimum eligible simple path after hop and predicate checks | Three-target SGA and Graph standard-Host regressions |
+| `f0cbb4ebd` | Both VecA nearest inputs admitted before pairing, including an empty opposite side | Three-target VecA and Relation/Vector input regressions |
+| `1d1714058` | Exact window membership with separately checked output boundary | Independent boundary vectors and three-target Relation/Events regressions |
+| `7c16ee15b` | Q1–Q4 language, machine contract, dependency pins, and independent vector wiring | Local contract and documentation gates |
+| `46ef37b72` | Graph mean skips properties of edges whose endpoints are not retained | Retained-versus-excluded edge regression and three-target Graph integration |
+| `82d505432` | Session validates global event identity before grouping and rejects empty input | Relation-input duplicate/empty regressions and three-target Events integration |
+| `1098d32bf` | Graft retains terminal nested-set cleanup responsibility | Terminal nested failure regression and three-target Graph integration |
+
+At source HEAD `1098d32bf`, the scoped SGA/Graph suite passed 140 tests per
+target and the TEA/Events suite passed 31 tests per target on JS, Wasm, and
+native. `check:docs`, the generated public API gate, and
+`check:local-family-coverage` also passed locally at that HEAD. These results
+do not establish Linux CI, all 68 route-specific resource boundaries, or the
+remaining mixed-stage cancellation boundary.
+
 The following snapshot is generated from the authoritative manifest. It is
 checked by `check:local-family-coverage`; do not edit its counts by hand.
 
