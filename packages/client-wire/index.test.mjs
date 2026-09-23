@@ -33,3 +33,25 @@ test('public wire rejects extra fields and unscoped or implicit movement', () =>
     requestId: 'saved-a', intent: {changed: true}}), false);
   assert.equal(validClientBody('unknown', {connection}), false);
 });
+
+test('Hybrid wire binds Cloud assistance to its selected Run owner', () => {
+  const localOwned = {mode: 'hybrid', owner: 'local',
+    consentRefs: ['grant-a'], runners: [],
+    movementPolicyRef: 'movement-a',
+    cloudConnectionRef: 'registered-cloud-a'};
+  assert.equal(validClientBody('connect', {connection: localOwned}), true);
+  assert.equal(validClientBody('connect', {connection: {...localOwned,
+    cloudConnectionRef: undefined}}), false);
+  assert.equal(validClientBody('connect', {connection: {...localOwned,
+    cloudConnectionRef: 'new-cloud-b', consentRefs: []}}), true);
+  const cloudOwned = {mode: 'hybrid', owner: 'cloud',
+    consentRefs: ['runner-grant-a'], runners: ['runner-a'],
+    movementPolicyRef: 'movement-a'};
+  assert.equal(validClientBody('connect', {connection: cloudOwned}), true);
+  assert.equal(validClientBody('connect', {connection: {...cloudOwned,
+    cloudConnectionRef: 'registered-cloud-a'}}), false);
+  assert.equal(validClientBody('connect', {connection: {...cloudOwned,
+    runners: []}}), false);
+  assert.equal(validClientBody('connect', {connection: {...connection,
+    cloudConnectionRef: 'registered-cloud-a'}}), false);
+});
