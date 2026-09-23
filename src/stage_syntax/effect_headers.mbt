@@ -107,11 +107,28 @@ priv suberror EffectHeaderStop {
 }
 
 ///|
+priv struct HeaderBudget {
+  mut remaining : Int
+}
+
+///|
 fn[T] header_fail(
   source : @wire.Cursor,
   kind : EffectHeaderIssueKind,
 ) -> T raise EffectHeaderStop {
   raise EffectHeaderStop({ kind, source, })
+}
+
+///|
+fn header_spend(
+  budget : HeaderBudget,
+  count : Int,
+  source : @wire.Cursor,
+) -> Unit raise EffectHeaderStop {
+  if count > budget.remaining {
+    header_fail(source, BudgetExceeded)
+  }
+  budget.remaining -= count
 }
 
 ///|
@@ -184,14 +201,6 @@ fn header_object_shape(source : @wire.Cursor) -> Unit raise EffectHeaderStop {
 }
 
 ///|
-fn header_nonempty_object(source : @wire.Cursor) -> Unit raise EffectHeaderStop {
-  match @wire.object_length(source) {
-    Some(n) if n > 0 => ()
-    _ => header_fail(source, InvalidBody)
-  }
-}
-
-///|
 fn header_nonempty_array(source : @wire.Cursor) -> Unit raise EffectHeaderStop {
   match @wire.array_length(source) {
     Some(n) if n > 0 => ()
@@ -223,7 +232,10 @@ fn header_positive_guard(source : @wire.Cursor) -> Unit raise EffectHeaderStop {
 }
 
 ///|
-fn header_metadata(outer : @wire.ObjectView) -> Unit raise EffectHeaderStop {
+fn header_metadata(
+  outer : @wire.ObjectView,
+  budget : HeaderBudget,
+) -> Unit raise EffectHeaderStop {
   match @wire.lookup(outer, "meta") {
     None => ()
     Some(node) => {
@@ -231,12 +243,45 @@ fn header_metadata(outer : @wire.ObjectView) -> Unit raise EffectHeaderStop {
         Some(n) if n > 0 => n
         _ => header_fail(node, InvalidDeclaration)
       }
+      header_spend(budget, count, node)
       for i in 0..<count {
         let (key, value) = @wire.field_at(node, i).unwrap()
         if key.has_prefix("actql_") {
           header_fail(value, InvalidDeclaration)
         }
       }
+    }
+  }
+}
+
+///|
+fn header_value_map(
+  source : @wire.Cursor,
+  nonempty : Bool,
+  allow_field : Bool,
+  budget : HeaderBudget,
+) -> Unit raise EffectHeaderStop {
+  let count = match @wire.object_length(source) {
+    Some(n) if !nonempty || n > 0 => n
+    _ => header_fail(source, InvalidBody)
+  }
+  header_spend(budget, count, source)
+  for i in 0..<count {
+    let (name, value) = @wire.field_at(source, i).unwrap()
+    if name.is_empty() {
+      header_fail(value, InvalidBody)
+    }
+    let wrapper = header_object(value, ["literal", "field"])
+    let literal = @wire.lookup(wrapper, "literal")
+    let field = @wire.lookup(wrapper, "field")
+    if (literal is Some(_)) == (field is Some(_)) {
+      header_fail(value, InvalidBody)
+    }
+    if field is Some(field_source) {
+      if !allow_field {
+        header_fail(field_source, InvalidSourceResult)
+      }
+      ignore(header_text(field_source))
     }
   }
 }
@@ -292,6 +337,7 @@ fn header_member(
   stage : Stage,
   effect_id : String,
   declaration : @wire.Cursor,
+  budget : HeaderBudget,
 ) -> EffectHeader raise EffectHeaderStop {
   let outer = match
     @wire.closed_object(declaration, [
@@ -300,7 +346,7 @@ fn header_member(
     Ok(value) => value
     Err(_) => header_fail(declaration, InvalidDeclaration)
   }
-  header_metadata(outer)
+  header_metadata(outer, budget)
   let mut kind : String? = None
   for candidate in ["create", "update", "upsert", "delete", "command", "store"] {
     if @wire.lookup(outer, candidate) is Some(_) {
@@ -353,10 +399,7 @@ fn header_member(
     let target = header_required(body, "target", source)
     let view = header_object(target, ["field"])
     ignore(header_text(header_required(view, "field", target)))
-    let input = header_required(body, "input", source)
-    if @wire.object_length(input) is None {
-      header_fail(input, InvalidBody)
-    }
+    ignore(header_required(body, "input", source))
   } else {
     ignore(header_text(header_required(body, "target", source)))
   }
@@ -389,7 +432,20 @@ fn header_member(
     _ => abort("closed effect kind")
   }
   if selected == "update" || selected == "upsert" {
-    header_nonempty_object(header_required(body, "set", source))
+    header_value_map(
+      header_required(body, "set", source),
+      true,
+      from is Some(_),
+      budget,
+    )
+  }
+  if selected == "command" {
+    header_value_map(
+      header_required(body, "input", source),
+      false,
+      true,
+      budget,
+    )
   }
   if selected == "upsert" {
     ignore(header_text(header_required(body, "key", source)))
@@ -409,7 +465,7 @@ fn header_member(
 /// Retain bounded structural Effect headers from the original Program. This
 /// does not resolve Mapping/Command Contracts, Result field types, Preview
 /// guards, current authority, or execution permission. Work counts one unit
-/// per Effect and one per inspected metadata field; all other reads are
+/// per Effect, metadata field, or EffectValue field; all other reads are
 /// constant-sized header checks over a separately admitted source tree.
 pub fn collect_effect_headers(
   program : Program,
@@ -420,38 +476,28 @@ pub fn collect_effect_headers(
     return Err({ kind: InvalidLimits, source: program.body, })
   }
   let members : Array[EffectHeader] = []
-  let mut work = 0
+  let budget : HeaderBudget = { remaining: max_work, }
   for stage_index in 0..<program.stages.length() {
     let stage = program.stages[stage_index]
     if stage.effects.length() > max_members - members.length() ||
-      stage.effects.length() > max_work - work {
+      stage.effects.length() > budget.remaining {
       return Err({ kind: BudgetExceeded, source: stage.body, })
     }
     let stage_body = @wire.open_object(stage.body).unwrap()
     let effects = @wire.lookup(stage_body, "effects")
     let effect_view = effects.map(cursor => @wire.open_object(cursor).unwrap())
     for effect_id in stage.effects {
-      if work >= max_work || members.length() >= max_members {
-        return Err({ kind: BudgetExceeded, source: stage.body, })
-      }
-      let declaration = @wire.lookup(effect_view.unwrap(), effect_id).unwrap()
-      let meta_count = match @wire.open_object(declaration) {
-        Ok(outer) =>
-          match @wire.lookup(outer, "meta") {
-            Some(node) => @wire.object_length(node).unwrap_or(0)
-            None => 0
-          }
-        Err(_) => 0
-      }
-      if meta_count > max_work - work - 1 {
-        return Err({ kind: BudgetExceeded, source: declaration, })
-      }
-      let effect = header_member(stage_index, stage, effect_id, declaration) catch {
+      header_spend(budget, 1, stage.body) catch {
         EffectHeaderStop(issue) => return Err(issue)
       }
-      work += 1 + meta_count
+      let declaration = @wire.lookup(effect_view.unwrap(), effect_id).unwrap()
+      let effect = header_member(
+        stage_index, stage, effect_id, declaration, budget,
+      ) catch {
+        EffectHeaderStop(issue) => return Err(issue)
+      }
       members.push(effect)
     }
   }
-  Ok({ owner: program, members, work, })
+  Ok({ owner: program, members, work: max_work - budget.remaining, })
 }
