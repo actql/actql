@@ -241,6 +241,27 @@ pub fn effect_ledger_entry_admits_dispatch(
 }
 
 ///|
+/// An exact retry must retain every immutable basis field, not just the
+/// row key and physical request CID used for recovery classification.
+pub fn effect_ledger_entry_matches_basis(
+  entry : EffectLedgerEntry,
+  basis : EffectLedgerBasis,
+) -> Bool {
+  entry.logical_request_scope_cid == basis.logical_request_scope_cid &&
+  entry.logical_item_locator_cid == basis.logical_item_locator_cid &&
+  entry.unit_definition_cid == basis.unit_definition_cid &&
+  entry.original_membership_cid == basis.original_membership_cid &&
+  entry.intent_fingerprint_cid == basis.intent_fingerprint_cid &&
+  entry.effect_preview_cid == basis.effect_preview_cid &&
+  entry.dispatch_key_cid == basis.dispatch_key_cid &&
+  entry.canonical_request_cid == basis.canonical_request_cid &&
+  entry.recovery_contract_cid == basis.recovery_contract_cid &&
+  entry.capability == basis.capability &&
+  entry.reservation_evidence_cid == basis.reservation_evidence_cid &&
+  entry.retention_contract_cid == basis.retention_contract_cid
+}
+
+///|
 /// Validate the immutable intent and append-only chain. Physical CAS still
 /// belongs to the Store; this check alone never admits an HTTP mutation.
 pub fn effect_ledger_entry_follows(

@@ -6991,6 +6991,22 @@ pub fn strategy_effect_row_recovery_action(
 }
 
 ///|
+#export_name("strategyEffectRowRecoveryActionFromEntry")
+pub fn strategy_effect_row_recovery_action_from_entry(
+  expected_locator : @effect.LogicalItemLocator,
+  intent_fingerprint_cid : String,
+  expected_key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  stored : @effect.EffectLedgerEntry?,
+  active_owner : Bool,
+) -> Int {
+  @effect.effect_row_recovery_action_from_entry(
+    expected_locator, intent_fingerprint_cid, expected_key, canonical_request_cid,
+    stored, active_owner,
+  )
+}
+
+///|
 #export_name("strategyEffectSetFrontier")
 pub fn strategy_effect_set_frontier(
   effect_ids : Array[String],
@@ -7205,6 +7221,15 @@ pub fn strategy_effect_ledger_entry_admits_dispatch(
   @effect.effect_ledger_entry_admits_dispatch(
     entry, scope, locator, key, canonical_request_cid,
   )
+}
+
+///|
+#export_name("strategyEffectLedgerEntryMatchesBasis")
+pub fn strategy_effect_ledger_entry_matches_basis(
+  entry : @effect.EffectLedgerEntry,
+  basis : @effect.EffectLedgerBasis,
+) -> Bool {
+  @effect.effect_ledger_entry_matches_basis(entry, basis)
 }
 
 ///|
