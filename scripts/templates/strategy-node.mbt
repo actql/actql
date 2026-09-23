@@ -9,6 +9,7 @@ pub(all) suberror NodeHostFailure {
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
   EffectIdentity(@effect.EffectIdentityIssue)
   EffectSetProgress(@effect.EffectSetProgressIssue)
+  EffectFootprint(@effect.EffectFootprintIssue)
   EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
@@ -7500,6 +7501,29 @@ pub fn strategy_effect_set_frontier(
   ) {
     Ok(value) => value
     Err(issue) => raise EffectSetProgress(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectSetFootprintConflictsCheck")
+pub fn strategy_effect_set_footprint_conflicts_check(
+  effect_ids : Array[String],
+  kinds : Array[Int],
+  namespaces : Array[String],
+  boundary_cids : Array[String],
+  scheme_cids : Array[String],
+  resource_kinds : Array[String],
+  target_cids : Array[Array[String]],
+  max_members : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  match @effect.check_effect_set_footprint_conflicts_from_codes(
+    effect_ids, kinds, namespaces, boundary_cids, scheme_cids,
+    resource_kinds, target_cids, max_members, max_targets, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectFootprint(issue)
   }
 }
 

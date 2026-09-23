@@ -42,6 +42,9 @@ function effectApplicationControl(moon) {
     setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
     setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,
     setFrontierReadyRow: moon.strategyEffectSetFrontierReadyRow,
+    checkSetFootprintConflicts: (...args) => checked(
+      moon.strategyEffectSetFootprintConflictsCheck(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
