@@ -2,9 +2,13 @@
 package "actql/actql/run_publication_host"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
   "actql/actql/physical_strategy",
+  "actql/actql/program_check",
   "actql/actql/run_publication",
+  "actql/actql/stage_syntax",
 }
 
 // Values
@@ -12,13 +16,44 @@ pub fn prepare_all_captured_result_publication_exports(@physical_strategy.Captur
 
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
+pub fn prepare_effect_free_client_program(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
+
 pub fn prepare_publication_output_export(@execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
 pub fn prepare_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
+pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.CheckedDAG
+
+pub fn prepared_client_result_count(PreparedClientProgram) -> Int
+
+pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
+
 // Errors
 
 // Types and methods
+pub(all) enum ClientProgramPreparationIssue {
+  Syntax(@stage_syntax.SyntaxError)
+  EffectNotSupported(String)
+  NeedsInputs
+  Check(@program_check.LocalConstructionFailure)
+  MissingCheckedStage(Int)
+  MissingStageIdentity(Int)
+  Lowering(@lowering_relation.Issue)
+  Binding(@lowering_relation.BindingIssue)
+  Graph(@physical_strategy.GraphIssue)
+}
+
+pub(all) struct ClientProgramPreparationLimits {
+  checking : @program_check.CheckLimits
+  lowering : @lowering_relation.Limits
+  max_parameters : Int
+  max_parameter_name_bytes : Int
+  max_tasks : Int
+  max_graph_work : Int
+}
+
+type PreparedClientProgram
+
 type PublicationOutputExport
 pub fn PublicationOutputExport::admit_captured_snapshot(Self, Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::cancel(Self) -> Unit
