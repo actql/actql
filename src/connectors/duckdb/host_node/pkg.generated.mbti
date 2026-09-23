@@ -123,7 +123,7 @@ pub fn compute_host_stream_accept(ComputeNodeRun, Int, String) -> Unit raise Nod
 
 pub fn compute_host_stream_begin(ComputeNodeRun, String, @execution_relation.RowWireLimits, Int) -> Unit raise NodeHostFailure
 
-pub fn compute_host_stream_drain(ComputeNodeRun) -> Array[String] raise NodeHostFailure
+pub fn compute_host_stream_drain(ComputeNodeRun) -> String? raise NodeHostFailure
 
 pub fn compute_host_stream_finish(ComputeNodeRun) -> (ComputeStreamNodeReceipt, String) raise NodeHostFailure
 

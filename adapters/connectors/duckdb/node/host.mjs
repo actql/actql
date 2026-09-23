@@ -705,14 +705,11 @@ async function runHostCompute(
     for (;;) {
       signal?.throwIfAborted();
       const batch = checked(moon.computeHostStreamDrain(run));
-      if (batch.length === 0) break;
-      for (const text of batch) {
-        signal?.throwIfAborted();
-        const bytes = Buffer.byteLength(text, 'utf8');
-        if (bytes > retained.maxFrameBytes) throw new DuckDBTransportError('RetainedFrameLimit');
-        if (bytes > retained.maxFrameBytes - bufferedBytes) await flush();
-        parts.push(text); bufferedBytes += bytes;
-      }
+      if (batch == null) break;
+      const bytes = Buffer.byteLength(batch, 'utf8');
+      if (bytes > retained.maxFrameBytes) throw new DuckDBTransportError('RetainedFrameLimit');
+      if (bytes > retained.maxFrameBytes - bufferedBytes) await flush();
+      parts.push(batch); bufferedBytes += bytes;
     }
     await flush();
   };
