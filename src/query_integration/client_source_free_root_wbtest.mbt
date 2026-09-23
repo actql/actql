@@ -112,38 +112,50 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   let run = @strategy.open_source_free_dag(graph, ledger).unwrap()
   let registry = search_registry()
   let limits = dispatch_test_limits()
-  let installed = @local_driver.prepare_local_dispatch_module(
+  let generated = @publication_host.prepare_client_task_sequence(
+    prepared,
+    0,
+    registered_relation_contracts(),
+    [],
+    {
+      max_steps: 100,
+      max_rows: 100,
+      max_cells: 10000,
+      max_bindings: 100,
+      max_name_bytes: 10000,
+      expressions: {
+        max_nodes: 10000,
+        max_work: 100000,
+        max_depth: 100,
+        max_literal_nodes: 10000,
+        max_literal_text_bytes: 10000,
+      },
+    },
+    100000,
+    10000,
+  ).unwrap()
+  let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
-    @connector.capability_registration_at(registry, 0).unwrap(),
-    [
-      @publication_host.prepare_client_task_sequence(
-        prepared,
-        0,
-        registered_relation_contracts(),
-        [],
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
         {
-          max_steps: 100,
-          max_rows: 100,
-          max_cells: 10000,
-          max_bindings: 100,
-          max_name_bytes: 10000,
-          expressions: {
-            max_nodes: 10000,
-            max_work: 100000,
-            max_depth: 100,
-            max_literal_nodes: 10000,
-            max_literal_text_bytes: 10000,
-          },
+          sequences: [generated],
+          managed_providers: [],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
         },
-        100000,
-        10000,
-      ).unwrap(),
-    ],
-    limits.local_execution,
-    limits.guards,
-    limits.candidate_work,
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
   ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
   @local_driver.configure_local_retained_inputs(
     installed,
     {
