@@ -92,7 +92,7 @@ async function runTrainingCandidate(candidate, round) {
       executionMs, warmMs: elapsed.reduce((sum, value) => sum + value, 0),
       selection: plan(candidate), outputCid: expectedCid,
       taskRealizations: tasks.map(task => task.realization),
-      hostPhases: result.phases, usage: result.usage()};
+      tasks, hostPhases: result.phases, usage: result.usage()};
   } finally {
     if (result) {
       const started = performance.now();
@@ -104,7 +104,7 @@ async function runTrainingCandidate(candidate, round) {
       }
     }
   }
-  return {...observation, cleanupMs};
+  return {...observation, cleanupMs, releaseConfirmed: true};
 }
 const observations = [];
 const expectedCid = fixture.identity().rowsCid;
