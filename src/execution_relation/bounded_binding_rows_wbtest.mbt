@@ -654,6 +654,63 @@ test "bounded selected filter cancels before publication" {
 }
 
 ///|
+test "bounded selected filter admits its exact input boundary" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    filter=true,
+    input_limits=Some({
+      max_nodes: 16,
+      max_text_bytes: 22,
+      max_depth: 3,
+      max_work: 38,
+    }),
+  )
+  let mut completed : CompletedOutput? = None
+  let mut advances = 0
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("exact filter input boundary failed")
+    }
+  }
+  guard completed is Some(output) else { fail("filter did not complete") }
+  assert_eq(completed_row_count(output), 1)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected filter rejects an input one node short" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    filter=true,
+    input_limits=Some({
+      max_nodes: 15,
+      max_text_bytes: 22,
+      max_depth: 3,
+      max_work: 38,
+    }),
+  )
+  let mut failed = false
+  let mut advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) => fail("short filter input completed")
+      _ => fail("short filter input had another outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
 test "bounded selected projection preserves schema order and input admission" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",

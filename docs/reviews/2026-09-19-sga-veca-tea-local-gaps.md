@@ -56,9 +56,11 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Seven of the 68 production routes currently bind operation-specific boundary
-  fixtures. A successful route gate does not establish boundary closure for
-  the other 61 operations. Reused evidence must identify the shared product
+  Eight of the 68 production routes currently bind operation-specific boundary
+  fixtures. The selected RelA filter route adds an independent exact/one-short
+  input-admission pair alongside mixed-stage and cancel/cleanup fixtures. A
+  successful route gate does not establish boundary closure for the other 60
+  operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.

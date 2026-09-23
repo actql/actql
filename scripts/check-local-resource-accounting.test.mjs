@@ -41,7 +41,7 @@ function run(mutator, routeMutator) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes gated/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records; full boundary completion is not asserted/);
 });
 
 test('resource gate rejects an omitted operation', () => {
@@ -181,6 +181,15 @@ test('resource gate rejects selection without exact admission evidence', () => {
     selection.boundary_tests = selection.boundary_tests.filter(item =>
       item.role !== 'select_input_exact');
   }), /RelA select: reviewed select_input_exact fixture is missing/);
+});
+
+test('resource gate rejects filter without its one-short evidence', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.boundary_tests = filter.boundary_tests.filter(item =>
+      item.role !== 'filter_input_one_short');
+  }), /RelA filter: reviewed filter_input_one_short fixture is missing/);
 });
 
 test('resource gate rejects selection without its bounded product route', () => {
