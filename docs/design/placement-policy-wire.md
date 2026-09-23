@@ -56,8 +56,10 @@ error leaves that owner pending; retrying it sends the same request and
 candidate CID. An application that abandons the consultation must explicitly
 end the Run. It must not create a fresh request merely because a response was
 lost, nor interpret policy failure as permission to retry an already started
-task. `scripts/test-native-http-client.mjs` runs the native mTLS fixture with
-success, lost response, foreign policy identity, expiry and denied disclosure.
+task. Set `ACTQL_TEST_SCRATCH_ROOT` to a writable scratch directory and run
+`node scripts/test-native-http-client.mjs` for the native mTLS fixture. It
+covers success, lost response, foreign policy identity, expiry and denied
+disclosure.
 
 The response is a closed JSON object with exactly these fields:
 
