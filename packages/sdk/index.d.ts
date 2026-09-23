@@ -1,11 +1,8 @@
-import type {WireDeliveryAttemptLookup} from '@actql/client-wire';
+import type {WireClientProfile, WireDeliveryAttemptLookup,
+  WireRequestLookup, WireRunRef} from '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
-export type RunReference = Readonly<{
-  tenantId: string;
-  authorityScopeCid: string;
-  runDefinitionCid: string;
-}>;
+export type RunReference = WireRunRef;
 
 type ConnectedEndpoint = Readonly<{
   endpoint: string;
@@ -28,29 +25,9 @@ export type ConnectionOptions =
       runners?: readonly string[]; movementPolicyRef: string;
       cloudConnectionRef: string}>);
 
-export type ConfirmedProfile = Readonly<{
-  version: 'actql-client-host/0.1';
-  mode: 'remote' | 'local' | 'hybrid';
-  owner: 'remote' | 'local' | 'cloud';
-  durability: Durability;
-  scopeRef: string;
-  capabilities: readonly string[];
-  limits: Readonly<{
-    maxReadWireBytes: number;
-    maxRowWireBytes: number;
-    maxRowRetainedValueBytes: number;
-    maxRetainedValueBytes: number;
-    maxRows: number;
-    maxBatchRows: number;
-    maxBatchRetainedValueBytes: number;
-  }>;
-}>;
+export type ConfirmedProfile = WireClientProfile;
 
-export type RequestLookup =
-  | Readonly<{kind: 'found'; ref: RunReference;
-      durability: Durability; lookupExpiresAt: string}>
-  | Readonly<{kind: 'not_found'}>
-  | Readonly<{kind: 'unknown'; reason: string}>;
+export type RequestLookup = WireRequestLookup;
 
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 
