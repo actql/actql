@@ -1943,6 +1943,53 @@ export async function openLocalPublicationStore(
     return contract === undefined ? undefined : parseContract(contract);
   };
 
+  const lookupDeliveryAttempt = async query => {
+    active();
+    if (!exactKeys(query, [
+      'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
+    ]) || !exactKeys(query.indexKey, [
+      'tenantId', 'authorityScopeCid', 'runDefinitionCid',
+    ]) || typeof query.indexKey.tenantId !== 'string' ||
+        query.indexKey.tenantId.length === 0 ||
+        !cidPattern.test(query.indexKey.authorityScopeCid) ||
+        !cidPattern.test(query.indexKey.runDefinitionCid) ||
+        typeof query.principalId !== 'string' || !query.principalId ||
+        typeof query.purpose !== 'string' || !query.purpose ||
+        typeof query.resultName !== 'string' || !query.resultName ||
+        typeof query.attemptId !== 'string' || !query.attemptId ||
+        query.attemptId.length > 256) {
+      fail('InvalidDeliveryAttemptLookup');
+    }
+    let match;
+    for (const name of await readdir(deliveriesDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) continue;
+      const attempt = parseContract(await readDeliveryAttemptContract(
+        `sha256:${name}`,
+      ));
+      if (attempt.attempt_id !== query.attemptId ||
+          attempt.run_definition_cid !== query.indexKey.runDefinitionCid ||
+          attempt.result_name !== query.resultName) continue;
+      const grant = (await readContract(
+        attempt.result_read_grant_cid, 'result_read_grant',
+      )).value;
+      if (grant.tenant_id !== query.indexKey.tenantId ||
+          grant.authority_scope_cid !== query.indexKey.authorityScopeCid ||
+          grant.principal_id !== query.principalId ||
+          grant.purpose !== query.purpose ||
+          grant.run_definition_cid !== query.indexKey.runDefinitionCid ||
+          grant.result_manifest_cid !== attempt.result_manifest_cid) continue;
+      if (match !== undefined) fail('AmbiguousDeliveryAttemptLookup');
+      const record = await latestDeliveryRecord(attempt.delivery_attempt_cid);
+      const hostReleaseReceipt = record?.result_delivery_receipt_cid ===
+        undefined ? undefined : (await readContract(
+          record.result_delivery_receipt_cid,
+          'result_delivery_receipt',
+        )).value;
+      match = Object.freeze({attempt, record, hostReleaseReceipt});
+    }
+    return match;
+  };
+
   const confirmDeliveryRecord = async suppliedWire => {
     active();
     const contract = admitContract('delivery_record', suppliedWire);
@@ -4128,6 +4175,7 @@ export async function openLocalPublicationStore(
     appendRecord,
     consumeManifestReadGrant,
     createDeliveryAttempt,
+    lookupDeliveryAttempt,
     latestDeliveryRecord,
     latestDeliveryRecordContract,
     confirmDeliveryRecord,

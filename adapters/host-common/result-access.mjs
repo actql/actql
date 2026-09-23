@@ -22,12 +22,17 @@ export class ResultAccessError extends Error {
 const fail = (code, cause) => { throw new ResultAccessError(code, cause); };
 
 function validateAuthority(configuration) {
-  if (!exactKeys(configuration, [
+  if (!(exactKeys(configuration, [
     'authorizeResultReadRequest', 'admitResultRead',
     'authorizeResultRead',
-  ]) || typeof configuration.authorizeResultReadRequest !== 'function' ||
+  ]) || exactKeys(configuration, [
+    'authorizeResultReadRequest', 'admitResultRead',
+    'authorizeResultRead', 'authorizeDeliveryAttemptLookup',
+  ])) || typeof configuration.authorizeResultReadRequest !== 'function' ||
       typeof configuration.admitResultRead !== 'function' ||
-      typeof configuration.authorizeResultRead !== 'function') {
+      typeof configuration.authorizeResultRead !== 'function' ||
+      configuration.authorizeDeliveryAttemptLookup !== undefined &&
+        typeof configuration.authorizeDeliveryAttemptLookup !== 'function') {
     fail('InvalidResultAccessAuthority');
   }
 }
@@ -39,6 +44,8 @@ export function installResultAccessAuthority(configuration) {
     authorizeResultReadRequest: configuration.authorizeResultReadRequest,
     admitResultRead: configuration.admitResultRead,
     authorizeResultRead: configuration.authorizeResultRead,
+    authorizeDeliveryAttemptLookup:
+      configuration.authorizeDeliveryAttemptLookup,
   }));
   return authority;
 }
@@ -103,6 +110,39 @@ export function installResultAccessService(configuration) {
     frameLimits: Object.freeze({...configuration.frameLimits}),
   }));
   return service;
+}
+
+export async function inspectAuthorizedDeliveryAttempt(service, request) {
+  const installed = services.get(service) ?? fail('ForeignResultAccessService');
+  if (!exactKeys(request, [
+    'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
+  ]) || !exactKeys(request.indexKey, [
+    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof request.indexKey.tenantId !== 'string' ||
+      !request.indexKey.tenantId ||
+      !cidPattern.test(request.indexKey.authorityScopeCid) ||
+      !cidPattern.test(request.indexKey.runDefinitionCid) ||
+      typeof request.principalId !== 'string' || !request.principalId ||
+      typeof request.purpose !== 'string' || !request.purpose ||
+      typeof request.resultName !== 'string' || !request.resultName ||
+      typeof request.attemptId !== 'string' || !request.attemptId ||
+      request.attemptId.length > 256) {
+    fail('InvalidResultAccessRequest');
+  }
+  const authorize = installed.authority.authorizeDeliveryAttemptLookup;
+  if (typeof authorize !== 'function' ||
+      typeof installed.store.lookupDeliveryAttempt !== 'function') {
+    fail('ResultAttemptLookupUnavailable');
+  }
+  let allowed;
+  try { allowed = await authorize(Object.freeze({...request})); }
+  catch { fail('ResultAccessDenied'); }
+  if (allowed !== true) fail('ResultAccessDenied');
+  const found = await installed.store.lookupDeliveryAttempt(request);
+  if (found === undefined) return Object.freeze({kind: 'not_found'});
+  return Object.freeze({kind: 'found',
+    attempt: found.attempt, record: found.record ?? null,
+    hostReleaseReceipt: found.hostReleaseReceipt ?? null});
 }
 
 function validateRequest(request) {

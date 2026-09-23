@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {
   deliverAuthorizedResult,
+  inspectAuthorizedDeliveryAttempt,
   installResultAccessAuthority,
   installResultAccessService,
 } from '../host-common/result-access.mjs';
@@ -12,7 +13,8 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
-export {deliverAuthorizedResult, installResultAccessAuthority};
+export {deliverAuthorizedResult, inspectAuthorizedDeliveryAttempt,
+  installResultAccessAuthority};
 
 export function installNodeResultAccessService(configuration) {
   if (!exactKeys(configuration, [
