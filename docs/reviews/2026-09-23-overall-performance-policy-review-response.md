@@ -49,6 +49,13 @@ seconds as a single diagnostic suite and is recorded in
 readiness on that path, not the paired timing acceptance or Node-free native
 equivalence.
 
+At clean revision `a7dfa0b9c`, the independent equivalent-obligations
+comparator also completed all 27 registered cases in separate fresh children.
+Its raw summary and scope are recorded in
+`benchmarks/retained-results/equivalent-readiness-2026-09-24.md`. This removes
+an execution-readiness uncertainty for that comparator; it does not admit
+cross-revision ratios or replace same-revision alternating pairs.
+
 Seven alternating pairs at clean revision `c93402ffb` confirmed a substantial
 small-case timing gap on the current Node managed Host: median retained-minus-
 equivalent warm and cold intervals were 31.700 ms and 729.792 ms. The retained

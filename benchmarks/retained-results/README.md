@@ -146,6 +146,9 @@ smoke does not prove the larger cases executable.
 The [2026-09-24 full-matrix readiness diagnostic](diagnostic-2026-09-24.md)
 records one successful 27/27 managed Host run. It remains outside formal paired
 performance acceptance.
+The [independent equivalent-comparator readiness run](equivalent-readiness-2026-09-24.md)
+also completed 27/27 cases at a clean later revision. These separate runs do
+not form paired measurements or prove obligation parity with the retained leg.
 
 To compare ordinary and reused INSERTs through the actual bounded transport:
 
