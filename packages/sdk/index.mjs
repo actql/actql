@@ -1,11 +1,9 @@
 // The transport Client delegates admission, state and delivery to the Host.
-import {validDeliveryAttemptLookup} from '@actql/client-wire';
-const cid = /^sha256:[0-9a-f]{64}$/u;
+import {validClientAdmission, validClientConnection, validClientProfile,
+  validDeliveryAttemptLookup, validRequestLookup, validRunRef} from
+  '@actql/client-wire';
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const maxControlResponseBytes = 1024 * 1024;
-const exact = (value, keys) => value !== null && typeof value === 'object' &&
-  !Array.isArray(value) && Object.keys(value).sort().join('\0') ===
-  [...keys].sort().join('\0');
 
 export class ClientError extends Error {
   constructor(code, details = {}) {
@@ -15,10 +13,6 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
-const validRef = ref => exact(ref,
-  ['tenantId', 'authorityScopeCid', 'runDefinitionCid']) &&
-  typeof ref.tenantId === 'string' && ref.tenantId.length > 0 &&
-  cid.test(ref.authorityScopeCid) && cid.test(ref.runDefinitionCid);
 
 async function boundedHostJson(response) {
   const declared = response.headers.get('content-length');
@@ -105,34 +99,16 @@ function connectionOptions(options) {
       url.search || url.hash || url.pathname !== '/') {
     fail('InvalidConnectionEndpoint');
   }
-  return Object.freeze({
-    endpoint: url.href, token,
-    wire: Object.freeze({
-      mode, owner: owner ?? 'remote',
-      ...(durability === undefined ? {} : {durability}),
-      consentRefs: Object.freeze([...(consentRefs ?? [])]),
-      runners: Object.freeze([...(runners ?? [])]),
-      ...(movementPolicyRef === undefined ? {} : {movementPolicyRef}),
-      ...(cloudConnectionRef === undefined ? {} : {cloudConnectionRef}),
-    }),
+  const wire = Object.freeze({
+    mode, owner: owner ?? 'remote',
+    ...(durability === undefined ? {} : {durability}),
+    consentRefs: Object.freeze([...(consentRefs ?? [])]),
+    runners: Object.freeze([...(runners ?? [])]),
+    ...(movementPolicyRef === undefined ? {} : {movementPolicyRef}),
+    ...(cloudConnectionRef === undefined ? {} : {cloudConnectionRef}),
   });
-}
-
-function validProfile(value, selected) {
-  return exact(value, ['version', 'mode', 'owner', 'durability',
-    'scopeRef', 'capabilities', 'limits']) &&
-    value.version === 'actql-client-host/0.1' &&
-    value.mode === selected.mode && value.owner === selected.owner &&
-    ['volatile', 'durable'].includes(value.durability) &&
-    !(selected.durability === 'durable' && value.durability !== 'durable') &&
-    typeof value.scopeRef === 'string' && value.scopeRef.length > 0 &&
-    Array.isArray(value.capabilities) &&
-    value.capabilities.every(item => typeof item === 'string' && item) &&
-    exact(value.limits, ['maxReadWireBytes', 'maxRowWireBytes',
-      'maxRowRetainedValueBytes',
-      'maxRetainedValueBytes', 'maxRows', 'maxBatchRows',
-      'maxBatchRetainedValueBytes']) &&
-    Object.values(value.limits).every(positive);
+  if (!validClientConnection(wire)) fail('InvalidConnectionOptions');
+  return Object.freeze({endpoint: url.href, token, wire});
 }
 
 function tighter(requested, maximum) {
@@ -206,18 +182,13 @@ export async function connect(options) {
   let profile;
   try { profile = await boundedHostJson(profileResponse); }
   catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
-  if (!validProfile(profile, selected.wire)) fail('InvalidHostProfile');
+  if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
   const confirmed = Object.freeze({...profile,
     capabilities: Object.freeze([...profile.capabilities]),
     limits: Object.freeze({...profile.limits})});
 
   const execution = admission => {
-    if (!exact(admission, ['ref', 'durability', 'revision']) ||
-        !validRef(admission.ref) ||
-        !['volatile', 'durable'].includes(admission.durability) ||
-        selected.wire.durability === 'durable' &&
-          admission.durability !== 'durable' ||
-        !Number.isSafeInteger(admission.revision) || admission.revision < 0) {
+    if (!validClientAdmission(admission, selected.wire)) {
       fail('InvalidHostAdmission');
     }
     const ref = Object.freeze({...admission.ref});
@@ -449,12 +420,12 @@ export async function connect(options) {
     },
     attach: async (ref, {signal} = {}) => {
       const requested = Object.freeze({...ref});
-      if (!validRef(requested)) fail('InvalidRunReference');
+      if (!validRunRef(requested)) fail('InvalidRunReference');
       const response = await exchange('attach', {ref: requested}, signal);
       let admitted;
       try { admitted = await boundedHostJson(response); }
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
-      if (!validRef(admitted?.ref)) fail('InvalidHostAdmission');
+      if (!validRunRef(admitted?.ref)) fail('InvalidHostAdmission');
       if (admitted.ref.tenantId !== requested.tenantId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
@@ -470,22 +441,11 @@ export async function connect(options) {
       catch (cause) {
         throw new ClientError('InvalidHostRequestLookup', {cause});
       }
-      if (exact(answer, ['kind', 'ref', 'durability',
-        'lookupExpiresAt']) && answer.kind === 'found' &&
-        validRef(answer.ref) &&
-        ['volatile', 'durable'].includes(answer.durability) &&
-        typeof answer.lookupExpiresAt === 'string' &&
-        answer.lookupExpiresAt.length > 0) {
+      if (!validRequestLookup(answer)) fail('InvalidHostRequestLookup');
+      if (answer.kind === 'found') {
         return Object.freeze({...answer, ref: Object.freeze({...answer.ref})});
       }
-      if (exact(answer, ['kind']) && answer.kind === 'not_found') {
-        return Object.freeze(answer);
-      }
-      if (exact(answer, ['kind', 'reason']) && answer.kind === 'unknown' &&
-          typeof answer.reason === 'string' && answer.reason.length > 0) {
-        return Object.freeze(answer);
-      }
-      fail('InvalidHostRequestLookup');
+      return Object.freeze(answer);
     },
     close() { closed = true; },
   });
