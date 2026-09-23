@@ -71,6 +71,69 @@ function batchClaims() {
   });
 }
 
+test('durable row heads determine multi-member progress after restart',
+  async t => {
+    const root = await fixture(t);
+    const first = open(root);
+    t.after(() => first.close());
+    const firstMember = batchClaims();
+    const scope = firstMember[0].scope;
+    const key = effect.dispatchKey(scope, cid('b'), '"row-3"', 32, 8, 3);
+    const locator = effect.logicalItemLocator(scope, 'program-1',
+      'node-1', 'WriteTwo', '{"row":"row-3"}', 64, 128, 8, 3);
+    const canonicalRequestCid = cid('f');
+    const basis = effect.ledgerBasis(scope, locator, key,
+      cid('c'), cid('d'), cid('e'), canonicalRequestCid, cid('0'),
+      'unavailable', cid('1'), cid('2'));
+    const secondMember = {scope, locator, key, basis,
+      intentFingerprintCid: cid('e'), canonicalRequestCid};
+    const members = policy => [
+      {effectId: 'WriteOne', policy, claims: firstMember},
+      {effectId: 'WriteTwo', policy: 0, claims: [secondMember]},
+    ];
+    const ready = ledger => {
+      const frontier = ledger.frontierFromDurableHeads(members(0), 32);
+      return Array.from({length: effect.setFrontierReadyCount(frontier)},
+        (_, index) => [effect.setFrontierReadyMember(frontier, index),
+          effect.setFrontierReadyRow(frontier, index)]);
+    };
+    assert.deepEqual(ready(first), [[0, 0], [1, 0]]);
+    const ownership = first.claimDispatch(firstMember[0]);
+    assert.equal(ownership.claimed, true);
+    assert.deepEqual(ready(first), [[1, 0]]);
+    const unknown = effect.issueNextLedgerEntry(ownership.dispatching,
+      'unknown', '', 4096, 64, 4);
+    first.append(effect.ledgerEntryWire(unknown));
+    assert.deepEqual(ready(first), [[1, 0]]);
+    first.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    assert.deepEqual(ready(restarted), [[1, 0]]);
+    const continued = restarted.frontierFromDurableHeads(members(1), 32);
+    assert.deepEqual(Array.from({length: effect.setFrontierReadyCount(continued)},
+      (_, index) => [effect.setFrontierReadyMember(continued, index),
+        effect.setFrontierReadyRow(continued, index)]),
+    [[0, 1], [1, 0]]);
+    assert.equal(effect.setFrontierOutcome(continued), 0);
+    const foreign = {...firstMember[0],
+      basis: effect.ledgerBasis(scope, firstMember[0].locator,
+        firstMember[0].key, cid('9'), cid('d'), cid('e'),
+        canonicalRequestCid, cid('0'), 'unavailable', cid('1'), cid('2'))};
+    assert.throws(() => restarted.frontierFromDurableHeads([
+      {effectId: 'WriteOne', policy: 0,
+        claims: [foreign, firstMember[1]]},
+      {effectId: 'WriteTwo', policy: 0, claims: [secondMember]},
+    ], 32), {code: 'MoonBitHostFailure'});
+    assert.throws(() => restarted.frontierFromDurableHeads([
+      {effectId: 'WriteOne', policy: 0,
+        claims: [firstMember[0], firstMember[0]]},
+    ], 32), {code: 'EffectProgressDuplicateLocator'});
+    assert.throws(() => restarted.frontierFromDurableHeads([
+      {effectId: 'ForeignMember', policy: 0, claims: firstMember},
+      {effectId: 'WriteTwo', policy: 0, claims: [secondMember]},
+    ], 32), {code: 'MoonBitHostFailure'});
+  });
+
 test('one collection request claims every row before physical I/O',
   async t => {
     const root = await fixture(t);

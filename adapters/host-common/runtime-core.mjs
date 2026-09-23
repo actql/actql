@@ -40,6 +40,8 @@ function effectApplicationControl(moon) {
     recoveryAction: moon.strategyEffectRowRecoveryAction,
     recoveryActionFromEntry: moon.strategyEffectRowRecoveryActionFromEntry,
     setFrontier: (...args) => checked(moon.strategyEffectSetFrontier(...args)),
+    setFrontierFromLedger: (...args) => checked(
+      moon.strategyEffectSetFrontierFromLedger(...args)),
     setFrontierOutcome: moon.strategyEffectSetFrontierOutcome,
     setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
     setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,

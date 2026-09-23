@@ -188,6 +188,14 @@ admission, durable row outcomes, member and set receipts, and restart-safe
 reconciliation through real Site HTTP. The isolated org is still unavailable,
 so these local results make no live-provider claim.
 
+The common Effect frontier can now be derived from admitted, durable SQLite row
+heads rather than caller-supplied state codes. MoonBit checks each row's immutable
+basis and exact member locator before applying within-member halt/continue and
+independent-member progress. Restart and foreign-binding fixtures cover this
+step. The caller still must derive the member inventory and bases from the
+checked Program and admitted Preview. This progress reader is not an apply
+permit, does not send HTTP requests, and does not close SF-3.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
