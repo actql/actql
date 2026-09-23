@@ -46,7 +46,7 @@ test "read projection uses only the supplied complete resource view" {
       binding.connector_revision,
       binding.resource_origin,
       binding.run_invocation_cid,
-      binding.dispatch_request_cid,
+      "sha256:" + "e".repeat(64),
     ),
   )
   assert_false(
@@ -62,6 +62,21 @@ test "read projection uses only the supplied complete resource view" {
       binding.resource_origin,
       binding.run_invocation_cid,
       binding.dispatch_request_cid,
+    ),
+  )
+  assert_false(
+    read_projection_matches_site_scope(
+      plan,
+      binding.tenant,
+      binding.principal,
+      binding.environment,
+      binding.site_key,
+      binding.site_generation,
+      binding.connector_registration,
+      binding.connector_revision,
+      binding.resource_origin,
+      binding.run_invocation_cid,
+      "invalid-query-dispatch",
     ),
   )
   assert_true(
