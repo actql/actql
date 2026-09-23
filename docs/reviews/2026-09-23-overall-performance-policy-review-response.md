@@ -144,3 +144,17 @@ to match across all seven pairs. This closes a provenance gap: ignored `_build`
 outputs could previously differ despite an unchanged clean source revision.
 The seven-pair result above predates this stronger artifact check and is retained
 as diagnostic history, not promoted to acceptance evidence under the new gate.
+
+At clean revision `6be1a7993`, the same registered 1,000-row case completed
+seven new alternating pairs with a single generated-release-artifact digest
+`bc125e95fa681db73137d0a1bb013fb027eeb231348bbe81bcbc3cd734632523`.
+All pairs passed equivalent-obligation and normal product-sample admission.
+The registered warm overhead estimate was 24.988 ms (95% interval
+24.350–25.462 ms), and the cold overhead estimate was 725.872 ms (95%
+interval 721.071–731.094 ms). Both still fail their unchanged 10 ms and
+100 ms gates. The raw pair and assessment files are
+`artifact-series-6be1.json` and `artifact-assessment-6be1.json` in the
+workspace scratch area, with SHA-256 digests
+`565cbdd4dd3662b3b8f2e2df114e8117d548ff365d4ac16de32a5bb0e5885432`
+and `be0fa6148fab405d37b75ea438f7f196131a7bb7e0d611fecca4ec0d1c0de0bc`.
+This is still one case and one comparator, not the full 27-case result.
