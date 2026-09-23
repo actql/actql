@@ -26,6 +26,10 @@ pub fn attached_work(AttachedImports) -> Int
 
 pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogContents, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
 
+pub fn bind_effect_mapping_rules(EffectMappingShapes, Int) -> Result[EffectMappingRules, EffectMappingRuleIssue]
+
+pub fn bind_effect_mapping_shapes(EffectResultBindings, @check_environment.MappingContractShapes, Int) -> Result[EffectMappingShapes, EffectMappingShapeIssue]
+
 pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[EffectResultBindings, EffectResultBindingIssue]
 
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
@@ -55,6 +59,44 @@ pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environme
 pub fn effect_command_targets_effects(EffectCommandTargets) -> EffectResultBindings
 
 pub fn effect_command_targets_work(EffectCommandTargets) -> Int
+
+pub fn effect_mapping_rule_at(EffectMappingRules, Int) -> EffectMappingRuleBinding?
+
+pub fn effect_mapping_rule_count(EffectMappingRules) -> Int
+
+pub fn effect_mapping_rule_effect(EffectMappingRuleBinding) -> EffectMappingShapeBinding
+
+pub fn effect_mapping_rule_issue_effect(EffectMappingRuleIssue) -> String
+
+pub fn effect_mapping_rule_issue_kind(EffectMappingRuleIssue) -> EffectMappingRuleIssueKind
+
+pub fn effect_mapping_rule_issue_stage(EffectMappingRuleIssue) -> Int
+
+pub fn effect_mapping_rule_selection(EffectMappingRuleBinding) -> @check_environment.MappingPermissionSelection
+
+pub fn effect_mapping_rules_shapes(EffectMappingRules) -> EffectMappingShapes
+
+pub fn effect_mapping_rules_work(EffectMappingRules) -> Int
+
+pub fn effect_mapping_shape_at(EffectMappingShapes, Int) -> EffectMappingShapeBinding?
+
+pub fn effect_mapping_shape_contract(EffectMappingShapeBinding) -> @check_environment.MappingContractShape
+
+pub fn effect_mapping_shape_count(EffectMappingShapes) -> Int
+
+pub fn effect_mapping_shape_effect(EffectMappingShapeBinding) -> EffectResultBinding
+
+pub fn effect_mapping_shape_issue_effect(EffectMappingShapeIssue) -> String
+
+pub fn effect_mapping_shape_issue_kind(EffectMappingShapeIssue) -> EffectMappingShapeIssueKind
+
+pub fn effect_mapping_shape_issue_stage(EffectMappingShapeIssue) -> Int
+
+pub fn effect_mapping_shapes_effects(EffectMappingShapes) -> EffectResultBindings
+
+pub fn effect_mapping_shapes_environment(EffectMappingShapes) -> @check_environment.MappingContractShapes
+
+pub fn effect_mapping_shapes_work(EffectMappingShapes) -> Int
 
 pub fn effect_result_binding_at(EffectResultBindings, Int) -> EffectResultBinding?
 
@@ -204,6 +246,56 @@ pub struct EffectCommandTargets {
   effects : EffectResultBindings
   catalogs : @check_environment.CatalogContents
   entries : Array[EffectCommandTargetBinding]
+  work : Int
+}
+
+pub struct EffectMappingRuleBinding {
+  effect : EffectMappingShapeBinding
+  selection : @check_environment.MappingPermissionSelection
+}
+
+pub struct EffectMappingRuleIssue {
+  kind : EffectMappingRuleIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectMappingRuleIssueKind {
+  InvalidLimits
+  WorkLimit
+  InvalidBody
+  RowFields(@check_environment.MappingRowFieldsIssue)
+  Permission(@check_environment.MappingPermissionIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectMappingRules {
+  shapes : EffectMappingShapes
+  entries : Array[EffectMappingRuleBinding]
+  work : Int
+}
+
+pub struct EffectMappingShapeBinding {
+  effect : EffectResultBinding
+  mapping : @check_environment.MappingContractShape
+}
+
+pub struct EffectMappingShapeIssue {
+  kind : EffectMappingShapeIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectMappingShapeIssueKind {
+  InvalidLimits
+  WorkLimit
+  MissingMapping
+  TargetMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct EffectMappingShapes {
+  effects : EffectResultBindings
+  mappings : @check_environment.MappingContractShapes
+  entries : Array[EffectMappingShapeBinding]
   work : Int
 }
 
