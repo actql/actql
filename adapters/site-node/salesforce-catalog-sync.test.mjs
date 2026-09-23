@@ -53,6 +53,7 @@ function openssl(root, ...arguments_) {
 }
 
 async function fixture(t, {customStatus = 200, customResponse = customBody,
+  orgId = '00D000000000001EAA',
   listStatus = 200, listResponse = listBody,
   accountRefreshResponse, querySecondStatus = 200,
   queryFirstResponse, writeStatus = 201,
@@ -194,7 +195,9 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   const writeUpsert = authorize('salesforce:record:upsert');
   return {
     seen, journal, list, describe, query, write, writeUpdate, writeUpsert, ca,
+    orgId,
     credential: {
+      orgId,
       control, journal,
       resolveSecret: async () => 'test-only-secret',
       ca, now: () => 1_999_999_999_999,
@@ -213,6 +216,7 @@ function request(setup, overrides = {}) {
     moon: salesforceMoon,
     apiVersion: 'v62.0',
     connectionRevision: 'connection-revision-a',
+    orgId: setup.orgId,
     syncOccurrence: 'catalog-sync-a',
     maxObservationBytes: 10000,
     listAuthorization: {...setup.list, useId: 'list-use'},
@@ -257,7 +261,7 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
     const projection = checked(salesforceMoon.salesforcePrepareReadProjection(
       result.observation,
       binding.tenant, binding.principal, binding.environment,
-      'connection-revision-a', binding.siteKey, binding.siteGeneration,
+      'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Account',
@@ -269,11 +273,26 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
     assert.throws(() => checked(salesforceMoon.salesforcePrepareReadProjection(
       result.observation,
       binding.tenant, binding.principal, binding.environment,
-      'connection-revision-b', binding.siteKey, binding.siteGeneration,
+      'connection-revision-b', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Account',
       ['Id'], 22)), {code: 'MoonBitHostFailure'});
+  });
+
+test('Catalog org binding is fixed before any scoped metadata request',
+  async t => {
+    const setup = await fixture(t);
+    await assert.rejects(syncSalesforceCatalog(request(setup, {
+      orgId: '00D000000000002EAA',
+    })), {code: 'InvalidSalesforceCatalogSync'});
+    const resolver = async () => 'test-only-secret';
+    resolver.connectionOrgId = '00D000000000002EAA';
+    await assert.rejects(syncSalesforceCatalog(request(setup, {
+      credential: {...setup.credential, resolveSecret: resolver},
+    })), {code: 'InvalidSalesforceCatalogSync'});
+    assert.equal(setup.seen.length, 0);
+    assert.equal(setup.journal.recover().length, 0);
   });
 
 test('Salesforce write bridge binds a checked Catalog to one REST request',
@@ -284,7 +303,7 @@ test('Salesforce write bridge binds a checked Catalog to one REST request',
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       result.observation,
       binding.tenant, binding.principal, binding.environment,
-      'connection-revision-a', binding.siteKey, binding.siteGeneration,
+      'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -353,7 +372,7 @@ test('Site sends one scoped Salesforce write and keeps response as observation',
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       catalog.observation,
       binding.tenant, binding.principal, binding.environment,
-      'connection-revision-a', binding.siteKey, binding.siteGeneration,
+      'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -425,7 +444,7 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
             binding.tenant, binding.principal, binding.environment,
-            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
             binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -494,7 +513,7 @@ test('Host claim owns one local HTTPS write', async t => {
   const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
     catalog.observation,
     binding.tenant, binding.principal, binding.environment,
-    'connection-revision-a', binding.siteKey, binding.siteGeneration,
+    'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
     binding.connectorRegistration, binding.connectorRevision,
     binding.resourceOrigin, binding.runInvocationCid,
     binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -544,6 +563,16 @@ test('Host claim owns one local HTTPS write', async t => {
     ...options, ledger: first,
     authorization: {...options.authorization, grant: undefined},
   }), {code: 'ForeignSalesforceEffectWrite'});
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first,
+    credential: {...options.credential, orgId: '00D000000000002EAA'},
+  }), {code: 'ForeignSalesforceEffectWrite'});
+  const foreignResolver = async () => 'test-only-secret';
+  foreignResolver.connectionOrgId = '00D000000000002EAA';
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first,
+    credential: {...options.credential, resolveSecret: foreignResolver},
+  }), {code: 'ForeignSalesforceEffectWrite'});
   assert.equal(first.current(effect.logicalItemLocatorCid(locator)), undefined);
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 0);
   const sent = await captureSalesforceSingleEffectWrite({
@@ -581,7 +610,7 @@ test('Site does not promote rejected or malformed writes to Effect success',
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
             binding.tenant, binding.principal, binding.environment,
-            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
             binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -618,7 +647,7 @@ test('Site Collections preserve exact row order and partial outcomes',
       salesforceMoon.salesforcePrepareWriteProjection(
         catalog.observation,
         binding.tenant, binding.principal, binding.environment,
-        'connection-revision-a', binding.siteKey, binding.siteGeneration,
+        'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
         binding.connectorRegistration, binding.connectorRevision,
         binding.resourceOrigin, binding.runInvocationCid,
         binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -715,7 +744,7 @@ test('Site Collections do not turn malformed or rejected HTTP into success',
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
             binding.tenant, binding.principal, binding.environment,
-            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
             binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -776,7 +805,7 @@ test('Site Collections use exact update and external-ID upsert authority',
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
             binding.tenant, binding.principal, binding.environment,
-            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
             binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -822,7 +851,7 @@ test('Salesforce target aliases fail before a collection claim or HTTP write',
       salesforceMoon.salesforcePrepareWriteProjection(
         catalog.observation,
         binding.tenant, binding.principal, binding.environment,
-        'connection-revision-a', binding.siteKey, binding.siteGeneration,
+        'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
         binding.connectorRegistration, binding.connectorRevision,
         binding.resourceOrigin, binding.runInvocationCid,
         binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
@@ -840,6 +869,114 @@ test('Salesforce target aliases fail before a collection claim or HTTP write',
     assert.equal(setup.seen.filter(item => item.method === 'PATCH').length, 0);
   });
 
+test('Salesforce target identities feed the common Effect Set preflight',
+  async t => {
+    const setup = await fixture(t);
+    const secondConnection = await fixture(t);
+    const foreignOrg = await fixture(t, {orgId: '00D000000000002EAA'});
+    const catalogs = new Map();
+    const target = async (connection, operation, value) => {
+      if (!catalogs.has(connection)) {
+        catalogs.set(connection, await syncSalesforceCatalog(
+          request(connection)));
+      }
+      const catalog = catalogs.get(connection);
+      const binding = connection.list.scope;
+      const projection = checked(
+        salesforceMoon.salesforcePrepareWriteProjection(
+          catalog.observation,
+          binding.tenant, binding.principal, binding.environment,
+          'connection-revision-a', connection.orgId,
+          binding.siteKey, binding.siteGeneration,
+          binding.connectorRegistration, binding.connectorRevision,
+          binding.resourceOrigin, binding.runInvocationCid,
+          binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+          operation === 'record' ? 1 : 2,
+          operation === 'record' ? '' : 'External_Key__c',
+          ['External_Key__c'], 2));
+      return checked(salesforceMoon.salesforcePrepareWriteTargetIdentity(
+        projection, operation === 'record' ? 1 : 2, value, 0, 128, 4096));
+    };
+    const first = await target(setup, 'record', '001000000000001');
+    const alias = await target(secondConnection, 'record',
+      '001000000000001AAA');
+    const other = await target(secondConnection, 'record',
+      '001000000000002');
+    const differentOrg = await target(foreignOrg, 'record',
+      '001000000000001AAA');
+    const boundary = salesforceMoon.salesforceWriteTargetBoundaryCid(first);
+    const scheme = salesforceMoon.salesforceWriteTargetSchemeCid(first);
+    const preflight = second => runtimeCore(commonMoon)
+      .effectApplicationControl.checkSetFootprintConflicts(
+        ['first', 'second'], [0, 0], ['salesforce', 'salesforce'],
+        [boundary, salesforceMoon.salesforceWriteTargetBoundaryCid(second)],
+        [scheme, salesforceMoon.salesforceWriteTargetSchemeCid(second)],
+        ['Test_Record__c', 'Test_Record__c'],
+        [[salesforceMoon.salesforceWriteTargetObjectCid(first)],
+          [salesforceMoon.salesforceWriteTargetObjectCid(second)]],
+        2, 2, 20);
+    assert.throws(() => preflight(alias));
+    assert.equal(preflight(other), true);
+    assert.equal(preflight(differentOrg), true);
+    assert.notEqual(setup.list.scope.resourceOrigin,
+      secondConnection.list.scope.resourceOrigin);
+    for (const connection of [setup, secondConnection, foreignOrg]) {
+      assert.equal(connection.seen.filter(item => item.method === 'PATCH')
+        .length, 0);
+    }
+  });
+
+test('Effect Set preflight uses observed external-ID matching rules',
+  async t => {
+    const upsertMetadata = JSON.parse(customBody);
+    upsertMetadata.fields.push({name: 'Value__c', type: 'string',
+      nillable: true, defaultedOnCreate: false,
+      createable: true, updateable: true});
+    const prepare = async (caseSensitive, firstValue, secondValue) => {
+      const setup = await fixture(t, {customResponse: JSON.stringify(
+        upsertMetadata).replace(
+        '"caseSensitive":true',
+        `"caseSensitive":${caseSensitive}`)});
+      const catalog = await syncSalesforceCatalog(request(setup));
+      const binding = setup.list.scope;
+      const projection = checked(
+        salesforceMoon.salesforcePrepareWriteProjection(
+          catalog.observation,
+          binding.tenant, binding.principal, binding.environment,
+          'connection-revision-a', setup.orgId,
+          binding.siteKey, binding.siteGeneration,
+          binding.connectorRegistration, binding.connectorRevision,
+          binding.resourceOrigin, binding.runInvocationCid,
+          binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+          2, 'External_Key__c', ['Value__c'], 2));
+      const target = value => checked(
+        salesforceMoon.salesforcePrepareWriteTargetIdentity(
+          projection, 2, value, 0, 128, 4096));
+      const first = target(firstValue);
+      const second = target(secondValue);
+      const boundary = salesforceMoon.salesforceWriteTargetBoundaryCid(first);
+      const scheme = salesforceMoon.salesforceWriteTargetSchemeCid(first);
+      const preflight = () => runtimeCore(commonMoon)
+        .effectApplicationControl.checkSetFootprintConflicts(
+          ['first', 'second'], [0, 0], ['salesforce', 'salesforce'],
+          [boundary, salesforceMoon.salesforceWriteTargetBoundaryCid(second)],
+          [scheme, salesforceMoon.salesforceWriteTargetSchemeCid(second)],
+          ['Test_Record__c', 'Test_Record__c'],
+          [[salesforceMoon.salesforceWriteTargetObjectCid(first)],
+            [salesforceMoon.salesforceWriteTargetObjectCid(second)]],
+          2, 2, 20);
+      return {setup, preflight};
+    };
+    const insensitive = await prepare(false, 'ABC123', 'abc123');
+    assert.throws(() => insensitive.preflight());
+    const sensitive = await prepare(true, 'ABC123', 'abc123');
+    assert.equal(sensitive.preflight(), true);
+    for (const {setup} of [insensitive, sensitive]) {
+      assert.equal(setup.seen.filter(item => item.method === 'PATCH')
+        .length, 0);
+    }
+  });
+
 test('CLI alias supplies only Site secret for the authorized HTTPS path',
   async t => {
     const setup = await fixture(t);
@@ -847,7 +984,7 @@ test('CLI alias supplies only Site secret for the authorized HTTPS path',
     let displays = 0;
     let tokenCalls = 0;
     const resolveSecret = createSalesforceCliSecretResolver({
-      connection: {alias: 'actql-test', orgId: '00D-TEST',
+      connection: {alias: 'actql-test', orgId: '00D000000000001EAA',
         username: 'test@example.invalid', instanceOrigin: origin},
       principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
       siteKey: 'site-a', siteGeneration: 4,
@@ -863,12 +1000,13 @@ test('CLI alias supplies only Site secret for the authorized HTTPS path',
           'actql-test', '--json']);
         displays++;
         return {stdout: JSON.stringify({status: 0, result: {
-          alias: 'actql-test', id: '00D-TEST',
+          alias: 'actql-test', id: '00D000000000001EAA',
           username: 'test@example.invalid', instanceUrl: origin,
           accessToken: '(redacted)',
         }})};
       },
     });
+    assert.equal(resolveSecret.connectionOrgId, '00D000000000001EAA');
     const result = await syncSalesforceCatalog(request(setup, {
       credential: {...setup.credential, resolveSecret},
     }));
@@ -886,13 +1024,13 @@ test('retargeted CLI alias cannot send an authorized catalog request',
   async t => {
     const setup = await fixture(t);
     const resolveSecret = createSalesforceCliSecretResolver({
-      connection: {alias: 'actql-test', orgId: '00D-TEST',
+      connection: {alias: 'actql-test', orgId: '00D000000000001EAA',
         username: 'test@example.invalid',
         instanceOrigin: setup.list.scope.resourceOrigin},
       principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
       siteKey: 'site-a', siteGeneration: 4,
       invoke: async () => ({stdout: JSON.stringify({status: 0, result: {
-        alias: 'actql-test', id: '00D-OTHER',
+        alias: 'actql-test', id: '00D000000000002EAA',
         username: 'test@example.invalid',
         instanceUrl: setup.list.scope.resourceOrigin,
         accessToken: 'test-only-secret',
@@ -1007,7 +1145,7 @@ async function queryProjection(setup) {
   return checked(salesforceMoon.salesforcePrepareReadProjection(
     catalog.observation,
     binding.tenant, binding.principal, binding.environment,
-    'connection-revision-a', binding.siteKey, binding.siteGeneration,
+    'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
     binding.connectorRegistration, binding.connectorRevision,
     binding.resourceOrigin, binding.runInvocationCid,
     binding.dispatchRequestCid, 'catalog-sync-a', 'Account', ['Id'], 100));

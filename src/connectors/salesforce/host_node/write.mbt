@@ -6,6 +6,7 @@ pub fn salesforce_prepare_write_projection(
   principal : String,
   environment : String,
   connection_revision : String,
+  org_id : String,
   site_key : String,
   site_generation : Int,
   connector_registration : String,
@@ -25,6 +26,7 @@ pub fn salesforce_prepare_write_projection(
     principal,
     environment,
     connection_revision,
+    org_id,
     site_key,
     site_generation,
     connector_registration,
@@ -134,6 +136,14 @@ pub fn salesforce_single_write_request_body(
   request : @catalog.SingleWriteRequest,
 ) -> String {
   @catalog.single_write_request_body(request)
+}
+
+///|
+#export_name("salesforceSingleWriteRequestOrgId")
+pub fn salesforce_single_write_request_org_id(
+  request : @catalog.SingleWriteRequest,
+) -> String {
+  @catalog.single_write_request_org_id(request)
 }
 
 ///|
@@ -286,6 +296,55 @@ pub fn salesforce_prepare_continue_write_collection(
 }
 
 ///|
+#export_name("salesforcePrepareWriteTargetIdentity")
+pub fn salesforce_prepare_write_target_identity(
+  projection : @catalog.WriteProjection,
+  target_code : Int,
+  target_text : String,
+  target_int : Int,
+  max_target_bytes : Int,
+  max_identity_bytes : Int,
+) -> @catalog.WriteTargetIdentity raise SalesforceCatalogBridgeIssue {
+  let target = match target_code {
+    1 => @catalog.RecordId(target_text)
+    2 => @catalog.ExternalText(target_text)
+    3 => @catalog.ExternalInt(target_int)
+    _ => raise InvalidResource
+  }
+  match
+    @catalog.prepare_write_target_identity(
+      projection, target, max_target_bytes, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
+}
+
+///|
+#export_name("salesforceWriteTargetBoundaryCid")
+pub fn salesforce_write_target_boundary_cid(
+  value : @catalog.WriteTargetIdentity,
+) -> String {
+  @catalog.write_target_boundary_cid(value)
+}
+
+///|
+#export_name("salesforceWriteTargetSchemeCid")
+pub fn salesforce_write_target_scheme_cid(
+  value : @catalog.WriteTargetIdentity,
+) -> String {
+  @catalog.write_target_scheme_cid(value)
+}
+
+///|
+#export_name("salesforceWriteTargetObjectCid")
+pub fn salesforce_write_target_object_cid(
+  value : @catalog.WriteTargetIdentity,
+) -> String {
+  @catalog.write_target_object_cid(value)
+}
+
+///|
 #export_name("salesforceCollectionWriteRequestMethod")
 pub fn salesforce_collection_write_request_method(
   request : @catalog.WriteCollectionRequest,
@@ -307,6 +366,14 @@ pub fn salesforce_collection_write_request_body(
   request : @catalog.WriteCollectionRequest,
 ) -> String {
   @catalog.write_collection_request_body(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestOrgId")
+pub fn salesforce_collection_write_request_org_id(
+  request : @catalog.WriteCollectionRequest,
+) -> String {
+  @catalog.write_collection_request_org_id(request)
 }
 
 ///|

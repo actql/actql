@@ -98,6 +98,41 @@ MoonBit identity and progress helpers do not by themselves meet this product
 boundary: the checked Program, Preview, authorization, durable journal,
 physical requests and final receipts must be connected before completion.
 
+## Salesforce target and transport identity
+
+The admitted connection records an exact Salesforce org ID. Catalog
+observations, read/write projections, current schema checks, and the Site
+credential configuration must retain that binding. An instance origin alone
+does not identify an org. A change of org must fail before a credential use or
+durable Effect send claim.
+
+The Connector derives two distinct identities:
+
+- The physical request CID binds the exact origin, method, request-target, and
+  body. The HTTPS adapter sends that target without URL path normalization;
+  unrepresentable paths fail before the credential use claim.
+- The provider target identity is for whole-set overlap admission. The
+  boundary CID binds the canonical org ID. The scheme CID binds RecordId versus
+  external-ID field and its confirmed matching rule. The object CID binds that
+  boundary, scheme, resource, and canonical target value. These are bounded,
+  versioned canonical JSON preimages; they are not physical request CIDs.
+
+RecordIds use case-sensitive 15-character values with validated 18-character
+extensions. A 15-character value and its valid 18-character extension have one
+target identity. Distinct 15-character casing is not collapsed. For unique
+text external IDs, the observed `caseSensitive` fact is retained and rechecked.
+Case-insensitive ASCII values can be compared by ASCII folding. Without that
+fact, or for case-insensitive non-ASCII values whose provider equivalence is
+unproved, exact-target admission rejects rather than assuming disjointness.
+The original target spelling remains in the physical request.
+
+The common Effect Set footprint checker consumes these Connector-issued CIDs.
+Create targets remain opaque until a provider record identity is known. Two
+different schemes in one org cannot prove independence merely because their
+hashes differ: an external ID and a RecordId can select the same record.
+Every member's target inventory still has to be derived from its checked
+Preview and admitted source rows before the first mutation.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The

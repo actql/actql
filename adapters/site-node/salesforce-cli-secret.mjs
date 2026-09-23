@@ -205,5 +205,8 @@ export function createSalesforceCliSecretResolver({
     epoch++;
     return hadCredential;
   };
-  return resolveSecret;
+  Object.defineProperty(resolveSecret, 'connectionOrgId', {
+    value: expected.orgId, enumerable: true,
+  });
+  return Object.freeze(resolveSecret);
 }
