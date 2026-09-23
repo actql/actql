@@ -82,7 +82,8 @@ identity across the split. Node Host timers check cancellation after each
 assertion's work begins, stop confirmation, nonpublication, and cleanup.
 These connection fixtures do not establish an exact combined-stage peak
 reservation for every assertion variant.
-Direct `values → select` and `values → take` stages now use the same bounded
+Direct `values → select`, `values → take`, and `values → derive` stages now
+use the same bounded
 producer and selected Relation handoff. Three-target standard Host fixtures
 exercise both actual downstream Computes, overlapping retention, independent
 release, and final reclamation. Node timers deliver cancellation after the

@@ -404,6 +404,7 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_cancel_cleanup',
       'zero_input_two_consumers',
       'zero_input_mixed_stage_two_consumers',
+      'zero_input_derive_two_consumers',
       'zero_input_sort_take_two_consumers',
       'zero_input_unique_two_consumers',
     ];
@@ -463,6 +464,10 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'append' &&
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
     fail(`${label}: same-stage append timer evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'values' &&
+    !environmentRoles.has('zero_input_derive_timer_cancel_cleanup')) {
+    fail(`${label}: same-stage derive timer evidence is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'cross_join' &&
     !environmentRoles.has('direct_product_node_timer_cancel_cleanup')) {
@@ -806,6 +811,11 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'derive' &&
     !environmentRoles.has('ordinary_derive_in_flight_host_timer')) {
     fail(`${label}: ordinary derive Host timer evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'derive' &&
+    (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
+      !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {
+    fail(`${label}: same-stage values derive evidence is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'take') {
     if (route.selected_entrypoint?.symbol !==

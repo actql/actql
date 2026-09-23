@@ -109,6 +109,7 @@ pub fn node_supports_bounded_managed_prefix(
 ) -> Bool {
   match (node.payload, consumer.payload) {
     (Values(_), Where(_))
+    | (Values(_), Derive(_))
     | (Values(_), Select(_))
     | (Values(_), Sort(_))
     | (Values(_), Limit(_))

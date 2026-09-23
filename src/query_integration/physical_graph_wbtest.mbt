@@ -300,8 +300,8 @@ test "physical DAG separates bounded values from unique assertion" {
 }
 
 ///|
-test "physical DAG separates bounded values from select and take" {
-  for variant in ["select", "take"] {
+test "physical DAG separates bounded values from select take and derive" {
+  for variant in ["select", "take", "derive"] {
     let program = query_checked_program_fixture(
       dag=true,
       local_values_two_consumer_chain=true,

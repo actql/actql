@@ -520,6 +520,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary Local derive resumes within quantum and preserves row order"
+        },
+        {
+          "role": "same_stage_values_derive_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from derive"
         }
       ],
       "environment_tests": [
@@ -529,6 +536,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-derive-in-flight"
+        },
+        {
+          "role": "same_stage_values_derive_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-derive-in-flight"
         }
       ]
     },
@@ -1582,6 +1596,13 @@
           "fixture": "standard Host splits zero-input values from Relation filter"
         },
         {
+          "role": "zero_input_derive_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from derive"
+        },
+        {
           "role": "zero_input_sort_take_two_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -1610,6 +1631,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-in-flight"
+        },
+        {
+          "role": "zero_input_derive_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-derive-in-flight"
         },
         {
           "role": "zero_input_sort_timer_cancel_cleanup",

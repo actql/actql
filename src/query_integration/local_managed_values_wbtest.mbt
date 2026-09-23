@@ -321,6 +321,10 @@ fn run_standard_host_values_relation_step(
   let relation_rows = local_managed_test_rows(relation_ops)
   let expected = if relation_variant == "take" {
     ["{\"id\":null,\"label\":\"none\"}"]
+  } else if relation_variant == "derive" {
+    [
+      "{\"copy\":\"none\",\"id\":null,\"label\":\"none\"}", "{\"copy\":\"one\",\"id\":1,\"label\":\"one\"}",
+    ]
   } else if assertion || unique || relation_variant == "select" {
     values_rows
   } else {
@@ -347,10 +351,20 @@ fn run_standard_host_values_relation_step(
     4,
     second_live,
   )
-  assert_eq(local_managed_test_rows(first_ops), relation_rows)
+  assert_eq(
+    local_managed_test_rows(first_ops),
+    if relation_variant == "derive" {
+      values_rows
+    } else {
+      relation_rows
+    },
+  )
   let expected_second = if relation_variant == "take" {
     ["{\"label\":\"none\",\"id\":null}"]
-  } else if assertion || unique || relation_variant == "select" {
+  } else if assertion ||
+    unique ||
+    relation_variant == "select" ||
+    relation_variant == "derive" {
     ["{\"label\":\"none\",\"id\":null}", "{\"label\":\"one\",\"id\":1}"]
   } else {
     ["{\"label\":\"one\",\"id\":1}"]
@@ -405,6 +419,11 @@ test "standard Host splits zero-input values from select" {
 ///|
 test "standard Host splits zero-input values from take" {
   run_standard_host_values_relation_step(false, relation_variant="take")
+}
+
+///|
+test "standard Host splits zero-input values from derive" {
+  run_standard_host_values_relation_step(false, relation_variant="derive")
 }
 
 ///|
