@@ -65,12 +65,13 @@ pub fn strategy_fixture_sga_subset(
   f : StrategyFixture,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
-    fixture_generated(
+    fixture_generated_with_ordered(
       @strategy.graph_task_owner(f.graph, i + 1).unwrap(),
       f.registry_json,
       f.values_json,
       f.fragment_json,
       true,
+      f.ordered_json,
     ) catch {
       _ => abort("invalid SGA fixture generation")
     }
@@ -97,6 +98,19 @@ pub fn strategy_fixture_sga_subset(
     max_work: 100000,
     max_frames: 100,
   }
+  let task_sequences = Array::makei(generated.length(), index => {
+    let task = index + 1
+    match @strategy.graph_task_prefix_end(f.graph, task) {
+      Some(end) =>
+        @execution.select_generated_sequence_prefix(generated[index], end).unwrap()
+      None =>
+        match @strategy.graph_task_selected_step(f.graph, task) {
+          Some(step) =>
+            @execution.select_generated_sequence_step(generated[index], step).unwrap()
+          None => generated[index]
+        }
+    }
+  })
   let provider = @local_sga_provider.provider(
     {
       max_input_rows: 100,
@@ -112,14 +126,9 @@ pub fn strategy_fixture_sga_subset(
       max_workspace_slots: 10000,
     },
     100000L,
-    @execution.generated_sequence_capacity(generated[1], execution, {
-      max_work: 10000,
-      max_bytes: 10000,
-      max_nodes: 10000,
-      max_depth: 100,
-    }).unwrap(),
+    fixture_max_capacity(task_sequences, execution),
   )
-  if !@local_connector.managed_provider_accepts(provider, generated[1]) {
+  if !@local_connector.managed_provider_accepts(provider, task_sequences[1]) {
     abort("SGA fixture provider rejected its graph sequence")
   }
   @connector_gate.configure_subset(f.run.unwrap(), generated, 0, managed_providers=[
