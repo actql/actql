@@ -824,6 +824,18 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('degree_control_work_exact_one_short')) {
     fail(`${label}: exact control-work boundary fixture is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'shortest_path') {
+    for (const role of [
+      'shortest_workspace_exact_one_short',
+      'shortest_value_preallocation_rejection',
+      'shortest_kernel_cancel_cleanup',
+      'shortest_standard_host_consumers',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+  }
 }
 
 // Route fixtures cannot make a synchronous providerless resume interruptible.

@@ -123,7 +123,7 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Thirteen of the 68 production routes bind operation-specific boundary
+  Fourteen of the 68 production routes bind operation-specific boundary
   fixtures. Graph normalization has separate exact/one-short node-capacity
   and cancel/cleanup fixtures for its direct and managed-view starts on all
   three targets. One standard Host timer cancels the fused normalize after its
@@ -148,8 +148,14 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   exact-boundary fixtures. These control-work counts include its two-node sort.
   Its direct
   fixture cancels after charged work and confirms cleanup; a Node standard Host
-  timer reaches the degree operation. Exact control-work limits are not yet
-  registered, so degree does not claim full resource-boundary assurance. The
+  timer reaches the degree operation. Its kernel-level control-work limit does
+  not yet establish task-wide work assurance across construction and projection.
+  Shortest path now binds its existing 89/88 preallocation workspace boundary,
+  large path-value rejection before item construction, kernel cancellation
+  after value-building work, and standard Host consumers to its exact product
+  entrypoint. Its cumulative control-work boundary and a delivered Host timer
+  stop remain open; kernel cancellation is not labeled as delivery evidence.
+  The
   selected RelA filter route adds an independent exact/one-short input-admission
   pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
