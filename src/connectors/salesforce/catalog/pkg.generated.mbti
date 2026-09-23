@@ -62,6 +62,8 @@ pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, Li
 
 pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
 
+pub fn project_write_single_success(Int, Bytes, WriteSingleKind, WriteCollectionResponseLimits) -> Result[WriteSingleResponse, WriteSingleResponseIssue]
+
 pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn query_page_done(QueryPage) -> Bool
@@ -135,6 +137,10 @@ pub fn write_projection_observation(WriteProjection) -> String
 pub fn write_projection_operation(WriteProjection) -> WriteOperation
 
 pub fn write_projection_resource(WriteProjection) -> String
+
+pub fn write_single_response_sha256(WriteSingleResponse) -> String
+
+pub fn write_single_result(WriteSingleResponse) -> WriteRowResult
 
 // Errors
 
@@ -463,6 +469,24 @@ pub(all) struct WriteProviderError {
 pub(all) enum WriteRowResult {
   RowApplied(String, Bool)
   RowFailed(Array[WriteProviderError])
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteSingleKind {
+  SingleCreate
+  SingleUpdateById(String)
+  SingleUpsert
+} derive(Eq, @debug.Debug)
+
+pub struct WriteSingleResponse {
+  result : WriteRowResult
+  response_sha256 : String
+}
+
+pub(all) enum WriteSingleResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnexpectedStatus
+  InvalidResponse
 } derive(Eq, @debug.Debug)
 
 // Type aliases
