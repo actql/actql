@@ -3327,6 +3327,16 @@ async function exerciseStrategyGraph(
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
+    name: 'dedupe-events-fused-filter',
+    family: 'tea',
+    operation: 'dedupe',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+  }, {
     name: 'session',
     family: 'tea',
     rows: 40,
@@ -3403,6 +3413,15 @@ async function exerciseStrategyGraph(
     name: 'vector-normalize',
     family: 'veca',
     operation: 'normalize',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    fields: ['id', 'embedding'],
+  }, {
+    name: 'vector-normalize-fused-filter',
+    family: 'veca',
+    operation: 'normalize',
+    mixedRelationFilter: true,
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
@@ -4176,6 +4195,17 @@ async function exerciseStrategyGraph(
             results: {published: {from: {stage: 'vectors', result: 'r'}}},
           }
           : structuredClone(graphProgramBase);
+    if (cancellationCase.mixedRelationFilter) {
+      const carrierStage = graphCancellationProgram.stages.find(stage =>
+        stage.id === (teaFamily ? 'events' : 'vectors'));
+      const projection = carrierStage.steps.at(-1);
+      projection.as = 'projected';
+      carrierStage.steps.push({
+        from: 'projected',
+        filter: 'true',
+        as: 'out',
+      });
+    }
     if (graphFamily && cancellationCase.relationSelector === true) {
       graphCancellationProgram.stages[2].inputs.selected = {
         result: {stage: 'values', result: 'r'},
