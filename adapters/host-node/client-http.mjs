@@ -3,7 +3,7 @@
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {deliverAuthorizedResult,
   inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, validClientBody} from
+import {clientHostOperations, validClientBody, validRequestLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -145,7 +145,11 @@ export function createClientHttpHandler({
       } else if (operation === 'attach') {
         sendJson(await invoke(attach));
       } else if (operation === 'lookup-request') {
-        sendJson(await invoke(lookupRequest));
+        const lookup = await invoke(lookupRequest);
+        if (!validRequestLookup(lookup, body.requestId)) {
+          invalid('InvalidClientHostLookupResponse');
+        }
+        sendJson(lookup);
       } else if (operation === 'status') {
         const state = observeRun === undefined
           ? await inspectAuthorizedRunState(stateService, {
