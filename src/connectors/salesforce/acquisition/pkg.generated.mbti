@@ -72,6 +72,8 @@ pub fn salesforce_broad_attempt_next_path(SalesforceBroadAttempt) -> Result[Stri
 
 pub fn salesforce_broad_candidate(@connector_sdk.CapabilityRegistration, SalesforceBroadPreparation, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@query_planning.PreparedAcquisition[SalesforceBroadPreparation], @query_planning.QueryPlanningIssue]
 
+pub fn salesforce_broad_captured_source(SalesforceBroadIssuer, SalesforceBroadAttempt, SalesforceBroadObservation) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
 pub fn salesforce_broad_complete(SalesforceBroadQuery) -> Bool
 
 pub fn salesforce_broad_next_path(SalesforceBroadQuery) -> Result[String?, SalesforceBroadIssue]
