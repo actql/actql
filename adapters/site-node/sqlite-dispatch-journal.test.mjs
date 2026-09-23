@@ -359,9 +359,14 @@ test('generation restart persists unknown work before new admission', async t =>
     control,
   );
   assert.deepEqual(control.status(nextRecord), [0, 0, 0, 0, 0]);
+  assert.throws(() => control.prepareRelease(record), {
+    code: 'MoonBitHostFailure',
+  });
+  // The old physical operation must be confirmed stopped before release.
+  store.advance(control.prepareReconciledFailure(record), record, control);
   store.advance(control.prepareRelease(record), record, control);
   store.advance(control.prepareReleased(record), record, control);
-  assert.deepEqual(control.status(record), [6, 0, 2, 0, 0]);
+  assert.deepEqual(control.status(record), [4, 0, 2, 0, 0]);
   store.close();
 
   assert.throws(() => openSqliteDispatchJournal(root, {
@@ -378,7 +383,7 @@ test('generation restart persists unknown work before new admission', async t =>
   const recoveredJournal = control.createJournal(site(2, nextRevision));
   const history = reopened.recoverJournal(recoveredJournal, control);
   assert.equal(history.length, 2);
-  assert.deepEqual(control.status(history[0].record), [6, 0, 2, 0, 0]);
+  assert.deepEqual(control.status(history[0].record), [4, 0, 2, 0, 0]);
   assert.deepEqual(control.status(history[1].record), [0, 0, 0, 0, 0]);
   const recoveredRequest = control.prepare(
     request('dispatch-b', 2, 'local/1', 2, nextRevision),

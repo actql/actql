@@ -291,7 +291,8 @@ async function startFixture(
 async function terminalStatus(options, query = queryRemoteDispatch) {
   for (let attempt = 0; attempt < 100; attempt++) {
     const status = await query(options);
-    if (status.state[0] >= 3) return status;
+    // ExecutionUnknown is a reconciliation obligation, not a terminal fact.
+    if (status.state[0] >= 3 && status.state[0] !== 6) return status;
     await new Promise(resolve => setTimeout(resolve, 5));
   }
   throw new Error('Remote dispatch did not reach terminal state');

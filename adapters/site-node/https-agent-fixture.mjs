@@ -74,7 +74,13 @@ const registration = await prepareInstalledRemoteRuntimeRegistration({
         await new Promise((resolve, reject) => {
           const abort = () => {
             clearTimeout(timer);
-            reject(signal.reason);
+            // Clearing this timer ends the fixture's only physical work.
+            // A rejected Promise alone does not certify native stop.
+            reject(Object.assign(new Error('Fixture execution stopped'), {
+              cleanupHandle: {
+                status: () => ({pending: false, errors: []}),
+              },
+            }));
           };
           const timer = setTimeout(() => {
             signal.removeEventListener('abort', abort);
