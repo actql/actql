@@ -15,6 +15,8 @@ import * as salesforceConformance from
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openEffectLedger} from '../host-node/effect-ledger.mjs';
+import {captureClaimedEffectCollectionResponse} from
+  '../host-node/effect-physical-dispatch.mjs';
 import {captureSalesforceSingleEffectWrite} from
   '../host-node/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
@@ -732,6 +734,95 @@ test('Site Collections preserve exact row order and partial outcomes',
       '/composite/sobjects')).map(item => [item.method, item.body]), [[
       'POST', restBody,
     ]]);
+  });
+
+test('Host custody binds one HTTPS Collections response to every row',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(
+      salesforceMoon.salesforcePrepareWriteProjection(
+        catalog.observation,
+        binding.tenant, binding.principal, binding.environment,
+        'connection-revision-a', '00D000000000001EAA',
+        binding.siteKey, binding.siteGeneration,
+        binding.connectorRegistration, binding.connectorRevision,
+        binding.resourceOrigin, binding.runInvocationCid,
+        binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+        0, '', ['External_Key__c'], 2));
+    const bodies = ['key-1', 'key-2'].map(key => checked(
+      salesforceMoon.salesforcePrepareWriteBody(projection,
+        Buffer.from(JSON.stringify({External_Key__c: key})),
+        1024, 32, 5)));
+    const rowCids = [cid('1'), cid('2')];
+    const outbound = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        rowCids, bodies, [0, 0], ['', ''], [0, 0], 'v62.0',
+        256, 128, 1024, 64, 6, 200));
+    const requestCid = checked(
+      salesforceMoon.salesforceCollectionWriteRequestCid(
+        outbound, binding.resourceOrigin, 4096));
+    const effect = runtimeCore(commonMoon).effectApplicationControl;
+    const authorityScopeCid = cid('8');
+    const scope = effect.logicalRequestScope(authorityScopeCid,
+      'collection-business-request', 128);
+    const claims = rowCids.map((rowCid, index) => {
+      assert.equal(salesforceMoon.salesforceCollectionWriteRequestRowCid(
+        outbound, index), rowCid);
+      const key = effect.dispatchKey(scope, cid('7'),
+        JSON.stringify(rowCid), 128, 8, 3);
+      const locator = effect.logicalItemLocator(scope, 'program-1',
+        'node-1', 'CreateTwo', JSON.stringify({row_preview_cid: rowCid}),
+        64, 128, 8, 3);
+      const basis = effect.ledgerBasis(scope, locator, key,
+        cid('6'), cid('5'), cid('4'), requestCid, cid('3'),
+        'unavailable', cid('2'), cid('1'));
+      return {scope, locator, key, basis,
+        intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
+    });
+    const root = await mkdtemp(join(tmpdir(),
+      'actql-salesforce-collection-effect-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const open = () => openEffectLedger({moon: commonMoon, root,
+      authorityScopeCid, callerRequestId: 'collection-business-request',
+      maxEntryBytes: 4096});
+    const execute = () => writeSalesforceContinueCollection({
+      moon: salesforceMoon, request: outbound,
+      currentObservation: catalog.observation,
+      authorization: {...setup.write, useId: 'collection-effect-use'},
+      credential: setup.credential,
+      limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+        maxNodes: 64, maxDepth: 6, maxRows: 200},
+    });
+    const first = open();
+    t.after(() => first.close());
+    const sent = await captureClaimedEffectCollectionResponse({
+      ledger: first, claims, requestCid, execute,
+    });
+    assert.equal(sent.claimed, true);
+    assert.equal(sent.physical.kind, 'typed-row-response');
+    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      sent.physical.result, 0), true);
+    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      sent.physical.result, 1), false);
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 1);
+    first.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    const retry = await captureClaimedEffectCollectionResponse({
+      ledger: restarted, claims, requestCid, execute,
+    });
+    assert.equal(retry.claimed, false);
+    assert.deepEqual(retry.ownership.actions, [3, 3]);
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 1);
+    for (const dispatching of sent.ownership.dispatching) {
+      assert.deepEqual(restarted.response(
+        effect.ledgerEntryCid(dispatching)).responseBytes,
+      sent.physical.observation.body);
+    }
   });
 
 test('Site Collections do not turn malformed or rejected HTTP into success',
