@@ -538,9 +538,8 @@ fn[T : RelationRows] verify_numeric_layout_output(
   }
   if workload == DecimalTemporal {
     assert_eq(count, 1000)
-    // Independent SHA-256 of UTF-8 JSON [k,k], k=0..249, sorted by hex digest.
-    // Fixed outside the MoonBit comparator/encoder; preserve repeated key fields.
-    let groups = [16, 118, 85, 245, 26, 179, 141, 124, 236, 98]
+    // Repeated numeric keys compare in authored tuple order, not CID order.
+    let groups = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     for row = 0; row < rows; row = row + 1 {
       let id = groups[row] * 4 + 1
       assert_true(

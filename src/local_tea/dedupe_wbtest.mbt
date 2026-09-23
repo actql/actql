@@ -112,6 +112,42 @@ test "event dedupe selects authored order and emits canonical groups" {
 }
 
 ///|
+test "event dedupe orders text keys by typed UTF-16 order" {
+  let producer = producer_owner(false)
+  let source = dedupe_source(producer, [
+    (1.0, 1.0, "a"),
+    (2.0, 1.0, "\u{e000}"),
+    (3.0, 1.0, "A"),
+    (4.0, 1.0, "\u{10000}"),
+  ])
+  let owner = dedupe_owner(
+    producer, "[\"payload\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
+  )
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_dedupe(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let completed = finish_dedupe(execution)
+  let output = @records.completed_storage(completed).unwrap()
+  assert_eq(@storage.record_count(output), 4)
+  for (record, expected) in [(0, 3.0), (1, 1.0), (2, 4.0), (3, 2.0)] {
+    guard field(output, record, "event_id").value is @value.Number(actual) else {
+      fail("event identity")
+    }
+    assert_eq(actual, expected)
+  }
+  assert_eq(cleanup_dedupe(execution), Ok(true))
+  assert_true(@records.discard_completed(completed))
+  assert_true(@records.discard_completed(source))
+}
+
+///|
 test "event dedupe supports global selection and empty input" {
   let producer = producer_owner(false)
   let owner = dedupe_owner(
