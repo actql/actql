@@ -3010,6 +3010,115 @@ test "degree metrics preserve directions and admitted execution" {
 }
 
 ///|
+test "degree diagnostics enforce output capacity before publishing" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_degree_owner(source_owner, "both")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let start = fn(max_rows, completion) {
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    @local_sga.start_graph_degree(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      input,
+      max_rows,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      8,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+  }
+  let exact = start(2, task_test_completion(owner))
+  let output = finish_graph_degree(exact).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(@local_sga.cleanup_graph_degree(exact), Ok(true))
+  let one_short = start(1, task_test_completion(owner))
+  assert_true(
+    finish_graph_degree(one_short)
+    is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+  )
+  assert_eq(@local_sga.cleanup_graph_degree(one_short), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "degree diagnostics stop in flight and reclaim private output" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_degree_owner(source_owner, "both")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let control = @bounded.control()
+  let execution = @local_sga.start_graph_degree(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    8,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_graph_degree(execution, 1).unwrap()
+    is @local_sga.GraphDegreeContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graph_degree(execution, 1).unwrap()
+    is @local_sga.GraphDegreeStopped(_, progress=0L, work=1L),
+  )
+  assert_true(@local_sga.graph_degree_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
+  assert_false(@local_sga.graph_degree_cleanup_pending(execution))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "total degree counts both self-loop incidences" {
   let source_owner = carrier_graph_self_loop_source_owner()
   let source = carrier_events_source_output(source_owner)

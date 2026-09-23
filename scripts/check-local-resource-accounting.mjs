@@ -374,6 +374,59 @@ for (const [index, route] of routeEntries.entries()) {
       recordProofPaths(pathName, assurance);
     }
   }
+  const resourceAssurance = route.resource_assurance ?? {};
+  if (!resourceAssurance || typeof resourceAssurance !== 'object' ||
+    Array.isArray(resourceAssurance)) {
+    fail(`${label}: resource assurance must be an object`);
+  } else {
+    for (const [pathName, dimensions] of Object.entries(resourceAssurance)) {
+      if (!requiredPaths.includes(pathName) ||
+        pathAssurance[pathName] === undefined) {
+        fail(`${label}: resource assurance lacks its production path`);
+        continue;
+      }
+      const assertion = route.family === 'RelA' &&
+        route.operation === 'assert_rows';
+      if (assertion &&
+        (Object.keys(dimensions ?? {}).length !== 1 ||
+          Object.keys(dimensions?.variants ?? {}).length !== 2 ||
+          !dimensions.variants.where || !dimensions.variants.unique_by)) {
+        fail(`${label}: ${pathName} needs both assertion resource variants`);
+        continue;
+      }
+      const proofSets = assertion
+        ? Object.entries(dimensions.variants)
+        : [['operation', dimensions]];
+      for (const [variant, proofSet] of proofSets) {
+        if (!proofSet || typeof proofSet !== 'object' ||
+          Array.isArray(proofSet) ||
+          Object.keys(proofSet).length !== 2 ||
+          !proofSet.work || !proofSet.workspace) {
+          fail(`${label}: ${pathName} ${variant} needs work and workspace assurance`);
+          continue;
+        }
+        for (const dimension of ['work', 'workspace']) {
+          const proofs = proofSet[dimension];
+          if (!proofs || typeof proofs !== 'object' ||
+            Array.isArray(proofs) ||
+            Object.keys(proofs).length !== 2 ||
+            typeof proofs.exact_limit !== 'string' ||
+            typeof proofs.one_short_limit !== 'string') {
+            fail(`${label}: ${pathName} ${variant} ${dimension} needs exact and one-short proofs`);
+            continue;
+          }
+          for (const role of Object.values(proofs)) {
+            if (!boundaryRoles.has(role) ||
+              (assertion && !role.startsWith(`assert_${variant}_`))) {
+              fail(`${label}: ${pathName} ${variant} ${dimension} lacks an executable fixture`);
+            }
+            if (!proofPaths.has(role)) proofPaths.set(role, new Set());
+            proofPaths.get(role).add(pathName);
+          }
+        }
+      }
+    }
+  }
   const allowedReuse = Array.isArray(route.shared_proof_reuse)
     ? route.shared_proof_reuse
     : [];
@@ -408,6 +461,9 @@ for (const [index, route] of routeEntries.entries()) {
     for (const pathName of requiredPaths) {
       if (pathAssurance[pathName] === undefined) {
         fail(`${label}: ${pathName} boundary assurance is missing`);
+      }
+      if (resourceAssurance[pathName] === undefined) {
+        fail(`${label}: ${pathName} work/workspace assurance is missing`);
       }
     }
   }
@@ -613,6 +669,12 @@ if (errors.length > 0) {
     ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
   ].every(pathName => route.path_assurance?.[pathName] !== undefined)).length;
+  const fullyAssuredRoutes = routeEntries.filter(route => [
+    'entrypoint',
+    ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
+    ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+  ].every(pathName => route.path_assurance?.[pathName] !== undefined &&
+    route.resource_assurance?.[pathName] !== undefined)).length;
   const selectedAssuredRoutes = routeEntries.filter(route =>
     route.path_assurance?.selected_entrypoint !== undefined &&
     Object.keys(route.path_assurance).length === 1).length;
@@ -621,7 +683,8 @@ if (errors.length > 0) {
     `${Object.keys(profiles).length} implementation profiles, ` +
     `${routeEntries.length} production routes mapped, ` +
     `${boundaryRoutes} with operation-specific boundary records, ` +
-    `${assuredRoutes} with complete boundary assurance, ` +
+    `${assuredRoutes} with four-role boundary evidence, ` +
+    `${fullyAssuredRoutes} with full work/workspace assurance, ` +
     `${selectedAssuredRoutes} with selected-only assurance; ` +
     `full boundary completion is not asserted.`,
   );
