@@ -864,7 +864,7 @@ pub fn start_bounded_asof_join(@bounded_execution.Control, GeneratedSequence, Pr
 
 pub fn start_bounded_binding_rows(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedBindingRowsExecution, BoundedBindingRowsIssue]
 
-pub fn start_bounded_independent_row_copy(@bounded_execution.Control, CompletedOutput, Int, Int) -> Result[BoundedIndependentRowCopy, ManagedIndependentOutputIssue]
+pub fn start_bounded_independent_row_copy(@bounded_execution.Control, CompletedOutput, Int, Int, Int) -> Result[BoundedIndependentRowCopy, ManagedIndependentOutputIssue]
 
 pub fn start_bounded_interval_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedIntervalJoinExecution, BoundedIntervalJoinIssue]
 

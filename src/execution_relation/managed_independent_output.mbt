@@ -137,9 +137,10 @@ priv enum IndependentRowCopyPhase {
 priv struct IndependentRowCopyState {
   mut source : CompletedOutput?
   mut source_rows : Table?
+  workspace : RowWorkspace
   mut names : Array[String]
   mut rows : Array[Array[Value]]
-  mut row_values : Array[Value]
+  mut row_values : Array[Value]?
   mut row : Int
   mut column : Int
   mut phase : IndependentRowCopyPhase
@@ -184,6 +185,9 @@ fn independent_row_copy_step(
     match state.phase {
       CopyNames =>
         if state.column < source_rows.names.length() {
+          if !reserve_slots(state.workspace, 1) {
+            return @bounded.Failed(Limit, progress, used)
+          }
           state.names.push(source_rows.names[state.column])
           state.column += 1
           used += 1
@@ -196,7 +200,10 @@ fn independent_row_copy_step(
           if source_rows.rows[state.row].length() != state.names.length() {
             return @bounded.Failed(UnsupportedRepresentation, progress, used)
           }
-          state.row_values = []
+          if !reserve_slots(state.workspace, 1) {
+            return @bounded.Failed(Limit, progress, used)
+          }
+          state.row_values = Some([])
           state.column = 0
           state.phase = CopyCells
           used += 1
@@ -205,15 +212,27 @@ fn independent_row_copy_step(
         }
       CopyCells =>
         if state.column < state.names.length() {
-          state.row_values.push(source_rows.rows[state.row][state.column])
+          guard state.row_values is Some(row_values) else {
+            return @bounded.Failed(UnsupportedRepresentation, progress, used)
+          }
+          if !reserve_slots(state.workspace, 1) {
+            return @bounded.Failed(Limit, progress, used)
+          }
+          row_values.push(source_rows.rows[state.row][state.column])
           state.column += 1
           used += 1
         } else {
           state.phase = CommitRow
         }
       CommitRow => {
-        state.rows.push(state.row_values)
-        state.row_values = []
+        guard state.row_values is Some(row_values) else {
+          return @bounded.Failed(UnsupportedRepresentation, progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return @bounded.Failed(Limit, progress, used)
+        }
+        state.rows.push(row_values)
+        state.row_values = None
         state.row += 1
         state.phase = BeginRow
         progress += 1
@@ -242,6 +261,8 @@ fn independent_row_copy_step(
         state.rows = []
         state.source = None
         state.source_rows = None
+        // The completed generation takes custody of these admitted arrays.
+        release_slots(state.workspace, state.workspace.live)
         used += 1
         return @bounded.Complete(
           {
@@ -265,7 +286,8 @@ fn cleanup_independent_row_copy_state(state : IndependentRowCopyState) -> Bool {
   state.source_rows = None
   state.names = []
   state.rows = []
-  state.row_values = []
+  state.row_values = None
+  release_slots(state.workspace, state.workspace.live)
   true
 }
 
@@ -275,8 +297,9 @@ pub fn start_bounded_independent_row_copy(
   output : CompletedOutput,
   max_rows : Int,
   max_columns : Int,
+  max_entries : Int,
 ) -> Result[BoundedIndependentRowCopy, ManagedIndependentOutputIssue] {
-  if max_rows < 0 || max_columns < 0 {
+  if max_rows < 0 || max_columns < 0 || max_entries < 0 {
     return Err(Limit)
   }
   if !completed_output_available(output) {
@@ -288,12 +311,17 @@ pub fn start_bounded_independent_row_copy(
   if source.rows.length() > max_rows || source.names.length() > max_columns {
     return Err(Limit)
   }
+  let workspace = row_workspace(max_entries)
+  if !reserve_slots(workspace, 2) {
+    return Err(Limit)
+  }
   let state : IndependentRowCopyState = {
     source: Some(output),
     source_rows: Some(source),
+    workspace,
     names: [],
     rows: [],
-    row_values: [],
+    row_values: None,
     row: 0,
     column: 0,
     phase: CopyNames,
