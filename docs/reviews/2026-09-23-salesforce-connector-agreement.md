@@ -230,6 +230,17 @@ These are physical-response facts, not terminal Effect facts or final receipts.
 The checked Program, all-member preflight and apply permit, durable outcome
 admission, receipts, and ordinary Effectful Run path remain open under SF-3.
 
+At `6f2462baa5da9c924792bb0f783cb19af490febf`, the common MoonBit
+frontier distinguishes a live physical send from a durable dispatch claim.
+The Node adapter reports only exact process-local flight observations; after
+the physical call settles or the process restarts, an unresolved dispatch is
+possible-dispatch and is never automatically resent. A gated SQLite fixture
+checks both states across two Store handles and restart. Effect application
+tests passed 31/31 on each of JS, Wasm, and native; the Salesforce Site suite
+passed 106/106. The independent Connector addition gate and documentation
+gate passed at this SHA. SF-3 still requires the checked Program-to-Host Run
+path and final receipts. No live Salesforce verification is claimed.
+
 The retained in-process Catalog observation now keeps typed describe outcomes,
 including provider failure reasons, rather than reducing every failed describe
 to an absent metadata slot. The accessor requires the original exact binding;
