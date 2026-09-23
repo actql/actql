@@ -95,10 +95,23 @@ async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
       {run: `calibration-${round}-${candidate}`, childLimits: config.childLimits},
       AbortSignal.timeout(config.timeoutMs));
     const executionMs = performance.now() - started;
-    if (result.report.status !== 'host-tasks-completed') {
+    const actualRealizations = result.report.completed.map(task => task.realization);
+    if (result.report.status !== 'host-tasks-completed' ||
+        candidate !== 'ordinary' &&
+        !actualRealizations.every(value => value === candidate)) {
       await writeFile(join(directory, `failed-${round}-${candidate}.json`),
         serialize({caseId: selectedFixture.id, selection, report: result.report,
           phases: result.phases, usage: result.usage()}));
+    }
+    if (result.report.status !== 'host-tasks-completed' &&
+        result.report.explanation?.selection_state === 'no_feasible' &&
+        result.report.explanation?.assessed_strategies?.length > 0 &&
+        result.report.explanation.assessed_strategies.every(value =>
+          value.rejection === 'retention_limit' ||
+          value.rejection === 'execution_limit' ||
+          value.rejection === 'transfer_limit')) {
+      throw Object.assign(new Error('TrainingCapacityInfeasible'),
+        {code: 'TrainingCapacityInfeasible'});
     }
     assert.equal(result.report.status, 'host-tasks-completed');
     assert.equal(result.report.completed.length, taskCount);
@@ -107,8 +120,10 @@ async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
     assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
     const tasks = result.report.completed;
     if (candidate !== 'ordinary') {
-      assert(tasks.every(task => task.realization === candidate),
-        `CalibrationCandidateMismatch:${candidate}`);
+      if (!tasks.every(task => task.realization === candidate)) {
+        throw Object.assign(new Error(`CalibrationCandidateMismatch:${candidate}`),
+          {code: 'TrainingCandidateNotSelected'});
+      }
     }
     const elapsed = tasks.map(task => task.taskElapsedMilliseconds);
     assert(elapsed.every(value => Number.isFinite(value) && value >= 0),
