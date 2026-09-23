@@ -105,3 +105,18 @@ still lacks independent file holding, a downstream reader and a comparator
 with identical obligations. Its timing is diagnostic only. It narrows the
 next bottleneck to native holding and formal placement calibration rather than
 assuming the JS example's duplicate preparation is intrinsic to ActQL.
+
+The probe was then parameterized with each registered case's exact `DataProfile`
+and ledger ceilings. Narrow low-selectivity inputs at 1,000 and 10,000 rows
+completed with matching independent CIDs (single process intervals of 24.1 and
+40.4 ms). The 100,000-row narrow case was rejected before task dispatch: all
+eight Local/DuckDB assignments exceeded the registered 1 GiB retention limit,
+with assessed peaks from 2,534,667,648 to 4,999,729,152 bytes. The 10,000-row
+numeric-64 case similarly rejected all eight assignments, with assessed peaks
+from 8,110,395,264 to 15,982,129,152 bytes. These are reproducible
+diagnostics, not the formal benchmark. The existing native standard strategy
+path uses materialized task-retention envelopes from the graph-wide value
+profile; the Node retained comparison uses managed file holding. Enlarging the
+1 GiB registered ceiling or treating an unselected task as complete would mask
+the gap. Native acceptance needs a managed, bounded holding path whose exact
+output and cleanup obligations are counted within the registered limit.

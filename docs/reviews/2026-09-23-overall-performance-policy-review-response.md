@@ -28,6 +28,10 @@ The registered narrow-100 Program also runs through a Node-free native Host
 probe with real DuckDB acquisition and an independently checked final CID.
 This isolates the JS process setup cost but still lacks independent holding,
 a fresh consumer and a matched comparator; it supplies no PERF-1 sample.
+When parameterized with registered larger cases, the native materialized path
+rejects some cases before dispatch under the fixed 1 GiB retention ceiling.
+This path needs managed bounded holding for native acceptance; raising the
+registered ceiling is not a valid substitute.
 
 Review regressions to add before closing PERF-1: missing pair, missing case,
 changed Program or implementation hash, unconfirmed cleanup, and a baseline
