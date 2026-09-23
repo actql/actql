@@ -172,3 +172,22 @@ as concrete warm-path costs, while parent/child application preparation remains
 the larger cold-path cost. The raw record is
 `resident-setup-pair-6127.json` in workspace scratch, SHA-256
 `a38ec9f552e47e9ffac0557f3fb63084510ba343af8dc1b0bb8f3cf587e4ff77`.
+
+At clean revision `03e3daa42`, the registered equivalent-obligation runner
+visited all 27 cases and retained every result. The one-comparator assessment is
+**incomplete**: four small cases produced seven admitted alternating pairs each
+and failed both unchanged warm and cold gates; six cases completed seven pairs
+but lacked equivalent-obligation admission; the remaining 17 stopped during
+independent calibration. Of those 17, 16 could not force the Local candidate in
+the training fixture, while one calibration asserted that an already released
+intermediate completion must still be present after close. The six unadmitted
+cases selected Local in ordinary execution, but the comparator currently
+expects DuckDB-specific per-task accounting. Neither an unavailable training
+candidate nor a missing diagnostic is a passing performance sample. The full
+case table is in `benchmarks/retained-results/equivalent-matrix-2026-09-24.md`.
+The raw `progress.json` and `assessment.json` are in the workspace scratch
+directory `equivalent-matrix-full-03e3`, with SHA-256 digests
+`50cf6bcf8fcb277e13ebc53ea70fd3be137fbff1b843b0f9d45d5ef5e9c73730`
+and `4a67166f62863593d544d12356b29946823c84ceb9591a1858f06d98efaad8a7`
+respectively. This is a fixed-SHA diagnosis of the registered matrix, not a
+PERF-1 pass or evidence for the other three comparators.

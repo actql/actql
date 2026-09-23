@@ -122,7 +122,10 @@ async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
       cleanupMs = performance.now() - started;
       assert.equal(result.cleanupHandle.status().pending, false);
       for (let task = 1; task <= taskCount; task++) {
-        assert.equal(result.completion(task)?.retained, false);
+        // An earlier producer may have been released after its last consumer.
+        // Close must release every completion that still exists.
+        const completion = result.completion(task);
+        if (completion) assert.equal(completion.retained, false);
       }
     }
   }
