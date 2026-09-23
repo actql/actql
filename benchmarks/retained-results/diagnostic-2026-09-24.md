@@ -62,3 +62,29 @@ also failed before dispatch at this revision. Its smallest candidate declared
 real admission rejection, not a measured allocation. Native independent
 bounded holding and managed completion remain necessary before native timings
 can be considered for the registered matrix.
+
+## Resident-placement isolation
+
+At clean revision `2a1f8a3a0b7b07f194db3eb592f8e30361289358`, the same
+registered narrow-100 case ran once with a diagnostic 20 ms native estimate.
+The selected three tasks used the resident realization. The result's warm task
+interval was 27.005 ms and its fresh-process interval was 703.239 ms. This is
+not an acceptance sample: the estimate is not independently calibrated, and a
+single run cannot establish the registered confidence interval. The raw local
+record is `workspace/.codex-scratch/perf-resident-narrow100-20.json` with
+SHA-256 `24440b1c9a38a86e122412e947762adbe42d97bc3761c68a84ae045091e35cea`.
+
+Parent Program preparation took 214.364 ms, child start 81.774 ms, child
+preparation 217.054 ms, and child execution 179.875 ms. The example therefore
+prepares the same Program in both processes before the first task. Removing one
+preparation requires moving the parent's task-identity and custody setup across
+the process boundary without weakening its exact binding; it is not a safe
+one-line benchmark change.
+
+Each resident task reused the input identity but recorded one direct input
+scan and no value reuse. The selected pipeline applies fresh filter demand, so
+the existing value-reuse gate correctly keeps a scan for consumer-specific
+evaluation. Resident placement avoids reimport; it does not authorize skipping
+that demand. The first task's native work interval was 4.637 ms inside a
+20.201 ms task interval, leaving Host coordination and retention as another
+measured optimization target.
