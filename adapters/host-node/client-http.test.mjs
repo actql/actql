@@ -86,6 +86,19 @@ test('malformed wire is rejected before connection authorization', async () => {
     assert.equal((await send({connection: {mode: 'remote',
       owner: 'remote', runners: [], consentRefs: []},
     ref: {...ref, runDefinitionCid: 'opaque-handle'}})).status, 400);
+    const body = Buffer.from(JSON.stringify({connection: {
+      mode: 'remote', owner: 'remote', runners: [], consentRefs: [],
+    }, requestId: 'badé', kind: 'program',
+    input: {version: 'actql/0.1'}, parameters: null}), 'utf8');
+    const accented = body.indexOf(Buffer.from('é'));
+    assert.notEqual(accented, -1);
+    body[accented + 1] = 0x28;
+    const invalidUtf8 = await fetch(`${base}/actql/client/0.1/submit`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body,
+    });
+    assert.equal(invalidUtf8.status, 400);
+    assert.deepEqual(await invalidUtf8.json(), {code: 'InvalidClientRequest'});
   });
   assert.equal(authorized, 0);
 });

@@ -23,7 +23,10 @@ async function boundedJson(request, maxBytes) {
     if (size > maxBytes) invalid('ClientRequestTooLarge');
     chunks.push(chunk);
   }
-  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+  try {
+    return JSON.parse(new TextDecoder('utf-8', {fatal: true})
+      .decode(Buffer.concat(chunks)));
+  }
   catch { invalid('InvalidClientRequest'); }
 }
 
