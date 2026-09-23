@@ -102,6 +102,7 @@
   },
   "devDependencies": {
     "@actql/client-wire": "file:packages/client-wire",
+    "esbuild": "0.28.1",
     "github-slugger": "2.0.0",
     "remark-parse": "11.0.0",
     "unified": "11.0.5",

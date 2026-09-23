@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readdir, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -79,4 +79,39 @@ await assert.rejects(connect({mode: 'hybrid', owner: 'local',
 assert.equal(calls.length, connected.length);
 `);
 run(process.execPath, ['smoke.mjs'], root);
-console.log('packed Node assembly smoke passed');
+const browser = join(root, 'actql-sdk-browser.mjs');
+const browserMetadata = join(root, 'actql-sdk-browser-meta.json');
+run(join(repository, 'node_modules/.bin/esbuild'), [
+  join(root, 'node_modules/@actql/sdk/index.mjs'),
+  '--bundle', '--platform=browser', '--format=esm', '--target=es2022',
+  `--outfile=${browser}`, `--metafile=${browserMetadata}`,
+], root);
+const metadata = JSON.parse(await readFile(browserMetadata, 'utf8'));
+assert.deepEqual(Object.keys(metadata.inputs).sort(), [
+  'node_modules/@actql/client-wire/index.mjs',
+  'node_modules/@actql/sdk/index.mjs',
+]);
+assert(Object.values(metadata.outputs).every(output =>
+  output.imports.length === 0));
+await writeFile(join(root, 'browser-smoke.mjs'), `
+import assert from 'node:assert/strict';
+globalThis.fetch = async () => { throw new Error('NetworkOnImport'); };
+const {connect} = await import('./actql-sdk-browser.mjs');
+let calls = 0;
+globalThis.fetch = async () => {
+  calls++;
+  return Response.json({version: 'actql-client-host/0.1', mode: 'remote',
+    owner: 'remote', durability: 'volatile', scopeRef: 'browser-scope',
+    capabilities: [], limits: {maxReadWireBytes: 1024,
+      maxRowWireBytes: 512, maxRowRetainedValueBytes: 512,
+      maxRetainedValueBytes: 1024, maxRows: 10, maxBatchRows: 10,
+      maxBatchRetainedValueBytes: 1024}});
+};
+const client = await connect({mode: 'remote',
+  endpoint: 'https://remote.example/', token: 'fixture-token'});
+assert.equal(client.profile.mode, 'remote');
+assert.equal(calls, 1);
+client.close();
+`);
+run(process.execPath, ['browser-smoke.mjs'], root);
+console.log('packed Node and browser Client smoke passed');
