@@ -13,7 +13,7 @@ const source = join(
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
 );
 
-function run(mutator, routeMutator) {
+function run(mutator, routeMutator, args = []) {
   const manifest = JSON.parse(readFileSync(source, 'utf8'));
   mutator?.(manifest);
   const directory = mkdtempSync(join(tmpdir(), 'actql-resource-audit-'));
@@ -29,7 +29,7 @@ function run(mutator, routeMutator) {
   const target = join(directory, 'manifest.json');
   writeFileSync(target, JSON.stringify(manifest));
   try {
-    return execFileSync(process.execPath, [script], {
+    return execFileSync(process.execPath, [script, ...args], {
       cwd: root,
       env: {...process.env, ACTQL_LOCAL_RESOURCE_AUDIT: target},
       encoding: 'utf8',
@@ -41,7 +41,20 @@ function run(mutator, routeMutator) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 1 with complete boundary assurance; full boundary completion is not asserted/);
+});
+
+test('resource completion rejects every unassured operation', () => {
+  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+    /RelA select: boundary assurance is missing/);
+});
+
+test('resource gate rejects a false in-flight assurance', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.boundary_assurance.in_flight_cancel = 'filter_cancel_cleanup';
+  }), /RelA filter: in_flight_cancel does not bind an executable fixture/);
 });
 
 test('resource gate rejects an omitted operation', () => {
