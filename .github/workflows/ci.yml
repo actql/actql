@@ -72,6 +72,8 @@ jobs:
         run: npm run check:remote-site-runtime
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
+      - name: Test Salesforce Site Catalog and bounded query acquisition
+        run: npm run check:salesforce-site
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
