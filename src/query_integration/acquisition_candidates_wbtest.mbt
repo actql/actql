@@ -2,9 +2,9 @@
 test "common acquisition comparison preserves provider binding and unknown costs" {
   let registry = @connector.prepare_capability_registry(
     [
-      { name: "mock", acquisition: true, fixed_compute: false, },
-      { name: "duckdb", acquisition: true, fixed_compute: true, },
-      { name: "local", acquisition: false, fixed_compute: true, },
+      { name: "mock", acquisition: true, fixed_compute: false, effect: false, },
+      { name: "duckdb", acquisition: true, fixed_compute: true, effect: false, },
+      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
     ],
     3,
     15,
@@ -176,7 +176,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     @planning.acquisition_choice_payload(choice, broad_binding) is None,
   )
   let foreign_registry = @connector.prepare_capability_registry(
-    [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
+    [{ name: "duckdb", acquisition: true, fixed_compute: true, effect: false, }],
     1,
     6,
   ).unwrap()

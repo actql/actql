@@ -8,11 +8,12 @@ struct NumericImplementation {
 /// no Acquisition entrypoint. Resource bindings are not registration names.
 pub fn numeric_bundle(
   name : String,
-) -> @connector.CapabilityBundle[Unit, NumericImplementation] {
+) -> @connector.CapabilityBundle[Unit, NumericImplementation, Unit] {
   {
     name,
     acquisition: None,
     fixed_compute: Some(fn(_registry, registration) { { registration, } }),
+    effect: None,
   }
 }
 

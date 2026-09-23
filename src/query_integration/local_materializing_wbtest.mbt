@@ -20,7 +20,14 @@ test "Local materializing execution uses the common reservation and exact retain
     let input = @strategy.captured_task_input(run, 3, 100, 10000).unwrap()
     assert_false(@execution.producer_read_has_cell_access(input))
     let registry = @connector.prepare_capability_registry(
-      [{ name: "local", acquisition: false, fixed_compute: true, }],
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
       1,
       100,
     ).unwrap()

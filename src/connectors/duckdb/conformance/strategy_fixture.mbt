@@ -607,8 +607,18 @@ fn strategy_fixture_create_impl(
       ledger,
       registry: @connector.prepare_capability_registry(
         [
-          { name: "local", acquisition: false, fixed_compute: true, },
-          { name: "duckdb", acquisition: false, fixed_compute: true, },
+          {
+            name: "local",
+            acquisition: false,
+            fixed_compute: true,
+            effect: false,
+          },
+          {
+            name: "duckdb",
+            acquisition: false,
+            fixed_compute: true,
+            effect: false,
+          },
         ],
         2,
         100,

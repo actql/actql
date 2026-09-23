@@ -194,7 +194,14 @@ fn start_remote_completion_test_execution(
     common_fragment: None,
   }).unwrap()
   let registry = @connector.prepare_capability_registry(
-    [{ name: registration_name, acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: registration_name,
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()

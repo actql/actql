@@ -93,15 +93,17 @@ pub fn fixed_compute_request_inputs(FixedComputeRequest) -> Array[@execution_rel
 
 pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.BoundPrepared
 
-pub fn[A, C] install_bundles(Array[CapabilityBundle[A, C]], Int, Int) -> Result[InstalledBundles[A, C], CapabilityRegistrationIssue]
+pub fn[A, C, E] install_bundles(Array[CapabilityBundle[A, C, E]], Int, Int) -> Result[InstalledBundles[A, C, E], CapabilityRegistrationIssue]
 
 pub fn[T] install_capability_implementations(CapabilityRegistry, Array[(CapabilityRegistration, T)], Int, registry_order? : Bool) -> Result[CapabilityImplementations[T], CapabilityInstallationIssue]
 
-pub fn[A, C] installed_acquisition_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[A]
+pub fn[A, C, E] installed_acquisition_implementations(InstalledBundles[A, C, E]) -> CapabilityImplementations[A]
 
-pub fn[A, C] installed_bundle_registry(InstalledBundles[A, C]) -> CapabilityRegistry
+pub fn[A, C, E] installed_bundle_registry(InstalledBundles[A, C, E]) -> CapabilityRegistry
 
-pub fn[A, C] installed_compute_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[C]
+pub fn[A, C, E] installed_compute_implementations(InstalledBundles[A, C, E]) -> CapabilityImplementations[C]
+
+pub fn[A, C, E] installed_effect_implementations(InstalledBundles[A, C, E]) -> CapabilityImplementations[E]
 
 pub fn[E] managed_execution_lifecycle(ManagedExecutionOperations[E]) -> ExecutionLifecycleOperations[E]
 
@@ -241,16 +243,18 @@ pub struct AnalyticEnvelope {
   output_rows : Int64
 }
 
-pub(all) struct CapabilityBundle[A, C] {
+pub(all) struct CapabilityBundle[A, C, E] {
   name : String
   acquisition : ((CapabilityRegistry, CapabilityRegistration) -> A)?
   fixed_compute : ((CapabilityRegistry, CapabilityRegistration) -> C)?
+  effect : ((CapabilityRegistry, CapabilityRegistration) -> E)?
 }
 
 pub(all) struct CapabilityDescription {
   name : String
   acquisition : Bool
   fixed_compute : Bool
+  effect : Bool
 }
 
 type CapabilityImplementations[T]
@@ -337,7 +341,7 @@ pub enum FixedComputeSelection {
   NoCandidates
 }
 
-type InstalledBundles[A, C]
+type InstalledBundles[A, C, E]
 
 pub(all) struct ManagedExecutionOperations[E] {
   cancel : () -> Unit
