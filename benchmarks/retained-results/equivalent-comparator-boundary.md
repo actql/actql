@@ -116,6 +116,11 @@ differ because avoiding repeated physical work is the optimization under test.
 The matched-pair boundary compares the separately reported transfer and
 logical-work domains and requires terminal release of both ledgers. Physical
 implementation traffic remains observable but is not made equal artificially.
+Ledger attempt counts are physical admissions. They need not match when the
+independent Store creates separate holding attempts and the product uses fewer
+admitted operations. Exact semantic task, acquisition, consumer, and release
+obligations remain mandatory; a lower physical attempt count is not missing
+work by itself.
 
 The product retained leg also exports the canonical evidence material owned
 by its actual acquisition capture: the validation-scan and native-result
