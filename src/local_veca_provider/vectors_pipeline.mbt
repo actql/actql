@@ -353,6 +353,7 @@ fn advance_execution(
             value.generated,
             inputs[0],
             value.max_rows,
+            value.execution_limits.rows.input_values,
             value.execution_limits.rows.output_values,
             value.execution_limits.max_work,
             value.execution_limits.max_frames,
