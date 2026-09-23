@@ -139,6 +139,25 @@ hashes differ: an external ID and a RecordId can select the same record.
 Every member's target inventory still has to be derived from its checked
 Preview and admitted source rows before the first mutation.
 
+## Fixed-SHA review disposition
+
+The review in `02-salesforce-effects.md` inspected `66b42189d2bb17407776fd74ca0e7ea9ddf73d01`.
+Its findings are a verification list, not a claim that every finding remains
+open at later commits. At `eb451c24bb98c83bfa14fbff1119436f71820043`:
+
+| Finding | Current disposition | Evidence and remaining boundary |
+| --- | --- | --- |
+| SF-1: external-ID dot segments changed after request identity | Fixed by `52feb781e` | The HTTPS adapter sends the admitted request-target without URL path normalization. Local HTTPS tests compare the actual method, target, and body with the request CID, including dot segments and encoded characters. |
+| SF-2: unproven RecordId and external-ID target independence | Fixed at the Connector target boundary by `6b4fc8c40`, `311921b14`, and `ceea8df1a` | RecordId aliases and external-ID matching metadata produce org-bound, request-derived target identities. Unknown equivalence fails closed. This does not itself establish whole-Program Effect preflight. |
+| SF-3: complete multi-member product path | Open | The standard checked Program still rejects nonempty Effects, and the standard Host remains Effect-free. The shared Run port, complete-set admission, Collections custody, final receipts, and restart fault matrix remain required. |
+
+The Salesforce Site and common Effect tests pass 88/88 at the stated HEAD.
+These are component and local HTTPS tests, not a standard Host multi-member
+acceptance run or a live Salesforce-org test. The exact shared boundary and
+acceptance matrix are recorded in
+`docs/reviews/2026-09-24-effect-run-shared-port.md`. Do not close SF-3 or the
+Salesforce milestone on the basis of the first two fixes.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
