@@ -325,6 +325,13 @@ export function openSqliteEffectLedger(root, {
       credentialUseCid: row.credential_use_cid,
       statusCode: row.status_code,
       responseBytes: Buffer.from(row.response_bytes),
+      batchOwnerCid: row.batch_owner_cid,
+      batchPosition: member.position,
+      batchCount: row.member_count,
+      batchMembers: Object.freeze(members.map(item => Object.freeze({
+        dispatchEntryCid: item.dispatch_entry_cid,
+        logicalItemLocatorCid: item.logical_item_locator_cid,
+      }))),
     });
   };
   const response = dispatchEntryCid => {

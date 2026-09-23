@@ -198,6 +198,16 @@ must still prove that the Preview belongs to the checked Program and that the
 physical requests satisfy current apply admission. This progress reader is
 not an apply permit, does not send HTTP requests, and does not close SF-3.
 
+The Salesforce Host bridge also reprojects a verified, durably stored physical
+response after restart without claiming another credential use or sending the
+request again. A Collections replay checks the exact batch owner and ordered
+dispatch membership before applying the same MoonBit response projection used
+for the initial observation. A response lost after the provider request stays
+possible-dispatch, with no typed recovered result and no automatic resend.
+These are physical-response facts, not terminal Effect facts or final receipts.
+The checked Program, all-member preflight and apply permit, durable outcome
+admission, receipts, and ordinary Effectful Run path remain open under SF-3.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The

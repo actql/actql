@@ -1,7 +1,8 @@
 import {checked} from '../host-common/runtime-result.mjs';
-import {writeSalesforceSingleRecord} from
+import {projectSalesforceSingleObservation, writeSalesforceSingleRecord} from
   '../site-node/salesforce-single-write.mjs';
-import {writeSalesforceContinueCollection} from
+import {projectSalesforceCollectionObservation,
+  writeSalesforceContinueCollection} from
   '../site-node/salesforce-collection-write.mjs';
 import {matchesSalesforceCredentialOrg} from
   '../site-node/salesforce-credential-binding.mjs';
@@ -49,7 +50,7 @@ export async function captureClaimedSalesforceSingleResponse({
   signal?.throwIfAborted();
   const requestCid = checked(moon.salesforceSingleWriteRequestCid(
     request, scope.resourceOrigin, maxRequestIdentityBytes));
-  return captureClaimedEffectResponse({
+  const captured = await captureClaimedEffectResponse({
     ledger,
     claim,
     requestCid,
@@ -58,6 +59,20 @@ export async function captureClaimedSalesforceSingleResponse({
       limits, signal, callResource,
     }),
   });
+  const stored = captured.ownership?.response;
+  if (captured.claimed || stored === undefined) return captured;
+  // The Store has verified these exact physical bytes. Re-projecting them is
+  // read-only: it never claims another use or sends the mutation again.
+  const recovered = projectSalesforceSingleObservation({
+    moon, request,
+    observation: Object.freeze({
+      useCid: stored.credentialUseCid,
+      statusCode: stored.statusCode,
+      body: stored.responseBytes,
+    }),
+    limits,
+  });
+  return Object.freeze({...captured, recovered});
 }
 
 // Bind one physical REST request to the admitted member and row before the
@@ -157,11 +172,51 @@ export async function captureSalesforceCollectionEffectWrite({
     moon.salesforceCollectionWriteRequestEffectKind(request), claims[0].scope,
     rowCids, claims.map(claim => claim.locator),
     claims.map(claim => claim.key), limits.maxRows, maxBindingWork);
-  return captureClaimedEffectCollectionResponse({
+  const captured = await captureClaimedEffectCollectionResponse({
     ledger, claims, requestCid,
     execute: () => writeSalesforceContinueCollection({
       moon, request, currentObservation, authorization, credential,
       limits, signal, callResource,
     }),
   });
+  if (captured.claimed ||
+      !captured.ownership.actions.every(action => action === 3)) {
+    return captured;
+  }
+  let response;
+  for (let index = 0; index < claims.length; index++) {
+    const locatorCid = effect.logicalItemLocatorCid(claims[index].locator);
+    const entry = ledger.currentAdmitted(locatorCid);
+    if (!entry || !effect.ledgerEntryAdmitsDispatch(
+        entry, claims[index].scope, claims[index].locator,
+        claims[index].key, requestCid)) {
+      return captured;
+    }
+    const dispatchEntryCid = effect.ledgerEntryCid(entry);
+    if (index === 0) {
+      response = ledger.response(dispatchEntryCid);
+      if (!response) return captured;
+    }
+    if (response.batchMembers?.[index]?.dispatchEntryCid !==
+        dispatchEntryCid ||
+        response.batchMembers[index].logicalItemLocatorCid !== locatorCid) {
+      fail('EffectCollectionResponseBindingMismatch');
+    }
+  }
+  if (response.batchOwnerCid !== response.dispatchEntryCid ||
+      response.batchPosition !== 0 ||
+      response.batchCount !== claims.length ||
+      response.batchMembers.length !== claims.length) {
+    fail('EffectCollectionResponseBindingMismatch');
+  }
+  const recovered = projectSalesforceCollectionObservation({
+    moon, request,
+    observation: Object.freeze({
+      useCid: response.credentialUseCid,
+      statusCode: response.statusCode,
+      body: response.responseBytes,
+    }),
+    limits,
+  });
+  return Object.freeze({...captured, recovered});
 }
