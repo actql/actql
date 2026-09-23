@@ -94,6 +94,11 @@ export async function captureSalesforceSingleEffectWrite({
       typeof rowPreviewCid !== 'string') {
     fail('InvalidSalesforceEffectRowBinding');
   }
+  if (!checked(moon.salesforceSingleWriteRequestMatchesPreviewFootprint(
+      admittedPreview, memberIndex, request,
+      physical.maxRequestIdentityBytes ?? 4096))) {
+    fail('ForeignSalesforceEffectFootprint');
+  }
   runtimeCore(commonMoon).effectApplicationControl.admitMemberRow(
     admittedPreview, memberIndex, rowIndex,
     moon.salesforceSingleWriteRequestEffectKind(request), claim.scope,
@@ -161,6 +166,11 @@ export async function captureSalesforceCollectionEffectWrite({
   }
   checked(moon.salesforceRecheckCollectionWriteRequest(
     request, currentObservation));
+  if (!checked(moon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
+      admittedPreview, memberIndex, request,
+      maxRequestIdentityBytes, maxBindingWork))) {
+    fail('ForeignSalesforceEffectFootprint');
+  }
   signal?.throwIfAborted();
   const requestCid = checked(moon.salesforceCollectionWriteRequestCid(
     request, scope.resourceOrigin, maxRequestIdentityBytes));

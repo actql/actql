@@ -68,6 +68,21 @@ pub fn write_collection_request_org_id(
 }
 
 ///|
+pub fn write_collection_request_resource(
+  value : WriteCollectionRequest,
+) -> String {
+  value.projection.resource
+}
+
+///|
+pub fn write_collection_request_boundary_cid(
+  value : WriteCollectionRequest,
+  max_identity_bytes : Int,
+) -> Result[String, WriteCollectionRequestIssue] {
+  write_projection_boundary_cid(value.projection, max_identity_bytes)
+}
+
+///|
 /// Each target comes from the same row that formed the admitted request body.
 /// A caller cannot substitute a different footprint after physical encoding.
 pub fn write_collection_request_target_identity(
