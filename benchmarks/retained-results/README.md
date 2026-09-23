@@ -402,8 +402,12 @@ digest across every completed case; mixed builds make the matrix incomplete.
 
 `run-equivalent-matrix.mjs` executes this one comparator over the registered
 matrix. Give it an empty output directory outside the checkout. For each case
-it measures a distinct registered training size in the same workload/layout,
-creates a separate held-out source, then runs seven alternating pairs against
+it measures a distinct training-only size in the same workload/layout,
+starting with the nearest smaller size and descending only if a forced
+candidate cannot be selected under the fixed physical limits. These training
+cases are never added to the registered 27-case evaluation denominator. Failed
+training attempts and the final selected training case are preserved. The
+runner creates a separate held-out source, then runs seven alternating pairs against
 that immutable source. It writes every attempted pair and every case failure
 before continuing, followed by `assessment.json` and `assessment.md`:
 

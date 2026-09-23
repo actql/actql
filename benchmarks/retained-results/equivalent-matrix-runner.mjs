@@ -2,7 +2,7 @@ import {execFile} from 'node:child_process';
 import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {join, resolve, sep} from 'node:path';
 import {promisify} from 'node:util';
-import {retainedMatrix} from './fixtures.mjs';
+import {retainedCase, retainedMatrix} from './fixtures.mjs';
 import {assessEquivalentMatrix, formatEquivalentMatrix} from
   './equivalent-matrix-assessment.mjs';
 import {runMatchedEquivalentPair} from
@@ -16,24 +16,46 @@ async function inspectCheckout(checkout) {
     dirty: Boolean(await git(['status', '--porcelain']))};
 }
 
-function trainingFixture(target, fixtures) {
-  const compatible = fixtures.filter(value => value.workload === target.workload &&
-    value.layout === target.layout && value.rows !== target.rows);
-  const lower = compatible.filter(value => value.rows < target.rows)
-    .sort((a, b) => b.rows - a.rows);
-  const higher = compatible.filter(value => value.rows > target.rows)
-    .sort((a, b) => a.rows - b.rows);
-  return lower[0] ?? higher[0];
+function trainingFixtures(target) {
+  // Training-only sizes never change the registered evaluation denominator.
+  // Prefer the nearest smaller case, then descend only when that candidate
+  // cannot be forced under the unchanged physical capacity.
+  const sizes = [100, 1000, 10000, 100000, 1000000];
+  const lower = sizes.filter(rows => rows < target.rows).sort((a, b) => b - a);
+  const higher = sizes.filter(rows => rows > target.rows).sort((a, b) => a - b);
+  return (lower.length ? lower : higher.slice(0, 1)).map(rows =>
+    retainedCase(target.workload, target.layout, rows));
 }
 
 async function defaultCalibrate({checkout, outputDirectory, training, target}) {
   const script = join(checkout,
     'adapters/connectors/duckdb/node/bench/calibrate-retained-case.mjs');
-  const {stdout} = await exec(process.execPath,
-    [script, target.workload, target.layout, String(training.rows), String(target.rows)],
-    {cwd: checkout, env: {...process.env, ACTQL_TEST_SCRATCH_ROOT: outputDirectory},
-      timeout: 10 * Math.max(training.limits.timeoutMs, target.limits.timeoutMs),
-      maxBuffer: 4 * 1024 * 1024});
+  let stdout;
+  try {
+    ({stdout} = await exec(process.execPath,
+      [script, target.workload, target.layout, String(training.rows), String(target.rows)],
+      {cwd: checkout, env: {...process.env, ACTQL_TEST_SCRATCH_ROOT: outputDirectory},
+        timeout: 10 * Math.max(training.limits.timeoutMs, target.limits.timeoutMs),
+        maxBuffer: 4 * 1024 * 1024}));
+  } catch (error) {
+    const started = String(error.stdout ?? '').trim().split('\n').map(line => {
+      try { return JSON.parse(line); } catch { return undefined; }
+    }).find(event => event?.event === 'started');
+    const directory = started?.directory;
+    if (directory && resolve(directory).startsWith(resolve(outputDirectory) + sep) &&
+        started.caseId === training.id && started.heldOutCaseId === target.id) {
+      try {
+        const failed = JSON.parse(await readFile(join(directory, 'failure.json'), 'utf8'));
+        if (failed.revision === (await inspectCheckout(checkout)).revision &&
+            failed.caseId === training.id && failed.heldOutCaseId === target.id &&
+            ['TrainingCapacityInfeasible', 'TrainingCandidateNotSelected']
+              .includes(failed.error?.code)) {
+          error.code = failed.error.code;
+        }
+      } catch { /* Keep the actual child failure when no trusted record exists. */ }
+    }
+    throw error;
+  }
   const events = stdout.trim().split('\n').map(line => JSON.parse(line));
   const finished = events.findLast(event => event.event === 'finished');
   const directory = finished?.directory;
@@ -86,15 +108,30 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
   const records = [];
   const selected = caseId === undefined ? fixtures : fixtures.filter(value => value.id === caseId);
   for (const [position, fixture] of selected.entries()) {
-    const training = trainingFixture(fixture, fixtures);
-    const record = {caseId: fixture.id, trainingCaseId: training?.id,
-      status: 'incomplete', pairs: []};
+    const trainings = trainingFixtures(fixture);
+    const record = {caseId: fixture.id, trainingCaseId: undefined,
+      status: 'incomplete', trainingAttempts: [], pairs: []};
     const path = join(destination, `case-${String(position).padStart(2, '0')}.json`);
     records.push(record);
     try {
-      if (!training) throw new Error('NoIndependentTrainingCase');
-      const calibrated = await calibrate({checkout: root,
-        outputDirectory: destination, training, target: fixture});
+      let calibrated;
+      for (const training of trainings) {
+        try {
+          calibrated = await calibrate({checkout: root,
+            outputDirectory: destination, training, target: fixture});
+          record.trainingCaseId = training.id;
+          record.trainingAttempts.push({trainingCaseId: training.id,
+            status: 'completed'});
+          break;
+        } catch (error) {
+          record.trainingAttempts.push({trainingCaseId: training.id,
+            status: 'failed', error: failure(error)});
+          await writeFile(path, JSON.stringify(record, null, 2));
+          if (error.code !== 'TrainingCapacityInfeasible' &&
+              error.code !== 'TrainingCandidateNotSelected') throw error;
+        }
+      }
+      if (!calibrated) throw new Error('NoFeasibleIndependentTrainingCase');
       record.calibrationDirectory = calibrated.directory;
       for (let index = 0; index < 7; index++) {
         try {

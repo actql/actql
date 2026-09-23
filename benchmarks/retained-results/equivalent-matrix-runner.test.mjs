@@ -61,3 +61,37 @@ test('a one-case rehearsal remains incomplete for the full matrix', async () => 
     await rm(directory, {recursive: true, force: true});
   }
 });
+
+test('capacity-limited training falls back without dropping its failed attempt', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-matrix-'));
+  const outputDirectory = join(directory, 'results');
+  const target = retainedMatrix().find(value =>
+    value.layout === 'text-1024' && value.rows === 10000);
+  const trainingSizes = [];
+  try {
+    const result = await runEquivalentMatrix({checkout, outputDirectory,
+      inspect: async () => ({revision: 'a'.repeat(40), dirty: false}),
+      caseId: target.id,
+      calibrate: async ({training}) => {
+        trainingSizes.push(training.rows);
+        if (training.rows === 1000) {
+          throw Object.assign(new Error('LocalCandidateUnavailable'),
+            {code: 'TrainingCandidateNotSelected'});
+        }
+        return {directory, database: join(directory, 'unused.duckdb')};
+      },
+      runPair: async ({fixture, index}) => ({index, caseId: fixture.id,
+        status: 'failed', acceptanceEligible: false})});
+    assert.equal(result.assessment.status, 'incomplete');
+    assert.deepEqual(trainingSizes, [1000, 100]);
+    const record = JSON.parse(await readFile(join(outputDirectory, 'case-00.json')));
+    assert.equal(record.trainingCaseId, `${target.workload}/${target.layout}/100`);
+    assert.deepEqual(record.trainingAttempts.map(value => value.status),
+      ['failed', 'completed']);
+    assert.equal(record.trainingAttempts[0].error.code,
+      'TrainingCandidateNotSelected');
+    assert.equal(record.pairs.length, 7);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
