@@ -40,6 +40,8 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
     "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
     "\"effect_preview_cid\":\"" +
     cid +
+    "\",\"effect_member_preview_cid\":\"" +
+    cid +
     "\",\"applied\":[\"" +
     row +
     "\"],\"accepted\":[],\"unknown\":[],\"failed\":[]," +
@@ -52,7 +54,7 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
   assert_eq(publication_contract_name(member_receipt), "effect_apply_receipt")
   assert_eq(
     publication_contract_identity(member_receipt),
-    "sha256:dc143f8b772db5287e3e9f80777f484b2ad60648a2d8d6280c3ae682866fe3c8",
+    "sha256:ad67e9df7e023c77e6e3c1db0ef11988ec651f31172801cb36dec71cdce731dc",
   )
   let admitted = admit_publication_contract(
     "effect_apply_receipt",
@@ -65,10 +67,21 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
     publication_contract_identity(admitted),
     publication_contract_identity(member_receipt),
   )
+  let missing_member = publication_contract_json(member_receipt).replace_all(
+    old="\"effect_member_preview_cid\":\"" + cid + "\",",
+    new="",
+  )
+  assert_true(
+    admit_publication_contract(
+      "effect_apply_receipt", missing_member, 8192, 256, 16,
+    )
+    is Err(InvalidField("protocol_schema")),
+  )
   assert_true(
     seal_publication_contract(
       "effect_apply_receipt",
       effect_receipt_test_member_body(
+        cid,
         cid,
         "[\"" + row + "\"]",
         "[{\"row_preview_cid\":\"" + row + "\",\"error_cid\":\"" + cid + "\"}]",
@@ -85,6 +98,7 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
     seal_publication_contract(
       "effect_apply_receipt",
       effect_receipt_test_member_body(
+        cid,
         cid,
         "[\"" + row + "\"]",
         "[{\"row_preview_cid\":\"" + row + "\",\"error_cid\":\"" + cid + "\"}]",
@@ -225,6 +239,7 @@ fn effect_receipt_test_preview() -> EffectPreviewIdentity {
 ///|
 fn effect_receipt_test_member_body(
   preview_cid : String,
+  member_cid : String,
   applied : String,
   failed : String,
   status : String,
@@ -233,6 +248,8 @@ fn effect_receipt_test_member_body(
   "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
   "\"effect_preview_cid\":\"" +
   preview_cid +
+  "\",\"effect_member_preview_cid\":\"" +
+  member_cid +
   "\",\"applied\":" +
   applied +
   ",\"accepted\":[],\"unknown\":[],\"failed\":" +
@@ -248,11 +265,13 @@ fn effect_receipt_test_member_body(
 test "Effect apply receipt partitions exactly one admitted member inventory" {
   let preview = effect_receipt_test_preview()
   let preview_cid = effect_preview_semantic_identity(preview)
+  let member_cid = effect_preview_member_identity(preview, 0).unwrap()
   let row = effect_receipt_test_cid("3")
   let good = seal_publication_contract(
     "effect_apply_receipt",
     effect_receipt_test_member_body(
       preview_cid,
+      member_cid,
       "[\"" + row + "\"]",
       "[]",
       "applied",
@@ -277,6 +296,7 @@ test "Effect apply receipt partitions exactly one admitted member inventory" {
     "effect_apply_receipt",
     effect_receipt_test_member_body(
       effect_receipt_test_cid("c"),
+      member_cid,
       "[\"" + row + "\"]",
       "[]",
       "applied",
@@ -297,6 +317,31 @@ test "Effect apply receipt partitions exactly one admitted member inventory" {
     )
     is Err(ForeignPreview),
   )
+  let foreign_member = seal_publication_contract(
+    "effect_apply_receipt",
+    effect_receipt_test_member_body(
+      preview_cid,
+      effect_receipt_test_cid("d"),
+      "[\"" + row + "\"]",
+      "[]",
+      "applied",
+      "{\"state\":\"applied\",\"result\":{}}",
+    ),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_true(
+    admit_effect_apply_receipt_for_member(
+      preview,
+      0,
+      publication_contract_json(foreign_member),
+      8192,
+      256,
+      12,
+    )
+    is Err(ForeignMember),
+  )
   for
     (applied, failed, status, outcome) in [
       ("[]", "[]", "applied", "{\"state\":\"applied\",\"result\":{}}"),
@@ -310,7 +355,7 @@ test "Effect apply receipt partitions exactly one admitted member inventory" {
     let receipt = seal_publication_contract(
       "effect_apply_receipt",
       effect_receipt_test_member_body(
-        preview_cid, applied, failed, status, outcome,
+        preview_cid, member_cid, applied, failed, status, outcome,
       ),
       8192,
       256,
