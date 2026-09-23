@@ -32,8 +32,10 @@ normal terminator and writes exact payload bytes to stdout after completion.
 The whole response is bounded by `--max-response-bytes` (default 1 MiB,
 maximum 16 MiB); this is a bounded CLI read, not the streaming SDK reader or
 a JavaScript heap limit. A failed read reports its attempt ID and does not
-cancel the Run. `delivery-attempt` validates the existing attempt-lookup
-reply shape and never requests payload replay.
+cancel the Run. `delivery-attempt` admits the published MoonBit attempt,
+record and Host release receipt contracts, binds them to the requested
+attempt, Run and Result, and rejects missing or contradictory evidence. It
+does not request payload replay or hash payload bytes.
 
 This is a transport development artifact. The BASE Host has no generic
 Program submit or full active-Run state service, and the binary does not yet
