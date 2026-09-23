@@ -6,10 +6,14 @@ against an existing Smooth Cloud connection or any production org.
 
 ## Isolated resources
 
-Use an ActQL-only sandbox or Developer org. Record its alias, instance URL,
-API version, and a Site secret-manager reference outside this repository. A
-secret resolver supplies the credential to the scoped Site operation; never
-put its value into fixtures, logs, or a general Connector environment map.
+Use an ActQL-only sandbox or Developer org. Record its alias, org ID, user,
+instance URL, and API version outside this repository. For local use, the
+optional Salesforce CLI adapter can resolve that fixed binding from an
+existing `sf org login web` session. An explicitly configured Site secret
+manager remains an alternative; Cloud credentials are a separate connection
+choice. The Site secret resolver supplies the token to scoped operations.
+Never put the token into fixtures, logs, or a general Connector environment
+map, and never fall back from failed local authentication to Cloud.
 
 Keep `Account` as a read-only comparison resource. Provision a dedicated
 custom object after review. `ActQL_Test_Record__c` is a proposed name, not an
@@ -47,7 +51,7 @@ separate, explicitly approved administrative step.
 ## Review and evidence checklist
 
 Before any live write, obtain the exact object/field names, describe responses,
-org alias, API version, connection authority, scoped secret reference, and
+org alias, API version, connection authority, chosen credential source, and
 explicit create/update/upsert authorization. Confirm that the test user can
 observe the required metadata and that an unprivileged user cannot. Capture
 the exact Resource Catalog observation and current authority separately.

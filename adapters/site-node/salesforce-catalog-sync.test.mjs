@@ -17,6 +17,7 @@ import {openSqliteCredentialJournal} from
 import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
+import {createSalesforceCliSecretResolver} from './salesforce-cli-secret.mjs';
 import {readSalesforceManagedQuery, readSalesforceQuery} from
   './salesforce-query-read.mjs';
 
@@ -220,6 +221,72 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Account',
       ['Id'], 22)), {code: 'MoonBitHostFailure'});
+  });
+
+test('CLI alias supplies only Site secret for the authorized HTTPS path',
+  async t => {
+    const setup = await fixture(t);
+    const origin = setup.list.scope.resourceOrigin;
+    let displays = 0;
+    let tokenCalls = 0;
+    const resolveSecret = createSalesforceCliSecretResolver({
+      connection: {alias: 'actql-test', orgId: '00D-TEST',
+        username: 'test@example.invalid', instanceOrigin: origin},
+      principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
+      siteKey: 'site-a', siteGeneration: 4,
+      invoke: async (_executable, args) => {
+        if (args[1] === 'auth') {
+          assert.deepEqual(args, ['org', 'auth', 'show-access-token',
+            '--target-org', 'test@example.invalid', '--json']);
+          tokenCalls++;
+          return {stdout: JSON.stringify({status: 0,
+            result: {accessToken: 'test-only-secret'}})};
+        }
+        assert.deepEqual(args, ['org', 'display', '--target-org',
+          'actql-test', '--json']);
+        displays++;
+        return {stdout: JSON.stringify({status: 0, result: {
+          alias: 'actql-test', id: '00D-TEST',
+          username: 'test@example.invalid', instanceUrl: origin,
+          accessToken: '(redacted)',
+        }})};
+      },
+    });
+    const result = await syncSalesforceCatalog(request(setup, {
+      credential: {...setup.credential, resolveSecret},
+    }));
+    assert.equal(result.status, 'complete');
+    assert.equal(displays, 6);
+    assert.equal(tokenCalls, 3);
+    assert.equal(setup.seen.length, 3);
+    assert.ok(setup.seen.every(entry =>
+      entry.authorization === 'Bearer test-only-secret'));
+    assert.doesNotMatch(await readFile(setup.journal.path, 'utf8'),
+      /test-only-secret/u);
+  });
+
+test('retargeted CLI alias cannot send an authorized catalog request',
+  async t => {
+    const setup = await fixture(t);
+    const resolveSecret = createSalesforceCliSecretResolver({
+      connection: {alias: 'actql-test', orgId: '00D-TEST',
+        username: 'test@example.invalid',
+        instanceOrigin: setup.list.scope.resourceOrigin},
+      principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
+      siteKey: 'site-a', siteGeneration: 4,
+      invoke: async () => ({stdout: JSON.stringify({status: 0, result: {
+        alias: 'actql-test', id: '00D-OTHER',
+        username: 'test@example.invalid',
+        instanceUrl: setup.list.scope.resourceOrigin,
+        accessToken: 'test-only-secret',
+      }})}),
+    });
+    await assert.rejects(syncSalesforceCatalog(request(setup, {
+      credential: {...setup.credential, resolveSecret},
+    })), {code: 'SalesforceCliConnectionMismatch'});
+    assert.equal(setup.seen.length, 0);
+    assert.deepEqual(setup.journal.recover().map(use => use.outcome),
+      ['failed']);
   });
 
 test('rate-limited describe remains partial with its physical use failed',
