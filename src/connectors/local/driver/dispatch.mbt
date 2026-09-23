@@ -13,6 +13,11 @@ struct LocalDispatchModule {
 }
 
 ///|
+fn local_task_slot(installed : LocalDispatchModule, task : Int) -> Int {
+  task - @strategy.captured_compute_first_task(installed.run)
+}
+
+///|
 priv enum LocalDispatchPlan {
   Synchronous(@connector.SynchronousCompute)
   Materializing(
@@ -52,16 +57,18 @@ pub fn prepare_local_dispatch_module(
 ) -> Result[LocalDispatchModule, LocalDispatchIssue] {
   let run = @host.dispatch_driver_run(driver)
   let graph = @strategy.captured_dag_graph(run)
-  if sequences.length() != @strategy.graph_task_count(graph) - 1 {
+  let first = @strategy.captured_compute_first_task(run)
+  if sequences.length() != @strategy.graph_task_count(graph) - first {
     return Err(Configuration(ForeignPreparation))
   }
   let physical_sequences = []
   for index, sequence in sequences {
-    if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
+    if !(@strategy.graph_task_owner(graph, index + first) is Some(owner) &&
       physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
       return Err(Configuration(ForeignPreparation))
     }
-    let physical = match @strategy.graph_task_selected_step(graph, index + 1) {
+    let physical = match
+      @strategy.graph_task_selected_step(graph, index + first) {
       Some(step) =>
         match @execution.select_generated_sequence_step(sequence, step) {
           Some(value) => value
@@ -115,11 +122,14 @@ pub fn estimate_local_dispatch_offer(
   if local_dispatch_rejection(installed, task) is Some(_) &&
     !@local.local_module_managed_sequence_supported(
       installed.implementation,
-      task - 1,
+      local_task_slot(installed, task),
     ) {
     return Err(Configuration(ComputeUnsupported))
   }
-  guard @local.local_module_capacity(installed.implementation, task - 1)
+  guard @local.local_module_capacity(
+      installed.implementation,
+      local_task_slot(installed, task),
+    )
     is Some(capacity) else {
     return Err(Configuration(InvalidLimits))
   }
@@ -222,7 +232,7 @@ pub fn prepare_local_dispatch(
     let compute = match
       @local.prepare_local_module_materializing_compute(
         installed.implementation,
-        task - 1,
+        local_task_slot(installed, task),
         request,
         limits,
         _ => @strategy.RunIssue::Compute(InvalidLimits),
@@ -244,7 +254,7 @@ pub fn prepare_local_dispatch(
   let compute = match
     @local.prepare_local_module_compute(
       installed.implementation,
-      task - 1,
+      local_task_slot(installed, task),
       request,
       None,
       join_output_ceilings~,

@@ -133,7 +133,9 @@ pub fn prepare_task_offer(
   capacity : PhysicalEnvelope,
   max_work : Int,
 ) -> Result[TaskOffer, SearchIssue] {
-  if task < 1 || task >= run.graph.owners.length() || task_done(run, task) {
+  if task < captured_compute_first_task(run) ||
+    task >= run.graph.owners.length() ||
+    task_done(run, task) {
     return Err(ForeignOffer(task))
   }
   if !@connector.capability_description(registration).fixed_compute {
@@ -271,7 +273,7 @@ pub fn revise_strategy(
   for i, offer in offers {
     if !physical_equal(offer.owner, run.offer_owner) ||
       !physical_equal(offer.owner.graph, run.graph) ||
-      offer.task <= 0 ||
+      offer.task < captured_compute_first_task(run) ||
       offer.task >= count ||
       task_done(run, offer.task) {
       return Err(ForeignOffer(i))
@@ -283,7 +285,7 @@ pub fn revise_strategy(
   }
   let tasks = []
   let mut combinations = 1
-  for task in 1..<count {
+  for task in captured_compute_first_task(run)..<count {
     if task_done(run, task) {
       continue
     }

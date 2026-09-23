@@ -44,7 +44,8 @@ pub fn prepare_local_estimate_module(
   if max_work < 0 ||
     schedules.length() > max_work ||
     schedules.length() !=
-    @strategy.graph_task_count(@strategy.captured_dag_graph(installed.run)) - 1 {
+    @strategy.graph_task_count(@strategy.captured_dag_graph(installed.run)) -
+    @strategy.captured_compute_first_task(installed.run) {
     return Err(InvalidConfiguration)
   }
   installed.policy_sealed = true
@@ -72,13 +73,15 @@ fn estimate_local_configuration(
   task : Int,
   quantities : @host.TaskEstimateQuantities,
 ) -> Result[Array[@strategy.TaskOffer], LocalEstimateIssue] {
-  guard task > 0 && configuration.schedules.get(task - 1) is Some(schedule) else {
+  guard task >= @strategy.captured_compute_first_task(installed.run) &&
+    configuration.schedules.get(local_task_slot(installed, task))
+    is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
   if local_dispatch_rejection(installed, task) is Some(_) &&
     !@local.local_module_managed_sequence_supported(
       installed.implementation,
-      task - 1,
+      local_task_slot(installed, task),
     ) {
     return Ok([])
   }
@@ -133,7 +136,9 @@ fn local_managed_estimate_lines(
   task : Int,
   row_counts : Array[Int],
 ) -> Result[Array[@cost.SerialEstimateLine], LocalEstimateIssue] {
-  guard task > 0 else { return Err(InvalidConfiguration) }
+  guard task >= @strategy.captured_compute_first_task(installed.run) else {
+    return Err(InvalidConfiguration)
+  }
   guard installed.estimate_configuration is Some(configuration) else {
     return Ok([
       {
@@ -142,7 +147,8 @@ fn local_managed_estimate_lines(
       },
     ])
   }
-  guard configuration.schedules.get(task - 1) is Some(schedule) else {
+  guard configuration.schedules.get(local_task_slot(installed, task))
+    is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
   let mut rows = 0L

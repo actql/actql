@@ -1,9 +1,10 @@
 ///|
 /// Host-private serial execution state. Task success is not Program publication.
-/// The supplied acquisition has already completed; this object only borrows it.
+/// A captured acquisition is borrowed; a source-free root is an ordinary task.
 struct CapturedDAG {
   graph : CheckedDAG
   offer_owner : StrategyOfferOwner
+  root_is_compute : Bool
   mut source : @query.CapturedInputSource?
   ledger : @resources.Ledger
   outputs : Array[CommittedTaskOutput?]
@@ -211,17 +212,51 @@ pub fn open_captured_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
+  if graph.source_free_root {
+    return Err(UnsupportedGraph)
+  }
+  open_checked_dag(graph, Some(source), ledger, supplied)
+}
+
+///|
+/// Admit a checked source-free root to the same serial task lifecycle used by
+/// captured acquisitions. The root must have no external input or predecessor.
+pub fn open_source_free_dag(
+  graph : CheckedDAG,
+  ledger : @resources.Ledger,
+) -> Result[CapturedDAG, RunIssue] {
+  if graph.owners.is_empty() ||
+    graph.input_counts[0] != 0 ||
+    !graph.source_free_root ||
+    graph.data.any(edge => edge.consumer == 0) ||
+    graph.control.any(edge => edge.consumer == 0) ||
+    graph.supplied_slots.any(slot => slot.consumer == 0) {
+    return Err(UnsupportedGraph)
+  }
+  open_checked_dag(graph, None, ledger, [])
+}
+
+///|
+fn open_checked_dag(
+  graph : CheckedDAG,
+  source : @query.CapturedInputSource?,
+  ledger : @resources.Ledger,
+  supplied : Array[@execution.CapturedRows],
+) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
     return Err(UnsupportedGraph)
   }
-  if !@query.captured_source_matches(
-      source,
+  if source is Some(captured) &&
+    !@query.captured_source_matches(
+      captured,
       @checked.source_identity(graph.program),
       graph.owners[0],
     ) {
     return Err(ForeignCapture)
   }
+  let root_is_compute = source is None
+  let first_task = if root_is_compute { 0 } else { 1 }
   let input_counts = Array::makei(count, task => graph.input_counts[task])
   let join_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => [])
   let interval_search_limits : Array[Array[(Int, Int64)]] = Array::makei(
@@ -273,7 +308,7 @@ pub fn open_captured_dag(
       return Err(ForeignCapture)
     }
   }
-  for index in 1..<count {
+  for index in first_task..<count {
     let pipeline = @lower.pipeline(
       @lower.bound_preparation(graph.owners[index]),
     )
@@ -467,7 +502,7 @@ pub fn open_captured_dag(
   // task still selects the final step; a segmented Carrier task retains its
   // original intermediate coordinate instead of relabeling it as final.
   for edge in graph.data {
-    if edge.producer != 0 &&
+    if (root_is_compute || edge.producer != 0) &&
       graph.targets.get(edge.producer).bind(value => value) != Some(edge.target) {
       return Err(UnsupportedGraph)
     }
@@ -475,17 +510,20 @@ pub fn open_captured_dag(
   let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
   let root_lifetime = lifetimes[0]
   let resources : Array[TaskRetention?] = Array::make(count, None)
-  resources[0] = Some({
-    holding: None,
-    release_confirmed: fn() { true },
-    parents: [],
-  })
+  if !root_is_compute {
+    resources[0] = Some({
+      holding: None,
+      release_confirmed: fn() { true },
+      parents: [],
+    })
+  }
   Ok({
     graph,
     offer_owner: { graph, },
-    source: Some(
-      @query.restrict_captured_source(source, fn() { root_lifetime.live }),
-    ),
+    root_is_compute,
+    source: source.map(captured => {
+      @query.restrict_captured_source(captured, fn() { root_lifetime.live })
+    }),
     ledger,
     outputs: Array::make(count, None),
     done: Array::make(count, false),
@@ -497,7 +535,14 @@ pub fn open_captured_dag(
     aggregate_limits,
     analytic_envelopes,
     inputs: Array::makei(count, task => {
-      Array::make(if task == 0 { 0 } else { graph.input_counts[task] }, None)
+      Array::make(
+        if task == 0 && !root_is_compute {
+          0
+        } else {
+          graph.input_counts[task]
+        },
+        None,
+      )
     }),
     supplied: supplied_inputs,
     supplied_reads: Array::makei(count, task => {
@@ -566,7 +611,7 @@ pub fn configure_captured_managed_identity_policy(
   host_policy : Bool,
 ) -> Bool {
   let mut started = false
-  for index in 1..<run.done.length() {
+  for index in (if run.root_is_compute { 0 } else { 1 })..<run.done.length() {
     if run.done[index] {
       started = true
     }
@@ -578,7 +623,9 @@ pub fn configure_captured_managed_identity_policy(
   // capability. This managed Compute increment must reject that requirement
   // before comparing or starting any Compute candidate.
   let publication_required = publish_checked_results || publication
-  if publication_required && run.graph.results.any(result => result.task == 0) {
+  if publication_required &&
+    !run.root_is_compute &&
+    run.graph.results.any(result => result.task == 0) {
     return false
   }
   run.managed_publication_identity = publication_required
@@ -677,9 +724,11 @@ pub fn captured_dag_graph(run : CapturedDAG) -> CheckedDAG {
 
 ///|
 /// Exact final port of an admitted Compute task, including before execution.
-/// Acquisition is accessed through its captured source, not this port accessor.
+/// Captured acquisition is accessed through its source, not this port accessor.
 pub fn captured_task_target(run : CapturedDAG, task : Int) -> @pipeline.Target? {
-  if task <= 0 || task >= run.graph.owners.length() {
+  if task < 0 ||
+    task >= run.graph.owners.length() ||
+    (task == 0 && !run.root_is_compute) {
     return None
   }
   run.graph.targets[task]
@@ -692,7 +741,18 @@ pub fn captured_dag_strategy(run : CapturedDAG) -> StrategyRevision? {
 
 ///|
 fn task_done(run : CapturedDAG, index : Int) -> Bool {
-  index == 0 || run.done[index]
+  (index == 0 && !run.root_is_compute) || run.done[index]
+}
+
+///|
+/// Index of the first task requiring Compute; a captured acquisition is
+/// already complete and is never submitted as Compute.
+pub fn captured_compute_first_task(run : CapturedDAG) -> Int {
+  if run.root_is_compute {
+    0
+  } else {
+    1
+  }
 }
 
 ///|
@@ -706,7 +766,7 @@ pub fn next_captured_task(run : CapturedDAG) -> Int? {
   if run.stopped || run.running is Some(_) || resident_provision_pending(run) {
     return None
   }
-  for index in 1..<run.graph.owners.length() {
+  for index in captured_compute_first_task(run)..<run.graph.owners.length() {
     if task_done(run, index) {
       continue
     }
@@ -765,7 +825,7 @@ pub fn captured_task_input(
   let edge = selected.unwrap()
   let receiver = run.graph.owners[task]
   let receiver_input = edge.source_input.unwrap_or(edge.input)
-  let bound = if edge.producer == 0 {
+  let bound = if edge.producer == 0 && !run.root_is_compute {
     guard run.source is Some(source) else {
       fail_captured_task(run, task, Capture(Unavailable))
       return Err(Capture(Unavailable))
@@ -1409,7 +1469,7 @@ fn captured_mixed_managed_inputs_match(
   task : Int,
   inputs : Array[@execution.ManagedInputBinding],
 ) -> Bool {
-  if task <= 0 ||
+  if task < captured_compute_first_task(run) ||
     task >= run.inputs.length() ||
     inputs.length() != run.inputs[task].length() {
     return false
