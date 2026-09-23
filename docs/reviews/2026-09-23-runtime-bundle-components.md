@@ -26,6 +26,12 @@ The Node Store still rejects a multi-component inventory. Native DuckDB
 execution also remains blocked until its loader consumes the Store-owned
 library component rather than an independent path.
 
+The native Store resolves a component source only for an exact active bundle
+with a live process holding. It derives the byte offset and length from the
+signed inventory and returns the observed Store generation. The physical
+loader must reopen that exact generation and verify the selected bytes before
+loading; a source projection alone is not execution authority.
+
 Repository fixtures and tests include signed single-component bodies,
 including native Store restart cases; those vectors were regenerated as
 independent expectations. Repository inspection does not prove that no external

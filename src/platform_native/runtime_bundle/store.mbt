@@ -53,6 +53,65 @@ pub struct NativeActiveRuntimeBinding {
 }
 
 ///|
+/// One signed component inside the Store-owned physical bundle allocation.
+/// The offset is derived from the admitted component order and exact lengths,
+/// never from a caller-provided path or unsigned sidecar metadata.
+pub struct NativeRuntimeBundleComponentSource {
+  runtime_bundle_cid : String
+  role : String
+  component_cid : String
+  component_bytes : Int64
+  artifact_name : String
+  generation : @filesystem.NativeFileGeneration
+  offset : Int64
+}
+
+///|
+#warnings("-unused_value")
+fn native_bundle_component_source(
+  runtime_bundle_cid : String,
+  role : String,
+  component_cid : String,
+  component_bytes : Int64,
+  artifact_name : String,
+  generation : @filesystem.NativeFileGeneration,
+  offset : Int64,
+) -> NativeRuntimeBundleComponentSource {
+  {
+    runtime_bundle_cid,
+    role,
+    component_cid,
+    component_bytes,
+    artifact_name,
+    generation,
+    offset,
+  }
+}
+
+///|
+pub fn native_bundle_component_source_projection(
+  value : NativeRuntimeBundleComponentSource,
+) -> (
+  String,
+  String,
+  String,
+  Int64,
+  String,
+  @filesystem.NativeFileGeneration,
+  Int64,
+) {
+  (
+    value.runtime_bundle_cid,
+    value.role,
+    value.component_cid,
+    value.component_bytes,
+    value.artifact_name,
+    value.generation,
+    value.offset,
+  )
+}
+
+///|
 #warnings("-unused_value")
 fn native_active_runtime_binding(
   runtime_bundle_cid : String,

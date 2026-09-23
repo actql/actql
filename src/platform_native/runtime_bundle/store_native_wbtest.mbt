@@ -967,6 +967,41 @@ test "native bundle Store verifies all signed v0.1 components" {
   assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 22L)
   ignore(reopened.verify(cid).unwrap())
   ignore(reopened.activate(cid).unwrap())
+  let binding = reopened
+    .acquire_active_component(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "aarch64-apple-darwin", "runtime-process:multi",
+    )
+    .unwrap()
+  let library = reopened
+    .active_component_source(binding, "duckdb_library")
+    .unwrap()
+  let (
+    _,
+    role,
+    component_cid,
+    component_bytes,
+    artifact_name,
+    generation,
+    offset,
+  ) = native_bundle_component_source_projection(library)
+  assert_eq(role, "duckdb_library")
+  assert_eq(
+    component_cid, "sha256:35ef6ad3a76f64e3c6f2ede2ba4e7928a0a6a30596f55db828e393bc5f2867d2",
+  )
+  assert_eq(component_bytes, 11L)
+  assert_eq(offset, 0L)
+  assert_eq(generation.size, 22L)
+  assert_true(!artifact_name.is_empty())
+  assert_true(
+    reopened.active_component_source(binding, "missing")
+    is Err(ComponentMismatch),
+  )
+  ignore(reopened.release("runtime-process:multi").unwrap())
+  assert_true(
+    reopened.active_component_source(binding, "duckdb_library")
+    is Err(MissingBundle),
+  )
   ignore(reopened.drain(cid).unwrap())
   ignore(reopened.reclaim(cid).unwrap())
   assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 0L)

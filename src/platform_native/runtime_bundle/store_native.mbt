@@ -2154,13 +2154,12 @@ pub fn NativeRuntimeBundleStore::acquire_active_component(
 }
 
 ///|
-/// Revalidate the active component and its exact process holding before a
-/// runtime can admit more work. Historical component identity alone never
-/// restores current execution authority.
-pub fn NativeRuntimeBundleStore::verify_active_component_binding(
+/// Return the exact currently held active entry after its physical bytes and
+/// process authority have both been revalidated.
+fn NativeRuntimeBundleStore::active_entry_for_binding(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
-) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+) -> Result[NativeRuntimeBundleEntry, NativeRuntimeBundleStoreIssue] {
   let catalog = match load_catalog(self) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -2185,10 +2184,62 @@ pub fn NativeRuntimeBundleStore::verify_active_component_binding(
   }
   for hold in entry.holds {
     if hold.hold_id == binding.process_hold_id && hold.kind == "runtime-process" {
-      return Ok(())
+      return Ok(entry)
     }
   }
   Err(MissingBundle)
+}
+
+///|
+/// Revalidate the active component and its exact process holding before a
+/// runtime can admit more work. Historical component identity alone never
+/// restores current execution authority.
+pub fn NativeRuntimeBundleStore::verify_active_component_binding(
+  self : NativeRuntimeBundleStore,
+  binding : NativeActiveRuntimeBinding,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  match self.active_entry_for_binding(binding) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Resolve a signed component from the exact active bundle while the process
+/// holding is still live. The source file is the Store-owned allocation, not
+/// a caller-selected library path. Its generation must be checked again by
+/// the physical loader when opening the file.
+pub fn NativeRuntimeBundleStore::active_component_source(
+  self : NativeRuntimeBundleStore,
+  binding : NativeActiveRuntimeBinding,
+  role : String,
+) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue] {
+  let entry = match self.active_entry_for_binding(binding) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut offset = 0L
+  for component in @bundle.bundle_manifest_components_projection(entry.manifest) {
+    let bytes : Int64 = @string.from_str(component[2]) catch {
+      _ => return Err(ComponentMismatch)
+    }
+    if component[0] == role {
+      return Ok(native_bundle_component_source(
+        binding.runtime_bundle_cid,
+        role,
+        component[1],
+        bytes,
+        entry.artifact_name,
+        entry.generation,
+        offset,
+      ))
+    }
+    if bytes < 0L || bytes > 9223372036854775807L - offset {
+      return Err(ComponentMismatch)
+    }
+    offset = offset + bytes
+  }
+  Err(ComponentMismatch)
 }
 
 ///|
