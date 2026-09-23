@@ -1,0 +1,92 @@
+{
+  "version": "actql-client-host/0.1",
+  "operations": {
+    "connect": ["connection"],
+    "submit": ["connection", "requestId", "kind", "input", "parameters"],
+    "attach": ["connection", "ref"],
+    "lookup-request": ["connection", "requestId"],
+    "status": ["connection", "ref"],
+    "wait": ["connection", "ref", "until"],
+    "cancel": ["connection", "ref"],
+    "reconcile": ["connection", "ref"],
+    "read": ["connection", "ref", "resultName", "format", "attemptId"],
+    "delivery-attempt": ["connection", "ref", "resultName", "attemptId"]
+  },
+  "schemas": {
+    "run_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"],
+      "properties": {
+        "tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "owner", "consentRefs", "runners"],
+      "properties": {
+        "mode": {"enum": ["local", "remote", "hybrid"]},
+        "owner": {"enum": ["local", "remote", "cloud"]},
+        "consentRefs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
+        "runners": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
+        "durability": {"enum": ["volatile", "durable"]},
+        "movementPolicyRef": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "cloudConnectionRef": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "mode", "owner", "durability", "scopeRef", "capabilities", "limits"],
+      "properties": {
+        "version": {"const": "actql-client-host/0.1"},
+        "mode": {"enum": ["local", "remote", "hybrid"]},
+        "owner": {"enum": ["local", "remote", "cloud"]},
+        "durability": {"enum": ["volatile", "durable"]},
+        "scopeRef": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "capabilities": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxReadWireBytes", "maxRowWireBytes", "maxRowRetainedValueBytes", "maxRetainedValueBytes", "maxRows", "maxBatchRows", "maxBatchRetainedValueBytes"],
+          "properties": {
+            "maxReadWireBytes": {"type": "integer", "minimum": 1},
+            "maxRowWireBytes": {"type": "integer", "minimum": 1},
+            "maxRowRetainedValueBytes": {"type": "integer", "minimum": 1},
+            "maxRetainedValueBytes": {"type": "integer", "minimum": 1},
+            "maxRows": {"type": "integer", "minimum": 1},
+            "maxBatchRows": {"type": "integer", "minimum": 1},
+            "maxBatchRetainedValueBytes": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "durability", "revision"],
+      "properties": {
+        "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "durability": {"enum": ["volatile", "durable"]},
+        "revision": {"type": "integer", "minimum": 0}
+      }
+    },
+    "lookup_found": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "requestId", "ref", "durability", "lookupExpiresAt"],
+      "properties": {
+        "kind": {"const": "found"},
+        "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "durability": {"enum": ["volatile", "durable"]},
+        "lookupExpiresAt": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
+      }
+    },
+    "lookup_not_found": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "not_found"}}},
+    "lookup_unknown": {"type": "object", "additionalProperties": false, "required": ["kind", "reason"], "properties": {"kind": {"const": "unknown"}, "reason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}}}
+  }
+}

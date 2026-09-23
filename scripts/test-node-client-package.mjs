@@ -35,6 +35,11 @@ run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
   root);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
   ['client-wire', 'node', 'sdk']);
+for (const name of ['client-host.generated.js',
+  'client-host.generated.d.ts']) {
+  assert((await readFile(join(root, 'node_modules', '@actql',
+    'client-wire', name), 'utf8')).length > 0);
+}
 
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
@@ -88,6 +93,7 @@ run(join(repository, 'node_modules/.bin/esbuild'), [
 ], root);
 const metadata = JSON.parse(await readFile(browserMetadata, 'utf8'));
 assert.deepEqual(Object.keys(metadata.inputs).sort(), [
+  'node_modules/@actql/client-wire/client-host.generated.js',
   'node_modules/@actql/client-wire/index.mjs',
   'node_modules/@actql/client-wire/publication.generated.js',
   'node_modules/@actql/sdk/index.mjs',

@@ -7,5 +7,6 @@
     ".": {"types": "./index.d.ts", "default": "./index.mjs"}
   },
   "files": ["index.mjs", "index.d.ts", "publication.generated.js",
-    "publication.generated.d.ts"]
+    "publication.generated.d.ts", "client-host.generated.js",
+    "client-host.generated.d.ts"]
 }

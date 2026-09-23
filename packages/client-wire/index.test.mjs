@@ -34,6 +34,14 @@ test('public wire rejects extra fields and unscoped or implicit movement', () =>
   assert.equal(validClientBody('lookup-request', {connection,
     requestId: 'saved-a', intent: {changed: true}}), false);
   assert.equal(validClientBody('unknown', {connection}), false);
+  for (const operation of ['constructor', 'toString', '__proto__']) {
+    assert.equal(validClientBody(operation, {connection}), false);
+  }
+  assert.equal(validRunRef({...ref, tenantId: '😀'.repeat(130)}), false);
+  assert.equal(validClientConnection({...connection, consentRefs: ['grant-a',
+    'grant-a']}), false);
+  assert.equal(validClientConnection({...connection, durability: undefined}),
+    false);
 });
 
 test('Hybrid wire binds Cloud assistance to its selected Run owner', () => {
