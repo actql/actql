@@ -211,7 +211,8 @@ pub fn effect_set_frontier_from_codes(
 
 ///|
 /// Fold exact durable row heads after the public Preview-bound admission.
-/// A dispatching head remains in flight/uncertain until reconciliation; this
+/// A dispatching head is active only with an exact physical owner observation;
+/// otherwise it is possible dispatch and requires reconciliation. This
 /// function never authorizes another physical send.
 fn effect_set_frontier_from_ledger_entries(
   effect_ids : Array[String],
@@ -219,6 +220,7 @@ fn effect_set_frontier_from_ledger_entries(
   locators : Array[Array[LogicalItemLocator]],
   expected_bases : Array[Array[EffectLedgerBasis]],
   heads : Array[Array[EffectLedgerEntry?]],
+  active_owners : Array[Array[Bool]],
   max_members : Int,
   max_rows : Int,
   max_work : Int,
@@ -230,6 +232,7 @@ fn effect_set_frontier_from_ledger_entries(
     effect_ids.length() != locators.length() ||
     effect_ids.length() != expected_bases.length() ||
     effect_ids.length() != heads.length() ||
+    effect_ids.length() != active_owners.length() ||
     effect_ids.length() > max_members {
     return Err(InvalidLimits)
   }
@@ -249,8 +252,10 @@ fn effect_set_frontier_from_ledger_entries(
     let bases = expected_bases[member_index]
     let member_locators = locators[member_index]
     let current = heads[member_index]
+    let active = active_owners[member_index]
     if bases.length() != current.length() ||
       bases.length() != member_locators.length() ||
+      bases.length() != active.length() ||
       bases.length() > max_rows - total_rows {
       return Err(InvalidLimits)
     }
@@ -268,10 +273,18 @@ fn effect_set_frontier_from_ledger_entries(
         return Err(ForeignLedgerEntry(member_index, row_index))
       }
       let state = match current[row_index] {
-        None => ItemUnattempted
+        None => {
+          if active[row_index] {
+            return Err(InvalidHistory)
+          }
+          ItemUnattempted
+        }
         Some(entry) => {
           if !effect_ledger_entry_matches_basis(entry, bases[row_index]) {
             return Err(ForeignLedgerEntry(member_index, row_index))
+          }
+          if active[row_index] && entry.state != Dispatching {
+            return Err(InvalidHistory)
           }
           match entry.state {
             Dispatching =>
@@ -291,7 +304,7 @@ fn effect_set_frontier_from_ledger_entries(
           }
           match entry.state {
             Prepared => ItemUnattempted
-            Dispatching => ItemSending
+            Dispatching => if active[row_index] { ItemSending } else { ItemUnknown }
             Applied => ItemApplied
             Accepted => ItemAccepted
             Failed => ItemFailed
@@ -310,6 +323,7 @@ fn effect_set_frontier_from_ledger_entries(
 /// Read-only progress for one admitted Preview. The Preview fixes the complete
 /// member inventory, row order and failure policies; the supplied row owners
 /// must match its exact keys and correlations before ledger state is interpreted.
+/// Active-owner observations are physical facts, not new execution authority.
 /// This is not current apply authorization or physical send admission.
 pub fn effect_set_frontier_from_preview_ledger_entries(
   preview : @publication.EffectPreviewIdentity,
@@ -318,6 +332,7 @@ pub fn effect_set_frontier_from_preview_ledger_entries(
   keys : Array[Array[EffectDispatchKey]],
   expected_bases : Array[Array[EffectLedgerBasis]],
   heads : Array[Array[EffectLedgerEntry?]],
+  active_owners : Array[Array[Bool]],
   max_members : Int,
   max_rows : Int,
   max_work : Int,
@@ -332,7 +347,8 @@ pub fn effect_set_frontier_from_preview_ledger_entries(
     locators.length() != count ||
     keys.length() != count ||
     expected_bases.length() != count ||
-    heads.length() != count {
+    heads.length() != count ||
+    active_owners.length() != count {
     return Err(InvalidLimits)
   }
   let effect_ids : Array[String] = []
@@ -371,7 +387,8 @@ pub fn effect_set_frontier_from_preview_ledger_entries(
       locators[member_index].length() != row_count ||
       keys[member_index].length() != row_count ||
       expected_bases[member_index].length() != row_count ||
-      heads[member_index].length() != row_count {
+      heads[member_index].length() != row_count ||
+      active_owners[member_index].length() != row_count {
       return Err(InvalidLimits)
     }
     total_rows += row_count
@@ -418,6 +435,7 @@ pub fn effect_set_frontier_from_preview_ledger_entries(
     locators,
     expected_bases,
     heads,
+    active_owners,
     max_members,
     max_rows,
     max_work - work,
