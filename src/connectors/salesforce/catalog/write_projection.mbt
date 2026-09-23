@@ -145,6 +145,7 @@ fn same_write_field(before : FieldMetadata, after : FieldMetadata) -> Bool {
     before.sortable != after.sortable ||
     before.external_id != after.external_id ||
     before.unique != after.unique ||
+    before.case_sensitive != after.case_sensitive ||
     before.reference_to.length() != after.reference_to.length() {
     return false
   }

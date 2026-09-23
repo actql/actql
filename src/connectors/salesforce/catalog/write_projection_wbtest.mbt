@@ -242,7 +242,7 @@ test "write recheck accepts a new sync but rejects authority and schema drift" {
   )
   let changed_type = @utf8.encode(
     (
-      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true},{"name":"Optional_Value__c","type":"int","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true}]}
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true,"caseSensitive":true},{"name":"Optional_Value__c","type":"int","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true}]}
     ),
   )
   assert_true(
@@ -264,9 +264,21 @@ test "write recheck accepts a new sync but rejects authority and schema drift" {
     )
     is Err(Requirement(ExternalIdNotUnique("External_Key__c"))),
   )
+  let changed_case = @utf8.encode(
+    (
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true,"caseSensitive":false},{"name":"Optional_Value__c","type":"string","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true}]}
+    ),
+  )
+  assert_true(
+    recheck_write_projection(
+      upsert,
+      write_test_observation_with(changed_case, refreshed),
+    )
+    is Err(SchemaChanged("External_Key__c")),
+  )
   let new_required = @utf8.encode(
     (
-      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true},{"name":"Optional_Value__c","type":"string","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true},{"name":"Required_New__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true}]}
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true,"caseSensitive":true},{"name":"Optional_Value__c","type":"string","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true},{"name":"Required_New__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true}]}
     ),
   )
   assert_true(

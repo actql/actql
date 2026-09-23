@@ -21,6 +21,24 @@ fn write_request_body(operation : WriteOperation) -> WriteBody {
 }
 
 ///|
+test "RecordId identity validates the 18-character checksum" {
+  assert_eq(
+    canonical_write_record_id("001000000000001"),
+    Some("001000000000001AAA"),
+  )
+  assert_eq(
+    canonical_write_record_id("001000000000001AAA"),
+    Some("001000000000001AAA"),
+  )
+  assert_true(canonical_write_record_id("001000000000001AAB") is None)
+  assert_eq(
+    canonical_write_record_id("00100000000000A"),
+    Some("00100000000000AAAQ"),
+  )
+  assert_true(canonical_write_record_id("00100000000000aAAQ") is None)
+}
+
+///|
 test "single write request derives method and path from selected operation" {
   let created = prepare_single_write_request(
     write_request_body(WriteCreate),
