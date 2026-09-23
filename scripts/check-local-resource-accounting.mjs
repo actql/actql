@@ -466,6 +466,8 @@ for (const [index, route] of routeEntries.entries()) {
       }
       const assertion = route.family === 'RelA' &&
         route.operation === 'assert_rows';
+      const selectedTake = route.family === 'RelA' &&
+        route.operation === 'take' && pathName === 'selected_entrypoint';
       if (assertion &&
         (Object.keys(dimensions ?? {}).length !== 1 ||
           Object.keys(dimensions?.variants ?? {}).length !== 2 ||
@@ -473,7 +475,14 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${pathName} needs both assertion resource variants`);
         continue;
       }
-      const proofSets = assertion
+      if (selectedTake &&
+        (Object.keys(dimensions ?? {}).length !== 1 ||
+          Object.keys(dimensions?.variants ?? {}).length !== 2 ||
+          !dimensions.variants.unkeyed || !dimensions.variants.keyed)) {
+        fail(`${label}: ${pathName} needs keyed and unkeyed take resource variants`);
+        continue;
+      }
+      const proofSets = assertion || selectedTake
         ? Object.entries(dimensions.variants)
         : [['operation', dimensions]];
       for (const [variant, proofSet] of proofSets) {
@@ -496,7 +505,8 @@ for (const [index, route] of routeEntries.entries()) {
           }
           for (const role of Object.values(proofs)) {
             if (!boundaryRoles.has(role) ||
-              (assertion && !role.startsWith(`assert_${variant}_`))) {
+              (assertion && !role.startsWith(`assert_${variant}_`)) ||
+              (selectedTake && !role.startsWith(`take_${variant}_`))) {
               fail(`${label}: ${pathName} ${variant} ${dimension} lacks an executable fixture`);
             }
             if (!proofPaths.has(role)) proofPaths.set(role, new Set());
