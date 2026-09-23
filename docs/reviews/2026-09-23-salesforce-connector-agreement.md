@@ -167,10 +167,14 @@ Effect receipts, or the standard Effectful Run path. SF-3 remains open. The
 isolated Salesforce org and write permission also remain unavailable, so no
 live-provider verification is claimed.
 
-The next batch binding checks the exact admitted Preview member, operation
+The send binding checks the exact admitted Preview member, operation
 kind, contiguous ordered row CIDs, logical row correlations, and derived keys
 before durable claim. A local HTTPS fixture verifies zero sends for foreign
 member, row range, row order, or locator and one send across a ledger restart.
+The single-record REST path now uses the same MoonBit row rule for a `halt`
+or `continue` member; Collections additionally require `continue`. Preview
+admission builds the row index once, so each later send checks only its bounded
+slice rather than rescanning the member's complete row inventory.
 This is not yet an apply permit: checked input provenance, exact Preview-to-
 physical payload equivalence, all-member preflight, current authorization,
 and final receipts still require the shared Effectful Run port above.
