@@ -44,6 +44,8 @@ pub fn salesforce_query_page_row_count(@catalog.QueryPage) -> Int
 
 pub fn salesforce_query_read_accept_page(@catalog.QueryRead, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_query_read_acknowledge_page(@catalog.QueryRead, @catalog.QueryPage) -> Unit raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_query_read_complete(@catalog.QueryRead) -> Bool
 
 pub fn salesforce_query_read_interrupt(@catalog.QueryRead) -> Bool
