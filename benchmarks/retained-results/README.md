@@ -167,6 +167,9 @@ ACTQL_TEST_SCRATCH_ROOT=/path/to/workspace-scratch \
 This separates training from the chosen evaluation workload. It still does not
 qualify the estimate model, prove Local work-breakdown parity, or supply an
 accepted sample for the registered paired experiment.
+The profile binds both case IDs and both source, source-definition and Program
+hashes. A later paired runner must verify these fields before using its rates;
+the profile file alone is not authority to mark a selection qualified.
 
 To compare ordinary and reused INSERTs through the actual bounded transport:
 

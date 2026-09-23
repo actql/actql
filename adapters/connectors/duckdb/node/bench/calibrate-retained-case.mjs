@@ -13,6 +13,8 @@ import {retainedCase, workloads} from
   '../../../../../benchmarks/retained-results/fixtures.mjs';
 import {managedCaseConfiguration} from
   '../../../../../benchmarks/retained-results/managed-configuration.mjs';
+import {admitRetainedEstimateProfile} from
+  '../../../../../benchmarks/retained-results/estimate-profile.mjs';
 import {createManagedExampleHost} from '../examples/managed-host.mjs';
 
 const run = promisify(execFile);
@@ -160,21 +162,29 @@ try {
   const trainingBytes = serialize(training);
   const trainingSha256 = sha256(trainingBytes);
   const profile = {version: 'actql-retained-estimate-profile/0.1', revision,
-    caseId: fixture.id, trainingSha256,
-    sourceSha256, sourceDefinitionSha256: training.sourceDefinitionSha256,
-    programSha256: training.programSha256,
+    trainingCaseId: fixture.id, targetCaseId: heldOut.id, trainingSha256,
+    trainingSourceSha256: sourceSha256,
+    targetSourceSha256: heldOutSourceSha256,
+    trainingSourceDefinitionSha256: training.sourceDefinitionSha256,
+    targetSourceDefinitionSha256: sha256(heldOut.createSourceSql),
+    trainingProgramSha256: training.programSha256,
+    targetProgramSha256: sha256(JSON.stringify(heldOut.program())),
     localTaskMilliseconds: rates('local'),
     nativeTaskMilliseconds: rates('duckdb'),
     acceptanceEligible: false,
     scope: 'measured training profile requiring held-out selection and obligation admission'};
+  const admitted = heldOut === fixture ? undefined : admitRetainedEstimateProfile({
+    profile, trainingBytes, trainingFixture: fixture, targetFixture: heldOut,
+    revision, targetSourceSha256: heldOutSourceSha256,
+  });
   await writeFile(join(directory, 'training.json'), trainingBytes);
   await writeFile(join(directory, 'profile.json'), serialize(profile));
   const ordinary = await runTrainingCandidate('ordinary', 3, heldOut, heldOutDatabase, {
     resident: true,
     nativeMilliseconds: '1',
-    localTaskMilliseconds: profile.localTaskMilliseconds,
-    nativeTaskMilliseconds: profile.nativeTaskMilliseconds,
-    estimateSource: `sha256:${trainingSha256}`,
+    localTaskMilliseconds: admitted?.localTaskMilliseconds ?? profile.localTaskMilliseconds,
+    nativeTaskMilliseconds: admitted?.nativeTaskMilliseconds ?? profile.nativeTaskMilliseconds,
+    estimateSource: admitted?.estimateSource ?? `sha256:${trainingSha256}`,
   });
   assert.equal(await fileHash(heldOutDatabase), heldOutSourceSha256,
     'CalibrationHeldOutSourceChanged');
