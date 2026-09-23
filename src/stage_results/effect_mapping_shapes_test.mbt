@@ -4,21 +4,30 @@ fn effect_mapping_shape_fixture_with_body(
   required_fields : String,
   row_source : String,
   target_type? : String = "number",
+  target_nullable? : Bool = true,
+  row_mapping? : String = "",
 ) -> @environment.MappingContractShapes {
   let before = "{\"connector_manifest_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"conversions\":[],"
-  let target_schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":true,\"type\":\"" +
+  let target_schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":" +
+    target_nullable.to_string() +
+    ",\"type\":\"" +
     target_type +
     "\"}},\"nullable\":false,\"type\":\"object\"}"
   let target_schema_cid = "sha256:" + @sha.hex(@utf8.encode(target_schema))
+  let row = if row_mapping.is_empty() {
+    "{\"Name\":{\"field\":\"" + row_source + "\",\"null_behavior\":\"reject\"}}"
+  } else {
+    row_mapping
+  }
   let after = "\"mapping_ref\":\"mapping:crm.account.v1\",\"minimum_approval\":\"none\",\"permission_rules\":" +
     rules +
     "," +
     "\"primary_identity\":\"Id\",\"required_fields\":" +
     required_fields +
     ",\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"," +
-    "\"row_mapping\":{\"Name\":{\"field\":\"" +
-    row_source +
-    "\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\"," +
+    "\"row_mapping\":" +
+    row +
+    ",\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\"," +
     "\"target_schema\":" +
     target_schema +
     ",\"target_schema_identity\":\"" +
