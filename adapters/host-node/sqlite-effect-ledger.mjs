@@ -266,9 +266,11 @@ export function openSqliteEffectLedger(root, {
           return Object.freeze({response: existing, created: false});
         }
         const head = readHead.get(logicalItemLocatorCid);
+        const dispatchEntry = readDispatchEntry.get(dispatchEntryCid);
         if (head?.logical_request_scope_cid !== logicalRequestScopeCid ||
-            head.entry_cid !== dispatchEntryCid) {
-          fail('EffectDispatchNotCurrent');
+            dispatchEntry?.logical_item_locator_cid !==
+              logicalItemLocatorCid) {
+          fail('EffectDispatchNotOwned');
         }
         const currentUsage = usage.get();
         if (currentUsage.entries >= maxEntries ||

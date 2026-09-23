@@ -33,6 +33,8 @@ pub fn effect_ledger_entry_follows(EffectLedgerEntry?, EffectLedgerEntry) -> Boo
 
 pub fn effect_ledger_entry_locator_cid(EffectLedgerEntry) -> String
 
+pub fn effect_ledger_entry_matches_basis(EffectLedgerEntry, EffectLedgerBasis) -> Bool
+
 pub fn effect_ledger_entry_scope_cid(EffectLedgerEntry) -> String
 
 pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
@@ -40,6 +42,8 @@ pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
 pub fn effect_row_action_code(EffectRowAction) -> Int
 
 pub fn effect_row_recovery_action(LogicalItemLocator, String, EffectDispatchKey, String, EffectRowRecord?, Bool) -> EffectRowAction
+
+pub fn effect_row_recovery_action_from_entry(LogicalItemLocator, String, EffectDispatchKey, String, EffectLedgerEntry?, Bool) -> Int
 
 pub fn effect_row_recovery_action_from_store(LogicalItemLocator, String, EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
