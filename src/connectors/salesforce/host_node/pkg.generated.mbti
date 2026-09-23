@@ -4,11 +4,30 @@ package "actql/actql/connectors/salesforce/host_node"
 import {
   "actql/actql/connectors/salesforce/acquisition",
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/connectors/salesforce/host",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
 }
 
 // Values
 pub fn salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> @catalog.QueryRead raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_broad_host_abort(@host.SalesforceBroadHostRun) -> Unit
+
+pub fn salesforce_broad_host_attempt(@host.SalesforceBroadHostRun) -> @acquisition.SalesforceBroadAttempt
+
+pub fn salesforce_broad_host_bind(@host.SalesforceBroadHostRun, @acquisition.SalesforceBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_broad_host_close(@host.SalesforceBroadHostRun) -> Unit
+
+pub fn salesforce_broad_host_complete(@host.SalesforceBroadHostRun) -> @acquisition.SalesforceBroadObservation raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_broad_host_document(@acquisition.SalesforceBroadObservation) -> String
+
+pub fn salesforce_broad_host_open(@host.SalesforceBroadHostConfiguration, String, (@acquisition.SalesforceBroadAttempt) -> Bool) -> @host.SalesforceBroadHostRun raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_broad_host_source(@host.SalesforceBroadHostRun, @acquisition.SalesforceBroadObservation) -> @execution_query.CapturedInputSource raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_catalog_begin(@catalog.ResourceListing) -> @catalog.CatalogSync
 
@@ -105,6 +124,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@acquisition.ManagedQueryIssue)
   BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
+  BroadHost(@host.SalesforceBroadHostIssue)
   InvalidResource
 }
 

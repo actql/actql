@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/salesforce/host"
+
+import {
+  "actql/actql/connectors/salesforce/acquisition",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/query_planning",
+}
+
+// Values
+pub fn abort_salesforce_broad_host(SalesforceBroadHostRun) -> Unit
+
+pub fn bind_salesforce_broad_host_input(SalesforceBroadHostRun, @acquisition.SalesforceBroadObservation, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, SalesforceBroadHostIssue]
+
+pub fn close_salesforce_broad_host(SalesforceBroadHostRun) -> Unit
+
+pub fn complete_salesforce_broad_host(SalesforceBroadHostRun) -> Result[@acquisition.SalesforceBroadObservation, SalesforceBroadHostIssue]
+
+pub fn configure_salesforce_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.SalesforceBroadPreparation], @acquisition.SalesforceBroadCompletionLimits) -> SalesforceBroadHostConfiguration
+
+pub fn salesforce_broad_host_attempt(SalesforceBroadHostRun) -> @acquisition.SalesforceBroadAttempt
+
+pub fn salesforce_broad_host_source(SalesforceBroadHostRun, @acquisition.SalesforceBroadObservation) -> Result[@execution_query.CapturedInputSource, SalesforceBroadHostIssue]
+
+pub fn start_salesforce_broad_host(SalesforceBroadHostConfiguration, String, (@acquisition.SalesforceBroadAttempt) -> Bool) -> Result[SalesforceBroadHostRun, SalesforceBroadHostIssue]
+
+// Errors
+
+// Types and methods
+type SalesforceBroadHostConfiguration
+
+pub(all) enum SalesforceBroadHostIssue {
+  InvalidState
+  Evidence(@acquisition.SalesforceEvidenceIssue)
+  Consumer(@execution_query.CapturedSourceIssue)
+  Binding(@acquisition.SalesforceEvidenceIssue)
+}
+
+type SalesforceBroadHostRun
+
+// Type aliases
+
+// Traits

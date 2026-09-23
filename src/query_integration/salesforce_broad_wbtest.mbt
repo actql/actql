@@ -544,6 +544,85 @@ fn salesforce_completion_limits() -> @salesforce_query.SalesforceBroadCompletion
 }
 
 ///|
+test "Salesforce Host owns exact selected capture and downstream liveness" {
+  let fixture = salesforce_issued_fixture()
+  let (query_body, evidence_body) = query_evidence_test_bodies()
+  let contracts = @planning.admit_query_evidence_contracts(
+    query_body,
+    evidence_body,
+    query_capture_limits(),
+  ).unwrap()
+  let configuration = @salesforce_host.configure_salesforce_broad_host(
+    contracts,
+    fixture.requirement,
+    fixture.choice,
+    fixture.candidate,
+    salesforce_completion_limits(),
+  )
+  let settled : Array[@salesforce_query.SalesforceBroadAttempt] = []
+  let run = @salesforce_host.start_salesforce_broad_host(
+    configuration,
+    "test-host",
+    attempt => settled.any(value => physical_equal(value, attempt)),
+  ).unwrap()
+  let attempt = @salesforce_host.salesforce_broad_host_attempt(run)
+  @salesforce_query.begin_issued_salesforce_broad_read(
+    attempt,
+    "v62.0",
+    {
+      max_bytes: 4096,
+      max_nodes: 100,
+      max_depth: 10,
+      max_rows: 3,
+      max_locator_units: 128,
+    },
+    2,
+    3L,
+    3,
+    run_limits().input_values,
+  ).unwrap()
+  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt)
+    .unwrap()
+    .unwrap()
+  @salesforce_query.accept_issued_salesforce_broad_page(
+    attempt,
+    path,
+    @utf8.encode(
+      (
+        #|{"totalSize":3,"done":true,"records":[{"id":3},{"id":1},{"id":2}]}
+      ),
+    ),
+  ).unwrap()
+  |> ignore
+  @salesforce_query.finish_issued_salesforce_broad_read(attempt).unwrap()
+  settled.push(attempt)
+  let observation = @salesforce_host.complete_salesforce_broad_host(run).unwrap()
+  let source = @salesforce_host.salesforce_broad_host_source(run, observation).unwrap()
+  let producer = @query.query_sequence_owner(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(fixture.requirement),
+    ),
+  )
+  let receiver = typed_receiver(producer, "[{\"select\":[\"id\"]}]")
+  let input = @salesforce_host.bind_salesforce_broad_host_input(
+    run, observation, receiver, 0,
+  ).unwrap()
+  let generated = compute_test_sequence(receiver)
+  let computed = @execution.execute_local_compute_attempt(
+    @execution.prepare_local_compute_attempt(generated, [input], 3).unwrap(),
+    compute_test_limits(),
+  ).unwrap()
+  let output = @execution.completed_output(computed, Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@query.captured_source_available(source))
+  @salesforce_host.close_salesforce_broad_host(run)
+  assert_true(!@query.captured_source_available(source))
+  assert_true(
+    @salesforce_host.complete_salesforce_broad_host(run) is Err(InvalidState),
+  )
+}
+
+///|
 test "issued Salesforce read exposes only its active bounded page state" {
   let fixture = salesforce_issued_fixture()
   let attempt = @salesforce_query.prepare_issued_salesforce_broad_attempt(
