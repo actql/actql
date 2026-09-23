@@ -1,6 +1,8 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {writeSalesforceSingleRecord} from
   '../site-node/salesforce-single-write.mjs';
+import {matchesSalesforceCredentialOrg} from
+  '../site-node/salesforce-credential-binding.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 
 const fail = code => {
@@ -26,6 +28,8 @@ export async function captureSalesforceSingleEffectWrite({
   const scope = authorization?.scope;
   if (!moon || !request || !currentObservation || !scope ||
       !authorization.grant || !credential || !limits ||
+      !matchesSalesforceCredentialOrg(credential,
+        moon.salesforceSingleWriteRequestOrgId(request)) ||
       typeof authorization.useId !== 'string' ||
       authorization.useId.length === 0 ||
       scope.operation !==

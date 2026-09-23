@@ -5,6 +5,7 @@ fn observation_test_binding() -> CatalogObservationBinding {
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-revision-a",
+    org_id: "00D000000000001EAA",
     site_key: "site-a",
     site_generation: 4,
     connector_registration: "salesforce",
@@ -87,6 +88,7 @@ test "catalog observation binds exact connection, Site and use evidence" {
   assert_true(
     body.contains("\"connection_revision\":\"connection-revision-a\""),
   )
+  assert_true(body.contains("\"org_id\":\"00D000000000001EAA\""))
   assert_true(body.contains("\"outcome\":\"described\""))
   assert_eq(
     catalog_observation_identity(observation),

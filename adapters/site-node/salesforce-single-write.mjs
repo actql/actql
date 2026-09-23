@@ -1,5 +1,7 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+import {matchesSalesforceCredentialOrg} from
+  './salesforce-credential-binding.mjs';
 
 const count = value => Number.isSafeInteger(value) && value > 0;
 const fail = code => {
@@ -32,7 +34,9 @@ export async function writeSalesforceSingleRecord({
   }
   const scope = authorization.scope;
   const operation = moon.salesforceSingleWriteRequestGrantOperation(request);
-  if (scope.operation !== operation ||
+  if (!matchesSalesforceCredentialOrg(credential,
+      moon.salesforceSingleWriteRequestOrgId(request)) ||
+      scope.operation !== operation ||
       !moon.salesforceSingleWriteRequestScopeMatches(
         request, scope.tenant, scope.principal, scope.environment,
         scope.siteKey, scope.siteGeneration, scope.connectorRegistration,

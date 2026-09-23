@@ -6,6 +6,7 @@ pub(all) struct CatalogObservationBinding {
   principal : String
   environment : String
   connection_revision : String
+  org_id : String
   site_key : String
   site_generation : Int
   connector_registration : String
@@ -48,6 +49,7 @@ fn catalog_execution_binding_matches(
   prior.principal == current.principal &&
   prior.environment == current.environment &&
   prior.connection_revision == current.connection_revision &&
+  prior.org_id == current.org_id &&
   prior.site_key == current.site_key &&
   prior.site_generation == current.site_generation &&
   prior.connector_registration == current.connector_registration &&
@@ -96,6 +98,7 @@ fn observation_binding_valid(binding : CatalogObservationBinding) -> Bool {
   !binding.principal.is_empty() &&
   !binding.environment.is_empty() &&
   !binding.connection_revision.is_empty() &&
+  canonical_write_record_id(binding.org_id) is Some(_) &&
   !binding.site_key.is_empty() &&
   binding.site_generation >= 0 &&
   !binding.connector_registration.is_empty() &&
@@ -161,6 +164,7 @@ fn emit_observation(
       binding.dispatch_request_cid,
     )
     observation_field(writer, "environment", binding.environment)
+    observation_field(writer, "org_id", binding.org_id)
     observation_field(writer, "principal", binding.principal)
     observation_field(writer, "resource_origin", binding.resource_origin)
     observation_field(writer, "run_invocation_cid", binding.run_invocation_cid)

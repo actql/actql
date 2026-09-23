@@ -59,6 +59,13 @@ pub fn write_collection_request_body(value : WriteCollectionRequest) -> String {
 }
 
 ///|
+pub fn write_collection_request_org_id(
+  value : WriteCollectionRequest,
+) -> String {
+  value.projection.binding.org_id
+}
+
+///|
 pub fn write_collection_request_grant_operation(
   value : WriteCollectionRequest,
 ) -> String {
