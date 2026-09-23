@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/salesforce/site_test"
+
+import {
+  "actql/actql/execution_relation",
+}
+
+// Values
+pub fn salesforce_site_test_output_values() -> @execution_relation.ManagedOutputValues
+
+pub fn salesforce_site_test_receipt_rows(@execution_relation.ManagedOutputValueReceipt) -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -10,6 +10,8 @@ import * as commonMoon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
   '../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
+import * as salesforceConformance from
+  '../../_build/js/release/build/connectors/salesforce/site_test/site_test.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openSqliteCredentialJournal} from
@@ -667,46 +669,38 @@ test('terminal page consumer failure cannot report a completed read',
       .length, 1);
   });
 
-test('managed physical driver follows the same bounded HTTPS locator chain',
+test('managed physical driver fills the real MoonBit output owner',
   async t => {
     const setup = await fixture(t);
     const plan = await queryProjection(setup);
-    let accepted = 0;
-    const moon = {
-      ...salesforceMoon,
-      salesforcePrepareManagedQuery(...args) {
-        const read = checked(salesforceMoon.salesforceBeginQueryRead(
-          ...args.slice(0, -1)));
-        return {$tag: 1, _0: read};
-      },
-      salesforceManagedQueryNextPath: read =>
-        salesforceMoon.salesforceQueryReadNextPath(read),
-      salesforceManagedQueryAcceptPage(read, path, body) {
-        const page = checked(salesforceMoon.salesforceQueryReadAcceptPage(
-          read, path, body));
-        checked(salesforceMoon.salesforceQueryReadAcknowledgePage(read, page));
-        accepted += 1;
-        return {$tag: 1, _0: page};
-      },
-      salesforceManagedQueryComplete: read =>
-        salesforceMoon.salesforceQueryReadComplete(read),
-      salesforceManagedQueryRowCount: read =>
-        salesforceMoon.salesforceQueryReadRowCount(read),
-      salesforceManagedQueryFinish: () =>
-        ({$tag: 1, _0: Object.freeze({fixture: 'content-receipt'})}),
-      salesforceManagedQueryCancel: read =>
-        salesforceMoon.salesforceQueryReadInterrupt(read),
-    };
     const result = await readSalesforceManagedQuery(queryRequest(setup, plan, {
-      moon, values: Object.freeze({fixture: 'managed-output'}),
+      moon: salesforceMoon,
+      values: salesforceConformance.salesforceSiteTestOutputValues(),
     }));
-    assert.equal(result.receipt.fixture, 'content-receipt');
+    assert.equal(salesforceConformance.salesforceSiteTestReceiptRows(
+      result.receipt), 2);
     assert.equal(result.rowCount, 2n);
-    assert.equal(accepted, 2);
+    assert.equal(result.pages.length, 2);
+    assert.ok(result.pages.every(page =>
+      setup.journal.inspect(page.useCid).outcome === 'succeeded'));
     assert.deepEqual(setup.seen.slice(-2).map(entry => entry.path), [
       '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
       '/services/data/v62.0/query/01gABC-2000',
     ]);
+  });
+
+test('managed physical driver rejects a wrong typed value before receipt',
+  async t => {
+    const setup = await fixture(t, {queryFirstResponse: JSON.stringify({
+      totalSize: 1, done: true, records: [{Id: 42}],
+    })});
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceManagedQuery(queryRequest(setup, plan, {
+      moon: salesforceMoon,
+      values: salesforceConformance.salesforceSiteTestOutputValues(),
+    })), {code: 'MoonBitHostFailure'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
   });
 
 test('invalid physical caller is rejected before a query owner or HTTP use',
