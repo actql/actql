@@ -45,6 +45,7 @@ await writeFile(join(root, 'program.json'), await readFile(new URL(
   '../packages/sdk/fixtures/values.json', import.meta.url)));
 
 const requests = [];
+let attachReplyRef = ref;
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt')),
   ca: await readFile(join(root, 'ca.crt')),
@@ -67,13 +68,20 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end('{"bad":true}');
     return;
   }
+  if (operation === 'submit' && body.requestId === 'redirect-ack') {
+    response.writeHead(307, {location: `https://127.0.0.1:` +
+      `${server.address().port}/actql/client/0.1/submit-redirect-target`});
+    response.end();
+    return;
+  }
   response.writeHead(200, {'content-type': operation === 'read'
     ? 'application/x-ndjson' : 'application/json'});
   if (operation === 'connect') response.end(JSON.stringify(
     body.connection.durability === 'durable'
       ? {...profile, durability: 'volatile'} : profile));
   else if (operation === 'submit' || operation === 'attach') {
-    response.end(JSON.stringify({ref, durability: 'durable', revision: 1}));
+    response.end(JSON.stringify({ref: operation === 'attach'
+      ? attachReplyRef : ref, durability: 'durable', revision: 1}));
   } else if (operation === 'lookup-request') {
     response.end(JSON.stringify(body.requestId === 'bad-lookup'
       ? {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
@@ -164,6 +172,15 @@ try {
   assert.equal(attached.code, 0, attached.stderr);
   assert.deepEqual(JSON.parse(attached.stdout),
     {ref, durability: 'durable', revision: 1});
+  for (const field of ['tenantId', 'authorityScopeCid',
+    'runDefinitionCid']) {
+    attachReplyRef = {...ref, [field]: field === 'tenantId' ? 'tenant-b' :
+      `sha256:${'c'.repeat(64)}`};
+    const foreign = await run('attach', '--ref-file', 'ref.json');
+    assert.notEqual(foreign.code, 0);
+    assert.match(foreign.stderr, /ForeignHostAdmission/);
+  }
+  attachReplyRef = ref;
   const read = await run('read', '--ref-file', 'ref.json',
     '--result-name', 'answer', '--attempt-id', 'attempt-a');
   assert.equal(read.code, 0, read.stderr);
@@ -203,6 +220,13 @@ try {
     '--format', 'json', '--request-id', 'lost-ack');
   assert.notEqual(uncertain.code, 0);
   assert.match(uncertain.stderr, /SubmissionUnknown request-id=lost-ack/);
+  const redirected = await run('start', '--program-file', 'program.json',
+    '--request-id', 'redirect-ack');
+  assert.notEqual(redirected.code, 0);
+  assert.match(redirected.stderr,
+    /SubmissionUnknown request-id=redirect-ack/);
+  assert.equal(requests.filter(item =>
+    item.operation === 'submit-redirect-target').length, 0);
   const lookedUp = await run('lookup-request', '--request-id', 'lost-ack');
   assert.equal(lookedUp.code, 0, lookedUp.stderr);
   assert.deepEqual(JSON.parse(lookedUp.stdout),
