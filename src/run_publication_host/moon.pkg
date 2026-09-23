@@ -4,6 +4,9 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_resources" @resources,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/run_publication" @publication,
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,
@@ -18,5 +21,4 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host_driver,
-  "moonbitlang/core/encoding/utf8",
 } for "test"
