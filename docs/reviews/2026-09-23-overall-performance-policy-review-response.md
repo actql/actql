@@ -16,6 +16,11 @@ DuckDB. These measurements can inform an estimate model; they are neither
 calibration evidence by themselves nor proof of the small-case timing gate.
 Cost estimates, enforceable capacity and policy preferences remain separate.
 
+The native policy check used `ACTQL_TEST_SCRATCH_ROOT` pointing to a writable
+workspace scratch directory with `node scripts/test-native-http-client.mjs`.
+The real mTLS fixture covered success, lost response, foreign policy identity,
+expiry and denied disclosure; its query-integration run passed 553/553.
+
 The registered equivalent-obligations case-level assessor now rejects missing
 or mixed-revision pairs, changed registered fixture/Program/source provenance,
 unconfirmed release and diagnostic-only product selection. It applies the
