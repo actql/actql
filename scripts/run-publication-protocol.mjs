@@ -62,6 +62,18 @@ const selected = Object.freeze({
     schema: 'effect_preview',
     identity: 'effect_preview_cid',
   }),
+  effect_apply_receipt: Object.freeze({
+    schema: 'effect_apply_receipt',
+    identity: 'receipt_cid',
+  }),
+  effect_set_apply_receipt: Object.freeze({
+    schema: 'effect_set_apply_receipt',
+    identity: 'receipt_cid',
+  }),
+  effect_reconciliation_receipt: Object.freeze({
+    schema: 'effect_reconciliation_receipt',
+    identity: 'reconciliation_receipt_cid',
+  }),
 });
 
 const moonString = value => JSON.stringify(value);
@@ -99,6 +111,7 @@ const supportedKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
   'default', 'deprecated', 'readOnly', 'writeOnly', 'type', 'const',
   'enum', 'oneOf', 'allOf', 'pattern', 'format', 'minLength', 'minimum',
+  'anyOf', 'not', 'if', 'then', 'else',
   'maximum', 'properties', 'required', 'additionalProperties',
   'minProperties', 'propertyNames', 'items', 'minItems', 'uniqueItems',
 ]);
@@ -143,7 +156,7 @@ function emitSchema(schema, assumedType) {
     const siblings = {...schema};
     delete siblings.oneOf;
     if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
-      const siblingIndex = emitSchema(siblings);
+      const siblingIndex = emitSchema(siblings, assumedType);
       nodes.push(`AllOfRule([${alternativeIndex}, ${siblingIndex}])`);
       return nodes.length - 1;
     }
@@ -158,10 +171,63 @@ function emitSchema(schema, assumedType) {
     const siblings = {...schema};
     delete siblings.allOf;
     if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
-      conditions.push(emitSchema(siblings));
+      conditions.push(emitSchema(siblings, assumedType));
     }
     nodes.push(`AllOfRule([${conditions.join(', ')}])`);
     return nodes.length - 1;
+  }
+  if (schema.anyOf !== undefined) {
+    if (!Array.isArray(schema.anyOf) || schema.anyOf.length === 0) {
+      throw new Error('Empty publication schema anyOf is unsupported');
+    }
+    const alternatives = schema.anyOf.map(branch =>
+      emitSchema(branch, schema.type ?? assumedType));
+    nodes.push(`AnyOfRule([${alternatives.join(', ')}])`);
+    const alternativeIndex = nodes.length - 1;
+    const siblings = {...schema};
+    delete siblings.anyOf;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      const siblingIndex = emitSchema(siblings, assumedType);
+      nodes.push(`AllOfRule([${alternativeIndex}, ${siblingIndex}])`);
+      return nodes.length - 1;
+    }
+    return alternativeIndex;
+  }
+  if (schema.not !== undefined) {
+    const excluded = emitSchema(schema.not, schema.type ?? assumedType);
+    nodes.push(`NotRule(${excluded})`);
+    const excludedIndex = nodes.length - 1;
+    const siblings = {...schema};
+    delete siblings.not;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      const siblingIndex = emitSchema(siblings, assumedType);
+      nodes.push(`AllOfRule([${excludedIndex}, ${siblingIndex}])`);
+      return nodes.length - 1;
+    }
+    return excludedIndex;
+  }
+  if (schema.if !== undefined) {
+    if (schema.then === undefined && schema.else === undefined) {
+      throw new Error('Unconstrained publication schema if is unsupported');
+    }
+    const condition = emitSchema(schema.if, schema.type ?? assumedType);
+    const whenTrue = emitSchema(schema.then ?? {}, schema.type ?? assumedType);
+    const whenFalse = emitSchema(schema.else ?? {}, schema.type ?? assumedType);
+    nodes.push(`ConditionalRule(${condition}, ${whenTrue}, ${whenFalse})`);
+    const conditionalIndex = nodes.length - 1;
+    const siblings = {...schema};
+    delete siblings.if;
+    delete siblings.then;
+    delete siblings.else;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      const siblingIndex = emitSchema(siblings, assumedType);
+      nodes.push(`AllOfRule([${conditionalIndex}, ${siblingIndex}])`);
+      return nodes.length - 1;
+    }
+    return conditionalIndex;
+  }
+  if (schema.then !== undefined || schema.else !== undefined) {
+    throw new Error('Publication schema then/else requires if');
   }
   if (Array.isArray(schema.type)) {
     const alternatives = schema.type.map(type => emitSchema({...schema, type}));
@@ -263,7 +329,11 @@ function emitSchema(schema, assumedType) {
       'minProperties', 'propertyNames',
     ]);
     const properties = Object.entries(schema.properties ?? {})
-      .map(([name, child]) => [name, emitSchema(child)]);
+      .map(([name, child]) => [name, emitSchema(
+        child,
+        child.type ?? (child.properties !== undefined ||
+          child.required !== undefined ? 'object' : undefined),
+      )]);
     let additional = -2;
     if (schema.additionalProperties === false) additional = -1;
     else if (schema.additionalProperties !== undefined &&

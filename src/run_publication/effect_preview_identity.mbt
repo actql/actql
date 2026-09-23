@@ -2,6 +2,7 @@
 pub(all) enum EffectPreviewIdentityIssue {
   PreviewShape(PublicationContractIssue)
   InvalidMember
+  RowInventoryMismatch(Int)
   MemberIdentityMismatch(Int)
   PreviewIdentityMismatch
   RunBindingMismatch
@@ -15,6 +16,8 @@ pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   row_keys : Array[Array[String]]
+  row_cids : Array[Array[String]]
+  row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
 }
@@ -197,6 +200,8 @@ pub fn admit_effect_preview_identity(
   }
   let cids = []
   let row_keys : Array[Array[String]] = []
+  let row_cids : Array[Array[String]] = []
+  let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
     let effect = members[index]
     let changes = match @json.object_field(effect, "changes") {
@@ -204,13 +209,47 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     let member_keys : Array[String] = []
+    let member_rows : Array[String] = []
     for change in changes {
-      match @json.object_field(change, "row_idempotency_key") {
-        Some(@json.String(value)) => member_keys.push(value)
+      match
+        (
+          @json.object_field(change, "row_preview_cid"),
+          @json.object_field(change, "row_idempotency_key"),
+        ) {
+        (Some(@json.String(row)), Some(@json.String(key))) => {
+          if member_rows.contains(row) || member_keys.contains(key) {
+            return Err(RowInventoryMismatch(index))
+          }
+          member_rows.push(row)
+          member_keys.push(key)
+        }
         _ => return Err(InvalidMember)
       }
     }
+    guard @json.object_field(effect, "count") is Some(@json.Number(count)) &&
+      count == changes.length().to_double() &&
+      @json.object_field(effect, "row_order") is Some(@json.Array(order_frozen)) else {
+      return Err(RowInventoryMismatch(index))
+    }
+    let ordered = @json.array_values(order_frozen)
+    if ordered.length() != member_rows.length() {
+      return Err(RowInventoryMismatch(index))
+    }
+    let member_order : Array[String] = []
+    for value in ordered {
+      match value {
+        @json.String(row) => {
+          if !member_rows.contains(row) || member_order.contains(row) {
+            return Err(RowInventoryMismatch(index))
+          }
+          member_order.push(row)
+        }
+        _ => return Err(RowInventoryMismatch(index))
+      }
+    }
     row_keys.push(member_keys)
+    row_cids.push(member_rows)
+    row_order.push(member_order)
     let cid = match
       effect_member_semantic_cid(effect, max_wire_bytes, max_nodes, max_depth) {
       Ok(value) => value
@@ -272,6 +311,8 @@ pub fn admit_effect_preview_identity(
     semantic_cid: cid,
     member_cids: cids,
     row_keys,
+    row_cids,
+    row_order,
     run_identity_cid: run,
     authoring_context_cid: authoring,
   })
@@ -316,6 +357,30 @@ pub fn effect_preview_row_key(
 ) -> String? {
   match value.row_keys.get(member_index) {
     Some(keys) => keys.get(row_index)
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_row_identity(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  match value.row_cids.get(member_index) {
+    Some(rows) => rows.get(row_index)
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_ordered_row_identity(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  match value.row_order.get(member_index) {
+    Some(rows) => rows.get(row_index)
     None => None
   }
 }

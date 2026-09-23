@@ -11,6 +11,8 @@ pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, 
 
 pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
+pub fn admit_effect_apply_receipt_for_member(EffectPreviewIdentity, Int, String, Int, Int, Int) -> Result[PublicationContract, EffectApplyReceiptBindingIssue]
+
 pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
 
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
@@ -61,7 +63,11 @@ pub fn effect_preview_member_count(EffectPreviewIdentity) -> Int
 
 pub fn effect_preview_member_identity(EffectPreviewIdentity, Int) -> String?
 
+pub fn effect_preview_ordered_row_identity(EffectPreviewIdentity, Int, Int) -> String?
+
 pub fn effect_preview_row_count(EffectPreviewIdentity, Int) -> Int?
+
+pub fn effect_preview_row_identity(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
 
@@ -496,10 +502,19 @@ pub(all) struct DurableResultRowFrameSummary {
 
 type DurableResultRowFrames
 
+pub(all) enum EffectApplyReceiptBindingIssue {
+  Receipt(PublicationContractIssue)
+  InvalidMember
+  ForeignPreview
+  RowPartitionMismatch
+} derive(@debug.Debug)
+
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   row_keys : Array[Array[String]]
+  row_cids : Array[Array[String]]
+  row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
 }
@@ -507,6 +522,7 @@ pub struct EffectPreviewIdentity {
 pub(all) enum EffectPreviewIdentityIssue {
   PreviewShape(PublicationContractIssue)
   InvalidMember
+  RowInventoryMismatch(Int)
   MemberIdentityMismatch(Int)
   PreviewIdentityMismatch
   RunBindingMismatch
