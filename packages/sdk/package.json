@@ -1,0 +1,11 @@
+{
+  "name": "@actql/sdk",
+  "version": "0.0.0-development",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.mjs" }
+  },
+  "files": ["index.mjs", "index.d.ts"]
+}

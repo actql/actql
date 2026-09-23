@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {createServer} from 'node:http';
 import test from 'node:test';
 import {mkdtemp, open, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -41,6 +42,8 @@ import {
 } from './result-retention.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
+import {createClientHttpHandler} from '../host-node/client-http.mjs';
+import {connect as connectClient} from '../../packages/sdk/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const limits = Object.freeze({
@@ -1443,6 +1446,10 @@ test('portable control validates Receipt and Captured Run references',
       accessChecks.push(`authorize:request:${facts.resultName}`);
       return requestAccessAllowed;
     },
+    async authorizeDeliveryAttemptLookup(facts) {
+      accessChecks.push(`authorize:attempt:${facts.resultName}`);
+      return accessAllowed;
+    },
     async admitResultRead(facts) {
       accessChecks.push(`admit:${facts.resultName}:${facts.format}`);
       return {
@@ -1451,7 +1458,7 @@ test('portable control validates Receipt and Captured Run references',
         egressAdmissionCid: cid('3'),
         expiresAt: '2026-09-19T00:00:00.000Z',
         maxBytes: 1024,
-        maxUses: 1,
+        maxUses: 2,
       };
     },
     async authorizeResultRead(facts) {
@@ -1530,6 +1537,96 @@ test('portable control validates Receipt and Captured Run references',
     reason: 'confirmed_present',
     state: 'available',
   });
+  const clientHost = createServer(createClientHttpHandler({
+    authenticate: authorization => authorization === 'Bearer scoped-token'
+      ? 'principal-a' : undefined,
+    authorizeConnection: facts => facts.connection.mode === 'local' &&
+      facts.connection.owner === 'local' &&
+      (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
+    negotiate: () => ({
+      version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+      durability: 'durable', scopeRef: 'principal-a',
+      capabilities: ['result-jsonl'],
+      limits: {maxReadWireBytes: 4096, maxRowBytes: 1024,
+        maxRetainedValueBytes: 4096, maxRows: 100,
+        maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+    }),
+    attach: async ({ref, principalId}) => {
+      await inspectAuthorizedRunState(stateService, {
+        indexKey: ref, principalId, purpose: 'inspect',
+      });
+      return {ref, durability: 'durable', revision: 0};
+    },
+    stateService,
+    resultService: accessService,
+  }));
+  await new Promise(resolve => clientHost.listen(0, '127.0.0.1', resolve));
+  try {
+    const base = `http://127.0.0.1:${clientHost.address().port}`;
+    const headers = {authorization: 'Bearer scoped-token',
+      'content-type': 'application/json'};
+    const connection = {mode: 'local', owner: 'local',
+      runners: [], consentRefs: []};
+    const statusReply = await fetch(`${base}/actql/client/0.1/status`, {
+      method: 'POST', headers,
+      body: JSON.stringify({connection, ref: stateRequest.indexKey}),
+    });
+    assert.equal(statusReply.status, 200);
+    assert.deepEqual(await statusReply.json(), availableState);
+    const readReply = await fetch(`${base}/actql/client/0.1/read`, {
+      method: 'POST', headers,
+      body: JSON.stringify({connection, ref: stateRequest.indexKey,
+        resultName: 'answer', format: 'json', attemptId: 'http-result-read'}),
+    });
+    assert.equal(readReply.status, 200);
+    assert.equal(await readReply.text(), '[{"value":7}]');
+    const streamReply = await fetch(`${base}/actql/client/0.1/read`, {
+      method: 'POST', headers,
+      body: JSON.stringify({connection, ref: stateRequest.indexKey,
+        resultName: 'answer', format: 'jsonl',
+        attemptId: 'http-result-stream'}),
+    });
+    assert.equal(streamReply.status, 200);
+    assert.equal(await streamReply.text(), '{"value":7}\n\x1e');
+    const client = await connectClient({mode: 'local', owner: 'local',
+      endpoint: `${base}/`, token: 'scoped-token'});
+    const attached = await client.attach(stateRequest.indexKey);
+    assert.deepEqual(await attached.status(), availableState);
+    const reader = attached.result('answer').rows();
+    assert.deepEqual(await Array.fromAsync(reader), [{value: 7}]);
+    assert.equal(reader.state(), 'complete');
+    assert.equal((await attached.result('answer')
+      .deliveryAttempt(reader.attemptId)).kind, 'found');
+    const inspectAttempt = async attemptId => fetch(
+      `${base}/actql/client/0.1/delivery-attempt`, {
+        method: 'POST', headers,
+        body: JSON.stringify({connection, ref: stateRequest.indexKey,
+          resultName: 'answer', attemptId}),
+      });
+    const attemptReply = await inspectAttempt('http-result-stream');
+    assert.equal(attemptReply.status, 200);
+    let attemptStatus = await attemptReply.json();
+    assert.equal(attemptStatus.kind, 'found');
+    assert.equal(attemptStatus.attempt.attempt_id, 'http-result-stream');
+    for (let tries = 0; tries < 100 &&
+        attemptStatus.record?.state !== 'succeeded'; tries++) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      attemptStatus = await (await inspectAttempt('http-result-stream')).json();
+    }
+    assert.equal(attemptStatus.record.state, 'succeeded');
+    assert.equal(attemptStatus.hostReleaseReceipt.delivered_byte_count,
+      Buffer.byteLength('{"value":7}\n'));
+    assert.deepEqual(await (await inspectAttempt('missing')).json(),
+      {kind: 'not_found'});
+    accessAllowed = false;
+    const deniedAttempt = await inspectAttempt('http-result-stream');
+    const deniedMissing = await inspectAttempt('missing');
+    assert.equal(deniedAttempt.status, 403);
+    assert.equal(deniedMissing.status, 403);
+    accessAllowed = true;
+  } finally {
+    await new Promise(resolve => clientHost.close(resolve));
+  }
   const uncertainStateService = installRunStateService({
     store: Object.freeze({
       confirmCommittedIndex: key =>
