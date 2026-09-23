@@ -218,6 +218,14 @@ These are physical-response facts, not terminal Effect facts or final receipts.
 The checked Program, all-member preflight and apply permit, durable outcome
 admission, receipts, and ordinary Effectful Run path remain open under SF-3.
 
+The retained in-process Catalog observation now keeps typed describe outcomes,
+including provider failure reasons, rather than reducing every failed describe
+to an absent metadata slot. The accessor requires the original exact binding;
+it distinguishes an unlisted resource from one omitted by a truncated listing.
+Local HTTPS and MoonBit target tests cover those distinctions. This does not
+grant current disclosure or execution authority, persist the observation for
+restart, or close the Effectful Run boundary in SF-3.
+
 The next shared step retains a bounded structural header inventory from the
 original Stage declarations. It preserves exact Stage/member occurrences,
 Effect kinds, source Result references, Contract references, and authored row
