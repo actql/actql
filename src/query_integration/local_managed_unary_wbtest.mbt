@@ -312,7 +312,8 @@ fn run_local_managed_unary_case(
     2,
     unary_live,
     obligations?=unary_obligations,
-    execution_quantum=if kind == "filter_text" ||
+    execution_quantum=if kind == "select" ||
+      kind == "filter_text" ||
       kind == "filter_structured" ||
       kind == "filter_null" ||
       kind == "sort" ||
@@ -325,7 +326,8 @@ fn run_local_managed_unary_case(
     },
     execution_advances=Some(bounded_advances),
   )
-  if kind == "filter_text" ||
+  if kind == "select" ||
+    kind == "filter_text" ||
     kind == "filter_structured" ||
     kind == "filter_null" ||
     kind == "sort" ||
@@ -463,6 +465,11 @@ test "ordinary Local filters resume within quantum" {
   run_local_managed_unary_case("filter_text")
   run_local_managed_unary_case("filter_structured")
   run_local_managed_unary_case("filter_null")
+}
+
+///|
+test "ordinary Local select preserves authored order within quantum" {
+  run_local_managed_unary_case("select")
 }
 
 ///|
