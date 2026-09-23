@@ -64,6 +64,9 @@ function effectApplicationControl(moon) {
     admitPreviewIdentity: (...args) => checked(
       moon.strategyEffectPreviewApplyIdentity(...args),
     ),
+    checkPreviewTargetGuards: (...args) => checked(
+      moon.strategyEffectPreviewTargetGuardsCheck(...args),
+    ),
     admitCollectionBatch: (...args) => checked(
       moon.strategyEffectCollectionBatchAdmit(...args),
     ),

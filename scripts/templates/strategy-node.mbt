@@ -12,6 +12,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect.EffectFootprintIssue)
   EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
+  EffectPreviewTargetGuard(@effect.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect.EffectCollectionBatchIssue)
   EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
@@ -7684,6 +7685,37 @@ pub fn strategy_effect_preview_apply_identity(
   ) {
     Ok(identity) => identity
     Err(issue) => raise EffectPreviewIdentity(issue)
+  }
+}
+
+///|
+/// The Site supplies currently authorized target observations. This checks
+/// every Preview guard but does not create a whole-set apply permit.
+#export_name("strategyEffectPreviewTargetGuardsCheck")
+pub fn strategy_effect_preview_target_guards_check(
+  preview : @publication.EffectPreviewIdentity,
+  row_preview_cids : Array[String],
+  version_cids : Array[String],
+  max_rows : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  if max_rows < 0 ||
+    row_preview_cids.length() != version_cids.length() ||
+    row_preview_cids.length() > max_rows {
+    raise InvalidCommand
+  }
+  let observations : Array[@effect.EffectTargetVersionObservation] = []
+  for index in 0..<row_preview_cids.length() {
+    observations.push({
+      row_preview_cid: row_preview_cids[index],
+      version_cid: version_cids[index],
+    })
+  }
+  match @effect.check_effect_preview_target_guards(
+    preview, observations, max_rows, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectPreviewTargetGuard(issue)
   }
 }
 
