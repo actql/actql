@@ -21,18 +21,20 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
-for (const name of ['sdk', 'node']) {
+for (const name of ['client-wire', 'sdk', 'node']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
 }
 const sdk = join(root, 'actql-sdk-0.0.0-development.tgz');
 const node = join(root, 'actql-node-0.0.0-development.tgz');
+const wire = join(root, 'actql-client-wire-0.0.0-development.tgz');
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
-run('npm', ['install', '--offline', '--ignore-scripts', '--no-save', sdk, node],
+run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
+  wire, sdk, node],
   root);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
-  ['node', 'sdk']);
+  ['client-wire', 'node', 'sdk']);
 
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';

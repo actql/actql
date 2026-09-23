@@ -1,4 +1,5 @@
 // The transport Client delegates admission, state and delivery to the Host.
+import {validDeliveryAttemptLookup} from '@actql/client-wire';
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const exact = (value, keys) => value !== null && typeof value === 'object' &&
@@ -339,23 +340,11 @@ export async function connect(options) {
           catch (cause) {
             throw new ClientError('InvalidHostAttemptLookup', {cause});
           }
-          if (exact(answer, ['kind']) && answer.kind === 'not_found') {
-            return Object.freeze(answer);
-          }
-          if (exact(answer, ['kind', 'attempt', 'record',
-            'hostReleaseReceipt']) && answer.kind === 'found' &&
-              answer.attempt !== null &&
-              typeof answer.attempt === 'object' &&
-              !Array.isArray(answer.attempt) &&
-              (answer.record === null ||
-                typeof answer.record === 'object' &&
-                !Array.isArray(answer.record)) &&
-              (answer.hostReleaseReceipt === null ||
-                typeof answer.hostReleaseReceipt === 'object' &&
-                !Array.isArray(answer.hostReleaseReceipt))) {
-            return Object.freeze(answer);
-          }
-          fail('InvalidHostAttemptLookup');
+          if (!validDeliveryAttemptLookup(answer, {
+            attemptId, runDefinitionCid: ref.runDefinitionCid,
+            resultName: name,
+          })) fail('InvalidHostAttemptLookup');
+          return Object.freeze(answer);
         },
       });
     };

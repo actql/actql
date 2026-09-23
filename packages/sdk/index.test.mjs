@@ -1,5 +1,6 @@
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {connect, ClientError} from './index.mjs';
 
 const ref = Object.freeze({tenantId: 'tenant-a',
@@ -425,10 +426,12 @@ test('request lookup distinguishes retained Run, absence and malformed Host repl
       ['connect', 'lookup-request', 'lookup-request', 'lookup-request']);
   });
 
-test('delivery attempt lookup accepts only the existing ledger result shape',
+test('delivery attempt lookup binds the existing Host evidence to the request',
   async t => {
-    let reply = {kind: 'found', attempt: {attempt_id: 'read-a'},
-      record: null, hostReleaseReceipt: null};
+    const found = JSON.parse(readFileSync(new URL(
+      '../client-wire/fixtures/delivery-attempt.found.json', import.meta.url),
+    'utf8'));
+    let reply = found;
     const requests = [];
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
@@ -443,12 +446,24 @@ test('delivery attempt lookup accepts only the existing ledger result shape',
     assert.deepEqual(await result.deliveryAttempt('read-a'), reply);
     reply = {kind: 'not_found'};
     assert.deepEqual(await result.deliveryAttempt('read-b'), reply);
-    reply = {kind: 'found', attempt: null, record: null,
-      hostReleaseReceipt: null};
-    await assert.rejects(result.deliveryAttempt('read-c'),
-      {code: 'InvalidHostAttemptLookup'});
+    for (const update of [
+      answer => { answer.attempt.attempt_id = 'OTHER'; },
+      answer => { answer.attempt.run_definition_cid =
+        `sha256:${'9'.repeat(64)}`; },
+      answer => { answer.attempt.result_name = 'foreign'; },
+      answer => { answer.hostReleaseReceipt = {}; },
+      answer => { answer.record.state = 'failed'; },
+      answer => { answer.hostReleaseReceipt.serialization_contract_cid =
+        `sha256:${'9'.repeat(64)}`; },
+    ]) {
+      reply = structuredClone(found);
+      update(reply);
+      await assert.rejects(result.deliveryAttempt('read-a'),
+        {code: 'InvalidHostAttemptLookup'});
+    }
     assert.deepEqual(requests.slice(2).map(item => item.body.attemptId),
-      ['read-a', 'read-b', 'read-c']);
+      ['read-a', 'read-b', ...Array(6).fill('read-a')]);
     assert(requests.slice(2).every(item =>
       item.body.resultName === 'answer'));
+    assert(requests.every(item => item.operation !== 'read'));
   });
