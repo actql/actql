@@ -147,6 +147,10 @@ export async function callHttpsCredentialResource({
       signal,
       maxResponseBytes,
     });
+    if (response.statusCode === 401 &&
+        typeof resolveSecret.invalidate === 'function') {
+      resolveSecret.invalidate(secret);
+    }
     if (response.statusCode >= 300 && response.statusCode < 400) {
       fail('RemoteCredentialRedirectRejected');
     }

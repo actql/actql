@@ -234,6 +234,25 @@ test('scoped reads can inspect a rejected response without claiming success',
     assert.equal(setup.requests(), 1);
   });
 
+test('401 invalidates only the used credential and never retries the request',
+  async t => {
+    const setup = await fixture(t);
+    const grantScope = scope(setup.origin);
+    const grant = control.prepare(grantScope);
+    setup.journal.acceptGrant(setup.sign(grant), control);
+    const invalidated = [];
+    const resolveSecret = async () => 'revoked-secret';
+    resolveSecret.invalidate = token => invalidated.push(token);
+    const response = await call(setup, grant, grantScope, 'use-unauthorized', {
+      resolveSecret, returnRejectedResponse: true,
+    });
+    assert.equal(response.accepted, false);
+    assert.equal(response.statusCode, 401);
+    assert.deepEqual(invalidated, ['revoked-secret']);
+    assert.equal(setup.requests(), 1);
+    assert.equal(setup.journal.inspect(response.useCid).outcome, 'failed');
+  });
+
 test('resource operation attempt and revocation scope stop before HTTPS I/O',
   async t => {
     const setup = await fixture(t);

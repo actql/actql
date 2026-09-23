@@ -1,10 +1,14 @@
 import {execFile} from 'node:child_process';
+import {performance} from 'node:perf_hooks';
 import {promisify} from 'node:util';
 
 const execute = promisify(execFile);
 const aliasPattern = /^[A-Za-z][A-Za-z0-9_.-]{0,255}$/u;
 const text = value => typeof value === 'string' && value.length > 0;
 const positive = value => Number.isSafeInteger(value) && value > 0;
+const sameConnection = (left, right) =>
+  left.orgId === right.orgId && left.username === right.username &&
+  left.instanceOrigin === right.instanceOrigin;
 
 function fail(code) {
   // CLI output and errors can contain an access token. Never retain them.
@@ -95,6 +99,26 @@ async function accessToken(username, config, signal) {
   return result.accessToken;
 }
 
+function waitFor(promise, signal) {
+  if (!signal) return promise;
+  if (signal.aborted) fail('SalesforceCliCancelled');
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener('abort', onAbort);
+      reject(Object.assign(new Error('SalesforceCliCancelled'),
+        {code: 'SalesforceCliCancelled'}));
+    };
+    signal.addEventListener('abort', onAbort, {once: true});
+    promise.then(value => {
+      signal.removeEventListener('abort', onAbort);
+      resolve(value);
+    }, error => {
+      signal.removeEventListener('abort', onAbort);
+      reject(error);
+    });
+  });
+}
+
 /// Resolve the non-secret binding to persist at connection admission.
 /// Calling this does not grant access to a Run or authorize an HTTP operation.
 export async function inspectSalesforceCliConnection(alias, settings = {}) {
@@ -106,6 +130,7 @@ export async function inspectSalesforceCliConnection(alias, settings = {}) {
 /// must carry the exact org, user, and instance discovered at admission.
 export function createSalesforceCliSecretResolver({
   connection, principal, tenant, environment, siteKey, siteGeneration,
+  tokenReuseMs = 30_000, monotonicNow = () => performance.now(),
   ...settings
 } = {}) {
   const config = options(settings);
@@ -113,14 +138,40 @@ export function createSalesforceCliSecretResolver({
       !text(connection.orgId) || !text(connection.username) ||
       !text(principal) || !text(tenant) || !text(environment) ||
       !text(siteKey) || !Number.isSafeInteger(siteGeneration) ||
-      siteGeneration < 0) {
+      siteGeneration < 0 || !positive(tokenReuseMs) ||
+      tokenReuseMs > 300_000 || typeof monotonicNow !== 'function') {
     fail('SalesforceCliInvalidConnection');
   }
   const expectedOrigin = origin(connection.instanceOrigin);
   const expected = Object.freeze({alias: connection.alias,
     orgId: connection.orgId, username: connection.username,
     instanceOrigin: expectedOrigin});
-  return async function resolveSecret(scope, signal) {
+  let cached;
+  let refreshFlight;
+  let epoch = 0;
+  const clock = () => {
+    const value = monotonicNow();
+    if (!Number.isFinite(value) || value < 0) {
+      fail('SalesforceCliInvalidClock');
+    }
+    return value;
+  };
+  async function refresh() {
+    const startingEpoch = epoch;
+    const before = await display(expected.alias, config);
+    if (!sameConnection(before, expected)) {
+      fail('SalesforceCliConnectionMismatch');
+    }
+    const token = await accessToken(expected.username, config);
+    const after = await display(expected.alias, config);
+    if (!sameConnection(after, expected)) {
+      fail('SalesforceCliConnectionMismatch');
+    }
+    if (startingEpoch !== epoch) fail('SalesforceCliSessionInvalidated');
+    cached = {token, issuedAt: clock()};
+    return token;
+  }
+  async function resolveSecret(scope, signal) {
     if (scope?.principal !== principal || scope?.tenant !== tenant ||
         scope?.environment !== environment ||
         scope?.siteKey !== siteKey ||
@@ -129,19 +180,30 @@ export function createSalesforceCliSecretResolver({
         scope?.resourceOrigin !== expectedOrigin) {
       fail('SalesforceCliConnectionMismatch');
     }
-    const before = await display(expected.alias, config, signal);
-    if (before.orgId !== expected.orgId ||
-        before.username !== expected.username ||
-        before.instanceOrigin !== expected.instanceOrigin) {
-      fail('SalesforceCliConnectionMismatch');
+    if (signal?.aborted) fail('SalesforceCliCancelled');
+    const current = clock();
+    if (cached && current >= cached.issuedAt &&
+        current - cached.issuedAt < tokenReuseMs) {
+      return cached.token;
     }
-    const token = await accessToken(expected.username, config, signal);
-    const after = await display(expected.alias, config, signal);
-    if (after.orgId !== expected.orgId ||
-        after.username !== expected.username ||
-        after.instanceOrigin !== expected.instanceOrigin) {
-      fail('SalesforceCliConnectionMismatch');
+    cached = undefined;
+    if (!refreshFlight) {
+      const flight = refresh();
+      refreshFlight = flight;
+      flight.then(() => {
+        if (refreshFlight === flight) refreshFlight = undefined;
+      }, () => {
+        if (refreshFlight === flight) refreshFlight = undefined;
+      });
     }
-    return token;
+    return await waitFor(refreshFlight, signal);
+  }
+  resolveSecret.invalidate = token => {
+    if (token !== undefined && cached?.token !== token) return false;
+    const hadCredential = cached !== undefined || refreshFlight !== undefined;
+    cached = undefined;
+    epoch++;
+    return hadCredential;
   };
+  return resolveSecret;
 }
