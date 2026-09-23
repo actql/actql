@@ -15,11 +15,17 @@ seven attempted pairs but ordinary product selection chose Local, while the
 product comparator reads DuckDB-only accounting fields. The other 17 cases
 stopped in calibration: 16 could not force the Local candidate under the
 training fixture and one asserted that an already released intermediate
-completion remained present after close. These are measurement-path gaps; they
-do not remove cases from the denominator or turn any failure into a pass.
+completion remained present after close. The latter assertion has been fixed.
+A clean-revision rerun of that case then exposed `host-tasks-failed` after two
+Local tasks: the strategy explanation reported `no_feasible`, with remaining
+assignments rejected by retention or execution limits. A forced candidate that
+cannot fit the fixed limits is unavailable training evidence, not a zero-time
+measurement or a reason to enlarge the registered budget. The Local accounting
+gap is in the comparator; the candidate limit is in the actual product profile.
+Neither removes a case from the denominator or turns a failure into a pass.
 
-Next, fix the post-close assertion, represent unavailable training candidates
-explicitly, and expose real Local obligation diagnostics when Local is the
+Next, represent unavailable training candidates explicitly, and expose real
+Local obligation diagnostics when Local is the
 ordinary choice. Repeat a fixed-revision matrix after those changes. Keep the
 four observed gate failures and optimize the product path against the unchanged
 limits. The baseline and raw-DuckDB comparators, plus operational PERF-2

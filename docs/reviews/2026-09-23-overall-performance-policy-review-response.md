@@ -191,3 +191,12 @@ directory `equivalent-matrix-full-03e3`, with SHA-256 digests
 and `4a67166f62863593d544d12356b29946823c84ceb9591a1858f06d98efaad8a7`
 respectively. This is a fixed-SHA diagnosis of the registered matrix, not a
 PERF-1 pass or evidence for the other three comparators.
+
+The benchmark-only post-close assertion is fixed after that run. A fresh
+calibration probe for the affected join case then reached a real
+`host-tasks-failed` result after two Local tasks; the strategy explanation
+reported `no_feasible` under the unchanged retention and execution limits.
+The probe's failed report is retained in workspace scratch. Candidate
+infeasibility must be represented explicitly in calibration rather than
+converted to a fabricated rate. It does not change the fixed-revision result
+above.
