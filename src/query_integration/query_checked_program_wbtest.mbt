@@ -498,7 +498,7 @@ fn query_checked_program_fixture(
         "graph",
         "traverse",
         input_rows=if local_carrier_graph_variant.has_prefix(
-            "traverse_pattern_multi_paths",
+            "traverse_pattern_multi",
           ) {
           3L
         } else {
@@ -511,6 +511,8 @@ fn query_checked_program_fixture(
           local_carrier_graph_variant == "traverse_relation_selector" ||
           local_carrier_graph_variant == "traverse_relation_paths" {
           4L
+        } else if local_carrier_graph_variant == "traverse_pattern_multi" {
+          3L
         } else {
           2L
         },

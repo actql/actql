@@ -348,6 +348,9 @@ fn visit_reach_neighbor(
     return Err(ReachInputUnavailable)
   }
   if state.pattern is Some(_) {
+    if node == state.current_start_node {
+      return Ok(())
+    }
     let next_depth = state.pattern_hop + 1
     if depth != next_depth {
       state.depth[node] = next_depth

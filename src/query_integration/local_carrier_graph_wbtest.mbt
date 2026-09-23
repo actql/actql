@@ -305,7 +305,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }
   let rows = if union_set {
     "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
-  } else if variant.has_prefix("traverse_pattern_multi_paths") {
+  } else if patterned_multi {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":3,\"edge_type\":\"blocks\"," +
@@ -458,9 +458,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
         "},{\"direction\":\"out\"," +
         "\"edge_types\":[\"blocks\"]," +
         "\"edge_where\":\"weight > 15\"," +
-        "\"node_where\":\"node_name = '" +
-        (if variant == "traverse_pattern_multi" { "first" } else { "third" }) +
-        "'\"" +
+        "\"node_where\":\"node_name = 'third'\"" +
         "}],"
       } else {
         "\"hops\":[{\"direction\":\"out\"" +
@@ -4947,6 +4945,192 @@ fn homogeneous_traverse_paths_result(
 }
 
 ///|
+fn traverse_nodes_result_for_source(
+  source_owner : @lower.BoundPrepared,
+  minimum : Int,
+  maximum : Int,
+  max_rows? : Int = 4,
+  workspace? : Int = 100,
+  peak? : Ref[Int]? = None,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(
+    source_owner,
+    minimum,
+    maximum,
+    emission="nodes",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    max_rows,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    workspace,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let result = finish_traverse(execution)
+  if peak is Some(value) {
+    value.val = @local_sga.traverse_private_workspace_usage(execution).1
+  }
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  result
+}
+
+///|
+test "node traversal finds the shortest eligible simple path" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3,\"node_name\":\"one\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\",\"weight\":1}]",
+  )
+  let output = traverse_nodes_result_for_source(source_owner, 2, 2).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":3,\"start_id\":1}",
+  )
+  let paths = traverse_paths_result_for_source(
+    source_owner,
+    4,
+    100,
+    minimum=2,
+    maximum=2,
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(paths), 1)
+  assert_true(
+    @execution.completed_output_row_wire(paths, 0, 10000, 1000, 20)
+    .unwrap()
+    .contains("\"node_ids\":[1,2,3]"),
+  )
+}
+
+///|
+test "node traversal sorts endpoints and retains minimum eligible depth" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3,\"node_name\":\"one\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":2,\"dst\":4,\"node_name\":\"three\",\"weight\":1}," +
+    "{\"id\":4,\"src\":3,\"dst\":5,\"node_name\":\"four\",\"weight\":1}," +
+    "{\"id\":5,\"src\":5,\"dst\":4,\"node_name\":\"five\",\"weight\":1}]",
+  )
+  let peak = Ref(0)
+  let output = traverse_nodes_result_for_source(
+    source_owner,
+    2,
+    3,
+    peak=Some(peak),
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":4,\"start_id\":1}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":5,\"start_id\":1}",
+  )
+  assert_true(peak.val > 0)
+  assert_true(
+    traverse_nodes_result_for_source(source_owner, 2, 3, max_rows=1)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutputLimit)),
+  )
+  assert_true(
+    traverse_nodes_result_for_source(source_owner, 2, 3, workspace=peak.val - 1)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
+  )
+}
+
+///|
+test "node traversal cancellation reclaims the unpublished path state" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3,\"node_name\":\"one\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\",\"weight\":1}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(source_owner, 2, 2, emission="nodes")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let control = @bounded.control()
+  let execution = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut reached = false
+  for _ in 0..<1000 {
+    match @local_sga.advance_traverse(execution, 1).unwrap() {
+      @local_sga.TraverseContinue(..) =>
+        if @local_sga.traverse_private_entry_count(execution) > 3 {
+          reached = true
+          break
+        }
+      _ => abort("node traversal completed before cancellation")
+    }
+  }
+  assert_true(reached)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_traverse(execution, 1).unwrap()
+    is @local_sga.TraverseStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@local_sga.traverse_private_entry_count(execution), 0)
+  assert_eq(@local_sga.traverse_private_workspace_usage(execution).0, 0)
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 fn relation_traverse_paths_result(
   rows : String,
   nullable? : Bool = false,
@@ -7948,7 +8132,7 @@ fn run_standard_host_graph_relation_path(
       assert_true(graph_rows[1].contains("\"node_id\":1"))
     } else if variant == "traverse_pattern_multi" {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
-      assert_true(graph_rows[0].contains("\"node_id\":1"))
+      assert_true(graph_rows[0].contains("\"node_id\":3"))
       assert_true(graph_rows[0].contains("\"depth\":2"))
     } else if variant.has_prefix("traverse_pattern_") &&
       variant != "traverse_pattern_one" {
