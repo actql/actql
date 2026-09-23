@@ -48,6 +48,7 @@ priv struct GraphBoundsState {
   mut node : Int?
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -97,6 +98,7 @@ pub(all) enum GraphBoundsIssue {
   InvalidGraphBoundsKernel
   GraphBoundsInputUnavailable
   GraphBoundsWorkspaceLimit
+  GraphBoundsWorkLimit
   GraphBoundsKeyOrder(@value.KeyOrderIssue)
   GraphBoundsOutput(@execution.CaptureIssue)
   GraphBoundsCompletion(@execution.TrustedOutputIssue)
@@ -311,6 +313,9 @@ fn graph_bounds_step(
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(GraphBoundsInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+    }
     match state.phase {
       InitializeNodes =>
         if state.source_index < @storage.node_count(state.source) {
@@ -456,6 +461,7 @@ fn graph_bounds_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -489,6 +495,7 @@ pub fn start_graph_bounds(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -521,6 +528,7 @@ pub fn start_graph_bounds(
     max_entries,
     max_name_bytes,
     inputs,
+    control_work_limit.unwrap_or(limits.max_work),
   )
 }
 
@@ -537,6 +545,7 @@ pub fn start_graph_degree(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[GraphDegreeExecution, GraphBoundsIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -574,6 +583,7 @@ pub fn start_graph_degree(
     max_entries,
     max_name_bytes,
     inputs,
+    control_work_limit.unwrap_or(limits.max_work),
   ).map(inner => { inner, })
 }
 
@@ -595,6 +605,7 @@ fn start_graph_diagnostic(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit : Int,
 ) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
   guard @graph.producer_read_storage(input) is Some(source) else {
     return Err(GraphBoundsInputUnavailable)
@@ -606,6 +617,9 @@ fn start_graph_diagnostic(
   }
   guard max_rows >= 0 && workspace <= max_workspace_slots else {
     return Err(GraphBoundsWorkspaceLimit)
+  }
+  if control_work_limit < 0 {
+    return Err(GraphBoundsWorkLimit)
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -673,6 +687,7 @@ fn start_graph_diagnostic(
     node: None,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

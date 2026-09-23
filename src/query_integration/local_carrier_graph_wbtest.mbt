@@ -2945,7 +2945,7 @@ test "graph diagnostics admit workspace before execution and clean cancel" {
 }
 
 ///|
-test "graph bounds admits exact value work and rejects one short" {
+test "graph bounds admits exact value and control work" {
   let source_owner = carrier_graph_source_owner_with_rows(
     "[{\"id\":1,\"src\":1,\"dst\":1," + "\"node_name\":\"only\",\"weight\":10}]",
   )
@@ -2972,7 +2972,7 @@ test "graph bounds admits exact value work and rejects one short" {
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
   let completion = task_test_completion(owner)
-  let start = fn(max_work, workspace) {
+  let start = fn(max_work, workspace, control_work_limit) {
     @local_sga.start_graph_bounds(
       @bounded.control(),
       completion,
@@ -2985,11 +2985,12 @@ test "graph bounds admits exact value work and rejects one short" {
       1000,
       1000,
       [external],
+      control_work_limit=Some(control_work_limit),
     )
   }
   // One node needs 3 index slots; four result fields need four more.
-  assert_true(start(30, 6) is Err(@local_sga.GraphBoundsWorkspaceLimit))
-  let exact = start(30, 7).unwrap()
+  assert_true(start(30, 6, 11) is Err(@local_sga.GraphBoundsWorkspaceLimit))
+  let exact = start(30, 7, 11).unwrap()
   let output = finish_graph_bounds(exact).unwrap()
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("nodes")))
@@ -2997,12 +2998,21 @@ test "graph bounds admits exact value work and rejects one short" {
   // The row object and four scalar values cost five nodes. Four field names
   // cost 4+7+6+3 bytes, and the only text value, "nodes", costs five more.
   // Thus the independent value-work bound is 5 + 20 + 5 = 30.
-  let short = start(29, 7).unwrap()
+  let short = start(29, 7, 11).unwrap()
   assert_true(
     finish_graph_bounds(short)
     is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
   )
   assert_eq(@local_sga.cleanup_graph_bounds(short), Ok(true))
+  // With one node and one edge, the bounded phases spend: initialize 1,
+  // scan 1, inspect three candidates, build four fields, commit 1, finish 1.
+  // The cumulative control-work requirement is exactly 11, independent of
+  // the output-value work budget of 30.
+  let control_short = start(30, 7, 10).unwrap()
+  assert_true(
+    finish_graph_bounds(control_short) is Err(@local_sga.GraphBoundsWorkLimit),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(control_short), Ok(true))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
 }
