@@ -176,6 +176,49 @@ test('local-owned Hybrid identifies Cloud assistance without changing owner',
       {code: 'InvalidHybridConnection'});
   });
 
+test('one query and Result path serves each connected ownership profile',
+  async t => {
+    const requests = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      const body = JSON.parse(init.body);
+      requests.push({operation, body});
+      if (operation === 'connect') return Response.json({...profile,
+        mode: body.connection.mode, owner: body.connection.owner});
+      if (operation === 'submit') return Response.json(admission);
+      if (operation === 'read') return new Response('{"id":1}\n\x1e');
+      throw new Error(`unexpected ${operation}`);
+    });
+    t.after(() => mock.restoreAll());
+    const connected = [
+      options,
+      {mode: 'local', owner: 'local',
+        endpoint: 'https://local.example/', token: 'token'},
+      {mode: 'hybrid', owner: 'cloud',
+        endpoint: 'https://cloud.example/', token: 'token',
+        runners: ['runner-a'], movementPolicyRef: 'movement-a'},
+      {mode: 'hybrid', owner: 'local',
+        endpoint: 'https://local.example/', token: 'token',
+        cloudConnectionRef: 'registered-cloud-a',
+        movementPolicyRef: 'movement-a'},
+    ];
+    const query = async connection => {
+      const client = await connect(connection);
+      const execution = await client.aql('{"version":"actql/0.1"}',
+        {format: 'json'});
+      const values = await execution.result('answer').all();
+      client.close();
+      return values;
+    };
+    for (const connection of connected) {
+      assert.deepEqual(await query(connection), [{id: 1}]);
+    }
+    assert.equal(requests.filter(item => item.operation === 'submit').length,
+      connected.length);
+    assert.equal(requests.filter(item => item.operation === 'read').length,
+      connected.length);
+  });
+
 test('invalid refs and unsafe endpoints are rejected before transport', async t => {
   for (const endpoint of ['http://host.example/',
     'https://user:secret@host.example/',
