@@ -67,8 +67,9 @@ readable coverage manifest is authoritative for individual operation status.
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
-  explicit proof roles on every route. Only filter has such a complete proof
-  binding recorded so far; the command is intentionally failing while the
+  explicit proof roles on every route. Filter and select have complete proof
+  bindings recorded so far, each including real Host timer cancellation; the
+  command is intentionally failing while the
   remaining routes are audited. The ordinary resource command checks route
   identity and existing evidence without claiming release completion.
   Checked Relation sort after a Carrier projection now has a selected task

@@ -2823,6 +2823,21 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'normalize-select',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', select: ['id', 'node_name'], as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'normalize-take',
     rows: 40,
     advanceQuantum: 1,

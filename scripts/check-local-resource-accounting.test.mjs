@@ -41,12 +41,12 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 1 with complete boundary assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 2 with complete boundary assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /RelA select: boundary assurance is missing/);
+    /RelA rename: boundary assurance is missing/);
 });
 
 test('resource gate rejects a false in-flight assurance', () => {
@@ -219,4 +219,12 @@ test('resource gate rejects selection without its bounded product route', () => 
       entry.operation === 'select');
     delete selection.selected_entrypoint;
   }), /RelA select: bounded selected entrypoint is missing/);
+});
+
+test('resource gate rejects selection without delivered Host cancellation', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.environment_tests = [];
+  }), /RelA select: in-flight Host cancellation fixture is missing/);
 });
