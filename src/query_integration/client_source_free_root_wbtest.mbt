@@ -76,6 +76,31 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     preparation,
   ).unwrap()
   let graph = @publication_host.prepared_client_graph(prepared)
+  assert_true(
+    @publication_host.prepare_client_task_sequence(
+      prepared,
+      1,
+      registered_relation_contracts(),
+      [],
+      {
+        max_steps: 1,
+        max_rows: 1,
+        max_cells: 1,
+        max_bindings: 1,
+        max_name_bytes: 1,
+        expressions: {
+          max_nodes: 1,
+          max_work: 1,
+          max_depth: 1,
+          max_literal_nodes: 1,
+          max_literal_text_bytes: 1,
+        },
+      },
+      1,
+      1,
+    )
+    is Err(@publication_host.MissingTask),
+  )
   let ledger = @resources.create_ledger({
     planning_work: 100000,
     attempts: 10,
@@ -91,7 +116,30 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     @host_driver.open_dispatch_driver(run),
     registry,
     @connector.capability_registration_at(registry, 0).unwrap(),
-    [task_test_generated(@strategy.graph_task_owner(graph, 0).unwrap())],
+    [
+      @publication_host.prepare_client_task_sequence(
+        prepared,
+        0,
+        registered_relation_contracts(),
+        [],
+        {
+          max_steps: 100,
+          max_rows: 100,
+          max_cells: 10000,
+          max_bindings: 100,
+          max_name_bytes: 10000,
+          expressions: {
+            max_nodes: 10000,
+            max_work: 100000,
+            max_depth: 100,
+            max_literal_nodes: 10000,
+            max_literal_text_bytes: 10000,
+          },
+        },
+        100000,
+        10000,
+      ).unwrap(),
+    ],
     limits.local_execution,
     limits.guards,
     limits.candidate_work,
