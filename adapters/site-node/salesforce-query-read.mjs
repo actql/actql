@@ -208,9 +208,11 @@ export async function readSalesforceManagedQuery(options) {
 /// transport. This moves the attempt only to AwaitingCleanup. The Host must
 /// separately confirm physical settlement, verify evidence, and capture it.
 export async function readSalesforceIssuedBroad(options) {
-  const {moon, attempt, apiVersion, limits, maxCaptureRows,
+  const {moon, hostRun, apiVersion, limits, maxCaptureRows,
     captureLimits} = options;
-  if (!moon || !attempt || typeof apiVersion !== 'string' ||
+  if (!moon || !hostRun ||
+      typeof moon.salesforceBroadHostAttempt !== 'function' ||
+      typeof apiVersion !== 'string' ||
       !count(maxCaptureRows) || !captureLimits ||
       !count(captureLimits.maxNodes) ||
       !count(captureLimits.maxTextBytes) ||
@@ -218,6 +220,7 @@ export async function readSalesforceIssuedBroad(options) {
       !count(captureLimits.maxWork)) {
     fail('InvalidSalesforceIssuedBroadRead');
   }
+  const attempt = moon.salesforceBroadHostAttempt(hostRun);
   const plan = moon.salesforceIssuedBroadPlan(attempt);
   const physical = {...options, plan, consumePage: async () => {}};
   const scope = validateRead(physical);
@@ -243,13 +246,13 @@ export async function readSalesforceIssuedBroad(options) {
       rowCount: () => moon.salesforceIssuedBroadRowCount(attempt),
       finish: () => {
         checked(moon.salesforceIssuedBroadFinish(attempt));
-        return {attempt};
+        return {hostRun};
       },
-      interrupt: () => moon.salesforceIssuedBroadAbort(attempt),
+      interrupt: () => moon.salesforceBroadHostAbort(hostRun),
     });
     return Object.freeze({...result, currentCatalog});
   } catch (error) {
-    moon.salesforceIssuedBroadAbort(attempt);
+    moon.salesforceBroadHostAbort(hostRun);
     throw error;
   }
 }
