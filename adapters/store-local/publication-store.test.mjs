@@ -977,6 +977,18 @@ test('delivery attempts and records remain append-only after restart',
       await reopened.latestDeliveryRecord(attempt.delivery_attempt_cid),
       failed,
     );
+    const lookup = {
+      indexKey: {tenantId: 'tenant-a',
+        authorityScopeCid: cids.scope, runDefinitionCid: cids.run},
+      principalId: 'principal-a', purpose: 'download',
+      resultName: 'answer', attemptId: 'delivery-1',
+    };
+    assert.deepEqual(await reopened.lookupDeliveryAttempt(lookup),
+      {attempt, record: failed, hostReleaseReceipt: undefined});
+    assert.equal(await reopened.lookupDeliveryAttempt({...lookup,
+      principalId: 'different-principal'}), undefined);
+    assert.equal(await reopened.lookupDeliveryAttempt({...lookup,
+      attemptId: 'missing'}), undefined);
     assert.deepEqual(
       await reopened.appendDeliveryRecord(wire(failed)),
       failed,
