@@ -115,13 +115,15 @@ export function validClientAdmission(value, selected) {
     Number.isSafeInteger(value.revision) && value.revision >= 0;
 }
 
-export function validRequestLookup(value) {
+export function validRequestLookup(value, expectedRequestId) {
+  if (!boundedText(expectedRequestId)) return false;
   if (exact(value, ['kind']) && value.kind === 'not_found') return true;
   if (exact(value, ['kind', 'reason']) && value.kind === 'unknown') {
     return boundedText(value.reason);
   }
-  return exact(value, ['kind', 'ref', 'durability', 'lookupExpiresAt']) &&
-    value.kind === 'found' && validRunRef(value.ref) &&
+  return exact(value, ['kind', 'requestId', 'ref', 'durability',
+    'lookupExpiresAt']) && value.kind === 'found' &&
+    value.requestId === expectedRequestId && validRunRef(value.ref) &&
     durability(value.durability) && boundedText(value.lookupExpiresAt);
 }
 
