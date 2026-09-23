@@ -4,6 +4,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   Sync(@catalog.CatalogSyncIssue)
   Observation(@catalog.CatalogObservationIssue)
   ReadProjection(@catalog.ReadProjectionIssue)
+  QueryRead(@catalog.QueryReadIssue)
   InvalidResource
 }
 
@@ -290,4 +291,108 @@ pub fn salesforce_read_projection_observation_cid(
   plan : @catalog.ReadProjection,
 ) -> String {
   @catalog.read_projection_observation(plan)
+}
+
+///|
+#export_name("salesforceReadProjectionScopeMatches")
+pub fn salesforce_read_projection_scope_matches(
+  plan : @catalog.ReadProjection,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
+  @catalog.read_projection_matches_site_scope(
+    plan, tenant, principal, environment, site_key, site_generation, connector_registration,
+    connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
+  )
+}
+
+///|
+#export_name("salesforceBeginQueryRead")
+pub fn salesforce_begin_query_read(
+  plan : @catalog.ReadProjection,
+  api_version : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_locator_units : Int,
+  max_pages : Int,
+  max_total_rows : Int64,
+) -> @catalog.QueryRead raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.begin_query_read(
+      plan,
+      api_version,
+      { max_bytes, max_nodes, max_depth, max_rows, max_locator_units, },
+      max_pages,
+      max_total_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise QueryRead(issue)
+  }
+}
+
+///|
+#export_name("salesforceQueryReadNextPath")
+pub fn salesforce_query_read_next_path(read : @catalog.QueryRead) -> String? {
+  @catalog.query_read_next_path(read)
+}
+
+///|
+#export_name("salesforceQueryReadAcceptPage")
+pub fn salesforce_query_read_accept_page(
+  read : @catalog.QueryRead,
+  path : String,
+  body : Bytes,
+) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue {
+  match @catalog.query_read_accept_page(read, path, body) {
+    Ok(value) => value
+    Err(issue) => raise QueryRead(issue)
+  }
+}
+
+///|
+#export_name("salesforceQueryReadInterrupt")
+pub fn salesforce_query_read_interrupt(read : @catalog.QueryRead) -> Bool {
+  @catalog.interrupt_query_read(read)
+}
+
+///|
+#export_name("salesforceQueryReadComplete")
+pub fn salesforce_query_read_complete(read : @catalog.QueryRead) -> Bool {
+  @catalog.query_read_complete(read)
+}
+
+///|
+#export_name("salesforceQueryReadPageCount")
+pub fn salesforce_query_read_page_count(read : @catalog.QueryRead) -> Int {
+  @catalog.query_read_page_count(read)
+}
+
+///|
+#export_name("salesforceQueryReadRowCount")
+pub fn salesforce_query_read_row_count(read : @catalog.QueryRead) -> Int64 {
+  @catalog.query_read_row_count(read)
+}
+
+///|
+#export_name("salesforceQueryPageRowCount")
+pub fn salesforce_query_page_row_count(page : @catalog.QueryPage) -> Int {
+  @catalog.query_page_row_count(page)
+}
+
+///|
+#export_name("salesforceQueryPageResponseSha256")
+pub fn salesforce_query_page_response_sha256(
+  page : @catalog.QueryPage,
+) -> String {
+  @catalog.query_page_response_sha256(page)
 }

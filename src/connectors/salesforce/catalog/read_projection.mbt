@@ -11,6 +11,7 @@ pub(all) enum ReadProjectionIssue {
 /// It grants neither current source authority nor an executable acquisition.
 pub struct ReadProjection {
   observation_cid : String
+  binding : CatalogObservationBinding
   resource : String
   fields : Array[FieldMetadata]
   soql : String
@@ -64,6 +65,7 @@ pub fn prepare_read_projection(
   sql.write_string(resource.name)
   Ok({
     observation_cid: observation.cid,
+    binding: current,
     resource: resource.name,
     fields,
     soql: sql.to_string(),
@@ -78,6 +80,36 @@ pub fn read_projection_soql(plan : ReadProjection) -> String {
 ///|
 pub fn read_projection_observation(plan : ReadProjection) -> String {
   plan.observation_cid
+}
+
+///|
+/// The physical credential use must belong to the same observed Site and
+/// dispatch. Credential control separately verifies the signed grant and
+/// its current use conditions.
+pub fn read_projection_matches_site_scope(
+  plan : ReadProjection,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
+  let binding = plan.binding
+  binding.tenant == tenant &&
+  binding.principal == principal &&
+  binding.environment == environment &&
+  binding.site_key == site_key &&
+  binding.site_generation == site_generation &&
+  binding.connector_registration == connector_registration &&
+  binding.connector_revision == connector_revision &&
+  binding.resource_origin == resource_origin &&
+  binding.run_invocation_cid == run_invocation_cid &&
+  binding.dispatch_request_cid == dispatch_request_cid
 }
 
 ///|
