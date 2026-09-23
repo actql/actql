@@ -118,9 +118,10 @@ pub fn read_projection_observation(plan : ReadProjection) -> String {
 }
 
 ///|
-/// The physical credential use must belong to the same observed Site and
-/// dispatch. Credential control separately verifies the signed grant and
-/// its current use conditions.
+/// The physical credential use must belong to the same observed authority
+/// and Site. The catalog-sync dispatch is historical observation evidence;
+/// a query has its own dispatch. Credential control separately verifies the
+/// signed query grant and its current use conditions.
 pub fn read_projection_matches_site_scope(
   plan : ReadProjection,
   tenant : String,
@@ -144,7 +145,7 @@ pub fn read_projection_matches_site_scope(
   binding.connector_revision == connector_revision &&
   binding.resource_origin == resource_origin &&
   binding.run_invocation_cid == run_invocation_cid &&
-  binding.dispatch_request_cid == dispatch_request_cid
+  observation_cid(dispatch_request_cid)
 }
 
 ///|
