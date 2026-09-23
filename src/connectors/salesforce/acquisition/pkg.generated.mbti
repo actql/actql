@@ -52,7 +52,7 @@ pub fn issue_salesforce_broad_records(SalesforceBroadAttempt, @query_planning.Qu
 
 pub fn managed_query_complete(ManagedQuery) -> Bool
 
-pub fn managed_query_next_path(ManagedQuery) -> String?
+pub fn managed_query_next_path(ManagedQuery) -> Result[String?, ManagedQueryIssue]
 
 pub fn managed_query_row_count(ManagedQuery) -> Int64
 
@@ -68,13 +68,13 @@ pub fn retain_salesforce_broad_attempt(SalesforceBroadAttempt, @query_planning.Q
 
 pub fn salesforce_broad_attempt_identity(SalesforceBroadAttempt) -> (String, String)
 
-pub fn salesforce_broad_attempt_next_path(SalesforceBroadAttempt) -> String?
+pub fn salesforce_broad_attempt_next_path(SalesforceBroadAttempt) -> Result[String?, SalesforceBroadAttemptIssue]
 
 pub fn salesforce_broad_candidate(@connector_sdk.CapabilityRegistration, SalesforceBroadPreparation, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@query_planning.PreparedAcquisition[SalesforceBroadPreparation], @query_planning.QueryPlanningIssue]
 
 pub fn salesforce_broad_complete(SalesforceBroadQuery) -> Bool
 
-pub fn salesforce_broad_next_path(SalesforceBroadQuery) -> String?
+pub fn salesforce_broad_next_path(SalesforceBroadQuery) -> Result[String?, SalesforceBroadIssue]
 
 pub fn salesforce_broad_observation_cid(SalesforceBroadObservation) -> String
 

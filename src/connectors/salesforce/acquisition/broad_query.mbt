@@ -170,11 +170,18 @@ pub fn begin_salesforce_broad_query(
 }
 
 ///|
-pub fn salesforce_broad_next_path(query : SalesforceBroadQuery) -> String? {
-  if query.open {
-    @catalog.query_read_next_path(query.read)
-  } else {
-    None
+pub fn salesforce_broad_next_path(
+  query : SalesforceBroadQuery,
+) -> Result[String?, SalesforceBroadIssue] {
+  if !query.open {
+    return Ok(None)
+  }
+  match @catalog.query_read_next_path(query.read) {
+    Ok(path) => Ok(path)
+    Err(issue) => {
+      cancel_salesforce_broad_query(query) |> ignore
+      Err(Query(issue))
+    }
   }
 }
 

@@ -221,10 +221,14 @@ pub fn begin_issued_salesforce_broad_read(
 ///|
 pub fn salesforce_broad_attempt_next_path(
   attempt : SalesforceBroadAttempt,
-) -> String? {
+) -> Result[String?, SalesforceBroadAttemptIssue] {
   match attempt.state {
-    Reading(read) => salesforce_broad_next_path(read)
-    _ => None
+    Reading(read) =>
+      match salesforce_broad_next_path(read) {
+        Ok(path) => Ok(path)
+        Err(issue) => fail_salesforce_broad_attempt(attempt, Read(issue))
+      }
+    _ => Ok(None)
   }
 }
 

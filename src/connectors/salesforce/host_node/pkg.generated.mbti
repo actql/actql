@@ -42,7 +42,7 @@ pub fn salesforce_managed_query_complete(@acquisition.ManagedQuery) -> Bool
 
 pub fn salesforce_managed_query_finish(@acquisition.ManagedQuery) -> @execution_relation.ManagedOutputValueReceipt raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_managed_query_next_path(@acquisition.ManagedQuery) -> String?
+pub fn salesforce_managed_query_next_path(@acquisition.ManagedQuery) -> String? raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_managed_query_row_count(@acquisition.ManagedQuery) -> Int64
 
@@ -66,7 +66,7 @@ pub fn salesforce_query_read_complete(@catalog.QueryRead) -> Bool
 
 pub fn salesforce_query_read_interrupt(@catalog.QueryRead) -> Bool
 
-pub fn salesforce_query_read_next_path(@catalog.QueryRead) -> String?
+pub fn salesforce_query_read_next_path(@catalog.QueryRead) -> String? raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_query_read_page_count(@catalog.QueryRead) -> Int
 
