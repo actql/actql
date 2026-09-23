@@ -496,6 +496,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
   Receipt(PublicationContractIssue)
   InvalidMember
   ForeignPreview
+  ForeignMember
   RowPartitionMismatch
 } derive(@debug.Debug)
 

@@ -162,8 +162,9 @@ RowState := {state: "present", value: Row}
 An approval attestation contains the exact Effect Preview CID, approver,
 canonical UTC approval time,
 preview-authority-scope CID, review claims, an Ed25519 key identity/signature,
-and its own CID. An individual apply receipt contains the preview CID,
-approval-attestation CID exactly when approval was required, disjoint
+and its own CID. An individual apply receipt contains the set Preview CID,
+its exact member Preview CID, approval-attestation CID exactly when approval
+was required, and disjoint
 `applied`/`accepted`/`unknown`/`failed`/`unattempted` row-preview identities, a
 typed outcome, status, optional stale-error CID, and receipt CID. An Effect Set
 apply receipt binds the complete set preview, set approval, fixed `attempt_all`
@@ -175,6 +176,11 @@ Result delivery receipt separately binds one Result Artifact to one canonical
 serialization and its released byte identity ([Result delivery](artifacts.md#result-delivery)). Runtime errors bind
 phase, stable code/message, already materialized artifact CIDs, and
 `partial_output_published: false`.
+
+<!-- requirement-block: review-artifacts.each-member-apply-receipt-must-bind-exact-member-preview -->
+Each member apply receipt MUST bind its exact member Preview CID as well as
+the set Preview CID. A row partition alone cannot identify a member whose
+preview contains no rows.
 
 <!-- requirement-block: review-artifacts.an-effect-review-projection-must-include-each-effect-s-kind-target -->
 The private Effect Preview binds the evidence available for its strength and may contain
@@ -373,7 +379,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:ffacfcbd6992627eb07489e40ffff7b33db144e8d34ff80ac7d06221dcf45712
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0
