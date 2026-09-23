@@ -7,5 +7,5 @@
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.mjs" }
   },
-  "files": ["index.mjs", "index.d.ts"]
+  "files": ["index.mjs", "index.d.ts", "README.md"]
 }
