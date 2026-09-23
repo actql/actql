@@ -8,7 +8,41 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   DuplicateMember(Int)
   ForeignEffectId(Int)
   ForeignMemberReceipt(Int)
+  MemberStateMismatch(Int)
+  SetStatusMismatch
 } derive(Debug)
+
+///|
+fn effect_receipt_rows_nonempty(
+  receipt : PublicationContract,
+  field : String,
+) -> Bool {
+  match @json.object_field(receipt.value, field) {
+    Some(@json.Array(rows)) => !@json.array_values(rows).is_empty()
+    _ => abort("admitted Effect receipt row array required")
+  }
+}
+
+///|
+fn effect_receipt_member_state(receipt : PublicationContract) -> String {
+  if effect_receipt_rows_nonempty(receipt, "unknown") {
+    return "unknown"
+  }
+  if effect_receipt_rows_nonempty(receipt, "failed") {
+    return "failed"
+  }
+  if effect_receipt_rows_nonempty(receipt, "unattempted") {
+    if effect_receipt_rows_nonempty(receipt, "applied") ||
+      effect_receipt_rows_nonempty(receipt, "accepted") {
+      return "failed"
+    }
+    return "unattempted"
+  }
+  if effect_receipt_rows_nonempty(receipt, "accepted") {
+    return "accepted"
+  }
+  "applied"
+}
 
 ///|
 /// Admit the complete set-to-member receipt reference closure. This checks
@@ -64,6 +98,10 @@ pub fn admit_effect_set_apply_receipt_references(
     return Err(MemberCountMismatch)
   }
   let seen : Map[String, Bool] = Map([])
+  let mut any_applied = false
+  let mut any_accepted = false
+  let mut any_unknown = false
+  let mut any_failed = false
   for position in 0..<effects.length() {
     let item = effects[position]
     let member_cid = match
@@ -93,6 +131,50 @@ pub fn admit_effect_set_apply_receipt_references(
     if receipt_cid != publication_contract_identity(receipts[index]) {
       return Err(ForeignMemberReceipt(position))
     }
+    let state = match @json.object_field(item, "state") {
+      Some(@json.String(value)) => value
+      _ => return Err(MemberStateMismatch(position))
+    }
+    if state != effect_receipt_member_state(receipts[index]) {
+      return Err(MemberStateMismatch(position))
+    }
+    match @json.object_field(item, "outcome") {
+      Some(outcome) => {
+        let outcome_state = match @json.object_field(outcome, "state") {
+          Some(@json.String(value)) => value
+          _ => return Err(MemberStateMismatch(position))
+        }
+        if outcome_state != state {
+          return Err(MemberStateMismatch(position))
+        }
+      }
+      None => ()
+    }
+    any_applied = any_applied ||
+      effect_receipt_rows_nonempty(receipts[index], "applied")
+    any_accepted = any_accepted ||
+      effect_receipt_rows_nonempty(receipts[index], "accepted")
+    any_unknown = any_unknown ||
+      effect_receipt_rows_nonempty(receipts[index], "unknown")
+    any_failed = any_failed ||
+      effect_receipt_rows_nonempty(receipts[index], "failed") ||
+      effect_receipt_rows_nonempty(receipts[index], "unattempted")
+  }
+  let expected_status = if any_unknown {
+    "unknown_outcome"
+  } else if any_failed {
+    if any_applied || any_accepted {
+      "partial_failure"
+    } else {
+      "failed"
+    }
+  } else if any_accepted {
+    "accepted"
+  } else {
+    "applied"
+  }
+  if contract_string(set, "status") != Some(expected_status) {
+    return Err(SetStatusMismatch)
   }
   Ok(set)
 }

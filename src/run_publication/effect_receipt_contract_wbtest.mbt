@@ -757,6 +757,104 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     )
     is Err(DuplicateMember(1)),
   )
+  let wrong_state = seal_publication_contract(
+    "effect_set_apply_receipt",
+    "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
+    "\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"apply_policy\":\"attempt_all\",\"effects\":[" +
+    first.replace_all(old="\"state\":\"applied\"", new="\"state\":\"failed\"") +
+    "," +
+    second +
+    "],\"status\":\"applied\"}",
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    admit_effect_set_apply_receipt_references(
+      preview,
+      publication_contract_json(wrong_state),
+      wires,
+      16384,
+      512,
+      16,
+    )
+    is Err(MemberStateMismatch(0)),
+  )
+  let wrong_status = seal_publication_contract(
+    "effect_set_apply_receipt",
+    "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
+    "\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"apply_policy\":\"attempt_all\",\"effects\":[" +
+    first +
+    "," +
+    second +
+    "],\"status\":\"failed\"}",
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    admit_effect_set_apply_receipt_references(
+      preview,
+      publication_contract_json(wrong_status),
+      wires,
+      16384,
+      512,
+      16,
+    )
+    is Err(SetStatusMismatch),
+  )
+  let failed_second = seal_publication_contract(
+    "effect_apply_receipt",
+    effect_receipt_test_member_body(
+      preview_cid,
+      member_cids[1],
+      "[]",
+      "[{\"row_preview_cid\":\"" +
+      effect_receipt_test_cid("5") +
+      "\",\"error_cid\":\"" +
+      effect_receipt_test_cid("7") +
+      "\"}]",
+      "failed",
+      "{\"state\":\"failed\",\"error\":{\"code\":\"rejected\",\"message\":\"rejected\"}}",
+    ),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let failed_entry = effect_receipt_test_set_entry(
+    "WriteTwo",
+    member_cids[1],
+    publication_contract_identity(failed_second),
+  ).replace_all(old="\"state\":\"applied\"", new="\"state\":\"failed\"")
+  let mixed = seal_publication_contract(
+    "effect_set_apply_receipt",
+    "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
+    "\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"apply_policy\":\"attempt_all\",\"effects\":[" +
+    first +
+    "," +
+    failed_entry +
+    "],\"status\":\"partial_failure\"}",
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    admit_effect_set_apply_receipt_references(
+      preview,
+      publication_contract_json(mixed),
+      [wires[0], publication_contract_json(failed_second)],
+      16384,
+      512,
+      16,
+    )
+    is Ok(_),
+  )
 }
 
 ///|
