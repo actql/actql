@@ -226,6 +226,14 @@ pub fn lookup_facts_capacity(LookupFacts) -> LookupCapacity?
 
 pub fn lookup_facts_envelope(LookupFacts) -> ContractEnvelope
 
+pub fn mapping_permission_names(MappingPermissionSelection) -> Array[String]
+
+pub fn mapping_permission_required_names(MappingPermissionSelection) -> Array[String]
+
+pub fn mapping_permission_rule(MappingPermissionSelection) -> (String, String, Array[String])
+
+pub fn mapping_permission_shape(MappingPermissionSelection) -> MappingContractShape
+
 pub fn mapping_shape_at(MappingContractShapes, Int) -> MappingContractShape?
 
 pub fn mapping_shape_cid(MappingContractShape) -> String
@@ -339,6 +347,8 @@ pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Resu
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
 
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
+
+pub fn select_mapping_permissions(MappingContractShape, String, String, Array[String], Int) -> Result[MappingPermissionSelection, MappingPermissionIssue]
 
 pub fn selected_calendar_profile(SelectedCalendarProfile) -> @calendar_profile.Profile
 
@@ -735,6 +745,25 @@ pub struct MappingContractShapes {
   entries : Array[MappingContractShape]
   by_ref : Map[String, Int]
   work : Int
+}
+
+pub(all) enum MappingPermissionIssue {
+  InvalidLimits
+  InvalidRequest
+  InvalidRule(Int)
+  InvalidRequiredPermissions
+  WorkLimit
+  NoMatchingRule
+  AmbiguousRules
+} derive(Eq, @debug.Debug)
+
+pub struct MappingPermissionSelection {
+  shape : MappingContractShape
+  effect_kind : String
+  selector_class : String
+  write_fields : Array[String]
+  permissions : Array[String]
+  required_permissions : Array[String]
 }
 
 pub(all) enum MappingShapeIssue {
