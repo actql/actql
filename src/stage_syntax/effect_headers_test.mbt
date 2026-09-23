@@ -24,9 +24,9 @@ test "Effect headers preserve every source occurrence and local policy" {
     #|    command: {command: {from: {result: rows}, target: {field: resource}, contract: command:crm.invoke.v1, input: {}}}
     #|    store: {store: {target: crm, mapping: mapping:crm.store.v1, from: {result: rows}}}
   let program = effect_program(declarations)
-  let inventory = collect_effect_headers(program, 6, 6).unwrap()
+  let inventory = collect_effect_headers(program, 6, 8).unwrap()
   assert_eq(effect_header_count(inventory), 6)
-  assert_eq(effect_headers_work(inventory), 6)
+  assert_eq(effect_headers_work(inventory), 8)
   let first = effect_header_at(inventory, 0).unwrap()
   assert_eq(effect_header_stage(first), 0)
   assert_eq(effect_header_id(first), "create")
@@ -49,7 +49,7 @@ test "Effect header collection is bounded before retaining another member" {
     #|    update: {update: {target: crm, mapping: mapping:crm.update.v1, ids: [one], set: {state: {literal: ready}}}}
   let program = effect_program(declarations)
   assert_eq(
-    effect_header_issue_kind(collect_effect_headers(program, 1, 2).unwrap_err()),
+    effect_header_issue_kind(collect_effect_headers(program, 1, 3).unwrap_err()),
     BudgetExceeded,
   )
   assert_eq(
@@ -104,6 +104,19 @@ test "Effect member identity retains its exact Stage occurrence" {
 ///|
 test "Effect headers reject malformed alternatives without granting execution" {
   let valid = "    create: {create: {target: crm, mapping: mapping:crm.create.v1, payload: {}}}"
+  let null_literal = effect_program(
+    "    create: {update: {target: crm, mapping: mapping:crm.update.v1, ids: [one], set: {state: {literal: null}}}}",
+  )
+  assert_eq(
+    effect_header_count(collect_effect_headers(null_literal, 1, 2).unwrap()),
+    1,
+  )
+  assert_eq(
+    effect_header_issue_kind(
+      collect_effect_headers(null_literal, 1, 1).unwrap_err(),
+    ),
+    BudgetExceeded,
+  )
   let cases : Array[(String, EffectHeaderIssueKind)] = [
     (
       "    create: {create: {target: crm, mapping: mapping:crm.create.v1, payload: {}, from: {result: rows}}}",
@@ -132,6 +145,22 @@ test "Effect headers reject malformed alternatives without granting execution" {
     (
       "    create: {meta: {actql_hidden: true}, create: {target: crm, mapping: mapping:crm.create.v1, payload: {}}}",
       InvalidDeclaration,
+    ),
+    (
+      "    create: {update: {target: crm, mapping: mapping:crm.update.v1, ids: [one], set: {state: ready}}}",
+      InvalidBody,
+    ),
+    (
+      "    create: {update: {target: crm, mapping: mapping:crm.update.v1, ids: [one], set: {state: {literal: ready, field: source}}}}",
+      InvalidBody,
+    ),
+    (
+      "    create: {update: {target: crm, mapping: mapping:crm.update.v1, ids: [one], set: {state: {field: source}}}}",
+      InvalidSourceResult,
+    ),
+    (
+      "    create: {command: {from: {result: rows}, target: {field: resource}, contract: command:crm.invoke.v1, input: {value: true}}}",
+      InvalidBody,
     ),
   ]
   assert_eq(
