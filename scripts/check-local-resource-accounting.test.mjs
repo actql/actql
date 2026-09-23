@@ -64,6 +64,21 @@ test('cross join copy evidence must resolve to its managed product fixture', () 
   }), /RelA cross_join: missing operation boundary fixture missing-cross-join-copy-stop/);
 });
 
+test('external cross join binds its provider and bounded fixtures', () => {
+  assert.match(run(undefined, routes => {
+    const crossJoin = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    crossJoin.external_input_entrypoint.symbol = 'missing_cross_join_provider';
+  }), /RelA cross_join: production entrypoint symbol is missing/);
+  assert.match(run(undefined, routes => {
+    const crossJoin = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    crossJoin.boundary_tests.find(item =>
+      item.role === 'external_product_host_in_flight_cancel_cleanup').fixture =
+      'missing-external-cross-join-cancel';
+  }), /RelA cross_join: missing operation boundary fixture missing-external-cross-join-cancel/);
+});
+
 test('selected filter retains its shared expression accounting rule', () => {
   assert.match(run(undefined, routes => {
     const filter = routes.routes.find(entry => entry.family === 'RelA' &&

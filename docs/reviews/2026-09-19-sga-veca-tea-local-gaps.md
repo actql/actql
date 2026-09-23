@@ -32,13 +32,18 @@ output representations retain synchronous independent copy. The one-unit
 execution report is not a bound on pair or row work. Ordinary one-step filter,
 select, sort, and take have a
 registered bounded Relation provider; selected one-step row kernels use that
-provider when their typed input view is applicable. Zero-input values,
-binary RelA operations such as cross join, and other unmatched multi-step
-Relation sequences can still reach the providerless branch. The existing
-cross-join cancellation fixture closes before execution and does not prove
-an in-flight stop. Its route evidence is explicitly classified as
-`managed_pre_execution_cancel_cleanup`; the completion gate requires a
-separate Host timer fixture. This remains a release blocker independently
+provider when their typed input view is applicable. One-step cross joins with
+two external Relation inputs now have a bounded provider too. A standard Host
+fixture checks quantum-one pair work, two real consumers, independent release,
+and final reclamation on JS, Wasm, and native. Another Host fixture cancels
+after a pair has been emitted and verifies stop, nonpublication, and cleanup.
+Direct fixtures check independently calculated exact and one-short work and
+structural workspace limits. The former multi-step cross-join fixture still
+uses the providerless lane; its pre-execution cancellation fixture must not
+be relabeled as in-flight cancellation. Zero-input values and other unmatched
+multi-step Relation sequences can also still reach that lane. A Node Host timer
+fixture has not yet shown cancellation delivery during cross-join pair work.
+This remains a release blocker independently
 of the operation-specific resource proof count below. The providerless lane
 must use admitted bounded execution or an explicitly isolated stoppable
 physical lane; it must not be counted as quantum-bounded because execution
@@ -48,8 +53,8 @@ workspace admission, source-loss rejection between resumes, and cancellation
 after copy work starts. Each destination container entry is reserved before
 append against the existing Site execution-capacity allowance; completed
 storage takes custody when the copy finishes.
-They do not prove cancellation during cross-join pair work or Node Host timer
-delivery. The strict resource-completion gate still rejects the providerless
+They do not prove Node Host timer delivery. The strict resource-completion gate
+still rejects the providerless
 lane even if route evidence is added elsewhere. Its source
 check is a blocker guard, not a positive proof that a replacement is bounded.
 
@@ -66,9 +71,10 @@ Distribution-owned ordinary Run entry; that integration is also open. These
 are three separate acceptance conditions, so closing one must not change the
 status of the others.
 
-The ordinary one-step filter, select, sort, and take forms use the bounded
-Relation provider. Other accepted Relation forms, including zero-input,
-binary, and multi-step sequences, can still use the providerless lane.
+The ordinary one-step filter, select, sort, take, and external-input cross
+join forms use bounded Relation providers. Other accepted Relation forms,
+including zero-input, same-sequence binary, and multi-step sequences, can
+still use the providerless lane.
 Moving ordinary derive or assertions onto the selected bounded evaluator
 requires a representation-preservation check: a direct route experiment
 changed the serialized field order in the existing Host fixture. In
