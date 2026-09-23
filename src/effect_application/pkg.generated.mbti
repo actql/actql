@@ -13,6 +13,8 @@ pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEn
 
 pub fn admit_effect_preview_apply_identity(String, String, String, LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
 
+pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
+
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
@@ -96,6 +98,7 @@ pub(all) enum EffectCollectionBatchIssue {
   InvalidLimits
   InvalidMember
   ForeignKind
+  ForeignPolicy
   InvalidSlice
   CapacityExceeded
   ForeignRow(Int)

@@ -66,6 +66,7 @@ pub(all) enum EffectCollectionBatchIssue {
   InvalidLimits
   InvalidMember
   ForeignKind
+  ForeignPolicy
   InvalidSlice
   CapacityExceeded
   ForeignRow(Int)
@@ -74,14 +75,14 @@ pub(all) enum EffectCollectionBatchIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Bind a physical Collections slice to the admitted Preview's stable row
-/// order and derived keys. This does not replace whole-set preflight or the
-/// current authorization gate.
-pub fn admit_effect_collection_batch(
+/// Bind one physical send to the admitted Preview's stable row order and
+/// derived keys. This does not replace whole-set preflight or authorization.
+fn admit_effect_member_slice(
   preview : @publication.EffectPreviewIdentity,
   member_index : Int,
   first_row : Int,
   effect_kind : String,
+  collection : Bool,
   scope : LogicalRequestScope,
   row_cids : Array[String],
   locators : Array[LogicalItemLocator],
@@ -108,19 +109,17 @@ pub fn admit_effect_collection_batch(
     Some(effect_kind) {
     return Err(ForeignKind)
   }
+  if collection &&
+    @publication.effect_preview_member_failure_policy(preview, member_index) !=
+    Some("continue") {
+    return Err(ForeignPolicy)
+  }
   let total = @publication.effect_preview_row_count(preview, member_index).unwrap()
   if first_row < 0 || first_row > total || count > total - first_row {
     return Err(InvalidSlice)
   }
-  if total > max_work - count {
+  if count > max_work - 1 {
     return Err(CapacityExceeded)
-  }
-  let indices : Map[String, Int] = Map([])
-  for index in 0..<total {
-    let row = @publication.effect_preview_row_identity(
-      preview, member_index, index,
-    ).unwrap()
-    indices[row] = index
   }
   let preview_cid = @publication.effect_preview_semantic_identity(preview)
   for offset in 0..<count {
@@ -132,7 +131,9 @@ pub fn admit_effect_collection_batch(
     if row_cids[offset] != expected {
       return Err(ForeignRow(offset))
     }
-    let index = indices.get(expected).unwrap()
+    let index = @publication.effect_preview_row_index(
+      preview, member_index, expected,
+    ).unwrap()
     if keys[offset].logical_request_scope_cid != scope.cid ||
       keys[offset].effect_preview_cid != preview_cid ||
       @publication.effect_preview_row_key(preview, member_index, index) !=
@@ -160,4 +161,51 @@ pub fn admit_effect_collection_batch(
     }
   }
   Ok(())
+}
+
+///|
+/// Collections may batch only rows from one `continue` member.
+pub fn admit_effect_collection_batch(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  first_row : Int,
+  effect_kind : String,
+  scope : LogicalRequestScope,
+  row_cids : Array[String],
+  locators : Array[LogicalItemLocator],
+  keys : Array[EffectDispatchKey],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, EffectCollectionBatchIssue] {
+  admit_effect_member_slice(
+    preview, member_index, first_row, effect_kind, true, scope, row_cids, locators,
+    keys, max_rows, max_work,
+  )
+}
+
+///|
+/// Ordered halt and continue both use one-row REST dispatch when admitted.
+pub fn admit_effect_single_row(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  effect_kind : String,
+  scope : LogicalRequestScope,
+  row_cid : String,
+  locator : LogicalItemLocator,
+  key : EffectDispatchKey,
+) -> Result[Unit, EffectCollectionBatchIssue] {
+  admit_effect_member_slice(
+    preview,
+    member_index,
+    row_index,
+    effect_kind,
+    false,
+    scope,
+    [row_cid],
+    [locator],
+    [key],
+    1,
+    2,
+  )
 }

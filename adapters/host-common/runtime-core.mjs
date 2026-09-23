@@ -62,6 +62,9 @@ function effectApplicationControl(moon) {
     admitCollectionBatch: (...args) => checked(
       moon.strategyEffectCollectionBatchAdmit(...args),
     ),
+    admitMemberRow: (...args) => checked(
+      moon.strategyEffectMemberRowAdmit(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
