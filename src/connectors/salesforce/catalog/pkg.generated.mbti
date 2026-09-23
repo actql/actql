@@ -84,6 +84,8 @@ pub fn query_read_row_count(QueryRead) -> Int64
 
 pub fn read_projection_fields(ReadProjection) -> Array[String]
 
+pub fn read_projection_has_prefilter(ReadProjection) -> Bool
+
 pub fn read_projection_matches_site_scope(ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn read_projection_observation(ReadProjection) -> String
@@ -107,6 +109,8 @@ pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[Fi
 pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
 
 pub fn write_projection_fields(WriteProjection) -> Array[String]
 
@@ -195,6 +199,14 @@ pub(all) struct DescribeLimits {
   max_fields : Int
   max_name_units : Int
 }
+
+pub(all) enum ExactIntComparison {
+  Equal
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+} derive(Eq, @debug.Debug)
 
 pub struct FieldMetadata {
   name : String
@@ -296,6 +308,8 @@ pub struct ReadProjection {
   fields : Array[FieldMetadata]
   contracts : Array[@value_contract.Contract]
   soql : String
+  max_soql_bytes : Int
+  prefiltered : Bool
 }
 
 pub(all) enum ReadProjectionIssue {

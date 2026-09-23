@@ -20,7 +20,18 @@ pub struct ReadProjection {
   fields : Array[FieldMetadata]
   contracts : Array[@contract.Contract]
   soql : String
+  max_soql_bytes : Int
+  prefiltered : Bool
 }
+
+///|
+pub(all) enum ExactIntComparison {
+  Equal
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+} derive(Eq, Debug)
 
 ///|
 /// Only wire forms that have an exact, lossless ActQL scalar admission are
@@ -106,12 +117,54 @@ pub fn prepare_read_projection(
     fields,
     contracts,
     soql: sql.to_string(),
+    max_soql_bytes,
+    prefiltered: false,
   })
+}
+
+///|
+/// A checked 32-bit integer comparison is exact for the admitted Number
+/// domain. Text, decimal, temporal, and provider-specific coercions are not
+/// covered. The checked filter remains in the Local residual.
+pub fn with_exact_int_comparison(
+  plan : ReadProjection,
+  field_name : String,
+  operator : ExactIntComparison,
+  threshold : Int,
+) -> ReadProjection? {
+  let mut eligible = false
+  for field in plan.fields {
+    if field.name == field_name &&
+      field.native_type == "int" &&
+      field.filterable {
+      eligible = true
+    }
+  }
+  if !eligible || plan.prefiltered {
+    return None
+  }
+  let symbol = match operator {
+    Equal => " = "
+    Less => " < "
+    LessEqual => " <= "
+    Greater => " > "
+    GreaterEqual => " >= "
+  }
+  let suffix = " WHERE " + field_name + symbol + threshold.to_string()
+  if suffix.length() > plan.max_soql_bytes - plan.soql.length() {
+    return None
+  }
+  Some({ ..plan, soql: plan.soql + suffix, prefiltered: true, })
 }
 
 ///|
 pub fn read_projection_soql(plan : ReadProjection) -> String {
   plan.soql
+}
+
+///|
+pub fn read_projection_has_prefilter(plan : ReadProjection) -> Bool {
+  plan.prefiltered
 }
 
 ///|

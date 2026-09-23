@@ -1,6 +1,7 @@
 ///|
 pub(all) enum ManagedQueryIssue {
   InvalidOutputSchema
+  UnexpectedPrefilter
   Query(@catalog.QueryReadIssue)
   Values(@execution.ManagedOutputValueIssue)
   Closed
@@ -78,6 +79,9 @@ pub fn prepare_managed_query(
   max_total_rows : Int64,
   values : @execution.ManagedOutputValues,
 ) -> Result[ManagedQuery, ManagedQueryIssue] {
+  if @catalog.read_projection_has_prefilter(plan) {
+    return Err(UnexpectedPrefilter)
+  }
   let (columns, bound) = match output_columns(plan, values) {
     Some(value) => value
     None => return Err(InvalidOutputSchema)

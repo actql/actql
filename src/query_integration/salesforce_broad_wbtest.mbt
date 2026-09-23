@@ -2,6 +2,8 @@
 fn salesforce_broad_plan(
   resource? : String = "r",
   native_type? : String = "int",
+  filterable? : Bool = false,
+  max_soql_bytes? : Int = 100,
 ) -> @salesforce_catalog.ReadProjection {
   let listing = @salesforce_catalog.project_resource_listing(
     @utf8.encode(
@@ -21,7 +23,9 @@ fn salesforce_broad_plan(
     resource +
     "\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"" +
     native_type +
-    "\",\"nillable\":false}]}"
+    "\",\"nillable\":false,\"filterable\":" +
+    filterable.to_string() +
+    "}]}"
   @salesforce_catalog.catalog_sync_describe(
     sync,
     resource,
@@ -66,7 +70,7 @@ fn salesforce_broad_plan(
     binding,
     resource,
     ["id"],
-    100,
+    max_soql_bytes,
   ).unwrap()
 }
 
@@ -141,6 +145,96 @@ test "Salesforce broad candidate binds the exact checked source and common choic
   }
   assert_true(
     @planning.acquisition_choice_payload(choice, candidate) is Some(_),
+  )
+}
+
+///|
+test "Salesforce pushes an exact checked integer comparison and retains residual" {
+  let requirement = salesforce_broad_requirement()
+  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+    requirement,
+    salesforce_broad_plan(filterable=true),
+    "crm/main",
+  ).unwrap()
+  assert_eq(
+    @salesforce_catalog.read_projection_soql(
+      @salesforce_query.salesforce_broad_plan(preparation),
+    ),
+    "SELECT id FROM r WHERE id > 1",
+  )
+  let query = @salesforce_query.begin_salesforce_broad_query(
+    preparation,
+    "v62.0",
+    {
+      max_bytes: 4096,
+      max_nodes: 100,
+      max_depth: 10,
+      max_rows: 3,
+      max_locator_units: 128,
+    },
+    2,
+    3L,
+    3,
+    run_limits().input_values,
+  ).unwrap()
+  let path = @salesforce_query.salesforce_broad_next_path(query)
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    path, "/services/data/v62.0/query?q=SELECT%20id%20FROM%20r%20WHERE%20id%20%3E%201",
+  )
+  @salesforce_query.accept_salesforce_broad_page(
+    query,
+    path,
+    @utf8.encode(
+      (
+        #|{"totalSize":2,"done":true,"records":[{"id":3},{"id":2}]}
+      ),
+    ),
+  ).unwrap()
+  |> ignore
+  let input = @salesforce_query.finish_salesforce_broad_query(query).unwrap()
+  let (completed, _) = @salesforce_query.execute_salesforce_broad_residual(
+    preparation,
+    input,
+    compute_test_limits(),
+    query_guard_physical(),
+  ).unwrap()
+  let output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  let unfilterable = @salesforce_query.prepare_salesforce_broad_query(
+    requirement,
+    salesforce_broad_plan(),
+    "crm/main",
+  ).unwrap()
+  assert_eq(
+    @salesforce_catalog.read_projection_soql(
+      @salesforce_query.salesforce_broad_plan(unfilterable),
+    ),
+    "SELECT id FROM r",
+  )
+  let supplied_filter = @salesforce_catalog.with_exact_int_comparison(
+    salesforce_broad_plan(filterable=true),
+    "id",
+    @salesforce_catalog.Greater,
+    2,
+  ).unwrap()
+  assert_true(
+    @salesforce_query.prepare_salesforce_broad_query(
+      requirement, supplied_filter, "crm/main",
+    )
+    is Err(UnexpectedPrefilter),
+  )
+  let different_type = @salesforce_query.prepare_salesforce_broad_query(
+    requirement,
+    salesforce_broad_plan(native_type="double", filterable=true),
+    "crm/main",
+  ).unwrap()
+  assert_eq(
+    @salesforce_catalog.read_projection_soql(
+      @salesforce_query.salesforce_broad_plan(different_type),
+    ),
+    "SELECT id FROM r",
   )
 }
 
