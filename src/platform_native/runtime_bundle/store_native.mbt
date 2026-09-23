@@ -1043,6 +1043,12 @@ fn migrate_catalog_if_needed(
   if catalog.format_version == 3 {
     return Ok(())
   }
+  // Format 2 did not persist physical generation ownership for staging.
+  // Retain the original journal and reservation until an explicit recovery
+  // procedure can identify the allocation without relying on its path alone.
+  if !catalog.staging.is_empty() {
+    return Err(RecoveryRequired)
+  }
   let next = {
     revision: catalog.revision + 1L,
     format_version: 3,

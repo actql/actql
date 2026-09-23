@@ -246,6 +246,88 @@ fn persist_test_staging(
 }
 
 ///|
+test "legacy migration preserves unresolved staging and its reservation" {
+  guard native_bundle_fixture("legacy-migration-owned")
+    is Some((store, _, _, _, _)) else {
+    return
+  }
+  let staging = native_staging_record(store, "legacy-pending", "4", Intent)
+  let writer = store.root.create_writer(staging.staging_name, 11L).unwrap()
+  writer.append(b"runtime-one").unwrap()
+  let physical = store.root.inspect_generation(staging.staging_name).unwrap()
+  let current = load_catalog(store).unwrap()
+  let legacy : NativeRuntimeBundleCatalog = {
+    revision: current.revision + 1L,
+    format_version: 2,
+    active_bundle_cid: current.active_bundle_cid,
+    entries: current.entries,
+    staging: [staging],
+  }
+  let legacy_bytes = catalog_bytes(legacy, store.max_record_bytes).unwrap()
+  assert_eq(
+    store.database.compare_exchange(
+      "runtime_bundle", "catalog", current.revision, legacy_bytes,
+    ).unwrap(),
+    legacy.revision,
+  )
+  let before = store.database.read("runtime_bundle", "catalog").unwrap()
+  let admitted = admit_store_catalog(store, before.revision, before.body).unwrap()
+  assert_eq(catalog_capacity_usage(admitted).unwrap().reserved_bytes, 11L)
+  assert_true(migrate_catalog_if_needed(store, admitted) is Err(RecoveryRequired))
+  let after = store.database.read("runtime_bundle", "catalog").unwrap()
+  assert_eq(after.revision, before.revision)
+  assert_eq(after.body, before.body)
+  assert_eq(store.root.inspect_generation(staging.staging_name).unwrap(), physical)
+  writer.cancel().unwrap()
+  let recovered : NativeRuntimeBundleCatalog = {
+    revision: after.revision + 1L,
+    format_version: 3,
+    active_bundle_cid: current.active_bundle_cid,
+    entries: current.entries,
+    staging: [],
+  }
+  ignore(
+    store.database.compare_exchange(
+      "runtime_bundle", "catalog", after.revision,
+      catalog_bytes(recovered, store.max_record_bytes).unwrap(),
+    ).unwrap(),
+  )
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "legacy empty catalogs migrate idempotently" {
+  guard native_bundle_fixture("legacy-migration-empty")
+    is Some((store, _, _, _, _)) else {
+    return
+  }
+  for version in [1, 2] {
+    let current = load_catalog(store).unwrap()
+    let legacy : NativeRuntimeBundleCatalog = {
+      revision: current.revision + 1L,
+      format_version: version,
+      active_bundle_cid: current.active_bundle_cid,
+      entries: current.entries,
+      staging: [],
+    }
+    ignore(
+      store.database.compare_exchange(
+        "runtime_bundle", "catalog", current.revision,
+        catalog_bytes(legacy, store.max_record_bytes).unwrap(),
+      ).unwrap(),
+    )
+    let read = load_catalog(store).unwrap()
+    migrate_catalog_if_needed(store, read).unwrap()
+    let migrated = load_catalog(store).unwrap()
+    assert_eq(migrated.format_version, 3)
+    let revision = migrated.revision
+    migrate_catalog_if_needed(store, migrated).unwrap()
+    assert_eq(load_catalog(store).unwrap().revision, revision)
+  }
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "native bundle operations survive restart and preserve shared code" {
   guard native_bundle_fixture("lifecycle")
     is Some((store, generation, artifact_name, sqlite, crypto)) else {
