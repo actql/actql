@@ -23,6 +23,8 @@ import {captureClaimedSalesforceSingleResponse,
   '../host-node/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
+import {callHttpsCredentialResource} from
+  './https-credential-resource.mjs';
 import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
@@ -667,12 +669,91 @@ test('Host claim owns one local HTTPS write', async t => {
   first.close();
   const restarted = open();
   t.after(() => restarted.close());
+  const usesBeforeRetry = setup.journal.recover().length;
   const retry = await captureSalesforceSingleEffectWrite({
     ...options, ledger: restarted, admittedPreview: preview.admit()});
   assert.equal(retry.claimed, false);
   assert.equal(retry.ownership.action, 3);
+  assert.equal(retry.recovered.kind, 'typed-success-response');
+  assert.deepEqual(retry.recovered.result, sent.physical.result);
+  assert.deepEqual(retry.recovered.observation.body,
+    sent.physical.observation.body);
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
+  assert.equal(setup.journal.recover().length, usesBeforeRetry);
 });
+
+test('lost HTTPS reply remains uncertain across Effect ledger restart',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+      catalog.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-a', '00D000000000001EAA', binding.siteKey,
+      binding.siteGeneration, binding.connectorRegistration,
+      binding.connectorRevision, binding.resourceOrigin,
+      binding.runInvocationCid, binding.dispatchRequestCid,
+      'catalog-sync-a', 'Test_Record__c', 0, '', ['External_Key__c'], 2));
+    const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"lost-reply"}'),
+      1024, 32, 5));
+    const outbound = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+      body, 'v62.0', 0, '', 0, 256, 128, 1024));
+    const requestCid = checked(salesforceMoon.salesforceSingleWriteRequestCid(
+      outbound, binding.resourceOrigin, 4096));
+    const effect = runtimeCore(commonMoon).effectApplicationControl;
+    const authorityScopeCid = cid('8');
+    const scope = effect.logicalRequestScope(authorityScopeCid,
+      'lost-reply-business-request', 128);
+    const rowPreviewCid = cid('3');
+    const preview = admittedCreateRowFixture(effect, scope, rowPreviewCid,
+      'CreateLostReply', {state: 'present', value: {
+        External_Key__c: 'lost-reply',
+      }});
+    const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+      'CreateLostReply', canonicalJson(preview.correlation), 64, 128, 8, 3);
+    const basis = effect.ledgerBasis(scope, locator, preview.key,
+      cid('6'), preview.memberCid, cid('4'), requestCid, cid('3'),
+      'unavailable', cid('2'), cid('1'));
+    const claim = {scope, locator, key: preview.key, basis,
+      intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
+    const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-lost-reply-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const open = () => openEffectLedger({moon: commonMoon, root,
+      authorityScopeCid, callerRequestId: 'lost-reply-business-request',
+      maxEntryBytes: 4096});
+    const options = {claim, commonMoon, admittedPreview: preview.admit(),
+      memberIndex: 0, rowIndex: 0, rowPreviewCid, moon: salesforceMoon,
+      request: outbound, currentObservation: catalog.observation,
+      authorization: {...setup.write, useId: 'lost-reply-use'},
+      credential: setup.credential,
+      limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+        maxNodes: 32, maxDepth: 5}};
+    const first = open();
+    t.after(() => first.close());
+    await assert.rejects(captureSalesforceSingleEffectWrite({
+      ...options, ledger: first,
+      callResource: async request => {
+        await callHttpsCredentialResource(request);
+        throw new Error('reply lost after provider request');
+      },
+    }), /reply lost after provider request/);
+    assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
+    first.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    const usesBeforeRetry = setup.journal.recover().length;
+    const retry = await captureSalesforceSingleEffectWrite({
+      ...options, ledger: restarted, admittedPreview: preview.admit(),
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(retry.ownership.action, 3);
+    assert.equal(retry.ownership.response, undefined);
+    assert.equal(retry.recovered, undefined);
+    assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
+    assert.equal(setup.journal.recover().length, usesBeforeRetry);
+  });
 
 test('Site does not promote rejected or malformed writes to Effect success',
   async t => {
@@ -959,13 +1040,21 @@ test('Host custody binds one HTTPS Collections response to every row',
     first.close();
     const restarted = open();
     t.after(() => restarted.close());
+    const usesBeforeRetry = setup.journal.recover().length;
     const retry = await captureSalesforceCollectionEffectWrite({
       ...options, ledger: restarted, admittedPreview: admitPreview(),
     });
     assert.equal(retry.claimed, false);
     assert.deepEqual(retry.ownership.actions, [3, 3]);
+    assert.equal(retry.recovered.kind, 'typed-row-response');
+    assert.equal(retry.recovered.rowCount, 2);
+    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      retry.recovered.result, 0), true);
+    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      retry.recovered.result, 1), false);
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 1);
+    assert.equal(setup.journal.recover().length, usesBeforeRetry);
     for (const dispatching of sent.ownership.dispatching) {
       assert.deepEqual(restarted.response(
         effect.ledgerEntryCid(dispatching)).responseBytes,

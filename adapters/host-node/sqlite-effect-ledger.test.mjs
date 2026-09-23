@@ -150,6 +150,9 @@ test('batch response is one durable observation for every claimed row',
       responseBytes);
     assert.deepEqual(restarted.response(cid('4')).responseBytes,
       responseBytes);
+    assert.equal(restarted.response(cid('2')).batchOwnerCid, cid('2'));
+    assert.equal(restarted.response(cid('4')).batchPosition, 1);
+    assert.deepEqual(restarted.response(cid('2')).batchMembers, members);
     const tamper = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
     tamper.prepare(`
       UPDATE effect_ledger_batch_members SET logical_item_locator_cid = ?
