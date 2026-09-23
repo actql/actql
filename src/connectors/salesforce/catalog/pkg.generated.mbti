@@ -50,6 +50,8 @@ pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, Strin
 
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
 
+pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
 pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
@@ -111,6 +113,10 @@ pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
+
+pub fn write_body_json(WriteBody) -> String
+
+pub fn write_body_projection(WriteBody) -> WriteProjection
 
 pub fn write_projection_fields(WriteProjection) -> Array[String]
 
@@ -366,6 +372,27 @@ pub(all) enum ResourceSelectionIssue {
   DescribeMismatch
 } derive(Eq, @debug.Debug)
 
+pub struct WriteBody {
+  projection : WriteProjection
+  json : String
+}
+
+pub(all) enum WriteBodyIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  UnexpectedField(String)
+  MissingField(String)
+  NullNotAllowed(String)
+  InvalidValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteBodyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
 pub(all) enum WriteOperation {
   WriteCreate
   WriteUpdateById
@@ -388,6 +415,8 @@ pub(all) enum WriteProjectionIssue {
   FieldLimit
   EmptyUpdate
   TargetFieldInBody(String)
+  UnconfirmedNullability(String)
+  UnsupportedWriteType(String)
   ForeignCurrentObservation
   SchemaChanged(String)
 } derive(Eq, @debug.Debug)
