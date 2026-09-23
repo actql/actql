@@ -37,6 +37,8 @@ pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) 
 
 pub fn client_program_result_name(@run_publication_host.PreparedClientProgram, Int) -> String?
 
+pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram) -> String
+
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
