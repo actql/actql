@@ -721,6 +721,15 @@ test('resource gate rejects cross join without delivered Host cancellation', () 
   }), /RelA cross_join: missing environment fixture/);
 });
 
+test('resource gate retains the providerless row-copy timer fixture', () => {
+  assert.match(run(undefined, value => {
+    const join = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    join.environment_tests = join.environment_tests.filter(item =>
+      item.role !== 'providerless_cross_join_copy_host_timer');
+  }), /RelA cross_join: providerless row-copy timer fixture is missing/);
+});
+
 test('resource gate requires mixed-stage cross join execution evidence', () => {
   assert.match(run(undefined, value => {
     const join = value.routes.find(entry => entry.family === 'RelA' &&

@@ -1515,6 +1515,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-external-cross-join-in-flight"
+        },
+        {
+          "role": "providerless_cross_join_copy_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "providerless-cross-join-copy-in-flight"
         }
       ],
       "path_assurance": {

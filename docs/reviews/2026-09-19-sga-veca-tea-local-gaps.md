@@ -91,7 +91,11 @@ workspace admission, source-loss rejection between resumes, and cancellation
 after copy work starts. Each destination container entry is reserved before
 append against the existing Site execution-capacity allowance; completed
 storage takes custody when the copy finishes.
-These direct copy fixtures do not prove Node Host timer delivery during copy.
+The standard Node Host now also runs a providerless values/distinct/cross-join
+sequence, delivers a timer cancel after RowTable copy has made row progress,
+observes stop, rejects the partial output, and reclaims the attempt. This
+proves interruption of the independent copy, not of the preceding synchronous
+cross-join computation or its reported `work=1`.
 The strict resource-completion gate
 still rejects the providerless
 lane even if route evidence is added elsewhere. Its source
