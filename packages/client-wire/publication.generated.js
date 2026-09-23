@@ -262,6 +262,7 @@ function valid(value, schema) {
   if (schema.enum && !schema.enum.includes(value)) return false;
   if (schema.type === 'string') return typeof value === 'string' &&
     (schema.minLength === undefined || [...value].length >= schema.minLength) &&
+    (schema.maxLength === undefined || value.length <= schema.maxLength) &&
     (schema.pattern === undefined || new RegExp(schema.pattern, 'u').test(value));
   if (schema.type === 'integer') return Number.isSafeInteger(value) &&
     (schema.minimum === undefined || value >= schema.minimum) &&
