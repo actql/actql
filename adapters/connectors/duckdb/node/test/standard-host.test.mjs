@@ -5722,6 +5722,15 @@ async function exerciseStrategyGraph(
   };
   const unrestrictedCrossJoinProgram = crossJoinProgram(false);
   const singletonCrossJoinProgram = crossJoinProgram(true);
+  const directCrossJoinProgram = structuredClone(unrestrictedCrossJoinProgram);
+  const directCrossedStage = directCrossJoinProgram.stages.find(
+    stage => stage.id === 'crossed',
+  );
+  const directCrossSteps = directCrossedStage.steps;
+  directCrossSteps[0].as = 'left_rows';
+  directCrossSteps[2].as = 'right_rows';
+  directCrossedStage.steps = [directCrossSteps[0], directCrossSteps[2],
+    directCrossSteps[4]];
   const externalCrossJoinProgram = structuredClone(zeroInputProgram);
   const externalCrossFields = ['id', 'tag'];
   externalCrossJoinProgram.stages.splice(1, 3, {
@@ -5799,7 +5808,8 @@ async function exerciseStrategyGraph(
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
     ['global top k', globalTopKProgram, [1, 2, 3, 4]],
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4]],
-    ['append', appendProgram, [1, 2, 3]],
+    ['append', appendProgram, [1, 2, 3, 4, 5]],
+    ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
@@ -5903,6 +5913,13 @@ async function exerciseStrategyGraph(
           'append and both consumers retain the full ordered output',
         );
       }
+      if (name === 'append' || name === 'direct cross join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'append' ? [1, 1, 2, 2, 2] : [2, 2, 4, 4, 4],
+          `${name}: bounded producers and binary consumer retain output`,
+        );
+      }
       if (name === 'snapshot derive') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
@@ -6000,21 +6017,31 @@ async function exerciseStrategyGraph(
     {name: 'external-cross-join-in-flight', program: externalCrossJoinProgram},
     {name: 'split-external-cross-join-in-flight', program: splitCrossJoinProgram},
     {name: 'external-append-in-flight', program: externalAppendProgram},
+    {name: 'direct-cross-join-in-flight', program: directCrossJoinProgram},
+    {name: 'direct-append-in-flight', program: appendProgram},
   ]) {
     const externalCrossJoinCancellationCase = {name: cancellationName};
     const cancellableCrossJoinProgram = structuredClone(cancellationProgram);
-    const appendCancellation = cancellationName === 'external-append-in-flight';
-    const cancellableLeft = cancellableCrossJoinProgram.stages.find(
-      stage => stage.id === 'cross_left',
+    const appendCancellation = cancellationName.includes('append');
+    const directCancellation = cancellationName.startsWith('direct-');
+    const directStage = appendCancellation ? 'append_a' : 'crossed';
+    const leftValues = directCancellation
+      ? cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === directStage).steps[0].values
+      : cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === 'cross_left').steps[0].values;
+    const rightValues = directCancellation
+      ? cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === directStage).steps[1].values
+      : cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === 'cross_right').steps[0].values;
+    leftValues.rows = Array.from(
+      {length: appendCancellation && !directCancellation ? 49 : 10},
+      (_, index) => ({id: index}),
     );
-    const cancellableRight = cancellableCrossJoinProgram.stages.find(
-      stage => stage.id === 'cross_right',
-    );
-    cancellableLeft.steps[0].values.rows = Array.from(
-      {length: appendCancellation ? 49 : 10}, (_, index) => ({id: index}),
-    );
-    cancellableRight.steps[0].values.rows = Array.from(
-      {length: appendCancellation ? 49 : 10}, (_, index) => appendCancellation
+    rightValues.rows = Array.from(
+      {length: appendCancellation && !directCancellation ? 49 : 10},
+      (_, index) => appendCancellation
         ? {id: index + 10} : {tag: `tag${index}`},
     );
     const crossJoinCancellationFixture = fixture.strategyFixtureCreate(
@@ -6069,10 +6096,12 @@ async function exerciseStrategyGraph(
                   return Reflect.get(operation, name, operationReceiver);
                 }
                 return quantum => {
-                  const result = operation.advance(quantum);
+                  const actualQuantum = appendCancellation &&
+                    directCancellation ? Math.min(quantum, 7) : quantum;
+                  const result = operation.advance(actualQuantum);
                   const observation = checked(result);
                   if (start === 3) {
-                    assert(observation.work <= BigInt(quantum));
+                    assert(observation.work <= BigInt(actualQuantum));
                   }
                   if (start === 3 && observation?.complete === false &&
                       observation.progress > 0n && observation.work > 0n) {

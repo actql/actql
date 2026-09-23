@@ -212,6 +212,7 @@ if (!Array.isArray(assuredPaths)) {
         'ordinary_entrypoint',
         'selected_entrypoint',
         'external_input_entrypoint',
+        'same_stage_entrypoint',
         'zero_input_entrypoint',
       ]
         .includes(claim?.path) ||
@@ -333,6 +334,11 @@ for (const [index, route] of routeEntries.entries()) {
       'external_input_entrypoint', route.external_input_entrypoint,
     ]);
   }
+  if (route.same_stage_entrypoint !== undefined) {
+    productionSources.push([
+      'same_stage_entrypoint', route.same_stage_entrypoint,
+    ]);
+  }
   if (route.zero_input_entrypoint !== undefined) {
     productionSources.push([
       'zero_input_entrypoint', route.zero_input_entrypoint,
@@ -410,6 +416,9 @@ for (const [index, route] of routeEntries.entries()) {
     if (route.external_input_entrypoint?.symbol !== 'append_provider') {
       fail(`${label}: bounded external append provider is missing`);
     }
+    if (route.same_stage_entrypoint?.symbol !== 'append_provider') {
+      fail(`${label}: bounded same-stage append provider is missing`);
+    }
     for (const role of [
       'append_work_workspace_exact_one_short',
       'append_two_consumer_reclamation',
@@ -418,11 +427,17 @@ for (const [index, route] of routeEntries.entries()) {
       'append_external_quantum_and_output',
       'append_external_nullable_alignment',
       'append_external_cancel_cleanup',
+      'append_same_stage_two_consumer_reclamation',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
       }
     }
+  }
+  if (route.family === 'RelA' && route.operation === 'cross_join' &&
+    (route.same_stage_entrypoint?.symbol !== 'cross_join_provider' ||
+      !boundaryRoles.has('direct_product_host_two_consumers'))) {
+    fail(`${label}: bounded same-stage cross join evidence is missing`);
   }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
@@ -444,6 +459,14 @@ for (const [index, route] of routeEntries.entries()) {
     if (!sourceText.includes(`name: '${item.fixture}'`)) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
+  }
+  if (route.family === 'RelA' && route.operation === 'append' &&
+    !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
+    fail(`${label}: same-stage append timer evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'cross_join' &&
+    !environmentRoles.has('direct_product_node_timer_cancel_cleanup')) {
+    fail(`${label}: same-stage cross join timer evidence is missing`);
   }
   const validateAssurance = (scope, boundaryAssurance, rolePrefix) => {
     if (boundaryAssurance === undefined) return;
@@ -479,6 +502,7 @@ for (const [index, route] of routeEntries.entries()) {
     ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
     ...(route.external_input_entrypoint ? ['external_input_entrypoint'] : []),
+    ...(route.same_stage_entrypoint ? ['same_stage_entrypoint'] : []),
     ...(route.zero_input_entrypoint ? ['zero_input_entrypoint'] : []),
   ];
   const pathAssurance = route.path_assurance ?? {};

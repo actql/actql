@@ -256,7 +256,9 @@ fn run_standard_host_values_relation_step(
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
-    local_values_two_consumer_filter=!assertion && !unique && relation_variant == "",
+    local_values_two_consumer_filter=!assertion &&
+      !unique &&
+      relation_variant == "",
     local_values_two_consumer_assert=assertion && !unique,
     local_values_two_consumer_assert_unique=unique,
     local_values_two_consumer_relation_variant=relation_variant,

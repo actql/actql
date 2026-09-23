@@ -92,6 +92,16 @@ same-sequence forms or the providerless lane in general.
 The direct-take timer fixture caps each product advance to seven work units
 through its observation wrapper because the small input finishes within the
 default Host quantum; it still delivers abort through the standard Host.
+Two same-Stage `values` producers feeding `append` or direct `cross_join`
+now retain their two exact input occurrences as separate bounded tasks.
+The selected binary providers advance within the Host quantum. Three-target
+standard Host fixtures run both downstream Computes, overlapping retention,
+independent release, and final reclamation. Node timers cancel after binary
+work starts and check stop, nonpublication, and cleanup. These are specific
+checked forms; `values → distinct → cross_join` still uses the providerless
+whole-sequence execution lane. The new same-Stage paths have connection and
+cancel evidence, but not independent exact combined-path work/workspace
+assurance in the resource audit.
 Other multi-step sequences beginning with `values` and unmatched Relation
 sequences can still reach the providerless lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;
@@ -254,9 +264,10 @@ same-sequence variants can still reach the providerless lane.
   JS, Wasm, and native. The Node standard Host also delivers a timer cancel
   after row progress, observes stop, leaves the append output unpublished,
   preserves both producer completions, and reclaims the attempt. The
-  external-input path has full path-scoped resource assurance; same-sequence
-  append still uses the synchronous providerless lane. The operation as a
-  whole is not resource-complete.
+  external-input path has full path-scoped resource assurance. The direct
+  two-Values same-sequence append uses the bounded provider, but other
+  same-sequence forms can still use the synchronous providerless lane. The
+  operation as a whole is not resource-complete.
   A trial global split of Relation-only filter/sort/take pipelines changed
   physical tasks before connector selection and failed 106 of 576 JS query
   integration tests, including non-Local strategy and task-identity cases.

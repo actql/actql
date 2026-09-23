@@ -42,31 +42,49 @@ fn run_local_managed_append_case(
   let producer_ops : Array[@local_driver.LocalManagedDispatchOperations[Int]] = []
   let producer_outputs : Array[@execution.ManagedCompletedOutput[Int]] = []
   let producer_lives : Array[Ref[Bool]] = []
-  let (append_task, consumer_a, consumer_b, append_inputs, append_rows) = if variant ==
-    "imported" {
-    assert_eq(@strategy.captured_task_join_output_count(run, 3), Some(0))
-    for task in [1, 2] {
-      let live = Ref(true)
-      let (ops, output) = run_local_managed_test_task(
-        installed,
-        run,
-        task,
-        [],
-        [],
-        task,
-        live,
-      )
-      producer_ops.push(ops)
-      producer_outputs.push(output)
-      producer_lives.push(live)
-    }
-    (3, 4, 5, producer_outputs, producer_ops.map(local_managed_test_rows))
+  assert_eq(@strategy.captured_task_join_output_count(run, 3), Some(0))
+  for task in [1, 2] {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      task,
+      [],
+      [],
+      task,
+      live,
+      require_provider=true,
+    )
+    producer_ops.push(ops)
+    producer_outputs.push(output)
+    producer_lives.push(live)
+  }
+  let append_task = 3
+  let consumer_a = 4
+  let consumer_b = 5
+  let append_inputs = if variant == "self" {
+    [producer_outputs[0], producer_outputs[0]]
   } else {
-    (1, 2, 3, [], [])
+    producer_outputs
+  }
+  let append_rows = if variant == "self" {
+    [
+      local_managed_test_rows(producer_ops[0]),
+      local_managed_test_rows(producer_ops[0]),
+    ]
+  } else {
+    producer_ops.map(local_managed_test_rows)
   }
   let append_live = Ref(true)
   let (append_ops, appended) = run_local_managed_test_task(
-    installed, run, append_task, append_inputs, append_rows, append_task, append_live,
+    installed,
+    run,
+    append_task,
+    append_inputs,
+    append_rows,
+    append_task,
+    append_live,
+    require_provider=true,
   )
   let rows = local_managed_test_rows(append_ops)
   assert_eq(rows, expected)

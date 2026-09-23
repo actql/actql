@@ -1429,6 +1429,10 @@
         "path": "src/connectors/local/append_provider.mbt",
         "symbol": "append_provider"
       },
+      "same_stage_entrypoint": {
+        "path": "src/connectors/local/append_provider.mbt",
+        "symbol": "append_provider"
+      },
       "boundary_tests": [
         {
           "role": "append_work_workspace_exact_one_short",
@@ -1450,6 +1454,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_append_wbtest.mbt",
           "fixture": "Local managed append retains both self occurrences"
+        },
+        {
+          "role": "append_same_stage_two_consumer_reclamation",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_append_wbtest.mbt",
+          "fixture": "Local managed append joins distinct local producers"
         },
         {
           "role": "append_external_work_workspace_exact_one_short",
@@ -1487,6 +1498,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "external-append-in-flight"
+        },
+        {
+          "role": "append_same_stage_node_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "direct-append-in-flight"
         }
       ],
       "path_assurance": {
@@ -1674,6 +1692,10 @@
         "path": "src/connectors/local/cross_join_provider.mbt",
         "symbol": "cross_join_provider"
       },
+      "same_stage_entrypoint": {
+        "path": "src/connectors/local/cross_join_provider.mbt",
+        "symbol": "cross_join_provider"
+      },
       "boundary_tests": [
         {
           "role": "product_work_workspace_exact_one_short",
@@ -1702,6 +1724,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
           "fixture": "standard Host selects bounded external cross join for two consumers"
+        },
+        {
+          "role": "direct_product_host_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+          "fixture": "standard Host splits direct values cross join for two consumers"
         },
         {
           "role": "external_product_mixed_stage_two_consumers",
@@ -1753,6 +1782,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "providerless-cross-join-copy-in-flight"
+        },
+        {
+          "role": "direct_product_node_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "direct-cross-join-in-flight"
         }
       ],
       "path_assurance": {
