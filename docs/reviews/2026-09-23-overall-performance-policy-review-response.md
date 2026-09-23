@@ -56,6 +56,15 @@ Its raw summary and scope are recorded in
 an execution-readiness uncertainty for that comparator; it does not admit
 cross-revision ratios or replace same-revision alternating pairs.
 
+A separate candidate-training diagnostic now measures both installed Local and
+DuckDB task realizations, confirms final identity and release, and feeds their
+measured median task intervals into a distinct ordinary selection. For two
+100-row cases the Host selected resident DuckDB throughout. The observations,
+scope and remaining Local accounting gap are recorded in
+`benchmarks/retained-results/calibration-diagnostic-2026-09-24.md`. Training
+used the same case and database as the later choice, so it is not independent
+held-out calibration and supplies no formal PERF-1 sample.
+
 Seven alternating pairs at clean revision `c93402ffb` confirmed a substantial
 small-case timing gap on the current Node managed Host: median retained-minus-
 equivalent warm and cold intervals were 31.700 ms and 729.792 ms. The retained

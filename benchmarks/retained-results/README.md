@@ -149,6 +149,10 @@ performance acceptance.
 The [independent equivalent-comparator readiness run](equivalent-readiness-2026-09-24.md)
 also completed 27/27 cases at a clean later revision. These separate runs do
 not form paired measurements or prove obligation parity with the retained leg.
+The [candidate-training diagnostic](calibration-diagnostic-2026-09-24.md)
+measures both installed Local and DuckDB paths for two small cases and tests
+one subsequent ordinary choice. Its same-case training and missing Local
+work-breakdown observation keep it outside formal selection qualification.
 
 To compare ordinary and reused INSERTs through the actual bounded transport:
 
