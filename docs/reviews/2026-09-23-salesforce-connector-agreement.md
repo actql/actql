@@ -311,6 +311,24 @@ satisfy a required target field. This is still not complete row evaluation:
 Result-field null behavior, registered conversions, current authority,
 complete Preview admission, and physical apply remain separate obligations.
 
+At `89cd38476`, the unpublished Effect Preview 0.1 row contract requires
+closed `target_guard` and `intended_changes` fields. Common MoonBit admission
+recomputes every row CID from its parent Program, Invocation, member Contract,
+operation, strength, target, guard, approved changes, and before/after evidence
+before checking member and set CIDs. The independent corpus fixes guarded
+update and guard-free create identities, including explicit null. Tampered or
+missing row fields and foreign parent context fail admission. The Salesforce
+single and Collections Host bridges compare physical write bodies to the
+approved row payload before a durable send claim, including a reordered row
+inventory. This prevents later target observation from silently rebuilding
+the approved payload. The Salesforce Site suite passed 107/107, the relevant
+MoonBit publication, Effect, and Salesforce packages passed 196/196 on each
+of JS, Wasm, and native, and the canonical corpus passed 387/387 on each.
+This is a Preview and physical-binding increment, not a complete apply permit:
+current target-guard recheck, user-facing redacted review projection, the
+standard checked multi-member Run path, final receipts, and authorized live
+Salesforce verification remain open.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
