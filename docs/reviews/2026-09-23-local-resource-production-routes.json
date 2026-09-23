@@ -1052,6 +1052,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_values_wbtest.mbt",
           "fixture": "Local managed zero-input values feed two downstream Computes"
+        },
+        {
+          "role": "zero_input_mixed_stage_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from Relation filter"
         }
       ],
       "environment_tests": [
@@ -1061,6 +1068,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "zero-input-values-in-flight"
+        },
+        {
+          "role": "zero_input_mixed_stage_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-in-flight"
         }
       ],
       "path_assurance": {

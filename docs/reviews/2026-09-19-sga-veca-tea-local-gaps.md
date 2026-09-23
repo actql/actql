@@ -65,9 +65,13 @@ a bounded provider: row and cell construction advance within the requested
 quantum, and a managed-driver fixture stops after cell work without
 publishing output. A separate standard Node Host fixture delivers a timer
 cancel after values work, observes stop, rejects partial publication, and
-reclaims the attempt. Multi-step
-sequences beginning with `values`, and other unmatched Relation sequences,
-can still reach that lane. A Node standard
+reclaims the attempt. A zero-input `values` step followed by a Relation
+filter now splits to the bounded values and selected Relation providers.
+The standard Host checks both downstream Computes and final reclamation;
+the real Node Host delivers timer cancellation after values work in this
+split form. Other multi-step sequences beginning with `values`, including
+identity-bearing assertions, and unmatched Relation sequences can still
+reach the providerless lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;
 it verifies delivered cancellation, observed stop, nonpublication of the
 cross-join output, and final reclamation. The independent left and right
@@ -106,11 +110,11 @@ are three separate acceptance conditions, so closing one must not change the
 status of the others.
 
 The ordinary one-step filter, select, sort, take, external-input cross join,
-and zero-input values forms use bounded Relation providers. An external-input
-cross join followed by a selected Relation filter also uses these providers
-without changing the authored Stage. Other accepted Relation forms, including
-same-sequence binary and multi-step sequences, can still use the providerless
-lane.
+and zero-input values forms use bounded Relation providers. External-input
+cross join and zero-input values each support a tested same-Stage Relation
+filter handoff without changing the authored Stage. Other accepted Relation
+forms, including same-sequence binary and multi-step sequences, can still use
+the providerless lane.
 Moving ordinary derive or assertions onto the selected bounded evaluator
 requires a representation-preservation check: a direct route experiment
 changed the serialized field order in the existing Host fixture. In

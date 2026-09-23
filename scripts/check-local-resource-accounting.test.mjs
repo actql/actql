@@ -63,6 +63,21 @@ test('zero-input values bind their bounded production provider', () => {
   }), /RelA values: missing environment fixture missing-values-timer/);
 });
 
+test('resource gate requires mixed-stage values execution evidence', () => {
+  assert.match(run(undefined, value => {
+    const values = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.boundary_tests = values.boundary_tests.filter(item =>
+      item.role !== 'zero_input_mixed_stage_two_consumers');
+  }), /RelA values: bounded zero-input Values route lacks its production evidence/);
+  assert.match(run(undefined, value => {
+    const values = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.environment_tests = values.environment_tests.filter(item =>
+      item.role !== 'zero_input_mixed_stage_timer_cancel_cleanup');
+  }), /RelA values: mixed-stage timer cancellation fixture is missing/);
+});
+
 test('selected projection loses its resource proof when the fixture is removed', () => {
   assert.match(run(undefined, routes => {
     const select = routes.routes.find(entry => entry.family === 'RelA' &&
