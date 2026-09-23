@@ -20,7 +20,8 @@ to volatile. The `aql` command takes a JSON or YAML Program document and an
 explicit `--format`; `start` takes a JSON Program object. Both can take a
 `--parameters-file`. Both currently require a caller-saved `--request-id` so
 an ambiguous submission can be looked up or resent with the same intent.
-`lookup-request` only queries existing request history.
+`lookup-request` only queries existing request history and rejects malformed
+Host replies instead of reporting them as successful lookups.
 
 `attach`, `status`, `wait`, `cancel`, `reconcile`, `read` and
 `delivery-attempt` use an explicit Run reference file. `read` requires a
@@ -29,7 +30,8 @@ normal terminator and writes exact payload bytes to stdout after completion.
 The whole response is bounded by `--max-response-bytes` (default 1 MiB,
 maximum 16 MiB); this is a bounded CLI read, not the streaming SDK reader or
 a JavaScript heap limit. A failed read reports its attempt ID and does not
-cancel the Run.
+cancel the Run. `delivery-attempt` validates the existing attempt-lookup
+reply shape and never requests payload replay.
 
 This is a transport development artifact. The BASE Host has no generic
 Program submit or full active-Run state service, and the binary does not yet

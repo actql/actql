@@ -222,6 +222,84 @@ fn admitted_run(wire : String, requested_durable : Bool) -> Bool {
 }
 
 ///|
+fn valid_reference(value : Json) -> Bool {
+  guard value is Object(fields) && fields.length() == 3 else { return false }
+  guard json_text(fields, "tenantId") is Some(tenant) &&
+    !tenant.is_empty() &&
+    json_text(fields, "authorityScopeCid") is Some(scope) &&
+    valid_cid(scope) &&
+    json_text(fields, "runDefinitionCid") is Some(definition) &&
+    valid_cid(definition) else {
+    return false
+  }
+  true
+}
+
+///|
+fn nonempty_member(fields : Map[String, Json], name : String) -> Bool {
+  match json_text(fields, name) {
+    Some(value) => !value.is_empty()
+    None => false
+  }
+}
+
+///|
+fn valid_reference_member(fields : Map[String, Json]) -> Bool {
+  match fields.get("ref") {
+    Some(reference) => valid_reference(reference)
+    None => false
+  }
+}
+
+///|
+fn object_or_null(value : Json?) -> Bool {
+  match value {
+    Some(Object(_)) | Some(Null) => true
+    _ => false
+  }
+}
+
+///|
+fn object_member(fields : Map[String, Json], name : String) -> Bool {
+  match fields.get(name) {
+    Some(Object(_)) => true
+    _ => false
+  }
+}
+
+///|
+fn valid_request_lookup(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  match json_text(fields, "kind") {
+    Some("not_found") => fields.length() == 1
+    Some("unknown") => fields.length() == 2 && nonempty_member(fields, "reason")
+    Some("found") =>
+      fields.length() == 4 &&
+      valid_reference_member(fields) &&
+      (
+        json_text(fields, "durability") == Some("volatile") ||
+        json_text(fields, "durability") == Some("durable")
+      ) &&
+      nonempty_member(fields, "lookupExpiresAt")
+    _ => false
+  }
+}
+
+///|
+fn valid_attempt_lookup(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  match json_text(fields, "kind") {
+    Some("not_found") => fields.length() == 1
+    Some("found") =>
+      fields.length() == 4 &&
+      object_member(fields, "attempt") &&
+      object_or_null(fields.get("record")) &&
+      object_or_null(fields.get("hostReleaseReceipt"))
+    _ => false
+  }
+}
+
+///|
 fn request_body(
   operation : String,
   child : @argparse.Matches,
@@ -517,7 +595,15 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     }
     text[:text.length() - 1].to_owned()
   } else {
-    ignore(@json.parse(text) catch { _ => stop("invalid JSON Host response") })
+    let value = @json.parse(text) catch {
+      _ => stop("invalid JSON Host response")
+    }
+    if route == "lookup-request" && !valid_request_lookup(value) {
+      stop("InvalidHostRequestLookup")
+    }
+    if route == "delivery-attempt" && !valid_attempt_lookup(value) {
+      stop("InvalidHostAttemptLookup")
+    }
     text
   }
 }
