@@ -11,6 +11,7 @@ pub(all) enum MappingRowFieldsIssue {
 pub struct MappingRowFields {
   shape : MappingContractShape
   fields : Array[String]
+  sources : Array[String?]
   work : Int
 }
 
@@ -24,6 +25,23 @@ pub fn mapping_row_fields_shape(
 ///|
 pub fn mapping_row_fields_names(value : MappingRowFields) -> Array[String] {
   value.fields.copy()
+}
+
+///|
+pub fn mapping_row_fields_count(value : MappingRowFields) -> Int {
+  value.fields.length()
+}
+
+///|
+pub fn mapping_row_fields_source_at(
+  value : MappingRowFields,
+  index : Int,
+) -> (String, String?)? {
+  if index < 0 || index >= value.fields.length() {
+    None
+  } else {
+    Some((value.fields[index], value.sources[index]))
+  }
 }
 
 ///|
@@ -63,6 +81,7 @@ pub fn check_mapping_row_fields(
     writable[field] = true
   }
   let fields : Array[String] = []
+  let sources : Array[String?] = []
   let selected : Map[String, Bool] = Map([])
   for index in 0..<count {
     let (field, source) = @decode.field_at(row, index).unwrap()
@@ -82,11 +101,13 @@ pub fn check_mapping_row_fields(
     if (from_field is Some(_)) == (literal is Some(_)) {
       return Err(InvalidRowMapping)
     }
-    if from_field is Some(value) {
-      match @decode.text(value) {
-        Ok(name) if !name.is_empty() => ()
-        _ => return Err(InvalidRowMapping)
-      }
+    let result_field = match from_field {
+      Some(value) =>
+        match @decode.text(value) {
+          Ok(name) if !name.is_empty() => Some(name)
+          _ => return Err(InvalidRowMapping)
+        }
+      None => None
     }
     let behavior = match @decode.lookup(entry, "null_behavior") {
       Some(value) =>
@@ -100,6 +121,7 @@ pub fn check_mapping_row_fields(
       return Err(InvalidRowMapping)
     }
     fields.push(field)
+    sources.push(result_field)
     selected[field] = true
   }
   for field in shape.required_fields {
@@ -110,6 +132,7 @@ pub fn check_mapping_row_fields(
   Ok({
     shape,
     fields,
+    sources,
     work: count +
     shape.writable_fields.length() +
     shape.required_fields.length(),

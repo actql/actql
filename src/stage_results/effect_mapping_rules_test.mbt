@@ -16,10 +16,10 @@ fn effect_mapping_rule_inputs(
 test "checked create derives exact Mapping permission from retained source" {
   let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"}}}}"
   let shapes = effect_mapping_rule_inputs(effects, 4)
-  let rules = bind_effect_mapping_rules(shapes, 16).unwrap()
+  let rules = bind_effect_mapping_rules(shapes, 18).unwrap()
   assert_true(physical_equal(effect_mapping_rules_shapes(rules), shapes))
   assert_eq(effect_mapping_rule_count(rules), 2)
-  assert_eq(effect_mapping_rules_work(rules), 16)
+  assert_eq(effect_mapping_rules_work(rules), 18)
   let first = effect_mapping_rule_at(rules, 0).unwrap()
   assert_true(
     physical_equal(
@@ -36,7 +36,7 @@ test "checked create derives exact Mapping permission from retained source" {
   assert_true(effect_mapping_rule_at(rules, 2) is None)
   assert_eq(
     effect_mapping_rule_issue_kind(
-      bind_effect_mapping_rules(shapes, 15).unwrap_err(),
+      bind_effect_mapping_rules(shapes, 17).unwrap_err(),
     ),
     WorkLimit,
   )
@@ -46,7 +46,7 @@ test "checked create derives exact Mapping permission from retained source" {
 test "inline create and invalid write fields use exact authored keys" {
   let source = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":\"example\"}}}}"
   let shapes = effect_mapping_rule_inputs(source, 4)
-  let rules = bind_effect_mapping_rules(shapes, 14).unwrap()
+  let rules = bind_effect_mapping_rules(shapes, 16).unwrap()
   assert_eq(effect_mapping_rule_count(rules), 2)
   let foreign = source.replace(
     old="\"Name\":\"example\"",
@@ -117,4 +117,37 @@ test "store update upsert and delete derive their authored rule dimensions" {
     assert_eq(@environment.mapping_permission_rule(selected).0, kind)
     assert_eq(@environment.mapping_permission_rule(selected).1, selector)
   }
+}
+
+///|
+test "inline create cannot omit a required Mapping target field" {
+  let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let bindings = bind_effect_results(headers, checked, 4).unwrap()
+  let mappings = effect_mapping_shape_fixture_with_body(
+    "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[]}]",
+    "[\"Name\"]", "amount",
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, mappings, 2).unwrap()
+  let issue = bind_effect_mapping_rules(shapes, 20).unwrap_err()
+  assert_eq(effect_mapping_rule_issue_kind(issue), MissingRequiredField("Name"))
+  assert_eq(effect_mapping_rule_issue_effect(issue), "create")
+}
+
+///|
+test "result-backed create cannot use a missing Mapping source field" {
+  let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let bindings = bind_effect_results(headers, checked, 4).unwrap()
+  let mappings = effect_mapping_shape_fixture_with_body(
+    "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}]",
+    "[]", "missing",
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, mappings, 2).unwrap()
+  let issue = bind_effect_mapping_rules(shapes, 20).unwrap_err()
+  assert_eq(
+    effect_mapping_rule_issue_kind(issue),
+    MissingResultField("missing"),
+  )
+  assert_eq(effect_mapping_rule_issue_stage(issue), 0)
 }

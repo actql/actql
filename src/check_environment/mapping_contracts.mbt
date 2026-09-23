@@ -111,6 +111,19 @@ pub fn mapping_shape_required_fields(
 }
 
 ///|
+pub fn mapping_shape_required_field_count(value : MappingContractShape) -> Int {
+  value.required_fields.length()
+}
+
+///|
+pub fn mapping_shape_required_field_at(
+  value : MappingContractShape,
+  index : Int,
+) -> String? {
+  value.required_fields.get(index)
+}
+
+///|
 priv suberror MappingShapeStop {
   MappingShapeStop(MappingShapeIssue)
 }

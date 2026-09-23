@@ -14,6 +14,8 @@ test "result-backed Mapping retains explicit target fields" {
   let rows = check_mapping_row_fields(shape, 2).unwrap()
   assert_true(physical_equal(mapping_row_fields_shape(rows), shape))
   assert_eq(mapping_row_fields_names(rows), ["Name"])
+  assert_eq(mapping_row_fields_source_at(rows, 0), Some(("Name", Some("name"))))
+  assert_true(mapping_row_fields_source_at(rows, 1) is None)
   assert_eq(mapping_row_fields_work(rows), 2)
   assert_eq(check_mapping_row_fields(shape, 1).unwrap_err(), WorkLimit)
 }
