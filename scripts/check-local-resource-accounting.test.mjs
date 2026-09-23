@@ -104,6 +104,22 @@ test('same-stage cross join needs its provider and two consumers', () => {
   }), /RelA cross_join: bounded same-stage cross join evidence is missing/);
 });
 
+test('distinct resource evidence covers full-row and keyed forms', () => {
+  for (const role of [
+    'selected_distinct_workspace_exact_one_short',
+    'selected_distinct_work_exact_one_short',
+    'selected_keyed_distinct_workspace_exact_one_short',
+    'selected_keyed_distinct_work_exact_one_short',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const distinct = routes.routes.find(entry =>
+        entry.family === 'RelA' && entry.operation === 'distinct');
+      distinct.boundary_tests = distinct.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA distinct: ${role} fixture is missing`));
+  }
+});
+
 test('zero-input values bind their bounded production provider', () => {
   assert.match(run(undefined, routes => {
     const values = routes.routes.find(entry => entry.family === 'RelA' &&

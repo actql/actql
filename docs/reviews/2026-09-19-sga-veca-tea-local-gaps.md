@@ -13,7 +13,12 @@ the Node Host delivers cancellation after the second distinct task reports
 work and verifies stop, nonpublication, and final cleanup. Direct selected
 distinct fixtures cover full-row and keyed projection semantics, NULL
 equality, quantum-one cancellation, and independently calculated exact and
-one-short structural workspace. These proofs do not cover all providerless
+one-short structural workspace. Fixed two-row fixtures now also check
+exact and one-short control work for both full-row and keyed distinct, and
+keyed distinct has its own exact and one-short workspace fixture. The route
+gate rejects removal of any of these four resource fixtures. These kernel
+proofs do not close the synchronous entrypoint or the distinct operation as
+a whole. They do not cover all providerless
 sequences, all 68 operation-specific resource assurances, or the
 Distribution-owned ordinary Run port. The strict completion gate remains red.
 The simpler `values → distinct` Stage also selects two bounded tasks;
