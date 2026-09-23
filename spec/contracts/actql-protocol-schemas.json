@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:f146b3d15d2213bdeb15d0d29b0408213c9704dce5e9f7917180d5fce19d62d7",
+  "artifact_registry_cid": "sha256:d8a4b80937674cc08c56a1db36e9c49a11c42e6f5ef2a8aa8ff3854c676947e3",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10686,7 +10686,7 @@
     "effect_preview": "sha256:ffacfcbd6992627eb07489e40ffff7b33db144e8d34ff80ac7d06221dcf45712",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
-    "effect_apply_receipt": "sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26",
+    "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
     "effect_set_apply_receipt": "sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf",
     "effect_reconciliation_receipt": "sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4",
     "run_receipt": "sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0",
@@ -36915,6 +36915,7 @@
       "required": [
         "version",
         "effect_preview_cid",
+        "effect_member_preview_cid",
         "applied",
         "accepted",
         "unknown",
@@ -36929,6 +36930,10 @@
           "const": "actql-effect-apply-receipt/0.1"
         },
         "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_member_preview_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
