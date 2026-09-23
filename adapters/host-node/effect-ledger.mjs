@@ -14,6 +14,7 @@ export function openEffectLedger({
   callerRequestId,
   maxEntries = 100_000,
   maxEntryBytes = 1_000_000,
+  maxResponseBytes = 1_000_000,
   maxStoredBytes = 134_217_728,
   maxNodes = 64,
   maxDepth = 4,
@@ -25,7 +26,8 @@ export function openEffectLedger({
   );
   const scopeCid = control.logicalRequestScopeCid(scope);
   const physical = openSqliteEffectLedger(root, {
-    authorityScopeCid, maxEntries, maxEntryBytes, maxStoredBytes,
+    authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes,
+    maxStoredBytes,
   });
   const admit = wire => control.admitLedgerEntry(
     wire, maxEntryBytes, maxNodes, maxDepth,
@@ -60,6 +62,30 @@ export function openEffectLedger({
         previous = stored.entry;
       }
       return rows;
+    },
+    response(dispatchEntryCid) {
+      const row = physical.response(dispatchEntryCid);
+      if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
+        fail('EffectLedgerScopeMismatch');
+      }
+      return row;
+    },
+    recordResponse({dispatching, scope, locator, key,
+      canonicalRequestCid, credentialUseCid, statusCode, responseBytes}) {
+      if (!control.ledgerEntryAdmitsDispatch(
+        dispatching, scope, locator, key, canonicalRequestCid) ||
+          control.ledgerEntryScopeCid(dispatching) !== scopeCid) {
+        fail('EffectDispatchBindingMismatch');
+      }
+      const locatorCid = control.ledgerEntryLocatorCid(dispatching);
+      return physical.recordResponse({
+        logicalRequestScopeCid: scopeCid,
+        logicalItemLocatorCid: locatorCid,
+        dispatchEntryCid: control.ledgerEntryCid(dispatching),
+        credentialUseCid,
+        statusCode,
+        responseBytes,
+      });
     },
     append(entryJson) {
       const next = admit(entryJson);
