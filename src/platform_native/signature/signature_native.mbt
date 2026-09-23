@@ -2,31 +2,27 @@
 type Library
 
 ///|
-type Sha256State
+type Sha256Hasher
 
 ///|
 #borrow(library)
-extern "C" fn sha256_new_ffi(library : Library) -> Sha256State = "actql_native_signature_sha256_new"
+extern "C" fn sha256_new_ffi(library : Library) -> Sha256Hasher = "actql_native_signature_sha256_new"
 
 ///|
-#borrow(state)
-extern "C" fn sha256_ready_ffi(state : Sha256State) -> Bool = "actql_native_signature_sha256_ready"
+#borrow(hash)
+extern "C" fn sha256_ready_ffi(hash : Sha256Hasher) -> Bool = "actql_native_signature_sha256_ready"
 
 ///|
-#borrow(library, state, bytes)
+#borrow(hash, bytes)
 extern "C" fn sha256_update_ffi(
-  library : Library,
-  state : Sha256State,
+  hash : Sha256Hasher,
   bytes : Bytes,
   length : Int,
 ) -> Bool = "actql_native_signature_sha256_update"
 
 ///|
-#borrow(library, state)
-extern "C" fn sha256_finish_ffi(
-  library : Library,
-  state : Sha256State,
-) -> Bytes = "actql_native_signature_sha256_finish"
+#borrow(hash)
+extern "C" fn sha256_finish_ffi(hash : Sha256Hasher) -> Bytes = "actql_native_signature_sha256_finish"
 
 ///|
 #borrow(path)
@@ -61,11 +57,11 @@ fn library_message(library : Library) -> String {
 pub fn Library::sha256_hasher(
   self : Library,
 ) -> Result[Sha256Hasher, NativeSignatureIssue] {
-  let state = sha256_new_ffi(self)
-  if !sha256_ready_ffi(state) {
+  let hash = sha256_new_ffi(self)
+  if !sha256_ready_ffi(hash) {
     return Err(Verification("SHA-256 initialization failed"))
   }
-  Ok({ library: self, state, })
+  Ok(hash)
 }
 
 ///|
@@ -73,7 +69,7 @@ pub fn Sha256Hasher::update(
   self : Sha256Hasher,
   bytes : Bytes,
 ) -> Result[Unit, NativeSignatureIssue] {
-  if !sha256_update_ffi(self.library, self.state, bytes, bytes.length()) {
+  if !sha256_update_ffi(self, bytes, bytes.length()) {
     return Err(Verification("SHA-256 update failed"))
   }
   Ok(())
@@ -83,7 +79,7 @@ pub fn Sha256Hasher::update(
 pub fn Sha256Hasher::finish_hex(
   self : Sha256Hasher,
 ) -> Result[String, NativeSignatureIssue] {
-  let digest = sha256_finish_ffi(self.library, self.state)
+  let digest = sha256_finish_ffi(self)
   if digest.length() != 32 {
     return Err(Verification("SHA-256 finalization failed"))
   }

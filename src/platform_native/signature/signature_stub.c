@@ -252,31 +252,32 @@ bool actql_native_signature_sha256_ready(actql_native_sha256 *hash) {
 
 MOONBIT_FFI_EXPORT
 bool actql_native_signature_sha256_update(
-  actql_native_signature_library *library,
   actql_native_sha256 *hash,
   moonbit_bytes_t bytes,
   int32_t length
 ) {
-  if (library == NULL || hash == NULL || hash->library != library ||
-      hash->context == NULL ||
+  if (hash == NULL || hash->library == NULL || hash->context == NULL ||
       hash->closed || length < 0) return false;
-  return library->evp_digest_update(hash->context, bytes, (size_t)length) == 1;
+  return hash->library->evp_digest_update(
+    hash->context, bytes, (size_t)length
+  ) == 1;
 }
 
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_sha256_finish(
-  actql_native_signature_library *library,
   actql_native_sha256 *hash
 ) {
   moonbit_bytes_t result = moonbit_make_bytes_raw(0);
-  if (library == NULL || hash == NULL || hash->library != library ||
+  if (hash == NULL || hash->library == NULL ||
       hash->context == NULL || hash->closed) {
     return result;
   }
   hash->closed = true;
   unsigned char digest[32];
   unsigned int length = 0;
-  if (library->evp_digest_final_ex(hash->context, digest, &length) != 1 ||
+  if (hash->library->evp_digest_final_ex(
+        hash->context, digest, &length
+      ) != 1 ||
       length != sizeof(digest)) return result;
   result = moonbit_make_bytes_raw(32);
   memcpy(result, digest, 32);

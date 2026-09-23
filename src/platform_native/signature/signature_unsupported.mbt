@@ -2,7 +2,7 @@
 type Library
 
 ///|
-type Sha256State
+type Sha256Hasher
 
 ///|
 pub fn Library::sha256_hasher(

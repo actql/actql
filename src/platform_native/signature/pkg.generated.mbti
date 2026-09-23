@@ -24,14 +24,9 @@ pub(all) enum NativeSignatureIssue {
   Verification(String)
 } derive(Eq, @debug.Debug)
 
-pub struct Sha256Hasher {
-  library : Library
-  state : Sha256State
-}
+type Sha256Hasher
 pub fn Sha256Hasher::finish_hex(Self) -> Result[String, NativeSignatureIssue]
 pub fn Sha256Hasher::update(Self, Bytes) -> Result[Unit, NativeSignatureIssue]
-
-type Sha256State
 
 // Type aliases
 

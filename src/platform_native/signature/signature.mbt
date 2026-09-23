@@ -7,9 +7,3 @@ pub(all) enum NativeSignatureIssue {
   UnsupportedKey(String)
   Verification(String)
 } derive(Eq, Debug)
-
-///|
-pub struct Sha256Hasher {
-  library : Library
-  state : Sha256State
-}
