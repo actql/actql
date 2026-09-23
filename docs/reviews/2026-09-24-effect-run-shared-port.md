@@ -28,6 +28,15 @@ Connector Catalog. This is not complete Command Contract admission: input,
 permission, recovery, current authority, and the checked Program's exact
 Environment binding remain open. Complete Mapping Contract admission,
 Preview, and apply permission are also still absent.
+The bounded Mapping shape binder now matches each non-Command header's exact
+authored reference and target to an identity-checked resolved body; Command
+headers remain on the separate Command Contract path. It does not yet bind
+that Environment to the standard checked Program or validate Mapping row
+conversions and current authority.
+The following bridge derives each member's selector and written field set
+from those same retained headers and the explicit Mapping row field map, then
+selects the exact static permission rule. This is not a current grant or a
+complete checked Effect Set.
 The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member
