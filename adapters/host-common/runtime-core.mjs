@@ -37,6 +37,11 @@ function effectApplicationControl(moon) {
       checked(moon.strategyEffectApplyKey(...args)),
     applyKeyCid: moon.strategyEffectApplyKeyCid,
     recoveryAction: moon.strategyEffectRowRecoveryAction,
+    setFrontier: (...args) => checked(moon.strategyEffectSetFrontier(...args)),
+    setFrontierOutcome: moon.strategyEffectSetFrontierOutcome,
+    setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
+    setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,
+    setFrontierReadyRow: moon.strategyEffectSetFrontierReadyRow,
   });
   effectApplicationControls.set(moon, control);
   return control;
