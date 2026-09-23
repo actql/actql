@@ -202,6 +202,11 @@ export async function importResidentStrategyInput(environment, producer, tableBy
   try {
     const result = await owned.database.run(limits, async session => {
       const discard = () => {};
+      await session.command(checked(moon.residentImportSql(table, false)), [], discard);
+      const sql = checked(moon.residentImportSql(table, true));
+      const batch = batchRows > 1 ? createImportBatch(columns, batchRows, limits,
+        compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
+      const append = parameters => batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
       const material = checked(moon.residentImportMaterial(table));
       if (material != null) {
         const body = retainedStorageBody(material);
@@ -212,30 +217,14 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         const decode = {max_bytes: maxFrameBytes,
           max_nodes: Math.min(wire.max_nodes, maxFrameBytes),
           max_depth: Math.min(64, wire.max_depth), max_text_bytes: maxFrameBytes};
-        const fileSql = limits.threads === 1 &&
-          typeof body.withVerifiedFile === 'function' &&
-          typeof body.nativeFilePath === 'function'
-          ? moon.residentImportFileSql(table, maxFrameBytes, limits.maxSqlBytes)
-          : null;
-        const filePath = fileSql == null ? undefined : body.nativeFilePath();
-        const directFile = fileSql != null && typeof filePath === 'string' &&
-          !/[\u0000*?\[\]]/.test(filePath);
-        if (!directFile) await session.command(checked(moon.residentImportSql(table, false)), [], discard);
-        const sql = directFile ? undefined : checked(moon.residentImportSql(table, true));
-        const batch = !directFile && batchRows > 1 ? createImportBatch(columns, batchRows, limits,
-          compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
-        const append = parameters => batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
         const stream = checked(moon.residentImportStreamBegin(table, count,
           {max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes, max_work: wire.max_order_work},
           wire, maxFrameBytes));
         const frames = createMoonBitRetainedRowFrames(moon,
           {maxBytes: wire.max_bytes, maxRows: count,
           maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, async row => {
-          if (directFile) checked(moon.residentImportStreamVerify(stream, row, decode));
-          else {
-            const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
-            await append(parameters);
-          }
+          const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
+          await append(parameters);
         });
         try {
           storageReadUnconfirmed = true;
@@ -244,39 +233,19 @@ export async function importResidentStrategyInput(environment, producer, tableBy
             storageReadBytes += chunk.byteLength;
             await frames.feed(chunk, signal);
           }, signal);
+          storageReadUnconfirmed = false;
           frames.finish();
           signal?.throwIfAborted();
           checked(moon.residentImportStreamFinish(stream));
-          if (directFile) {
-            await body.withVerifiedFile(async file => {
-              if (file.path !== filePath ||
-                  moon.residentImportFileSql(table, maxFrameBytes, limits.maxSqlBytes) !== fileSql) {
-                throw new DuckDBTransportError('ForeignRetainedFile');
-              }
-              await session.command(fileSql,
-                [{type: {id: 'VARCHAR'}, value: file.path}], discard);
-            }, signal, bytes => {
-              // Integrity scan and native file read are additional physical
-              // transfer; the earlier semantic scan already charged its pass.
-              checked(moon.residentTransferCharge(owned.graph, transfer, BigInt(bytes) * 2n));
-              storageReadBytes += bytes * 2;
-            });
-          } else {
-            // Verify complete input before flushing the final partial batch.
-            await batch?.finish();
-          }
-          storageReadUnconfirmed = false;
+          // Verify the complete immutable input before flushing its final
+          // partial batch. Earlier writes remain transaction-local on failure.
+          await batch?.finish();
         } finally {
           frames.cancel();
           moon.residentImportStreamCancel(stream);
         }
         return;
       }
-      await session.command(checked(moon.residentImportSql(table, false)), [], discard);
-      const sql = checked(moon.residentImportSql(table, true));
-      const batch = batchRows > 1 ? createImportBatch(columns, batchRows, limits,
-        compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
-      const append = parameters => batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
       for (let row = 0; row < count; row++) {
         signal?.throwIfAborted();
         const parameters = [];

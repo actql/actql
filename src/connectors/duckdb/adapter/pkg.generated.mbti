@@ -437,8 +437,6 @@ pub fn resident_import_create_sql(ResidentImport) -> String
 
 pub fn resident_import_drop_sql(ResidentImport, Int) -> Result[String, NativeQueryIssue]
 
-pub fn resident_import_file_sql(ResidentImport, Int, Int) -> String?
-
 pub fn resident_import_insert_sql(ResidentImport) -> String
 
 pub fn resident_import_matches_output(ResidentImport, @execution_relation.CompletedOutput) -> Bool
@@ -482,8 +480,6 @@ pub fn validate_fixed_join_preflight(FixedJoinInputs) -> Result[@execution_relat
 pub fn verify_fixed_import_chunk(FixedImportStream, PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedImportStreamIssue]
 
 pub fn verify_fixed_import_values(FixedImportStream, Array[@value_admission.CheckedValue]) -> Result[Unit, FixedImportStreamIssue]
-
-pub fn verify_resident_import_stream(ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Unit, FixedImportStreamIssue]
 
 // Errors
 

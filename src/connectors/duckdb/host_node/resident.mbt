@@ -260,19 +260,6 @@ pub fn resident_import_sql(
 }
 
 ///|
-#export_name("residentImportFileSql")
-pub fn resident_import_file_sql(
-  table : @duckdb_driver.DuckDBResidentTable,
-  max_row_bytes : Int,
-  max_sql_bytes : Int,
-) -> String? {
-  guard @duckdb_driver.resident_table_import(table) is Some(imported) else {
-    return None
-  }
-  @duckdb.resident_import_file_sql(imported, max_row_bytes, max_sql_bytes)
-}
-
-///|
 #export_name("residentImportCount")
 pub fn resident_import_count(
   table : @duckdb_driver.DuckDBResidentTable,

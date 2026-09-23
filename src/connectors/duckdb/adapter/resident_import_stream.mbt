@@ -53,20 +53,6 @@ pub fn append_resident_import_stream(
 }
 
 ///|
-/// Verify a retained row without building native INSERT parameters. The
-/// complete storage scan still binds every row to the selected producer.
-pub fn verify_resident_import_stream(
-  stream : ResidentImportStream,
-  row : String,
-  limits : @execution.RetainedRowDecodeLimits,
-) -> Result[Unit, FixedImportStreamIssue] {
-  match @execution.append_retained_storage_scan_wire(stream.scan, row, limits) {
-    Ok(_) => Ok(())
-    Err(issue) => Err(Content(issue))
-  }
-}
-
-///|
 pub fn finish_resident_import_stream(
   stream : ResidentImportStream,
 ) -> Result[@execution.VerifiedStorageScan, FixedImportStreamIssue] {

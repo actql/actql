@@ -72,19 +72,6 @@ pub fn resident_import_stream_finish(
 }
 
 ///|
-#export_name("residentImportStreamVerify")
-pub fn resident_import_stream_verify(
-  stream : @duckdb.ResidentImportStream,
-  row : String,
-  limits : @execution.RetainedRowDecodeLimits,
-) -> Unit raise NodeHostFailure {
-  match @duckdb.verify_resident_import_stream(stream, row, limits) {
-    Ok(_) => ()
-    Err(issue) => raise Compute(InputStream(issue))
-  }
-}
-
-///|
 #export_name("residentImportStreamCancel")
 pub fn resident_import_stream_cancel(
   stream : @duckdb.ResidentImportStream,
