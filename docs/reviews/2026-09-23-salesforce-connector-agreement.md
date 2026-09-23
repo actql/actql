@@ -329,6 +329,15 @@ current target-guard recheck, user-facing redacted review projection, the
 standard checked multi-member Run path, final receipts, and authorized live
 Salesforce verification remain open.
 
+The admitted private Preview now retains each row's approved target version
+guard. A common MoonBit check compares a bounded, exact row-CID-keyed inventory
+of current version observations across every member before mutation. Missing,
+stale, duplicate, foreign, and over-budget observations fail independently in
+JS, Wasm, and native tests. The Site must still obtain those observations under
+current authority, and the standard Host must invoke this check together with
+source, capability, approval, and whole-set preflight before its first send.
+This helper is not an apply permit and does not close SF-3.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
