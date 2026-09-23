@@ -1,0 +1,15 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/contract_reference"
+
+// Values
+pub fn valid_command_ref(String) -> Bool
+
+pub fn valid_mapping_ref(String) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
