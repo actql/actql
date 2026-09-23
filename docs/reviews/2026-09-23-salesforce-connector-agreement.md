@@ -167,6 +167,14 @@ Effect receipts, or the standard Effectful Run path. SF-3 remains open. The
 isolated Salesforce org and write permission also remain unavailable, so no
 live-provider verification is claimed.
 
+The next batch binding checks the exact admitted Preview member, operation
+kind, contiguous ordered row CIDs, logical row correlations, and derived keys
+before durable claim. A local HTTPS fixture verifies zero sends for foreign
+member, row range, row order, or locator and one send across a ledger restart.
+This is not yet an apply permit: checked input provenance, exact Preview-to-
+physical payload equivalence, all-member preflight, current authorization,
+and final receipts still require the shared Effectful Run port above.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
