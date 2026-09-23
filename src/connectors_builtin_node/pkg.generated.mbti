@@ -284,6 +284,8 @@ pub fn strategy_effect_apply_key(@effect_application.LogicalRequestScope, String
 
 pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> String
 
+pub fn strategy_effect_batch_rows_share_member(@effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool
+
 pub fn strategy_effect_dispatch_key(@effect_application.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
