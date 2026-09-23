@@ -71,3 +71,22 @@ capability modules. ActQL sources: `docs/spec/protocols/contracts.md`,
 `docs/spec/protocols/discovery.md`, `docs/spec/execution.md`, and
 `src/remote_credential`. No new shared Capability abstraction is introduced
 solely for this comparison.
+
+## Optional local Salesforce CLI authentication
+
+The local Site may use an existing `sf org login web` session. Connection
+admission records the selected alias, org ID, username, and instance origin,
+without a token. Later credential uses call the public `sf org display` and
+`sf org auth show-access-token` interfaces, then check the alias binding again.
+The token stays in the Site credential adapter and is applied only after the
+existing operation grant and use claim. CLI credentials and refresh remain
+CLI-owned;
+ActQL never reads CLI private files or copies a refresh token. A changed token
+for the same exact binding is allowed, but it does not retry an uncertain
+Effect.
+
+This optional Node adapter does not alter the Node-free native profile or the
+explicit Site secret-resolver path. Failure does not fall back to Cloud. Live
+CLI and Salesforce verification remain pending until the isolated org and
+authorized scope are supplied. Controlled CLI and HTTPS fixtures cover the
+local failure and redaction behavior in the meantime.
