@@ -33,6 +33,7 @@ pub struct SingleWriteRequest {
   path : String
   body : String
   kind : WriteSingleKind
+  projection : WriteProjection
 }
 
 ///|
@@ -53,6 +54,58 @@ pub fn single_write_request_body(value : SingleWriteRequest) -> String {
 ///|
 pub fn single_write_request_kind(value : SingleWriteRequest) -> WriteSingleKind {
   value.kind
+}
+
+///|
+/// Grant operations are distinct so a read or another mutation cannot use
+/// this request's credential authority.
+pub fn single_write_request_grant_operation(
+  value : SingleWriteRequest,
+) -> String {
+  match value.kind {
+    SingleCreate => "salesforce:record:create"
+    SingleUpdateById(_) => "salesforce:record:update"
+    SingleUpsert => "salesforce:record:upsert"
+  }
+}
+
+///|
+/// A current Catalog observation must still admit the exact fields and
+/// operation from which this immutable request was constructed.
+pub fn recheck_single_write_request(
+  value : SingleWriteRequest,
+  current : CatalogObservation,
+) -> Result[Unit, WriteProjectionIssue] {
+  recheck_write_projection(value.projection, current)
+}
+
+///|
+/// The historical sync dispatch is not the mutation dispatch. The latter
+/// must be a valid exact CID and is separately checked by credential use.
+pub fn single_write_request_matches_site_scope(
+  value : SingleWriteRequest,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
+  let binding = value.projection.binding
+  binding.tenant == tenant &&
+  binding.principal == principal &&
+  binding.environment == environment &&
+  binding.site_key == site_key &&
+  binding.site_generation == site_generation &&
+  binding.connector_registration == connector_registration &&
+  binding.connector_revision == connector_revision &&
+  binding.resource_origin == resource_origin &&
+  binding.run_invocation_cid == run_invocation_cid &&
+  observation_cid(dispatch_request_cid)
 }
 
 ///|
@@ -241,5 +294,5 @@ pub fn prepare_single_write_request(
     Err(@scalar.MalformedUtf16(_)) => return Err(InvalidUnicode)
     Err(_) => return Err(CapacityExceeded)
   }
-  Ok({ verb, path: prefix + suffix, body: text, kind, })
+  Ok({ verb, path: prefix + suffix, body: text, kind, projection, })
 }

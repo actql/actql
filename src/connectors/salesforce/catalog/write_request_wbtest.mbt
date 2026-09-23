@@ -30,6 +30,10 @@ test "single write request derives method and path from selected operation" {
   ).unwrap()
   assert_eq(single_write_request_method(created), "POST")
   assert_eq(
+    single_write_request_grant_operation(created),
+    "salesforce:record:create",
+  )
+  assert_eq(
     single_write_request_path(created),
     "/services/data/v66.0/sobjects/ActQL_Test_Record__c/",
   )
@@ -78,6 +82,10 @@ test "single write request derives method and path from selected operation" {
   ).unwrap()
   assert_eq(single_write_request_method(updated), "PATCH")
   assert_eq(
+    single_write_request_grant_operation(updated),
+    "salesforce:record:update",
+  )
+  assert_eq(
     single_write_request_path(updated),
     "/services/data/v66.0/sobjects/ActQL_Test_Record__c/001000000000001",
   )
@@ -88,6 +96,10 @@ test "single write request derives method and path from selected operation" {
     write_request_test_limits(),
   ).unwrap()
   assert_eq(single_write_request_method(upserted), "PATCH")
+  assert_eq(
+    single_write_request_grant_operation(upserted),
+    "salesforce:record:upsert",
+  )
   assert_eq(
     single_write_request_path(upserted),
     "/services/data/v66.0/sobjects/ActQL_Test_Record__c/External_Key__c/a%2Fb%20%C3%A9",
@@ -148,5 +160,70 @@ test "single write request rejects target confusion and invalid paths" {
       max_body_bytes: 5,
     })
     is Err(CapacityExceeded),
+  )
+}
+
+///|
+test "single write request retains current Catalog and exact Site scope" {
+  let (observation, binding) = write_test_observation()
+  let projection = prepare_write_projection(
+    observation,
+    binding,
+    "ActQL_Test_Record__c",
+    WriteCreate,
+    ["External_Key__c"],
+    1,
+  ).unwrap()
+  let body = prepare_write_body(
+    projection,
+    @utf8.encode("{\"External_Key__c\":\"one\"}"),
+    write_body_test_limits(),
+  ).unwrap()
+  let request = prepare_single_write_request(
+    body,
+    "v66.0",
+    NoWriteTarget,
+    write_request_test_limits(),
+  ).unwrap()
+  assert_true(recheck_single_write_request(request, observation) is Ok(_))
+  assert_true(
+    single_write_request_matches_site_scope(
+      request,
+      binding.tenant,
+      binding.principal,
+      binding.environment,
+      binding.site_key,
+      binding.site_generation,
+      binding.connector_registration,
+      binding.connector_revision,
+      binding.resource_origin,
+      binding.run_invocation_cid,
+      "sha256:" + "e".repeat(64),
+    ),
+  )
+  assert_false(
+    single_write_request_matches_site_scope(
+      request,
+      binding.tenant,
+      binding.principal,
+      binding.environment,
+      binding.site_key,
+      binding.site_generation + 1,
+      binding.connector_registration,
+      binding.connector_revision,
+      binding.resource_origin,
+      binding.run_invocation_cid,
+      "sha256:" + "e".repeat(64),
+    ),
+  )
+  assert_true(
+    recheck_single_write_request(
+      request,
+      write_test_observation_with(described(), {
+        ..binding,
+        site_generation: binding.site_generation + 1,
+      }),
+    )
+    is Err(ForeignCurrentObservation),
   )
 }
