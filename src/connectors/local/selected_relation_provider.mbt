@@ -178,15 +178,10 @@ fn selected_relation_provider(
           return selected_binding_rows_execution(
             sequence, input, execution, max_value_bytes, step,
           )
-        @lower.Limit(_, _, _) => {
-          let owner = @execution.generated_sequence_owner(sequence)
-          if @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-            @lower.order_node_id(node) is None {
-            return selected_binding_rows_execution(
-              sequence, input, execution, max_value_bytes, step,
-            )
-          }
-        }
+        @lower.Limit(_, _, _) =>
+          return selected_binding_rows_execution(
+            sequence, input, execution, max_value_bytes, step,
+          )
         _ => ()
       }
       let terminated = Ref(false)

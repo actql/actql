@@ -1991,9 +1991,18 @@ test "standard Host runs registered bounded Events provider" {
 ///|
 test "standard Host retains Events across physical task boundaries" {
   for
-    variant in [
-      "session", "session_global", "session_parameter", "session_ties", "session_filter",
-      "session_select", "session_derive", "session_take",
+    (variant, execution_quantum) in [
+      ("session", 0),
+      ("session_global", 0),
+      ("session_parameter", 0),
+      ("session_ties", 0),
+      ("session_filter", 0),
+      ("session_select", 0),
+      ("session_derive", 0),
+      ("session_take", 1),
+      ("session_take", 2),
+      ("session_take", 7),
+      ("session_take", 1024),
     ] {
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
@@ -2139,6 +2148,7 @@ test "standard Host retains Events across physical task boundaries" {
         5,
         filter_live,
         obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+        execution_quantum~,
       )
       consumer_source = filtered
       consumer_rows = local_managed_test_rows(filter_ops)

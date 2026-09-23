@@ -8296,6 +8296,8 @@ fn run_standard_host_graph_relation_path(
 ///|
 fn run_standard_host_mixed_graph_relation_path(
   variant? : String = "normalize_filter",
+  execution_quantum? : Int = 0,
+  cancel_take_after? : Int = 0,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
@@ -8441,7 +8443,54 @@ fn run_standard_host_mixed_graph_relation_path(
     obligations?=graph_publication_obligations(run, true),
   )
   let projected_rows = local_managed_test_rows(projected_ops)
+  if cancel_take_after > 0 {
+    let cancelled_ops = start_local_managed_test_task_operations(
+      installed,
+      run,
+      5,
+      [projected],
+      [projected_rows],
+      obligations?=graph_publication_obligations(run, true),
+    )
+    for _ in 0..<cancel_take_after {
+      let observation = (cancelled_ops.advance)(1).unwrap()
+      assert_false(observation.complete)
+      assert_true(observation.work <= 1L)
+    }
+    assert_true((cancelled_ops.request_cancel)())
+    assert_true((cancelled_ops.advance)(1) is Err(_))
+    assert_true((cancelled_ops.execution_stopped)())
+    assert_true((cancelled_ops.material)() is None)
+    (cancelled_ops.settle)().unwrap()
+    @strategy.close_captured_task_output(run, 5)
+    (cancelled_ops.close)()
+    (cancelled_ops.cleanup_refresh)() |> ignore
+    projected_live.val = false
+    @strategy.close_captured_task_output(run, 4)
+    (projected_ops.close)()
+    (projected_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 3)
+    (normalize_ops.close)()
+    (normalize_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 2)
+    (construction_ops.close)()
+    (construction_ops.cleanup_refresh)() |> ignore
+    values_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (values_ops.close)()
+    (values_ops.cleanup_refresh)() |> ignore
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+    return
+  }
   let filtered_live = Ref(true)
+  let execution_advances = Ref(0)
   let (filtered_ops, filtered) = run_local_managed_test_task(
     installed,
     run,
@@ -8451,7 +8500,12 @@ fn run_standard_host_mixed_graph_relation_path(
     5,
     filtered_live,
     obligations?=graph_publication_obligations(run, true),
+    execution_quantum~,
+    execution_advances=Some(execution_advances),
   )
+  if execution_quantum == 1 {
+    assert_true(execution_advances.val > 1)
+  }
   let filtered_rows = local_managed_test_rows(filtered_ops)
   let expected_rows = if variant == "normalize_take" {
     1
@@ -8764,7 +8818,20 @@ test "standard Host composes Graph projection and Relation derive" {
 
 ///|
 test "standard Host composes Graph projection and Relation take" {
-  run_standard_host_mixed_graph_relation_path(variant="normalize_take")
+  for quantum in [1, 2, 7, 1024] {
+    run_standard_host_mixed_graph_relation_path(
+      variant="normalize_take",
+      execution_quantum=quantum,
+    )
+  }
+}
+
+///|
+test "standard Host cancels ordered Graph projection take before completion" {
+  run_standard_host_mixed_graph_relation_path(
+    variant="normalize_take",
+    cancel_take_after=18,
+  )
 }
 
 ///|
