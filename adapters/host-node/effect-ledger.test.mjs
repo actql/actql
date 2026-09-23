@@ -54,6 +54,110 @@ const open = root => openEffectLedger({moon, root, authorityScopeCid,
   callerRequestId: 'request-1', maxEntryBytes: 4096});
 const effect = runtimeCore(moon).effectApplicationControl;
 
+function batchClaims() {
+  const scope = effect.logicalRequestScope(authorityScopeCid,
+    'request-1', 32);
+  return ['row-1', 'row-2'].map(row => {
+    const key = effect.dispatchKey(scope, cid('b'),
+      JSON.stringify(row), 32, 8, 3);
+    const locator = effect.logicalItemLocator(scope, 'program-1',
+      'node-1', 'WriteOne', JSON.stringify({row}), 64, 128, 8, 3);
+    const canonicalRequestCid = cid('f');
+    const basis = effect.ledgerBasis(scope, locator, key,
+      cid('c'), cid('d'), cid('e'), canonicalRequestCid, cid('0'),
+      'unavailable', cid('1'), cid('2'));
+    return {scope, locator, key, basis,
+      intentFingerprintCid: cid('e'), canonicalRequestCid};
+  });
+}
+
+test('one collection request claims every row before physical I/O',
+  async t => {
+    const root = await fixture(t);
+    const first = open(root);
+    const concurrent = open(root);
+    t.after(() => first.close());
+    t.after(() => concurrent.close());
+    const claims = batchClaims();
+    const ownership = first.claimDispatchBatch(claims);
+    assert.equal(ownership.claimed, true);
+    assert.deepEqual(ownership.actions, [0, 0]);
+    for (let index = 0; index < claims.length; index++) {
+      const claim = claims[index];
+      const locatorCid = effect.logicalItemLocatorCid(claim.locator);
+      assert.equal(first.current(locatorCid).revision, 2);
+      assert.equal(effect.ledgerEntryAdmitsDispatch(
+        ownership.dispatching[index], claim.scope, claim.locator,
+        claim.key, claim.canonicalRequestCid), true);
+    }
+    const retry = concurrent.claimDispatchBatch(claims);
+    assert.equal(retry.claimed, false);
+    assert.deepEqual(retry.actions, [3, 3]);
+    first.close();
+    concurrent.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    assert.deepEqual(restarted.claimDispatchBatch(claims).actions, [3, 3]);
+    assert.deepEqual(claims.map(claim => restarted.history(
+      effect.logicalItemLocatorCid(claim.locator), 2).length), [2, 2]);
+  });
+
+test('collection claim never leaves a partial send when one row conflicts',
+  async t => {
+    const root = await fixture(t);
+    const ledger = open(root);
+    t.after(() => ledger.close());
+    const claims = batchClaims();
+    const foreignBasis = effect.ledgerBasis(
+      claims[1].scope, claims[1].locator, claims[1].key,
+      cid('9'), cid('d'), cid('e'), cid('f'), cid('0'),
+      'unavailable', cid('1'), cid('2'));
+    const foreign = effect.issuePreparedLedgerEntry(
+      foreignBasis, 4096, 64, 4);
+    ledger.append(effect.ledgerEntryWire(foreign));
+    assert.throws(() => ledger.claimDispatchBatch(claims),
+      {code: 'EffectLedgerIntentConflict'});
+    assert.equal(ledger.current(
+      effect.logicalItemLocatorCid(claims[0].locator)), undefined);
+    assert.equal(ledger.current(
+      effect.logicalItemLocatorCid(claims[1].locator)).revision, 1);
+    assert.throws(() => ledger.claimDispatchBatch([
+      claims[0], claims[0],
+    ]), {code: 'EffectLedgerBatchBindingMismatch'});
+    assert.equal(ledger.current(
+      effect.logicalItemLocatorCid(claims[0].locator)), undefined);
+  });
+
+test('a previously dispatched row prevents a partial collection retry',
+  async t => {
+    const root = await fixture(t);
+    const ledger = open(root);
+    t.after(() => ledger.close());
+    const claims = batchClaims();
+    assert.equal(ledger.claimDispatch(claims[0]).claimed, true);
+    assert.deepEqual(ledger.claimDispatchBatch(claims), {
+      claimed: false, actions: [3, 0],
+    });
+    assert.equal(ledger.current(
+      effect.logicalItemLocatorCid(claims[1].locator)), undefined);
+  });
+
+test('collection claim reserves aggregate entry capacity before any row',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openEffectLedger({moon, root, authorityScopeCid,
+      callerRequestId: 'request-1', maxEntryBytes: 4096, maxEntries: 3});
+    t.after(() => ledger.close());
+    const claims = batchClaims();
+    assert.throws(() => ledger.claimDispatchBatch(claims),
+      {code: 'EffectLedgerCapacityExceeded'});
+    for (const claim of claims) {
+      assert.equal(ledger.current(
+        effect.logicalItemLocatorCid(claim.locator)), undefined);
+    }
+    assert.equal(ledger.claimDispatchBatch([claims[0]]).claimed, true);
+  });
+
 test('MoonBit-issued prepared and dispatching entries are durable before use',
   async t => {
     const root = await fixture(t);
