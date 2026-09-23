@@ -44,3 +44,45 @@ export async function captureClaimedEffectResponse({
   return Object.freeze({claimed: true, ownership, physical,
     response: stored.response});
 }
+
+// A collection is one physical send with several logical row owners. Every
+// row must be durably dispatching before execute; the observed HTTP response
+// is then committed once with references for all rows. This bridge does not
+// interpret member or row outcomes.
+export async function captureClaimedEffectCollectionResponse({
+  ledger,
+  claims,
+  requestCid,
+  execute,
+}) {
+  if (!ledger || typeof ledger.claimDispatchBatch !== 'function' ||
+      typeof ledger.recordBatchResponse !== 'function' ||
+      !Array.isArray(claims) || claims.length === 0 ||
+      typeof requestCid !== 'string' ||
+      claims.some(claim => claim?.canonicalRequestCid !== requestCid) ||
+      typeof execute !== 'function') {
+    fail('InvalidEffectPhysicalDispatch');
+  }
+  const ownership = ledger.claimDispatchBatch(claims);
+  if (!ownership.claimed) {
+    return Object.freeze({claimed: false, ownership});
+  }
+  // A thrown/unknown physical result cannot authorize another send. The
+  // durable batch claim remains available for reconciliation after restart.
+  const physical = await execute();
+  const observation = physical?.observation;
+  if (typeof observation?.useCid !== 'string' ||
+      !Number.isSafeInteger(observation.statusCode) ||
+      !(observation.body instanceof Uint8Array)) {
+    fail('EffectPhysicalObservationMissing');
+  }
+  const stored = ledger.recordBatchResponse({
+    claims,
+    ownership,
+    credentialUseCid: observation.useCid,
+    statusCode: observation.statusCode,
+    responseBytes: observation.body,
+  });
+  return Object.freeze({claimed: true, ownership, physical,
+    response: stored});
+}
