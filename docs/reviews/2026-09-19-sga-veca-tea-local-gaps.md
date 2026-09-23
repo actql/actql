@@ -37,7 +37,9 @@ an in-flight stop. This remains a release blocker, independently of the
 operation-specific resource proof count below. The providerless lane must be
 replaced by admitted bounded execution or an explicitly isolated stoppable
 physical lane; it must not be counted as quantum-bounded because it returns
-`work=1`.
+`work=1`. The strict resource-completion gate rejects this known synchronous
+compute-and-copy lane even if route evidence is added elsewhere. Its source
+check is a blocker guard, not a positive proof that a replacement is bounded.
 
 ## Current cross-operation review gaps
 
