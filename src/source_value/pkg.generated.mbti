@@ -13,6 +13,8 @@ pub fn parse_json_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Nod
 
 pub fn parse_json_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
+pub fn parse_json_bytes_preserving(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
+
 pub fn parse_json_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
 pub fn parse_yaml(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
