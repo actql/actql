@@ -140,6 +140,8 @@ pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
 
 pub fn commit_strategy_choice(StrategyChoiceSet, Int?) -> Result[StrategyDecision, SearchIssue]
 
+pub fn commit_strategy_policy_decision(StrategyChoiceSet, Int, PolicyDecisionRef) -> Result[StrategyDecision, SearchIssue]
+
 pub fn complete_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[ManagedTransferReceipt, RunIssue]
 
 pub fn complete_carrier_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.CarrierManagedCompletedOutput, allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.CarrierManagedProducerRead]) -> Result[Unit, RunIssue]
@@ -410,6 +412,8 @@ pub fn strategy_resident_profile(StrategyRevision, Int) -> ResidentProfile?
 
 pub fn strategy_revision_number(StrategyRevision) -> Int
 
+pub fn strategy_selection_source(StrategyRevision) -> StrategySelectionSource
+
 pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
 
 pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsage
@@ -599,6 +603,12 @@ pub(all) struct PhysicalEnvelope {
   execution_bytes : Int64
 } derive(Eq, @debug.Debug)
 
+pub(all) struct PolicyDecisionRef {
+  policy_id : String
+  revision : String
+  request_id : String
+} derive(Eq, @debug.Debug)
+
 type ResidentEnvironment
 
 type ResidentExecution
@@ -683,6 +693,12 @@ pub enum StrategyDecision {
 }
 
 type StrategyRevision
+
+pub(all) enum StrategySelectionSource {
+  OfflineLatency
+  HostProposal
+  ExternalPolicy(PolicyDecisionRef)
+} derive(Eq, @debug.Debug)
 
 type TaskExecution
 

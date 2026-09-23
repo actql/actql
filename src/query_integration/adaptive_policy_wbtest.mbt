@@ -154,9 +154,21 @@ test "adaptive policy waits for an explicit feasible placement" {
     is Err(Search(InvalidPreference)),
   )
   assert_true(@strategy.captured_dag_strategy(run) is None)
-  @host_driver.commit_adaptive_policy_choice(policy, Some(7)).unwrap()
+  @host_driver.commit_adaptive_policy_decision(policy, 7, {
+    policy_id: "cloud-placement",
+    revision: "r2",
+    request_id: "plan-17",
+  }).unwrap()
   let revision = @strategy.captured_dag_strategy(run).unwrap()
   assert_eq(@strategy.strategy_assessment(revision).position, 7)
+  assert_eq(
+    @strategy.strategy_selection_source(revision),
+    @strategy.ExternalPolicy({
+      policy_id: "cloud-placement",
+      revision: "r2",
+      request_id: "plan-17",
+    }),
+  )
   assert_true(
     physical_equal(
       @strategy.strategy_registration(revision, 1).unwrap(),

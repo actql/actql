@@ -185,6 +185,11 @@ default offline latency choice uses this same preparation and commit path.
 External policy I/O belongs to the Host between those two calls. While a
 response is pending, routine Host refresh does not substitute the offline
 choice. Dispatch still performs its ordinary exact input and reservation checks.
+An externally proposed choice records a bounded policy ID, revision and
+decision request ID in the selected strategy revision. These fields identify
+the proposing policy for audit; they are not execution authority. The Host
+authenticates the response and binds it to the exact pending request before
+passing its candidate position to common admission.
 
 ## Mock execution and capture separation
 

@@ -78,6 +78,10 @@ test "placement proposal chooses only an existing feasible position" {
   let selected = @strategy.commit_strategy_choice(choices, Some(7)).unwrap()
   guard selected is Selected(revision) else { abort("selected") }
   assert_eq(@strategy.strategy_assessment(revision).position, 7)
+  assert_eq(
+    @strategy.strategy_selection_source(revision),
+    @strategy.HostProposal,
+  )
   assert_true(
     physical_equal(
       @strategy.strategy_registration(revision, 1).unwrap(),
@@ -86,6 +90,41 @@ test "placement proposal chooses only an existing feasible position" {
   )
   assert_true(
     @strategy.commit_strategy_choice(choices, Some(0)) is Err(StaleChoice),
+  )
+}
+
+///|
+test "placement policy provenance rejects empty metadata before commit" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let choices = @strategy.prepare_strategy_choices(
+    run,
+    search_offers(run, registry, [1, 2, 3], Some(20L)),
+    registry,
+    None,
+  ).unwrap()
+  assert_true(
+    @strategy.commit_strategy_policy_decision(choices, 0, {
+      policy_id: "",
+      revision: "r1",
+      request_id: "plan-1",
+    })
+    is Err(InvalidPreference),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  guard @strategy.commit_strategy_choice(choices, None).unwrap()
+    is Selected(revision) else {
+    abort("selected")
+  }
+  assert_eq(
+    @strategy.strategy_selection_source(revision),
+    @strategy.OfflineLatency,
   )
 }
 

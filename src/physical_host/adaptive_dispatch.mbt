@@ -195,13 +195,42 @@ pub fn[E] commit_adaptive_policy_choice(
   policy : AdaptiveDispatch[E],
   position : Int?,
 ) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  commit_adaptive_choice(policy, position, None)
+}
+
+///|
+pub fn[E] commit_adaptive_policy_decision(
+  policy : AdaptiveDispatch[E],
+  position : Int,
+  reference : @strategy.PolicyDecisionRef,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  commit_adaptive_choice(policy, Some(position), Some(reference))
+}
+
+///|
+fn[E] commit_adaptive_choice(
+  policy : AdaptiveDispatch[E],
+  position : Int?,
+  reference : @strategy.PolicyDecisionRef?,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
   if policy.failure is Some(issue) {
     return Err(issue)
   }
   guard policy.pending_choice is Some(choices) else {
     return Err(InvalidConfiguration)
   }
-  match @strategy.commit_strategy_choice(choices, position) {
+  let decision = match reference {
+    Some(reference) =>
+      match position {
+        Some(position) =>
+          @strategy.commit_strategy_policy_decision(
+            choices, position, reference,
+          )
+        None => Err(InvalidPreference)
+      }
+    None => @strategy.commit_strategy_choice(choices, position)
+  }
+  match decision {
     Ok(Selected(_)) => {
       policy.pending_choice = None
       Ok(())

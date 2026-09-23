@@ -18,7 +18,11 @@ pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.Capabi
 
 pub fn[E] commit_adaptive_policy_choice(AdaptiveDispatch[E], Int?) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
+pub fn[E] commit_adaptive_policy_decision(AdaptiveDispatch[E], Int, @physical_strategy.PolicyDecisionRef) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
 pub fn[C, E] commit_compute_host_policy_choice(ComputeHost[C, E], Int?) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
+pub fn[C, E] commit_compute_host_policy_decision(ComputeHost[C, E], Int, @physical_strategy.PolicyDecisionRef) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
 pub fn compute_author_sequence(ComputeAuthorContext, Int) -> @execution_relation.CompletionPreparation?
 

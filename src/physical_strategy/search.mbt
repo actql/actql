@@ -69,7 +69,22 @@ struct StrategyRevision {
   assessment : StrategyAssessment
   before : @resources.LedgerUsage
   estimated_fastest : Bool
+  selection_source : StrategySelectionSource
 }
+
+///|
+pub(all) struct PolicyDecisionRef {
+  policy_id : String
+  revision : String
+  request_id : String
+} derive(Eq, Debug)
+
+///|
+pub(all) enum StrategySelectionSource {
+  OfflineLatency
+  HostProposal
+  ExternalPolicy(PolicyDecisionRef)
+} derive(Eq, Debug)
 
 ///|
 /// A bounded, owner-bound choice set. A policy may inspect its feasible
@@ -477,6 +492,7 @@ pub fn prepare_strategy_choices(
         assessment,
         before: usage,
         estimated_fastest: false,
+        selection_source: OfflineLatency,
       })
       durations.push(assessment.duration)
     } else if host_priority is Some(_) {
@@ -584,6 +600,43 @@ pub fn commit_strategy_choice(
   choices : StrategyChoiceSet,
   position : Int?,
 ) -> Result[StrategyDecision, SearchIssue] {
+  commit_strategy_choice_with_source(
+    choices,
+    position,
+    if position is Some(_) {
+      HostProposal
+    } else {
+      OfflineLatency
+    },
+  )
+}
+
+///|
+/// A policy reference is audit provenance. The Host must authenticate and
+/// bind the response to the exact pending request before passing it here.
+pub fn commit_strategy_policy_decision(
+  choices : StrategyChoiceSet,
+  position : Int,
+  reference : PolicyDecisionRef,
+) -> Result[StrategyDecision, SearchIssue] {
+  for value in [reference.policy_id, reference.revision, reference.request_id] {
+    if value.is_empty() || value.length() > 128 {
+      return Err(InvalidPreference)
+    }
+  }
+  commit_strategy_choice_with_source(
+    choices,
+    Some(position),
+    ExternalPolicy(reference),
+  )
+}
+
+///|
+fn commit_strategy_choice_with_source(
+  choices : StrategyChoiceSet,
+  position : Int?,
+  source : StrategySelectionSource,
+) -> Result[StrategyDecision, SearchIssue] {
   let run = choices.run
   if choices.committed ||
     run.stopped ||
@@ -646,7 +699,11 @@ pub fn commit_strategy_choice(
     }
   }
   choices.committed = true
-  let revision = { ..choices.feasible[index], estimated_fastest, }
+  let revision = {
+    ..choices.feasible[index],
+    estimated_fastest,
+    selection_source: source,
+  }
   run.strategy = Some(revision)
   run.revision_history.push(revision)
   Ok(Selected(revision))
@@ -756,6 +813,13 @@ fn strategy_retention_peak(
 ///|
 pub fn strategy_assessment(revision : StrategyRevision) -> StrategyAssessment {
   revision.assessment
+}
+
+///|
+pub fn strategy_selection_source(
+  revision : StrategyRevision,
+) -> StrategySelectionSource {
+  revision.selection_source
 }
 
 ///|

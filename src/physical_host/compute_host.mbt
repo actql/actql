@@ -140,6 +140,16 @@ pub fn[C, E] commit_compute_host_policy_choice(
 }
 
 ///|
+pub fn[C, E] commit_compute_host_policy_decision(
+  host : ComputeHost[C, E],
+  position : Int,
+  reference : @strategy.PolicyDecisionRef,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  commit_adaptive_policy_decision(policy, position, reference)
+}
+
+///|
 pub fn[C, E] prepare_next_compute_task(
   host : ComputeHost[C, E],
   context : C,
