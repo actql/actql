@@ -26,8 +26,40 @@ export type WireRunRef = Readonly<{
   runDefinitionCid: string;
 }>;
 
+type WireBodyBase = Readonly<{connection: WireConnection}>;
+type WireRefBody = WireBodyBase & Readonly<{ref: WireRunRef}>;
+
+export type WireClientBodyByOperation = Readonly<{
+  connect: WireBodyBase;
+  submit: WireBodyBase & Readonly<{
+    requestId: string;
+    parameters: unknown;
+  }> & (Readonly<{kind: 'aql'; input: Readonly<{
+    text: string;
+    format: 'json' | 'yaml';
+  }>}> | Readonly<{kind: 'program'; input: object}>);
+  attach: WireRefBody;
+  'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
+  status: WireRefBody;
+  wait: WireRefBody & Readonly<{until: string | null}>;
+  cancel: WireRefBody;
+  reconcile: WireRefBody;
+  read: WireRefBody & Readonly<{
+    resultName: string;
+    format: 'json' | 'jsonl' | 'csv';
+    attemptId: string;
+  }>;
+  'delivery-attempt': WireRefBody & Readonly<{
+    resultName: string;
+    attemptId: string;
+  }>;
+}>;
+
+export type WireClientBody =
+  WireClientBodyByOperation[ClientHostOperation];
+
 export declare function validRunRef(value: unknown): value is WireRunRef;
 export declare function validClientConnection(value: unknown):
   value is WireConnection;
-export declare function validClientBody(operation: string, body: unknown):
-  body is Readonly<Record<string, unknown> & {connection: WireConnection}>;
+export declare function validClientBody<O extends ClientHostOperation>(
+  operation: O, body: unknown): body is WireClientBodyByOperation[O];

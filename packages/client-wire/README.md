@@ -5,6 +5,10 @@ Client–Host HTTP protocol. It validates exact operation envelopes, connection
 selection, scoped Run references and bounded text before Host authorization.
 The Node Host uses this package directly; other Hosts can use the same
 versioned shapes without importing Node, local kernels or provider code.
+The TypeScript `WireClientBodyByOperation` map describes the envelope accepted
+by `validClientBody(operation, value)`. Its `parameters` and compiled Program
+input remain `unknown` and `object`, respectively, until the Host performs
+semantic validation; the structural guard does not authorize either value.
 
 These functions do not authenticate callers, grant movement or execution,
 admit Program intent, interpret Run state, or validate a Remote Site message.
