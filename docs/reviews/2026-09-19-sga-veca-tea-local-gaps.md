@@ -26,12 +26,13 @@ readable coverage manifest is authoritative for individual operation status.
 - Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
   Vectors paths now connect to a Relation filter and two actual consumers in
   the standard Host. The fused prefix retains one checked owner and an exact
-  terminal output step. Selected derive and filter now use a bounded session;
-  a multi-step checked sequence can stop during expression evaluation without
-  publishing partial rows. Select and take still use synchronous selected
-  evaluation. Environment-delivered cancellation across this split
-  and cross-task failure/cleanup combinations remain unverified. These are
-  connection gaps, not new normative operations.
+  terminal output step. Selected derive, filter, and select now use a bounded
+  session. A multi-step checked sequence can stop during expression
+  evaluation without publishing partial rows. Select validates every input
+  field before projecting output columns one at a time. Take still uses
+  synchronous selected evaluation. Environment-delivered cancellation across
+  this split and cross-task failure/cleanup combinations remain unverified.
+  These are connection gaps, not new normative operations.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
@@ -47,6 +48,14 @@ Independent two-row vectors establish the input boundary at 16 value nodes,
 publication. Input admission is spread over row and field advances. A single
 large structured cell still uses the existing bounded-by-value-limit measure,
 so its environment cancellation latency remains part of the shared gap.
+
+Selected Relation `select` now uses that bounded input admission and emits
+one projected field per resume step. The direct regression covers canonical
+output order, complete-input validation, one-node-short rejection, cancellation
+before publication, and cleanup. The Graph-to-Relation standard Host fixture
+continues through two consumers and formal publication on all three targets.
+This does not close synchronous `take` or environment-delivered cancellation
+after the mixed-stage split.
 
 ## Local family correction branch
 

@@ -29,6 +29,7 @@ fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
   following_step? : Bool = false,
   filter? : Bool = false,
+  select? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -37,7 +38,9 @@ fn bounded_binding_rows_receiver(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[" +
-      (if filter {
+      (if select {
+        "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else {
         "{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\",\"as\":\"derived\"}"
@@ -80,6 +83,7 @@ fn bounded_binding_rows_fixture(
   rows : String,
   following_step? : Bool = false,
   filter? : Bool = false,
+  select? : Bool = false,
   input_limits? : ValueLimits? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(rows)
@@ -87,13 +91,18 @@ fn bounded_binding_rows_fixture(
     source_owner,
     following_step~,
     filter~,
+    select~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    [sequence_fragment_context(sequence, 0, 2L)],
+    if select {
+      []
+    } else {
+      [sequence_fragment_context(sequence, 0, 2L)]
+    },
     [@lower.node_id(first)],
     100000,
     10000,
@@ -372,6 +381,85 @@ test "bounded selected filter cancels before publication" {
   assert_true(bounded_binding_rows_cleanup_pending(execution))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected projection preserves schema order and input admission" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    select=true,
+  )
+  let mut advances = 0
+  let mut completed : CompletedOutput? = None
+  while completed is None {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      BoundedBindingRowsFailed(_, ..) => fail("unexpected projection failure")
+      BoundedBindingRowsStopped(_, ..) => fail("unexpected projection stop")
+    }
+  }
+  assert_true(advances > 10)
+  let output = completed.unwrap()
+  assert_eq(completed_row_count(output), 2)
+  assert_eq(completed_column_count(output), 2)
+  assert_eq(completed_column_name(output, 0), Some("id"))
+  assert_eq(completed_column_name(output, 1), Some("right"))
+  assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
+  guard completed_cell(output, 1, 1) is Some(Captured(@admitted.Vector(right))) else {
+    fail("expected selected vector")
+  }
+  assert_eq(@admitted.elements(right), [4.0, 3.0])
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected projection cancels before publication" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    select=true,
+  )
+  for _ in 0..<12 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected projection rejects an input one node short" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    select=true,
+    input_limits=Some({
+      max_nodes: 15,
+      max_text_bytes: 22,
+      max_depth: 3,
+      max_work: 38,
+    }),
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) => fail("short input completed")
+      _ => fail("short input had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
 }
 
 ///|

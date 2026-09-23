@@ -40,13 +40,14 @@ priv struct BoundedBindingRowsState {
   output_names : Array[String]
   input_ordinals : Map[String, Int]
   binding_ordinals : Map[String, Int]
+  projection_ordinals : Map[String, Int]?
   ordered : Bool
   output_schema : @schema.Schema
   admitted_limits : @admitted.Limits
   input_values : ValueBudget
   output_values : ValueBudget
-  logical : LogicalBudget
-  scope : ExpressionRoots
+  logical : LogicalBudget?
+  scope : ExpressionRoots?
   control : ControlBudget
   workspace : RowWorkspace
   mut input_roots : Array[ExpressionRootLease]
@@ -139,7 +140,9 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  cleanup_expression_roots(state.scope)
+  if state.scope is Some(scope) {
+    cleanup_expression_roots(scope)
+  }
   state.input_roots = []
   state.slot_roots = []
   state.values = []
@@ -211,9 +214,16 @@ fn bounded_binding_rows_step(
         }
       }
       RetainInputs => {
+        if state.logical is None {
+          state.phase = BeginRow
+          continue
+        }
         if state.input_row == count {
           state.phase = BeginRow
           continue
+        }
+        guard state.logical is Some(logical) && state.scope is Some(scope) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
         let source : ProducerReadRow = {
           input: state.input,
@@ -221,7 +231,7 @@ fn bounded_binding_rows_step(
           width: state.input_names.length(),
         }
         let root = match
-          retain_logical_row(state.logical, state.input_names, source) {
+          retain_logical_row(logical, state.input_names, source) {
           Ok(value) => value
           Err(issue) =>
             return fail_bounded_binding_rows(
@@ -230,7 +240,7 @@ fn bounded_binding_rows_step(
               used,
             )
         }
-        let lease = match register_scope_root(state.scope, root) {
+        let lease = match register_scope_root(scope, root) {
           Ok(value) => value
           Err(issue) =>
             return fail_bounded_binding_rows(
@@ -256,26 +266,39 @@ fn bounded_binding_rows_step(
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         state.control.remaining -= 1
-        match charge_logical_work(state.logical, 1L) {
-          Err(issue) =>
-            return fail_bounded_binding_rows(
-              Rows(LogicalRows(issue)),
-              progress,
-              used,
-            )
-          Ok(_) => ()
+        if state.logical is Some(logical) {
+          match charge_logical_work(logical, 1L) {
+            Err(issue) =>
+              return fail_bounded_binding_rows(
+                Rows(LogicalRows(issue)),
+                progress,
+                used,
+              )
+            Ok(_) => ()
+          }
         }
         state.snapshot = Map([])
         state.output_row = []
         state.checked_row = []
         state.column = 0
-        state.phase = SnapshotRow
+        state.phase = if state.projection_ordinals is Some(_) {
+          BuildOutputRow
+        } else {
+          SnapshotRow
+        }
         used += 1
       }
       SnapshotRow => {
         if state.column == state.input_names.length() {
           match state.predicate {
             Some(predicate) => {
+              guard state.logical is Some(logical) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
               if !reserve_slots(state.workspace, 2) {
                 return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
               }
@@ -286,9 +309,7 @@ fn bounded_binding_rows_step(
                   [],
                   state.control,
                   state.workspace,
-                  Some(
-                    expression_roots(state.logical, state.control.max_frames),
-                  ),
+                  Some(expression_roots(logical, state.control.max_frames)),
                 ) {
                 Ok(value) => Some(value)
                 Err(issue) =>
@@ -301,6 +322,13 @@ fn bounded_binding_rows_step(
               state.phase = EvaluatePredicate
             }
             None => {
+              guard state.scope is Some(scope) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
               state.binding_execution = Some(
                 if state.ordered {
                   start_ordered_bindings_execution(
@@ -308,7 +336,7 @@ fn bounded_binding_rows_step(
                     state.snapshot,
                     state.control,
                     state.workspace,
-                    state.scope,
+                    scope,
                     state.row,
                   )
                 } else {
@@ -317,7 +345,7 @@ fn bounded_binding_rows_step(
                     state.snapshot,
                     state.control,
                     state.workspace,
-                    state.scope,
+                    scope,
                     state.row,
                   )
                 },
@@ -426,12 +454,21 @@ fn bounded_binding_rows_step(
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         let name = state.output_names[state.column]
-        let value = match state.binding_ordinals.get(name) {
-          Some(index) => state.values.get(index)
-          None =>
-            match state.input_ordinals.get(name) {
+        let value = match state.projection_ordinals {
+          Some(projection) =>
+            match projection.get(name) {
               Some(index) => producer_read_cell(state.input, state.row, index)
               None => None
+            }
+          None =>
+            match state.binding_ordinals.get(name) {
+              Some(index) => state.values.get(index)
+              None =>
+                match state.input_ordinals.get(name) {
+                  Some(index) =>
+                    producer_read_cell(state.input, state.row, index)
+                  None => None
+                }
             }
         }
         guard value is Some(value) else {
@@ -470,17 +507,22 @@ fn bounded_binding_rows_step(
           ) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
-        match
-          row_event_output(
-            state.scope,
-            state.output_names,
-            state.output_row,
-            state.slot_roots,
-            state.input_roots[state.row],
-          ) {
-          Err(issue) =>
-            return fail_bounded_binding_rows(Rows(issue), progress, used)
-          Ok(_) => ()
+        if state.scope is Some(scope) {
+          guard state.input_roots.get(state.row) is Some(root) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          match
+            row_event_output(
+              scope,
+              state.output_names,
+              state.output_row,
+              state.slot_roots,
+              root,
+            ) {
+            Err(issue) =>
+              return fail_bounded_binding_rows(Rows(issue), progress, used)
+            Ok(_) => ()
+          }
         }
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
@@ -512,7 +554,9 @@ fn bounded_binding_rows_step(
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
         state.output = None
-        cleanup_expression_roots(state.scope)
+        if state.scope is Some(scope) {
+          cleanup_expression_roots(scope)
+        }
         state.input_roots = []
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
@@ -593,13 +637,15 @@ pub fn start_bounded_binding_rows(
     !admit_metadata(binding_count) {
     return Err(InvalidExecution)
   }
-  let (bindings, ordered, predicate) = match @lower.kernel_body(kernel) {
-    @lower.OrderedBindings(bindings) => (bindings, true, None)
-    @lower.SnapshotMap(bindings) => (bindings, false, None)
-    @lower.Filter(expression) => ([], false, Some(expression))
+  let (bindings, ordered, predicate, select_mode) = match
+    @lower.kernel_body(kernel) {
+    @lower.OrderedBindings(bindings) => (bindings, true, None, false)
+    @lower.SnapshotMap(bindings) => (bindings, false, None, false)
+    @lower.Filter(expression) => ([], false, Some(expression), false)
+    @lower.Select(_) => ([], false, None, true)
     _ => return Err(InvalidExecution)
   }
-  if bindings.length() != binding_count {
+  if !select_mode && bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
   let mut logical : LogicalBudget? = None
@@ -614,10 +660,13 @@ pub fn start_bounded_binding_rows(
       }
     }
   }
-  guard logical is Some(logical) else { return Err(InvalidExecution) }
-  match admit_logical_rows(logical, producer_read_row_count(input).to_int64()) {
-    Err(issue) => return Err(Rows(LogicalRows(issue)))
-    Ok(_) => ()
+  if !select_mode {
+    guard logical is Some(logical) else { return Err(InvalidExecution) }
+    match
+      admit_logical_rows(logical, producer_read_row_count(input).to_int64()) {
+      Err(issue) => return Err(Rows(LogicalRows(issue)))
+      Ok(_) => ()
+    }
   }
   let input_names = Array::makei(input_width, index => {
     @schema.reference_name(@schema.field_at(input_schema, index).unwrap().name)
@@ -635,6 +684,26 @@ pub fn start_bounded_binding_rows(
   let binding_ordinals : Map[String, Int] = Map([])
   for index, binding in bindings {
     binding_ordinals[binding.0] = index
+  }
+  let projection_ordinals : Map[String, Int]? = match
+    @lower.kernel_body(kernel) {
+    @lower.Select(fields) => {
+      let projection : Map[String, Int] = Map([])
+      for field in fields {
+        let output_name = @schema.reference_name(field.output)
+        guard input_ordinals.get(@schema.reference_name(field.input))
+          is Some(index) &&
+          !projection.contains(output_name) else {
+          return Err(InvalidExecution)
+        }
+        projection[output_name] = index
+      }
+      if projection.length() != output_width {
+        return Err(InvalidExecution)
+      }
+      Some(projection)
+    }
+    _ => None
   }
   let output = match
     prepare_admitted_output(owner, @pipeline.Step(step), max_rows, values) {
@@ -688,6 +757,7 @@ pub fn start_bounded_binding_rows(
     output_names,
     input_ordinals,
     binding_ordinals,
+    projection_ordinals,
     ordered,
     output_schema,
     admitted_limits: {
@@ -698,7 +768,7 @@ pub fn start_bounded_binding_rows(
     input_values,
     output_values,
     logical,
-    scope: expression_roots(logical, max_frames),
+    scope: logical.map(logical => expression_roots(logical, max_frames)),
     control,
     workspace,
     input_roots: [],
