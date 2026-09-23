@@ -98,6 +98,10 @@ pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @ru
 
 pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_effect_apply_key(@effect_application.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
+
+pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> String
+
 pub fn strategy_effect_dispatch_key(@effect_application.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
@@ -105,6 +109,10 @@ pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+
+pub fn strategy_effect_logical_item_locator(@effect_application.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
+
+pub fn strategy_effect_logical_item_locator_cid(@effect_application.LogicalItemLocator) -> String
 
 pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_application.LogicalRequestScope raise NodeHostFailure
 
