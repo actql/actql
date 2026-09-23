@@ -238,6 +238,14 @@ Mapping/Command closure, Preview validity, authorization, or an Effectful Run.
 SF-3 remains open until the ordinary Host
 path and its fault-injection matrix are connected.
 
+The Mapping Contract now has a closed 0.1 body schema, a pinned independent
+CID fixture, and a MoonBit shape admission step for the resolved body, target
+schema, primary identity, and write-field inventories. This is not yet a
+Mapping apply permit: permission-rule selection, conversion laws, row values,
+current authority, complete Preview admission, and the standard Host caller
+still need to be connected. The fixed-SHA review remains SF-1/SF-2 closed and
+SF-3 open; local HTTPS evidence must not be reported as live-org evidence.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
