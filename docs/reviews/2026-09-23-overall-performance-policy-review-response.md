@@ -44,6 +44,16 @@ seconds as a single diagnostic suite and is recorded in
 readiness on that path, not the paired timing acceptance or Node-free native
 equivalence.
 
+Seven alternating pairs at clean revision `c93402ffb` confirmed a substantial
+small-case timing gap on the current Node managed Host: median retained-minus-
+equivalent warm and cold intervals were 31.700 ms and 729.792 ms. The retained
+leg was still unqualified because its selection used an example estimate.
+The native materialized path separately rejected a registered 100,000-row
+numeric-64 case before dispatch under its 1 GiB retention ceiling. The raw
+records and exact scope are in the same diagnostic document. These failures
+make startup/coordination and native bounded holding implementation work, not
+mere missing measurement paperwork.
+
 Review regressions to add before closing PERF-1: missing pair, missing case,
 changed Program or implementation hash, unconfirmed cleanup, and a baseline
 capacity exception incorrectly converted into a finite speed ratio.
