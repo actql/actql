@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/encode_core" @encode,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+}
+
+import {
+  "actql/actql/stage_syntax" @stage,
+  "moonbitlang/core/json",
+} for "test"

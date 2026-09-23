@@ -1,0 +1,41 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/actsql"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compile_literal_select(String, String, LiteralSelectLimits) -> Result[LiteralSelectProgram, LiteralSelectIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct LiteralColumnSource {
+  name : String
+  literal_offset : Int
+  alias_offset : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LiteralSelectIssue {
+  InvalidLimits
+  UnsupportedSyntax(Int)
+  DuplicateColumn(Int)
+  InvalidInteger(Int)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LiteralSelectLimits {
+  max_source_bytes : Int
+  max_columns : Int
+  max_program_bytes : Int
+}
+
+pub(all) struct LiteralSelectProgram {
+  document : String
+  columns : Array[LiteralColumnSource]
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
