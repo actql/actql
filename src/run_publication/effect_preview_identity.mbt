@@ -141,6 +141,62 @@ fn effect_preview_semantic_cid(
 }
 
 ///|
+fn effect_member_row_inventory(
+  effect : @json.CanonicalValue,
+  index : Int,
+) -> Result[
+  (Array[String], Array[String], Array[String]),
+  EffectPreviewIdentityIssue,
+] {
+  let changes = match @json.object_field(effect, "changes") {
+    Some(@json.Array(items)) => @json.array_values(items)
+    _ => return Err(InvalidMember)
+  }
+  let keys : Array[String] = []
+  let rows : Array[String] = []
+  for change in changes {
+    match
+      (
+        @json.object_field(change, "row_preview_cid"),
+        @json.object_field(change, "row_idempotency_key"),
+      ) {
+      (Some(@json.String(row)), Some(@json.String(key))) => {
+        if rows.contains(row) || keys.contains(key) {
+          return Err(RowInventoryMismatch(index))
+        }
+        rows.push(row)
+        keys.push(key)
+      }
+      _ => return Err(InvalidMember)
+    }
+  }
+  guard @json.object_field(effect, "count") is Some(@json.Number(count)) &&
+    @json.object_field(effect, "max_items") is Some(@json.Number(max_items)) &&
+    count == changes.length().to_double() &&
+    count <= max_items &&
+    @json.object_field(effect, "row_order") is Some(@json.Array(order_frozen)) else {
+    return Err(RowInventoryMismatch(index))
+  }
+  let supplied_order = @json.array_values(order_frozen)
+  if supplied_order.length() != rows.length() {
+    return Err(RowInventoryMismatch(index))
+  }
+  let order : Array[String] = []
+  for value in supplied_order {
+    match value {
+      @json.String(row) => {
+        if !rows.contains(row) || order.contains(row) {
+          return Err(RowInventoryMismatch(index))
+        }
+        order.push(row)
+      }
+      _ => return Err(RowInventoryMismatch(index))
+    }
+  }
+  Ok((keys, rows, order))
+}
+
+///|
 /// Return independently derived identities after complete 0.1 shape
 /// admission. Derived row keys are excluded from both semantic preimages,
 /// but remain required transport fields and must be checked at apply.
@@ -160,7 +216,12 @@ pub fn derive_effect_preview_identities(
     _ => return Err(InvalidMember)
   }
   let cids = []
-  for effect in members {
+  for index in 0..<members.length() {
+    let effect = members[index]
+    match effect_member_row_inventory(effect, index) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
     let cid = match
       effect_member_semantic_cid(effect, max_wire_bytes, max_nodes, max_depth) {
       Ok(value) => value
@@ -204,48 +265,10 @@ pub fn admit_effect_preview_identity(
   let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
     let effect = members[index]
-    let changes = match @json.object_field(effect, "changes") {
-      Some(@json.Array(items)) => @json.array_values(items)
-      _ => return Err(InvalidMember)
-    }
-    let member_keys : Array[String] = []
-    let member_rows : Array[String] = []
-    for change in changes {
-      match
-        (
-          @json.object_field(change, "row_preview_cid"),
-          @json.object_field(change, "row_idempotency_key"),
-        ) {
-        (Some(@json.String(row)), Some(@json.String(key))) => {
-          if member_rows.contains(row) || member_keys.contains(key) {
-            return Err(RowInventoryMismatch(index))
-          }
-          member_rows.push(row)
-          member_keys.push(key)
-        }
-        _ => return Err(InvalidMember)
-      }
-    }
-    guard @json.object_field(effect, "count") is Some(@json.Number(count)) &&
-      count == changes.length().to_double() &&
-      @json.object_field(effect, "row_order") is Some(@json.Array(order_frozen)) else {
-      return Err(RowInventoryMismatch(index))
-    }
-    let ordered = @json.array_values(order_frozen)
-    if ordered.length() != member_rows.length() {
-      return Err(RowInventoryMismatch(index))
-    }
-    let member_order : Array[String] = []
-    for value in ordered {
-      match value {
-        @json.String(row) => {
-          if !member_rows.contains(row) || member_order.contains(row) {
-            return Err(RowInventoryMismatch(index))
-          }
-          member_order.push(row)
-        }
-        _ => return Err(RowInventoryMismatch(index))
-      }
+    let (member_keys, member_rows, member_order) = match
+      effect_member_row_inventory(effect, index) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     row_keys.push(member_keys)
     row_cids.push(member_rows)
