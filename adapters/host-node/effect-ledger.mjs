@@ -16,10 +16,15 @@ export function openEffectLedger({
   maxEntryBytes = 1_000_000,
   maxResponseBytes = 1_000_000,
   maxStoredBytes = 134_217_728,
+  maxBatchRows = 200,
   maxNodes = 64,
   maxDepth = 4,
   maxCallerBytes = 4096,
 }) {
+  if (!Number.isSafeInteger(maxBatchRows) ||
+      maxBatchRows < 1 || maxBatchRows > 1000) {
+    fail('InvalidEffectLedgerBatchLimit');
+  }
   const control = runtimeCore(moon).effectApplicationControl;
   const scope = control.logicalRequestScope(
     authorityScopeCid, callerRequestId, maxCallerBytes,
@@ -174,6 +179,92 @@ export function openEffectLedger({
           });
         }
         fail('EffectLedgerIntentConflict');
+      }
+      fail('EffectLedgerClaimContention');
+    },
+    claimDispatchBatch(claims) {
+      if (!Array.isArray(claims) || claims.length === 0 ||
+          claims.length > maxBatchRows) {
+        fail('InvalidEffectLedgerBatch');
+      }
+      const firstRequestCid = claims[0]?.canonicalRequestCid;
+      const seen = new Set();
+      for (const claim of claims) {
+        const locatorCid = claim?.locator &&
+          control.logicalItemLocatorCid(claim.locator);
+        if (typeof firstRequestCid !== 'string' ||
+            claim?.canonicalRequestCid !== firstRequestCid ||
+            typeof locatorCid !== 'string' || seen.has(locatorCid)) {
+          fail('EffectLedgerBatchBindingMismatch');
+        }
+        seen.add(locatorCid);
+        const prepared = control.issuePreparedLedgerEntry(
+          claim.basis, maxEntryBytes, maxNodes, maxDepth);
+        const dispatching = control.issueNextLedgerEntry(
+          prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
+        if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
+            !control.ledgerEntryFollows(undefined, prepared) ||
+            !control.ledgerEntryFollows(prepared, dispatching) ||
+            !control.ledgerEntryAdmitsDispatch(
+              dispatching, claim.scope, claim.locator, claim.key,
+              claim.canonicalRequestCid)) {
+          fail('EffectLedgerBatchBindingMismatch');
+        }
+      }
+      for (let retry = 0; retry < 8; retry++) {
+        const operations = [];
+        const dispatchingEntries = [];
+        const actions = [];
+        for (const claim of claims) {
+          const locatorCid = control.logicalItemLocatorCid(claim.locator);
+          const stored = validateStored(physical.current(locatorCid));
+          if (stored !== undefined &&
+              !control.ledgerEntryMatchesBasis(stored.entry, claim.basis)) {
+            fail('EffectLedgerIntentConflict');
+          }
+          const action = control.recoveryActionFromEntry(
+            claim.locator, claim.intentFingerprintCid, claim.key,
+            claim.canonicalRequestCid, stored?.entry, false);
+          actions.push(action);
+          if (action !== 0 && action !== 1) continue;
+          const prepared = action === 0
+            ? control.issuePreparedLedgerEntry(
+              claim.basis, maxEntryBytes, maxNodes, maxDepth)
+            : stored.entry;
+          const dispatching = control.issueNextLedgerEntry(
+            prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
+          if (!control.ledgerEntryAdmitsDispatch(
+            dispatching, claim.scope, claim.locator, claim.key,
+            claim.canonicalRequestCid) ||
+              (action === 0 &&
+                !control.ledgerEntryFollows(undefined, prepared)) ||
+              !control.ledgerEntryFollows(prepared, dispatching)) {
+            fail('EffectLedgerBatchBindingMismatch');
+          }
+          operations.push({
+            logicalRequestScopeCid: scopeCid,
+            logicalItemLocatorCid: locatorCid,
+            expectedRevision: stored?.row.revision ?? 0,
+            expectedEntryCid: stored?.row.entryCid ?? null,
+            entries: action === 0
+              ? [prepared, dispatching].map(entry => ({
+                entryCid: control.ledgerEntryCid(entry),
+                entryJson: control.ledgerEntryWire(entry),
+              }))
+              : [{entryCid: control.ledgerEntryCid(dispatching),
+                entryJson: control.ledgerEntryWire(dispatching)}],
+          });
+          dispatchingEntries.push(dispatching);
+        }
+        if (actions.some(action => action !== 0 && action !== 1)) {
+          return Object.freeze({claimed: false, actions: Object.freeze(actions)});
+        }
+        const result = physical.appendBatch(operations);
+        if (result.created) {
+          return Object.freeze({claimed: true,
+            actions: Object.freeze(actions),
+            dispatching: Object.freeze(dispatchingEntries)});
+        }
       }
       fail('EffectLedgerClaimContention');
     },

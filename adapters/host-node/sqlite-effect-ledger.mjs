@@ -382,6 +382,97 @@ export function openSqliteEffectLedger(root, {
         });
       });
     },
+    // Atomically advance every row covered by one physical request. The
+    // caller has already admitted each typed transition in MoonBit; this
+    // adapter only fences heads and reserves the aggregate physical storage.
+    appendBatch(operations) {
+      active();
+      if (!Array.isArray(operations) || operations.length === 0 ||
+          operations.length > maxEntries) {
+        fail('InvalidEffectLedgerBatch');
+      }
+      const seen = new Set();
+      let additionalEntries = 0;
+      let additionalBytes = 0;
+      for (const operation of operations) {
+        if (!cid(operation?.logicalRequestScopeCid) ||
+            !cid(operation.logicalItemLocatorCid) ||
+            !count(operation.expectedRevision) ||
+            operation.expectedRevision >= Number.MAX_SAFE_INTEGER - 1 ||
+            (operation.expectedRevision === 0
+              ? operation.expectedEntryCid !== null
+              : !cid(operation.expectedEntryCid)) ||
+            !Array.isArray(operation.entries) ||
+            operation.entries.length < 1 || operation.entries.length > 2 ||
+            (operation.expectedRevision !== 0 &&
+              operation.entries.length !== 1) ||
+            seen.has(operation.logicalItemLocatorCid)) {
+          fail('InvalidEffectLedgerBatch');
+        }
+        seen.add(operation.logicalItemLocatorCid);
+        for (const entry of operation.entries) {
+          if (!cid(entry?.entryCid) || typeof entry.entryJson !== 'string' ||
+              entry.entryJson.length === 0 ||
+              Buffer.byteLength(entry.entryJson) > maxEntryBytes) {
+            fail('InvalidEffectLedgerBatch');
+          }
+          additionalEntries += 1;
+          additionalBytes += Buffer.byteLength(entry.entryJson);
+        }
+      }
+      return transaction(database, () => {
+        for (const operation of operations) {
+          const head = readHead.get(operation.logicalItemLocatorCid);
+          if ((head?.revision ?? 0) !== operation.expectedRevision ||
+              (head?.entry_cid ?? null) !== operation.expectedEntryCid) {
+            return Object.freeze({created: false, conflict: true});
+          }
+          if (head !== undefined && head.logical_request_scope_cid !==
+              operation.logicalRequestScopeCid) {
+            fail('EffectLedgerAuthorityMismatch');
+          }
+        }
+        const currentUsage = usage.get();
+        if (additionalEntries > maxEntries - currentUsage.entries ||
+            additionalBytes > maxStoredBytes - currentUsage.bytes) {
+          fail('EffectLedgerCapacityExceeded');
+        }
+        for (const operation of operations) {
+          let revision = operation.expectedRevision;
+          for (const entry of operation.entries) {
+            revision += 1;
+            database.prepare(`
+              INSERT INTO effect_ledger_entries (
+                logical_item_locator_cid, revision, entry_cid,
+                entry_json, physical_sha256
+              ) VALUES (?, ?, ?, ?, ?)
+            `).run(operation.logicalItemLocatorCid, revision, entry.entryCid,
+              entry.entryJson, physicalDigest(entry.entryJson));
+          }
+          const lastCid = operation.entries.at(-1).entryCid;
+          if (operation.expectedRevision === 0) {
+            database.prepare(`
+              INSERT INTO effect_ledger_heads (
+                logical_item_locator_cid, logical_request_scope_cid,
+                revision, entry_cid
+              ) VALUES (?, ?, ?, ?)
+            `).run(operation.logicalItemLocatorCid,
+              operation.logicalRequestScopeCid, revision, lastCid);
+          } else {
+            const updated = database.prepare(`
+              UPDATE effect_ledger_heads SET revision = ?, entry_cid = ?
+              WHERE logical_item_locator_cid = ? AND revision = ?
+                AND entry_cid = ?
+            `).run(revision, lastCid, operation.logicalItemLocatorCid,
+              operation.expectedRevision, operation.expectedEntryCid);
+            if (updated.changes !== 1) fail('EffectLedgerCASFailed');
+          }
+        }
+        return Object.freeze({created: true, entries: Object.freeze(
+          operations.map(operation => current(operation.logicalItemLocatorCid)),
+        )});
+      });
+    },
     history(locatorCid, maxRevisions) {
       active();
       if (!cid(locatorCid) || !count(maxRevisions) || maxRevisions === 0 ||
