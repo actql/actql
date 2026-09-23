@@ -104,10 +104,11 @@ providerless compute call still runs an unmatched whole checked sequence in
 one resume; it remains a release blocker. The normal route gate reports 68
 mapped operations and 16 with operation-specific boundary records. The
 registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
-one-short work/workspace assurance. The ordinary and selected one-step select
-paths now share the same bounded evaluator and independently tested Host
-cancel delivery. This does not close select's synchronous whole-sequence path
-or any other unassured operation. The strict completion gate remains red.
+one-short work/workspace assurance. The ordinary and selected one-step filter
+and select paths now share their respective bounded evaluators and have
+independently tested Host cancel delivery. This does not close their
+synchronous whole-sequence paths or any other unassured operation. The strict
+completion gate remains red.
 Standard Host fixtures do not prove the Distribution-owned ordinary Run entry;
 that integration is also open. Closing one condition does not close the others.
 
@@ -261,8 +262,13 @@ Do not change its expected output merely to make a new provider route pass.
   pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
   after measured work, then confirms stop without exposing a partial result. A
-  separate ordinary filter fixture proves quantum-one execution and lifetime,
-  but its exact/one-short and delivered-cancel proof roles are not yet bound.
+  separate ordinary filter fixture proves quantum-one execution and lifetime.
+  The ordinary route now binds independently calculated exact/one-short input,
+  work, and workspace evidence through the same bounded evaluator. A distinct
+  Node Host timer cancels after ordinary filter row work, confirms stop without
+  a partial completion, and reclaims the attempt. Shared expression rules and
+  reused proof roles identify the exact common product entrypoint and scope;
+  the synchronous whole-sequence path remains unassured.
   Ordinary one-step select now uses the same bounded provider. A three-target
   fixture preserves authored projection order through two downstream Computes,
   including typed Decimal values, at quantum one. The ordinary route now binds
@@ -290,14 +296,14 @@ Do not change its expected output merely to make a new provider route pass.
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
   lifecycle proof roles and independent exact/one-short work and workspace
-  roles on every route. Filter, sort, and take have selected-path proof
-  bindings; select also has ordinary-path proof. Sort uses an exact/one-short workspace pair and
+  roles on every route. Sort and take have selected-path proof bindings;
+  filter and select also have ordinary-path proof. Sort uses an exact/one-short workspace pair and
   its wide-comparison Host timer; take uses independent exact/one-short work
   and peak-workspace fixtures plus the selected Host timer. The where and
   unique_by `assert_rows` variants have separate
   selected-path proof sets so one variant cannot borrow the other's bound or
   cancellation result. Each set includes real Host timer cancellation.
-  The other ordinary and multi-step fallback paths are not covered by those
+  The remaining ordinary and multi-step fallback paths are not covered by those
   selected fixtures. Graph normalization and graph bounds have all four
   lifecycle proof roles. Graph bounds now has independent kernel-level value
   and control-work evidence, but neither operation has task-wide execution

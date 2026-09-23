@@ -6086,19 +6086,32 @@ async function exerciseStrategyGraph(
       }
     }
   }
-  {
-    const ordinarySelectCancellationCase = {name: 'ordinary-select-in-flight'};
-    const ordinarySelectProgram = structuredClone(selectProgram);
-    ordinarySelectProgram.stages.find(stage =>
+  for (const ordinaryUnaryCase of [
+    {name: 'ordinary-select-in-flight', kind: 'select'},
+    {name: 'ordinary-filter-in-flight', kind: 'filter'},
+  ]) {
+    const ordinaryUnaryProgram = structuredClone(selectProgram);
+    ordinaryUnaryProgram.stages.find(stage =>
       stage.id === 'select_values').steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => ({id: index + 1, amount: index}),
     );
-    const ordinarySelectFixture = fixture.strategyFixtureCreate(
-      ...args, JSON.stringify(ordinarySelectProgram),
+    if (ordinaryUnaryCase.kind === 'filter') {
+      const filtered = ordinaryUnaryProgram.stages.find(stage =>
+        stage.id === 'selected');
+      filtered.steps = [{filter: 'id > 0', as: 'out'}];
+      filtered.results.r.fields = ['id', 'amount'];
+      for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
+        stage.id.startsWith('select_consumer_'))) {
+        consumer.steps[0].select = ['id', 'amount'];
+        consumer.results.r.fields = ['id', 'amount'];
+      }
+    }
+    const ordinaryUnaryFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(ordinaryUnaryProgram),
     );
-    const ordinarySelectCapture = await runNativeHostQuery(
+    const ordinaryUnaryCapture = await runNativeHostQuery(
       grant,
-      fixture.strategyFixtureAcquisition(ordinarySelectFixture),
+      fixture.strategyFixtureAcquisition(ordinaryUnaryFixture),
       suppliedLimits,
     );
     const cancellation = new AbortController();
@@ -6113,10 +6126,10 @@ async function exerciseStrategyGraph(
     }, {once: true});
     try {
       assert.equal(fixture.strategyFixtureOpen(
-        ordinarySelectFixture, ordinarySelectCapture.source(),
+        ordinaryUnaryFixture, ordinaryUnaryCapture.source(),
       ), true);
       const setup = fixture.strategyFixtureModuleSubset(
-        ordinarySelectFixture, 0,
+        ordinaryUnaryFixture, 0,
       );
       const observedRuntime = new Proxy(hostRuntime, {
         get(target, property, receiver) {
@@ -6173,7 +6186,7 @@ async function exerciseStrategyGraph(
       );
       assert.equal(managedStarts, 2);
       assert(progressAfterStart > 0n,
-        `${ordinarySelectCancellationCase.name}: row work must precede abort`);
+        `${ordinaryUnaryCase.name}: row work must precede abort`);
       assert.equal(cancellation.signal.aborted, true);
       assert.equal(Number.isFinite(deliveredAt), true);
       assert.equal(Number.isFinite(stoppedAt), true);
@@ -6182,7 +6195,7 @@ async function exerciseStrategyGraph(
       assert.equal(execution.failure?.name, 'AbortError');
       assert.deepEqual(execution.completed.map(item => item.task), [1]);
     } finally {
-      ordinarySelectCapture.close();
+      ordinaryUnaryCapture.close();
       await execution?.close();
       if (execution) {
         assert.equal(await execution.cleanup(), true);

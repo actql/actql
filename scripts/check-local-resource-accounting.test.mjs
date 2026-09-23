@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 10 with path-scoped work\/workspace evidence, 4 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 11 with path-scoped work\/workspace evidence, 3 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -475,6 +475,15 @@ test('ordinary select requires its delivered Host cancellation fixture', () => {
     selection.environment_tests = selection.environment_tests.filter(item =>
       item.role !== 'ordinary_select_in_flight_host_timer');
   }), /RelA select: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
+});
+
+test('ordinary filter requires its delivered Host cancellation fixture', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.environment_tests = filter.environment_tests.filter(item =>
+      item.role !== 'ordinary_filter_in_flight_host_timer');
+  }), /RelA filter: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects a false in-flight assurance', () => {
