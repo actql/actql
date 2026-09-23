@@ -10,6 +10,7 @@ pub(all) suberror NodeHostFailure {
   EffectIdentity(@effect.EffectIdentityIssue)
   EffectSetProgress(@effect.EffectSetProgressIssue)
   EffectFootprint(@effect.EffectFootprintIssue)
+  EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
   EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
@@ -7524,6 +7525,26 @@ pub fn strategy_effect_set_footprint_conflicts_check(
   ) {
     Ok(_) => true
     Err(issue) => raise EffectFootprint(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewFootprintConflictsCheck")
+pub fn strategy_effect_preview_footprint_conflicts_check(
+  preview_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  match @effect.check_effect_preview_footprint_conflicts(
+    preview_wire, max_wire_bytes, max_nodes, max_depth,
+    max_members, max_targets, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectPreviewFootprint(issue)
   }
 }
 

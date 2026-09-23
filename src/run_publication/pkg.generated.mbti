@@ -2,6 +2,7 @@
 package "actql/actql/run_publication"
 
 import {
+  "actql/actql/canonical_json",
   "moonbitlang/core/debug",
 }
 
@@ -109,6 +110,8 @@ pub fn manifest_result_names(PublicationContract) -> Result[Array[String], Deliv
 pub fn manifest_result_names_json(PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
+
+pub fn parse_effect_preview_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 

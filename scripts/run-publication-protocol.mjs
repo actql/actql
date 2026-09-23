@@ -58,6 +58,10 @@ const selected = Object.freeze({
     schema: 'result_delivery_receipt',
     identity: 'result_delivery_receipt_cid',
   }),
+  effect_preview: Object.freeze({
+    schema: 'effect_preview',
+    identity: 'effect_preview_cid',
+  }),
 });
 
 const moonString = value => JSON.stringify(value);
@@ -84,6 +88,7 @@ function patternTag(schema) {
     case '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$': return 3;
     case '^[0-9a-f]{64}$': return 4;
     case '^\\$': return 5;
+    case '^command:': return 6;
     default:
       throw new Error(`Unsupported publication schema pattern: ${schema.pattern}`);
   }
@@ -93,7 +98,7 @@ const nodes = [];
 const supportedKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
   'default', 'deprecated', 'readOnly', 'writeOnly', 'type', 'const',
-  'enum', 'oneOf', 'pattern', 'format', 'minLength', 'minimum',
+  'enum', 'oneOf', 'allOf', 'pattern', 'format', 'minLength', 'minimum',
   'maximum', 'properties', 'required', 'additionalProperties',
   'minProperties', 'propertyNames', 'items', 'minItems', 'uniqueItems',
 ]);
@@ -124,14 +129,15 @@ function inferredType(value) {
   throw new Error('Unsupported publication schema literal');
 }
 
-function emitSchema(schema) {
+function emitSchema(schema, assumedType) {
   for (const key of Object.keys(schema)) {
     if (!supportedKeywords.has(key)) {
       throw new Error(`Unsupported publication schema keyword: ${key}`);
     }
   }
   if (schema.oneOf !== undefined) {
-    const alternatives = schema.oneOf.map(emitSchema);
+    const alternatives = schema.oneOf.map(branch =>
+      emitSchema(branch, schema.type ?? assumedType));
     nodes.push(`protocol_one_of_rule([${alternatives.join(', ')}])`);
     const alternativeIndex = nodes.length - 1;
     const siblings = {...schema};
@@ -143,12 +149,31 @@ function emitSchema(schema) {
     }
     return alternativeIndex;
   }
+  if (schema.allOf !== undefined) {
+    if (!Array.isArray(schema.allOf) || schema.allOf.length === 0) {
+      throw new Error('Empty publication schema allOf is unsupported');
+    }
+    const conditions = schema.allOf.map(branch =>
+      emitSchema(branch, schema.type ?? assumedType));
+    const siblings = {...schema};
+    delete siblings.allOf;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      conditions.push(emitSchema(siblings));
+    }
+    nodes.push(`AllOfRule([${conditions.join(', ')}])`);
+    return nodes.length - 1;
+  }
   if (Array.isArray(schema.type)) {
     const alternatives = schema.type.map(type => emitSchema({...schema, type}));
     nodes.push(`protocol_one_of_rule([${alternatives.join(', ')}])`);
     return nodes.length - 1;
   }
   if (schema.type === undefined) {
+    if (assumedType === 'object' &&
+        (schema.properties !== undefined || schema.required !== undefined ||
+         schema.additionalProperties !== undefined)) {
+      return emitSchema({...schema, type: 'object'});
+    }
     if (schema.const !== undefined) {
       return emitSchema({...schema, type: inferredType(schema.const)});
     }
@@ -314,4 +339,4 @@ if (process.argv.includes('--write')) writeFileSync(output, generated);
 else if (readFileSync(output, 'utf8') !== generated) {
   throw new Error(`Run publication protocol descriptors are stale: ${output}`);
 }
-console.log(`${roots.size / 2} Run publication protocol schemas verified.`);
+console.log(`${roots.size / 2} Run and Effect protocol schemas verified.`);

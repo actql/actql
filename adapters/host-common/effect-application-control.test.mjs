@@ -3,6 +3,7 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
+import {canonicalJson} from './publication-contract-control.fixture.mjs';
 
 const effect = runtimeCore(moon).effectApplicationControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -65,6 +66,74 @@ test('Host bridge rejects conflicting Effect members before mutation', () => {
   assert.equal(effect.checkSetFootprintConflicts(...input([
     [], [cid('2')],
   ], [1, 0], [cid('a'), cid('c')])), true);
+});
+
+test('Host derives set conflicts from the closed private Preview shape', () => {
+  const member = (effectId, target) => ({
+    effect_id: effectId,
+    effect_kind: 'update',
+    target: 'Object',
+    mapping: 'mapping:fixture',
+    resolved_mapping_contract_cid: cid('a'),
+    effect_identity_cid: cid('a'),
+    preview_strength: 'full_diff',
+    source_binding_cid: cid('a'),
+    capability_evidence_cid: cid('a'),
+    authority_scope_cid: cid('a'),
+    write_footprint: {
+      kind: 'exact_targets',
+      resource_identity_scheme_cid: cid('a'),
+      provider_namespace: 'provider',
+      provider_boundary_cid: cid('a'),
+      resource_kind: 'Object',
+      provider_object_identity_cids: [target],
+    },
+    count: 0,
+    max_items: 1,
+    required_permissions: ['write'],
+    approval: 'none',
+    on_item_failure: 'halt',
+    changes: [],
+    row_order: [],
+    effect_member_preview_cid: cid('a'),
+    executed: false,
+  });
+  const preview = effects => canonicalJson({
+    version: 'actql-effect-preview/0.1',
+    sensitivity: 'private',
+    retention_class: 'authority-evidence',
+    encryption_required: true,
+    program_semantics_cid: cid('a'),
+    program_definition_cid: cid('a'),
+    invocation_cid: cid('a'),
+    run_identity_cid: cid('a'),
+    compiled_plan_cid: cid('a'),
+    check_environment_cid: cid('a'),
+    authoring_context: {
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: cid('a'),
+      annotations: [],
+      authoring_context_cid: cid('a'),
+    },
+    barrier_provenance_cids: [],
+    model_derived: false,
+    model_task_contract_cids: [],
+    model_invocation_evidence_cids: [],
+    model_response_artifact_cids: [],
+    effects,
+    executed: false,
+    effect_preview_cid: cid('a'),
+  });
+  const limits = [8192, 256, 12, 2, 2, 100];
+  assert.equal(effect.checkPreviewFootprintConflicts(preview([
+    member('first', cid('1')), member('second', cid('2')),
+  ]), ...limits), true);
+  assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
+    member('first', cid('1')), member('second', cid('1')),
+  ]), ...limits));
+  assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
+    member('first', cid('1')), {...member('second', cid('2')), executed: true},
+  ]), ...limits));
 });
 
 test('Host bridge issues the same typed Effect ledger chain as MoonBit', () => {

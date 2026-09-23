@@ -45,6 +45,9 @@ function effectApplicationControl(moon) {
     checkSetFootprintConflicts: (...args) => checked(
       moon.strategyEffectSetFootprintConflictsCheck(...args),
     ),
+    checkPreviewFootprintConflicts: (...args) => checked(
+      moon.strategyEffectPreviewFootprintConflictsCheck(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
