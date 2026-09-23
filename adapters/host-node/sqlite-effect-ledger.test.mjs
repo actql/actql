@@ -113,3 +113,24 @@ test('entry capacity is reserved before append without changing the head',
       code: 'InvalidEffectLedgerAppend',
     });
   });
+
+test('aggregate retained bytes are bounded across independent entries',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {
+      authorityScopeCid: scope,
+      maxStoredBytes: Buffer.byteLength(firstJson) +
+        Buffer.byteLength(secondJson) - 1,
+    });
+    t.after(() => ledger.close());
+    append(ledger, 0, cid('1'), firstJson);
+    assert.throws(() => append(ledger, 1, cid('2'), secondJson), {
+      code: 'EffectLedgerCapacityExceeded',
+    });
+    assert.equal(ledger.current(locator).entryCid, cid('1'));
+    ledger.close();
+    assert.throws(() => openSqliteEffectLedger(root, {
+      authorityScopeCid: scope,
+      maxStoredBytes: Buffer.byteLength(firstJson) - 1,
+    }), {code: 'EffectLedgerCapacityExceeded'});
+  });

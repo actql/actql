@@ -46,3 +46,23 @@ test('Effect Set frontier keeps member order independent of row halt', () => {
   assert.equal(effect.setFrontierReadyMember(frontier, 0), 1);
   assert.equal(effect.setFrontierReadyRow(frontier, 0), 1);
 });
+
+test('Host bridge issues the same typed Effect ledger chain as MoonBit', () => {
+  const scope = effect.logicalRequestScope(cid('a'), 'request-1', 32);
+  const key = effect.dispatchKey(scope, cid('b'), '"row-1"', 32, 8, 3);
+  const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+    'WriteOne', '{"row":"record-1"}', 64, 128, 8, 3);
+  const basis = effect.ledgerBasis(scope, locator, key,
+    cid('c'), cid('d'), cid('e'), cid('f'), cid('0'), 'unavailable',
+    cid('1'), cid('2'));
+  const prepared = effect.issuePreparedLedgerEntry(basis, 4096, 64, 3);
+  assert.equal(effect.ledgerEntryCid(prepared),
+    'sha256:09517d06658bcea4c679a029de58d0cb4dbd512eb4d06473b2502acecd009dca');
+  assert.equal(effect.ledgerEntryFollows(undefined, prepared), true);
+  assert.equal(effect.ledgerEntryWire(prepared).includes('"self_cid"'), true);
+  const dispatching = effect.issueNextLedgerEntry(prepared, 'dispatching',
+    '', 4096, 64, 3);
+  assert.equal(effect.ledgerEntryFollows(prepared, dispatching), true);
+  assert.throws(() => effect.issueNextLedgerEntry(prepared, 'applied',
+    cid('3'), 4096, 64, 3));
+});
