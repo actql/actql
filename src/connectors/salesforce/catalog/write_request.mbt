@@ -100,6 +100,15 @@ pub fn single_write_request_grant_operation(
 }
 
 ///|
+pub fn single_write_request_effect_kind(value : SingleWriteRequest) -> String {
+  match value.kind {
+    SingleCreate => "create"
+    SingleUpdateById(_) => "update"
+    SingleUpsert => "upsert"
+  }
+}
+
+///|
 /// A current Catalog observation must still admit the exact fields and
 /// operation from which this immutable request was constructed.
 pub fn recheck_single_write_request(
