@@ -42,6 +42,7 @@ fn query_checked_program_fixture(
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
+  local_values_cross_direct? : Bool = false,
   local_values_cross_external_chain? : Bool = false,
   local_values_cross_external_filter? : Bool = false,
   local_values_cross_singleton? : Bool = false,
@@ -245,6 +246,21 @@ fn query_checked_program_fixture(
   let text = if local_values_cross_chain {
     let cross =
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE____OUTPUT_GUARD__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    let cross = if local_values_cross_direct {
+      cross
+      .replace(
+        old=",{\"from\":\"left_raw\",\"distinct\":[\"id\"],\"as\":\"left_rows\"}",
+        new="",
+      )
+      .replace(
+        old=",{\"from\":\"right_raw\",\"distinct\":[\"tag\"],\"as\":\"right_rows\"}",
+        new="",
+      )
+      .replace(old="\"as\":\"left_raw\"", new="\"as\":\"left_rows\"")
+      .replace(old="\"as\":\"right_raw\"", new="\"as\":\"right_rows\"")
+    } else {
+      cross
+    }
     cross
     .replace(
       old="__RIGHT_EXTRA__",
@@ -655,7 +671,7 @@ fn query_checked_program_fixture(
         2L
       },
       "{\"op\":\"source\"}",
-      step=2,
+      step=if local_values_cross_direct { 1 } else { 2 },
     )
     let joined = query_capacity_proof(
       "actql.bound.join-output",
@@ -669,13 +685,13 @@ fn query_checked_program_fixture(
         @wire.cid(@wire.program_proof_witness(left)),
         @wire.cid(@wire.program_proof_witness(right)),
       ],
-      step=4,
+      step=if local_values_cross_direct { 2 } else { 4 },
     )
     [
       join_graph_capacity_material(
         environment,
         "crossed",
-        steps=[4],
+        steps=[if local_values_cross_direct { 2 } else { 4 }],
         proofs=[left, right, joined],
         candidates=[joined],
       ),

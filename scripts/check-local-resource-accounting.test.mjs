@@ -76,6 +76,34 @@ test('append loses its boundary record when exact resource evidence is removed',
   }), /RelA append: external_input_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
+test('same-stage append needs its bounded provider and delivered timer', () => {
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    delete append.same_stage_entrypoint;
+  }), /RelA append: bounded same-stage append provider is missing/);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    append.environment_tests = append.environment_tests.filter(item =>
+      item.role !== 'append_same_stage_node_timer_cancel_cleanup');
+  }), /RelA append: same-stage append timer evidence is missing/);
+});
+
+test('same-stage cross join needs its provider and two consumers', () => {
+  assert.match(run(undefined, routes => {
+    const cross = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    delete cross.same_stage_entrypoint;
+  }), /RelA cross_join: bounded same-stage cross join evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const cross = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    cross.boundary_tests = cross.boundary_tests.filter(item =>
+      item.role !== 'direct_product_host_two_consumers');
+  }), /RelA cross_join: bounded same-stage cross join evidence is missing/);
+});
+
 test('zero-input values bind their bounded production provider', () => {
   assert.match(run(undefined, routes => {
     const values = routes.routes.find(entry => entry.family === 'RelA' &&

@@ -116,9 +116,11 @@ test "Local managed singleton cross join validates before two consumers" {
 }
 
 ///|
-test "standard Host selects bounded external cross join for two consumers" {
+fn run_bounded_cross_join_two_consumer(direct : Bool) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
-    local_values_cross_external_chain=true,
+    local_values_cross_external_chain=!direct,
+    local_values_cross_chain=direct,
+    local_values_cross_direct=direct,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 10,
@@ -179,9 +181,14 @@ test "standard Host selects bounded external cross join for two consumers" {
     right_live,
   )
   let right_rows = local_managed_test_rows(right_ops)
-  assert_eq(right_rows, [
-    "{\"tag\":\"a\"}", "{\"tag\":\"b\"}", "{\"tag\":\"c\"}",
-  ])
+  assert_eq(
+    right_rows,
+    if direct {
+      ["{\"tag\":\"a\"}", "{\"tag\":\"b\"}"]
+    } else {
+      ["{\"tag\":\"a\"}", "{\"tag\":\"b\"}", "{\"tag\":\"c\"}"]
+    },
+  )
   let setup = @local_driver.prepare_local_managed_dispatch(
       installed,
       [left, right],
@@ -206,10 +213,20 @@ test "standard Host selects bounded external cross join for two consumers" {
   )
   assert_true(advances.val > 10)
   let crossed_rows = local_managed_test_rows(crossed_ops)
-  assert_eq(crossed_rows, [
-    "{\"id\":1,\"tag\":\"a\"}", "{\"id\":1,\"tag\":\"b\"}", "{\"id\":1,\"tag\":\"c\"}",
-    "{\"id\":2,\"tag\":\"a\"}", "{\"id\":2,\"tag\":\"b\"}", "{\"id\":2,\"tag\":\"c\"}",
-  ])
+  assert_eq(
+    crossed_rows,
+    if direct {
+      [
+        "{\"id\":1,\"tag\":\"a\"}", "{\"id\":1,\"tag\":\"b\"}", "{\"id\":2,\"tag\":\"a\"}",
+        "{\"id\":2,\"tag\":\"b\"}",
+      ]
+    } else {
+      [
+        "{\"id\":1,\"tag\":\"a\"}", "{\"id\":1,\"tag\":\"b\"}", "{\"id\":1,\"tag\":\"c\"}",
+        "{\"id\":2,\"tag\":\"a\"}", "{\"id\":2,\"tag\":\"b\"}", "{\"id\":2,\"tag\":\"c\"}",
+      ]
+    },
+  )
   let first_live = Ref(true)
   let (first_ops, _) = run_local_managed_test_task(
     installed,
@@ -231,10 +248,20 @@ test "standard Host selects bounded external cross join for two consumers" {
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), crossed_rows)
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"tag\":\"a\",\"id\":1}", "{\"tag\":\"b\",\"id\":1}", "{\"tag\":\"c\",\"id\":1}",
-    "{\"tag\":\"a\",\"id\":2}", "{\"tag\":\"b\",\"id\":2}", "{\"tag\":\"c\",\"id\":2}",
-  ])
+  assert_eq(
+    local_managed_test_rows(second_ops),
+    if direct {
+      [
+        "{\"tag\":\"a\",\"id\":1}", "{\"tag\":\"b\",\"id\":1}", "{\"tag\":\"a\",\"id\":2}",
+        "{\"tag\":\"b\",\"id\":2}",
+      ]
+    } else {
+      [
+        "{\"tag\":\"a\",\"id\":1}", "{\"tag\":\"b\",\"id\":1}", "{\"tag\":\"c\",\"id\":1}",
+        "{\"tag\":\"a\",\"id\":2}", "{\"tag\":\"b\",\"id\":2}", "{\"tag\":\"c\",\"id\":2}",
+      ]
+    },
+  )
   first_live.val = false
   @strategy.close_captured_task_output(run, 4)
   (first_ops.close)()
@@ -265,6 +292,16 @@ test "standard Host selects bounded external cross join for two consumers" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host selects bounded external cross join for two consumers" {
+  run_bounded_cross_join_two_consumer(false)
+}
+
+///|
+test "standard Host splits direct values cross join for two consumers" {
+  run_bounded_cross_join_two_consumer(true)
 }
 
 ///|

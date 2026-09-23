@@ -19,6 +19,8 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   }
   let mut found_carrier = false
   let mut found_relation = false
+  let mut found_zero_input = false
+  let mut found_binary = false
   let mut prefer_fused_without_relation = false
   let mut all_selected = true
   for step in 0..<count {
@@ -26,6 +28,11 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     if !@lower.node_supports_selected_managed_execution(node) {
       all_selected = false
       break
+    }
+    if @lower.node_input_count(node) == 0 {
+      found_zero_input = true
+    } else if @lower.node_input_count(node) == 2 {
+      found_binary = true
     }
     if @lower.operation(node) == "BRIDGE.rows.to_graph" &&
       @lower.node_input_count(node) > 1 {
@@ -72,6 +79,11 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   if all_selected &&
     found_carrier &&
     (!prefer_fused_without_relation || found_relation) {
+    return Some(-1)
+  }
+  // A checked multi-source Relation DAG can use the same per-edge handoff
+  // when every zero-input producer and binary consumer has a bounded provider.
+  if all_selected && found_zero_input && found_binary && found_relation {
     return Some(-1)
   }
   // Find the maximal selected Relation suffix in one pass. Its predecessor
