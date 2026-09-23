@@ -398,3 +398,20 @@ and `cc453abffe516a9e696982e5bda740144eaa152bb9059897879214828261bee4`.
 This remains one failing case of the 27 registered cases. The repeated
 100,000-row consumer verification and output reception remain the primary
 optimization target; the component benchmark cannot close PERF-1.
+
+At clean revision `6e4b67c8f`, the Node resident import bridge avoids a
+promise suspension for each row appended synchronously. Its existing yield
+after each bounded appender flush, signal checks, MoonBit row admission, and
+native settlement remain. The related real-DuckDB resident tests passed 8/8.
+The registered narrow/100000 case completed seven eligible alternating pairs,
+but its execution ratio was indeterminate against the unchanged 1.25 gate:
+estimate 1.730, 95% bootstrap interval 0.997–2.718. This is neither a pass
+nor a demonstrated whole-Run improvement over another revision; the seven
+product and comparator samples were variable, and cross-revision measurements
+are not a controlled A/B experiment. All other case obligations were admitted.
+Raw assessment and case records are in workspace scratch
+`equivalent-narrow-6e4b67c8f`, with SHA-256 digests
+`3a5fa3886a3caf8c218f421b125da9ddb611356520d3fa4b525470f0004daa89`
+and `6371aed2e93c6f01e5463e67adb0b34252e384ea50bf0811841502a3a8ca48cc`.
+Only one of 27 registered cases was measured at this revision, so PERF-1
+remains open.
