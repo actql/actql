@@ -17,6 +17,7 @@ pub fn load_library(_path : String) -> Result[Library, NativeDuckDBIssue] {
 ///|
 pub fn load_verified_component(
   _source : @bundle.NativeRuntimeBundleComponentSource,
+  _crypto : @signature.Library,
 ) -> Result[Library, NativeDuckDBIssue] {
   Err(UnsupportedTarget)
 }

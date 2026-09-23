@@ -2,6 +2,33 @@
 type Library
 
 ///|
+type Sha256State
+
+///|
+#borrow(library)
+extern "C" fn sha256_new_ffi(library : Library) -> Sha256State = "actql_native_signature_sha256_new"
+
+///|
+#borrow(state)
+extern "C" fn sha256_ready_ffi(state : Sha256State) -> Bool = "actql_native_signature_sha256_ready"
+
+///|
+#borrow(library, state, bytes)
+extern "C" fn sha256_update_ffi(
+  library : Library,
+  state : Sha256State,
+  bytes : Bytes,
+  length : Int,
+) -> Bool = "actql_native_signature_sha256_update"
+
+///|
+#borrow(library, state)
+extern "C" fn sha256_finish_ffi(
+  library : Library,
+  state : Sha256State,
+) -> Bytes = "actql_native_signature_sha256_finish"
+
+///|
 #borrow(path)
 extern "C" fn load_library_ffi(path : Bytes, length : Int) -> Library = "actql_native_signature_load_library"
 
@@ -28,6 +55,47 @@ extern "C" fn verify_ed25519_ffi(
 ///|
 fn library_message(library : Library) -> String {
   @utf8.decode_lossy(library_error_ffi(library))
+}
+
+///|
+pub fn Library::sha256_hasher(
+  self : Library,
+) -> Result[Sha256Hasher, NativeSignatureIssue] {
+  let state = sha256_new_ffi(self)
+  if !sha256_ready_ffi(state) {
+    return Err(Verification("SHA-256 initialization failed"))
+  }
+  Ok({ library: self, state, })
+}
+
+///|
+pub fn Sha256Hasher::update(
+  self : Sha256Hasher,
+  bytes : Bytes,
+) -> Result[Unit, NativeSignatureIssue] {
+  if !sha256_update_ffi(self.library, self.state, bytes, bytes.length()) {
+    return Err(Verification("SHA-256 update failed"))
+  }
+  Ok(())
+}
+
+///|
+pub fn Sha256Hasher::finish_hex(
+  self : Sha256Hasher,
+) -> Result[String, NativeSignatureIssue] {
+  let digest = sha256_finish_ffi(self.library, self.state)
+  if digest.length() != 32 {
+    return Err(Verification("SHA-256 finalization failed"))
+  }
+  let builder = StringBuilder(size_hint=64)
+  for byte in digest {
+    let part = byte.to_hex()
+    if part.length() == 1 {
+      builder.write_char('0')
+    }
+    builder.write_string(part)
+  }
+  Ok(builder.to_string())
 }
 
 ///|

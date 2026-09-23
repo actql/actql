@@ -243,6 +243,7 @@ pub fn load_library(path : String) -> Result[Library, NativeDuckDBIssue] {
 /// not by a caller-selected path or digest.
 pub fn load_verified_component(
   source : @bundle.NativeRuntimeBundleComponentSource,
+  crypto : @signature.Library,
 ) -> Result[Library, NativeDuckDBIssue] {
   let (_, role, expected_cid, expected_bytes, name, generation, offset) = @bundle.native_bundle_component_source_projection(
     source,
@@ -270,7 +271,13 @@ pub fn load_verified_component(
   if !candidate_ready_ffi(candidate) {
     return Err(LibraryLoad(decode_message(candidate_error_ffi(candidate))))
   }
-  let hash = @bundle.begin_native_bundle_component_digest()
+  let hash = match crypto.sha256_hasher() {
+    Ok(value) => value
+    Err(_) => {
+      ignore(candidate_close_ffi(candidate))
+      return Err(LibraryLoad("DuckDB library hash initialization failed"))
+    }
+  }
   let mut issue : String? = None
   let mut finished = false
   while !finished && issue is None {
@@ -294,8 +301,8 @@ pub fn load_verified_component(
     ignore(candidate_close_ffi(candidate))
     return Err(LibraryLoad(message))
   }
-  let matched = match hash.matches_cid(expected_cid) {
-    Ok(value) => value
+  let matched = match hash.finish_hex() {
+    Ok(value) => "sha256:" + value == expected_cid
     Err(_) => {
       ignore(candidate_close_ffi(candidate))
       return Err(LibraryLoad("DuckDB library hash failed"))

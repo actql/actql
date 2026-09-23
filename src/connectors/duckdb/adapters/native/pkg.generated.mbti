@@ -3,13 +3,14 @@ package "actql/actql/connectors/duckdb/adapters/native"
 
 import {
   "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/platform_native/signature",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn load_library(String) -> Result[Library, NativeDuckDBIssue]
 
-pub fn load_verified_component(@runtime_bundle.NativeRuntimeBundleComponentSource) -> Result[Library, NativeDuckDBIssue]
+pub fn load_verified_component(@runtime_bundle.NativeRuntimeBundleComponentSource, @signature.Library) -> Result[Library, NativeDuckDBIssue]
 
 pub fn restricted_open_limits(Int64) -> NativeDuckDBOpenLimits
 

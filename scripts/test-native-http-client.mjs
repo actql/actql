@@ -2326,6 +2326,7 @@ try {
     await rm(installedBundlePath, {force: true});
     await rename(preservedBundlePath, installedBundlePath);
   }
+  const applicationStartedAt = Date.now();
   const applicationRun = runCaptured(
     applicationExecutable,
     applicationArguments,
@@ -2349,6 +2350,10 @@ try {
           lastPlanObservation = result;
           if (result.code === 0) {
             planBody = result.stdout;
+            console.log(JSON.stringify({
+              kind: 'native-output-plan-ready',
+              elapsedMilliseconds: Date.now() - applicationStartedAt,
+            }));
             break;
           }
           if (applicationRun.child.exitCode !== null) {
@@ -2363,7 +2368,7 @@ try {
               lastPlanObservation,
             }));
           }
-          await new Promise(resolve => setTimeout(resolve, 20));
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         assert.notEqual(
           planBody,

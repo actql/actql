@@ -833,20 +833,10 @@ fn NativeRemoteRuntime::run_success(
             ),
           )
         }
-        match self.bundles.verify(owner.registration.runtime_bundle_cid) {
-          Ok(_) => continue
-          Err(issue) =>
-            return Err(
-              self.retain_failed_owner(
-                identity,
-                owner,
-                Bundle(issue),
-                false,
-                false,
-                true,
-              ),
-            )
-        }
+        // The active component was verified after accepted observation and
+        // before entering this synchronous progression. Retaining its exact
+        // bundle does not change the Store-owned component bytes.
+        continue
       }
       @remote.RuntimePersistProvisioning => {
         let transition = match
@@ -1404,10 +1394,6 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   }
   match
     self.bundles.verify_active_component_binding(registration.active_runtime) {
-    Ok(_) => ()
-    Err(issue) => return Err(Bundle(issue))
-  }
-  match self.bundles.verify(registration.runtime_bundle_cid) {
     Ok(_) => ()
     Err(issue) => return Err(Bundle(issue))
   }

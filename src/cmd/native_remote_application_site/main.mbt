@@ -747,7 +747,8 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       stop("signed DuckDB component materialization failed")
     }
   }
-  let native_duckdb = match @duckdb.load_verified_component(duckdb_component) {
+  let native_duckdb = match
+    @duckdb.load_verified_component(duckdb_component, signature_library) {
     Ok(value) => value
     Err(_) => {
       ignore(client.close())

@@ -82,7 +82,7 @@ struct NativeRuntimeBundleInstaller {
   install_id : String
   runtime_bundle_cid : String
   physical : @filesystem.Writer
-  hash : @sha.Hasher
+  hash : @signature.Sha256Hasher
   component_count : Int
   mut sealed_generation : @filesystem.NativeFileGeneration?
   mut sealed_digest : String
@@ -1403,7 +1403,13 @@ fn verify_component(
         return Err(ComponentMismatch)
       }
     }
-    let hash = @sha.hasher()
+    let hash = match store.signature_library.sha256_hasher() {
+      Ok(value) => value
+      Err(issue) => {
+        ignore(reader.close())
+        return Err(Signature(issue))
+      }
+    }
     let mut remaining = expected_component_bytes
     while remaining > 0L {
       let limit = if remaining < 65536L { remaining.to_int() } else { 65536 }
@@ -1418,10 +1424,11 @@ fn verify_component(
         ignore(reader.close())
         return Err(ComponentMismatch)
       }
-      @sha.update(hash, chunk.bytes) catch {
-        _ => {
+      match hash.update(chunk.bytes) {
+        Ok(_) => ()
+        Err(issue) => {
           ignore(reader.close())
-          return Err(ComponentMismatch)
+          return Err(Signature(issue))
         }
       }
       remaining = remaining - chunk.bytes.length().to_int64()
@@ -1431,10 +1438,11 @@ fn verify_component(
         return Err(ComponentMismatch)
       }
     }
-    let digest = @sha.finish_hex(hash) catch {
-      _ => {
+    let digest = match hash.finish_hex() {
+      Ok(value) => value
+      Err(issue) => {
         ignore(reader.close())
-        return Err(ComponentMismatch)
+        return Err(Signature(issue))
       }
     }
     if "sha256:" + digest != component[1] {
@@ -1975,6 +1983,10 @@ pub fn NativeRuntimeBundleStore::begin_install(
     component_bytes > self.capacity_bytes - usage.reserved_bytes {
     return Err(CapacityExceeded)
   }
+  let hash = match self.signature_library.sha256_hasher() {
+    Ok(value) => value
+    Err(issue) => return Err(Signature(issue))
+  }
   let staging = current.staging.copy()
   staging.push(candidate)
   let next = with_catalog_staging(current, current.entries, staging)
@@ -2012,7 +2024,7 @@ pub fn NativeRuntimeBundleStore::begin_install(
     install_id,
     runtime_bundle_cid,
     physical,
-    hash: @sha.hasher(),
+    hash,
     component_count: @bundle.bundle_manifest_component_count(manifest),
     sealed_generation: None,
     sealed_digest: "",
@@ -2033,8 +2045,9 @@ pub fn NativeRuntimeBundleInstaller::append(
     Err(issue) => return Err(issue)
   }
   if self.component_count == 1 {
-    @sha.update(self.hash, chunk) catch {
-      _ => return Err(StateCollision)
+    match self.hash.update(chunk) {
+      Ok(_) => ()
+      Err(issue) => return Err(Signature(issue))
     }
   }
   Ok(())
@@ -2067,8 +2080,9 @@ pub fn NativeRuntimeBundleInstaller::seal(
     }
     self.sealed_generation = Some(generation)
     if self.component_count == 1 {
-      let digest = @sha.finish_hex(self.hash) catch {
-        _ => return Err(ComponentMismatch)
+      let digest = match self.hash.finish_hex() {
+        Ok(value) => value
+        Err(issue) => return Err(Signature(issue))
       }
       self.sealed_digest = "sha256:" + digest
     }
@@ -2416,8 +2430,9 @@ pub fn NativeRuntimeBundleStore::acquire_active_component(
 }
 
 ///|
-/// Return the exact currently held active entry after its physical bytes and
-/// process authority have both been revalidated.
+/// Check the active generation and process authority without rescanning the
+/// component bytes. Full digest verification occurs when the runtime is
+/// acquired and again before its component is loaded.
 fn NativeRuntimeBundleStore::active_entry_for_binding(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
@@ -2432,9 +2447,13 @@ fn NativeRuntimeBundleStore::active_entry_for_binding(
     return Err(MissingBundle)
   }
   let entry = catalog.entries[index]
-  match verify_component(self, entry) {
-    Ok(_) => ()
+  let expected_bytes = match bundle_allocation_bytes(entry.manifest) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if entry.generation.size != expected_bytes ||
+    !self.root.verify_generation(entry.artifact_name, entry.generation) {
+    return Err(ComponentMismatch)
   }
   let projection = @bundle.bundle_manifest_projection(entry.manifest)
   if projection[5] != binding.component_cid ||
@@ -2453,9 +2472,9 @@ fn NativeRuntimeBundleStore::active_entry_for_binding(
 }
 
 ///|
-/// Revalidate the active component and its exact process holding before a
-/// runtime can admit more work. Historical component identity alone never
-/// restores current execution authority.
+/// Revalidate the active generation and exact process holding before a
+/// runtime can admit more work. The loaded component was digest-verified at
+/// runtime acquisition; dispatch does not hash it again.
 pub fn NativeRuntimeBundleStore::verify_active_component_binding(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
@@ -2467,18 +2486,24 @@ pub fn NativeRuntimeBundleStore::verify_active_component_binding(
 }
 
 ///|
-/// Resolve a signed component from the exact active bundle while the process
-/// holding is still live. The source file is the Store-owned allocation, not
-/// a caller-selected library path. Its generation must be checked again by
-/// the physical loader when opening the file.
-pub fn NativeRuntimeBundleStore::active_component_source(
+/// Resolve a signed component from the exact active bundle. Materialization
+/// verifies the copied bytes while streaming and does not need a separate
+/// full scan of the source allocation before that copy.
+fn NativeRuntimeBundleStore::component_source_for_binding(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
   role : String,
+  verify_bytes : Bool,
 ) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue] {
   let entry = match self.active_entry_for_binding(binding) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if verify_bytes {
+    match verify_component(self, entry) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   let mut offset = 0L
   for component in @bundle.bundle_manifest_components_projection(entry.manifest) {
@@ -2508,6 +2533,19 @@ pub fn NativeRuntimeBundleStore::active_component_source(
 }
 
 ///|
+/// Resolve a signed component from the exact active bundle while the process
+/// holding is still live. The source file is the Store-owned allocation, not
+/// a caller-selected library path. Its generation must be checked again by
+/// the physical loader when opening the file.
+pub fn NativeRuntimeBundleStore::active_component_source(
+  self : NativeRuntimeBundleStore,
+  binding : NativeActiveRuntimeBinding,
+  role : String,
+) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue] {
+  self.component_source_for_binding(binding, role, true)
+}
+
+///|
 /// Materialize one signed component as a Store-owned allocation. The extra
 /// physical bytes are reserved before the bounded copy and remain charged
 /// through all failure and recovery states until deletion is confirmed.
@@ -2516,7 +2554,7 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
   binding : NativeActiveRuntimeBinding,
   role : String,
 ) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue] {
-  let source = match self.active_component_source(binding, role) {
+  let source = match self.component_source_for_binding(binding, role, false) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2620,7 +2658,14 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
     }
     skip = skip - chunk.bytes.length().to_int64()
   }
-  let hash = @sha.hasher()
+  let hash = match self.signature_library.sha256_hasher() {
+    Ok(value) => value
+    Err(issue) => {
+      ignore(reader.close())
+      ignore(writer.cancel())
+      return Err(Signature(issue))
+    }
+  }
   let mut remaining = source.component_bytes
   while remaining > 0L {
     let limit = if remaining < 65536L { remaining.to_int() } else { 65536 }
@@ -2645,11 +2690,12 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
         return Err(issue)
       }
     }
-    @sha.update(hash, chunk.bytes) catch {
-      _ => {
+    match hash.update(chunk.bytes) {
+      Ok(_) => ()
+      Err(issue) => {
         ignore(reader.close())
         ignore(writer.cancel())
-        return Err(ComponentMismatch)
+        return Err(Signature(issue))
       }
     }
     remaining = remaining - chunk.bytes.length().to_int64()
@@ -2661,10 +2707,11 @@ pub fn NativeRuntimeBundleStore::materialize_active_component(
       return Err(issue)
     }
   }
-  let digest = @sha.finish_hex(hash) catch {
-    _ => {
+  let digest = match hash.finish_hex() {
+    Ok(value) => value
+    Err(issue) => {
       ignore(writer.cancel())
-      return Err(ComponentMismatch)
+      return Err(Signature(issue))
     }
   }
   if "sha256:" + digest != source.component_cid {

@@ -32,6 +32,10 @@ typedef int (*actql_evp_digest_verify_fn)(
   EVP_MD_CTX *, const unsigned char *, size_t,
   const unsigned char *, size_t
 );
+typedef const EVP_MD *(*actql_evp_sha256_fn)(void);
+typedef int (*actql_evp_digest_init_ex_fn)(EVP_MD_CTX *, const EVP_MD *, ENGINE *);
+typedef int (*actql_evp_digest_update_fn)(EVP_MD_CTX *, const void *, size_t);
+typedef int (*actql_evp_digest_final_ex_fn)(EVP_MD_CTX *, unsigned char *, unsigned int *);
 typedef unsigned long (*actql_err_get_error_fn)(void);
 typedef void (*actql_err_error_string_n_fn)(unsigned long, char *, size_t);
 
@@ -53,6 +57,10 @@ typedef struct {
   actql_evp_md_ctx_free_fn evp_md_ctx_free;
   actql_evp_digest_verify_init_fn evp_digest_verify_init;
   actql_evp_digest_verify_fn evp_digest_verify;
+  actql_evp_sha256_fn evp_sha256;
+  actql_evp_digest_init_ex_fn evp_digest_init_ex;
+  actql_evp_digest_update_fn evp_digest_update;
+  actql_evp_digest_final_ex_fn evp_digest_final_ex;
   actql_err_get_error_fn err_get_error;
   actql_err_error_string_n_fn err_error_string_n;
 } actql_native_signature_library;
@@ -189,12 +197,90 @@ void *actql_native_signature_load_library(
       !ACTQL_LOAD(library, evp_md_ctx_free, "EVP_MD_CTX_free") ||
       !ACTQL_LOAD(library, evp_digest_verify_init, "EVP_DigestVerifyInit") ||
       !ACTQL_LOAD(library, evp_digest_verify, "EVP_DigestVerify") ||
+      !ACTQL_LOAD(library, evp_sha256, "EVP_sha256") ||
+      !ACTQL_LOAD(library, evp_digest_init_ex, "EVP_DigestInit_ex") ||
+      !ACTQL_LOAD(library, evp_digest_update, "EVP_DigestUpdate") ||
+      !ACTQL_LOAD(library, evp_digest_final_ex, "EVP_DigestFinal_ex") ||
       !ACTQL_LOAD(library, err_get_error, "ERR_get_error") ||
       !ACTQL_LOAD(library, err_error_string_n, "ERR_error_string_n")) {
     dlclose(library->dynamic_library);
     library->dynamic_library = NULL;
   }
   return library;
+}
+
+typedef struct {
+  actql_native_signature_library *library;
+  EVP_MD_CTX *context;
+  actql_evp_md_ctx_free_fn free_context;
+  bool closed;
+} actql_native_sha256;
+
+static void actql_native_sha256_finalize(void *value) {
+  actql_native_sha256 *hash = value;
+  if (hash->context != NULL) hash->free_context(hash->context);
+  hash->context = NULL;
+  if (hash->library != NULL) moonbit_decref(hash->library);
+  hash->library = NULL;
+}
+
+MOONBIT_FFI_EXPORT
+void *actql_native_signature_sha256_new(
+  actql_native_signature_library *library
+) {
+  actql_native_sha256 *hash = moonbit_make_external_object(
+    actql_native_sha256_finalize, sizeof(actql_native_sha256)
+  );
+  memset(hash, 0, sizeof(*hash));
+  if (library == NULL || library->dynamic_library == NULL) return hash;
+  hash->library = library;
+  moonbit_incref(library);
+  hash->context = library->evp_md_ctx_new();
+  hash->free_context = library->evp_md_ctx_free;
+  if (hash->context == NULL ||
+      library->evp_digest_init_ex(hash->context, library->evp_sha256(), NULL) != 1) {
+    if (hash->context != NULL) hash->free_context(hash->context);
+    hash->context = NULL;
+  }
+  return hash;
+}
+
+MOONBIT_FFI_EXPORT
+bool actql_native_signature_sha256_ready(actql_native_sha256 *hash) {
+  return hash != NULL && hash->context != NULL && !hash->closed;
+}
+
+MOONBIT_FFI_EXPORT
+bool actql_native_signature_sha256_update(
+  actql_native_signature_library *library,
+  actql_native_sha256 *hash,
+  moonbit_bytes_t bytes,
+  int32_t length
+) {
+  if (library == NULL || hash == NULL || hash->library != library ||
+      hash->context == NULL ||
+      hash->closed || length < 0) return false;
+  return library->evp_digest_update(hash->context, bytes, (size_t)length) == 1;
+}
+
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_sha256_finish(
+  actql_native_signature_library *library,
+  actql_native_sha256 *hash
+) {
+  moonbit_bytes_t result = moonbit_make_bytes_raw(0);
+  if (library == NULL || hash == NULL || hash->library != library ||
+      hash->context == NULL || hash->closed) {
+    return result;
+  }
+  hash->closed = true;
+  unsigned char digest[32];
+  unsigned int length = 0;
+  if (library->evp_digest_final_ex(hash->context, digest, &length) != 1 ||
+      length != sizeof(digest)) return result;
+  result = moonbit_make_bytes_raw(32);
+  memcpy(result, digest, 32);
+  return result;
 }
 
 MOONBIT_FFI_EXPORT

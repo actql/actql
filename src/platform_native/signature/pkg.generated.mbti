@@ -12,6 +12,7 @@ pub fn load_library(String) -> Result[Library, NativeSignatureIssue]
 
 // Types and methods
 type Library
+pub fn Library::sha256_hasher(Self) -> Result[Sha256Hasher, NativeSignatureIssue]
 pub fn Library::verify_ed25519(Self, String, Bytes, String) -> Result[Bool, NativeSignatureIssue]
 
 pub(all) enum NativeSignatureIssue {
@@ -22,6 +23,15 @@ pub(all) enum NativeSignatureIssue {
   UnsupportedKey(String)
   Verification(String)
 } derive(Eq, @debug.Debug)
+
+pub struct Sha256Hasher {
+  library : Library
+  state : Sha256State
+}
+pub fn Sha256Hasher::finish_hex(Self) -> Result[String, NativeSignatureIssue]
+pub fn Sha256Hasher::update(Self, Bytes) -> Result[Unit, NativeSignatureIssue]
+
+type Sha256State
 
 // Type aliases
 

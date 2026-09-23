@@ -61,6 +61,16 @@ cannot turn an installed but inactive bundle, a different component, or a
 component for another target into dispatch authority by supplying a matching
 string.
 
+Full component digests are checked at installation, activation, process
+acquisition, and before loading a materialized native library. Materialization
+also checks the bytes it copies against the signed component CID. Dispatch
+rechecks the active Store generation and process holding, but does not hash
+the already loaded component for every task. Store mutation by an actor with
+the Site's own filesystem authority is outside this in-process dispatch
+boundary; repeated hashing would neither isolate that actor nor prove the
+bytes already loaded by the process. A new process must cross the component
+loading boundary again.
+
 The component also exposes its exact executable task registry. Dispatch still
 checks the Run Definition and task key before durable acceptance. A runtime
 bundle is not authority to execute arbitrary tasks for its Connector.
