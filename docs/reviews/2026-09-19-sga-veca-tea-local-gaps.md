@@ -22,6 +22,16 @@ readable coverage manifest is authoritative for individual operation status.
 | Resource accounting audit | Incomplete: all 68 operations are bound to profiles and checked production routes, but operation-specific exact/one-short/cancel/cleanup evidence is not yet complete | Bind executable boundary fixtures to every production route |
 | Ordinary Program integration | Open: Local standard Host fixtures do not prove the Distribution Run entry | Add a representative mixed Carrier-to-Relation Program through the Distribution-owned ordinary Run port, without a Local substitute |
 
+The Node standard Host now checks one ordinary checked Graph-to-Relation
+pipeline with `filter`, `sort`, and `take` in the same Stage. It executes two
+downstream Relation Computes, publishes all three named outputs through the
+formal Effect-free Run path, retrieves each independently, and checks the
+expected rows and task topology before final reclamation. This is stronger
+standard Host evidence for the mixed pipeline, but it is not a Distribution
+ordinary Run submission, does not exercise Events or Vectors, and does not
+establish delivered in-flight cancellation for that exact Program. The
+ordinary Program integration row remains open.
+
 The fixed-SHA review of `f878797f2fa07749622e6f15fb06da41d33c3f82`
 identifies a separate execution-lane blocker. The current managed driver
 still uses the providerless branch for supported sequences without a
