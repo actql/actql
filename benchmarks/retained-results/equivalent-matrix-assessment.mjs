@@ -25,7 +25,7 @@ export function assessEquivalentMatrix(records, expectedRevision) {
     }
     seen.set(record.caseId, record.pairs);
   }
-  let runtime;
+  let runtime, releaseArtifactSha256;
   const cases = fixtures.map(fixture => {
     const assessment = assessEquivalentSeries(fixture, seen.get(fixture.id));
     if (assessment.status === 'incomplete') return assessment;
@@ -37,7 +37,13 @@ export function assessEquivalentMatrix(records, expectedRevision) {
       return Object.freeze({...assessment, status: 'incomplete',
         reason: 'mixed-runtime'});
     }
+    if (releaseArtifactSha256 !== undefined &&
+        assessment.releaseArtifactSha256 !== releaseArtifactSha256) {
+      return Object.freeze({...assessment, status: 'incomplete',
+        reason: 'mixed-release-build'});
+    }
     runtime = assessment.runtime;
+    releaseArtifactSha256 = assessment.releaseArtifactSha256;
     return assessment;
   });
   const incomplete = cases.some(value => value.status === 'incomplete') ||
@@ -52,6 +58,7 @@ export function assessEquivalentMatrix(records, expectedRevision) {
     status,
     expectedRevision,
     runtime,
+    releaseArtifactSha256,
     registeredCases: fixtures.length,
     receivedRecords: records.length,
     unexpected,
@@ -74,6 +81,7 @@ export function formatEquivalentMatrix(assessment) {
     `Expected revision: \`${assessment.expectedRevision}\`. ` +
       `Registered cases: ${assessment.registeredCases}. ` +
       `Received records: ${assessment.receivedRecords}.`,
+    `Generated release build: \`${assessment.releaseArtifactSha256 ?? 'unverified'}\`.`,
     '',
     '| Case | Status | Pairs | Gate 95% intervals | Reason |',
     '| --- | --- | ---: | --- | --- |',

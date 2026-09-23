@@ -397,6 +397,8 @@ Matched pairs without a verified held-out estimate profile mark the product
 leg unqualified and remain `incomplete` under this boundary. A passing
 one-comparator series still cannot certify the
 27-case matrix, baseline and raw comparators, or the whole experiment.
+The 27-case equivalent assessor also requires one generated release-artifact
+digest across every completed case; mixed builds make the matrix incomplete.
 
 The statistic is the ratio of paired arithmetic means for ratios, or their
 difference for absolute overhead. A reproducible seeded bootstrap resamples whole

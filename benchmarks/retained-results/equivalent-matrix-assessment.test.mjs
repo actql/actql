@@ -90,3 +90,14 @@ test('one-case provenance and release mutations cannot be aggregated as pass', (
   assert.equal(assessEquivalentMatrix([wrongRevision], revision).cases[0].reason,
     'mixed-or-unexpected-revision');
 });
+
+test('a 27-case verdict requires one generated release build', () => {
+  const cases = retainedMatrix().map(record);
+  for (const pair of cases[1].pairs) {
+    pair.provenance.releaseArtifactSha256 = 'e'.repeat(64);
+  }
+  const assessed = assessEquivalentMatrix(cases, revision);
+  assert.equal(assessed.status, 'incomplete');
+  assert.equal(assessed.cases[1].reason, 'mixed-release-build');
+  assert.equal(assessed.cases.length, 27);
+});
