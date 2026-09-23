@@ -43,7 +43,8 @@ function openssl(root, ...arguments_) {
 
 async function fixture(t, {customStatus = 200, customResponse = customBody,
   listStatus = 200, listResponse = listBody,
-  querySecondStatus = 200, queryFirstResponse} = {}) {
+  accountRefreshResponse, querySecondStatus = 200,
+  queryFirstResponse} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-catalog-'));
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out',
@@ -62,6 +63,7 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
     readFile(join(root, 'resource.key')),
   ]);
   const seen = [];
+  let accountDescribeCount = 0;
   const server = createServer({cert, key}, (request, response) => {
     seen.push({method: request.method, path: request.url,
       authorization: request.headers.authorization});
@@ -73,7 +75,8 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
     } else if (request.url ===
       '/services/data/v62.0/sobjects/Account/describe') {
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(accountBody);
+      response.end(accountDescribeCount++ === 0
+        ? accountBody : accountRefreshResponse ?? accountBody);
     } else if (request.url ===
       '/services/data/v62.0/sobjects/Test_Record__c/describe') {
       response.writeHead(customStatus, {'content-type': 'application/json'});
@@ -340,6 +343,13 @@ function queryRequest(setup, plan, overrides = {}) {
       ...setup.query, useId: 'query-continuation',
     }),
     credential: setup.credential,
+    refreshCatalog: request(setup, {
+      syncOccurrence: 'catalog-refresh',
+      listAuthorization: {...setup.list, useId: 'refresh-list'},
+      authorizationForDescribe: async name => ({
+        ...setup.describe, useId: `refresh-describe-${name}`,
+      }),
+    }),
     limits: queryLimits,
     consumePage: async () => {},
     ...overrides,
@@ -362,6 +372,8 @@ test('Site HTTPS query follows the exact locator with bounded page delivery',
     assert.deepEqual(delivered, [{index: 0, rows: 1},
       {index: 1, rows: 1}]);
     assert.equal(result.rowCount, 2n);
+    assert.notEqual(result.currentCatalog.observationCid,
+      salesforceMoon.salesforceReadProjectionObservationCid(plan));
     assert.equal(result.pages.length, 2);
     assert.deepEqual(setup.seen.slice(-2).map(entry => entry.path), [
       '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
@@ -372,6 +384,69 @@ test('Site HTTPS query follows the exact locator with bounded page delivery',
     assert.equal(setup.journal.inspect(result.pages[1].useCid).outcome,
       'succeeded');
     assert.ok(result.pages.every(entry => entry.responseSha256.length === 64));
+  });
+
+test('query rejects changed selected schema before any query credential use',
+  async t => {
+    const setup = await fixture(t, {accountRefreshResponse: JSON.stringify({
+      name: 'Account', queryable: true,
+      fields: [{name: 'Id', type: 'int', nillable: false}],
+    })});
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan)),
+      {code: 'MoonBitHostFailure'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 0);
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/describe'))
+      .length, 4);
+  });
+
+test('query rejects lost resource permission before any query credential use',
+  async t => {
+    const setup = await fixture(t, {accountRefreshResponse: JSON.stringify({
+      name: 'Account', queryable: false,
+      fields: [{name: 'Id', type: 'id', nillable: false}],
+    })});
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan)),
+      {code: 'MoonBitHostFailure'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 0);
+  });
+
+test('query requires a current Catalog refresh before any Site I/O',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const before = setup.seen.length;
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      refreshCatalog: undefined,
+    })), {code: 'InvalidSalesforceQueryRead'});
+    assert.equal(setup.seen.length, before);
+  });
+
+test('query rejects a changed connection revision before query I/O',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const options = queryRequest(setup, plan);
+    await assert.rejects(readSalesforceQuery({
+      ...options,
+      refreshCatalog: {...options.refreshCatalog,
+        connectionRevision: 'connection-revision-b'},
+    }), {code: 'MoonBitHostFailure'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 0);
+  });
+
+test('unrelated incomplete resource does not invalidate a complete read view',
+  async t => {
+    const setup = await fixture(t, {customStatus: 403});
+    const plan = await queryProjection(setup);
+    const result = await readSalesforceQuery(queryRequest(setup, plan));
+    assert.equal(result.rowCount, 2n);
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 2);
   });
 
 test('failed locator cannot be replaced by a fresh query in one observation',

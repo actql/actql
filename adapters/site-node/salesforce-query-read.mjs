@@ -1,5 +1,6 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
 
 const operation = 'salesforce:query:read';
 const bindingKeys = Object.freeze([
@@ -43,6 +44,7 @@ function validateRead({
   initialAuthorization,
   authorizationForPage,
   credential,
+  refreshCatalog,
   limits,
   consumePage,
   callResource = callHttpsCredentialResource,
@@ -51,6 +53,7 @@ function validateRead({
       typeof authorizationForPage !== 'function' ||
       typeof consumePage !== 'function' || !credential ||
       typeof credential !== 'object' ||
+      !refreshCatalog || typeof refreshCatalog !== 'object' ||
       typeof callResource !== 'function') {
     fail('InvalidSalesforceQueryRead');
   }
@@ -65,6 +68,27 @@ function validateRead({
     fail('ForeignSalesforceQueryProjection');
   }
   return scope;
+}
+
+async function recheckCurrentCatalog(options) {
+  const {moon, plan, credential, refreshCatalog, callResource, signal} = options;
+  const refreshed = await syncSalesforceCatalog({
+    ...refreshCatalog,
+    moon,
+    credential,
+    callResource,
+    signal,
+  });
+  if (refreshed.status === 'interrupted') {
+    fail('SalesforceCatalogRefreshInterrupted');
+  }
+  checked(moon.salesforceRecheckReadProjection(plan, refreshed.observation));
+  return Object.freeze({
+    observationCid: refreshed.observationCid,
+    observationJson: refreshed.observationJson,
+    listUseCid: refreshed.listUseCid,
+    describeUseCids: refreshed.describeUseCids,
+  });
 }
 
 async function driveQueryPages({
@@ -130,12 +154,13 @@ export async function readSalesforceQuery(options) {
   const {moon, plan, apiVersion, limits} = options;
   if (typeof apiVersion !== 'string') fail('InvalidSalesforceQueryRead');
   const scope = validateRead(options);
+  const currentCatalog = await recheckCurrentCatalog(options);
   const read = checked(moon.salesforceBeginQueryRead(
     plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
     limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
     BigInt(limits.maxTotalRows),
   ));
-  return driveQueryPages({callResource: callHttpsCredentialResource,
+  const result = await driveQueryPages({callResource: callHttpsCredentialResource,
     ...options}, scope, {
     nextPath: () => moon.salesforceQueryReadNextPath(read),
     acceptPage: (path, body) => moon.salesforceQueryReadAcceptPage(read, path,
@@ -147,6 +172,7 @@ export async function readSalesforceQuery(options) {
     finish: () => ({read}),
     interrupt: () => moon.salesforceQueryReadInterrupt(read),
   });
+  return Object.freeze({...result, currentCatalog});
 }
 
 /// Use the same physical query path while MoonBit appends each page to one
@@ -158,12 +184,13 @@ export async function readSalesforceManagedQuery(options) {
     fail('InvalidSalesforceQueryRead');
   }
   const scope = validateRead({consumePage: async () => {}, ...options});
+  const currentCatalog = await recheckCurrentCatalog(options);
   const query = checked(moon.salesforcePrepareManagedQuery(
     plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
     limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
     BigInt(limits.maxTotalRows), values,
   ));
-  return driveQueryPages({callResource: callHttpsCredentialResource,
+  const result = await driveQueryPages({callResource: callHttpsCredentialResource,
     consumePage: async () => {}, ...options}, scope, {
     nextPath: () => moon.salesforceManagedQueryNextPath(query),
     acceptPage: (path, body) => moon.salesforceManagedQueryAcceptPage(
@@ -173,4 +200,5 @@ export async function readSalesforceManagedQuery(options) {
     finish: () => ({receipt: checked(moon.salesforceManagedQueryFinish(query))}),
     interrupt: () => moon.salesforceManagedQueryCancel(query),
   });
+  return Object.freeze({...result, currentCatalog});
 }
