@@ -8,6 +8,10 @@ import {
 // Values
 pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
+pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
 pub fn effect_apply_key_cid(EffectApplyKey) -> String
 
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
@@ -79,6 +83,21 @@ pub struct EffectDispatchKey {
   row_or_item_key_wire : String
   cid : String
 }
+
+pub(all) enum EffectFootprintIssue {
+  InvalidLimits
+  InvalidMember
+  InvalidFootprint
+  CapacityExceeded
+  UnprovenIndependence
+  OverlappingTarget
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectFootprintKind {
+  ExactTargets
+  Collection
+  Opaque
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EffectIdentityIssue {
   InvalidAuthorityScope
@@ -153,6 +172,16 @@ pub(all) enum EffectLedgerIssue {
   InvalidTransition
   Encoding
 } derive(Eq, @debug.Debug)
+
+pub(all) struct EffectMemberFootprint {
+  effect_id : String
+  kind : EffectFootprintKind
+  provider_namespace : String
+  provider_boundary_cid : String
+  resource_identity_scheme_cid : String
+  resource_kind : String
+  provider_object_identity_cids : Array[String]
+}
 
 pub(all) struct EffectMemberProgress {
   effect_id : String
