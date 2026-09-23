@@ -346,6 +346,39 @@ test "external consumer reads formal Program decisions without private construct
 }
 
 ///|
+test "external consumer receives the exact checked Result owner" {
+  let program = public_program_fixture()
+  let results = @program_check.checked_stage_results(program)
+  let source = @stages.operations_source(@results.operations(results))
+  assert_eq(@stages.stage_count(source), 2)
+  for index in 0..<2 {
+    let stage = @results.stage_at(results, index).unwrap()
+    assert_true(@publication.lookup(stage, "out") is Some(_))
+  }
+  assert_true(@results.stage_at(results, 2) is None)
+  let identity = @program_check.source_identity(program)
+  let sources = @context.program_identity_sources(identity)
+  let operations = @context.program_sources_operations(sources)
+  let preparation = @context.operation_profiles_preparation(operations)
+  let producers = @context.preparation_sources(preparation)
+  let capacity = @context.source_producer_capacity(producers)
+  let policy = @context.source_capacity_context(capacity)
+  let selected = @context.source_policy_selected(policy)
+  let reconciled = @context.policy_context(selected)
+  let wired = @context.reconciled_wiring(reconciled)
+  assert_true(
+    physical_equal(
+      results,
+      @context.stage_results(@context.wired_stage_contexts(wired)),
+    ),
+  )
+  let other = public_program_fixture()
+  assert_false(
+    physical_equal(results, @program_check.checked_stage_results(other)),
+  )
+}
+
+///|
 fn public_source_limits(stage_count : Int) -> @program_check.CompileLimits {
   {
     work: 10000000,
