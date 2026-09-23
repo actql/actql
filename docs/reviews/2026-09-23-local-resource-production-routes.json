@@ -592,6 +592,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "normalize-sort-wide-comparison"
+        },
+        {
+          "role": "ordinary_sort_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-sort-in-flight"
         }
       ],
       "path_assurance": {
@@ -599,6 +606,12 @@
           "exact_limit": "selected_sort_workspace_exact",
           "one_short_limit": "selected_sort_workspace_one_short",
           "in_flight_cancel": "selected_sort_wide_comparison_host_timer",
+          "cleanup": "selected_sort_cancel_cleanup"
+        },
+        "ordinary_entrypoint": {
+          "exact_limit": "selected_sort_workspace_exact",
+          "one_short_limit": "selected_sort_workspace_one_short",
+          "in_flight_cancel": "ordinary_sort_in_flight_host_timer",
           "cleanup": "selected_sort_cancel_cleanup"
         }
       },
@@ -626,8 +639,42 @@
               }
             }
           }
+        },
+        "ordinary_entrypoint": {
+          "variants": {
+            "ordered": {
+              "work": {
+                "exact_limit": "sort_ordered_work_exact_one_short",
+                "one_short_limit": "sort_ordered_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "sort_ordered_workspace_exact",
+                "one_short_limit": "sort_ordered_workspace_one_short"
+              }
+            },
+            "empty": {
+              "work": {
+                "exact_limit": "sort_empty_work_exact_one_short",
+                "one_short_limit": "sort_empty_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "sort_empty_workspace_exact_one_short",
+                "one_short_limit": "sort_empty_workspace_exact_one_short"
+              }
+            }
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "selected_sort_workspace_exact", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths call selected_binding_rows_execution with the same checked sort preparation and admitted workspace scope."},
+        {"role": "selected_sort_workspace_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths call selected_binding_rows_execution with the same checked sort preparation and admitted workspace scope."},
+        {"role": "selected_sort_cancel_cleanup", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths own the same bounded sort session and cleanup scope; separate Host timers prove delivery for each route."},
+        {"role": "sort_ordered_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same ordered sort work phases through selected_binding_rows_execution."},
+        {"role": "sort_ordered_workspace_exact", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same ordered sort workspace through selected_binding_rows_execution."},
+        {"role": "sort_ordered_workspace_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same ordered sort workspace through selected_binding_rows_execution."},
+        {"role": "sort_empty_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same empty sort work phases through selected_binding_rows_execution."},
+        {"role": "sort_empty_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same empty sort workspace through selected_binding_rows_execution."}
+      ]
     },
     {
       "inventory": "rela",
@@ -722,6 +769,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "normalize-take"
+        },
+        {
+          "role": "ordinary_take_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-take-in-flight"
         }
       ],
       "path_assurance": {
@@ -729,6 +783,12 @@
           "exact_limit": "key_completion_work_exact_one_short",
           "one_short_limit": "key_completion_workspace_exact_one_short",
           "in_flight_cancel": "selected_take_host_timer",
+          "cleanup": "mixed_stage_sort_cancel_and_cleanup"
+        },
+        "ordinary_entrypoint": {
+          "exact_limit": "take_unkeyed_work_exact_one_short",
+          "one_short_limit": "take_unkeyed_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_take_in_flight_host_timer",
           "cleanup": "mixed_stage_sort_cancel_and_cleanup"
         }
       },
@@ -756,8 +816,39 @@
               }
             }
           }
+        },
+        "ordinary_entrypoint": {
+          "variants": {
+            "unkeyed": {
+              "work": {
+                "exact_limit": "take_unkeyed_work_exact_one_short",
+                "one_short_limit": "take_unkeyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "take_unkeyed_workspace_exact_one_short",
+                "one_short_limit": "take_unkeyed_workspace_exact_one_short"
+              }
+            },
+            "keyed": {
+              "work": {
+                "exact_limit": "take_keyed_work_exact_one_short",
+                "one_short_limit": "take_keyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "take_keyed_workspace_exact_one_short",
+                "one_short_limit": "take_keyed_workspace_exact_one_short"
+              }
+            }
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "mixed_stage_sort_cancel_and_cleanup", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths own the same bounded take session and cleanup scope; separate Host timers prove cancellation delivery."},
+        {"role": "take_unkeyed_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same unkeyed take work phases through selected_binding_rows_execution."},
+        {"role": "take_unkeyed_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same unkeyed take workspace through selected_binding_rows_execution."},
+        {"role": "take_keyed_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same keyed take work phases through selected_binding_rows_execution."},
+        {"role": "take_keyed_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same keyed take workspace through selected_binding_rows_execution."}
+      ]
     },
     {
       "inventory": "rela",

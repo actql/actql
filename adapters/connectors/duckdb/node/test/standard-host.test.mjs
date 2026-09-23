@@ -6091,17 +6091,23 @@ async function exerciseStrategyGraph(
   for (const ordinaryUnaryCase of [
     {name: 'ordinary-select-in-flight', kind: 'select'},
     {name: 'ordinary-filter-in-flight', kind: 'filter'},
+    {name: 'ordinary-sort-in-flight', kind: 'sort'},
+    {name: 'ordinary-take-in-flight', kind: 'take'},
   ]) {
     const ordinaryUnaryProgram = structuredClone(selectProgram);
     ordinaryUnaryProgram.stages.find(stage =>
       stage.id === 'select_values').steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => ({id: index + 1, amount: index}),
     );
-    if (ordinaryUnaryCase.kind === 'filter') {
-      const filtered = ordinaryUnaryProgram.stages.find(stage =>
+    if (ordinaryUnaryCase.kind !== 'select') {
+      const unary = ordinaryUnaryProgram.stages.find(stage =>
         stage.id === 'selected');
-      filtered.steps = [{filter: 'id > 0', as: 'out'}];
-      filtered.results.r.fields = ['id', 'amount'];
+      unary.steps = [ordinaryUnaryCase.kind === 'filter'
+        ? {filter: 'id > 0', as: 'out'}
+        : ordinaryUnaryCase.kind === 'sort'
+          ? {sort: [{id: 'desc'}], as: 'out'}
+          : {take: 60, as: 'out'}];
+      unary.results.r.fields = ['id', 'amount'];
       for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
         stage.id.startsWith('select_consumer_'))) {
         consumer.steps[0].select = ['id', 'amount'];

@@ -546,8 +546,8 @@ for (const [index, route] of routeEntries.entries()) {
       }
       const assertion = route.family === 'RelA' &&
         route.operation === 'assert_rows';
-      const selectedVariants = route.family === 'RelA' &&
-        pathName === 'selected_entrypoint'
+      const rowVariants = route.family === 'RelA' &&
+        ['selected_entrypoint', 'ordinary_entrypoint'].includes(pathName)
         ? {take: ['unkeyed', 'keyed'], sort: ['ordered', 'empty']}[
             route.operation
           ]
@@ -559,14 +559,14 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${pathName} needs both assertion resource variants`);
         continue;
       }
-      if (selectedVariants &&
+      if (rowVariants &&
         (Object.keys(dimensions ?? {}).length !== 1 ||
           Object.keys(dimensions?.variants ?? {}).length !== 2 ||
-          selectedVariants.some(variant => !dimensions.variants[variant]))) {
-        fail(`${label}: ${pathName} needs ${selectedVariants.join(' and ')} resource variants`);
+          rowVariants.some(variant => !dimensions.variants[variant]))) {
+        fail(`${label}: ${pathName} needs ${rowVariants.join(' and ')} resource variants`);
         continue;
       }
-      const proofSets = assertion || selectedVariants
+      const proofSets = assertion || rowVariants
         ? Object.entries(dimensions.variants)
         : [['operation', dimensions]];
       for (const [variant, proofSet] of proofSets) {
@@ -590,7 +590,7 @@ for (const [index, route] of routeEntries.entries()) {
           for (const role of Object.values(proofs)) {
             if (!boundaryRoles.has(role) ||
               (assertion && !role.startsWith(`assert_${variant}_`)) ||
-              (selectedVariants &&
+              (rowVariants &&
                 !role.startsWith(`${route.operation}_${variant}_`))) {
               fail(`${label}: ${pathName} ${variant} ${dimension} lacks an executable fixture`);
             }
