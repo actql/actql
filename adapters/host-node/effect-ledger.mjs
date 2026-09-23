@@ -16,7 +16,7 @@ export function openEffectLedger({
   maxEntryBytes = 1_000_000,
   maxResponseBytes = 1_000_000,
   maxStoredBytes = 134_217_728,
-  maxBatchRows = 200,
+  maxBatchRows = 1000,
   maxNodes = 64,
   maxDepth = 4,
   maxCallerBytes = 4096,
@@ -267,6 +267,37 @@ export function openEffectLedger({
         }
       }
       fail('EffectLedgerClaimContention');
+    },
+    recordBatchResponse({claims, ownership, credentialUseCid,
+      statusCode, responseBytes}) {
+      if (!Array.isArray(claims) || claims.length === 0 ||
+          claims.length > maxBatchRows || ownership?.claimed !== true ||
+          !Array.isArray(ownership.dispatching) ||
+          ownership.dispatching.length !== claims.length) {
+        fail('EffectDispatchBatchBindingMismatch');
+      }
+      const canonicalRequestCid = claims[0].canonicalRequestCid;
+      const members = claims.map((claim, index) => {
+        const dispatching = ownership.dispatching[index];
+        if (claim.canonicalRequestCid !== canonicalRequestCid ||
+            control.ledgerEntryScopeCid(dispatching) !== scopeCid ||
+            !control.ledgerEntryAdmitsDispatch(
+              dispatching, claim.scope, claim.locator, claim.key,
+              claim.canonicalRequestCid)) {
+          fail('EffectDispatchBatchBindingMismatch');
+        }
+        return {
+          logicalItemLocatorCid: control.logicalItemLocatorCid(claim.locator),
+          dispatchEntryCid: control.ledgerEntryCid(dispatching),
+        };
+      });
+      return physical.recordBatchResponse({
+        logicalRequestScopeCid: scopeCid,
+        credentialUseCid,
+        statusCode,
+        responseBytes,
+        members,
+      });
     },
     close: () => physical.close(),
   });

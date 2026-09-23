@@ -98,6 +98,102 @@ test('batch append rolls back every row after a later insert failure',
     assert.equal(restarted.current(secondLocator), undefined);
   });
 
+test('batch response is one durable observation for every claimed row',
+  async t => {
+    const root = await fixture(t);
+    const responseBytes = Buffer.from('[{"success":true},{"success":false}]');
+    const entryBytes = 2 * (Buffer.byteLength(firstJson) +
+      Buffer.byteLength(secondJson));
+    const limits = {authorityScopeCid: scope, maxEntries: 7,
+      maxStoredBytes: entryBytes + responseBytes.byteLength};
+    const ledger = openSqliteEffectLedger(root, limits);
+    t.after(() => ledger.close());
+    const secondLocator = cid('c');
+    const operations = [
+      {logicalItemLocatorCid: locator, ids: [cid('1'), cid('2')]},
+      {logicalItemLocatorCid: secondLocator, ids: [cid('3'), cid('4')]},
+    ].map(row => ({
+      logicalRequestScopeCid: scope,
+      logicalItemLocatorCid: row.logicalItemLocatorCid,
+      expectedRevision: 0,
+      expectedEntryCid: null,
+      entries: row.ids.map((entryCid, index) => ({entryCid,
+        entryJson: index === 0 ? firstJson : secondJson})),
+    }));
+    assert.equal(ledger.appendBatch(operations).created, true);
+    const members = [
+      {logicalItemLocatorCid: locator, dispatchEntryCid: cid('2')},
+      {logicalItemLocatorCid: secondLocator, dispatchEntryCid: cid('4')},
+    ];
+    const observation = {logicalRequestScopeCid: scope,
+      credentialUseCid: cid('d'), statusCode: 200, responseBytes, members};
+    assert.equal(ledger.recordBatchResponse(observation).created, true);
+    assert.equal(ledger.recordBatchResponse(observation).created, false);
+    assert.throws(() => ledger.recordResponse({
+      logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('2'), credentialUseCid: cid('d'),
+      statusCode: 200, responseBytes,
+    }), {code: 'EffectPhysicalResponseCollision'});
+    const database = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    assert.equal(database.prepare(`
+      SELECT SUM(LENGTH(response_bytes)) AS bytes
+      FROM effect_ledger_batch_responses
+    `).get().bytes, responseBytes.byteLength);
+    assert.equal(database.prepare(`
+      SELECT COUNT(*) AS count FROM effect_ledger_responses
+    `).get().count, 0);
+    database.close();
+    ledger.close();
+    const restarted = openSqliteEffectLedger(root, limits);
+    t.after(() => restarted.close());
+    assert.deepEqual(restarted.response(cid('2')).responseBytes,
+      responseBytes);
+    assert.deepEqual(restarted.response(cid('4')).responseBytes,
+      responseBytes);
+    const tamper = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    tamper.prepare(`
+      UPDATE effect_ledger_batch_members SET logical_item_locator_cid = ?
+      WHERE dispatch_entry_cid = ?
+    `).run(cid('e'), cid('4'));
+    tamper.close();
+    assert.throws(() => restarted.response(cid('2')),
+      {code: 'EffectLedgerIntegrityFailed'});
+  });
+
+test('batch response capacity failure leaves no partial row observations',
+  async t => {
+    const root = await fixture(t);
+    const responseBytes = Buffer.from('[{"success":true}]');
+    const entryBytes = 2 * (Buffer.byteLength(firstJson) +
+      Buffer.byteLength(secondJson));
+    const ledger = openSqliteEffectLedger(root, {
+      authorityScopeCid: scope, maxEntries: 7,
+      maxStoredBytes: entryBytes + responseBytes.byteLength - 1,
+    });
+    t.after(() => ledger.close());
+    const secondLocator = cid('c');
+    ledger.appendBatch([locator, secondLocator].map((item, index) => ({
+      logicalRequestScopeCid: scope,
+      logicalItemLocatorCid: item,
+      expectedRevision: 0,
+      expectedEntryCid: null,
+      entries: [
+        {entryCid: cid(index === 0 ? '1' : '3'), entryJson: firstJson},
+        {entryCid: cid(index === 0 ? '2' : '4'), entryJson: secondJson},
+      ],
+    })));
+    assert.throws(() => ledger.recordBatchResponse({
+      logicalRequestScopeCid: scope, credentialUseCid: cid('d'),
+      statusCode: 200, responseBytes,
+      members: [
+        {logicalItemLocatorCid: locator, dispatchEntryCid: cid('2')},
+        {logicalItemLocatorCid: secondLocator, dispatchEntryCid: cid('4')},
+      ],
+    }), {code: 'EffectLedgerCapacityExceeded'});
+    assert.equal(ledger.response(cid('2')), undefined);
+    assert.equal(ledger.response(cid('4')), undefined);
+  });
+
 test('physical corruption fails closed and bounded history cannot truncate',
   async t => {
     const root = await fixture(t);
