@@ -60,3 +60,11 @@ with SHA-256 values
 `c9ac9ef070989b255cfb9cfdff9aec309b3709482a382981d625de70dc6ded0a`,
 `1ba62c6dcc0e41d62bcde564169d322a7296ee9c7c7a298640a3a6ed2f0934b7`
 and `aa659d32b4aca51c1502bb44ae506facf546a0e3197ffd7b40255a69fdce6286`.
+
+The fixed DuckDB `physical_strategy_example` is not a larger-Program Host
+fixture. Its parser caps the Program at five stages and its application
+requires exactly four or five stages (`src/physical_strategy_example/application.mbt`).
+A 21-stage/20-compute-task version of the registered narrow-100 Program was
+rejected at preparation with `StageLimit`, before placement. The operational
+scale profile must use the generic standard Host with installed Local/DuckDB
+contributions, not raise the example's limit and call that product evidence.
