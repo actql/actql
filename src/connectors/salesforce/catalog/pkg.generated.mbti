@@ -184,6 +184,8 @@ pub fn write_collection_request_path(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_resource(WriteCollectionRequest) -> String
 
+pub fn write_collection_request_row_body(WriteCollectionRequest, Int) -> String?
+
 pub fn write_collection_request_row_cid(WriteCollectionRequest, Int) -> String?
 
 pub fn write_collection_request_row_count(WriteCollectionRequest) -> Int
@@ -515,6 +517,7 @@ pub struct WriteCollectionRequest {
   kind : WriteCollectionKind
   projection : WriteProjection
   row_preview_cids : Array[String]
+  row_bodies : Array[String]
   targets : Array[WriteTargetValue]
   max_target_bytes : Int
 }

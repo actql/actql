@@ -3,6 +3,7 @@ pub(all) enum EffectPreviewIdentityIssue {
   PreviewShape(PublicationContractIssue)
   InvalidMember
   RowInventoryMismatch(Int)
+  RowIdentityMismatch(Int, Int)
   MemberIdentityMismatch(Int)
   PreviewIdentityMismatch
   RunBindingMismatch
@@ -23,6 +24,9 @@ pub struct EffectPreviewIdentity {
   row_cids : Array[Array[String]]
   row_indices : Array[Map[String, Int]]
   row_correlation_wires : Array[Array[String]]
+  row_intended_value_wires : Array[Array[String]]
+  ordered_row_correlation_wires : Array[Array[String]]
+  ordered_row_intended_value_wires : Array[Array[String]]
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
@@ -243,30 +247,180 @@ fn effect_preview_semantic_cid(
 }
 
 ///|
+fn effect_preview_row_cid(
+  preview : @json.CanonicalValue,
+  effect : @json.CanonicalValue,
+  change : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, EffectPreviewIdentityIssue] {
+  guard @json.object_field(preview, "program_definition_cid") is Some(program) &&
+    @json.object_field(preview, "invocation_cid") is Some(invocation) &&
+    @json.object_field(effect, "effect_identity_cid") is Some(effect_identity) &&
+    @json.object_field(effect, "effect_kind") is Some(@json.String(operation)) &&
+    @json.object_field(effect, "preview_strength")
+    is Some(@json.String(strength)) &&
+    @json.object_field(change, "target_row_identity") is Some(target) &&
+    @json.object_field(change, "target_guard") is Some(guard_value) &&
+    @json.object_field(change, "intended_changes") is Some(intended) &&
+    @json.object_field(change, "before") is Some(before) &&
+    @json.object_field(change, "after") is Some(after) else {
+    return Err(InvalidMember)
+  }
+  let contract = if operation == "command" {
+    @json.object_field(effect, "resolved_command_contract_cid")
+  } else {
+    @json.object_field(effect, "resolved_mapping_contract_cid")
+  }
+  guard contract is Some(resolved_contract) else { return Err(InvalidMember) }
+  guard @json.object_field(guard_value, "state")
+    is Some(@json.String(guard_state)) &&
+    @json.object_field(intended, "state") is Some(@json.String(intended_state)) else {
+    return Err(InvalidMember)
+  }
+  let guarded_preview = strength == "full_diff" || strength == "targeted"
+  let before_present = match @json.object_field(before, "state") {
+    Some(@json.String("present")) => true
+    _ => false
+  }
+  let update_side_upsert = operation == "upsert" && before_present
+  if (
+      guarded_preview &&
+      (operation == "update" || operation == "delete" || update_side_upsert) &&
+      guard_state != "version"
+    ) ||
+    (operation == "create" && guard_state != "not_applicable") ||
+    (operation == "delete" && intended_state != "not_applicable") ||
+    (
+      operation != "delete" &&
+      operation != "command" &&
+      intended_state != "present"
+    ) {
+    return Err(InvalidMember)
+  }
+  let writer = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  let digest = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "after")
+    @json.emit_value(after, writer)
+    @encode.key(writer, "before")
+    @json.emit_value(before, writer)
+    @encode.key(writer, "effect_identity_cid")
+    @json.emit_value(effect_identity, writer)
+    @encode.key(writer, "intended_changes")
+    @json.emit_value(intended, writer)
+    @encode.key(writer, "invocation_cid")
+    @json.emit_value(invocation, writer)
+    @encode.key(writer, "operation")
+    @encode.string_value(writer, operation)
+    @encode.key(writer, "preview_strength")
+    @encode.string_value(writer, strength)
+    @encode.key(writer, "program_definition_cid")
+    @json.emit_value(program, writer)
+    @encode.key(writer, "resolved_contract_cid")
+    @json.emit_value(resolved_contract, writer)
+    @encode.key(writer, "target_guard")
+    @json.emit_value(guard_value, writer)
+    @encode.key(writer, "target_row_identity")
+    @json.emit_value(target, writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-effect-preview-row/0.1")
+    @encode.end_object(writer)
+    @encode.finish_hash(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
+  Ok("sha256:" + digest)
+}
+
+///|
+/// Derive row identities before sealing member and set identities. Supplied
+/// row CIDs are placeholders here; admission compares them separately.
+pub fn derive_effect_preview_row_identities(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[Array[String]], EffectPreviewIdentityIssue] {
+  let preview = match
+    parse_effect_preview_shape(wire, max_wire_bytes, max_nodes, max_depth) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  let members = match @json.object_field(preview, "effects") {
+    Some(@json.Array(items)) => @json.array_values(items)
+    _ => return Err(InvalidMember)
+  }
+  let row_cids : Array[Array[String]] = []
+  for effect in members {
+    let changes = match @json.object_field(effect, "changes") {
+      Some(@json.Array(items)) => @json.array_values(items)
+      _ => return Err(InvalidMember)
+    }
+    let rows : Array[String] = []
+    for change in changes {
+      let cid = match
+        effect_preview_row_cid(
+          preview, effect, change, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      rows.push(cid)
+    }
+    row_cids.push(rows)
+  }
+  Ok(row_cids)
+}
+
+///|
 fn effect_member_row_inventory(
+  preview : @json.CanonicalValue,
   effect : @json.CanonicalValue,
   index : Int,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  (Array[String], Array[String], Array[String], Array[String]),
+  (Array[String], Array[String], Array[String], Array[String], Array[String]),
   EffectPreviewIdentityIssue,
 ] {
   let changes = match @json.object_field(effect, "changes") {
     Some(@json.Array(items)) => @json.array_values(items)
     _ => return Err(InvalidMember)
   }
+  guard @json.object_field(effect, "count") is Some(@json.Number(count)) &&
+    @json.object_field(effect, "max_items") is Some(@json.Number(max_items)) &&
+    count == changes.length().to_double() &&
+    count <= max_items &&
+    @json.object_field(effect, "row_order") is Some(@json.Array(order_frozen)) else {
+    return Err(RowInventoryMismatch(index))
+  }
   let keys : Array[String] = []
   let rows : Array[String] = []
   let correlations : Array[String] = []
-  for change in changes {
+  let intended_values : Array[String] = []
+  for row_index in 0..<changes.length() {
+    let change = changes[row_index]
     match
       (
         @json.object_field(change, "row_preview_cid"),
         @json.object_field(change, "row_idempotency_key"),
       ) {
       (Some(@json.String(row)), Some(@json.String(key))) => {
+        let derived = match
+          effect_preview_row_cid(
+            preview, effect, change, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if derived != row {
+          return Err(RowIdentityMismatch(index, row_index))
+        }
         if rows.contains(row) || keys.contains(key) {
           return Err(RowInventoryMismatch(index))
         }
@@ -282,16 +436,24 @@ fn effect_member_row_inventory(
           _ => return Err(Encoding)
         }
         correlations.push(correlation)
+        let intended_value = match
+          @json.object_field(change, "intended_changes") {
+          Some(intended) =>
+            match @json.object_field(intended, "value") {
+              Some(value) =>
+                @json.stringify_value(
+                  value, max_wire_bytes, max_nodes, max_depth,
+                ) catch {
+                  _ => return Err(Encoding)
+                }
+              None => ""
+            }
+          None => return Err(InvalidMember)
+        }
+        intended_values.push(intended_value)
       }
       _ => return Err(InvalidMember)
     }
-  }
-  guard @json.object_field(effect, "count") is Some(@json.Number(count)) &&
-    @json.object_field(effect, "max_items") is Some(@json.Number(max_items)) &&
-    count == changes.length().to_double() &&
-    count <= max_items &&
-    @json.object_field(effect, "row_order") is Some(@json.Array(order_frozen)) else {
-    return Err(RowInventoryMismatch(index))
   }
   let supplied_order = @json.array_values(order_frozen)
   if supplied_order.length() != rows.length() {
@@ -309,7 +471,7 @@ fn effect_member_row_inventory(
       _ => return Err(RowInventoryMismatch(index))
     }
   }
-  Ok((keys, rows, order, correlations))
+  Ok((keys, rows, order, correlations, intended_values))
 }
 
 ///|
@@ -345,7 +507,7 @@ pub fn derive_effect_preview_identities(
     seen_effect_ids[effect_id] = true
     match
       effect_member_row_inventory(
-        effect, index, max_wire_bytes, max_nodes, max_depth,
+        preview, effect, index, max_wire_bytes, max_nodes, max_depth,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -397,6 +559,9 @@ pub fn admit_effect_preview_identity(
   let row_cids : Array[Array[String]] = []
   let row_indices : Array[Map[String, Int]] = []
   let row_correlation_wires : Array[Array[String]] = []
+  let row_intended_value_wires : Array[Array[String]] = []
+  let ordered_row_correlation_wires : Array[Array[String]] = []
+  let ordered_row_intended_value_wires : Array[Array[String]] = []
   let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
     let effect = members[index]
@@ -424,9 +589,15 @@ pub fn admit_effect_preview_identity(
       None => return Err(InvalidMember)
     }
     member_footprints.push(footprint)
-    let (member_keys, member_rows, member_order, member_correlations) = match
+    let (
+      member_keys,
+      member_rows,
+      member_order,
+      member_correlations,
+      member_intended_values,
+    ) = match
       effect_member_row_inventory(
-        effect, index, max_wire_bytes, max_nodes, max_depth,
+        preview, effect, index, max_wire_bytes, max_nodes, max_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -436,9 +607,28 @@ pub fn admit_effect_preview_identity(
     for row_index in 0..<member_rows.length() {
       indices[member_rows[row_index]] = row_index
     }
+    let ordered_correlations : Array[String] = []
+    let ordered_intended_values : Array[String] = []
+    for row_cid in member_order {
+      let mut found = false
+      for row_index in 0..<member_rows.length() {
+        if member_rows[row_index] == row_cid {
+          ordered_correlations.push(member_correlations[row_index])
+          ordered_intended_values.push(member_intended_values[row_index])
+          found = true
+          break
+        }
+      }
+      if !found {
+        return Err(RowInventoryMismatch(index))
+      }
+    }
     row_indices.push(indices)
     row_cids.push(member_rows)
     row_correlation_wires.push(member_correlations)
+    row_intended_value_wires.push(member_intended_values)
+    ordered_row_correlation_wires.push(ordered_correlations)
+    ordered_row_intended_value_wires.push(ordered_intended_values)
     row_order.push(member_order)
     let cid = match
       effect_member_semantic_cid(effect, max_wire_bytes, max_nodes, max_depth) {
@@ -508,6 +698,9 @@ pub fn admit_effect_preview_identity(
     row_cids,
     row_indices,
     row_correlation_wires,
+    row_intended_value_wires,
+    ordered_row_correlation_wires,
+    ordered_row_intended_value_wires,
     row_order,
     run_identity_cid: run,
     authoring_context_cid: authoring,
@@ -602,6 +795,25 @@ pub fn effect_preview_row_identity(
 }
 
 ///|
+/// The approved value is retained from the private Preview, not recomputed
+/// from a later target observation. None denotes an invalid row index or a
+/// row with an explicit not-applicable payload.
+pub fn effect_preview_row_intended_value_wire(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  match value.row_intended_value_wires.get(member_index) {
+    Some(rows) =>
+      match rows.get(row_index) {
+        Some("") => None
+        other => other
+      }
+    None => None
+  }
+}
+
+///|
 pub fn effect_preview_row_index(
   value : EffectPreviewIdentity,
   member_index : Int,
@@ -633,6 +845,34 @@ pub fn effect_preview_ordered_row_identity(
 ) -> String? {
   match value.row_order.get(member_index) {
     Some(rows) => rows.get(row_index)
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_ordered_row_intended_value_wire(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  ordered_index : Int,
+) -> String? {
+  match value.ordered_row_intended_value_wires.get(member_index) {
+    Some(rows) =>
+      match rows.get(ordered_index) {
+        Some("") => None
+        other => other
+      }
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_ordered_row_correlation_wire(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  ordered_index : Int,
+) -> String? {
+  match value.ordered_row_correlation_wires.get(member_index) {
+    Some(rows) => rows.get(ordered_index)
     None => None
   }
 }

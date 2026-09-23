@@ -7165,6 +7165,23 @@ pub fn strategy_effect_preview_identities(
 }
 
 ///|
+#export_name("strategyEffectPreviewRowIdentities")
+pub fn strategy_effect_preview_row_identities(
+  preview_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Array[Array[String]] raise NodeHostFailure {
+  match
+    @publication.derive_effect_preview_row_identities(
+      preview_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(rows) => rows
+    Err(issue) => raise EffectPreviewIdentity(@effect.Preview(issue))
+  }
+}
+
+///|
 #export_name("strategyEffectPreviewApplyIdentityAdmit")
 pub fn strategy_effect_preview_apply_identity_admit(
   preview_wire : String,

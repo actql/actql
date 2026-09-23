@@ -304,7 +304,12 @@ fn effect_set_frontier_from_ledger_entries(
           }
           match entry.state {
             Prepared => ItemUnattempted
-            Dispatching => if active[row_index] { ItemSending } else { ItemUnknown }
+            Dispatching =>
+              if active[row_index] {
+                ItemSending
+              } else {
+                ItemUnknown
+              }
             Applied => ItemApplied
             Accepted => ItemAccepted
             Failed => ItemFailed

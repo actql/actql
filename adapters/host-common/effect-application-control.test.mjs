@@ -192,7 +192,10 @@ test('Host bridge admits Effect Preview identity and exact apply key', () => {
     approval: 'none', on_item_failure: 'halt',
     changes: [{
       target_row_identity: 'row-1', before: {state: 'present', value: {}},
-      after: {state: 'present', value: {}}, row_preview_cid: cid('3'),
+      after: {state: 'present', value: {}},
+      target_guard: {state: 'version', version_cid: cid('a')},
+      intended_changes: {state: 'present', value: {}},
+      row_preview_cid: cid('3'),
       row_idempotency_key: cid('4'),
     }],
     row_order: [cid('3')], effect_member_preview_cid: cid('a'),
@@ -213,6 +216,10 @@ test('Host bridge admits Effect Preview identity and exact apply key', () => {
     model_response_artifact_cids: [], effects: [member], executed: false,
     effect_preview_cid: cid('a'),
   };
+  const rowCid = effect.derivePreviewRowIdentities(canonicalJson(preview),
+    8192, 256, 12)[0][0];
+  member.changes[0].row_preview_cid = rowCid;
+  member.row_order = [rowCid];
   const identities = effect.derivePreviewIdentities(canonicalJson(preview),
     8192, 256, 12);
   member.effect_member_preview_cid = identities[1];

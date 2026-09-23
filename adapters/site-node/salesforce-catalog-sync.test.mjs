@@ -39,7 +39,20 @@ import {writeSalesforceContinueCollection} from
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
-function admittedCreateRowFixture(effect, scope, rowCid, effectId, after,
+function independentPreviewRowCid(operation, target, guard, intended,
+  before, after) {
+  const body = {
+    version: 'actql-effect-preview-row/0.1',
+    program_definition_cid: cid('a'), invocation_cid: cid('a'),
+    effect_identity_cid: cid('a'), resolved_contract_cid: cid('a'),
+    operation, target_row_identity: target, preview_strength: 'full_diff',
+    target_guard: guard, intended_changes: intended, before, after,
+  };
+  return `sha256:${createHash('sha256').update(canonicalJson(body))
+    .digest('hex')}`;
+}
+
+function admittedCreateRowFixture(effect, scope, effectId, after,
   providerBoundaryCid) {
   const authoring =
     'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
@@ -47,6 +60,11 @@ function admittedCreateRowFixture(effect, scope, rowCid, effectId, after,
     value: after, version: 'actql-effect-content-row/0.1',
   })).digest('hex')}`;
   const correlation = {content_cid: contentCid, occurrence: 0};
+  const guard = {state: 'not_applicable'};
+  const intended = {state: 'present', value: after.value};
+  const before = {state: 'absent'};
+  const rowCid = independentPreviewRowCid('create', correlation, guard,
+    intended, before, after);
   const member = {
     effect_id: effectId, effect_kind: 'create',
     target: 'Test_Record__c', mapping: 'mapping:fixture',
@@ -62,8 +80,9 @@ function admittedCreateRowFixture(effect, scope, rowCid, effectId, after,
     },
     count: 1, max_items: 1, required_permissions: ['write'],
     approval: 'none', on_item_failure: 'halt',
-    changes: [{target_row_identity: correlation, before: {state: 'absent'},
-      after, row_preview_cid: rowCid, row_idempotency_key: cid('4')}],
+    changes: [{target_row_identity: correlation, target_guard: guard,
+      intended_changes: intended, before, after, row_preview_cid: rowCid,
+      row_idempotency_key: cid('4')}],
     row_order: [rowCid], effect_member_preview_cid: cid('a'),
     executed: false,
   };
@@ -83,6 +102,8 @@ function admittedCreateRowFixture(effect, scope, rowCid, effectId, after,
     model_response_artifact_cids: [], effects: [member], executed: false,
     effect_preview_cid: cid('a'),
   };
+  assert.deepEqual(effect.derivePreviewRowIdentities(
+    canonicalJson(preview), 8192, 256, 12), [[rowCid]]);
   member.effect_member_preview_cid = effect.derivePreviewIdentities(
     canonicalJson(preview), 8192, 256, 12)[1];
   preview.effect_preview_cid = effect.derivePreviewIdentities(
@@ -92,7 +113,7 @@ function admittedCreateRowFixture(effect, scope, rowCid, effectId, after,
   member.changes[0].row_idempotency_key = effect.dispatchKeyCid(key);
   const wire = canonicalJson(preview);
   return Object.freeze({
-    key, correlation, memberCid: member.effect_member_preview_cid,
+    key, correlation, rowCid, memberCid: member.effect_member_preview_cid,
     admit: () => effect.admitPreviewIdentity(wire, cid('a'), authoring,
       scope, [[key]], 8192, 256, 12),
   });
@@ -615,12 +636,12 @@ test('Host claim owns one local HTTPS write', async t => {
   const authorityScopeCid = cid('8');
   const scope = effect.logicalRequestScope(authorityScopeCid,
     'salesforce-business-request', 128);
-  const rowPreviewCid = cid('3');
   const boundaryCid = checked(
     salesforceMoon.salesforceSingleWriteRequestBoundaryCid(outbound, 4096));
-  const preview = admittedCreateRowFixture(effect, scope, rowPreviewCid,
+  const preview = admittedCreateRowFixture(effect, scope,
     'CreateOne', {state: 'present', value: {External_Key__c: 'key-1'}},
     boundaryCid);
+  const rowPreviewCid = preview.rowCid;
   const key = preview.key;
   const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
     'CreateOne', canonicalJson(preview.correlation), 64, 128, 8, 3);
@@ -644,8 +665,18 @@ test('Host claim owns one local HTTPS write', async t => {
       maxNodes: 32, maxDepth: 5}};
   const first = open();
   t.after(() => first.close());
+  const unapprovedBody = checked(salesforceMoon.salesforcePrepareWriteBody(
+    projection, Buffer.from('{"External_Key__c":"unapproved"}'),
+    1024, 32, 5));
+  const unapprovedRequest = checked(
+    salesforceMoon.salesforcePrepareSingleWriteRequest(
+      unapprovedBody, 'v62.0', 0, '', 0, 256, 128, 1024));
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first, request: unapprovedRequest,
+  }), {code: 'ForeignSalesforceEffectFootprint'});
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 0);
   const foreignPreview = admittedCreateRowFixture(effect, scope,
-    rowPreviewCid, 'CreateOne',
+    'CreateOne',
     {state: 'present', value: {External_Key__c: 'key-1'}}, cid('f'));
   await assert.rejects(captureSalesforceSingleEffectWrite({
     ...options, ledger: first, admittedPreview: foreignPreview.admit(),
@@ -659,7 +690,7 @@ test('Host claim owns one local HTTPS write', async t => {
   }), {code: 'MoonBitHostFailure'});
   await assert.rejects(captureSalesforceSingleEffectWrite({
     ...options, ledger: first, rowIndex: 1,
-  }), {code: 'MoonBitHostFailure'});
+  }), {code: 'ForeignSalesforceEffectFootprint'});
   await assert.rejects(captureSalesforceSingleEffectWrite({
     ...options, ledger: first,
     authorization: {...options.authorization,
@@ -729,13 +760,13 @@ test('lost HTTPS reply remains uncertain across Effect ledger restart',
     const authorityScopeCid = cid('8');
     const scope = effect.logicalRequestScope(authorityScopeCid,
       'lost-reply-business-request', 128);
-    const rowPreviewCid = cid('3');
     const boundaryCid = checked(
       salesforceMoon.salesforceSingleWriteRequestBoundaryCid(outbound, 4096));
-    const preview = admittedCreateRowFixture(effect, scope, rowPreviewCid,
+    const preview = admittedCreateRowFixture(effect, scope,
       'CreateLostReply', {state: 'present', value: {
         External_Key__c: 'lost-reply',
       }}, boundaryCid);
+    const rowPreviewCid = preview.rowCid;
     const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
       'CreateLostReply', canonicalJson(preview.correlation), 64, 128, 8, 3);
     const basis = effect.ledgerBasis(scope, locator, preview.key,
@@ -931,7 +962,16 @@ test('Host custody binds one HTTPS Collections response to every row',
       salesforceMoon.salesforcePrepareWriteBody(projection,
         Buffer.from(JSON.stringify({External_Key__c: key})),
         1024, 32, 5)));
-    const rowCids = [cid('1'), cid('2')];
+    const contentCids = [cid('c'), cid('d')];
+    const rowCids = contentCids.map((contentCid, index) => {
+      const after = {state: 'present', value: {
+        External_Key__c: `key-${index + 1}`}};
+      return independentPreviewRowCid('create',
+        {content_cid: contentCid, occurrence: 0},
+        {state: 'not_applicable'},
+        {state: 'present', value: after.value},
+        {state: 'absent'}, after);
+    });
     const outbound = checked(
       salesforceMoon.salesforcePrepareContinueWriteCollection(
         rowCids, bodies, [0, 0], ['', ''], [0, 0], 'v62.0',
@@ -946,7 +986,6 @@ test('Host custody binds one HTTPS Collections response to every row',
     const authorityScopeCid = cid('8');
     const scope = effect.logicalRequestScope(authorityScopeCid,
       'collection-business-request', 128);
-    const contentCids = [cid('c'), cid('d')];
     const authoring =
       'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
     const member = {
@@ -967,6 +1006,9 @@ test('Host custody binds one HTTPS Collections response to every row',
       approval: 'none', on_item_failure: 'continue',
       changes: rowCids.map((rowCid, index) => ({
         target_row_identity: {content_cid: contentCids[index], occurrence: 0},
+        target_guard: {state: 'not_applicable'},
+        intended_changes: {state: 'present', value: {
+          External_Key__c: `key-${index + 1}`}},
         before: {state: 'absent'},
         after: {state: 'present', value: {
           External_Key__c: `key-${index + 1}`}},
@@ -992,6 +1034,8 @@ test('Host custody binds one HTTPS Collections response to every row',
       model_response_artifact_cids: [], effects: [member], executed: false,
       effect_preview_cid: cid('a'),
     };
+    assert.deepEqual(effect.derivePreviewRowIdentities(
+      canonicalJson(preview), 8192, 256, 12), [rowCids]);
     member.effect_member_preview_cid = effect.derivePreviewIdentities(
       canonicalJson(preview), 8192, 256, 12)[1];
     preview.effect_preview_cid = effect.derivePreviewIdentities(
@@ -1007,6 +1051,33 @@ test('Host custody binds one HTTPS Collections response to every row',
     const admitPreview = () => effect.admitPreviewIdentity(
       previewWire, cid('a'), authoring, scope, [keys], 8192, 256, 12);
     const admittedPreview = admitPreview();
+    const reorderedPreview = structuredClone(preview);
+    reorderedPreview.effects[0].row_order = [...rowCids].reverse();
+    reorderedPreview.effects[0].effect_member_preview_cid =
+      effect.derivePreviewIdentities(
+        canonicalJson(reorderedPreview), 8192, 256, 12)[1];
+    reorderedPreview.effect_preview_cid = effect.derivePreviewIdentities(
+      canonicalJson(reorderedPreview), 8192, 256, 12)[0];
+    const reorderedKeys = contentCids.map(contentCid => effect.dispatchKey(
+      scope, reorderedPreview.effect_preview_cid,
+      canonicalJson({content_cid: contentCid, occurrence: 0}), 128, 8, 3));
+    reorderedPreview.effects[0].changes.forEach((change, index) => {
+      change.row_idempotency_key = effect.dispatchKeyCid(
+        reorderedKeys[index]);
+    });
+    const reorderedAdmitted = effect.admitPreviewIdentity(
+      canonicalJson(reorderedPreview), cid('a'), authoring, scope,
+      [reorderedKeys], 8192, 256, 12);
+    const reorderedRequest = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        [...rowCids].reverse(), [...bodies].reverse(), [0, 0], ['', ''],
+        [0, 0], 'v62.0', 256, 128, 1024, 64, 6, 200));
+    assert.equal(checked(
+      salesforceMoon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
+        reorderedAdmitted, 0, 0, reorderedRequest, 4096, 100_000)), true);
+    assert.equal(checked(
+      salesforceMoon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
+        reorderedAdmitted, 0, 0, outbound, 4096, 100_000)), false);
     assert.equal(effect.checkPreviewFootprintConflicts(
       previewWire, ['CreateTwo'], [1], [cid('a')],
       8192, 256, 12, 1, 0, 100), true);
@@ -1040,6 +1111,18 @@ test('Host custody binds one HTTPS Collections response to every row',
       claims, admittedPreview, memberIndex: 0, firstRow: 0};
     const first = open();
     t.after(() => first.close());
+    const unapprovedBody = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"unapproved"}'),
+      1024, 32, 5));
+    const unapprovedRequest = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        rowCids, [unapprovedBody, bodies[1]], [0, 0], ['', ''], [0, 0],
+        'v62.0', 256, 128, 1024, 64, 6, 200));
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first, request: unapprovedRequest,
+    }), {code: 'ForeignSalesforceEffectFootprint'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 0);
     const foreignPreview = structuredClone(preview);
     foreignPreview.effects[0].write_footprint.provider_boundary_cid = cid('f');
     foreignPreview.effects[0].effect_member_preview_cid =
@@ -1130,8 +1213,13 @@ test('Collections cannot swap two Preview targets before the send claim',
     const body = checked(salesforceMoon.salesforcePrepareWriteBody(
       projection, Buffer.from('{"External_Key__c":"changed"}'),
       1024, 32, 5));
-    const rowCids = [cid('1'), cid('2')];
     const targets = ['001000000000001', '001000000000002'];
+    const rowCids = targets.map(target => independentPreviewRowCid(
+      'update', target,
+      {state: 'version', version_cid: cid('a')},
+      {state: 'present', value: {External_Key__c: 'changed'}},
+      {state: 'present', value: {External_Key__c: 'old'}},
+      {state: 'present', value: {External_Key__c: 'changed'}}));
     const outbound = checked(
       salesforceMoon.salesforcePrepareContinueWriteCollection(
         rowCids, [body, body], [1, 1], [...targets].reverse(), [0, 0],
@@ -1170,6 +1258,9 @@ test('Collections cannot swap two Preview targets before the send claim',
       approval: 'none', on_item_failure: 'continue',
       changes: rowCids.map((rowCid, index) => ({
         target_row_identity: targets[index],
+        target_guard: {state: 'version', version_cid: cid('a')},
+        intended_changes: {state: 'present', value: {
+          External_Key__c: 'changed'}},
         before: {state: 'present', value: {External_Key__c: 'old'}},
         after: {state: 'present', value: {External_Key__c: 'changed'}},
         row_preview_cid: rowCid,
@@ -1194,6 +1285,8 @@ test('Collections cannot swap two Preview targets before the send claim',
       model_response_artifact_cids: [], effects: [member], executed: false,
       effect_preview_cid: cid('a'),
     };
+    assert.deepEqual(effect.derivePreviewRowIdentities(
+      canonicalJson(preview), 8192, 256, 12), [rowCids]);
     member.effect_member_preview_cid = effect.derivePreviewIdentities(
       canonicalJson(preview), 8192, 256, 12)[1];
     preview.effect_preview_cid = effect.derivePreviewIdentities(
@@ -1210,6 +1303,9 @@ test('Collections cannot swap two Preview targets before the send claim',
       salesforceMoon.salesforcePrepareContinueWriteCollection(
         rowCids, [body, body], [1, 1], targets, [0, 0],
         'v62.0', 256, 128, 1024, 64, 6, 200));
+    const sentRecord = JSON.parse(
+      salesforceMoon.salesforceCollectionWriteRequestBody(ordered)).records[0];
+    assert.equal(sentRecord.External_Key__c, 'changed');
     assert.equal(checked(
       salesforceMoon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
         admittedPreview, 0, 0, ordered, 4096, 100_000)), true);
@@ -1219,6 +1315,8 @@ test('Collections cannot swap two Preview targets before the send claim',
     const singleFirst = checked(
       salesforceMoon.salesforcePrepareSingleWriteRequest(
         body, 'v62.0', 1, targets[0], 0, 256, 128, 1024));
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestBody(singleFirst),
+      '{"External_Key__c":"changed"}');
     const singleSecond = checked(
       salesforceMoon.salesforcePrepareSingleWriteRequest(
         body, 'v62.0', 1, targets[1], 0, 256, 128, 1024));
