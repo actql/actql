@@ -357,6 +357,65 @@ test "normalize confirms cancellation before reclaiming partial output" {
 }
 
 ///|
+test "normalize accepts the exact node capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    { ..storage_limits(), max_nodes: 2, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  guard advance_normalize(execution, 1).unwrap()
+    is Complete(completed, progress=3L, work=3L) else {
+    fail("exact node capacity must complete")
+  }
+  assert_eq(
+    @storage.node_count(@graph.completed_storage(completed).unwrap()),
+    2,
+  )
+  assert_eq(
+    @storage.edge_count(@graph.completed_storage(completed).unwrap()),
+    1,
+  )
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize rejects one node less than the required capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    { ..storage_limits(), max_nodes: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.NodeLimit)), progress=1L, work=1L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
 test "normalize rejects foreign kernels and bounded output overflow" {
   let producer = source_owner()
   let source = source_graph(producer, Ref(true))

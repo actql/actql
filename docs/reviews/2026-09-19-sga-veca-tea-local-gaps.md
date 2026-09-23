@@ -64,8 +64,13 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Ten of the 68 production routes currently bind operation-specific boundary
-  fixtures. The selected RelA filter route adds an independent exact/one-short
+  Eleven of the 68 production routes currently bind operation-specific boundary
+  fixtures. Graph normalization now has independent exact/tight node-capacity
+  fixtures on all three targets, plus direct cancellation and cleanup. A
+  standard Host cancellation case covers the normalize pipeline, but does not
+  yet attribute stop to the normalize kernel. Its direct storage-read and
+  managed-view starts are distinct, so this evidence does not close whole-route
+  assurance. The selected RelA filter route adds an independent exact/one-short
   input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
   after measured work, then confirms stop without exposing a partial result. A
@@ -85,7 +90,7 @@ readable coverage manifest is authoritative for individual operation status.
   cancellation, or cleanup roles is rejected. Reusing one fixture across
   different production paths requires a recorded reason and the same exact
   implementation entrypoint.
-  A successful route gate does not establish boundary closure for the other 58
+  A successful route gate does not establish boundary closure for the other 57
   operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
@@ -116,7 +121,8 @@ readable coverage manifest is authoritative for individual operation status.
   delivers a real timer cancellation after 70
   quantum-one advances, and verifies stop and cleanup. Two local runs measured
   0.529 and 0.477 ms maximum resume, and 0.207 and 0.100 ms from cancellation
-  delivery to stop, respectively.
+  delivery to stop, respectively. A further local run measured 0.384 ms maximum
+  resume and 0.100 ms from delivery to stop with the same fixture.
   These are environment diagnostics, not a universal deadline or proof for
   every admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted

@@ -249,6 +249,7 @@ for (const [index, route] of routeEntries.entries()) {
     const suiteDirectory = {
       'moon:query_integration': 'query_integration',
       'moon:execution_relation': 'execution_relation',
+      'moon:local_sga': 'local_sga',
     }[item.suite];
     if (!suiteDirectory ||
       JSON.stringify(item.targets) !== JSON.stringify(['js', 'wasm', 'native']) ||
@@ -414,6 +415,17 @@ for (const [index, route] of routeEntries.entries()) {
     route.family === 'SGA' &&
     !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
     fail(`${label}: reviewed exact/cancel boundary fixture is missing`);
+  }
+  if (route.family === 'SGA' && route.operation === 'normalize_graph') {
+    for (const role of [
+      'normalize_exact_node_capacity',
+      'normalize_one_short_node_capacity',
+      'normalize_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'RelA' && route.operation === 'filter') {
     if (route.selected_entrypoint?.symbol !==
