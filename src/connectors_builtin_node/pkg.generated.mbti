@@ -316,7 +316,7 @@ pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_app
 
 pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
 
-pub fn strategy_effect_preview_footprint_conflicts_check(String, Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 

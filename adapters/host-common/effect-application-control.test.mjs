@@ -124,16 +124,25 @@ test('Host derives set conflicts from the closed private Preview shape', () => {
     executed: false,
     effect_preview_cid: cid('a'),
   });
+  const inventory = [['second', 'first'], [1, 0]];
+  const second = {...member('second', cid('2')), on_item_failure: 'continue'};
   const limits = [8192, 256, 12, 2, 2, 100];
   assert.equal(effect.checkPreviewFootprintConflicts(preview([
-    member('first', cid('1')), member('second', cid('2')),
-  ]), ...limits), true);
+    member('first', cid('1')), second,
+  ]), ...inventory, ...limits), true);
   assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
-    member('first', cid('1')), member('second', cid('1')),
-  ]), ...limits));
+    member('first', cid('1')),
+    {...member('second', cid('1')), on_item_failure: 'continue'},
+  ]), ...inventory, ...limits));
   assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
-    member('first', cid('1')), {...member('second', cid('2')), executed: true},
-  ]), ...limits));
+    member('first', cid('1')), {...second, executed: true},
+  ]), ...inventory, ...limits));
+  assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
+    member('first', cid('1')), second,
+  ]), ['first', 'foreign'], [0, 1], ...limits));
+  assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
+    member('first', cid('1')), second,
+  ]), ['first', 'second'], [0, 0], ...limits));
 });
 
 test('Host bridge issues the same typed Effect ledger chain as MoonBit', () => {
