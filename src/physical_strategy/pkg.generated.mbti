@@ -55,6 +55,8 @@ pub fn captured_carrier_managed_task_input(CapturedDAG, Int, @execution_relation
 
 pub fn captured_carrier_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.CarrierManagedCompletedOutput) -> Bool
 
+pub fn captured_compute_first_task(CapturedDAG) -> Int
+
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
 pub fn captured_dag_generation(CapturedDAG) -> Int
@@ -307,6 +309,8 @@ pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @phys
 
 pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
 pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
 
 pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int) -> Result[CapturedEffectInputs, RunIssue]
@@ -323,7 +327,7 @@ pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connecto
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
-pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
+pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedEffectComputationDAG, GraphIssue]
 

@@ -116,6 +116,10 @@ pub fn prepare_effect_free_client_program(
       owners,
       limits.max_tasks,
       limits.max_graph_work,
+      source_free_root=owners.length() > 0 &&
+        @pipeline.starts_with_values(
+          @lower.pipeline(@lower.bound_preparation(owners[0])),
+        ),
     ) {
     Ok(graph) => Ok({ graph, })
     Err(issue) => Err(Graph(issue))

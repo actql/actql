@@ -409,7 +409,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   let (prepared, choice) = match
     @local.prepare_local_module_managed_compute_with_estimates(
       installed.implementation,
-      task - 1,
+      local_task_slot(installed, task),
       request,
       estimates,
       interval_search_ceilings~,

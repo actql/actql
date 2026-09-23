@@ -384,6 +384,8 @@ pub fn sort_order_strategy(SortOrder) -> SortStrategy
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
 
+pub fn starts_with_values(CheckedPipeline) -> Bool
+
 pub fn step_at(CheckedPipeline, Int) -> CheckedStep?
 
 pub fn step_count(CheckedPipeline) -> Int

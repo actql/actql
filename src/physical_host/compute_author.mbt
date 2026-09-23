@@ -13,11 +13,12 @@ pub fn prepare_compute_author_context(
   sequences : Array[@execution.CompletionPreparation],
 ) -> Result[ComputeAuthorContext, @connector.FixedComputeIssue] {
   let graph = @strategy.captured_dag_graph(driver.owner.run)
-  if sequences.length() != @strategy.graph_task_count(graph) - 1 {
+  let first = @strategy.captured_compute_first_task(driver.owner.run)
+  if sequences.length() != @strategy.graph_task_count(graph) - first {
     return Err(ForeignPreparation)
   }
   for index, sequence in sequences {
-    if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
+    if !(@strategy.graph_task_owner(graph, index + first) is Some(owner) &&
       physical_equal(owner, @execution.completion_preparation_owner(sequence))) {
       return Err(ForeignPreparation)
     }
@@ -30,7 +31,9 @@ pub fn compute_author_sequence(
   context : ComputeAuthorContext,
   task : Int,
 ) -> @execution.CompletionPreparation? {
-  context.sequences.get(task - 1)
+  context.sequences.get(
+    task - @strategy.captured_compute_first_task(context.driver.owner.run),
+  )
 }
 
 ///|

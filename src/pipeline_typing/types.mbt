@@ -308,6 +308,13 @@ pub fn step_at(value : CheckedPipeline, index : Int) -> CheckedStep? {
 }
 
 ///|
+/// Values owns an input-free physical root. This reports checked operation
+/// identity; it does not execute, capture or authorize the Program.
+pub fn starts_with_values(value : CheckedPipeline) -> Bool {
+  value.steps.get(0).map(step => step.operation is Values(_)).unwrap_or(false)
+}
+
+///|
 pub fn lookup(value : CheckedPipeline, name : String) -> Target? {
   value.names.get(name)
 }
