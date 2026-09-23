@@ -104,7 +104,7 @@ test "ordinary values document prepares one named Effect-free result" {
     prepared_client_identity(changed).parameter_values_cid,
     identity.parameter_values_cid,
   )
-  let ledger = @resources.create_ledger({
+  let run = open_prepared_source_free_client_run(prepared, {
     planning_work: 10000,
     attempts: 2,
     holdings: 2,
@@ -112,10 +112,17 @@ test "ordinary values document prepares one named Effect-free result" {
     retained_bytes: 10000L,
     execution_bytes: 10000L,
   }).unwrap()
-  let run = @strategy.open_source_free_dag(
-    prepared_client_graph(prepared),
-    ledger,
-  ).unwrap()
+  assert_true(
+    open_prepared_source_free_client_run(prepared, {
+      planning_work: -1,
+      attempts: 2,
+      holdings: 2,
+      transfer_bytes: 10000L,
+      retained_bytes: 10000L,
+      execution_bytes: 10000L,
+    })
+    is Err(Ledger(_)),
+  )
   assert_eq(@strategy.captured_compute_first_task(run), 0)
   assert_eq(@strategy.next_captured_task(run), Some(0))
   assert_false(@strategy.captured_task_completed(run, 0))

@@ -58,6 +58,29 @@ pub fn prepared_client_graph(
 }
 
 ///|
+pub(all) enum ClientRunOpenIssue {
+  Ledger(@resources.LedgerIssue)
+  Run(@strategy.RunIssue)
+}
+
+///|
+/// Open an admitted source-free preparation in the existing checked task
+/// lifecycle. The Host must durably admit a Client request before starting
+/// physical work; opening this in-memory task owner is not that admission.
+pub fn open_prepared_source_free_client_run(
+  value : PreparedClientProgram,
+  limits : @resources.LedgerLimits,
+) -> Result[@strategy.CapturedDAG, ClientRunOpenIssue] {
+  let ledger = match @resources.create_ledger(limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Ledger(issue))
+  }
+  @strategy.open_source_free_dag(value.graph, ledger).map_err(issue => {
+    Run(issue)
+  })
+}
+
+///|
 pub fn prepared_client_result_count(value : PreparedClientProgram) -> Int {
   @strategy.graph_result_count(value.graph)
 }

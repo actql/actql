@@ -5,6 +5,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/program_check",
   "actql/actql/run_publication",
@@ -13,6 +14,8 @@ import {
 }
 
 // Values
+pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
+
 pub fn prepare_all_captured_result_publication_exports(@physical_strategy.CapturedDAG, PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?]) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue]
 
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
@@ -60,6 +63,11 @@ pub(all) struct ClientProgramPreparationLimits {
   max_parameter_name_bytes : Int
   max_tasks : Int
   max_graph_work : Int
+}
+
+pub(all) enum ClientRunOpenIssue {
+  Ledger(@physical_resources.LedgerIssue)
+  Run(@physical_strategy.RunIssue)
 }
 
 pub(all) enum ClientTaskSequenceIssue {
