@@ -370,7 +370,28 @@ export async function connect(options) {
     },
     lookupRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
-      return (await exchange('lookup-request', {requestId}, signal)).json();
+      const response = await exchange('lookup-request', {requestId}, signal);
+      let answer;
+      try { answer = await response.json(); }
+      catch (cause) {
+        throw new ClientError('InvalidHostRequestLookup', {cause});
+      }
+      if (exact(answer, ['kind', 'ref', 'durability',
+        'lookupExpiresAt']) && answer.kind === 'found' &&
+        validRef(answer.ref) &&
+        ['volatile', 'durable'].includes(answer.durability) &&
+        typeof answer.lookupExpiresAt === 'string' &&
+        answer.lookupExpiresAt.length > 0) {
+        return Object.freeze({...answer, ref: Object.freeze({...answer.ref})});
+      }
+      if (exact(answer, ['kind']) && answer.kind === 'not_found') {
+        return Object.freeze(answer);
+      }
+      if (exact(answer, ['kind', 'reason']) && answer.kind === 'unknown' &&
+          typeof answer.reason === 'string' && answer.reason.length > 0) {
+        return Object.freeze(answer);
+      }
+      fail('InvalidHostRequestLookup');
     },
     close() { closed = true; },
   });
