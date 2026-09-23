@@ -159,3 +159,16 @@ workspace scratch area, with SHA-256 digests
 `565cbdd4dd3662b3b8f2e2df114e8117d548ff365d4ac16de32a5bb0e5885432`
 and `be0fa6148fab405d37b75ea438f7f196131a7bb7e0d611fecca4ec0d1c0de0bc`.
 This is still one case and one comparator, not the full 27-case result.
+
+A subsequent clean-revision diagnostic at `6127c35f8` attributed the first
+resident Compute task's setup. The admitted held-out product selection used
+DuckDB resident execution for all three tasks. Its first task took 19.801 ms,
+including 4.131 ms to open the resident environment and 6.202 ms to import
+the two-row retained acquisition output; the Compute work interval was
+4.424 ms. The next two task intervals were 5.115 and 2.940 ms. The matched
+pair remains a single diagnostic, not a new timing-gate assessment. These
+measurements identify environment creation and acquisition-to-resident import
+as concrete warm-path costs, while parent/child application preparation remains
+the larger cold-path cost. The raw record is
+`resident-setup-pair-6127.json` in workspace scratch, SHA-256
+`a38ec9f552e47e9ffac0557f3fb63084510ba343af8dc1b0bb8f3cf587e4ff77`.
