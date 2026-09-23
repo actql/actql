@@ -100,7 +100,7 @@ export async function prepareExampleText({database, environmentCid, programText,
   const memoryBytes = exampleDatabaseMemoryBytes(
     data,
     resourceLimits,
-    managedOutput,
+    managedOutput ?? retainedOutput,
   );
   const transportLimits = data ? {...limits,
     // One session reads one table-metadata cell, validation and selected output.

@@ -704,6 +704,9 @@ fn create_application_strategy_dispatch(
     fail("foreign graph")
   }
   let data = app.data
+  let configured_execution_bytes = @resources.ledger_limits(
+      @strategy.captured_dag_ledger(run),
+    ).execution_bytes
   if (
       !native_task_ms.is_empty() &&
       native_task_ms.length() != app.generated.length()
@@ -831,7 +834,7 @@ fn create_application_strategy_dispatch(
         })
         .unwrap_or(4000000L),
         execution_bytes: if data is Some(_) {
-          4294967296L
+          configured_execution_bytes
         } else {
           268435456L
         },
@@ -874,7 +877,11 @@ fn create_application_strategy_dispatch(
         app.registry,
         @connector.capability_registration_at(app.registry, 1).unwrap(),
       ).unwrap(),
-      134217728L,
+      if data is Some(_) {
+        configured_execution_bytes / 2L
+      } else {
+        134217728L
+      },
       @strategy.prepare_shared_work(
         run,
         1,

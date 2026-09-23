@@ -38,6 +38,14 @@ test('managed profile keeps Acquisition old-contract and changes Compute', () =>
     exampleDatabaseMemoryBytes(
       configured.input.dataProfile,
       configured.limits,
+      configured.input.retainedOutput,
+    ),
+    2147483648,
+  );
+  assert.equal(
+    exampleDatabaseMemoryBytes(
+      configured.input.dataProfile,
+      configured.limits,
       undefined,
     ),
     128 * 1024 * 1024,
