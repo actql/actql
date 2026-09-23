@@ -98,13 +98,14 @@ export async function readSalesforceQuery({
       const page = checked(moon.salesforceQueryReadAcceptPage(
         read, path, response.body,
       ));
+      await consumePage(page, Object.freeze({path, pageIndex: pages.length}));
+      checked(moon.salesforceQueryReadAcknowledgePage(read, page));
       pages.push(Object.freeze({
         path,
         useCid: response.useCid,
         responseSha256: moon.salesforceQueryPageResponseSha256(page),
         rows: moon.salesforceQueryPageRowCount(page),
       }));
-      await consumePage(page, Object.freeze({path, pageIndex: pages.length - 1}));
     }
     if (!moon.salesforceQueryReadComplete(read)) {
       fail('SalesforceQueryIncomplete');

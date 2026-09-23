@@ -360,6 +360,18 @@ pub fn salesforce_query_read_accept_page(
 }
 
 ///|
+#export_name("salesforceQueryReadAcknowledgePage")
+pub fn salesforce_query_read_acknowledge_page(
+  read : @catalog.QueryRead,
+  page : @catalog.QueryPage,
+) -> Unit raise SalesforceCatalogBridgeIssue {
+  match @catalog.acknowledge_query_page(read, page) {
+    Ok(_) => ()
+    Err(issue) => raise QueryRead(issue)
+  }
+}
+
+///|
 #export_name("salesforceQueryReadInterrupt")
 pub fn salesforce_query_read_interrupt(read : @catalog.QueryRead) -> Bool {
   @catalog.interrupt_query_read(read)

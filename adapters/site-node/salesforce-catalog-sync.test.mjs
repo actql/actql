@@ -455,3 +455,22 @@ test('page consumer failure stops the locator chain instead of retrying',
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 1);
   });
+
+test('terminal page consumer failure cannot report a completed read',
+  async t => {
+    const setup = await fixture(t, {queryFirstResponse: JSON.stringify({
+      totalSize: 1, done: true, records: [{Id: '001A'}],
+    })});
+    const plan = await queryProjection(setup);
+    let delivered = 0;
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      consumePage: async () => {
+        delivered += 1;
+        throw Object.assign(new Error('TerminalConsumerFailed'),
+          {code: 'TerminalConsumerFailed'});
+      },
+    })), {code: 'TerminalConsumerFailed'});
+    assert.equal(delivered, 1);
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
+  });

@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn acknowledge_query_page(QueryRead, QueryPage) -> Result[Unit, QueryReadIssue]
+
 pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
 
 pub fn begin_query_read(ReadProjection, String, QueryPageLimits, Int, Int64) -> Result[QueryRead, QueryReadIssue]
@@ -240,6 +242,7 @@ pub struct QueryRead {
   max_pages : Int
   max_total_rows : Int64
   mut next_path : String?
+  mut pending_page : QueryPage?
   mut page_count : Int
   mut row_count : Int64
   mut interrupted : Bool
@@ -251,6 +254,8 @@ pub(all) enum QueryReadIssue {
   AlreadyFinished
   Interrupted
   WrongRequest
+  PageAwaitingConsumption
+  WrongPage
   PageLimit
   RowLimit
   Page(QueryPageIssue)
