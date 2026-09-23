@@ -182,3 +182,26 @@ test('an unserializable Program is rejected before submit', async t => {
     {code: 'InvalidClientPayload'});
   assert.deepEqual(requests, ['connect']);
 });
+
+test('request lookup distinguishes retained Run, absence and malformed Host reply',
+  async t => {
+    let reply = {kind: 'found', ref, durability: 'durable',
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'};
+    const requests = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      requests.push({operation, body: JSON.parse(init.body)});
+      return Response.json(operation === 'connect' ? profile : reply);
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    assert.deepEqual(await client.lookupRequest('saved-id'), reply);
+    reply = {kind: 'not_found'};
+    assert.deepEqual(await client.lookupRequest('missing'), reply);
+    reply = {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
+      durability: 'durable', lookupExpiresAt: 'tomorrow'};
+    await assert.rejects(client.lookupRequest('saved-id'),
+      {code: 'InvalidHostRequestLookup'});
+    assert.deepEqual(requests.map(item => item.operation),
+      ['connect', 'lookup-request', 'lookup-request', 'lookup-request']);
+  });

@@ -33,6 +33,12 @@ export type ConfirmedProfile = Readonly<{
   }>;
 }>;
 
+export type RequestLookup =
+  | Readonly<{kind: 'found'; ref: RunReference;
+      durability: Durability; lookupExpiresAt: string}>
+  | Readonly<{kind: 'not_found'}>
+  | Readonly<{kind: 'unknown'; reason: string}>;
+
 export declare class ClientError extends Error {
   readonly code: string;
   readonly hint?: string;
@@ -92,7 +98,7 @@ export interface Client {
   }): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
-    options?: {signal?: AbortSignal}): Promise<unknown>;
+    options?: {signal?: AbortSignal}): Promise<RequestLookup>;
   close(): void;
 }
 
