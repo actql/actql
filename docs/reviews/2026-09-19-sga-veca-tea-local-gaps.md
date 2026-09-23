@@ -98,21 +98,18 @@ lane even if route evidence is added elsewhere. Its source
 check is a blocker guard, not a positive proof that a replacement is bounded.
 
 The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` separates three
-closure conditions. At `357af5e18fcf959015c04a9e507da5ce17776387`, the
-independent RowTable copy is bounded and workspace-admitted, but the ordinary
-providerless compute call still runs a whole checked sequence in one resume.
-That is an unresolved execution-lane defect, not a completed cancellation
-path. The normal route gate reports 68 mapped operations and 15 with
-operation-specific boundary records. `SGA.graph_bounds` and `SGA.degree` now
-have full work/workspace assurance for their registered entrypoints. Their
-independent fixtures fix control work, value work, and structural workspace
-at exact and one-short boundaries. The other routes keep resource completion
-separately open. The
-strict completion gate
-remains red by design. Standard Host fixtures are not evidence for the
-Distribution-owned ordinary Run entry; that integration is also open. These
-are three separate acceptance conditions, so closing one must not change the
-status of the others.
+closure conditions. The independent RowTable copy, external-input cross join,
+zero-input values, and external-input append now have bounded paths. The
+providerless compute call still runs an unmatched whole checked sequence in
+one resume; it remains a release blocker. The normal route gate reports 68
+mapped operations and 16 with operation-specific boundary records. The
+registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
+one-short work/workspace assurance. The ordinary and selected one-step select
+paths now share the same bounded evaluator and independently tested Host
+cancel delivery. This does not close select's synchronous whole-sequence path
+or any other unassured operation. The strict completion gate remains red.
+Standard Host fixtures do not prove the Distribution-owned ordinary Run entry;
+that integration is also open. Closing one condition does not close the others.
 
 The ordinary one-step filter, select, sort, take, external-input cross join,
 and zero-input values forms use bounded Relation providers. External-input
@@ -268,8 +265,13 @@ Do not change its expected output merely to make a new provider route pass.
   but its exact/one-short and delivered-cancel proof roles are not yet bound.
   Ordinary one-step select now uses the same bounded provider. A three-target
   fixture preserves authored projection order through two downstream Computes,
-  including typed Decimal values, at quantum one. Its ordinary-route exact,
-  one-short, delivered-cancel, and cleanup assurance is still unregistered.
+  including typed Decimal values, at quantum one. The ordinary route now binds
+  exact and one-short input, work, and workspace evidence to the same bounded
+  evaluator as the selected route. A separate Node Host timer cancels after
+  ordinary select row work, observes stop, prevents partial completion, and
+  reclaims the attempt. The shared proof roles record their exact common
+  product entrypoint and scope; the synchronous whole-sequence route remains
+  unassured.
   Rename and drop now have separate ordinary-route quantum and lifetime
   fixtures over their named source forms. These do not establish their exact,
   one-short, delivered-cancel, or cleanup assurance.
@@ -288,14 +290,14 @@ Do not change its expected output merely to make a new provider route pass.
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
   lifecycle proof roles and independent exact/one-short work and workspace
-  roles on every route. Filter, select, sort, and take have
-  selected-path proof bindings. Sort uses an exact/one-short workspace pair and
+  roles on every route. Filter, sort, and take have selected-path proof
+  bindings; select also has ordinary-path proof. Sort uses an exact/one-short workspace pair and
   its wide-comparison Host timer; take uses independent exact/one-short work
   and peak-workspace fixtures plus the selected Host timer. The where and
   unique_by `assert_rows` variants have separate
   selected-path proof sets so one variant cannot borrow the other's bound or
   cancellation result. Each set includes real Host timer cancellation.
-  Their ordinary or multi-step fallback paths are not covered by those
+  The other ordinary and multi-step fallback paths are not covered by those
   selected fixtures. Graph normalization and graph bounds have all four
   lifecycle proof roles. Graph bounds now has independent kernel-level value
   and control-work evidence, but neither operation has task-wide execution

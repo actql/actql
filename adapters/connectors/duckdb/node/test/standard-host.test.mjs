@@ -6086,6 +6086,112 @@ async function exerciseStrategyGraph(
       }
     }
   }
+  {
+    const ordinarySelectCancellationCase = {name: 'ordinary-select-in-flight'};
+    const ordinarySelectProgram = structuredClone(selectProgram);
+    ordinarySelectProgram.stages.find(stage =>
+      stage.id === 'select_values').steps[0].values.rows = Array.from(
+      {length: 80}, (_, index) => ({id: index + 1, amount: index}),
+    );
+    const ordinarySelectFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(ordinarySelectProgram),
+    );
+    const ordinarySelectCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(ordinarySelectFixture),
+      suppliedLimits,
+    );
+    const cancellation = new AbortController();
+    let execution;
+    let managedStarts = 0;
+    let progressAfterStart = 0n;
+    let deliveredAt;
+    let stoppedAt;
+    let scheduled = false;
+    cancellation.signal.addEventListener('abort', () => {
+      deliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        ordinarySelectFixture, ordinarySelectCapture.source(),
+      ), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        ordinarySelectFixture, 0,
+      );
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++managedStarts;
+            const operation = checked(
+              target.strategyModule_local_ManagedStart(configuration),
+            );
+            const observed = new Proxy(operation, {
+              get(active, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = active.execution_stopped();
+                    if (stopped && cancellation.signal.aborted &&
+                        stoppedAt === undefined) {
+                      stoppedAt = performance.now();
+                    }
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(active, name, operationReceiver);
+                }
+                return quantum => {
+                  const result = active.advance(quantum);
+                  const poll = checked(result);
+                  if (start === 2) {
+                    assert(poll.work <= BigInt(quantum));
+                    if (poll.complete === false && poll.progress > 0n &&
+                        poll.work > 0n) {
+                      progressAfterStart += poll.progress;
+                      if (!scheduled) {
+                        scheduled = true;
+                        setTimeout(() => cancellation.abort(), 0);
+                      }
+                    }
+                  }
+                  return result;
+                };
+              },
+            });
+            return {$tag: 1, _0: observed};
+          };
+        },
+      });
+      execution = await runInstalledStrategy(
+        setup,
+        runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        cancellation.signal,
+      );
+      assert.equal(managedStarts, 2);
+      assert(progressAfterStart > 0n,
+        `${ordinarySelectCancellationCase.name}: row work must precede abort`);
+      assert.equal(cancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(deliveredAt), true);
+      assert.equal(Number.isFinite(stoppedAt), true);
+      assert(stoppedAt >= deliveredAt);
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert.equal(execution.failure?.name, 'AbortError');
+      assert.deepEqual(execution.completed.map(item => item.task), [1]);
+    } finally {
+      ordinarySelectCapture.close();
+      await execution?.close();
+      if (execution) {
+        assert.equal(await execution.cleanup(), true);
+        assert.equal(execution.cleanupPending(), false);
+        assert.equal(execution.usage().heldBytes, 0n);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+    }
+  }
   for (const {
     name: cancellationName,
     program: cancellationProgram,

@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 9 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 10 with path-scoped work\/workspace evidence, 4 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -437,7 +437,7 @@ test('resource completion requires every registered selection path', () => {
     selection.path_assurance.entrypoint =
       selection.path_assurance.selected_entrypoint;
   }, ['--require-boundary-complete']),
-  /RelA select: select_input_exact is reused across production paths/);
+  /RelA select: shared proof reuse lacks an exact common entrypoint/);
 });
 
 test('resource gate rejects reuse justified by a different entrypoint', () => {
@@ -463,14 +463,18 @@ test('resource completion rejects incomplete path assurance', () => {
   assert.match(run(undefined, value => {
     const selection = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'select');
-    selection.path_assurance.entrypoint = {
-      exact_limit: 'select_input_exact',
-      one_short_limit: 'select_input_one_short',
-      in_flight_cancel: 'select_in_flight_host_timer',
-      cleanup: 'select_cancel_cleanup',
-    };
+    delete selection.path_assurance.ordinary_entrypoint;
   }, ['--require-boundary-complete']),
   /RelA select: ordinary_entrypoint boundary assurance is missing/);
+});
+
+test('ordinary select requires its delivered Host cancellation fixture', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.environment_tests = selection.environment_tests.filter(item =>
+      item.role !== 'ordinary_select_in_flight_host_timer');
+  }), /RelA select: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects a false in-flight assurance', () => {
