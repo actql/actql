@@ -22,6 +22,7 @@ import {
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -83,6 +84,8 @@ pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Curso
 pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckOutcome
 
 pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
+
+pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckEnvironment
 
