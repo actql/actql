@@ -13,12 +13,19 @@ test "effect retry never turns possible dispatch into a new send" {
     8,
     3,
   ).unwrap()
+  let locator = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "WriteOne", "\"row-1\"", 64, 32, 8, 3,
+  ).unwrap()
+  let fingerprint = "sha256:" + "d".repeat(64)
   let request = "sha256:" + "c".repeat(64)
   assert_eq(
-    effect_row_recovery_action(key, request, None, false),
+    effect_row_recovery_action(locator, fingerprint, key, request, None, false),
     PersistPrepared,
   )
-  assert_eq(effect_row_recovery_action(key, request, None, true), InvalidRecord)
+  assert_eq(
+    effect_row_recovery_action(locator, fingerprint, key, request, None, true),
+    InvalidRecord,
+  )
   for
     (state, action) in [
       (Prepared, ClaimPrepared),
@@ -29,23 +36,41 @@ test "effect retry never turns possible dispatch into a new send" {
       (Unknown, ReconcileUnknown),
     ] {
     let record : EffectRowRecord = {
+      logical_item_locator_cid: logical_item_locator_cid(locator),
+      intent_fingerprint_cid: fingerprint,
       dispatch_key_cid: effect_dispatch_key_cid(key),
       canonical_request_cid: request,
       state,
     }
     assert_eq(
-      effect_row_recovery_action(key, request, Some(record), false),
+      effect_row_recovery_action(
+        locator,
+        fingerprint,
+        key,
+        request,
+        Some(record),
+        false,
+      ),
       action,
     )
   }
   for state in [Prepared, Dispatching] {
     let record : EffectRowRecord = {
+      logical_item_locator_cid: logical_item_locator_cid(locator),
+      intent_fingerprint_cid: fingerprint,
       dispatch_key_cid: effect_dispatch_key_cid(key),
       canonical_request_cid: request,
       state,
     }
     assert_eq(
-      effect_row_recovery_action(key, request, Some(record), true),
+      effect_row_recovery_action(
+        locator,
+        fingerprint,
+        key,
+        request,
+        Some(record),
+        true,
+      ),
       JoinActive,
     )
   }
@@ -66,13 +91,21 @@ test "effect recovery rejects changed canonical requests and preview keys" {
     8,
     3,
   ).unwrap()
+  let locator = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "WriteOne", "\"row-1\"", 64, 32, 8, 3,
+  ).unwrap()
+  let fingerprint = "sha256:" + "d".repeat(64)
   let record : EffectRowRecord = {
+    logical_item_locator_cid: logical_item_locator_cid(locator),
+    intent_fingerprint_cid: fingerprint,
     dispatch_key_cid: effect_dispatch_key_cid(key),
     canonical_request_cid: "sha256:" + "c".repeat(64),
     state: Applied,
   }
   assert_eq(
     effect_row_recovery_action(
+      locator,
+      fingerprint,
       key,
       "sha256:" + "d".repeat(64),
       Some(record),
@@ -90,7 +123,20 @@ test "effect recovery rejects changed canonical requests and preview keys" {
   ).unwrap()
   assert_eq(
     effect_row_recovery_action(
+      locator,
+      fingerprint,
       other,
+      "sha256:" + "c".repeat(64),
+      Some(record),
+      false,
+    ),
+    RequestConflict,
+  )
+  assert_eq(
+    effect_row_recovery_action(
+      locator,
+      "sha256:" + "e".repeat(64),
+      key,
       "sha256:" + "c".repeat(64),
       Some(record),
       false,
@@ -114,26 +160,45 @@ test "Store projections cannot disguise dispatching as absent or prepared" {
     8,
     3,
   ).unwrap()
+  let locator = prepare_logical_item_locator(
+    scope, "program-1", "node-1", "WriteOne", "\"row-1\"", 64, 32, 8, 3,
+  ).unwrap()
+  let fingerprint = "sha256:" + "d".repeat(64)
   let request = "sha256:" + "c".repeat(64)
   let cid = effect_dispatch_key_cid(key)
+  let locator_cid = logical_item_locator_cid(locator)
   assert_eq(
-    effect_row_recovery_action_from_store(key, request, "", "", -1, false),
+    effect_row_recovery_action_from_store(
+      locator, fingerprint, key, request, "", "", "", "", -1, false,
+    ),
     effect_row_action_code(PersistPrepared),
   )
   assert_eq(
-    effect_row_recovery_action_from_store(key, request, cid, request, 1, false),
+    effect_row_recovery_action_from_store(
+      locator, fingerprint, key, request, locator_cid, fingerprint, cid, request,
+      1, false,
+    ),
     effect_row_action_code(ReconcilePossibleDispatch),
   )
   assert_eq(
-    effect_row_recovery_action_from_store(key, request, cid, request, 1, true),
+    effect_row_recovery_action_from_store(
+      locator, fingerprint, key, request, locator_cid, fingerprint, cid, request,
+      1, true,
+    ),
     effect_row_action_code(JoinActive),
   )
   assert_eq(
-    effect_row_recovery_action_from_store(key, request, cid, request, -1, false),
+    effect_row_recovery_action_from_store(
+      locator, fingerprint, key, request, locator_cid, fingerprint, cid, request,
+      -1, false,
+    ),
     effect_row_action_code(InvalidRecord),
   )
   assert_eq(
-    effect_row_recovery_action_from_store(key, request, cid, request, 6, false),
+    effect_row_recovery_action_from_store(
+      locator, fingerprint, key, request, locator_cid, fingerprint, cid, request,
+      6, false,
+    ),
     effect_row_action_code(InvalidRecord),
   )
 }

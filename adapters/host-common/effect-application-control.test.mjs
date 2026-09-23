@@ -21,9 +21,15 @@ test('standard Host bridge uses the portable logical Effect identities', () => {
   const apply = effect.applyKey(scope, cid('b'), 'WriteOne', cid('c'), 64);
   assert.equal(effect.applyKeyCid(apply),
     'sha256:6991293dfeef8207f1bc472049ceabd4ffdf4b33afea9ca8d8bb9fb31bfcc961');
-  assert.equal(effect.recoveryAction(key, cid('c'), '', '', -1, false), 0);
-  assert.equal(effect.recoveryAction(key, cid('c'), effect.dispatchKeyCid(key),
-    cid('c'), 1, false), 3);
-  assert.equal(effect.recoveryAction(key, cid('d'), effect.dispatchKeyCid(key),
-    cid('c'), 2, false), 8);
+  assert.equal(effect.recoveryAction(locator, cid('d'), key, cid('c'),
+    '', '', '', '', -1, false), 0);
+  assert.equal(effect.recoveryAction(locator, cid('d'), key, cid('c'),
+    effect.logicalItemLocatorCid(locator), cid('d'),
+    effect.dispatchKeyCid(key), cid('c'), 1, false), 3);
+  assert.equal(effect.recoveryAction(locator, cid('d'), key, cid('e'),
+    effect.logicalItemLocatorCid(locator), cid('d'),
+    effect.dispatchKeyCid(key), cid('c'), 2, false), 8);
+  assert.equal(effect.recoveryAction(locator, cid('e'), key, cid('c'),
+    effect.logicalItemLocatorCid(locator), cid('d'),
+    effect.dispatchKeyCid(key), cid('c'), 2, false), 8);
 });
