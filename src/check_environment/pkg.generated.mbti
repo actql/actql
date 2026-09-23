@@ -130,6 +130,16 @@ pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -
 
 pub fn cid(WireEnvironment) -> String
 
+pub fn command_target_catalog(CommandTarget) -> Catalog
+
+pub fn command_target_id(CommandTarget) -> String
+
+pub fn command_target_member(CommandTarget) -> Member
+
+pub fn command_target_resource_kind(CommandTarget) -> String
+
+pub fn command_target_work(CommandTarget) -> Int
+
 pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
 
 pub fn contract_body(ContractEnvelope) -> @decode_core.Cursor
@@ -299,6 +309,8 @@ pub fn reference_usage(CatalogReferences) -> (Int, Int)
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
+
+pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
 
 pub fn selected_calendar_profile(SelectedCalendarProfile) -> @calendar_profile.Profile
 
@@ -507,6 +519,21 @@ pub(all) enum CatalogIssue {
 type CatalogReference
 
 type CatalogReferences
+
+pub struct CommandTarget {
+  catalog : Catalog
+  item : Member
+  command_id : String
+  resource_kind : String
+  work : Int
+}
+
+pub(all) enum CommandTargetIssue {
+  InvalidLimit
+  WorkLimit
+  MissingCommand(String)
+  InvalidCommand(String)
+} derive(Eq, @debug.Debug)
 
 type ContractBodyDependencies
 
