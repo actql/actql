@@ -102,6 +102,47 @@ test "Effect member identity retains its exact Stage occurrence" {
 }
 
 ///|
+test "Effect headers enforce the authored Mapping and Command ref grammar" {
+  let valid : Array[String] = [
+    "mapping:a.v0", "mapping:crm.opportunity/sub_type-1.v25", "command:crm.invoke.v1",
+    "command:.internal.v0",
+  ]
+  for reference in valid {
+    let body = if reference.has_prefix("command:") {
+      "    create: {command: {from: {result: rows}, target: {field: resource}, contract: " +
+      reference +
+      ", input: {}}}"
+    } else {
+      "    create: {create: {target: crm, mapping: " +
+      reference +
+      ", payload: {}}}"
+    }
+    assert_eq(
+      effect_header_count(
+        collect_effect_headers(effect_program(body), 1, 2).unwrap(),
+      ),
+      1,
+    )
+  }
+  let invalid : Array[String] = [
+    "mapping:.hidden.v1", "mapping:crm.v", "mapping:crm.v1x", "mapping:crmé.v1",
+    "mapping:crm space.v1", "mapping:crm.v-1", "command:.v1", "command:crm.v", "command:crm@x.v1",
+  ]
+  for reference in invalid {
+    let body = if reference.has_prefix("command:") {
+      "    create: {command: {from: {result: rows}, target: {field: resource}, contract: " +
+      reference +
+      ", input: {}}}"
+    } else {
+      "    create: {create: {target: crm, mapping: " +
+      reference +
+      ", payload: {}}}"
+    }
+    assert_eq(effect_header_error(effect_program(body)), InvalidBody)
+  }
+}
+
+///|
 test "Effect headers reject malformed alternatives without granting execution" {
   let valid = "    create: {create: {target: crm, mapping: mapping:crm.create.v1, payload: {}}}"
   let null_literal = effect_program(
