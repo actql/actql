@@ -1155,6 +1155,13 @@
           "fixture": "bounded selected assertion rejects an input one node short"
         },
         {
+          "role": "assert_where_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected where assertion admits exact work and workspace"
+        },
+        {
           "role": "assert_where_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1174,6 +1181,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected unique assertion has exact workspace peak"
+        },
+        {
+          "role": "assert_unique_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected unique assertion admits exact work and workspace"
         },
         {
           "role": "assert_unique_failure_cleanup",
@@ -1206,14 +1220,14 @@
       ],
       "environment_tests": [
         {
-          "role": "ordinary_assert_where_in_flight_host_timer",
+          "role": "assert_where_ordinary_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-assert-where-in-flight"
         },
         {
-          "role": "ordinary_assert_unique_in_flight_host_timer",
+          "role": "assert_unique_ordinary_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1250,8 +1264,111 @@
               "cleanup": "assert_unique_sort_failure_cleanup"
             }
           }
+        },
+        "ordinary_entrypoint": {
+          "variants": {
+            "where": {
+              "exact_limit": "assert_where_input_exact",
+              "one_short_limit": "assert_where_input_one_short",
+              "in_flight_cancel": "assert_where_ordinary_in_flight_host_timer",
+              "cleanup": "assert_where_cancel_cleanup"
+            },
+            "unique_by": {
+              "exact_limit": "assert_unique_exact_one_short_workspace",
+              "one_short_limit": "assert_unique_exact_one_short_workspace",
+              "in_flight_cancel": "assert_unique_ordinary_in_flight_host_timer",
+              "cleanup": "assert_unique_sort_failure_cleanup"
+            }
+          }
         }
-      }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "variants": {
+            "where": {
+              "work": {
+                "exact_limit": "assert_where_work_workspace_exact_one_short",
+                "one_short_limit": "assert_where_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "assert_where_work_workspace_exact_one_short",
+                "one_short_limit": "assert_where_work_workspace_exact_one_short"
+              }
+            },
+            "unique_by": {
+              "work": {
+                "exact_limit": "assert_unique_work_workspace_exact_one_short",
+                "one_short_limit": "assert_unique_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "assert_unique_work_workspace_exact_one_short",
+                "one_short_limit": "assert_unique_work_workspace_exact_one_short"
+              }
+            }
+          }
+        },
+        "ordinary_entrypoint": {
+          "variants": {
+            "where": {
+              "work": {
+                "exact_limit": "assert_where_work_workspace_exact_one_short",
+                "one_short_limit": "assert_where_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "assert_where_work_workspace_exact_one_short",
+                "one_short_limit": "assert_where_work_workspace_exact_one_short"
+              }
+            },
+            "unique_by": {
+              "work": {
+                "exact_limit": "assert_unique_work_workspace_exact_one_short",
+                "one_short_limit": "assert_unique_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "assert_unique_work_workspace_exact_one_short",
+                "one_short_limit": "assert_unique_work_workspace_exact_one_short"
+              }
+            }
+          }
+        }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "assert_where_input_exact",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both paths enter the same bounded assertion evaluator with the identical checked input admission and scope."
+        },
+        {
+          "role": "assert_where_input_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both paths enter the same bounded assertion evaluator with the identical checked input admission and scope."
+        },
+        {
+          "role": "assert_where_cancel_cleanup",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes own the same bounded where-assertion session and cleanup state; their Host timer delivery fixtures remain separate."
+        },
+        {
+          "role": "assert_where_work_workspace_exact_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes call selected_binding_rows_execution with the same where-assertion work phases and workspace ownership."
+        },
+        {
+          "role": "assert_unique_exact_one_short_workspace",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes execute the same unique-key sort and output workspace phases through selected_binding_rows_execution."
+        },
+        {
+          "role": "assert_unique_sort_failure_cleanup",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes own the same bounded unique-assertion child sort and retryable cleanup scope; Host timer delivery is separate."
+        },
+        {
+          "role": "assert_unique_work_workspace_exact_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes call selected_binding_rows_execution with the same unique-key comparison work and overlapping output workspace."
+        }
+      ]
     },
     {
       "inventory": "rela",

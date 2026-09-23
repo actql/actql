@@ -589,7 +589,8 @@ for (const [index, route] of routeEntries.entries()) {
           }
           for (const role of Object.values(proofs)) {
             if (!boundaryRoles.has(role) ||
-              (assertion && !role.startsWith(`assert_${variant}_`)) ||
+              (assertion && !role.startsWith(
+                variant === 'unique_by' ? 'assert_unique_' : 'assert_where_')) ||
               (rowVariants &&
                 !role.startsWith(`${route.operation}_${variant}_`))) {
               fail(`${label}: ${pathName} ${variant} ${dimension} lacks an executable fixture`);
@@ -851,8 +852,8 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
     for (const role of [
-      'ordinary_assert_where_in_flight_host_timer',
-      'ordinary_assert_unique_in_flight_host_timer',
+      'assert_where_ordinary_in_flight_host_timer',
+      'assert_unique_ordinary_in_flight_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
