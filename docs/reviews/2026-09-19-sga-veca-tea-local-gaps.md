@@ -134,10 +134,11 @@ JS, Wasm, and native. The typed input projection supplies the wire order for
 one-step scalar derive and assertion output; vector expression output keeps
 its canonical physical order. The Node standard Host delivers timer
 cancellation after positive work for ordinary derive and both assertion
-forms, then checks stop, nonpublication, and final cleanup. This is
-path-scoped progress, not exact/one-short work and workspace assurance for
-either operation. Same-sequence variants can still reach the providerless
-lane.
+forms, then checks stop, nonpublication, and final cleanup. The where and
+unique_by assertion variants now also have independently fixed exact/one-short
+control-work and peak-workspace fixtures on their common selected and ordinary
+bounded evaluator. Derive still lacks those exact resource fixtures, and
+same-sequence variants can still reach the providerless lane.
 
 ## Current cross-operation review gaps
 
@@ -320,11 +321,12 @@ lane.
   filter and select also have ordinary-path proof. Sort uses an exact/one-short workspace pair and
   its wide-comparison Host timer; take uses independent exact/one-short work
   and peak-workspace fixtures plus the selected Host timer. The where and
-  unique_by `assert_rows` variants have separate
-  selected-path proof sets so one variant cannot borrow the other's bound or
-  cancellation result. Each set includes real Host timer cancellation.
-  The remaining ordinary and multi-step fallback paths are not covered by those
-  selected fixtures. Graph normalization and graph bounds have all four
+  unique_by `assert_rows` variants have separate selected and ordinary proof
+  sets. Both paths share exact/one-short work and workspace fixtures through
+  the same bounded evaluator under explicit reuse rules; each has its own
+  Host timer cancellation. Neither variant may borrow the other's proof.
+  The remaining multi-step fallback paths are not covered by those fixtures.
+  Graph normalization and graph bounds have all four
   lifecycle proof roles. Graph bounds now has independent kernel-level value
   and control-work evidence, but neither operation has task-wide execution
   work assurance across construction and projection. The completion command

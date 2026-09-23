@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 17 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 13 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 17 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 15 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -1009,6 +1009,17 @@ test('resource gate rejects assertions without ordinary bounded evidence', () =>
     const assertion = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'assert_rows');
     assertion.environment_tests = assertion.environment_tests.filter(item =>
-      item.role !== 'ordinary_assert_where_in_flight_host_timer');
-  }), /RelA assert_rows: ordinary_assert_where_in_flight_host_timer fixture is missing/);
+      item.role !== 'assert_where_ordinary_in_flight_host_timer');
+  }), /RelA assert_rows: assert_where_ordinary_in_flight_host_timer fixture is missing/);
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'assert_unique_work_workspace_exact_one_short');
+  }), /RelA assert_rows: ordinary_entrypoint unique_by work lacks an executable fixture/);
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    delete assertion.resource_assurance.ordinary_entrypoint.variants.where;
+  }), /RelA assert_rows: ordinary_entrypoint needs both assertion resource variants/);
 });

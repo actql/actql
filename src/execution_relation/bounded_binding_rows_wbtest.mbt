@@ -770,6 +770,68 @@ test "bounded selected assertion admits its exact input boundary" {
 }
 
 ///|
+fn verify_selected_assertion_resources(
+  unique : Bool,
+  exact_work : Int,
+  exact_slots : Int,
+) -> Unit raise {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  for
+    (work, slots, should_complete) in [
+      (exact_work, exact_slots, true),
+      (exact_work - 1, exact_slots, false),
+      (exact_work, exact_slots - 1, false),
+    ] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      assert_all=!unique,
+      assert_unique=unique,
+      max_work=work,
+      max_entries=slots,
+    )
+    let mut terminal = false
+    let mut advances = 0
+    while !terminal && advances < 1000 {
+      advances += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(should_complete)
+          assert_eq(completed_row_count(output), 2)
+          terminal = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_false(should_complete)
+          terminal = true
+        }
+        _ => fail("assertion resource boundary had another outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(bounded_binding_rows_cleanup_pending(execution))
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "bounded selected where assertion admits exact work and workspace" {
+  // Two row starts (2), six snapshot entries with their UTF-8 names (28),
+  // two predicate evaluations (18), and six output names (22) cost 70.
+  // Nine metadata slots overlap two retained roots and three slots each for
+  // snapshot, output row, and checked row, giving a peak of 20.
+  verify_selected_assertion_resources(false, 70, 20)
+}
+
+///|
+test "bounded selected unique assertion admits exact work and workspace" {
+  // The two-row key/index/comparison path costs 17 control units. Two row
+  // starts and six output field names cost another 24, for 41 total.
+  // Ten metadata slots overlap six output and checked-row slots at peak.
+  verify_selected_assertion_resources(true, 41, 16)
+}
+
+///|
 test "bounded selected assertion rejects an input one node short" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
