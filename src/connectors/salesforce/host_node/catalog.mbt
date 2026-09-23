@@ -5,6 +5,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   Observation(@catalog.CatalogObservationIssue)
   ReadProjection(@catalog.ReadProjectionIssue)
   QueryRead(@catalog.QueryReadIssue)
+  ManagedQuery(@acquisition.ManagedQueryIssue)
   InvalidResource
 }
 
@@ -407,4 +408,88 @@ pub fn salesforce_query_page_response_sha256(
   page : @catalog.QueryPage,
 ) -> String {
   @catalog.query_page_response_sha256(page)
+}
+
+///|
+#export_name("salesforcePrepareManagedQuery")
+pub fn salesforce_prepare_managed_query(
+  plan : @catalog.ReadProjection,
+  api_version : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_locator_units : Int,
+  max_pages : Int,
+  max_total_rows : Int64,
+  values : @execution.ManagedOutputValues,
+) -> @acquisition.ManagedQuery raise SalesforceCatalogBridgeIssue {
+  match
+    @acquisition.prepare_managed_query(
+      plan,
+      api_version,
+      { max_bytes, max_nodes, max_depth, max_rows, max_locator_units, },
+      max_pages,
+      max_total_rows,
+      values,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise ManagedQuery(issue)
+  }
+}
+
+///|
+#export_name("salesforceManagedQueryNextPath")
+pub fn salesforce_managed_query_next_path(
+  query : @acquisition.ManagedQuery,
+) -> String? {
+  @acquisition.managed_query_next_path(query)
+}
+
+///|
+#export_name("salesforceManagedQueryAcceptPage")
+pub fn salesforce_managed_query_accept_page(
+  query : @acquisition.ManagedQuery,
+  path : String,
+  body : Bytes,
+) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue {
+  match @acquisition.accept_managed_query_page(query, path, body) {
+    Ok(value) => value
+    Err(issue) => raise ManagedQuery(issue)
+  }
+}
+
+///|
+#export_name("salesforceManagedQueryCancel")
+pub fn salesforce_managed_query_cancel(
+  query : @acquisition.ManagedQuery,
+) -> Bool {
+  @acquisition.cancel_managed_query(query)
+}
+
+///|
+#export_name("salesforceManagedQueryComplete")
+pub fn salesforce_managed_query_complete(
+  query : @acquisition.ManagedQuery,
+) -> Bool {
+  @acquisition.managed_query_complete(query)
+}
+
+///|
+#export_name("salesforceManagedQueryRowCount")
+pub fn salesforce_managed_query_row_count(
+  query : @acquisition.ManagedQuery,
+) -> Int64 {
+  @acquisition.managed_query_row_count(query)
+}
+
+///|
+#export_name("salesforceManagedQueryFinish")
+pub fn salesforce_managed_query_finish(
+  query : @acquisition.ManagedQuery,
+) -> @execution.ManagedOutputValueReceipt raise SalesforceCatalogBridgeIssue {
+  match @acquisition.finish_managed_query(query) {
+    Ok(value) => value
+    Err(issue) => raise ManagedQuery(issue)
+  }
 }

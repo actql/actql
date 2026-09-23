@@ -151,3 +151,24 @@ pub fn read_projection_fields(plan : ReadProjection) -> Array[String] {
   }
   names
 }
+
+///|
+/// Bind the exact checked output contracts before any provider value is read.
+/// A merely equivalent contract may select this plan, but cannot later attach
+/// its identity to values that were admitted under another output owner.
+pub fn bind_read_projection_contracts(
+  plan : ReadProjection,
+  contracts : Array[@contract.Contract],
+) -> ReadProjection? {
+  if contracts.length() != plan.contracts.length() {
+    return None
+  }
+  for index in 0..<contracts.length() {
+    if !(@contract.type_equal(plan.contracts[index], contracts[index], 2) catch {
+        _ => false
+      }) {
+      return None
+    }
+  }
+  Some({ ..plan, contracts: contracts.copy(), })
+}

@@ -17,7 +17,8 @@ import {openSqliteCredentialJournal} from
 import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
-import {readSalesforceQuery} from './salesforce-query-read.mjs';
+import {readSalesforceManagedQuery, readSalesforceQuery} from
+  './salesforce-query-read.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -473,4 +474,57 @@ test('terminal page consumer failure cannot report a completed read',
     assert.equal(delivered, 1);
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 1);
+  });
+
+test('managed physical driver follows the same bounded HTTPS locator chain',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    let accepted = 0;
+    const moon = {
+      ...salesforceMoon,
+      salesforcePrepareManagedQuery(...args) {
+        const read = checked(salesforceMoon.salesforceBeginQueryRead(
+          ...args.slice(0, -1)));
+        return {$tag: 1, _0: read};
+      },
+      salesforceManagedQueryNextPath: read =>
+        salesforceMoon.salesforceQueryReadNextPath(read),
+      salesforceManagedQueryAcceptPage(read, path, body) {
+        const page = checked(salesforceMoon.salesforceQueryReadAcceptPage(
+          read, path, body));
+        checked(salesforceMoon.salesforceQueryReadAcknowledgePage(read, page));
+        accepted += 1;
+        return {$tag: 1, _0: page};
+      },
+      salesforceManagedQueryComplete: read =>
+        salesforceMoon.salesforceQueryReadComplete(read),
+      salesforceManagedQueryRowCount: read =>
+        salesforceMoon.salesforceQueryReadRowCount(read),
+      salesforceManagedQueryFinish: () =>
+        ({$tag: 1, _0: Object.freeze({fixture: 'content-receipt'})}),
+      salesforceManagedQueryCancel: read =>
+        salesforceMoon.salesforceQueryReadInterrupt(read),
+    };
+    const result = await readSalesforceManagedQuery(queryRequest(setup, plan, {
+      moon, values: Object.freeze({fixture: 'managed-output'}),
+    }));
+    assert.equal(result.receipt.fixture, 'content-receipt');
+    assert.equal(result.rowCount, 2n);
+    assert.equal(accepted, 2);
+    assert.deepEqual(setup.seen.slice(-2).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+      '/services/data/v62.0/query/01gABC-2000',
+    ]);
+  });
+
+test('invalid physical caller is rejected before a query owner or HTTP use',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      callResource: null,
+    })), {code: 'InvalidSalesforceQueryRead'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 0);
   });

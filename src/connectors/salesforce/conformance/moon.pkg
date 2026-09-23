@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/connectors/salesforce/acquisition",
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"
