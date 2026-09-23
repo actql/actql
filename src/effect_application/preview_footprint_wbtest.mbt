@@ -8,6 +8,7 @@ fn preview_footprint_test_member(
   effect_id : String,
   target : String,
   executed : String,
+  policy : String,
 ) -> String {
   let cid = preview_footprint_test_cid("a")
   "{\"effect_id\":\"" +
@@ -30,7 +31,9 @@ fn preview_footprint_test_member(
   "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[\"" +
   target +
   "\"]},\"count\":1,\"max_items\":1,\"required_permissions\":[\"write\"]," +
-  "\"approval\":\"none\",\"on_item_failure\":\"halt\",\"changes\":[],\"row_order\":[]," +
+  "\"approval\":\"none\",\"on_item_failure\":\"" +
+  policy +
+  "\",\"changes\":[],\"row_order\":[]," +
   "\"effect_member_preview_cid\":\"" +
   cid +
   "\",\"executed\":" +
@@ -86,19 +89,41 @@ test "Preview-derived footprint check sees every Effect Set member" {
     "first",
     preview_footprint_test_cid("1"),
     "false",
+    "halt",
   )
   let second = preview_footprint_test_member(
     "second",
     preview_footprint_test_cid("2"),
     "false",
+    "halt",
   )
   let disjoint = preview_footprint_test_wire(first + "," + second)
   assert_true(
-    check_effect_preview_footprint_conflicts(disjoint, 8192, 256, 12, 2, 2, 100)
+    check_effect_preview_footprint_conflicts(
+      disjoint,
+      ["second", "first"],
+      [0, 0],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
+    )
     is Ok(_),
   )
   assert_true(
-    check_effect_preview_footprint_conflicts(disjoint, 8192, 256, 12, 2, 1, 100)
+    check_effect_preview_footprint_conflicts(
+      disjoint,
+      ["first", "second"],
+      [0, 0],
+      8192,
+      256,
+      12,
+      2,
+      1,
+      100,
+    )
     is Err(Conflict(CapacityExceeded)),
   )
   let overlapping = preview_footprint_test_wire(
@@ -108,11 +133,20 @@ test "Preview-derived footprint check sees every Effect Set member" {
       "second",
       preview_footprint_test_cid("1"),
       "false",
+      "halt",
     ),
   )
   assert_true(
     check_effect_preview_footprint_conflicts(
-      overlapping, 8192, 256, 12, 2, 2, 100,
+      overlapping,
+      ["first", "second"],
+      [0, 0],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
     )
     is Err(Conflict(OverlappingTarget)),
   )
@@ -125,14 +159,110 @@ test "Preview shape failure cannot become a successful conflict check" {
       "first",
       preview_footprint_test_cid("1"),
       "true",
+      "halt",
     ),
   )
   assert_true(
-    check_effect_preview_footprint_conflicts(invalid, 8192, 256, 12, 1, 1, 100)
+    check_effect_preview_footprint_conflicts(
+      invalid,
+      ["first"],
+      [0],
+      8192,
+      256,
+      12,
+      1,
+      1,
+      100,
+    )
     is Err(PreviewShape(_)),
   )
   assert_true(
-    check_effect_preview_footprint_conflicts("{}", 8192, 256, 12, 1, 1, 100)
+    check_effect_preview_footprint_conflicts(
+      "{}",
+      ["first"],
+      [0],
+      8192,
+      256,
+      12,
+      1,
+      1,
+      100,
+    )
     is Err(PreviewShape(_)),
+  )
+}
+
+///|
+test "Preview preflight binds the exact unordered member set and policies" {
+  let first = preview_footprint_test_member(
+    "first",
+    preview_footprint_test_cid("1"),
+    "false",
+    "halt",
+  )
+  let second = preview_footprint_test_member(
+    "second",
+    preview_footprint_test_cid("2"),
+    "false",
+    "continue",
+  )
+  let complete = preview_footprint_test_wire(first + "," + second)
+  assert_true(
+    check_effect_preview_footprint_conflicts(
+      complete,
+      ["second", "first"],
+      [1, 0],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
+    )
+    is Ok(_),
+  )
+  for declarations in [["first"], ["first", "foreign"], ["first", "first"]] {
+    assert_true(
+      check_effect_preview_footprint_conflicts(
+        complete,
+        declarations,
+        [0, 1],
+        8192,
+        256,
+        12,
+        2,
+        2,
+        100,
+      )
+      is Err(InventoryMismatch),
+    )
+  }
+  assert_true(
+    check_effect_preview_footprint_conflicts(
+      complete,
+      ["first", "second"],
+      [0, 0],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
+    )
+    is Err(FailurePolicyMismatch),
+  )
+  assert_true(
+    check_effect_preview_footprint_conflicts(
+      complete,
+      ["first", "second"],
+      [0, 1],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      2,
+    )
+    is Err(Conflict(CapacityExceeded)),
   )
 }
