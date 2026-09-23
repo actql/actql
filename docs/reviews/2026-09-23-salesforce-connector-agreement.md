@@ -263,6 +263,11 @@ The bridge additionally rejects inline create when a required target field
 is omitted and result-backed create/store when an explicitly mapped source
 field is absent from the retained checked Result. Those checks do not yet
 prove source-to-target type compatibility or conversion-law closure.
+Declared conversion entries are now checked against writable targets, exact
+source-contract identities, and law CIDs before the static rule is exposed;
+equal Mapping bodies share one admitted inventory across Effect members.
+The law CID remains an unresolved obligation, not evidence that the Site has
+a registered converter or that its output matches the target type.
 
 ## Capability comparison with Smooth Cloud
 

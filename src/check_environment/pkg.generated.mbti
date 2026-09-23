@@ -116,6 +116,8 @@ pub fn check_lookup_execution(WireEnvironment, LookupExecutionLimits) -> Result[
 
 pub fn check_mapping_contract_shapes(WireEnvironment, Limits, Int) -> Result[MappingContractShapes, MappingShapeIssue]
 
+pub fn check_mapping_conversions(MappingContractShape, Int) -> Result[MappingConversions, MappingConversionIssue]
+
 pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowFields, MappingRowFieldsIssue]
 
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
@@ -227,6 +229,22 @@ pub fn lookup_facts_at(LookupCapacities, Int) -> LookupFacts?
 pub fn lookup_facts_capacity(LookupFacts) -> LookupCapacity?
 
 pub fn lookup_facts_envelope(LookupFacts) -> ContractEnvelope
+
+pub fn mapping_conversion_at(MappingConversions, Int) -> MappingConversion?
+
+pub fn mapping_conversion_count(MappingConversions) -> Int
+
+pub fn mapping_conversion_for(MappingConversions, String, String) -> MappingConversion?
+
+pub fn mapping_conversion_law_cid(MappingConversion) -> String
+
+pub fn mapping_conversion_source_cid(MappingConversion) -> String
+
+pub fn mapping_conversion_target(MappingConversion) -> String
+
+pub fn mapping_conversions_shape(MappingConversions) -> MappingContractShape
+
+pub fn mapping_conversions_work(MappingConversions) -> Int
 
 pub fn mapping_permission_names(MappingPermissionSelection) -> Array[String]
 
@@ -762,6 +780,27 @@ pub struct MappingContractShapes {
   environment : WireEnvironment
   entries : Array[MappingContractShape]
   by_ref : Map[String, Int]
+  work : Int
+}
+
+pub struct MappingConversion {
+  target_field : String
+  source_contract_cid : String
+  conversion_law_cid : String
+}
+
+pub(all) enum MappingConversionIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidConversion(Int)
+  UnknownTargetField(String)
+  DuplicateConversion(String, String)
+} derive(Eq, @debug.Debug)
+
+pub struct MappingConversions {
+  shape : MappingContractShape
+  entries : Array[MappingConversion]
+  by_input : Map[String, Int]
   work : Int
 }
 
