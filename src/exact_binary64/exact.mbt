@@ -506,3 +506,25 @@ pub fn weighted_mean(
   }
   finish_weighted_mean(mean)
 }
+
+///|
+/// Compute the pairwise mean of two finite binary64 values exactly before
+/// one nearest-ties-to-even rounding. Two binary64 operands need fewer than
+/// 4096 coefficient bits even when their exponents are far apart.
+pub fn pairwise_mean(left : Double, right : Double) -> Result[Double, Issue] {
+  let mean = prepare_weighted_mean(4096).unwrap()
+  match add_weighted_value(mean, left, 1.0) {
+    Err(issue) => {
+      cancel_weighted_mean(mean) |> ignore
+      return Err(issue)
+    }
+    Ok(_) => ()
+  }
+  match add_weighted_value(mean, right, 1.0) {
+    Err(issue) => {
+      cancel_weighted_mean(mean) |> ignore
+      Err(issue)
+    }
+    Ok(_) => finish_weighted_mean(mean)
+  }
+}

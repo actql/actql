@@ -416,7 +416,11 @@ fn merge_numeric_property(
   }
   let merged = match strategy {
     @graph_type.NumberSum => a + b
-    @graph_type.NumberMean => (a + b) / 2.0
+    @graph_type.NumberMean =>
+      match @exact.pairwise_mean(a, b) {
+        Ok(value) => value
+        Err(_) => return Err(GraftPropertyValue)
+      }
     @graph_type.NumberMin => Double::min(a, b)
     @graph_type.NumberMax => Double::max(a, b)
     _ => return Err(GraftPropertyValue)

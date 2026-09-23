@@ -37,6 +37,38 @@ test "weighted mean handles subnormal ties and overflow" {
 }
 
 ///|
+// Expectations are transcribed from the separately authored
+// portability/corpus/structural-pairwise-mean.json.
+test "pairwise mean rounds independent binary64 boundary vectors once" {
+  let largest = 0x7fefffffffffffffUL.reinterpret_as_double()
+  let least = 0x0000000000000001UL.reinterpret_as_double()
+  let next_one = 0x3ff0000000000001UL.reinterpret_as_double()
+  let second_next_one = 0x3ff0000000000002UL.reinterpret_as_double()
+  for
+    (left, right, expected_bits) in [
+      (largest, largest, 0x7fefffffffffffffUL),
+      (largest, -largest, 0x0000000000000000UL),
+      (least, 0.0, 0x0000000000000000UL),
+      (
+        least,
+        0x0000000000000002UL.reinterpret_as_double(),
+        0x0000000000000002UL,
+      ),
+      (1.0, next_one, 0x3ff0000000000000UL),
+      (next_one, second_next_one, 0x3ff0000000000002UL),
+    ] {
+    assert_eq(
+      pairwise_mean(left, right).unwrap().reinterpret_as_uint64(),
+      expected_bits,
+    )
+  }
+  assert_eq(
+    pairwise_mean(0x7ff0000000000000UL.reinterpret_as_double(), 1.0),
+    Err(NonFinite),
+  )
+}
+
+///|
 test "exact arithmetic rejects invalid domains and bit growth" {
   assert_eq(weighted_mean([], 4096), Err(ZeroDenominator))
   assert_eq(weighted_mean([(1.0, -1.0)], 4096), Err(NegativeWeight))

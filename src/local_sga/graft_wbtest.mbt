@@ -1306,6 +1306,46 @@ test "structural folds apply every finite numeric property strategy" {
 }
 
 ///|
+test "structural pairwise mean retains a finite value across sum overflow" {
+  let largest = 0x7fefffffffffffffUL.reinterpret_as_double()
+  let left_owner = numeric_graph_owner()
+  let right_owner = numeric_graph_owner()
+  let owner = numeric_structural_owner(
+    left_owner, right_owner, "union_graphs", "number_mean",
+  )
+  let left = one_numeric_node_graph(left_owner, 1.0, largest)
+  let right = one_numeric_node_graph(right_owner, 1.0, largest)
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut result = None
+  for _ in 0..<20 {
+    match advance_graft(execution, 1).unwrap() {
+      GraftContinue(..) => ()
+      GraftComplete(output, ..) => {
+        result = Some(@graph.completed_storage(output).unwrap())
+        break
+      }
+      GraftFailed(_, ..) => fail("pairwise mean failed")
+      GraftStopped(_, ..) => fail("pairwise mean stopped")
+    }
+  }
+  guard result is Some(result) &&
+    @storage.node_property(result, 0, 0) is Some(score) &&
+    score.value is @value.Number(value) else {
+    fail("pairwise mean did not produce a numeric node property")
+  }
+  assert_eq(value.reinterpret_as_uint64(), 0x7fefffffffffffffUL)
+  assert_eq(cleanup_graft(execution), Ok(true))
+}
+
+///|
 test "finite structural mean folds in authored input order" {
   let left_owner = numeric_graph_owner()
   let right_owner = numeric_graph_owner()

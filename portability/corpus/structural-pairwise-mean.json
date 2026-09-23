@@ -1,0 +1,13 @@
+{
+  "version": "actql-structural-pairwise-mean-vectors/0.1",
+  "encoding": "binary64_hex_bits",
+  "cases": [
+    {"id":"large_same_sign","left":"7fefffffffffffff","right":"7fefffffffffffff","expected":"7fefffffffffffff"},
+    {"id":"large_opposite_sign","left":"7fefffffffffffff","right":"ffefffffffffffff","expected":"0000000000000000"},
+    {"id":"half_subnormal_ties_zero","left":"0000000000000001","right":"0000000000000000","expected":"0000000000000000"},
+    {"id":"subnormal_midpoint_ties_even","left":"0000000000000001","right":"0000000000000002","expected":"0000000000000002"},
+    {"id":"normal_midpoint_ties_lower","left":"3ff0000000000000","right":"3ff0000000000001","expected":"3ff0000000000000"},
+    {"id":"normal_midpoint_ties_upper","left":"3ff0000000000001","right":"3ff0000000000002","expected":"3ff0000000000002"},
+    {"id":"nonfinite_input","left":"7ff0000000000000","right":"3ff0000000000000","issue":"NonFinite"}
+  ]
+}
