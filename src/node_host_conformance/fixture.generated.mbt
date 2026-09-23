@@ -178,6 +178,7 @@ fn captured_graph_fixture(
 ///|
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
 fn carrier_events_relation_followup(variant : String) -> Bool {
+  variant == "dedupe_filter" ||
   variant == "session_filter" ||
   variant == "session_select" ||
   variant == "session_derive" ||
@@ -466,7 +467,7 @@ fn join_graph_capacity_material(
 ///|
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
-  let dedupe = variant == "dedupe"
+  let dedupe = variant == "dedupe" || variant == "dedupe_filter"
   let window = variant == "window_fixed" ||
     variant == "window_sliding" ||
     variant == "window_parameter"
@@ -808,7 +809,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }
   let rows = if union_set {
     "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
-  } else if variant.has_prefix("traverse_pattern_multi_paths") {
+  } else if patterned_multi {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":3,\"edge_type\":\"blocks\"," +
@@ -961,9 +962,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
         "},{\"direction\":\"out\"," +
         "\"edge_types\":[\"blocks\"]," +
         "\"edge_where\":\"weight > 15\"," +
-        "\"node_where\":\"node_name = '" +
-        (if variant == "traverse_pattern_multi" { "first" } else { "third" }) +
-        "'\"" +
+        "\"node_where\":\"node_name = 'third'\"" +
         "}],"
       } else {
         "\"hops\":[{\"direction\":\"out\"" +
@@ -1033,6 +1032,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"as\":\"same_carrier\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
   } else if variant == "normalize_filter" ||
+    variant == "normalize_filter_false" ||
     variant == "normalize_select" ||
     variant == "normalize_derive" ||
     variant == "normalize_take" {
@@ -1046,6 +1046,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"derive\":{\"copy\":\"id\"}"
     } else if variant == "normalize_take" {
       "\"take\":1"
+    } else if variant == "normalize_filter_false" {
+      "\"filter\":\"false\""
     } else {
       "\"filter\":\"true\""
     }) +
@@ -1058,7 +1060,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
+  } else if variant == "subgraph_ids" ||
+    variant == "subgraph_shared" ||
+    variant == "subgraph_filter" {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[2]}}," +
     "\"as\":\"selected\"},{" +
     (if variant == "subgraph_shared" {
@@ -1068,7 +1072,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       ""
     }) +
     "\"from\":\"selected\"," +
-    "\"node_rows\":true,\"as\":\"out\""
+    "\"node_rows\":true,\"as\":" +
+    (if variant == "subgraph_filter" {
+      "\"projected\"},{\"from\":\"projected\"," +
+      "\"filter\":\"true\",\"as\":\"out\""
+    } else {
+      "\"out\""
+    })
   } else if variant == "subgraph_edges_false" {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
     "\"edges\":\"false\"},\"as\":\"selected\"},{" +
@@ -1635,12 +1645,22 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
   } else if variant == "bridge_only" ||
     variant == "bridge_filter" ||
+    variant == "normalize_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
     "{\"from\":\"rows\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
-    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"as\":\"source\"}," +
+    (if variant == "normalize_filter" {
+      "{\"from\":\"source\",\"normalize_vectors\":true," +
+      "\"as\":\"normalized\"},"
+    } else {
+      ""
+    }) +
+    "{\"from\":\"" +
+    (if variant == "normalize_filter" { "normalized" } else { "source" }) +
+    "\"," +
     "\"vectors\":true,\"as\":" +
     (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
     (if variant != "bridge_only" {
@@ -3877,7 +3897,7 @@ fn query_checked_program_fixture(
         "graph",
         "traverse",
         input_rows=if local_carrier_graph_variant.has_prefix(
-            "traverse_pattern_multi_paths",
+            "traverse_pattern_multi",
           ) {
           3L
         } else {
@@ -3890,6 +3910,8 @@ fn query_checked_program_fixture(
           local_carrier_graph_variant == "traverse_relation_selector" ||
           local_carrier_graph_variant == "traverse_relation_paths" {
           4L
+        } else if local_carrier_graph_variant == "traverse_pattern_multi" {
+          3L
         } else {
           2L
         },
