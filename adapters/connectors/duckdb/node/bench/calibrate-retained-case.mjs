@@ -11,7 +11,9 @@ import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import {retainedCase, workloads} from
   '../../../../../benchmarks/retained-results/fixtures.mjs';
-import {runRetainedComparator} from './retained-comparator.mjs';
+import {managedCaseConfiguration} from
+  '../../../../../benchmarks/retained-results/managed-configuration.mjs';
+import {createManagedExampleHost} from '../examples/managed-host.mjs';
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
@@ -62,36 +64,61 @@ const plan = candidate => ({
   nativeTaskMilliseconds: Array(taskCount).fill(candidate === 'duckdb' ? '1' : expensive),
   estimateSource: `sha256:${sha256(`calibration:${candidate}:${fixture.id}:${revision}`)}`,
 });
+async function runTrainingCandidate(candidate, round) {
+  const config = managedCaseConfiguration(fixture, contracts, database, directory);
+  const host = await createManagedExampleHost(config.limits);
+  let result;
+  let observation;
+  let cleanupMs = 0;
+  try {
+    const started = performance.now();
+    result = await host.run({...config.input, ...plan(candidate)},
+      {run: `calibration-${round}-${candidate}`, childLimits: config.childLimits},
+      AbortSignal.timeout(config.timeoutMs));
+    const executionMs = performance.now() - started;
+    assert.equal(result.report.status, 'host-tasks-completed');
+    assert.equal(result.report.completed.length, taskCount);
+    assert.equal(result.completion(taskCount)?.descriptor.rows_cid, expectedCid);
+    assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
+    const tasks = result.report.completed;
+    assert(tasks.every(task => task.realization === candidate),
+      `CalibrationCandidateMismatch:${candidate}`);
+    const elapsed = tasks.map(task => task.taskElapsedMilliseconds);
+    assert(elapsed.every(value => Number.isFinite(value) && value >= 0),
+      'CalibrationMissingTaskInterval');
+    observation = {round, candidate, taskElapsedMilliseconds: elapsed,
+      executionMs, warmMs: elapsed.reduce((sum, value) => sum + value, 0),
+      selection: plan(candidate), outputCid: expectedCid,
+      taskRealizations: tasks.map(task => task.realization),
+      hostPhases: result.phases, usage: result.usage()};
+  } finally {
+    if (result) {
+      const started = performance.now();
+      await result.close();
+      cleanupMs = performance.now() - started;
+      assert.equal(result.cleanupHandle.status().pending, false);
+      for (let task = 1; task <= taskCount; task++) {
+        assert.equal(result.completion(task)?.retained, false);
+      }
+    }
+  }
+  return {...observation, cleanupMs};
+}
 const observations = [];
 const expectedCid = fixture.identity().rowsCid;
 try {
   for (let round = 0; round < 3; round++) {
     for (const candidate of round % 2 === 0 ? ['local', 'duckdb'] : ['duckdb', 'local']) {
       await unchanged();
-      const report = await runRetainedComparator(
-        fixture, contracts, database, directory, plan(candidate),
-      );
-      assert.equal(report.status, 'completed');
-      assert.equal(report.expectedRowsCid, expectedCid);
-      assert.equal(report.tasks.length, taskCount);
-      assert(report.tasks.every(task => task.realization === candidate),
-        `CalibrationCandidateMismatch:${candidate}`);
-      const elapsed = report.tasks.map(task => task.taskElapsedMilliseconds);
-      assert(elapsed.every(value => Number.isFinite(value) && value >= 0),
-        'CalibrationMissingTaskInterval');
+      const observation = await runTrainingCandidate(candidate, round);
       assert.equal(await fileHash(database), sourceSha256,
         'CalibrationSourceChanged');
-      const observation = {round, candidate, taskElapsedMilliseconds: elapsed,
-        executionMs: report.executionMs, warmMs: report.warmMs,
-        cleanupMs: report.cleanupMs, selectionHash: report.selectionHash,
-        outputCid: report.expectedRowsCid,
-        taskRealizations: report.tasks.map(task => task.realization),
-        terminalUsage: report.usage, storageUsage: report.storage};
       observations.push(observation);
       await writeFile(join(directory, `training-${round}-${candidate}.json`),
         JSON.stringify(observation, null, 2));
       console.log(JSON.stringify({event: 'training', round, candidate,
-        elapsed, cleanupMs: report.cleanupMs}));
+        elapsed: observation.taskElapsedMilliseconds,
+        cleanupMs: observation.cleanupMs}));
     }
   }
   await unchanged();
