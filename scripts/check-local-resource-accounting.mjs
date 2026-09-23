@@ -212,6 +212,7 @@ if (!Array.isArray(assuredPaths)) {
         'ordinary_entrypoint',
         'selected_entrypoint',
         'external_input_entrypoint',
+        'zero_input_entrypoint',
       ]
         .includes(claim?.path) ||
       route[claim.path] === undefined ||
@@ -332,6 +333,11 @@ for (const [index, route] of routeEntries.entries()) {
       'external_input_entrypoint', route.external_input_entrypoint,
     ]);
   }
+  if (route.zero_input_entrypoint !== undefined) {
+    productionSources.push([
+      'zero_input_entrypoint', route.zero_input_entrypoint,
+    ]);
+  }
   for (const [role, value] of productionSources) {
     if (typeof value.path !== 'string' ||
       !value.path.startsWith('src/') ||
@@ -383,6 +389,18 @@ for (const [index, route] of routeEntries.entries()) {
     if (!fs.existsSync(file) ||
       !fs.readFileSync(file, 'utf8').includes(`test "${item.fixture}"`)) {
       fail(`${label}: missing operation boundary fixture ${item.fixture}`);
+    }
+  }
+  if (route.family === 'RelA' && route.operation === 'values') {
+    const requiredValuesRoles = [
+      'zero_input_quantum_and_output',
+      'zero_input_work_and_workspace',
+      'zero_input_cancel_cleanup',
+      'zero_input_two_consumers',
+    ];
+    if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
+      requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
+      fail(`${label}: bounded zero-input Values route lacks its production evidence`);
     }
   }
   const environmentRoles = new Set();
@@ -440,6 +458,7 @@ for (const [index, route] of routeEntries.entries()) {
     ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
     ...(route.external_input_entrypoint ? ['external_input_entrypoint'] : []),
+    ...(route.zero_input_entrypoint ? ['zero_input_entrypoint'] : []),
   ];
   const pathAssurance = route.path_assurance ?? {};
   const proofPaths = new Map();
