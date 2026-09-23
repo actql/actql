@@ -92,7 +92,7 @@ export type WireClientAdmission = Readonly<{
 }>;
 
 export type WireRequestLookup =
-  | Readonly<{kind: 'found'; ref: WireRunRef;
+  | Readonly<{kind: 'found'; requestId: string; ref: WireRunRef;
       durability: 'volatile' | 'durable'; lookupExpiresAt: string}>
   | Readonly<{kind: 'not_found'}>
   | Readonly<{kind: 'unknown'; reason: string}>;
@@ -101,7 +101,8 @@ export declare function validClientProfile(value: unknown,
   selected: WireConnection): value is WireClientProfile;
 export declare function validClientAdmission(value: unknown,
   selected: WireConnection): value is WireClientAdmission;
-export declare function validRequestLookup(value: unknown):
+export declare function validRequestLookup(value: unknown,
+  expectedRequestId: string):
   value is WireRequestLookup;
 
 export type WireDeliveryAttempt = Readonly<{

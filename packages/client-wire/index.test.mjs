@@ -86,17 +86,26 @@ test('Host profile and admission replies bind the selected connection', () => {
 
 test('request lookup retains found, absent and observation-unknown replies',
   () => {
+    assert.equal(validRequestLookup({kind: 'found', requestId: 'request-a', ref,
+      durability: 'volatile',
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'}, 'request-a'), true);
+    assert.equal(validRequestLookup({kind: 'not_found'}, 'request-a'), true);
+    assert.equal(validRequestLookup({kind: 'unknown',
+      reason: 'query_failed'}, 'request-a'), true);
+    assert.equal(validRequestLookup({kind: 'found', requestId: 'request-b',
+      ref, durability: 'volatile',
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'}, 'request-a'), false);
     assert.equal(validRequestLookup({kind: 'found', ref,
       durability: 'volatile',
-      lookupExpiresAt: '2026-09-24T00:00:00.000Z'}), true);
-    assert.equal(validRequestLookup({kind: 'not_found'}), true);
-    assert.equal(validRequestLookup({kind: 'unknown',
-      reason: 'query_failed'}), true);
-    assert.equal(validRequestLookup({kind: 'found', ref: {...ref,
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'}, 'request-a'), false);
+    assert.equal(validRequestLookup({kind: 'found', requestId: 'request-a',
+      ref: {...ref,
       runDefinitionCid: 'foreign'}, durability: 'durable',
-    lookupExpiresAt: 'tomorrow'}), false);
-    assert.equal(validRequestLookup({kind: 'not_found', ref}), false);
-    assert.equal(validRequestLookup({kind: 'unknown', reason: ''}), false);
+    lookupExpiresAt: 'tomorrow'}, 'request-a'), false);
+    assert.equal(validRequestLookup({kind: 'not_found', ref},
+      'request-a'), false);
+    assert.equal(validRequestLookup({kind: 'unknown', reason: ''},
+      'request-a'), false);
   });
 
 const delivery = JSON.parse(readFileSync(new URL(
