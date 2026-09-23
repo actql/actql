@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 15 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 6 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 15 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 8 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('zero-input values bind their bounded production provider', () => {
@@ -174,7 +174,15 @@ test('resource completion requires each unselected Carrier prefix', () => {
 
 test('resource completion requires work and workspace proof independently', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /SGA graph_bounds: entrypoint work\/workspace assurance is missing/);
+    /SGA normalize_graph: entrypoint work\/workspace assurance is missing/);
+});
+
+test('graph bounds retains both exact resource dimensions', () => {
+  assert.match(run(undefined, routes => {
+    const bounds = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graph_bounds');
+    delete bounds.resource_assurance.entrypoint.workspace;
+  }), /SGA graph_bounds: entrypoint operation needs work and workspace assurance/);
 });
 
 test('graph bounds work evidence cannot disappear from its route', () => {
@@ -193,6 +201,15 @@ test('degree control-work evidence cannot disappear from its route', () => {
     degree.boundary_tests = degree.boundary_tests.filter(item =>
       item.role !== 'degree_control_work_exact_one_short');
   }), /SGA degree: exact control-work boundary fixture is missing/);
+});
+
+test('degree value-work evidence cannot disappear from its route', () => {
+  assert.match(run(undefined, routes => {
+    const degree = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'degree');
+    degree.boundary_tests = degree.boundary_tests.filter(item =>
+      item.role !== 'degree_work_exact_one_short');
+  }), /SGA degree: entrypoint operation work lacks an executable fixture/);
 });
 
 test('shortest path cannot lose its kernel cancellation evidence', () => {
