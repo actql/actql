@@ -239,6 +239,7 @@ pub(all) enum CatalogObservationIssue {
   EvidenceCountMismatch
   OutputLimit
   ForeignBinding
+  DescribeUnavailable(DescribeFailure)
   Resource(ResourceSelectionIssue)
 } derive(Eq, @debug.Debug)
 
