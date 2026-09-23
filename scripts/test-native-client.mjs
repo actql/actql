@@ -75,11 +75,23 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   else if (operation === 'submit' || operation === 'attach') {
     response.end(JSON.stringify({ref, durability: 'durable', revision: 1}));
   } else if (operation === 'lookup-request') {
-    response.end(JSON.stringify({kind: 'unknown', reason: 'query_failed'}));
+    response.end(JSON.stringify(body.requestId === 'bad-lookup'
+      ? {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
+        durability: 'durable', lookupExpiresAt: 'tomorrow'}
+      : body.requestId === 'found-request'
+        ? {kind: 'found', ref, durability: 'durable',
+          lookupExpiresAt: '2026-09-24T00:00:00Z'}
+        : {kind: 'unknown', reason: 'query_failed'}));
   } else if (operation === 'status') {
     response.end(JSON.stringify({status: 'succeeded'}));
   } else if (operation === 'delivery-attempt') {
-    response.end(JSON.stringify({kind: 'not_found'}));
+    response.end(JSON.stringify(body.attemptId === 'bad-attempt'
+      ? {kind: 'found', attempt: null, record: null,
+        hostReleaseReceipt: null}
+      : body.attemptId === 'found-attempt'
+        ? {kind: 'found', attempt: {attempt_id: 'found-attempt'},
+          record: null, hostReleaseReceipt: null}
+        : {kind: 'not_found'}));
   } else if (operation === 'read') {
     response.end(body.attemptId === 'prefix' ? '{"value":7}\n'
       : '{"value":7}\n\x1e');
@@ -160,6 +172,16 @@ try {
     '--result-name', 'answer', '--attempt-id', 'attempt-a');
   assert.equal(attempt.code, 0, attempt.stderr);
   assert.deepEqual(JSON.parse(attempt.stdout), {kind: 'not_found'});
+  const foundAttempt = await run('delivery-attempt', '--ref-file', 'ref.json',
+    '--result-name', 'answer', '--attempt-id', 'found-attempt');
+  assert.equal(foundAttempt.code, 0, foundAttempt.stderr);
+  assert.deepEqual(JSON.parse(foundAttempt.stdout),
+    {kind: 'found', attempt: {attempt_id: 'found-attempt'},
+      record: null, hostReleaseReceipt: null});
+  const badAttempt = await run('delivery-attempt', '--ref-file', 'ref.json',
+    '--result-name', 'answer', '--attempt-id', 'bad-attempt');
+  assert.notEqual(badAttempt.code, 0);
+  assert.match(badAttempt.stderr, /InvalidHostAttemptLookup/);
   const prefix = await run('read', '--ref-file', 'ref.json',
     '--result-name', 'answer', '--attempt-id', 'prefix');
   assert.notEqual(prefix.code, 0);
@@ -185,6 +207,16 @@ try {
   assert.equal(lookedUp.code, 0, lookedUp.stderr);
   assert.deepEqual(JSON.parse(lookedUp.stdout),
     {kind: 'unknown', reason: 'query_failed'});
+  const foundRequest = await run('lookup-request',
+    '--request-id', 'found-request');
+  assert.equal(foundRequest.code, 0, foundRequest.stderr);
+  assert.deepEqual(JSON.parse(foundRequest.stdout), {
+    kind: 'found', ref, durability: 'durable',
+    lookupExpiresAt: '2026-09-24T00:00:00Z',
+  });
+  const badLookup = await run('lookup-request', '--request-id', 'bad-lookup');
+  assert.notEqual(badLookup.code, 0);
+  assert.match(badLookup.stderr, /InvalidHostRequestLookup/);
   assert.equal(requests.filter(item => item.operation === 'submit' &&
     item.body.requestId === 'lost-ack').length, 1);
   for (const [index, item] of requests.entries()) {
