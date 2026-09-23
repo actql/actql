@@ -97,6 +97,8 @@ pub fn effect_preview_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> S
 
 pub fn effect_preview_row_count(EffectPreviewIdentity, Int) -> Int?
 
+pub fn effect_preview_row_guard_version_cid(EffectPreviewIdentity, Int, Int) -> String?
+
 pub fn effect_preview_row_identity(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_index(EffectPreviewIdentity, Int, String) -> Int?
@@ -557,6 +559,7 @@ pub struct EffectPreviewIdentity {
   row_indices : Array[Map[String, Int]]
   row_correlation_wires : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
+  row_guard_version_cids : Array[Array[String]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
   row_order : Array[Array[String]]
