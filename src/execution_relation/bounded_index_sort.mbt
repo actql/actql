@@ -194,3 +194,8 @@ fn advance_bounded_index_sort(
 fn cleanup_bounded_index_sort(value : BoundedIndexSort) -> Bool {
   @bounded.cleanup(value.session).unwrap_or(false)
 }
+
+///|
+fn bounded_index_sort_stopped(value : BoundedIndexSort) -> Bool {
+  @bounded.session_stopped(value.session)
+}

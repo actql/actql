@@ -1,9 +1,12 @@
 ///|
 fn bounded_binding_rows_source(
   rows : String,
+  id_nullable? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   let owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"left\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"right\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}},\"rows\":" +
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":" +
+    (if id_nullable { "true" } else { "false" }) +
+    "},\"left\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"right\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}},\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]",
   )
@@ -30,6 +33,7 @@ fn bounded_binding_rows_receiver(
   following_step? : Bool = false,
   filter? : Bool = false,
   assert_all? : Bool = false,
+  assert_unique? : Bool = false,
   select? : Bool = false,
   take? : Bool = false,
   sort? : Bool = false,
@@ -50,6 +54,8 @@ fn bounded_binding_rows_receiver(
         ",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if assert_all {
         "{\"assert_rows\":{\"where\":\"id > 0\"},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if assert_unique {
+        "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
         "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
@@ -96,19 +102,23 @@ fn bounded_binding_rows_fixture(
   following_step? : Bool = false,
   filter? : Bool = false,
   assert_all? : Bool = false,
+  assert_unique? : Bool = false,
   select? : Bool = false,
   take? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
+  id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
+  max_entries? : Int = 10000,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
-  let (source_owner, source) = bounded_binding_rows_source(rows)
+  let (source_owner, source) = bounded_binding_rows_source(rows, id_nullable~)
   let receiver = bounded_binding_rows_receiver(
     source_owner,
     following_step~,
     filter~,
     assert_all~,
+    assert_unique~,
     select~,
     take~,
     sort~,
@@ -119,7 +129,7 @@ fn bounded_binding_rows_fixture(
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    if select || take || sort || sort_empty {
+    if select || assert_unique || take || sort || sort_empty {
       []
     } else {
       [sequence_fragment_context(sequence, 0, 2L)]
@@ -145,7 +155,7 @@ fn bounded_binding_rows_fixture(
     run_limits().output_values,
     max_work,
     100,
-    10000,
+    max_entries,
     10000,
   ).unwrap()
   (control, execution, input)
@@ -586,6 +596,63 @@ test "bounded selected assertion cancels without publishing rows" {
 }
 
 ///|
+test "bounded selected assertion admits its exact input boundary" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_all=true,
+    input_limits=Some({
+      max_nodes: 16,
+      max_text_bytes: 22,
+      max_depth: 3,
+      max_work: 38,
+    }),
+  )
+  let mut completed = false
+  let mut advances = 0
+  while !completed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        completed = true
+      }
+      _ => fail("exact assertion input boundary failed")
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected assertion rejects an input one node short" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_all=true,
+    input_limits=Some({
+      max_nodes: 15,
+      max_text_bytes: 22,
+      max_depth: 3,
+      max_work: 38,
+    }),
+  )
+  let mut failed = false
+  let mut advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => failed = true
+      _ => fail("one-short assertion input boundary had another outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
 test "selected binding rows stop within a larger checked sequence" {
   let (control, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
@@ -629,6 +696,226 @@ test "bounded selected filter evaluates demanded rows once" {
   assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected unique assertion preserves distinct input order" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":2,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_unique=true,
+  )
+  let mut completed : CompletedOutput? = None
+  let mut advances = 0
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("unexpected unique assertion failure")
+    }
+  }
+  guard completed is Some(output) else { fail("assertion did not complete") }
+  assert_true(advances > 10)
+  assert_eq(completed_row_count(output), 2)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected unique assertion rejects duplicates before output" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_unique=true,
+  )
+  let mut failed = false
+  let mut advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(AssertionDuplicate(0, 1)), ..) =>
+        failed = true
+      _ => fail("unexpected unique assertion outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected unique assertion rejects a nullable NULL key" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":null,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_unique=true,
+    id_nullable=true,
+  )
+  let mut failed = false
+  let mut advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(AssertionNullKey(1, 0)), ..) =>
+        failed = true
+      _ => fail("unexpected nullable unique assertion outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected unique assertion accepts empty input" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[]",
+    assert_unique=true,
+  )
+  let mut completed : CompletedOutput? = None
+  let mut advances = 0
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("unexpected empty unique assertion failure")
+    }
+  }
+  guard completed is Some(output) else {
+    fail("empty assertion did not complete")
+  }
+  assert_eq(completed_row_count(output), 0)
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected unique assertion cancels during key validation" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_unique=true,
+  )
+  for _ in 0..<2 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected unique assertion cancels during index sorting" {
+  let rows = "[" +
+    Array::makei(32, index => {
+      "{\"id\":" + index.to_string() + ",\"left\":[1,2],\"right\":[3,4]}"
+    }).join(",") +
+    "]"
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    assert_unique=true,
+  )
+  // One key preparation, 32 NULL checks, sort setup, and six sort steps.
+  for _ in 0..<40 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected unique assertion reclaims a failed child sort" {
+  let rows = "[" +
+    Array::makei(32, index => {
+      "{\"id\":" + index.to_string() + ",\"left\":[1,2],\"right\":[3,4]}"
+    }).join(",") +
+    "]"
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    assert_unique=true,
+    max_work=45,
+  )
+  let mut failed = false
+  let mut advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      _ => fail("unexpected unique sort work outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected unique assertion has exact workspace peak" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Ten retained metadata entries, one key order, four merge-index slots,
+  // then six output-row and checked-value slots at the later peak.
+  let (_, accepted, accepted_input) = bounded_binding_rows_fixture(
+    rows,
+    assert_unique=true,
+    max_entries=16,
+  )
+  let mut completed = false
+  let mut advances = 0
+  while !completed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        completed = true
+      }
+      _ => fail("exact unique workspace boundary failed")
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+  assert_true(producer_read_available(accepted_input))
+  let (_, rejected, rejected_input) = bounded_binding_rows_fixture(
+    rows,
+    assert_unique=true,
+    max_entries=15,
+  )
+  let mut failed = false
+  advances = 0
+  while !failed && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      _ => fail("one-short unique workspace boundary had another outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  assert_true(producer_read_available(rejected_input))
 }
 
 ///|
