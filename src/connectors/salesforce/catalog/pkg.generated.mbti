@@ -10,6 +10,8 @@ pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
+pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
+
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -17,6 +19,8 @@ pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[Fiel
 pub fn require_unique_external_id(ResourceMetadata, String) -> Result[FieldMetadata, ResourceRequirementIssue]
 
 pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
 
 // Errors
 
@@ -51,6 +55,36 @@ pub(all) struct FieldMetadata {
   reference_to : Array[String]
 }
 
+pub(all) struct ListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_resources : Int
+  max_selected : Int
+  max_name_units : Int
+}
+
+pub(all) struct ListedResource {
+  name : String
+  queryable : Bool
+  createable : Bool
+  updateable : Bool
+}
+
+pub(all) enum ListingIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  DuplicateResource(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ResourceListing {
+  selected : Array[ListedResource]
+  visible_count : Int
+  truncated : Bool
+  response_sha256 : String
+}
+
 pub(all) struct ResourceMetadata {
   name : String
   queryable : Bool
@@ -69,6 +103,13 @@ pub(all) enum ResourceRequirementIssue {
   FieldNotCreateable(String)
   FieldNotUpdateable(String)
   ExternalIdNotUnique(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResourceSelectionIssue {
+  ListingTruncated
+  NotVisible
+  DescribeRequired
+  DescribeMismatch
 } derive(Eq, @debug.Debug)
 
 // Type aliases
