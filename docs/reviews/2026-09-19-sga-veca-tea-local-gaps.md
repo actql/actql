@@ -143,9 +143,10 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   prior graph-construction work against the common selected execution ceiling.
   That task-wide scope needs a product-path exact/one-short fixture before
   resource assurance closes.
-  The degree route uses the same
-  resumable diagnostic kernel, but has its own workspace eight/seven and
-  output two/one exact-boundary fixtures. Its direct
+  The degree route uses the same resumable diagnostic kernel, but has its own
+  workspace eight/seven, control work eighteen/seventeen, and output two/one
+  exact-boundary fixtures. These control-work counts include its two-node sort.
+  Its direct
   fixture cancels after charged work and confirms cleanup; a Node standard Host
   timer reaches the degree operation. Exact control-work limits are not yet
   registered, so degree does not claim full resource-boundary assurance. The
