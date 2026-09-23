@@ -107,7 +107,11 @@ pub fn node_supports_bounded_managed_prefix(
   consumer : PreparedNode,
 ) -> Bool {
   match (node.payload, consumer.payload) {
-    (Values(_), Where(_)) | (Values(_), Sort(_)) | (CrossJoinRows(_), _) => true
+    (Values(_), Where(_))
+    | (Values(_), Select(_))
+    | (Values(_), Sort(_))
+    | (Values(_), Limit(_))
+    | (CrossJoinRows(_), _) => true
     (Values(_), AssertRows(_)) =>
       operation(consumer) == "REL.assert_all" ||
       operation(consumer) == "REL.assert_unique"

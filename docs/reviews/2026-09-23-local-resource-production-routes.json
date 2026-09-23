@@ -302,6 +302,13 @@
           "fixture": "standard Host composes Graph projection and Relation select"
         },
         {
+          "role": "values_split_select_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from select"
+        },
+        {
           "role": "ordinary_select_quantum_and_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -358,6 +365,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-select-in-flight"
+        },
+        {
+          "role": "values_split_select_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-select-in-flight"
         }
       ],
       "path_assurance": {
@@ -732,6 +746,13 @@
           "fixture": "ordinary Local take resumes within quantum and feeds two Computes"
         },
         {
+          "role": "values_split_take_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from take"
+        },
+        {
           "role": "mixed_stage_sort_quantum_and_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -802,6 +823,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-take-in-flight"
+        },
+        {
+          "role": "values_split_take_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-take-in-flight"
         }
       ],
       "path_assurance": {

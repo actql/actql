@@ -687,6 +687,28 @@ test('resource gate rejects take without ordinary quantum evidence', () => {
   }), /RelA take: reviewed ordinary_take_quantum_and_lifetime fixture is missing/);
 });
 
+test('resource gate retains bounded values/select and values/take evidence', () => {
+  for (const [operation, role, timer] of [
+    ['select', 'values_split_select_lifetime',
+      'values_split_select_in_flight_host_timer'],
+    ['take', 'values_split_take_lifetime',
+      'values_split_take_in_flight_host_timer'],
+  ]) {
+    assert.match(run(undefined, value => {
+      const route = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA ${operation}: reviewed ${role} fixture is missing`));
+    assert.match(run(undefined, value => {
+      const route = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== timer);
+    }), new RegExp(`RelA ${operation}: .*Host timer fixture is missing`));
+  }
+});
+
 test('resource gate rejects take without its ordinary product route', () => {
   assert.match(run(undefined, value => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&

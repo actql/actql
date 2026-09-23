@@ -300,6 +300,27 @@ test "physical DAG separates bounded values from unique assertion" {
 }
 
 ///|
+test "physical DAG separates bounded values from select and take" {
+  for variant in ["select", "take"] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_values_two_consumer_chain=true,
+      local_values_two_consumer_relation_variant=variant,
+    )
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    assert_eq(@strategy.graph_task_count(graph), 5)
+    assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+    assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+    assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  }
+}
+
+///|
 test "physical DAG separates bounded values from sort and take" {
   let program = query_checked_program_fixture(
     dag=true,
@@ -358,6 +379,7 @@ fn captured_graph_fixture(
   local_values_two_consumer_assert? : Bool = false,
   local_values_two_consumer_assert_unique? : Bool = false,
   local_values_two_consumer_sort_take? : Bool = false,
+  local_values_two_consumer_relation_variant? : String = "",
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
@@ -424,6 +446,7 @@ fn captured_graph_fixture(
     local_values_two_consumer_assert~,
     local_values_two_consumer_assert_unique~,
     local_values_two_consumer_sort_take~,
+    local_values_two_consumer_relation_variant~,
     local_values_managed_variant~,
     local_values_group_chain~,
     local_values_group_variant~,

@@ -252,12 +252,14 @@ test "Local managed zero-input values feed two downstream Computes" {
 fn run_standard_host_values_relation_step(
   assertion : Bool,
   unique? : Bool = false,
+  relation_variant? : String = "",
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
-    local_values_two_consumer_filter=!assertion,
+    local_values_two_consumer_filter=!assertion && !unique && relation_variant == "",
     local_values_two_consumer_assert=assertion && !unique,
     local_values_two_consumer_assert_unique=unique,
+    local_values_two_consumer_relation_variant=relation_variant,
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -315,7 +317,9 @@ fn run_standard_host_values_relation_step(
   )
   assert_true(relation_advances.val > 1)
   let relation_rows = local_managed_test_rows(relation_ops)
-  let expected = if assertion || unique {
+  let expected = if relation_variant == "take" {
+    ["{\"id\":null,\"label\":\"none\"}"]
+  } else if assertion || unique || relation_variant == "select" {
     values_rows
   } else {
     ["{\"id\":1,\"label\":\"one\"}"]
@@ -342,7 +346,9 @@ fn run_standard_host_values_relation_step(
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), relation_rows)
-  let expected_second = if assertion || unique {
+  let expected_second = if relation_variant == "take" {
+    ["{\"label\":\"none\",\"id\":null}"]
+  } else if assertion || unique || relation_variant == "select" {
     ["{\"label\":\"none\",\"id\":null}", "{\"label\":\"one\",\"id\":1}"]
   } else {
     ["{\"label\":\"one\",\"id\":1}"]
@@ -387,6 +393,16 @@ test "standard Host splits zero-input values from Relation assertion" {
 ///|
 test "standard Host splits zero-input values from unique assertion" {
   run_standard_host_values_relation_step(false, unique=true)
+}
+
+///|
+test "standard Host splits zero-input values from select" {
+  run_standard_host_values_relation_step(false, relation_variant="select")
+}
+
+///|
+test "standard Host splits zero-input values from take" {
+  run_standard_host_values_relation_step(false, relation_variant="take")
 }
 
 ///|
