@@ -74,6 +74,30 @@ test('two processes cannot advance one Effect head from one revision',
     }), {code: 'EffectLedgerAuthorityMismatch'});
   });
 
+test('batch append rolls back every row after a later insert failure',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    t.after(() => ledger.close());
+    const secondLocator = cid('c');
+    const operations = [locator, secondLocator].map(logicalItemLocatorCid => ({
+      logicalRequestScopeCid: scope,
+      logicalItemLocatorCid,
+      expectedRevision: 0,
+      expectedEntryCid: null,
+      entries: [{entryCid: cid('1'), entryJson: firstJson}],
+    }));
+    assert.throws(() => ledger.appendBatch(operations));
+    assert.equal(ledger.current(locator), undefined);
+    assert.equal(ledger.current(secondLocator), undefined);
+    ledger.close();
+    const restarted = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope});
+    t.after(() => restarted.close());
+    assert.equal(restarted.current(locator), undefined);
+    assert.equal(restarted.current(secondLocator), undefined);
+  });
+
 test('physical corruption fails closed and bounded history cannot truncate',
   async t => {
     const root = await fixture(t);
