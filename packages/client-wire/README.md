@@ -9,6 +9,12 @@ The TypeScript `WireClientBodyByOperation` map describes the envelope accepted
 by `validClientBody(operation, value)`. Its `parameters` and compiled Program
 input remain `unknown` and `object`, respectively, until the Host performs
 semantic validation; the structural guard does not authorize either value.
+`validDeliveryAttemptLookup(value, expected)` checks the published attempt,
+record and Host release receipt shapes and binds the reply to the requested
+attempt ID, Run definition and Result name. It also checks the shared artifact
+and serialization contract CIDs, record state, receipt reference, byte count
+and digest. The Host still authorizes lookup against tenant, scope and grant;
+those private grant facts are not present in this public response.
 
 These functions do not authenticate callers, grant movement or execution,
 admit Program intent, interpret Run state, or validate a Remote Site message.
