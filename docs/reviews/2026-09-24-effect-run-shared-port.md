@@ -1,7 +1,8 @@
 # Shared checked-Effect and Run port required by Salesforce
 
 Status: implementation interface proposal, not a completion claim.
-Baseline inspected: `311921b14d608617f715c531829c75139ac2f7a3`.
+Initial baseline inspected: `311921b14d608617f715c531829c75139ac2f7a3`.
+Rechecked against `5217412b1e2bce5592b9dcfab0cb54fd75c111f7`.
 
 ## Current product boundary
 
@@ -16,6 +17,16 @@ pieces constitutes a checked Program-to-Effect-Set Run.
 The safe integration is one shared MoonBit-owned port, consumed by Connector
 implementations. It must not be a Salesforce-specific Run owner or a second
 Effect state machine in JavaScript.
+
+The intervening MoonBit work now collects structurally checked Effect headers
+and binds their direct Result references to exact checked Stage Result fields.
+The binding retains each field's admitted type and its selector, key, command
+target, or value role. It does not resolve the complete Mapping/Command
+Contract, establish current authority, admit a Preview, or permit execution.
+The standard Program checker still rejects nonempty Effects. A complete
+Mapping Contract body and its reference/permission/type admission must be
+specified and connected before lifting that rejection; an arbitrary member
+CID or a dynamic Salesforce describe is not a substitute.
 
 ## Required port and owners
 
@@ -66,3 +77,14 @@ publication guarantee is weakened to make an Effectful Run pass.
 
 The isolated Salesforce org and write authorization are still absent. Local
 HTTPS evidence cannot be reported as live-provider verification.
+
+## Fixed-SHA review application
+
+`02-salesforce-effects.md` inspected `66b42189d2bb17407776fd74ca0e7ea9ddf73d01`.
+SF-1's exact HTTPS request-target and SF-2's provider target identity were
+corrected after that SHA. The Salesforce Site suite passes 103/103 at the
+rechecked HEAD, including local HTTPS target and whole-set footprint tests.
+These component results do not close SF-3: the ordinary checked Program,
+standard Host, complete multi-member Preview/apply admission, final receipt,
+and restart-safe reconciliation still require one connected product test path.
+No live Salesforce org or authorized write scope has been provided.
