@@ -71,6 +71,8 @@ pub fn salesforce_collection_write_request_row_count(@catalog.WriteCollectionReq
 
 pub fn salesforce_collection_write_request_scope_matches(@catalog.WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
+pub fn salesforce_collection_write_request_target_identity(@catalog.WriteCollectionRequest, Int, Int) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollectionResponse, Int) -> Bool
 
 pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
@@ -170,6 +172,8 @@ pub fn salesforce_single_write_request_org_id(@catalog.SingleWriteRequest) -> St
 pub fn salesforce_single_write_request_path(@catalog.SingleWriteRequest) -> String
 
 pub fn salesforce_single_write_request_scope_matches(@catalog.SingleWriteRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
+
+pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteRequest, Int) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
 

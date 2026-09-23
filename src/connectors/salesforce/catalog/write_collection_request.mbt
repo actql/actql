@@ -39,6 +39,8 @@ pub struct WriteCollectionRequest {
   kind : WriteCollectionKind
   projection : WriteProjection
   row_preview_cids : Array[String]
+  targets : Array[WriteTargetValue]
+  max_target_bytes : Int
 }
 
 ///|
@@ -63,6 +65,31 @@ pub fn write_collection_request_org_id(
   value : WriteCollectionRequest,
 ) -> String {
   value.projection.binding.org_id
+}
+
+///|
+/// Each target comes from the same row that formed the admitted request body.
+/// A caller cannot substitute a different footprint after physical encoding.
+pub fn write_collection_request_target_identity(
+  value : WriteCollectionRequest,
+  index : Int,
+  max_identity_bytes : Int,
+) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue] {
+  match value.targets.get(index) {
+    None => Err(InvalidRows)
+    Some(NoWriteTarget) => Ok(None)
+    Some(target) =>
+      match
+        prepare_write_target_identity(
+          value.projection,
+          target,
+          value.max_target_bytes,
+          max_identity_bytes,
+        ) {
+        Ok(identity) => Ok(Some(identity))
+        Err(issue) => Err(issue)
+      }
+  }
 }
 
 ///|
@@ -407,6 +434,7 @@ pub fn prepare_continue_write_collection(
     return Err(CapacityExceeded)
   }
   let row_cids : Array[String] = []
+  let row_targets : Array[WriteTargetValue] = []
   let wire_targets : Array[String?] = []
   let overlap_keys : Array[String?] = []
   let mut remaining = limits.max_body_bytes
@@ -442,6 +470,7 @@ pub fn prepare_continue_write_collection(
     }
     remaining -= input_bytes
     row_cids.push(item.row_preview_cid)
+    row_targets.push(item.target)
     wire_targets.push(target)
     overlap_keys.push(overlap)
   }
@@ -486,5 +515,14 @@ pub fn prepare_continue_write_collection(
     WriteUpdateById => CollectionUpdate
     WriteUpsertByExternalId(_) => CollectionUpsert
   }
-  Ok({ verb, path, body, kind, projection: first, row_preview_cids: row_cids, })
+  Ok({
+    verb,
+    path,
+    body,
+    kind,
+    projection: first,
+    row_preview_cids: row_cids,
+    targets: row_targets,
+    max_target_bytes: limits.max_target_bytes,
+  })
 }
