@@ -26,6 +26,8 @@ pub fn catalog_observation_json(CatalogObservation) -> String
 
 pub fn catalog_observation_resource(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
 
+pub fn catalog_observation_resource_outcome(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceDescribeOutcome, CatalogObservationIssue]
+
 pub fn catalog_response_sha256(Bytes) -> String
 
 pub fn catalog_sync_describe(CatalogSync, String, Bytes, DescribeLimits) -> Result[Unit, CatalogSyncIssue]
@@ -207,7 +209,7 @@ pub fn write_target_scheme_cid(WriteTargetIdentity) -> String
 // Types and methods
 pub struct CatalogObservation {
   names : Array[String]
-  resources : Array[ResourceMetadata?]
+  outcomes : Array[ResourceDescribeOutcome]
   truncated : Bool
   binding : CatalogObservationBinding
   body : String

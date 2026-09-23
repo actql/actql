@@ -145,6 +145,85 @@ test "catalog observation binds exact connection, Site and use evidence" {
     catalog_observation_resource(observation, binding, "Account").unwrap().fields.length(),
     1,
   )
+  let observed = catalog_observation_resource_outcome(
+    observation, binding, "Account",
+  ).unwrap()
+  match observed {
+    Described(resource) => {
+      assert_eq(resource.name, "Account")
+      ignore(resource.fields.pop())
+    }
+    _ => abort("expected retained Account metadata")
+  }
+  assert_eq(
+    catalog_observation_resource(observation, binding, "Account").unwrap().fields.length(),
+    1,
+  )
+}
+
+///|
+test "catalog observation keeps resource failure distinct from absence" {
+  let listing = project_resource_listing(
+    @utf8.encode(
+      (
+        #|{"sobjects":[{"name":"Account","queryable":true},{"name":"Denied__c","queryable":true},{"name":"Rate_Limited__c","queryable":true}]}
+      ),
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 3,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = begin_catalog_sync(listing)
+  catalog_sync_unavailable(sync, "Account", ProviderUnavailable).unwrap()
+  catalog_sync_unavailable(sync, "Denied__c", PermissionDenied).unwrap()
+  catalog_sync_unavailable(sync, "Rate_Limited__c", RateLimited).unwrap()
+  finish_catalog_sync(sync).unwrap()
+  let binding = observation_test_binding()
+  let use_cid = "sha256:" + "c".repeat(64)
+  let response_digest = "d".repeat(64)
+  let observation = prepare_catalog_observation(
+    sync,
+    binding,
+    use_cid,
+    [Some(use_cid), Some(use_cid), Some(use_cid)],
+    [Some(response_digest), Some(response_digest), Some(response_digest)],
+    8192,
+  ).unwrap()
+  assert_true(
+    catalog_observation_resource_outcome(observation, binding, "Account")
+    is Ok(Unavailable(ProviderUnavailable)),
+  )
+  assert_true(
+    catalog_observation_resource_outcome(observation, binding, "Denied__c")
+    is Ok(Unavailable(PermissionDenied)),
+  )
+  assert_true(
+    catalog_observation_resource_outcome(
+      observation, binding, "Rate_Limited__c",
+    )
+    is Ok(Unavailable(RateLimited)),
+  )
+  assert_true(
+    catalog_observation_resource(observation, binding, "Denied__c")
+    is Err(Resource(DescribeRequired)),
+  )
+  assert_true(
+    catalog_observation_resource_outcome(observation, binding, "Missing__c")
+    is Err(Resource(NotVisible)),
+  )
+  assert_true(
+    catalog_observation_resource_outcome(
+      observation,
+      { ..binding, principal: "other", },
+      "Denied__c",
+    )
+    is Err(ForeignBinding),
+  )
 }
 
 ///|

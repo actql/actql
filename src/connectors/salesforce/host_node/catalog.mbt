@@ -240,6 +240,61 @@ pub fn salesforce_catalog_observation_cid(
 }
 
 ///|
+/// Inspect one retained observation under its exact original binding. This
+/// reports metadata completeness, not current disclosure or execution rights.
+#export_name("salesforceCatalogObservedResourceState")
+pub fn salesforce_catalog_observed_resource_state(
+  observation : @catalog.CatalogObservation,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  name : String,
+) -> Int raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.catalog_observation_resource_outcome(observation, binding, name) {
+    Ok(@catalog.ResourceDescribeOutcome::Pending) => 0
+    Ok(Described(_)) => 1
+    Ok(Unavailable(reason)) =>
+      match reason {
+        PermissionDenied => 2
+        RateLimited => 3
+        ProviderUnavailable => 4
+        TransportInterrupted => 5
+        InvalidMetadata => 6
+        Cancelled => 7
+      }
+    Err(Resource(NotVisible)) => -1
+    Err(Resource(ListingTruncated)) => -2
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
 #export_name("salesforceCatalogResponseSha256")
 pub fn salesforce_catalog_response_sha256(bytes : Bytes) -> String {
   @catalog.catalog_response_sha256(bytes)
