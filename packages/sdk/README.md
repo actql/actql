@@ -18,6 +18,10 @@ to inspect the existing request without starting Compute. To resubmit after
 an ambiguous response, use the original entrance with the same ID and exactly
 the same intent; safety depends on the Host's atomic deduplication and its
 documented request-record retention horizon.
+The Client serializes the submitted Program and parameters before awaiting an
+asynchronous credential callback, so later mutation of caller objects cannot
+change that transmission. An application that may need to resend must retain
+its own original input and explicit request ID.
 
 `attach(ref)` retrieves another handle for the same Run. `result(name)` only
 selects a named Result. Each `rows()`, `batches()` or `all()` call creates a
