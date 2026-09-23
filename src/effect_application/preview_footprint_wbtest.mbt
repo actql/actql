@@ -103,6 +103,7 @@ test "Preview-derived footprint check sees every Effect Set member" {
       disjoint,
       ["second", "first"],
       [0, 0],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -117,6 +118,7 @@ test "Preview-derived footprint check sees every Effect Set member" {
       disjoint,
       ["first", "second"],
       [0, 0],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -141,6 +143,7 @@ test "Preview-derived footprint check sees every Effect Set member" {
       overlapping,
       ["first", "second"],
       [0, 0],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -167,6 +170,7 @@ test "Preview shape failure cannot become a successful conflict check" {
       invalid,
       ["first"],
       [0],
+      [preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -181,6 +185,7 @@ test "Preview shape failure cannot become a successful conflict check" {
       "{}",
       ["first"],
       [0],
+      [preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -212,6 +217,7 @@ test "Preview preflight binds the exact unordered member set and policies" {
       complete,
       ["second", "first"],
       [1, 0],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -227,6 +233,7 @@ test "Preview preflight binds the exact unordered member set and policies" {
         complete,
         declarations,
         [0, 1],
+        [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
         8192,
         256,
         12,
@@ -242,6 +249,7 @@ test "Preview preflight binds the exact unordered member set and policies" {
       complete,
       ["first", "second"],
       [0, 0],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -256,6 +264,7 @@ test "Preview preflight binds the exact unordered member set and policies" {
       complete,
       ["first", "second"],
       [0, 1],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
       8192,
       256,
       12,
@@ -264,5 +273,59 @@ test "Preview preflight binds the exact unordered member set and policies" {
       2,
     )
     is Err(Conflict(CapacityExceeded)),
+  )
+  let changed_identity = complete.replace(
+    old="\"effect_identity_cid\":\"" + preview_footprint_test_cid("a") + "\"",
+    new="\"effect_identity_cid\":\"" + preview_footprint_test_cid("b") + "\"",
+  )
+  assert_true(
+    check_effect_preview_footprint_conflicts(
+      changed_identity,
+      ["first", "second"],
+      [0, 1],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("a")],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
+    )
+    is Err(EffectIdentityMismatch),
+  )
+  let distinct_second = second.replace(
+    old="\"effect_identity_cid\":\"" + preview_footprint_test_cid("a") + "\"",
+    new="\"effect_identity_cid\":\"" + preview_footprint_test_cid("b") + "\"",
+  )
+  let distinct = preview_footprint_test_wire(first + "," + distinct_second)
+  assert_true(
+    check_effect_preview_footprint_conflicts(
+      distinct,
+      ["second", "first"],
+      [1, 0],
+      [preview_footprint_test_cid("b"), preview_footprint_test_cid("a")],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_footprint_conflicts(
+      distinct,
+      ["second", "first"],
+      [1, 0],
+      [preview_footprint_test_cid("a"), preview_footprint_test_cid("b")],
+      8192,
+      256,
+      12,
+      2,
+      2,
+      100,
+    )
+    is Err(EffectIdentityMismatch),
   )
 }

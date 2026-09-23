@@ -142,7 +142,7 @@ pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequ
 
 pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
 
-pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
