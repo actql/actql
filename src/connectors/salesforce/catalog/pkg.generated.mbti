@@ -6,7 +6,25 @@ import {
 }
 
 // Values
+pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
+
+pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
+
+pub fn catalog_sync_describe(CatalogSync, String, Bytes, DescribeLimits) -> Result[Unit, CatalogSyncIssue]
+
+pub fn catalog_sync_is_complete(CatalogSync) -> Bool
+
+pub fn catalog_sync_next(CatalogSync) -> String?
+
+pub fn catalog_sync_outcome(CatalogSync, String) -> ResourceDescribeOutcome?
+
+pub fn catalog_sync_resource(CatalogSync, String) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[Unit, CatalogSyncIssue]
+
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
+
+pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
@@ -25,6 +43,30 @@ pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> 
 // Errors
 
 // Types and methods
+pub struct CatalogSync {
+  listing : ResourceListing
+  outcomes : Array[ResourceDescribeOutcome]
+  mut next_index : Int
+  mut finished : Bool
+}
+
+pub(all) enum CatalogSyncIssue {
+  AlreadyFinished
+  WrongResource
+  NoPendingResource
+  Incomplete
+  Describe(DescribeIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DescribeFailure {
+  PermissionDenied
+  RateLimited
+  ProviderUnavailable
+  TransportInterrupted
+  InvalidMetadata
+  Cancelled
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DescribeIssue {
   InvalidLimits
   BudgetExceeded
@@ -77,6 +119,12 @@ pub(all) enum ListingIssue {
   InvalidResponse
   DuplicateResource(String)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ResourceDescribeOutcome {
+  Pending
+  Described(ResourceMetadata)
+  Unavailable(DescribeFailure)
+}
 
 pub(all) struct ResourceListing {
   selected : Array[ListedResource]
