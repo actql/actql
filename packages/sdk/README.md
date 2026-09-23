@@ -23,6 +23,13 @@ asynchronous credential callback, so later mutation of caller objects cannot
 change that transmission. An application that may need to resend must retain
 its own original input and explicit request ID.
 
+Connected Local uses a Local Host endpoint. Cloud-owned Hybrid selects at
+least one registered Runner; local-owned Hybrid names its already registered
+Cloud assistance connection with `cloudConnectionRef`. Both Hybrid forms
+require a separate `movementPolicyRef`. The references select targets and
+policies, while the Host still checks current grants and authorization.
+This lightweight package does not install an embedded Local provider.
+
 `attach(ref)` retrieves another handle for the same Run. `result(name)` only
 selects a named Result. Each `rows()`, `batches()` or `all()` call creates a
 new delivery attempt; a reader exposes `attemptId` before iteration.
