@@ -396,6 +396,33 @@ test "physical DAG splits two values before bounded cross join" {
 }
 
 ///|
+test "physical DAG selects distinct inputs before same-stage cross join" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_cross_chain=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  for step in 0..<5 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  let sources = []
+  for edge in 0..<@strategy.graph_data_count(graph) {
+    let data = @strategy.graph_data_at(graph, edge).unwrap()
+    if data.consumer == 5 {
+      sources.push((data.input, data.producer))
+    }
+  }
+  assert_eq(sources, [(0, 2), (1, 4)])
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG separates bounded values from sort and take" {
   let program = query_checked_program_fixture(
     dag=true,

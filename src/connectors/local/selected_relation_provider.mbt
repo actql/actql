@@ -7,6 +7,8 @@ fn selected_binding_rows_issue(
 ) -> @connector.FixedComputeIssue {
   match issue {
     @execution.InputLimit => @connector.Execution(@execution.InputLimit)
+    @execution.UnsupportedDistinctField(name) =>
+      @connector.Execution(@execution.UnsupportedRowComparison(step, name))
     @execution.Rows(row_issue) =>
       @connector.Execution(@execution.Rows(step, row_issue))
     @execution.Capture(capture_issue) =>
@@ -159,6 +161,7 @@ fn selected_relation_provider(
             | @lower.OrderedBindings(_)
             | @lower.Filter(_)
             | @lower.Select(_)
+            | @lower.DistinctRows
             | @lower.StableSort(_)
             | @lower.Limit(_, _, _) => ()
             _ => return false
@@ -190,6 +193,7 @@ fn selected_relation_provider(
         | @lower.Filter(_)
         | @lower.AssertAll(_)
         | @lower.AssertUnique(_)
+        | @lower.DistinctRows
         | @lower.Select(_) =>
           return selected_binding_rows_execution(
             sequence, input, execution, max_value_bytes, step,

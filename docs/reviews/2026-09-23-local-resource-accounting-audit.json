@@ -76,7 +76,7 @@
         {
           "facets": ["finite_stop_observation", "cleanup_owner"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
-          "fixture": "Local managed cross join cancellation publishes nothing and reclaims"
+          "fixture": "standard Host cancels external cross join after pair work"
         },
         {
           "facets": ["temporary_retained_peak_scope"],

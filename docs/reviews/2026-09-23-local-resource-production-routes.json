@@ -1112,7 +1112,61 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "boundary_tests": [
+        {
+          "role": "selected_distinct_first_occurrence_and_null",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded distinct preserves first occurrence and null equality"
+        },
+        {
+          "role": "selected_distinct_keyed_projection",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded keyed distinct compares only projected fields"
+        },
+        {
+          "role": "selected_distinct_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded distinct admits exact and one-short structural workspace"
+        },
+        {
+          "role": "selected_distinct_kernel_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded distinct cancels during index work without output"
+        },
+        {
+          "role": "same_stage_distinct_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+          "fixture": "Local managed cross join reaches two consumers in left-major order"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "same_stage_distinct_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-distinct-in-flight"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1779,14 +1833,14 @@
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
-          "fixture": "Local managed cross join cancellation publishes nothing and reclaims"
+          "fixture": "same-stage values pre-execution cancel publishes nothing"
         },
         {
-          "role": "managed_in_flight_copy_cancel_cleanup",
+          "role": "same_stage_values_kernel_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
-          "fixture": "Local managed cross join copy stops after execution has started"
+          "fixture": "same-stage values stop after execution has started"
         }
       ],
       "environment_tests": [
@@ -1803,13 +1857,6 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-external-cross-join-in-flight"
-        },
-        {
-          "role": "providerless_cross_join_copy_host_timer",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "providerless-cross-join-copy-in-flight"
         },
         {
           "role": "direct_product_node_timer_cancel_cleanup",

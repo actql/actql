@@ -5834,8 +5834,10 @@ async function exerciseStrategyGraph(
     ['unnest', unnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
     ['full join', joinProgram, [1, 2, 3]],
-    ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
-    ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
+    ['unrestricted cross join', unrestrictedCrossJoinProgram,
+      [1, 2, 3, 4, 5, 6, 7]],
+    ['singleton cross join', singletonCrossJoinProgram,
+      [1, 2, 3, 4, 5, 6, 7]],
     ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['split external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5, 6]],
     ['external append', externalAppendProgram, [1, 2, 3, 4, 5]],
@@ -5906,6 +5908,14 @@ async function exerciseStrategyGraph(
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 1, 1, 1],
+        );
+      }
+      if (name === 'unrestricted cross join' ||
+          name === 'singleton cross join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'unrestricted cross join'
+            ? [2, 2, 2, 2, 4, 4, 4] : [2, 2, 1, 1, 2, 2, 2],
         );
       }
       if (name === 'external cross join' ||
@@ -6168,7 +6178,7 @@ async function exerciseStrategyGraph(
     }
   }
   const copyCancellationCase = {
-    name: 'providerless-cross-join-copy-in-flight',
+    name: 'same-stage-distinct-in-flight',
   };
   const copyCancellationProgram = structuredClone(unrestrictedCrossJoinProgram);
   copyCancellationProgram.stages.find(stage =>
@@ -6228,11 +6238,10 @@ async function exerciseStrategyGraph(
               return quantum => {
                 const result = active.advance(quantum);
                 const poll = checked(result);
-                if (start === 1) {
+                if (start === 4) {
                   assert(poll.work <= BigInt(quantum));
-                  if (poll.complete === false && poll.progress > 0n &&
-                      poll.work > 0n) {
-                    copyProgress += poll.progress;
+                  if (poll.complete === false && poll.work > 0n) {
+                    copyProgress += poll.work;
                     if (!copyCancelScheduled) {
                       copyCancelScheduled = true;
                       setTimeout(() => copyCancellation.abort(), 0);
@@ -6254,15 +6263,17 @@ async function exerciseStrategyGraph(
       copyCancellation.signal,
     );
     assert(copyProgress > 0n,
-      `${copyCancellationCase.name}: row copy must start before cancel`);
+      `${copyCancellationCase.name}: distinct work must start before cancel`);
     assert.equal(copyCancellation.signal.aborted, true);
     assert.equal(Number.isFinite(copyCancelDeliveredAt), true);
     assert.equal(Number.isFinite(copyStopObservedAt), true);
     assert(copyStopObservedAt >= copyCancelDeliveredAt);
     assert.equal(copyCancellationExecution.status, 'host-tasks-failed');
     assert.equal(copyCancellationExecution.failure?.name, 'AbortError');
-    assert.equal(copyCancellationExecution.completed.some(item =>
-      item.task === 1), false, 'partial copied output must not publish');
+    assert.deepEqual(
+      copyCancellationExecution.completed.map(item => item.task),
+      [1, 2, 3], 'partial distinct output must not publish',
+    );
   } finally {
     copyCancellationCapture.close();
     await copyCancellationExecution?.close();

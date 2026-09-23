@@ -5,6 +5,18 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 
+The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` is applied
+to the current branch by separating three gates. The same-Stage
+`values → distinct → values → distinct → cross_join` path now has five
+selected bounded tasks. The standard Host runs two downstream Computes;
+the Node Host delivers cancellation after the second distinct task reports
+work and verifies stop, nonpublication, and final cleanup. Direct selected
+distinct fixtures cover full-row and keyed projection semantics, NULL
+equality, quantum-one cancellation, and independently calculated exact and
+one-short structural workspace. These proofs do not cover all providerless
+sequences, all 68 operation-specific resource assurances, or the
+Distribution-owned ordinary Run port. The strict completion gate remains red.
+
 ## Shared blockers
 
 | Area | Baseline state | Required closure |
@@ -51,9 +63,9 @@ fixture checks quantum-one pair work, two real consumers, independent release,
 and final reclamation on JS, Wasm, and native. Another Host fixture cancels
 after a pair has been emitted and verifies stop, nonpublication, and cleanup.
 Direct fixtures check independently calculated exact and one-short work and
-structural workspace limits. The original same-sequence values/distinct/cross-
-join fixture still uses the providerless lane; its pre-execution cancellation
-fixture must not be relabeled as in-flight cancellation. An external-input
+structural workspace limits. The same-sequence values/distinct/cross-join
+fixture now splits into bounded values, distinct, and cross-join tasks. Its
+pre-execution cancellation fixture remains labeled as such. An external-input
 cross join followed by a Relation filter in the same Stage now splits at a
 typed provider boundary. The prefix and filter use their bounded providers.
 A standard Host fixture checks quantum-one progress, two downstream Computes,
@@ -88,7 +100,7 @@ producer and selected Relation handoff. Three-target standard Host fixtures
 exercise both actual downstream Computes, overlapping retention, independent
 release, and final reclamation. Node timers deliver cancellation after the
 selected step reports positive work and verify stop, nonpublication, and
-cleanup. These fixtures close those two connection forms, not the remaining
+cleanup. These fixtures close those three connection forms, not the remaining
 same-sequence forms or the providerless lane in general.
 The direct-take timer fixture caps each product advance to seven work units
 through its observation wrapper because the small input finishes within the
@@ -99,8 +111,8 @@ The selected binary providers advance within the Host quantum. Three-target
 standard Host fixtures run both downstream Computes, overlapping retention,
 independent release, and final reclamation. Node timers cancel after binary
 work starts and check stop, nonpublication, and cleanup. These are specific
-checked forms; `values → distinct → cross_join` still uses the providerless
-whole-sequence execution lane. The new same-Stage paths have connection and
+checked forms; `values → distinct → cross_join` now uses selected bounded
+tasks. The new same-Stage paths have connection and
 cancel evidence, but not independent exact combined-path work/workspace
 assurance in the resource audit.
 Other multi-step sequences beginning with `values` and unmatched Relation
@@ -119,11 +131,11 @@ workspace admission, source-loss rejection between resumes, and cancellation
 after copy work starts. Each destination container entry is reserved before
 append against the existing Site execution-capacity allowance; completed
 storage takes custody when the copy finishes.
-The standard Node Host now also runs a providerless values/distinct/cross-join
-sequence, delivers a timer cancel after RowTable copy has made row progress,
-observes stop, rejects the partial output, and reclaims the attempt. This
-proves interruption of the independent copy, not of the preceding synchronous
-cross-join computation or its reported `work=1`.
+The standard Node Host runs the split values/distinct/cross-join sequence and
+delivers a timer cancel after the second distinct task reports work. It checks
+stop, rejects the partial distinct output, and reclaims the attempt. This
+proves delivery during the selected distinct kernel, not the remaining
+providerless sequences or every output-copy representation.
 The strict resource-completion gate
 still rejects the providerless
 lane even if route evidence is added elsewhere. Its source
@@ -134,7 +146,7 @@ closure conditions. The independent RowTable copy, external-input cross join,
 zero-input values, and external-input append now have bounded paths. The
 providerless compute call still runs an unmatched whole checked sequence in
 one resume; it remains a release blocker. The normal route gate reports 68
-mapped operations and 17 with operation-specific boundary records. The
+mapped operations and 18 with operation-specific boundary records. The
 registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
 one-short work/workspace assurance. The ordinary and selected one-step filter
 and select paths now share their respective bounded evaluators and have
@@ -153,7 +165,7 @@ external-input cross join, and zero-input values forms use bounded Relation
 providers. External-input
 cross join and zero-input values each support a tested same-Stage Relation
 filter handoff without changing the authored Stage. Other accepted Relation
-forms, including same-sequence binary and multi-step sequences, can still use
+forms, including unmatched same-sequence multi-step variants, can still use
 the providerless lane.
 The ordinary derive and assertion routes now use the bounded Relation
 evaluator at quantum one. Their standard Host fixture retains the existing

@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 17 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 15 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 18 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 15 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -187,14 +187,14 @@ test('selected projection loses its resource proof when the fixture is removed',
   }), /RelA select: missing operation boundary fixture missing-selected-projection-resources/);
 });
 
-test('cross join copy evidence must resolve to its managed product fixture', () => {
+test('same-stage values cancellation resolves to its managed fixture', () => {
   assert.match(run(undefined, routes => {
     const crossJoin = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'cross_join');
     crossJoin.boundary_tests.find(item =>
-      item.role === 'managed_in_flight_copy_cancel_cleanup').fixture =
-      'missing-cross-join-copy-stop';
-  }), /RelA cross_join: missing operation boundary fixture missing-cross-join-copy-stop/);
+      item.role === 'same_stage_values_kernel_cancel_cleanup').fixture =
+      'missing-values-kernel-stop';
+  }), /RelA cross_join: missing operation boundary fixture missing-values-kernel-stop/);
 });
 
 test('external cross join binds its provider and bounded fixtures', () => {
@@ -798,13 +798,13 @@ test('resource gate rejects cross join without delivered Host cancellation', () 
   }), /RelA cross_join: missing environment fixture/);
 });
 
-test('resource gate retains the providerless row-copy timer fixture', () => {
+test('resource gate retains same-stage distinct timer evidence', () => {
   assert.match(run(undefined, value => {
-    const join = value.routes.find(entry => entry.family === 'RelA' &&
-      entry.operation === 'cross_join');
-    join.environment_tests = join.environment_tests.filter(item =>
-      item.role !== 'providerless_cross_join_copy_host_timer');
-  }), /RelA cross_join: providerless row-copy timer fixture is missing/);
+    const distinct = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'distinct');
+    distinct.environment_tests = distinct.environment_tests.filter(item =>
+      item.role !== 'same_stage_distinct_timer_cancel_cleanup');
+  }), /RelA distinct: same-stage distinct timer fixture is missing/);
 });
 
 test('resource gate requires mixed-stage cross join execution evidence', () => {

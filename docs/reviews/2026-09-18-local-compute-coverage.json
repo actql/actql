@@ -5807,7 +5807,7 @@
             "fixtures": [
               "Local managed cross join reaches two consumers in left-major order",
               "Local managed singleton cross join validates before two consumers",
-              "Local managed cross join cancellation publishes nothing and reclaims"
+              "standard Host cancels external cross join after pair work"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5830,7 +5830,7 @@
             "fixtures": [
               "Local managed cross join reaches two consumers in left-major order",
               "Local managed singleton cross join validates before two consumers",
-              "Local managed cross join cancellation publishes nothing and reclaims"
+              "standard Host cancels external cross join after pair work"
             ],
             "suite": "moon:query_integration",
             "targets": [

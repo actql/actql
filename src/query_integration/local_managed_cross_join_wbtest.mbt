@@ -3,6 +3,14 @@ fn run_local_managed_cross_join(singleton : Bool) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_cross_chain=true,
     local_values_cross_singleton=singleton,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 12,
+      holdings: 12,
+      transfer_bytes: 300000L,
+      retained_bytes: 64000000L,
+      execution_bytes: 268435456L,
+    }),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -26,15 +34,80 @@ fn run_local_managed_cross_join(singleton : Bool) -> Unit raise {
     },
     None,
   ).unwrap()
-  let producer_live = Ref(true)
-  let (producer_ops, producer) = run_local_managed_test_task(
+  let left_values_live = Ref(true)
+  let (left_values_ops, left_values) = run_local_managed_test_task(
     installed,
     run,
     1,
     [],
     [],
     1,
+    left_values_live,
+    execution_quantum=1,
+    require_provider=true,
+  )
+  let left_values_rows = local_managed_test_rows(left_values_ops)
+  assert_eq(left_values_rows, ["{\"id\":1}", "{\"id\":2}"])
+  let left_live = Ref(true)
+  let (left_ops, left) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [left_values],
+    [left_values_rows],
+    2,
+    left_live,
+    execution_quantum=1,
+    require_provider=true,
+  )
+  let left_rows = local_managed_test_rows(left_ops)
+  assert_eq(left_rows, left_values_rows)
+  let right_values_live = Ref(true)
+  let (right_values_ops, right_values) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [],
+    [],
+    3,
+    right_values_live,
+    execution_quantum=1,
+    require_provider=true,
+  )
+  let right_values_rows = local_managed_test_rows(right_values_ops)
+  assert_eq(
+    right_values_rows,
+    if singleton {
+      ["{\"tag\":\"a\"}"]
+    } else {
+      ["{\"tag\":\"a\"}", "{\"tag\":\"b\"}"]
+    },
+  )
+  let right_live = Ref(true)
+  let (right_ops, right) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [right_values],
+    [right_values_rows],
+    4,
+    right_live,
+    execution_quantum=1,
+    require_provider=true,
+  )
+  let right_rows = local_managed_test_rows(right_ops)
+  assert_eq(right_rows, right_values_rows)
+  let producer_live = Ref(true)
+  let (producer_ops, producer) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [left, right],
+    [left_rows, right_rows],
+    5,
     producer_live,
+    execution_quantum=1,
+    require_provider=true,
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(
@@ -52,20 +125,20 @@ fn run_local_managed_cross_join(singleton : Bool) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    6,
     [producer],
     [rows],
-    2,
+    6,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    7,
     [producer],
     [rows],
-    3,
+    7,
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), rows)
@@ -81,20 +154,35 @@ fn run_local_managed_cross_join(singleton : Bool) -> Unit raise {
     },
   )
   first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 6)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
   assert_true(@execution.managed_completed_output_available(producer))
   second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 7)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   producer_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, 5)
   (producer_ops.close)()
   (producer_ops.cleanup_refresh)() |> ignore
+  left_live.val = false
+  right_live.val = false
+  left_values_live.val = false
+  right_values_live.val = false
+  for task in 1..<5 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  (left_ops.close)()
+  (right_ops.close)()
+  (left_values_ops.close)()
+  (right_values_ops.close)()
+  (left_ops.cleanup_refresh)() |> ignore
+  (right_ops.cleanup_refresh)() |> ignore
+  (left_values_ops.cleanup_refresh)() |> ignore
+  (right_values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)
@@ -585,16 +673,16 @@ test "captured cross join retains the authored output restriction" {
     local_values_cross_chain=true,
     local_values_cross_output_guard=Some(2),
   )
-  assert_eq(@strategy.captured_task_join_output_limit(run, 1, 4), Some(2L))
+  assert_eq(@strategy.captured_task_join_output_limit(run, 5, 4), Some(2L))
   @strategy.stop_captured_dag(run)
-  for task in 0..<4 {
+  for task in 0..<8 {
     @strategy.close_captured_task_output(run, task)
   }
   @mock.close_mock_query_issuer(issuer)
 }
 
 ///|
-test "Local managed cross join cancellation publishes nothing and reclaims" {
+test "same-stage values pre-execution cancel publishes nothing" {
   let (run, issuer) = captured_graph_fixture(local_values_cross_chain=true)
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -649,7 +737,7 @@ test "Local managed cross join cancellation publishes nothing and reclaims" {
 }
 
 ///|
-test "Local managed cross join copy stops after execution has started" {
+test "same-stage values stop after execution has started" {
   let (run, issuer) = captured_graph_fixture(local_values_cross_chain=true)
   let registry = search_registry()
   let limits = dispatch_test_limits()

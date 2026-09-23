@@ -933,14 +933,27 @@ for (const [index, route] of routeEntries.entries()) {
       'external_product_mixed_stage_timer_cancel_cleanup')) {
       fail(`${label}: mixed-stage timer cancellation fixture is missing`);
     }
-    if (!environmentRoles.has('providerless_cross_join_copy_host_timer')) {
-      fail(`${label}: providerless row-copy timer fixture is missing`);
-    }
     // Closing before execute cannot prove a delivered in-flight stop.
     // A future unrelated environment fixture must not close this route.
     if (requireBoundaryComplete &&
       !environmentRoles.has('cross_join_in_flight_host_timer')) {
       fail(`${label}: in-flight Host cancellation evidence is missing`);
+    }
+  }
+  if (route.family === 'RelA' && route.operation === 'distinct') {
+    for (const role of [
+      'selected_distinct_first_occurrence_and_null',
+      'selected_distinct_keyed_projection',
+      'selected_distinct_workspace_exact_one_short',
+      'selected_distinct_kernel_cancel_cleanup',
+      'same_stage_distinct_two_consumers',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: selected ${role} fixture is missing`);
+      }
+    }
+    if (!environmentRoles.has('same_stage_distinct_timer_cancel_cleanup')) {
+      fail(`${label}: same-stage distinct timer fixture is missing`);
     }
   }
   if (route.family === 'SGA' && route.operation === 'graph_bounds' &&
