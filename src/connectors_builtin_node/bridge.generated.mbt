@@ -14,6 +14,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect.EffectFootprintIssue)
   EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
+  EffectCollectionBatch(@effect.EffectCollectionBatchIssue)
   EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
@@ -7158,6 +7159,52 @@ pub fn strategy_effect_preview_apply_identity_admit(
     ) {
     Ok(identity) => @publication.effect_preview_semantic_identity(identity)
     Err(issue) => raise EffectPreviewIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewApplyIdentity")
+pub fn strategy_effect_preview_apply_identity(
+  preview_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  scope : @effect.LogicalRequestScope,
+  expected_keys : Array[Array[@effect.EffectDispatchKey]],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.EffectPreviewIdentity raise NodeHostFailure {
+  match
+    @effect.admit_effect_preview_apply_identity(
+      preview_wire, expected_run_identity_cid, expected_authoring_context_cid, scope,
+      expected_keys, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(identity) => identity
+    Err(issue) => raise EffectPreviewIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectCollectionBatchAdmit")
+pub fn strategy_effect_collection_batch_admit(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  first_row : Int,
+  effect_kind : String,
+  scope : @effect.LogicalRequestScope,
+  row_cids : Array[String],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  max_rows : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  match
+    @effect.admit_effect_collection_batch(
+      preview, member_index, first_row, effect_kind, scope, row_cids, locators, keys,
+      max_rows, max_work,
+    ) {
+    Ok(_) => true
+    Err(issue) => raise EffectCollectionBatch(issue)
   }
 }
 

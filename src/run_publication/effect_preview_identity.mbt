@@ -16,8 +16,10 @@ pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   member_effect_ids : Array[String]
+  member_effect_kinds : Array[String]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
+  row_correlation_wires : Array[Array[String]]
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
@@ -145,8 +147,11 @@ fn effect_preview_semantic_cid(
 fn effect_member_row_inventory(
   effect : @json.CanonicalValue,
   index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
 ) -> Result[
-  (Array[String], Array[String], Array[String]),
+  (Array[String], Array[String], Array[String], Array[String]),
   EffectPreviewIdentityIssue,
 ] {
   let changes = match @json.object_field(effect, "changes") {
@@ -155,6 +160,7 @@ fn effect_member_row_inventory(
   }
   let keys : Array[String] = []
   let rows : Array[String] = []
+  let correlations : Array[String] = []
   for change in changes {
     match
       (
@@ -167,6 +173,16 @@ fn effect_member_row_inventory(
         }
         rows.push(row)
         keys.push(key)
+        let target = match @json.object_field(change, "target_row_identity") {
+          Some(value) => value
+          None => return Err(InvalidMember)
+        }
+        let correlation = @json.stringify_value(
+          target, max_wire_bytes, max_nodes, max_depth,
+        ) catch {
+          _ => return Err(Encoding)
+        }
+        correlations.push(correlation)
       }
       _ => return Err(InvalidMember)
     }
@@ -194,7 +210,7 @@ fn effect_member_row_inventory(
       _ => return Err(RowInventoryMismatch(index))
     }
   }
-  Ok((keys, rows, order))
+  Ok((keys, rows, order, correlations))
 }
 
 ///|
@@ -228,7 +244,10 @@ pub fn derive_effect_preview_identities(
       return Err(InvalidMember)
     }
     seen_effect_ids[effect_id] = true
-    match effect_member_row_inventory(effect, index) {
+    match
+      effect_member_row_inventory(
+        effect, index, max_wire_bytes, max_nodes, max_depth,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -272,8 +291,10 @@ pub fn admit_effect_preview_identity(
   let cids = []
   let row_keys : Array[Array[String]] = []
   let member_effect_ids : Array[String] = []
+  let member_effect_kinds : Array[String] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
   let row_cids : Array[Array[String]] = []
+  let row_correlation_wires : Array[Array[String]] = []
   let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
     let effect = members[index]
@@ -286,13 +307,21 @@ pub fn admit_effect_preview_identity(
     }
     seen_effect_ids[effect_id] = true
     member_effect_ids.push(effect_id)
-    let (member_keys, member_rows, member_order) = match
-      effect_member_row_inventory(effect, index) {
+    let effect_kind = match @json.object_field(effect, "effect_kind") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    member_effect_kinds.push(effect_kind)
+    let (member_keys, member_rows, member_order, member_correlations) = match
+      effect_member_row_inventory(
+        effect, index, max_wire_bytes, max_nodes, max_depth,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
     row_keys.push(member_keys)
     row_cids.push(member_rows)
+    row_correlation_wires.push(member_correlations)
     row_order.push(member_order)
     let cid = match
       effect_member_semantic_cid(effect, max_wire_bytes, max_nodes, max_depth) {
@@ -355,8 +384,10 @@ pub fn admit_effect_preview_identity(
     semantic_cid: cid,
     member_cids: cids,
     member_effect_ids,
+    member_effect_kinds,
     row_keys,
     row_cids,
+    row_correlation_wires,
     row_order,
     run_identity_cid: run,
     authoring_context_cid: authoring,
@@ -384,6 +415,14 @@ pub fn effect_preview_member_effect_id(
   index : Int,
 ) -> String? {
   value.member_effect_ids.get(index)
+}
+
+///|
+pub fn effect_preview_member_kind(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_effect_kinds.get(index)
 }
 
 ///|
@@ -421,6 +460,18 @@ pub fn effect_preview_row_identity(
   row_index : Int,
 ) -> String? {
   match value.row_cids.get(member_index) {
+    Some(rows) => rows.get(row_index)
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_row_correlation_wire(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  match value.row_correlation_wires.get(member_index) {
     Some(rows) => rows.get(row_index)
     None => None
   }
