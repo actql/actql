@@ -61,11 +61,27 @@ pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String
 
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
+pub fn effect_preview_footprint_kind(EffectPreviewFootprintIdentity) -> String
+
+pub fn effect_preview_footprint_provider_boundary_cid(EffectPreviewFootprintIdentity) -> String
+
+pub fn effect_preview_footprint_provider_namespace(EffectPreviewFootprintIdentity) -> String
+
+pub fn effect_preview_footprint_resource_identity_scheme_cid(EffectPreviewFootprintIdentity) -> String
+
+pub fn effect_preview_footprint_resource_kind(EffectPreviewFootprintIdentity) -> String
+
+pub fn effect_preview_footprint_target_cid(EffectPreviewFootprintIdentity, Int) -> String?
+
+pub fn effect_preview_footprint_target_count(EffectPreviewFootprintIdentity) -> Int
+
 pub fn effect_preview_member_count(EffectPreviewIdentity) -> Int
 
 pub fn effect_preview_member_effect_id(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_failure_policy(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_member_footprint(EffectPreviewIdentity, Int) -> EffectPreviewFootprintIdentity?
 
 pub fn effect_preview_member_identity(EffectPreviewIdentity, Int) -> String?
 
@@ -522,12 +538,22 @@ pub(all) enum EffectApplyReceiptBindingIssue {
   RowPartitionMismatch
 } derive(@debug.Debug)
 
+pub struct EffectPreviewFootprintIdentity {
+  kind : String
+  provider_namespace : String
+  provider_boundary_cid : String
+  resource_identity_scheme_cid : String
+  resource_kind : String
+  provider_object_identity_cids : Array[String]
+}
+
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
   member_failure_policies : Array[String]
+  member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
   row_indices : Array[Map[String, Int]]
