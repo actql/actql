@@ -246,6 +246,13 @@ current authority, complete Preview admission, and the standard Host caller
 still need to be connected. The fixed-SHA review remains SF-1/SF-2 closed and
 SF-3 open; local HTTPS evidence must not be reported as live-org evidence.
 
+A MoonBit admission now selects exactly one static permission rule for the
+effect kind, selector class, and complete write-field set. It validates every
+rule, rejects ambiguous or missing matches, and retains both the selected
+permission set and contract-wide required permissions. A caller must still
+derive the write-field set from its checked Effect and prove current grants;
+this selection does not admit an Effectful Run or close SF-3.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
