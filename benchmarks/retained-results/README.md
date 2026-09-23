@@ -401,7 +401,9 @@ The 27-case equivalent assessor also requires one generated release-artifact
 digest across every completed case; mixed builds make the matrix incomplete.
 
 `run-equivalent-matrix.mjs` executes this one comparator over the registered
-matrix. Give it an empty output directory outside the checkout. For each case
+matrix. It rebuilds the pinned JS release modules before calibration so an
+ignored `_build` artifact from a prior source revision cannot be measured.
+Give it an empty output directory outside the checkout. For each case
 it measures a distinct training-only size in the same workload/layout,
 starting with the nearest smaller size and descending only if a forced
 candidate cannot be selected under the fixed physical limits. These training

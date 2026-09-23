@@ -244,14 +244,38 @@ At clean revision `ad320af81`, the registered narrow/100000 retained-reuse
 case completed seven alternating equivalent-obligation pairs. All seven pairs
 were admitted, but the unchanged 1.25 ratio gate failed: estimate 1.668,
 95% bootstrap interval 1.484–1.858. The product still chose three fresh
-DuckDB tasks. Its resident alternative declared about 3.22 GB of retained
-capacity and was rejected against the unchanged 1 GiB ledger limit. Matching
-the DuckDB memory configuration therefore repaired a comparison disparity but
-did not close the actual reuse cost. The one-case assessment remains incomplete
-for the 27-case experiment. Its raw `assessment.json` and `case-00.json` are
+DuckDB tasks. The 3.22 GB retention estimate belonged to the all-Local
+alternative. The resident alternative declared about 1.286 GB of independent
+retention and was rejected for execution capacity under the unchanged 4 GiB
+ledger limit. Matching the DuckDB memory configuration therefore repaired a
+comparison disparity but did not close the actual reuse cost. The one-case
+assessment remains incomplete for the 27-case experiment. Its raw
+`assessment.json` and `case-00.json` are
 in workspace scratch `equivalent-narrow-ad320`, with SHA-256 digests
 `fba0c96159a18d43f23d399848b05f096f1c9e2746306554be10cc4fa6425855`
 and `1e0d884b55540965fe629673649deb2729817461436bdce7971561e627327e38`.
 The failed larger training candidate was preserved as a mixed Local/DuckDB
 selection after confirmed cleanup; the smaller registered training case was
 used without changing the held-out evaluation fixture.
+
+Revision `60be0b165` removes a separate double count in the resident DuckDB
+offer: its DB output-copy allowance now belongs only to the shared environment,
+while the task's independent retention still includes its file and metadata.
+The related query-integration tests passed 554/554 on JS, Wasm, and native.
+The first same-revision measurement accidentally used stale ignored JS release
+artifacts; it is diagnostic only. After rebuilding the release modules, the
+registered narrow/100000 case completed seven admitted pairs and still failed
+the unchanged 1.25 ratio gate: estimate 1.515, 95% interval 1.284–1.800.
+The resident alternative's independent retention fell to about 32 MB, but its
+execution estimate remained 4 GiB and the shared table/copy composition still
+rejected it for `execution_limit`. The product again chose three fresh DuckDB
+tasks. This points to resident DB-copy and import allowances, not an
+independent-retention shortage, as the remaining placement obstacle. The raw
+`assessment.json` and `case-00.json` are in workspace scratch
+`equivalent-narrow-60be0b-rebuilt`, with SHA-256 digests
+`f196c061b82a46b95f190956e4c3dd8292def4457f6dd0a2503294f5f92f5d41`
+and `9512b6e011e8d7aece165954e0cd3cc5c774b33e2185c93998d1a468e2fcd928`.
+The equivalent matrix CLI now rebuilds the pinned JS release modules before
+calibration; a clean source checkout alone does not validate ignored build
+outputs. PERF-1 remains open for this case, the other 26 cases, and the three
+other registered comparators.
