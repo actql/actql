@@ -335,6 +335,59 @@ test "bounded placement scales across a segmented seven-task carrier graph" {
 }
 
 ///|
+test "segmented carrier placement records one and two-offer search bounds" {
+  for offer_count in [1, 2] {
+    let (run, _) = captured_graph_fixture(
+      local_carrier_events_chain=true,
+      local_carrier_events_variant="session_filter",
+    )
+    let registry = wide_search_registry()
+    let graph = @strategy.captured_dag_graph(run)
+    let task_count = @strategy.graph_task_count(graph) - 1
+    assert_eq(task_count, 7)
+    @strategy.configure_strategy_search(run, {
+      max_offers: task_count * offer_count,
+      max_strategies: 64,
+      max_work: 10000,
+      max_revisions: 1,
+    }).unwrap()
+    let offers = []
+    for task in 1..<=task_count {
+      for index in 0..<offer_count {
+        offers.push(
+          @strategy.prepare_task_offer(
+            run,
+            task,
+            @connector.capability_registration_at(registry, index).unwrap(),
+            1,
+            [{ work_slots: [0], milliseconds: Some((index + 1).to_int64()), }],
+            { transfer_bytes: 0L, retained_bytes: 100L, execution_bytes: 1L, },
+            100,
+          ).unwrap(),
+        )
+      }
+    }
+    let choices = @strategy.prepare_bounded_strategy_choices(
+      run, offers, registry,
+    ).unwrap()
+    let diagnostics = @strategy.strategy_search_diagnostics(choices)
+    if offer_count == 1 {
+      assert_true(diagnostics.complete)
+      assert_eq(diagnostics.evaluated_assignments, 1)
+      assert_eq(diagnostics.generated_prefixes, 0)
+      assert_eq(@strategy.strategy_choice_count(choices), 1)
+    } else {
+      assert_true(!diagnostics.complete)
+      assert_eq(diagnostics.evaluated_assignments, 64)
+      assert_eq(diagnostics.generated_prefixes, 254)
+      assert_eq(diagnostics.peak_frontier_states, 192)
+      assert_eq(diagnostics.peak_index_cells, 1280)
+      assert_true(@strategy.strategy_choice_count(choices) > 0)
+    }
+  }
+}
+
+///|
 test "placement policy provenance rejects empty metadata before commit" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()
