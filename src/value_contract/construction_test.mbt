@@ -20,6 +20,20 @@ test "constructed primitives retain the admitted checked representation" {
 }
 
 ///|
+test "contract nullability view follows the admitted root contract" {
+  let nonnull = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  assert_false(@value_contract.contract_nullable(nonnull))
+  assert_true(
+    @value_contract.contract_nullable(
+      @value_contract.with_nullability(nonnull, true),
+    ),
+  )
+}
+
+///|
 test "ResourceRef kind view excludes nullable and non-reference values" {
   let reference = author(
     "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"crm/account\"}",

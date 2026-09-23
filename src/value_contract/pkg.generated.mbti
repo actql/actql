@@ -16,6 +16,8 @@ pub fn assignable(Contract, Contract, Int) -> Bool raise RelationError
 
 pub fn assignable_usage(Contract, Contract, Int) -> (Bool, Int) raise RelationError
 
+pub fn contract_nullable(Contract) -> Bool
+
 pub fn decimal_contract(Int, Int, nullable~ : Bool) -> Contract?
 
 pub fn emit_checked(Contract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
