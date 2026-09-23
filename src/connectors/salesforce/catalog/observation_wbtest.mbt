@@ -210,7 +210,28 @@ test "catalog observation keeps resource failure distinct from absence" {
   )
   assert_true(
     catalog_observation_resource(observation, binding, "Denied__c")
-    is Err(Resource(DescribeRequired)),
+    is Err(DescribeUnavailable(PermissionDenied)),
+  )
+  assert_true(
+    prepare_read_projection(
+      observation,
+      binding,
+      "Rate_Limited__c",
+      ["Name"],
+      1024,
+    )
+    is Err(Observation(DescribeUnavailable(RateLimited))),
+  )
+  assert_true(
+    prepare_write_projection(
+      observation,
+      binding,
+      "Denied__c",
+      WriteCreate,
+      ["Name"],
+      1,
+    )
+    is Err(Observation(DescribeUnavailable(PermissionDenied))),
   )
   assert_true(
     catalog_observation_resource_outcome(observation, binding, "Missing__c")
