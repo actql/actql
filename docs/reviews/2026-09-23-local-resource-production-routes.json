@@ -92,6 +92,10 @@
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
       },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
       "boundary_tests": [
         {
           "role": "select_mixed_stage_lifetime",
@@ -99,6 +103,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "standard Host composes Graph projection and Relation select"
+        },
+        {
+          "role": "ordinary_select_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local select preserves authored order within quantum"
         },
         {
           "role": "select_input_exact",
