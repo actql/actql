@@ -52,6 +52,8 @@ pub fn advance_bounded_interval_join(BoundedIntervalJoinExecution, Int) -> Resul
 
 pub fn advance_bounded_sequence_match(BoundedSequenceMatchExecution, Int) -> Result[BoundedSequenceMatchPoll, BoundedSequenceMatchIssue]
 
+pub fn advance_bounded_values(BoundedValuesExecution, Int) -> Result[BoundedValuesPoll, BoundedValuesIssue]
+
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
@@ -255,6 +257,8 @@ pub fn cleanup_bounded_independent_row_copy(BoundedIndependentRowCopy) -> Result
 pub fn cleanup_bounded_interval_join(BoundedIntervalJoinExecution) -> Result[Bool, BoundedIntervalJoinIssue]
 
 pub fn cleanup_bounded_sequence_match(BoundedSequenceMatchExecution) -> Result[Bool, BoundedSequenceMatchIssue]
+
+pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedValuesIssue]
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
@@ -908,6 +912,8 @@ pub fn start_bounded_sequence_match(@bounded_execution.Control, GeneratedSequenc
 
 pub fn start_bounded_sequence_match_events(@bounded_execution.Control, GeneratedSequence, @managed_carrier_runtime.ProducerView, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue]
 
+pub fn start_bounded_values(@bounded_execution.Control, GeneratedSequence, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedValuesExecution, BoundedValuesIssue]
+
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
@@ -1088,6 +1094,24 @@ pub enum BoundedSequenceMatchPoll {
   BoundedSequenceMatchComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
   BoundedSequenceMatchFailed(BoundedSequenceMatchIssue, progress~ : Int64, work~ : Int64)
   BoundedSequenceMatchStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type BoundedValuesExecution
+
+pub(all) enum BoundedValuesIssue {
+  InvalidExecution
+  InputLimit
+  Rows(RowIssue)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedValuesPoll {
+  BoundedValuesContinue(progress~ : Int64, work~ : Int64)
+  BoundedValuesComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedValuesFailed(BoundedValuesIssue, progress~ : Int64, work~ : Int64)
+  BoundedValuesStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 pub(all) enum CaptureIssue {
