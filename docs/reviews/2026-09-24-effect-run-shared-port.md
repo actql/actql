@@ -43,6 +43,10 @@ value shapes; literal values, null behavior, and conversion proofs remain open.
 The same bridge validates the Mapping's conversion inventory before rule
 selection, but retains each law as an obligation pending registered
 implementation and type evidence.
+Bounded literal admission now retains typed inline and contract-owned values
+and rejects known null-behavior violations. It does not turn these bindings
+into a complete Preview or apply permit: Result-row null handling, converters,
+current grants, and whole-set preflight are still required.
 The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member

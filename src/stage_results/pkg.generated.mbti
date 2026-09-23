@@ -12,10 +12,13 @@ import {
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_effect_mapping_literals(EffectMappingRules, EffectMappingLiteralLimits) -> Result[EffectMappingLiterals, EffectMappingLiteralIssue]
+
 pub fn attach_imports(ResultImports, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[AttachedImports, ImportIssue]
 
 pub fn attached_imports(AttachedImports) -> ResultImports
@@ -60,6 +63,28 @@ pub fn effect_command_targets_effects(EffectCommandTargets) -> EffectResultBindi
 
 pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
+pub fn effect_mapping_literal_at(EffectMappingLiterals, Int) -> EffectMappingLiteralBinding?
+
+pub fn effect_mapping_literal_count(EffectMappingLiterals) -> Int
+
+pub fn effect_mapping_literal_issue_effect(EffectMappingLiteralIssue) -> String
+
+pub fn effect_mapping_literal_issue_kind(EffectMappingLiteralIssue) -> EffectMappingLiteralIssueKind
+
+pub fn effect_mapping_literal_issue_stage(EffectMappingLiteralIssue) -> Int
+
+pub fn effect_mapping_literal_origin(EffectMappingLiteralBinding) -> EffectMappingLiteralOrigin
+
+pub fn effect_mapping_literal_rule(EffectMappingLiteralBinding) -> EffectMappingRuleBinding
+
+pub fn effect_mapping_literal_target(EffectMappingLiteralBinding) -> String
+
+pub fn effect_mapping_literal_value(EffectMappingLiteralBinding) -> EffectMappingLiteralValue
+
+pub fn effect_mapping_literals_rules(EffectMappingLiterals) -> EffectMappingRules
+
+pub fn effect_mapping_literals_usage(EffectMappingLiterals) -> (Int, Int, Int)
+
 pub fn effect_mapping_rule_at(EffectMappingRules, Int) -> EffectMappingRuleBinding?
 
 pub fn effect_mapping_rule_conversions(EffectMappingRuleBinding) -> @check_environment.MappingConversions
@@ -73,6 +98,8 @@ pub fn effect_mapping_rule_issue_effect(EffectMappingRuleIssue) -> String
 pub fn effect_mapping_rule_issue_kind(EffectMappingRuleIssue) -> EffectMappingRuleIssueKind
 
 pub fn effect_mapping_rule_issue_stage(EffectMappingRuleIssue) -> Int
+
+pub fn effect_mapping_rule_row_fields(EffectMappingRuleBinding) -> @check_environment.MappingRowFields?
 
 pub fn effect_mapping_rule_selection(EffectMappingRuleBinding) -> @check_environment.MappingPermissionSelection
 
@@ -251,9 +278,57 @@ pub struct EffectCommandTargets {
   work : Int
 }
 
+pub struct EffectMappingLiteralBinding {
+  rule : EffectMappingRuleBinding
+  target_field : String
+  origin : EffectMappingLiteralOrigin
+  value : EffectMappingLiteralValue
+}
+
+pub struct EffectMappingLiteralIssue {
+  kind : EffectMappingLiteralIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectMappingLiteralIssueKind {
+  InvalidLimits
+  WorkLimit
+  IncompatibleLiteral(String)
+  RejectedNull(String)
+  RequiredOmission(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectMappingLiteralLimits {
+  max_work : Int
+  max_value_nodes : Int
+  max_value_depth : Int
+  max_value_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectMappingLiteralOrigin {
+  InlineCreate
+  InlineSet
+  ContractRow
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectMappingLiteralValue {
+  Written(@value_admission.CheckedValue)
+  Omitted
+}
+
+pub struct EffectMappingLiterals {
+  rules : EffectMappingRules
+  entries : Array[EffectMappingLiteralBinding]
+  used_work : Int
+  used_value_nodes : Int
+  used_value_text_bytes : Int
+}
+
 pub struct EffectMappingRuleBinding {
   effect : EffectMappingShapeBinding
   conversions : @check_environment.MappingConversions
+  row_fields : @check_environment.MappingRowFields?
   selection : @check_environment.MappingPermissionSelection
 }
 
