@@ -193,7 +193,7 @@ test "Effect reconciliation receipt enforces correlation and attempt conditions"
 }
 
 ///|
-fn effect_receipt_test_preview() -> EffectPreviewIdentity {
+fn effect_receipt_test_preview(empty? : Bool = false) -> EffectPreviewIdentity {
   let cid = effect_receipt_test_cid("a")
   let run = effect_receipt_test_cid("b")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
@@ -204,6 +204,7 @@ fn effect_receipt_test_preview() -> EffectPreviewIdentity {
     "001000000000001",
     cid,
     cid,
+    empty~,
   )
   let (_, members) = derive_effect_preview_identities(
     placeholder, 8192, 256, 12,
@@ -215,6 +216,7 @@ fn effect_receipt_test_preview() -> EffectPreviewIdentity {
     "001000000000001",
     members[0],
     cid,
+    empty~,
   )
   let (preview_cid, _) = derive_effect_preview_identities(
     member_fixed, 8192, 256, 12,
@@ -227,6 +229,7 @@ fn effect_receipt_test_preview() -> EffectPreviewIdentity {
       "001000000000001",
       members[0],
       preview_cid,
+      empty~,
     ),
     run,
     authoring,
@@ -373,4 +376,54 @@ test "Effect apply receipt partitions exactly one admitted member inventory" {
       is Err(RowPartitionMismatch),
     )
   }
+}
+
+///|
+test "empty Effect member receipts still require the exact member identity" {
+  let preview = effect_receipt_test_preview(empty=true)
+  let preview_cid = effect_preview_semantic_identity(preview)
+  let member_cid = effect_preview_member_identity(preview, 0).unwrap()
+  assert_eq(effect_preview_row_count(preview, 0), Some(0))
+  let body = effect_receipt_test_member_body(
+    preview_cid, member_cid, "[]", "[]", "applied", "{\"state\":\"applied\",\"result\":{}}",
+  )
+  let exact = seal_publication_contract(
+    "effect_apply_receipt", body, 8192, 256, 12,
+  ).unwrap()
+  assert_true(
+    admit_effect_apply_receipt_for_member(
+      preview,
+      0,
+      publication_contract_json(exact),
+      8192,
+      256,
+      12,
+    )
+    is Ok(_),
+  )
+  let foreign = seal_publication_contract(
+    "effect_apply_receipt",
+    effect_receipt_test_member_body(
+      preview_cid,
+      effect_receipt_test_cid("d"),
+      "[]",
+      "[]",
+      "applied",
+      "{\"state\":\"applied\",\"result\":{}}",
+    ),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_true(
+    admit_effect_apply_receipt_for_member(
+      preview,
+      0,
+      publication_contract_json(foreign),
+      8192,
+      256,
+      12,
+    )
+    is Err(ForeignMember),
+  )
 }
