@@ -34,7 +34,7 @@ function installed(consume, completionFailure, options = {}) {
       finish: () => { events.push('verified'); return ok(); },
     }],
     execute: () => { events.push('execute'); return ok(); },
-    guard_usage: () => [12, 34, 5],
+    guard_usage: () => options.guardUsage ?? [12, 34, 5],
     settle: () => { events.push('settle'); return ok(); },
     complete: () => {
       events.push('complete');
@@ -68,6 +68,15 @@ test('Local contribution admits, reads, executes and completes before exposing i
     measuredGuardNodes: 5});
   output.close();
   assert.equal(f.events.at(-1), 'close');
+});
+
+test('Local completion does not invent unavailable guard usage', async () => {
+  const f = installed(async accept => { await accept(new TextEncoder().encode('[]')); },
+    undefined, {guardUsage: []});
+  const output = await f.entry.run(f.task);
+  assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 0,
+    importedBytes: '2'});
+  output.close();
 });
 
 test('standard Local legacy completion observes forced Site loss', async () => {
