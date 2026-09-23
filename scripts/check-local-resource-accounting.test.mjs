@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 18 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 17 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 18 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 19 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -1115,6 +1115,28 @@ test('resource gate rejects derive without its ordinary bounded route', () => {
       entry.operation === 'derive');
     derive.environment_tests = [];
   }), /RelA derive: ordinary derive Host timer evidence is missing/);
+});
+
+test('derive loses bounded assurance when a resource proof is removed', () => {
+  for (const role of [
+    'derive_scalar_work_exact_one_short',
+    'derive_scalar_workspace_exact_one_short',
+    'derive_input_exact_one_short',
+    'derive_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const derive = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'derive');
+      derive.boundary_tests = derive.boundary_tests.filter(item =>
+        item.role !== role);
+    }), /RelA derive: .*lacks an executable fixture/);
+  }
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(item =>
+      item.role !== 'same_stage_values_derive_timer_cancel_cleanup');
+  }), /RelA derive: selected_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects assertions without ordinary bounded evidence', () => {

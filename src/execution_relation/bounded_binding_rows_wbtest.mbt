@@ -48,6 +48,7 @@ fn bounded_binding_rows_receiver(
   sort_empty? : Bool = false,
   distinct? : Bool = false,
   distinct_keyed? : Bool = false,
+  derive_scalar? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -78,6 +79,8 @@ fn bounded_binding_rows_receiver(
         "{\"drop\":[\"left\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if derive_scalar {
+        "{\"derive\":{\"next\":\"id + 1\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else {
         "{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\",\"as\":\"derived\"}"
       }) +
@@ -129,6 +132,7 @@ fn bounded_binding_rows_fixture(
   sort_empty? : Bool = false,
   distinct? : Bool = false,
   distinct_keyed? : Bool = false,
+  derive_scalar? : Bool = false,
   id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
@@ -153,6 +157,7 @@ fn bounded_binding_rows_fixture(
     sort_empty~,
     distinct~,
     distinct_keyed~,
+    derive_scalar~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
@@ -1412,6 +1417,116 @@ test "bounded selected filter cancels before publication" {
   let (control, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
     filter=true,
+  )
+  for _ in 0..<15 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected derive admits exact work and workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Two input and row-opening charges, six snapshot field charges, 22
+  // snapshot-name bytes, two eight-unit scalar expression evaluations,
+  // and 30 output-name bytes give 78 control units. The structural peak
+  // is 12 metadata slots plus 15 overlapping retained/row/expression slots.
+  for
+    (work, slots, accepted) in [
+      (78, 27, true),
+      (77, 27, false),
+      (78, 26, false),
+    ] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      derive_scalar=true,
+      max_work=work,
+      max_entries=slots,
+    )
+    let mut finished = false
+    let mut polls = 0
+    while !finished && polls < 1000 {
+      polls += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(accepted)
+          assert_eq(completed_row_count(output), 2)
+          assert_eq(completed_column_name(output, 2), Some("next"))
+          assert_true(completed_cell(output, 0, 2) is Some(Number(2.0)))
+          assert_true(completed_cell(output, 1, 2) is Some(Number(3.0)))
+          finished = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_false(accepted)
+          assert_true(bounded_binding_rows_cleanup_pending(execution))
+          finished = true
+        }
+        _ => fail("unexpected derive outcome")
+      }
+    }
+    assert_true(finished)
+    assert_true(producer_read_available(input))
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  }
+}
+
+///|
+test "bounded selected derive admits exact input and rejects one-short" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Each input row owns one object, three field values, and four vector
+  // components. Both rows therefore require exactly 16 input value nodes.
+  for (nodes, accepted) in [(16, true), (15, false)] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      derive_scalar=true,
+      input_limits=Some({
+        max_nodes: nodes,
+        max_text_bytes: 22,
+        max_depth: 3,
+        max_work: 38,
+      }),
+    )
+    let mut finished = false
+    let mut polls = 0
+    while !finished && polls < 1000 {
+      polls += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(accepted)
+          assert_eq(completed_row_count(output), 2)
+          finished = true
+        }
+        BoundedBindingRowsFailed(InputLimit, ..) => {
+          assert_false(accepted)
+          assert_true(bounded_binding_rows_cleanup_pending(execution))
+          finished = true
+        }
+        _ => fail("derive input boundary had another outcome")
+      }
+    }
+    assert_true(finished)
+    assert_true(producer_read_available(input))
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  }
+}
+
+///|
+test "bounded selected derive stops after work without publication" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    derive_scalar=true,
   )
   for _ in 0..<15 {
     assert_true(
