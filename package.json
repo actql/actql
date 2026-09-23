@@ -14,6 +14,7 @@
     "check:native-http-client": "node scripts/test-native-http-client.mjs && node scripts/test-native-runtime-bundle-cli.mjs && node scripts/test-native-publication-store-lock.mjs && node scripts/test-native-remote-runtime.mjs",
     "check:native-retained-task-file": "node scripts/test-native-retained-task-file.mjs",
     "check:distribution-client": "node --test packages/client-wire/index.test.mjs packages/sdk/index.test.mjs packages/sdk/http-redirect.test.mjs adapters/host-node/client-http.test.mjs && node scripts/test-node-client-package.mjs && moon build --target native --release src/cmd/native_client && node scripts/test-native-client.mjs",
+    "measure:distribution-artifacts": "node scripts/measure-distribution-artifacts.mjs",
     "check:native-separated-network": "bash scripts/test-native-separated-network.sh",
     "check:native-remote-runtime": "node scripts/test-native-remote-runtime.mjs",
     "check:connector-addition": "node scripts/check-duckdb-environment-contract.mjs && node scripts/check-connector-addition.mjs",
