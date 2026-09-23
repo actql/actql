@@ -89,6 +89,7 @@ run(join(repository, 'node_modules/.bin/esbuild'), [
 const metadata = JSON.parse(await readFile(browserMetadata, 'utf8'));
 assert.deepEqual(Object.keys(metadata.inputs).sort(), [
   'node_modules/@actql/client-wire/index.mjs',
+  'node_modules/@actql/client-wire/publication.generated.js',
   'node_modules/@actql/sdk/index.mjs',
 ]);
 assert(Object.values(metadata.outputs).every(output =>
