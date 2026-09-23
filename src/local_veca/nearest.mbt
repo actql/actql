@@ -70,6 +70,7 @@ priv enum NearestPhase {
   ReadInputField
   MatchInputIdentity
   FinishInputRecord
+  ValidateInputComponent
   PrepareRecordSort
   PrepareRecordMerge
   MergeRecords
@@ -371,8 +372,32 @@ fn finish_nearest_record(state : NearestState) -> Result[Unit, NearestIssue] {
   state.identity_values = []
   state.source_vector = None
   state.record += 1
-  state.phase = BeginInputRecord
+  state.component = 0
+  state.phase = ValidateInputComponent
   Ok(())
+}
+
+///|
+fn validate_nearest_input_component(
+  state : NearestState,
+) -> Result[Unit, NearestIssue] {
+  let input = current_input(state)
+  if state.component >= input.dimensions {
+    state.phase = BeginInputRecord
+    return Ok(())
+  }
+  guard current_records(state)[state.record - 1].vector.value
+    is @value.Vector(components) &&
+    @value.element_at(components, state.component) is Some(component) else {
+    return Err(InvalidNearestRecord(state.reading_queries, state.record - 1))
+  }
+  match @numeric.quantize(component) {
+    Ok(_) => {
+      state.component += 1
+      Ok(())
+    }
+    Err(issue) => Err(NearestNumeric(issue))
+  }
 }
 
 ///|
@@ -778,6 +803,13 @@ fn nearest_step(
       FinishInputRecord => {
         used += 1
         match finish_nearest_record(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      ValidateInputComponent => {
+        used += 1
+        match validate_nearest_input_component(state) {
           Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }

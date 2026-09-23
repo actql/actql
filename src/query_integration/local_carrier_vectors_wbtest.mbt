@@ -3331,6 +3331,45 @@ fn run_direct_nearest_provider(
 }
 
 ///|
+fn run_direct_invalid_nearest_provider(
+  owner : @lower.BoundPrepared,
+  inputs : Array[@local_connector.ManagedProviderInput],
+) -> Unit raise {
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut failed = false
+  let mut polls = 0
+  while !failed && polls < 100 {
+    polls += 1
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Failed(_, ..) => failed = true
+      @local_connector.Complete(_, ..) => fail("invalid nearest completed")
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("invalid nearest returned a Carrier")
+      @local_connector.Stopped(..) => fail("invalid nearest stopped")
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
 fn direct_nearest_number(value : Double) -> @admitted.CheckedValue {
   @admitted.admit(
     @value_contract.primitive(@value_contract.NumberType, nullable=false),
@@ -3397,6 +3436,55 @@ test "registered VecA provider consumes exact Vectors inputs" {
   assert_true(@carrier_runtime.material_available(query_material))
   assert_true(@carrier_runtime.reclaim_material(candidate_material))
   assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "nearest validates query components with an empty Vectors corpus" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1e39,0]")])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  run_direct_invalid_nearest_provider(owner, [
+    @local_connector.managed_provider_carrier_input(candidate_view),
+    @local_connector.managed_provider_carrier_input(query_view),
+  ])
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "nearest validates candidate components with empty Relation queries" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_relation_owner("[]")
+  let owner = direct_nearest_owner(candidates, queries, query_relation=true)
+  let candidate_material = direct_nearest_material(candidates, [
+    (1.0, "[1e39,0]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_output = direct_nearest_relation_output(queries)
+  let query_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  run_direct_invalid_nearest_provider(owner, [
+    @local_connector.managed_provider_carrier_input(candidate_view),
+    @local_connector.managed_provider_relation_input(query_read),
+  ])
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
 }
 
 ///|
