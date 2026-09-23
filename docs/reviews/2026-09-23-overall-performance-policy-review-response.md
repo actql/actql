@@ -17,12 +17,16 @@ calibration evidence by themselves nor proof of the small-case timing gate.
 Cost estimates, enforceable capacity and policy preferences remain separate.
 
 The registered equivalent-obligations case-level assessor now rejects missing
-or mixed-revision pairs, changed Program/source/configuration provenance,
+or mixed-revision pairs, changed registered fixture/Program/source provenance,
 unconfirmed release and diagnostic-only product selection. It applies the
 registered small or large timing limit only after those checks. The seven
 existing small-case pairs are correctly incomplete at this boundary because
 their retained leg uses the example's uncalibrated estimate. This does not
 close PERF-1: qualified execution and the other comparator/matrix gates remain.
+The 27-case equivalent-comparator aggregator now rejects missing, duplicate,
+foreign and mixed-revision records and prints each case's paired interval and
+gate result. It is still only one comparator; no raw formal samples have been
+admitted from the current product path.
 
 The registered narrow-100 Program also runs through a Node-free native Host
 probe with real DuckDB acquisition and an independently checked final CID.

@@ -29,6 +29,23 @@ capacity evidence before classifying a case. Its output is eligibility only,
 never formal performance acceptance. Reported completions still require
 semantic/resource verification and the registered paired timing assessment.
 
+The equivalent-obligations comparator has a 27-case raw-pair aggregator. The
+input is a JSON array of `{caseId, pairs}` records, where each `pairs` array is
+the unmodified output of the matched-pair runner for that case. For a fixed
+clean implementation revision, generate a readable per-case table with:
+
+```sh
+node benchmarks/retained-results/equivalent-matrix-report.mjs \
+  /path/to/raw-equivalent-pairs.json FULL_40_CHARACTER_REVISION --markdown
+```
+
+The command exits nonzero for a missing, duplicate, foreign, mixed-revision,
+unqualified, unreleased, failed or indeterminate case. It shows the registered
+95% confidence interval and threshold for each admitted case. This checks one
+mandatory comparator across all 27 cases; it does not measure the cases, attest
+the build/toolchain, or certify the baseline and raw-direct comparisons. A
+synthetic test of this aggregator is not a performance result.
+
 ```sh
 node --test benchmarks/retained-results/comparison-eligibility.test.mjs benchmarks/retained-results/paired-assessment.test.mjs benchmarks/retained-results/baseline-feasibility.test.mjs
 ```
