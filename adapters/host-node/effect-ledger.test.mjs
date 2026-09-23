@@ -90,6 +90,14 @@ test('one collection request claims every row before physical I/O',
         ownership.dispatching[index], claim.scope, claim.locator,
         claim.key, claim.canonicalRequestCid), true);
     }
+    const responseBytes = Buffer.from('[{"success":true},{"success":false}]');
+    const observation = {claims, ownership, credentialUseCid: cid('4'),
+      statusCode: 200, responseBytes};
+    assert.equal(first.recordBatchResponse(observation).created, true);
+    assert.equal(concurrent.recordBatchResponse(observation).created, false);
+    assert.throws(() => first.recordBatchResponse({
+      ...observation, responseBytes: Buffer.from('[]'),
+    }), {code: 'EffectPhysicalResponseCollision'});
     const retry = concurrent.claimDispatchBatch(claims);
     assert.equal(retry.claimed, false);
     assert.deepEqual(retry.actions, [3, 3]);
@@ -100,6 +108,11 @@ test('one collection request claims every row before physical I/O',
     assert.deepEqual(restarted.claimDispatchBatch(claims).actions, [3, 3]);
     assert.deepEqual(claims.map(claim => restarted.history(
       effect.logicalItemLocatorCid(claim.locator), 2).length), [2, 2]);
+    for (const dispatching of ownership.dispatching) {
+      const saved = restarted.response(effect.ledgerEntryCid(dispatching));
+      assert.deepEqual(saved.responseBytes, responseBytes);
+      assert.equal(saved.credentialUseCid, cid('4'));
+    }
   });
 
 test('collection claim never leaves a partial send when one row conflicts',
