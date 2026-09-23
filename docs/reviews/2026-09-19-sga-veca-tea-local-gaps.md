@@ -29,9 +29,13 @@ now selects separate bounded tasks through the existing typed Relation
 reader. The standard Host exercises both `sort → take` and
 `filter → sort → take` with two downstream Computes at quantum one,
 overlapping consumer rights, independent release, and final reclamation.
-The Node Host delivers timer cancellation after positive work in both
-separate-Stage forms and checks stop, nonpublication, and cleanup. These
-fixtures close the checked routes, not all providerless multi-step sequences.
+The same typed boundary now follows a one-step bounded `filter` Stage back
+to its checked zero-input `values` owner before splitting a later
+`sort → take` Stage. It does not infer this capability from an imported or
+connector-backed predecessor.
+The Node Host delivers timer cancellation after positive work in each form,
+then checks stop, nonpublication, and cleanup. These fixtures close the
+checked routes, not all providerless multi-step sequences.
 Imported full-join sources with keyed distinct now split on both sides;
 the managed join fixture advances each distinct within quantum one and
 retains both producer identities through the two-consumer join.

@@ -4949,6 +4949,21 @@ async function exerciseStrategyGraph(
   );
   filteredOrderedStage.steps.unshift({from: 'x', filter: 'true', as: 'filtered'});
   filteredOrderedStage.steps[1].from = 'filtered';
+  const chainedFilterSortTakeProgram = structuredClone(
+    separateSortTakeProgram,
+  );
+  const chainedOrderedIndex = chainedFilterSortTakeProgram.stages.findIndex(
+    stage => stage.id === 'ordered',
+  );
+  chainedFilterSortTakeProgram.stages.splice(chainedOrderedIndex, 0, {
+    id: 'filtered',
+    inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+    steps: [{from: 'x', filter: 'true', as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'label']}},
+  });
+  chainedFilterSortTakeProgram.stages.find(
+    stage => stage.id === 'ordered',
+  ).inputs.x.result.stage = 'filtered';
   const appendProgram = structuredClone(zeroInputProgram);
   appendProgram.stages.splice(1, 3, {
     id: 'append_a',
@@ -5837,6 +5852,8 @@ async function exerciseStrategyGraph(
     ['separate sort/take Stage', separateSortTakeProgram, [1, 2, 3, 4, 5]],
     ['separate filter/sort/take Stage', separateFilterSortTakeProgram,
       [1, 2, 3, 4, 5, 6]],
+    ['chained filter then sort/take Stages', chainedFilterSortTakeProgram,
+      [1, 2, 3, 4, 5, 6]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
@@ -5938,7 +5955,8 @@ async function exerciseStrategyGraph(
           [2, 2, 1, 1, 1],
         );
       }
-      if (name === 'separate filter/sort/take Stage') {
+      if (name === 'separate filter/sort/take Stage' ||
+          name === 'chained filter then sort/take Stages') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 1, 1, 1],
@@ -6484,6 +6502,8 @@ async function exerciseStrategyGraph(
       program: separateSortTakeProgram, cancelAtStart: 3},
     {name: 'separate-filter-sort-in-flight',
       program: separateFilterSortTakeProgram, cancelAtStart: 4},
+    {name: 'chained-filter-sort-in-flight',
+      program: chainedFilterSortTakeProgram, cancelAtStart: 4},
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);

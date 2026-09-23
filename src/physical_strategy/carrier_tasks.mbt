@@ -1,4 +1,46 @@
 ///|
+/// Follow exact checked Relation edges to a bounded zero-input producer.
+/// Every intermediate Stage must expose one selected managed Relation step.
+fn bounded_zero_input_relation_source(graph : CheckedDAG, start : Int) -> Bool {
+  let mut stage = start
+  let mut visited = 0
+  while stage >= 0 &&
+        stage < graph.owners.length() &&
+        visited < graph.owners.length() {
+    visited += 1
+    let prepared = @lower.bound_preparation(graph.owners[stage])
+    if @pipeline.step_count(@lower.pipeline(prepared)) != 1 {
+      return false
+    }
+    guard @lower.node_at(prepared, 0) is Some(node) &&
+      @lower.node_supports_selected_managed_execution(node) &&
+      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
+      return false
+    }
+    if @lower.node_input_count(node) == 0 {
+      return true
+    }
+    guard @lower.node_input_count(node) == 1 &&
+      @lower.node_accepts_managed_relation_view(node, 0) &&
+      @lower.node_input_target(node, 0) is Some(@pipeline.Input(source)) else {
+      return false
+    }
+    let mut predecessor = -1
+    for edge in graph.data {
+      if edge.consumer == stage &&
+        edge.input == source &&
+        edge.target == @pipeline.Step(0) &&
+        edge.producer < stage {
+        predecessor = edge.producer
+        break
+      }
+    }
+    stage = predecessor
+  }
+  false
+}
+
+///|
 /// Split a mixed sequence at checked managed read boundaries. A prefix without
 /// standalone providers remains one fused task through its Relation bridge;
 /// later row operations use their own selected tasks.
@@ -86,9 +128,9 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   if all_selected && found_zero_input && found_binary && found_relation {
     return Some(-1)
   }
-  // A bounded zero-input producer gives the unary row chain a selected
-  // managed source. Do not change unrelated imported or connector-backed
-  // DAGs whose placement has not selected that source boundary.
+  // A chain of bounded, independently owned Relation Stages gives the unary
+  // row sequence a selected source. Imported and connector-backed sources
+  // without that checked chain keep their existing placement.
   if all_selected && found_relation && !found_carrier {
     guard @lower.node_at(prepared, 0) is Some(first) else { return None }
     if @lower.node_accepts_managed_relation_view(first, 0) &&
@@ -102,15 +144,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
           edge.target != @pipeline.Step(0) {
           continue
         }
-        let source_prepared = @lower.bound_preparation(
-          graph.owners[edge.producer],
-        )
-        if @pipeline.step_count(@lower.pipeline(source_prepared)) == 1 &&
-          @lower.node_at(source_prepared, 0) is Some(source_node) &&
-          @lower.node_input_count(source_node) == 0 &&
-          @lower.node_supports_selected_managed_execution(source_node) &&
-          @carrier.kind(@lower.node_output_carrier(source_node)) ==
-          @carrier.RelationKind {
+        if bounded_zero_input_relation_source(graph, edge.producer) {
           return Some(-1)
         }
       }

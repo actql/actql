@@ -439,6 +439,7 @@ test "standard Host splits zero-input values from distinct" {
 fn run_standard_host_values_sort_take(
   separate_stage : Bool,
   filter_first : Bool,
+  filter_stage : Bool,
 ) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
@@ -451,7 +452,9 @@ fn run_standard_host_values_sort_take(
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
     local_values_two_consumer_sort_take=!separate_stage,
-    local_values_two_consumer_relation_variant=if filter_first {
+    local_values_two_consumer_relation_variant=if filter_stage {
+      "chained_filter_sort_take"
+    } else if filter_first {
       "separate_filter_sort_take"
     } else if separate_stage {
       "separate_sort_take"
@@ -486,7 +489,7 @@ fn run_standard_host_values_sort_take(
   let operations = []
   let live = []
   let advances = []
-  let prefix_tasks = if filter_first { 4 } else { 3 }
+  let prefix_tasks = if filter_first || filter_stage { 4 } else { 3 }
   let total_tasks = prefix_tasks + 2
   for task in 1..<(total_tasks + 1) {
     let task_live = Ref(true)
@@ -524,8 +527,8 @@ fn run_standard_host_values_sort_take(
   assert_true(advances[0] > 1)
   assert_true(advances[1] > 1)
   assert_true(advances[2] > 1)
-  let sort_index = if filter_first { 2 } else { 1 }
-  let take_index = if filter_first { 3 } else { 2 }
+  let sort_index = if filter_first || filter_stage { 2 } else { 1 }
+  let take_index = if filter_first || filter_stage { 3 } else { 2 }
   let consumer_a_index = prefix_tasks
   let consumer_b_index = prefix_tasks + 1
   assert_eq(local_managed_test_rows(operations[sort_index]), [
@@ -551,7 +554,7 @@ fn run_standard_host_values_sort_take(
     @execution.managed_completed_output_available(held[consumer_b_index]),
   )
   assert_true(@execution.managed_completed_output_available(held[take_index]))
-  let remaining_tasks = if filter_first {
+  let remaining_tasks = if filter_first || filter_stage {
     [6, 4, 3, 2, 1]
   } else {
     [5, 3, 2, 1]
@@ -574,17 +577,22 @@ fn run_standard_host_values_sort_take(
 
 ///|
 test "standard Host splits zero-input values from sort and take" {
-  run_standard_host_values_sort_take(false, false)
+  run_standard_host_values_sort_take(false, false, false)
 }
 
 ///|
 test "standard Host splits an indexed Relation Stage for two consumers" {
-  run_standard_host_values_sort_take(true, false)
+  run_standard_host_values_sort_take(true, false, false)
 }
 
 ///|
 test "standard Host splits a unary Relation Stage for two consumers" {
-  run_standard_host_values_sort_take(true, true)
+  run_standard_host_values_sort_take(true, true, false)
+}
+
+///|
+test "standard Host splits a chain of bounded Relation Stages" {
+  run_standard_host_values_sort_take(true, false, true)
 }
 
 ///|
