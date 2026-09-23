@@ -259,8 +259,8 @@ test('CLI alias supplies only Site secret for the authorized HTTPS path',
       credential: {...setup.credential, resolveSecret},
     }));
     assert.equal(result.status, 'complete');
-    assert.equal(displays, 6);
-    assert.equal(tokenCalls, 3);
+    assert.equal(displays, 2);
+    assert.equal(tokenCalls, 1);
     assert.equal(setup.seen.length, 3);
     assert.ok(setup.seen.every(entry =>
       entry.authorization === 'Bearer test-only-secret'));
