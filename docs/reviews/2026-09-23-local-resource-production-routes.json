@@ -421,7 +421,23 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "product_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/cross_join_rows_wbtest.mbt",
+          "fixture": "cross join exact and one-short work and workspace boundaries"
+        },
+        {
+          "role": "managed_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+          "fixture": "Local managed cross join cancellation publishes nothing and reclaims"
+        }
+      ]
     },
     {
       "inventory": "rela",
