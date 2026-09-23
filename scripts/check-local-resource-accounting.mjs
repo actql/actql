@@ -812,6 +812,28 @@ for (const [index, route] of routeEntries.entries()) {
   }
 }
 
+// Route fixtures cannot make a synchronous providerless resume interruptible.
+// Keep this known product lane visible to the completion gate until its
+// execution and independent copy are replaced by bounded or stoppable work.
+if (requireBoundaryComplete) {
+  const driver = fs.readFileSync(path.join(
+    root, 'src/connectors/local/driver/managed_dispatch.mbt',
+  ), 'utf8');
+  const switchAt = driver.indexOf('match setup.provider {');
+  const fallbackAt = driver.indexOf('None => {', switchAt);
+  const computeAt = driver.indexOf(
+    '@local.execute_local_managed_fixed_compute(', fallbackAt,
+  );
+  const copyAt = driver.indexOf(
+    '@execution.copy_completed_output_independent(', computeAt,
+  );
+  if (switchAt < 0 || fallbackAt < 0 || computeAt < 0 || copyAt < 0) {
+    fail('managed execution lane inventory must be reviewed');
+  } else if (fallbackAt < computeAt && computeAt < copyAt) {
+    fail('providerless managed execution still computes and copies synchronously');
+  }
+}
+
 for (const entry of rela.operations) {
   if (entry.layers?.performance !== 'complete' ||
     (entry.evidence?.performance ?? []).length === 0) {

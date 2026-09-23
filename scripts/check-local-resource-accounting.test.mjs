@@ -133,6 +133,11 @@ test('resource completion requires work and workspace proof independently', () =
     /SGA graph_bounds: entrypoint work\/workspace assurance is missing/);
 });
 
+test('resource completion cannot accept the synchronous providerless lane', () => {
+  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+    /providerless managed execution still computes and copies synchronously/);
+});
+
 test('selected take needs both keyed and unkeyed resource branches', () => {
   assert.match(run(undefined, value => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&
