@@ -9,6 +9,8 @@ priv enum SessionPhase {
   SortChoose
   SortCompare
   SortWrite
+  VerifyIdentity
+  ResetOrder
   GroupBegin
   GroupCompareKey
   GroupBoundary
@@ -60,6 +62,8 @@ priv struct SessionState {
   mut times : Array[Int64]
   mut source_order : Array[Int]
   mut target_order : Array[Int]
+  mut sort_identity : Bool
+  mut identity_scan : Int
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -157,8 +161,10 @@ pub(all) enum SessionIssue {
   InvalidSessionKernel
   InvalidSessionLimits
   SessionInputUnavailable
+  EmptySessionInput
   InvalidSessionRecord(Int)
   InvalidSessionValue(Int, Int)
+  DuplicateSessionIdentity(Int)
   SessionArithmetic(Int)
   SessionIdentityLimit
   SessionWorkspaceLimit
@@ -271,6 +277,10 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
   match state.phase {
     LoadBegin => {
       if state.record >= state.records {
+        if state.records == 0 {
+          return Err(EmptySessionInput)
+        }
+        state.sort_identity = true
         state.width = 1
         state.phase = SortBeginPass
         return Ok(())
@@ -346,8 +356,13 @@ fn session_sort_step(state : SessionState) -> Result[Unit, SessionIssue] {
   match state.phase {
     SortBeginPass => {
       if state.records < 2 || state.width >= state.records {
-        state.group_start = 0
-        state.phase = GroupBegin
+        if state.sort_identity {
+          state.identity_scan = 1
+          state.phase = VerifyIdentity
+        } else {
+          state.group_start = 0
+          state.phase = GroupBegin
+        }
       } else {
         state.run_start = 0
         state.phase = SortBeginRun
@@ -390,7 +405,7 @@ fn session_sort_step(state : SessionState) -> Result[Unit, SessionIssue] {
       } else {
         state.compare_left = state.source_order[state.left]
         state.compare_right = state.source_order[state.right]
-        state.term = 0
+        state.term = if state.sort_identity { state.keys + 1 } else { 0 }
         state.phase = SortCompare
       }
       Ok(())
@@ -405,11 +420,13 @@ fn session_sort_step(state : SessionState) -> Result[Unit, SessionIssue] {
         is Some(comparison) else {
         return Err(InvalidSessionValue(state.compare_left, state.term))
       }
-      state.term += 1
+      if !state.sort_identity {
+        state.term += 1
+      }
       if comparison != 0 {
         state.choose_left = comparison < 0
         state.phase = SortWrite
-      } else if state.term >= state.terms {
+      } else if state.sort_identity || state.term >= state.terms {
         state.choose_left = true
         state.phase = SortWrite
       }
@@ -427,6 +444,35 @@ fn session_sort_step(state : SessionState) -> Result[Unit, SessionIssue] {
       }
       state.write += 1
       state.phase = SortChoose
+      Ok(())
+    }
+    VerifyIdentity => {
+      if state.identity_scan >= state.records {
+        state.sort_identity = false
+        state.identity_scan = 0
+        state.phase = ResetOrder
+        return Ok(())
+      }
+      let left = state.source_order[state.identity_scan - 1]
+      let right = state.source_order[state.identity_scan]
+      guard session_compare_term(state, left, right, state.keys + 1)
+        is Some(comparison) else {
+        return Err(InvalidSessionValue(right, state.keys + 1))
+      }
+      if comparison == 0 {
+        return Err(DuplicateSessionIdentity(right))
+      }
+      state.identity_scan += 1
+      Ok(())
+    }
+    ResetOrder => {
+      if state.identity_scan >= state.records {
+        state.width = 1
+        state.phase = SortBeginPass
+      } else {
+        state.source_order[state.identity_scan] = state.identity_scan
+        state.identity_scan += 1
+      }
       Ok(())
     }
     _ => Err(InvalidSessionKernel)
@@ -754,8 +800,13 @@ fn session_step(
     used += 1
     let outcome = match state.phase {
       LoadBegin | LoadField | LoadTerm | LoadVerify => session_load_step(state)
-      SortBeginPass | SortBeginRun | SortChoose | SortCompare | SortWrite =>
-        session_sort_step(state)
+      SortBeginPass
+      | SortBeginRun
+      | SortChoose
+      | SortCompare
+      | SortWrite
+      | VerifyIdentity
+      | ResetOrder => session_sort_step(state)
       GroupBegin | GroupCompareKey | GroupBoundary => session_group_step(state)
       IdentityBegin | IdentityTerm | IdentityCommit =>
         session_identity_step(state)
@@ -888,6 +939,8 @@ fn start_session_with_source(
     times: Array::make(records, 0L),
     source_order: Array::makei(records, index => index),
     target_order: Array::make(records, 0),
+    sort_identity: false,
+    identity_scan: 0,
     width: 1,
     run_start: 0,
     middle: 0,
