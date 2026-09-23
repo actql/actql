@@ -9,6 +9,34 @@ import {
 }
 
 // Values
+pub fn collect_effect_headers(Program, Int, Int) -> Result[EffectHeaders, EffectHeaderIssue]
+
+pub fn effect_header_at(EffectHeaders, Int) -> EffectHeader?
+
+pub fn effect_header_body(EffectHeader) -> @decode_core.Cursor
+
+pub fn effect_header_contract_ref(EffectHeader) -> String
+
+pub fn effect_header_count(EffectHeaders) -> Int
+
+pub fn effect_header_failure_policy(EffectHeader) -> String
+
+pub fn effect_header_id(EffectHeader) -> String
+
+pub fn effect_header_issue_kind(EffectHeaderIssue) -> EffectHeaderIssueKind
+
+pub fn effect_header_issue_source(EffectHeaderIssue) -> @decode_core.Cursor
+
+pub fn effect_header_kind(EffectHeader) -> String
+
+pub fn effect_header_source_result(EffectHeader) -> String?
+
+pub fn effect_header_stage(EffectHeader) -> Int
+
+pub fn effect_headers_owner(EffectHeaders) -> Program
+
+pub fn effect_headers_work(EffectHeaders) -> Int
+
 pub fn effect_names(Stage) -> Array[String]
 
 pub fn export_at(Program, Int) -> (String, String, String)?
@@ -44,6 +72,38 @@ pub fn validate_reuse(Program, Limits) -> Result[Unit, SyntaxError]
 // Errors
 
 // Types and methods
+pub struct EffectHeader {
+  stage_index : Int
+  effect_id : String
+  kind : String
+  source_result : String?
+  contract_ref : String
+  failure_policy : String
+  body : @decode_core.Cursor
+}
+
+pub struct EffectHeaderIssue {
+  kind : EffectHeaderIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum EffectHeaderIssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidDeclaration
+  InvalidKind
+  InvalidBody
+  InvalidSourceResult
+  InvalidFailurePolicy
+  InvalidMaxItems
+} derive(Eq, @debug.Debug)
+
+pub struct EffectHeaders {
+  owner : Program
+  members : Array[EffectHeader]
+  work : Int
+}
+
 pub(all) enum Format {
   Auto
   Json
