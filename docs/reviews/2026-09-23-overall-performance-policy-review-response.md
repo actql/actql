@@ -313,3 +313,20 @@ registered gate. The next investigation must account for repeated resident
 input verification and output reception without waiving each consumer's
 logical demand or the independent holding obligation. The standard Host
 regression passed after this revision (one monolithic test, 74.7 seconds).
+
+Revision `57e637986` batches ASCII SHA-256 length admission in the canonical
+writer without changing encoded bytes or digest identity. A release JS
+microbenchmark hashing 256 KiB of 256-byte ASCII spans measured 2.92 ms with
+byte updates and 1.99 ms with checked span updates. This isolates one hashing
+component and is not an end-to-end performance result. The same revision's
+registered narrow/100000 case completed seven eligible alternating pairs with
+the resident path selected, but failed the unchanged 1.25 ratio gate: estimate
+2.350, 95% bootstrap interval 2.272–2.459. The one-case assessment remains
+incomplete for the 27-case experiment. Its raw `assessment.json` and
+`case-00.json` are in workspace scratch `equivalent-narrow-57e637986`, with
+SHA-256 digests
+`1b5fbf1568164886f4bff6e8232c7f0a9b1559c88fad59d110e91450467942a3`
+and `dfae98f251b49d9ae3c32f2c2e5d7f5ce0e219029246063a98b63f1fec6f186e`.
+Cross-revision timing differences cannot establish the SHA change's effect on
+the whole Host. The larger remaining work is the product's repeated import,
+input verification, and output reception under the registered obligations.
