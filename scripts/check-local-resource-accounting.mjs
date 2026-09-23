@@ -399,6 +399,7 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_two_consumers',
       'zero_input_mixed_stage_two_consumers',
       'zero_input_sort_take_two_consumers',
+      'zero_input_unique_two_consumers',
     ];
     if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
       requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
@@ -841,6 +842,7 @@ for (const [index, route] of routeEntries.entries()) {
       'assert_where_failure_cleanup',
       'assert_where_cancel_cleanup',
       'assert_unique_mixed_stage_lifetime',
+      'assert_unique_values_split_lifetime',
       'assert_unique_exact_one_short_workspace',
       'assert_unique_failure_cleanup',
       'assert_unique_cancel_cleanup',
@@ -854,6 +856,7 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'assert_where_ordinary_in_flight_host_timer',
       'assert_unique_ordinary_in_flight_host_timer',
+      'assert_unique_values_split_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -870,7 +873,8 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'RelA' && route.operation === 'values' &&
     (!environmentRoles.has('zero_input_mixed_stage_timer_cancel_cleanup') ||
-      !environmentRoles.has('zero_input_sort_timer_cancel_cleanup'))) {
+      !environmentRoles.has('zero_input_sort_timer_cancel_cleanup') ||
+      !environmentRoles.has('zero_input_unique_timer_cancel_cleanup'))) {
     fail(`${label}: mixed-stage timer cancellation fixture is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'cross_join') {

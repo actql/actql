@@ -1176,6 +1176,13 @@
           "fixture": "standard Host composes Graph projection and bounded unique assertion"
         },
         {
+          "role": "assert_unique_values_split_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from unique assertion"
+        },
+        {
           "role": "assert_unique_exact_one_short_workspace",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1232,6 +1239,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-assert-unique-in-flight"
+        },
+        {
+          "role": "assert_unique_values_split_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-unique-in-flight"
         },
         {
           "role": "assert_where_in_flight_host_timer",
@@ -1527,6 +1541,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_values_wbtest.mbt",
           "fixture": "standard Host splits zero-input values from sort and take"
+        },
+        {
+          "role": "zero_input_unique_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host splits zero-input values from unique assertion"
         }
       ],
       "environment_tests": [
@@ -1550,6 +1571,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-sort-in-flight"
+        },
+        {
+          "role": "zero_input_unique_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-unique-in-flight"
         }
       ],
       "path_assurance": {

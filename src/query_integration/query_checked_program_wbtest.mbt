@@ -13,6 +13,7 @@ fn query_checked_program_fixture(
   local_values_two_consumer_chain? : Bool = false,
   local_values_two_consumer_filter? : Bool = false,
   local_values_two_consumer_assert? : Bool = false,
+  local_values_two_consumer_assert_unique? : Bool = false,
   local_values_two_consumer_sort_take? : Bool = false,
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
@@ -153,6 +154,11 @@ fn query_checked_program_fixture(
       program.replace(
         old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
         new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"sort\":[{\"field\":\"id\",\"dir\":\"desc\",\"nulls\":\"last\"}],\"as\":\"ordered\"},{\"from\":\"ordered\",\"take\":1,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_assert_unique {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"assert_rows\":{\"unique_by\":[\"label\"]},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
       )
     } else if local_values_two_consumer_assert {
       program.replace(

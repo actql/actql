@@ -120,6 +120,18 @@ test('resource gate requires mixed-stage values execution evidence', () => {
     values.environment_tests = values.environment_tests.filter(item =>
       item.role !== 'zero_input_sort_timer_cancel_cleanup');
   }), /RelA values: mixed-stage timer cancellation fixture is missing/);
+  assert.match(run(undefined, value => {
+    const values = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.boundary_tests = values.boundary_tests.filter(item =>
+      item.role !== 'zero_input_unique_two_consumers');
+  }), /RelA values: bounded zero-input Values route lacks its production evidence/);
+  assert.match(run(undefined, value => {
+    const values = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'values');
+    values.environment_tests = values.environment_tests.filter(item =>
+      item.role !== 'zero_input_unique_timer_cancel_cleanup');
+  }), /RelA values: mixed-stage timer cancellation fixture is missing/);
 });
 
 test('selected projection loses its resource proof when the fixture is removed', () => {
@@ -1017,6 +1029,18 @@ test('resource gate rejects assertions without ordinary bounded evidence', () =>
     assertion.boundary_tests = assertion.boundary_tests.filter(item =>
       item.role !== 'assert_unique_work_workspace_exact_one_short');
   }), /RelA assert_rows: ordinary_entrypoint unique_by work lacks an executable fixture/);
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'assert_unique_values_split_lifetime');
+  }), /RelA assert_rows: reviewed assert_unique_values_split_lifetime fixture is missing/);
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.environment_tests = assertion.environment_tests.filter(item =>
+      item.role !== 'assert_unique_values_split_host_timer');
+  }), /RelA assert_rows: assert_unique_values_split_host_timer fixture is missing/);
   assert.match(run(undefined, value => {
     const assertion = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'assert_rows');
