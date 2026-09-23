@@ -7671,6 +7671,20 @@ pub fn strategy_effect_ledger_entry_wire(
 }
 
 ///|
+#export_name("strategyEffectLedgerEntryAdmitsDispatch")
+pub fn strategy_effect_ledger_entry_admits_dispatch(
+  entry : @effect.EffectLedgerEntry,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+) -> Bool {
+  @effect.effect_ledger_entry_admits_dispatch(
+    entry, scope, locator, key, canonical_request_cid,
+  )
+}
+
+///|
 #export_name("strategyEffectLedgerBasis")
 pub fn strategy_effect_ledger_basis(
   scope : @effect.LogicalRequestScope,
