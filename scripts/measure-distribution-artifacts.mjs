@@ -58,7 +58,7 @@ function measure(command, args, cwd) {
 }
 
 const tarballs = {};
-for (const name of ['sdk', 'node']) {
+for (const name of ['client-wire', 'sdk', 'node']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
   const path = join(root, `actql-${name}-0.0.0-development.tgz`);
@@ -94,13 +94,15 @@ for (const name of ['sdk', 'node']) {
   await mkdir(installation);
   await writeFile(join(installation, 'package.json'),
     '{"private":true,"type":"module"}\n');
-  const install = name === 'sdk' ? [tarballs.sdk.path] :
-    [tarballs.sdk.path, tarballs.node.path];
+  const install = name === 'sdk'
+    ? [tarballs['client-wire'].path, tarballs.sdk.path]
+    : [tarballs['client-wire'].path, tarballs.sdk.path, tarballs.node.path];
   run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
     ...install], installation);
   const installed = (await readdir(join(installation, 'node_modules',
     '@actql'))).sort();
-  assert.deepEqual(installed, name === 'sdk' ? ['sdk'] : ['node', 'sdk']);
+  assert.deepEqual(installed, name === 'sdk'
+    ? ['client-wire', 'sdk'] : ['client-wire', 'node', 'sdk']);
   await writeFile(join(installation, 'probe.mjs'), probe);
   const packageName = name === 'sdk' ? '@actql/sdk' : '@actql/node';
   profiles[name] = {installed_packages: installed,
