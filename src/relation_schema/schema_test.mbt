@@ -83,6 +83,25 @@ test "qualified fields are structural provenance, not dotted authored names or n
 }
 
 ///|
+test "field views expose exact reference and contract to adapters" {
+  let schema = make([
+    (Qualified(Left, "source_id"), number()),
+    (Unqualified("label"), @contract.primitive(StringType, nullable=true)),
+  ])
+  let label = @relation_schema.lookup_reference(schema, "label").unwrap()
+  assert_eq(@relation_schema.field_reference_name(label), "label")
+  assert_true(
+    @contract.type_equal(
+      @relation_schema.field_contract(label),
+      @contract.primitive(StringType, nullable=true),
+      2,
+    ),
+  )
+  let source = @relation_schema.lookup_reference(schema, "left.source_id").unwrap()
+  assert_eq(@relation_schema.field_reference_name(source), "left.source_id")
+}
+
+///|
 test "field validation reuses authored leaf rules on both sides without normalizing names" {
   for leaf in ["", " ", "a.b", "__cid", "__actql_x", "e\u{301}", "a\r\nb"] {
     for

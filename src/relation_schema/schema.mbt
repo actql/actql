@@ -99,6 +99,16 @@ pub fn fields(schema : Schema) -> Array[Field] {
 }
 
 ///|
+pub fn field_reference_name(field : Field) -> String {
+  reference_name(field.name)
+}
+
+///|
+pub fn field_contract(field : Field) -> @contract.Contract {
+  field.contract
+}
+
+///|
 /// Unambiguous spelling of a validated field reference, not nested access.
 pub fn reference_name(name : FieldName) -> String {
   match name {
