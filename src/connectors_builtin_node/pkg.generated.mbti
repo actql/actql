@@ -146,6 +146,8 @@ pub fn strategy_effect_ledger_entry_follows(@effect_application.EffectLedgerEntr
 
 pub fn strategy_effect_ledger_entry_locator_cid(@effect_application.EffectLedgerEntry) -> String
 
+pub fn strategy_effect_ledger_entry_matches_basis(@effect_application.EffectLedgerEntry, @effect_application.EffectLedgerBasis) -> Bool
+
 pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEntry) -> String
 
 pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
@@ -165,6 +167,8 @@ pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], 
 pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
+
+pub fn strategy_effect_row_recovery_action_from_entry(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry?, Bool) -> Int
 
 pub fn strategy_effect_set_footprint_conflicts_check(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Bool raise NodeHostFailure
 

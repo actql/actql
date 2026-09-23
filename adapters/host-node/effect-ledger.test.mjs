@@ -67,6 +67,9 @@ test('MoonBit-issued prepared and dispatching entries are durable before use',
     const basis = effect.ledgerBasis(scope, locator, key,
       cid('c'), cid('d'), cid('e'), cid('f'), cid('0'), 'unavailable',
       cid('1'), cid('2'));
+    assert.equal(effect.recoveryActionFromEntry(
+      locator, cid('e'), key, cid('f'),
+      ledger.currentAdmitted(effect.logicalItemLocatorCid(locator)), false), 0);
     const prepared = effect.issuePreparedLedgerEntry(basis, 4096, 64, 3);
     assert.equal(ledger.append(effect.ledgerEntryWire(prepared)).created, true);
     assert.equal(effect.ledgerEntryAdmitsDispatch(prepared, scope, locator,
@@ -96,8 +99,65 @@ test('MoonBit-issued prepared and dispatching entries are durable before use',
     t.after(() => restarted.close());
     assert.equal(restarted.current(effect.logicalItemLocatorCid(locator)).entryCid,
       effect.ledgerEntryCid(dispatching));
+    assert.equal(effect.recoveryActionFromEntry(
+      locator, cid('e'), key, cid('f'),
+      restarted.currentAdmitted(effect.logicalItemLocatorCid(locator)), false),
+    3);
     assert.deepEqual(restarted.response(effect.ledgerEntryCid(dispatching))
       .responseBytes, response.responseBytes);
+  });
+
+test('exact Effect dispatch claim sends once and restart requires reconciliation',
+  async t => {
+    const root = await fixture(t);
+    const first = open(root);
+    const second = open(root);
+    t.after(() => first.close());
+    t.after(() => second.close());
+    const scope = effect.logicalRequestScope(authorityScopeCid,
+      'request-1', 32);
+    const key = effect.dispatchKey(scope, cid('b'), '"row-1"', 32, 8, 3);
+    const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+      'WriteOne', '{"row":"record-1"}', 64, 128, 8, 3);
+    const basis = effect.ledgerBasis(scope, locator, key,
+      cid('c'), cid('d'), cid('e'), cid('f'), cid('0'), 'unavailable',
+      cid('1'), cid('2'));
+    const claim = {
+      scope, locator, key, basis,
+      intentFingerprintCid: cid('e'),
+      canonicalRequestCid: cid('f'),
+    };
+    const initial = first.claimDispatch(claim);
+    assert.equal(initial.claimed, true);
+    assert.equal(initial.action, 1);
+    assert.equal(second.claimDispatch(claim).claimed, false);
+    assert.equal(second.claimDispatch(claim).action, 3);
+    assert.equal(first.current(effect.logicalItemLocatorCid(locator)).revision,
+      2);
+    const unknown = effect.issueNextLedgerEntry(initial.dispatching,
+      'unknown', '', 4096, 64, 3);
+    assert.equal(first.append(effect.ledgerEntryWire(unknown)).created, true);
+    first.recordResponse({
+      dispatching: initial.dispatching,
+      scope, locator, key, canonicalRequestCid: cid('f'),
+      credentialUseCid: cid('a'), statusCode: 201,
+      responseBytes: Buffer.from('{"success":true}'),
+    });
+    first.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    const afterRestart = restarted.claimDispatch(claim);
+    assert.equal(afterRestart.claimed, false);
+    assert.equal(afterRestart.action, 4);
+    assert.deepEqual(restarted.response(
+      effect.ledgerEntryCid(initial.dispatching)).responseBytes,
+      Buffer.from('{"success":true}'));
+    const changedBasis = effect.ledgerBasis(scope, locator, key,
+      cid('9'), cid('d'), cid('e'), cid('f'), cid('0'), 'unavailable',
+      cid('1'), cid('2'));
+    assert.throws(() => restarted.claimDispatch({
+      ...claim, basis: changedBasis,
+    }), {code: 'EffectLedgerIntentConflict'});
   });
 
 test('MoonBit-admitted Effect facts survive restart without duplicate send',

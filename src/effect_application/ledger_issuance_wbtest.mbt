@@ -31,6 +31,35 @@ test "typed Effect ledger issuance matches independent prepared identity" {
     ledger_test_cid("2"),
   ).unwrap()
   let prepared = issue_prepared_effect_ledger_entry(basis, 4096, 64, 3).unwrap()
+  assert_true(effect_ledger_entry_matches_basis(prepared, basis))
+  assert_false(
+    effect_ledger_entry_matches_basis(prepared, {
+      ..basis,
+      unit_definition_cid: ledger_test_cid("9"),
+    }),
+  )
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("f"),
+      None,
+      false,
+    ),
+    0,
+  )
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("f"),
+      Some(prepared),
+      false,
+    ),
+    1,
+  )
   assert_false(
     effect_ledger_entry_admits_dispatch(
       prepared,
@@ -54,6 +83,39 @@ test "typed Effect ledger issuance matches independent prepared identity" {
     3,
   ).unwrap()
   assert_true(effect_ledger_entry_follows(Some(prepared), dispatching))
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("f"),
+      Some(dispatching),
+      false,
+    ),
+    3,
+  )
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("f"),
+      Some(dispatching),
+      true,
+    ),
+    2,
+  )
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("9"),
+      Some(dispatching),
+      false,
+    ),
+    8,
+  )
   assert_true(
     effect_ledger_entry_admits_dispatch(
       dispatching,
@@ -81,6 +143,17 @@ test "typed Effect ledger issuance matches independent prepared identity" {
     3,
   ).unwrap()
   assert_true(effect_ledger_entry_follows(Some(dispatching), unknown))
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("f"),
+      Some(unknown),
+      false,
+    ),
+    4,
+  )
   let applied = issue_next_effect_ledger_entry(
     unknown,
     "applied",
@@ -90,6 +163,17 @@ test "typed Effect ledger issuance matches independent prepared identity" {
     3,
   ).unwrap()
   assert_true(effect_ledger_entry_follows(Some(unknown), applied))
+  assert_eq(
+    effect_row_recovery_action_from_entry(
+      locator,
+      ledger_test_cid("e"),
+      key,
+      ledger_test_cid("f"),
+      Some(applied),
+      false,
+    ),
+    5,
+  )
   assert_true(
     issue_next_effect_ledger_entry(
       applied,

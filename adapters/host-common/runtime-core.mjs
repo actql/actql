@@ -37,6 +37,7 @@ function effectApplicationControl(moon) {
       checked(moon.strategyEffectApplyKey(...args)),
     applyKeyCid: moon.strategyEffectApplyKeyCid,
     recoveryAction: moon.strategyEffectRowRecoveryAction,
+    recoveryActionFromEntry: moon.strategyEffectRowRecoveryActionFromEntry,
     setFrontier: (...args) => checked(moon.strategyEffectSetFrontier(...args)),
     setFrontierOutcome: moon.strategyEffectSetFrontierOutcome,
     setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
@@ -63,6 +64,7 @@ function effectApplicationControl(moon) {
     ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
     ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
     ledgerEntryAdmitsDispatch: moon.strategyEffectLedgerEntryAdmitsDispatch,
+    ledgerEntryMatchesBasis: moon.strategyEffectLedgerEntryMatchesBasis,
     ledgerBasis: (...args) => checked(moon.strategyEffectLedgerBasis(...args)),
     issuePreparedLedgerEntry: (...args) => checked(
       moon.strategyEffectIssuePreparedLedgerEntry(...args),
