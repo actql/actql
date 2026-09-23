@@ -544,6 +544,77 @@ fn salesforce_completion_limits() -> @salesforce_query.SalesforceBroadCompletion
 }
 
 ///|
+test "issued Salesforce read exposes only its active bounded page state" {
+  let fixture = salesforce_issued_fixture()
+  let attempt = @salesforce_query.prepare_issued_salesforce_broad_attempt(
+    fixture.issuer,
+    fixture.choice,
+    fixture.candidate,
+  ).unwrap()
+  assert_false(
+    @salesforce_query.salesforce_broad_attempt_read_complete(attempt),
+  )
+  assert_true(
+    @salesforce_query.salesforce_broad_attempt_read_row_count(attempt)
+    is Err(InvalidState),
+  )
+  assert_eq(
+    @salesforce_catalog.read_projection_soql(
+      @salesforce_query.salesforce_broad_attempt_plan(attempt),
+    ),
+    "SELECT id FROM r",
+  )
+  @salesforce_query.begin_issued_salesforce_broad_read(
+    attempt,
+    "v62.0",
+    {
+      max_bytes: 4096,
+      max_nodes: 100,
+      max_depth: 10,
+      max_rows: 3,
+      max_locator_units: 128,
+    },
+    1,
+    1L,
+    1,
+    run_limits().input_values,
+  ).unwrap()
+  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt)
+    .unwrap()
+    .unwrap()
+  @salesforce_query.accept_issued_salesforce_broad_page(
+    attempt,
+    path,
+    @utf8.encode(
+      (
+        #|{"totalSize":1,"done":true,"records":[{"id":3}]}
+      ),
+    ),
+  ).unwrap()
+  |> ignore
+  assert_true(@salesforce_query.salesforce_broad_attempt_read_complete(attempt))
+  assert_true(
+    @salesforce_query.salesforce_broad_attempt_read_row_count(attempt) is Ok(1L),
+  )
+  @salesforce_query.finish_issued_salesforce_broad_read(attempt).unwrap()
+  assert_false(
+    @salesforce_query.salesforce_broad_attempt_read_complete(attempt),
+  )
+  assert_true(
+    @salesforce_query.salesforce_broad_attempt_read_row_count(attempt)
+    is Err(InvalidState),
+  )
+  assert_true(
+    @salesforce_query.complete_salesforce_broad_capture(
+      fixture.issuer,
+      attempt,
+      salesforce_completion_limits(),
+    )
+    is Err(UnverifiedTransport),
+  )
+}
+
+///|
 test "Salesforce completion requires selected attempt and settled transport" {
   let fixture = salesforce_issued_fixture()
   let attempt = salesforce_issued_read(fixture)
