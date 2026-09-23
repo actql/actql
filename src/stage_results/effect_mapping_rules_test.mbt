@@ -16,10 +16,10 @@ fn effect_mapping_rule_inputs(
 test "checked create derives exact Mapping permission from retained source" {
   let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"}}}}"
   let shapes = effect_mapping_rule_inputs(effects, 4)
-  let rules = bind_effect_mapping_rules(shapes, 19).unwrap()
+  let rules = bind_effect_mapping_rules(shapes, 21).unwrap()
   assert_true(physical_equal(effect_mapping_rules_shapes(rules), shapes))
   assert_eq(effect_mapping_rule_count(rules), 2)
-  assert_eq(effect_mapping_rules_work(rules), 19)
+  assert_eq(effect_mapping_rules_work(rules), 21)
   let first = effect_mapping_rule_at(rules, 0).unwrap()
   assert_true(
     physical_equal(
@@ -38,7 +38,7 @@ test "checked create derives exact Mapping permission from retained source" {
   assert_true(effect_mapping_rule_at(rules, 2) is None)
   assert_eq(
     effect_mapping_rule_issue_kind(
-      bind_effect_mapping_rules(shapes, 18).unwrap_err(),
+      bind_effect_mapping_rules(shapes, 20).unwrap_err(),
     ),
     WorkLimit,
   )
@@ -152,4 +152,50 @@ test "result-backed create cannot use a missing Mapping source field" {
     MissingResultField("missing"),
   )
   assert_eq(effect_mapping_rule_issue_stage(issue), 0)
+}
+
+///|
+test "Mapping rejects a direct Result source with incompatible target shape" {
+  let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let bindings = bind_effect_results(headers, checked, 4).unwrap()
+  let mappings = effect_mapping_shape_fixture_with_body(
+    "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}]",
+    "[]",
+    "amount",
+    target_type="string",
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, mappings, 2).unwrap()
+  let issue = bind_effect_mapping_rules(shapes, 30).unwrap_err()
+  assert_eq(
+    effect_mapping_rule_issue_kind(issue),
+    IncompatibleSourceType("Name"),
+  )
+  assert_eq(effect_mapping_rule_issue_stage(issue), 0)
+}
+
+///|
+test "inline set Result field must fit its exact Mapping target type" {
+  let effects = "{\"update\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"},\"id\":\"amount\",\"set\":{\"Name\":{\"field\":\"amount\"}}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let bindings = bind_effect_results(headers, checked, 8).unwrap()
+  let rule = "[{\"effect_kind\":\"update\",\"permissions\":[\"scope:update\"],\"selector_class\":\"id\",\"write_fields\":[\"Name\"]}]"
+  let compatible = effect_mapping_shape_fixture_with_body(rule, "[]", "amount")
+  let shapes = bind_effect_mapping_shapes(bindings, compatible, 2).unwrap()
+  assert_eq(
+    effect_mapping_rule_count(bind_effect_mapping_rules(shapes, 50).unwrap()),
+    2,
+  )
+  let incompatible = effect_mapping_shape_fixture_with_body(
+    rule,
+    "[]",
+    "amount",
+    target_type="string",
+  )
+  let shapes = bind_effect_mapping_shapes(bindings, incompatible, 2).unwrap()
+  let issue = bind_effect_mapping_rules(shapes, 50).unwrap_err()
+  assert_eq(
+    effect_mapping_rule_issue_kind(issue),
+    IncompatibleSourceType("Name"),
+  )
 }
