@@ -271,6 +271,49 @@ test "bounded selected sort rejects a workspace one entry short" {
 }
 
 ///|
+test "bounded selected sort has an exact control-work boundary" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Independent control sum: input row open/close 4, schema names 14,
+  // sort-row admission 2, key name 3, child-sort polls 7, comparison 1,
+  // output row starts 2, and copied fields 6.
+  let (_, accepted, input) = bounded_binding_rows_fixture(
+    rows,
+    sort=true,
+    max_work=39,
+  )
+  let mut completed = false
+  while !completed {
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        completed = true
+      }
+      _ => fail("exact sort work failed")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  let (_, rejected, input) = bounded_binding_rows_fixture(
+    rows,
+    sort=true,
+    max_work=38,
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) => fail("one-short sort work completed")
+      _ => fail("one-short sort work had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
 test "bounded selected empty sort reuses the input order" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":3,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]},{\"id\":2,\"left\":[5,6],\"right\":[7,8]}]",
@@ -293,6 +336,54 @@ test "bounded selected empty sort reuses the input order" {
   assert_true(completed_cell(output, 2, 0) is Some(Number(2.0)))
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected empty sort admits exact work and workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Work: input row open/close 4, schema names 14, sort-row admission 2,
+  // identity indices 2, output row starts 2, copied fields 6.
+  // Workspace: metadata 12, identity indices 2, two three-cell row arrays 6.
+  let (_, accepted, input) = bounded_binding_rows_fixture(
+    rows,
+    sort_empty=true,
+    max_work=30,
+    max_entries=20,
+  )
+  let mut completed = false
+  while !completed {
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        completed = true
+      }
+      _ => fail("exact empty sort resources failed")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  for (work, slots) in [(29, 20), (30, 19)] {
+    let (_, rejected, input) = bounded_binding_rows_fixture(
+      rows,
+      sort_empty=true,
+      max_work=work,
+      max_entries=slots,
+    )
+    let mut failed = false
+    while !failed {
+      match advance_bounded_binding_rows(rejected, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+        BoundedBindingRowsComplete(_, ..) =>
+          fail("one-short empty sort resources completed")
+        _ => fail("one-short empty sort resources had another outcome")
+      }
+    }
+    assert_true(producer_read_available(input))
+    assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  }
 }
 
 ///|
