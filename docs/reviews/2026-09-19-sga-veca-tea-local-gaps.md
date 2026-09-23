@@ -68,10 +68,12 @@ readable coverage manifest is authoritative for individual operation status.
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
   explicit proof roles on every route. Filter, select, and assert_rows have
-  complete proof bindings recorded so far, each including real Host timer
-  cancellation; the command is intentionally failing while the
-  remaining routes are audited. The ordinary resource command checks route
-  identity and existing evidence without claiming release completion.
+  selected-path proof bindings, each including real Host timer cancellation.
+  Their ordinary or multi-step fallback paths are not covered by those
+  selected fixtures. No operation is currently marked whole-route complete;
+  the completion command intentionally fails. The ordinary resource command
+  checks route identity and existing scoped evidence without claiming release
+  completion.
   Checked Relation sort after a Carrier projection now has a selected task
   and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
   output order, stable ties, cancellation without partial publication, and
