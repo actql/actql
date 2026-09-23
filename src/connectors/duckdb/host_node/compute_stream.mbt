@@ -60,17 +60,24 @@ pub fn compute_host_stream_accept(
 }
 
 ///|
+/// Bound the bridge return independently of the caller's storage-frame limit.
+/// The existing stream checks and abort ownership apply to each row.
 #export_name("computeHostStreamDrain")
 pub fn compute_host_stream_drain(
   run : ComputeNodeRun,
-) -> String? raise NodeHostFailure {
+) -> Array[String] raise NodeHostFailure {
   if run.closed {
     raise InvalidCommand
   }
-  match @duckdb_compute.drain_duckdb_compute_stream_row(run.attempt) {
-    Ok(value) => value
-    Err(issue) => raise Compute(issue)
+  let result : Array[String] = []
+  for _ in 0..<8 {
+    match @duckdb_compute.drain_duckdb_compute_stream_row(run.attempt) {
+      Ok(Some(row)) => result.push(row)
+      Ok(None) => break
+      Err(issue) => raise Compute(issue)
+    }
   }
+  result
 }
 
 ///|

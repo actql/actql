@@ -37,10 +37,8 @@ test('explicit data profiles select resident reuse with independent retained out
         [fileURLToPath(new URL('../bench/create-retained-source.mjs', import.meta.url)),
           database, fixture.workload, fixture.layout, String(fixture.rows)]);
       const config = managedCaseConfiguration(fixture, contracts, database, directory);
-      // The conservative DB-copy bound alone exceeds the installed 128 MiB
-      // environment for this wide case. A low estimate cannot grant capacity.
-      const oversizedCopy = fixture.layout === 'numeric-64';
-      if (oversizedCopy) assert(fixture.limits.cumulativeValueNodes * 256 > 128 * 1024 * 1024);
+      // Resident copies use the separately admitted shared DB allocation.
+      // Cumulative task value nodes do not consume that allocation.
       const host = await createManagedExampleHost(config.limits);
       if (fixture.layout === 'text-1024') {
         // Also cover the non-process installed assembly: its offer must cover
@@ -60,18 +58,16 @@ test('explicit data profiles select resident reuse with independent retained out
           {run: fixture.id, childLimits: config.childLimits}, AbortSignal.timeout(config.timeoutMs));
         assert.equal(result.report.status, 'host-tasks-completed', JSON.stringify(result.report));
         assert.deepEqual(result.report.completed.map(task => task.realization),
-          Array(config.finalTask).fill(oversizedCopy ? 'duckdb' : 'duckdb-resident'), fixture.id);
+          Array(config.finalTask).fill('duckdb-resident'), fixture.id);
         assert.equal(result.completion(config.finalTask).descriptor.rows_cid, fixture.identity().rowsCid);
         assert.equal(result.process().exited, true);
         assert.equal(result.completion(config.finalTask).retained, true);
         assert.deepEqual(result.report.completed.map(task => task.preparation.imports.length),
-          oversizedCopy ? Array(config.finalTask).fill(0) : [1, ...Array(config.finalTask - 1).fill(0)]);
+          [1, ...Array(config.finalTask - 1).fill(0)]);
         assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
-        if (!oversizedCopy) {
-          assert(result.report.completed.every(task => task.phases.directInputScans >= 1));
-          assert(result.report.completed.every(task =>
-            task.phases.reusedInputIdentities === task.phases.directInputScans));
-        }
+        assert(result.report.completed.every(task => task.phases.directInputScans >= 1));
+        assert(result.report.completed.every(task =>
+          task.phases.reusedInputIdentities === task.phases.directInputScans));
       } finally {
         await result?.close();
         if (result) assert.equal(result.cleanupHandle.status().pending, false);
