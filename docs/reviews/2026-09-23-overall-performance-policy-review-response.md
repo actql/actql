@@ -347,3 +347,20 @@ and `e69e3dae7a26db1e9d0c964077256fa4ad16866665b89c72d6a584a748c030a3`.
 This result does not isolate the batch-size effect: the comparator timings and
 machine conditions also varied. Product task traces continue to show a fresh
 input verification scan and output reception for each resident consumer.
+
+At clean revision `16988b33c`, UTF-8 length admission accounts for an ASCII
+prefix without per-scalar window bookkeeping, then resumes the exact Unicode
+error scan from the first non-ASCII unit. JS, Wasm, and native boundary tests
+passed. The registered narrow/100000 retained-reuse case again completed seven
+eligible alternating pairs and passed result identity, independent holding,
+accounting, and cleanup checks. The unchanged 1.25 timing-ratio gate still
+failed: estimate 2.120, 95% bootstrap interval 1.616–2.619. Its one-case
+assessment remains incomplete for the 27-case experiment. Raw assessment and
+case records are in workspace scratch `equivalent-narrow-16988b33c`, with
+SHA-256 digests `a0270c5ca6a8ff18186c23200c0f6b06f81bd4f01777017e6645e8c6d7d00d53`
+and `d8fcb11872cb728b73a53fae8e689e9896cc9ba1651bad41d7248adcf4b4e67d`.
+The ratio change across revisions is not a controlled A/B comparison. A valid
+calibrated product CPU profile at this revision has substantial self time in
+UTF-8 admission, transport preflight and decoding, canonical output encoding,
+and SHA-256, with repeated row work still present. The standalone profiled
+sample is diagnostic, not one of the seven timed pairs.
