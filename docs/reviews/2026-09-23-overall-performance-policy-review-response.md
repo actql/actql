@@ -114,3 +114,26 @@ and the registered series assessor rejects the retained leg as an unqualified
 product timing sample. This run is one diagnostic pair, not seven alternating
 pairs, and says nothing about the other 26 cases or the other comparators.
 PERF-1 therefore remains open at the reviewed priority.
+
+At clean revision `72c3f1d67`, the product-leg qualification was connected to
+the verified held-out profile, exact normal selection, final identity and
+release. Seven alternating pairs on the registered narrow 1,000-row case were
+then assessed with the registered 10,000 bootstrap resamples and 95% interval.
+All seven pairs passed equivalent-obligation admission and product sample
+qualification. The warm overhead interval was 24.283–25.615 ms against the
+10 ms limit; the cold overhead interval was 699.791–728.833 ms against the
+100 ms limit. Both gates failed. Raw records are in
+`seven-qualified-pairs-72c3f1d67.json` and
+`seven-qualified-assessment-72c3f1d67.json` in the workspace scratch area.
+Their SHA-256 digests are respectively
+`6fde31828999ab78656b94750de83ad2ecba3143eb2b427480433ff6d8f7de89`
+and `dc60c840f84fc5aa1ffb40cd25db5babf507079652d130f10f4779549f5e38bb`.
+The remaining 26 cases and other comparators have not been measured at this
+revision. This is a performance failure on one qualified case, not a
+matrix-wide verdict or a reason to alter the registered thresholds.
+Across these seven pairs, the retained Host averaged 215.184 ms of parent
+preparation, 82.956 ms of child startup, 218.447 ms of child preparation and
+189.408 ms of worker execution. The three Compute task intervals totaled
+28.531 ms on average, compared with 3.653 ms for the independent comparator.
+The next optimization should target duplicate preparation and per-task overhead
+while preserving the current matched obligations and timing boundaries.

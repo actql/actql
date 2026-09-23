@@ -336,6 +336,12 @@ those supplied costs through the ordinary planner instead of its fixed Local
 the comparator does not prove that the figures came from measurement. A formal
 runner must verify independent calibration evidence and held-out workload
 selection before treating such a sample as cost-grounded.
+The fresh-child retained leg now admits a product timing sample only after it
+verifies a distinct registered training case, both source hashes, the clean
+revision, exact measured estimate arrays, the selected normal Host result, final
+identity and confirmed release. Without a supplied verified profile it remains
+diagnostic. This product-leg admission is separate from matched comparator
+admission, seven-pair statistics and whole-matrix acceptance.
 Enabling resident candidates does not force them past eligibility or resource
 checks. The estimate is not elapsed time, and changing it is a different selection
 configuration, not an optimization speedup by itself.
@@ -386,9 +392,9 @@ the unchanged experiment pin, seven admitted pairs on the same implementation
 revision, Program, source definition, source contents and runtime, confirmed
 release, and a product leg qualified for normal cost-grounded selection. It
 then applies the registered warm/cold or large-case equivalent timing limits.
-The current matched-pair diagnostic uses explicit example estimates and marks
-its product leg unqualified, so those samples correctly remain `incomplete`
-under this boundary. A passing one-comparator series still cannot certify the
+Matched pairs without a verified held-out estimate profile mark the product
+leg unqualified and remain `incomplete` under this boundary. A passing
+one-comparator series still cannot certify the
 27-case matrix, baseline and raw comparators, or the whole experiment.
 
 The statistic is the ratio of paired arithmetic means for ratios, or their
