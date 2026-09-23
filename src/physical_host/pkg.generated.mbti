@@ -22,9 +22,13 @@ pub fn[E] commit_adaptive_policy_choice(AdaptiveDispatch[E], Int?) -> Result[Uni
 
 pub fn[E] commit_adaptive_policy_decision(AdaptiveDispatch[E], @physical_strategy.PolicyRequest, @physical_strategy.PolicyResponse, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
+pub fn[E] commit_adaptive_policy_response_json(AdaptiveDispatch[E], @physical_strategy.PolicyRequest, String, String, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
 pub fn[C, E] commit_compute_host_policy_choice(ComputeHost[C, E], Int?) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
 pub fn[C, E] commit_compute_host_policy_decision(ComputeHost[C, E], @physical_strategy.PolicyRequest, @physical_strategy.PolicyResponse, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
+pub fn[C, E] commit_compute_host_policy_response_json(ComputeHost[C, E], @physical_strategy.PolicyRequest, String, String, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
 pub fn compute_author_sequence(ComputeAuthorContext, Int) -> @execution_relation.CompletionPreparation?
 

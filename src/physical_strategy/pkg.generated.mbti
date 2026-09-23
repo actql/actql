@@ -22,6 +22,8 @@ pub fn abort_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Re
 
 pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
+pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
+
 pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
 
 pub fn begin_host_cleanup_progress() -> HostCleanupProgress
@@ -237,6 +239,8 @@ pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
 pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
+
+pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 

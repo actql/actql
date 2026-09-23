@@ -159,17 +159,18 @@ test "adaptive policy waits for an explicit feasible placement" {
   ).unwrap()
   let candidates = @host_driver.adaptive_policy_candidates(policy).unwrap()
   assert_eq(candidates.cid, request.candidate_set_cid)
-  @host_driver.commit_adaptive_policy_decision(
-    policy,
-    request,
-    {
-      request,
-      position: 7,
-      policy_id: "cloud-placement",
-      policy_revision: "r2",
-      explanation: "prefer native",
-    },
-    1L,
+  let wire = "{\"authority\":\"authority-1\",\"candidate_set_cid\":\"" +
+    request.candidate_set_cid +
+    "\",\"deadline_ms\":\"100\",\"explanation\":\"prefer native\",\"generation\":0,\"policy_id\":\"cloud-placement\",\"policy_revision\":\"r2\",\"position\":7,\"request_id\":\"plan-17\",\"revision\":1,\"run_identity\":\"run-17\",\"version\":\"actql-placement-policy/0.1\"}"
+  assert_true(
+    @host_driver.commit_adaptive_policy_response_json(
+      policy, request, wire, "untrusted-policy", 1L,
+    )
+    is Err(Search(InvalidPreference)),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  @host_driver.commit_adaptive_policy_response_json(
+    policy, request, wire, "cloud-placement", 1L,
   ).unwrap()
   let revision = @strategy.captured_dag_strategy(run).unwrap()
   assert_eq(@strategy.strategy_assessment(revision).position, 7)

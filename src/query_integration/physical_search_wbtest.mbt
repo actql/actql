@@ -184,6 +184,68 @@ test "placement policy provenance rejects empty metadata before commit" {
 }
 
 ///|
+test "placement policy wire admits only exact authenticated pending decision" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let choices = @strategy.prepare_strategy_choices(
+    run,
+    search_offers(run, registry, [1, 2, 3], Some(20L)),
+    registry,
+    None,
+  ).unwrap()
+  let request = @strategy.prepare_strategy_policy_request(
+    choices, "plan-wire", "run-wire", "authority-1", 100L, 0L,
+  ).unwrap()
+  let outbound = @strategy.placement_policy_request_json(request).unwrap()
+  assert_true(outbound.contains(request.candidate_set_cid))
+  assert_true(outbound.contains("\"deadline_ms\":\"100\""))
+  let wire = "{\"authority\":\"authority-1\",\"candidate_set_cid\":\"" +
+    request.candidate_set_cid +
+    "\",\"deadline_ms\":\"100\",\"explanation\":\"selected\",\"generation\":0,\"policy_id\":\"cloud\",\"policy_revision\":\"r1\",\"position\":7,\"request_id\":\"plan-wire\",\"revision\":1,\"run_identity\":\"run-wire\",\"version\":\"actql-placement-policy/0.1\"}"
+  let response = @strategy.admit_placement_policy_response_json(
+    wire, request, "cloud",
+  ).unwrap()
+  assert_eq(response.position, 7)
+  assert_true(
+    @strategy.admit_placement_policy_response_json(wire, request, "other")
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.admit_placement_policy_response_json(
+      wire.replace_all(old="run-wire", new="other-run"),
+      request,
+      "cloud",
+    )
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.admit_placement_policy_response_json(
+      wire.replace_all(old="\"position\":7", new="\"position\":7,\"extra\":1"),
+      request,
+      "cloud",
+    )
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.commit_strategy_policy_decision(choices, request, response, 101L)
+    is Err(InvalidPreference),
+  )
+  guard @strategy.commit_strategy_policy_decision(
+      choices, request, response, 1L,
+    ).unwrap()
+    is Selected(revision) else {
+    abort("selected")
+  }
+  assert_eq(@strategy.strategy_assessment(revision).position, 7)
+}
+
+///|
 test "placement proposal refuses changed resources before commit" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()

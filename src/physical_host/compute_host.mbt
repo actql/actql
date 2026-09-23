@@ -151,6 +151,22 @@ pub fn[C, E] commit_compute_host_policy_decision(
 }
 
 ///|
+/// Receive one authenticated policy response through the public wire contract.
+/// Peer authentication and transport replay defense belong to the Host adapter.
+pub fn[C, E] commit_compute_host_policy_response_json(
+  host : ComputeHost[C, E],
+  request : @strategy.PolicyRequest,
+  body : String,
+  authenticated_policy_id : String,
+  now_ms : Int64,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  commit_adaptive_policy_response_json(
+    policy, request, body, authenticated_policy_id, now_ms,
+  )
+}
+
+///|
 pub fn[C, E] prepare_compute_host_policy_request(
   host : ComputeHost[C, E],
   request_id : String,

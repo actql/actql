@@ -246,6 +246,26 @@ pub fn[E] commit_adaptive_policy_decision(
 }
 
 ///|
+/// The Host must authenticate the response peer before supplying its policy
+/// identity. A decoded proposal still passes the exact pending-choice commit.
+pub fn[E] commit_adaptive_policy_response_json(
+  policy : AdaptiveDispatch[E],
+  request : @strategy.PolicyRequest,
+  body : String,
+  authenticated_policy_id : String,
+  now_ms : Int64,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  let response = match
+    @strategy.admit_placement_policy_response_json(
+      body, request, authenticated_policy_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Search(issue))
+  }
+  commit_adaptive_policy_decision(policy, request, response, now_ms)
+}
+
+///|
 fn[E] commit_adaptive_choice(
   policy : AdaptiveDispatch[E],
   position : Int?,
