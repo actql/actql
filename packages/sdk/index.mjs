@@ -22,7 +22,7 @@ function connectionOptions(options) {
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options)) fail('InvalidConnectionOptions');
   const {mode, owner, endpoint, token, durability, consentRefs, runners,
-    movementPolicyRef} = options;
+    movementPolicyRef, cloudConnectionRef} = options;
   if (endpoint === undefined && (mode === 'local' ||
       mode === 'hybrid' && owner === 'local')) {
     throw new ClientError('LocalProviderNotInstalled', {
@@ -42,12 +42,17 @@ function connectionOptions(options) {
       (runners ?? []).some(value => typeof value !== 'string' || !value) ||
       new Set(runners ?? []).size !== (runners ?? []).length ||
       movementPolicyRef !== undefined &&
-        (typeof movementPolicyRef !== 'string' || !movementPolicyRef)) {
+        (typeof movementPolicyRef !== 'string' || !movementPolicyRef) ||
+      cloudConnectionRef !== undefined &&
+        (typeof cloudConnectionRef !== 'string' || !cloudConnectionRef)) {
     fail('InvalidConnectionOptions');
   }
   if (mode !== 'hybrid' && (runners !== undefined ||
-      movementPolicyRef !== undefined) || mode === 'hybrid' &&
-      (movementPolicyRef === undefined || runners === undefined)) {
+      movementPolicyRef !== undefined || cloudConnectionRef !== undefined) ||
+      mode === 'hybrid' && (movementPolicyRef === undefined ||
+        owner === 'local' && cloudConnectionRef === undefined ||
+        owner === 'cloud' && (cloudConnectionRef !== undefined ||
+          runners === undefined || runners.length === 0))) {
     fail('InvalidHybridConnection');
   }
   let url;
@@ -68,6 +73,7 @@ function connectionOptions(options) {
       consentRefs: Object.freeze([...(consentRefs ?? [])]),
       runners: Object.freeze([...(runners ?? [])]),
       ...(movementPolicyRef === undefined ? {} : {movementPolicyRef}),
+      ...(cloudConnectionRef === undefined ? {} : {cloudConnectionRef}),
     }),
   });
 }
