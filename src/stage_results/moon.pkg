@@ -9,6 +9,7 @@ import {
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/relation_results" @results,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/run_publication" @publication,
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @value,
   "actql/actql/decode_core" @decode,
@@ -20,6 +21,7 @@ import {
 
 import {
   "actql/actql/calendar_typing" @calendar,
+  "actql/actql/canonical_json" @json,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
