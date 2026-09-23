@@ -4925,6 +4925,22 @@ async function exerciseStrategyGraph(
     ], as: 'ordered'},
     {from: 'ordered', take: 1, as: 'out'},
   );
+  const separateSortTakeProgram = structuredClone(zeroInputProgram);
+  separateSortTakeProgram.stages.splice(2, 0, {
+    id: 'ordered',
+    inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+    steps: [
+      {from: 'x', sort: [
+        {field: 'id', dir: 'desc', nulls: 'last'},
+      ], as: 'ordered_rows'},
+      {from: 'ordered_rows', take: 1, as: 'out'},
+    ],
+    results: {r: {from: 'out', fields: ['id', 'label']}},
+  });
+  for (const consumer of separateSortTakeProgram.stages.filter(
+    stage => stage.id === 'consumer_a' || stage.id === 'consumer_b')) {
+    consumer.inputs.x.result.stage = 'ordered';
+  }
   const appendProgram = structuredClone(zeroInputProgram);
   appendProgram.stages.splice(1, 3, {
     id: 'append_a',
@@ -5810,6 +5826,7 @@ async function exerciseStrategyGraph(
     ['split values derive', splitValuesDeriveProgram, [1, 2, 3, 4]],
     ['split values take', splitValuesTakeProgram, [1, 2, 3, 4]],
     ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
+    ['separate sort/take Stage', separateSortTakeProgram, [1, 2, 3, 4, 5]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
@@ -5904,7 +5921,8 @@ async function exerciseStrategyGraph(
           name === 'split values select' ? [2, 2, 2, 2] : [2, 1, 1, 1],
         );
       }
-      if (name === 'split values sort/take') {
+      if (name === 'split values sort/take' ||
+          name === 'separate sort/take Stage') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 1, 1, 1],
@@ -6439,6 +6457,8 @@ async function exerciseStrategyGraph(
       program: splitValuesUniqueProgram, cancelAtStart: 3},
     {name: 'split-values-sort-in-flight',
       program: splitValuesSortTakeProgram, cancelAtStart: 3},
+    {name: 'separate-sort-in-flight',
+      program: separateSortTakeProgram, cancelAtStart: 3},
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);

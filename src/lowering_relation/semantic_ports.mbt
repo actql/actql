@@ -123,6 +123,16 @@ pub fn node_supports_bounded_managed_prefix(
 }
 
 ///|
+/// An indexed Relation step has a separately owned bounded output view.
+/// A following checked row consumer may read that view as another task.
+pub fn node_has_bounded_relation_handoff(node : PreparedNode) -> Bool {
+  match node.payload {
+    Sort(_) | Distinct(_) => true
+    _ => false
+  }
+}
+
+///|
 /// Preserve an established fused Carrier provider when no later Relation
 /// consumer needs the selected-view handoff. Selection is still decided
 /// before execution, never as a retry after a provider failure.

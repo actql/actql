@@ -86,6 +86,36 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   if all_selected && found_zero_input && found_binary && found_relation {
     return Some(-1)
   }
+  // A bounded zero-input producer gives the indexed row chain a selected
+  // managed source. Do not change unrelated imported or connector-backed
+  // DAGs whose placement has not selected that source boundary.
+  if all_selected && found_relation && !found_carrier {
+    guard @lower.node_at(prepared, 0) is Some(first) else { return None }
+    if @lower.node_has_bounded_relation_handoff(first) &&
+      @lower.node_input_count(first) == 1 &&
+      @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) {
+      for edge in graph.data {
+        if edge.consumer != stage ||
+          edge.input != source ||
+          edge.producer < 0 ||
+          edge.producer >= graph.owners.length() ||
+          edge.target != @pipeline.Step(0) {
+          continue
+        }
+        let source_prepared = @lower.bound_preparation(
+          graph.owners[edge.producer],
+        )
+        if @pipeline.step_count(@lower.pipeline(source_prepared)) == 1 &&
+          @lower.node_at(source_prepared, 0) is Some(source_node) &&
+          @lower.node_input_count(source_node) == 0 &&
+          @lower.node_supports_selected_managed_execution(source_node) &&
+          @carrier.kind(@lower.node_output_carrier(source_node)) ==
+          @carrier.RelationKind {
+          return Some(-1)
+        }
+      }
+    }
+  }
   // Find the maximal selected Relation suffix in one pass. Its predecessor
   // is the exact output retained by the fused prefix.
   let mut suffix_start = count

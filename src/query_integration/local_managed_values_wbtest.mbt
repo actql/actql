@@ -436,7 +436,7 @@ test "standard Host splits zero-input values from distinct" {
 }
 
 ///|
-test "standard Host splits zero-input values from sort and take" {
+fn run_standard_host_values_sort_take(separate_stage : Bool) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
     attempts: 20,
@@ -447,7 +447,12 @@ test "standard Host splits zero-input values from sort and take" {
   }
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
-    local_values_two_consumer_sort_take=true,
+    local_values_two_consumer_sort_take=!separate_stage,
+    local_values_two_consumer_relation_variant=if separate_stage {
+      "separate_sort_take"
+    } else {
+      ""
+    },
     ledger_limits=Some(ledger_limits),
   )
   let registry = search_registry()
@@ -545,6 +550,16 @@ test "standard Host splits zero-input values from sort and take" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host splits zero-input values from sort and take" {
+  run_standard_host_values_sort_take(false)
+}
+
+///|
+test "standard Host splits an indexed Relation Stage for two consumers" {
+  run_standard_host_values_sort_take(true)
 }
 
 ///|
