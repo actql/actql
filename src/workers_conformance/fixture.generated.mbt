@@ -176,6 +176,15 @@ fn captured_graph_fixture(
 }
 
 ///|
+/// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
+fn carrier_events_relation_followup(variant : String) -> Bool {
+  variant == "session_filter" ||
+  variant == "session_select" ||
+  variant == "session_derive" ||
+  variant == "session_take"
+}
+
+///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn checked_expression_profile_admission(
   checked : @program_check.CheckedProgram,
@@ -553,7 +562,28 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
     transform +
-    ",{\"events\":true,\"as\":\"out\"}"
+    ",{\"events\":true,\"as\":" +
+    (if carrier_events_relation_followup(variant) {
+      "\"projected\"}"
+    } else {
+      "\"out\"}"
+    }) +
+    (if carrier_events_relation_followup(variant) {
+      ",{" +
+      "\"from\":\"projected\"," +
+      (if variant == "session_select" {
+        "\"select\":" + fields
+      } else if variant == "session_derive" {
+        "\"derive\":{\"copy\":\"event_id\"}"
+      } else if variant == "session_take" {
+        "\"take\":3"
+      } else {
+        "\"filter\":\"true\""
+      }) +
+      ",\"as\":\"out\"}"
+    } else {
+      ""
+    })
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}" +
@@ -1002,6 +1032,29 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"from\":\"normalized\",\"normalize_graph\":true," +
     "\"as\":\"same_carrier\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
+  } else if variant == "normalize_filter" ||
+    variant == "normalize_select" ||
+    variant == "normalize_derive" ||
+    variant == "normalize_take" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"node_rows\":true," +
+    "\"as\":\"projected\"},{" +
+    "\"from\":\"projected\"," +
+    (if variant == "normalize_select" {
+      "\"select\":[\"id\",\"node_name\"]"
+    } else if variant == "normalize_derive" {
+      "\"derive\":{\"copy\":\"id\"}"
+    } else if variant == "normalize_take" {
+      "\"take\":1"
+    } else {
+      "\"filter\":\"true\""
+    }) +
+    ",\"as\":\"out\""
+  } else if variant == "edge_projection_filter" {
+    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
+    "\"from\":\"normalized\",\"edge_rows\":true," +
+    "\"as\":\"projected\"},{" +
+    "\"from\":\"projected\",\"filter\":\"true\",\"as\":\"out\""
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
@@ -1160,7 +1213,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\",\"graphs_equal\":{\"with\":\"" +
     right_name +
     "\"},\"as\":\"out\""
-  } else if variant == "edge_projection" {
+  } else if variant == "edge_projection" || variant == "edge_projection_filter" {
     "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
   } else {
     "\"node_rows\":true,\"as\":\"out\""
@@ -1171,10 +1224,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\""
   } else if subtract_numeric {
     "\"src\",\"dst\",\"weight\""
+  } else if variant == "normalize_derive" {
+    "\"id\",\"node_name\",\"copy\""
   } else if concise {
     "\"src\",\"dst\",\"id\",\"weight\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "edge_projection_filter" ||
     variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
@@ -1206,10 +1262,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"id\""
   } else if subtract_numeric {
     "\"weight\",\"src\""
+  } else if variant == "normalize_derive" {
+    "\"copy\",\"id\""
   } else if concise {
     "\"weight\",\"src\""
   } else if variant.has_prefix("match_edges") ||
     variant == "edge_projection" ||
+    variant == "edge_projection_filter" ||
     variant == "union_numeric" ||
     variant == "subgraph_edges_false" ||
     variant == "subgraph_edge_predicate" {
@@ -1574,11 +1633,32 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "\"as\":\"pooled\"},{\"from\":\"pooled\"," +
     "\"normalize_vectors\":true,\"as\":\"same_carrier\"}," +
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
-  } else if variant == "bridge_only" {
+  } else if variant == "bridge_only" ||
+    variant == "bridge_filter" ||
+    variant == "bridge_select" ||
+    variant == "bridge_derive" ||
+    variant == "bridge_take" {
     "{\"from\":\"rows\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
     "\"as\":\"source\"},{\"from\":\"source\"," +
-    "\"vectors\":true,\"as\":\"out\"}"
+    "\"vectors\":true,\"as\":" +
+    (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
+    (if variant != "bridge_only" {
+      ",{" +
+      "\"from\":\"projected\"," +
+      (if variant == "bridge_select" {
+        "\"select\":[\"id\",\"embedding\"]"
+      } else if variant == "bridge_derive" {
+        "\"derive\":{\"copy\":\"id\"}"
+      } else if variant == "bridge_take" {
+        "\"take\":2"
+      } else {
+        "\"filter\":\"true\""
+      }) +
+      ",\"as\":\"out\"}"
+    } else {
+      ""
+    })
   } else {
     vector_prefix + relation_vector + ",{\"vectors\":true,\"as\":\"out\"}"
   }) +

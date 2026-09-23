@@ -25,7 +25,7 @@ test "lexical selection and admitted artifact are separate input requests" {
     @source.Key("host_policy_profile"),
     @source.Key("text_rank"),
   ])
-  let pin = "sha256:b75e7a20e9da2007253d6f47aa19e9d64024f9d9fa2a21cc915d46712689acd2"
+  let pin = "sha256:1c414779dabddac36df1d55cb176f425c2423f4bbc63fa824bdde85d78bd2213"
   let body = "{\"profile_bytes_cid\":\"" +
     pin +
     "\",\"version\":\"actql-text-rank-selection/0.1\"}"
@@ -33,7 +33,7 @@ test "lexical selection and admitted artifact are separate input requests" {
     lexical_profile=true,
     lexical_selection=Some(
       (
-        body, "sha256:94600a40d32100a52a629ed772d99c3ae1ff2bd5d166d4e9ad18219502c888b2",
+        body, "sha256:cae7609a5faf88fb54052990e9ff133baa1e65668abcd9b5a393b7528f7ea541",
       ),
     ),
   )
@@ -98,7 +98,7 @@ test "lexical selection and admitted artifact are separate input requests" {
     lexical_profile=true,
     lexical_selection=Some(
       (
-        body, "sha256:94600a40d32100a52a629ed772d99c3ae1ff2bd5d166d4e9ad18219502c888b2",
+        body, "sha256:cae7609a5faf88fb54052990e9ff133baa1e65668abcd9b5a393b7528f7ea541",
       ),
     ),
   )
