@@ -104,31 +104,6 @@ fn preflight_retained_row(
 }
 
 ///|
-fn retained_json_node(value : Json, span : @source.Span) -> @source.Node {
-  // Preflight bounds depth to 64 and total nodes before the library parser or
-  // this bounded conversion runs. No authoring NFC/LF transformation is used.
-  let value : @source.Value = match value {
-    Null => Null
-    True => Bool(true)
-    False => Bool(false)
-    Number(value, ..) => Number(value)
-    String(value) => String(value)
-    Array(values) => Array(values.map(value => retained_json_node(value, span)))
-    Object(fields) =>
-      Object(
-        fields
-        .to_array()
-        .map(pair => @source.Field::{
-          key: pair.0,
-          key_span: span,
-          value: retained_json_node(pair.1, span),
-        }),
-      )
-  }
-  { value, span, }
-}
-
-///|
 fn decode_retained_row(
   schema : @schema.Schema,
   text : String,
@@ -160,7 +135,7 @@ fn decode_retained_row(
     source_path: "<retained-row>",
   }
   let cursor = match
-    @decode.admit(retained_json_node(parsed, span), {
+    @decode.admit_raw_json(parsed, span, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_string_bytes: limits.max_text_bytes,

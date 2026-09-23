@@ -6,3 +6,7 @@ import {
   "actql/actql/decode_shape" @shape,
   "actql/actql/decode_scalar" @scalar,
 }
+
+import {
+  "moonbitlang/core/json",
+} for "wbtest"

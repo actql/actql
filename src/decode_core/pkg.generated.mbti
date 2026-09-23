@@ -12,6 +12,8 @@ pub fn admission_usage(Cursor) -> AdmissionUsage
 
 pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
 
+pub fn admit_raw_json(Json, @source_span.Span, Limits) -> Result[Cursor, Issue]
+
 pub fn array_length(Cursor) -> Int?
 
 pub fn boolean(Cursor) -> Result[Bool, Issue]

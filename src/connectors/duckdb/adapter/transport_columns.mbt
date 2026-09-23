@@ -71,26 +71,20 @@ pub fn decode_transport_columns(
   let mut remaining_text = limits.max_text_bytes
   for column in columns {
     guard column is Array(values) else { return Err(InvalidShape) }
-    let nodes = []
     for cell in values {
-      let value : @source.Value = match cell {
-        Null => Null
-        True => Bool(true)
-        False => Bool(false)
-        String(value) => {
+      match cell {
+        Null | True | False => ()
+        String(value) =>
           match @scalar.admit_utf8_length(value, remaining_text) {
             Ok(bytes) => remaining_text -= bytes
             Err(MalformedUtf16(_)) => return Err(InvalidUnicode)
             Err(_) => return Err(TextLimit)
           }
-          String(value)
-        }
         _ => return Err(InvalidShape)
       }
-      nodes.push(@source.Node::{ value, span, })
     }
     let cursor = match
-      @decode.admit({ value: Array(nodes), span, }, {
+      @decode.admit_raw_json(Json::array(values), span, {
         max_nodes: limits.max_nodes,
         max_depth: 1,
         max_string_bytes: limits.max_text_bytes,
