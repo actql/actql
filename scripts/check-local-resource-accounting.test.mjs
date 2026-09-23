@@ -41,7 +41,23 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 15 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 8 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 8 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('append loses its boundary record when exact resource evidence is removed', () => {
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    append.boundary_tests = append.boundary_tests.filter(item =>
+      item.role !== 'append_work_workspace_exact_one_short');
+  }), /RelA append: append_work_workspace_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    append.boundary_tests.find(item =>
+      item.role === 'append_self_occurrence_reclamation').fixture =
+      'missing-append-self-occurrence';
+  }), /RelA append: missing operation boundary fixture missing-append-self-occurrence/);
 });
 
 test('zero-input values bind their bounded production provider', () => {

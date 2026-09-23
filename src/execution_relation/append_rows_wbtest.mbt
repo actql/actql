@@ -246,7 +246,9 @@ fn append_scale_sample(
   left_count : Int,
   right_count : Int,
   width : Int,
-) -> (Int, Int, Int) raise {
+  control_limit? : Int = 100000000,
+  workspace_limit? : Int = 100000000,
+) -> Result[(Int, Int, Int), RowIssue] raise {
   let fields = Array::makei(width, index => {
     "\"f" + index.to_string() + "\":{\"type\":\"number\",\"nullable\":false}"
   })
@@ -272,9 +274,8 @@ fn append_scale_sample(
   guard @lower.sequence_step(sequence, 2) is Some(@lower.AppendStep(kernel)) else {
     fail("append kernel was not prepared")
   }
-  let control_max = 100000000
-  let control = { remaining: control_max, max_frames: 100, }
-  let workspace = row_workspace(100000000)
+  let control = { remaining: control_limit, max_frames: 100, }
+  let workspace = row_workspace(workspace_limit)
   let output = value_budget({
     max_nodes: 10000000,
     max_text_bytes: 10000000,
@@ -303,15 +304,20 @@ fn append_scale_sample(
     control,
     output,
     workspace,
-  ).unwrap()
-  assert_eq(result.rows.length(), left_count + right_count)
-  (control_max - control.remaining, workspace.peak, output.work)
+  )
+  match result {
+    Ok(table) => {
+      assert_eq(table.rows.length(), left_count + right_count)
+      Ok((control_limit - control.remaining, workspace.peak, output.work))
+    }
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
 test "append work and retained slots scale with rows and value width" {
   for (left, right, width) in [(4, 4, 4), (32, 32, 4), (4, 4, 32)] {
-    let (work, peak, output_work) = append_scale_sample(left, right, width)
+    let (work, peak, output_work) = append_scale_sample(left, right, width).unwrap()
     let rows = left + right
     let mut name_bytes = 0
     for index in 0..<width {
@@ -323,5 +329,48 @@ test "append work and retained slots scale with rows and value width" {
     assert_eq(peak, 2 * rows + 3 * width + 2 * rows * width)
     // Every retained row, field name, and scalar value is charged exactly once.
     assert_eq(output_work, rows * (1 + name_bytes + width))
+  }
+}
+
+///|
+test "append admits independently calculated exact work and workspace" {
+  for (left, right, width) in [(1, 1, 2), (3, 2, 4), (4, 0, 3)] {
+    let rows = left + right
+    let mut name_bytes = 0
+    for index in 0..<width {
+      name_bytes += ("f" + index.to_string()).length()
+    }
+    let work = width + name_bytes + rows * (1 + width)
+    let peak = 2 * rows + 3 * width + 2 * rows * width
+    assert_true(
+      append_scale_sample(
+        left,
+        right,
+        width,
+        control_limit=work,
+        workspace_limit=peak,
+      )
+      is Ok(_),
+    )
+    assert_true(
+      append_scale_sample(
+        left,
+        right,
+        width,
+        control_limit=work - 1,
+        workspace_limit=peak,
+      )
+      is Err(RowLimit),
+    )
+    assert_true(
+      append_scale_sample(
+        left,
+        right,
+        width,
+        control_limit=work,
+        workspace_limit=peak - 1,
+      )
+      is Err(RowLimit),
+    )
   }
 }
