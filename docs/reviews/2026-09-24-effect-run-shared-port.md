@@ -21,8 +21,11 @@ Effect state machine in JavaScript.
 The intervening MoonBit work now collects structurally checked Effect headers
 and binds their direct Result references to exact checked Stage Result fields.
 The binding retains each field's admitted type and its selector, key, command
-target, or value role. It does not resolve the complete Mapping/Command
-Contract, establish current authority, admit a Preview, or permit execution.
+target, or value role. The next increment rejects a Command target field that
+is not a non-null value-level ResourceRef. It still cannot check the reference
+kind against the resolved Command Contract. It does not resolve complete
+Mapping/Command Contracts, establish current authority, admit a Preview, or
+permit execution.
 The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member

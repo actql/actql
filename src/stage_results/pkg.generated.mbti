@@ -179,6 +179,7 @@ pub(all) enum EffectResultBindingIssueKind {
   ForeignProgram
   MissingResult
   MissingField
+  InvalidCommandTarget
 } derive(Eq, @debug.Debug)
 
 pub struct EffectResultBindings {
