@@ -275,6 +275,22 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
     fail(`${label}: reviewed exact/cancel boundary fixture is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'filter') {
+    if (route.selected_entrypoint?.symbol !==
+      'selected_binding_rows_execution') {
+      fail(`${label}: bounded selected entrypoint is missing`);
+    }
+    for (const role of [
+      'filter_mixed_stage_lifetime',
+      'filter_input_exact',
+      'filter_input_one_short',
+      'filter_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'select') {
     if (route.selected_entrypoint?.symbol !==
       'selected_binding_rows_execution') {
@@ -357,9 +373,13 @@ if (errors.length > 0) {
   for (const error of errors) console.error(error);
   process.exitCode = 1;
 } else {
+  const boundaryRoutes = routeEntries.filter(route =>
+    (route.boundary_tests ?? []).length > 0).length;
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
     `${Object.keys(profiles).length} implementation profiles, ` +
-    `${routeEntries.length} production routes gated.`,
+    `${routeEntries.length} production routes mapped, ` +
+    `${boundaryRoutes} with operation-specific boundary records; ` +
+    `full boundary completion is not asserted.`,
   );
 }
