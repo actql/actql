@@ -182,7 +182,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       return Object.freeze({
         task,
         durationMilliseconds:
-          moon.strategyModule_local_ManagedDuration(managedConfiguration),
+          moon.strategyModule_local_ManagedDuration(managedConfiguration) ??
+          null,
         acceptsSiteTransfer: inputs.every(
           input => input.carrierMaterial == null,
         ),

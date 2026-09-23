@@ -52,10 +52,12 @@ function siteControl(moon) {
     beginTeardown: moon.strategySiteBeginTeardown,
     revoke: moon.strategySiteRevoke,
     status: moon.strategySiteStatus,
-    selectCandidate: moon.strategySiteSelectCandidate,
+    selectCandidate: (durations, keys) =>
+      moon.strategySiteSelectCandidate(
+        durations.map(value => value ?? undefined), keys),
     planCandidate: value => tuplePair(
       moon.strategySitePlanCandidate(
-        value.durationMilliseconds,
+        value.durationMilliseconds ?? undefined,
         value.startupMilliseconds,
         value.capacitySupported,
         value.acceptsSiteTransfer,

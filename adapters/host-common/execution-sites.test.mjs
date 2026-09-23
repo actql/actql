@@ -27,6 +27,9 @@ import {createExecutionSiteControlFixture} from
   './execution-site-control.fixture.mjs';
 import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
+import * as moon from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeCore} from './runtime-core.mjs';
 
 const transferProvider = provider => Object.freeze({
   contract: managedMemoryTransferContract,
@@ -65,6 +68,30 @@ test('product Site installation has no JavaScript semantic fallback', () => {
     prepareExecutionSitePolicy({sites: [value]}),
     [contribution('implementation')],
   ), {code: 'MissingExecutionSiteControl'});
+});
+
+test('unknown Local duration reaches the common Site exclusion', () => {
+  const destination = createInProcessExecutionSite({
+    key: 'unknown-duration',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+  });
+  const implementation = contribution('local-unknown');
+  const installation = installProductExecutionSites(
+    prepareExecutionSitePolicy({sites: [destination]}),
+    [implementation],
+    runtimeCore(moon).siteControl,
+  );
+  const candidate = executionSiteCandidate({
+    installation,
+    contribution: implementation,
+    site: destination,
+    task: 0,
+    registration: implementation.registration,
+    inputs: [],
+    durationMilliseconds: null,
+  });
+  assert.equal(candidate.excluded, 'MissingDurationEstimate');
 });
 
 test('Site placement is independent from implementation registration', () => {
