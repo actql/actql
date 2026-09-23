@@ -47,6 +47,7 @@ fn strategy_fixture_duckdb_only_impl(
       },
       acquisition: false,
       fixed_compute: true,
+      effect: false,
     }),
     count,
     100,

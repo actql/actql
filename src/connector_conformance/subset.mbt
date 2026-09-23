@@ -21,6 +21,7 @@ pub fn configure_subset(
       },
       acquisition: false,
       fixed_compute: true,
+      effect: false,
     }),
     count,
     100,

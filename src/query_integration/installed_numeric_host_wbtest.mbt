@@ -20,6 +20,7 @@ test "independent numeric and Local bundles use the same installed Host without 
           @host_driver.DispatchHost[Unit, @strategy.RunIssue],
           @host_driver.PreparedTaskDispatch,
         ) -> Result[Unit, @strategy.RunIssue],
+        Unit,
       ],
     ] = [
       {
@@ -97,6 +98,7 @@ test "independent numeric and Local bundles use the same installed Host without 
             )
           }
         }),
+        effect: None,
       },
       {
         name: "local-implementation",
@@ -130,6 +132,7 @@ test "independent numeric and Local bundles use the same installed Host without 
             )
           }
         }),
+        effect: None,
       },
     ]
     let installed = @connector.install_bundles(manifest, 2, 100).unwrap()

@@ -1,10 +1,12 @@
 ///|
 /// Host-selected module capabilities, not source permission or semantic proof.
-/// One module can provide Acquisition and fixed-input Compute independently.
+/// One module can provide Acquisition, fixed-input Compute, and Effect
+/// independently. Registration is not authority to use an external resource.
 pub(all) struct CapabilityDescription {
   name : String
   acquisition : Bool
   fixed_compute : Bool
+  effect : Bool
 }
 
 ///|
@@ -61,7 +63,9 @@ pub fn prepare_capability_registry(
       return Err(NameLimit)
     }
     remaining -= description.name.length()
-    if !description.acquisition && !description.fixed_compute {
+    if !description.acquisition &&
+      !description.fixed_compute &&
+      !description.effect {
       return Err(NoCapabilities(index))
     }
     if names.contains(description.name) {

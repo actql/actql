@@ -263,8 +263,13 @@ test "fixed join request binds both captured ports through registered Local sele
   )
   let registry = @connector.prepare_capability_registry(
     [
-      { name: "local", acquisition: false, fixed_compute: true, },
-      { name: "duckdb", acquisition: false, fixed_compute: true, },
+      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
+      {
+        name: "duckdb",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
     ],
     2,
     20,

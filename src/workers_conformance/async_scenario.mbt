@@ -10,7 +10,14 @@ pub fn prepare_async_scenario() -> AsyncScenario raise {
   let (run, issuer) = captured_graph_fixture(numeric_dag=true)
   let sequences = dispatch_test_generated(run)
   let registry = @connector.prepare_capability_registry(
-    [{ name: "independent-probe", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "independent-probe",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()

@@ -235,7 +235,14 @@ pub fn issued_broad_create(
     )
     let requirement = @duckdb_query.duckdb_query_requirement(preparation)
     let registry = @connector.prepare_capability_registry(
-      [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
+      [
+        {
+          name: "duckdb",
+          acquisition: true,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
       1,
       6,
     ).unwrap()
