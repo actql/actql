@@ -250,8 +250,15 @@ A MoonBit admission now selects exactly one static permission rule for the
 effect kind, selector class, and complete write-field set. It validates every
 rule, rejects ambiguous or missing matches, and retains both the selected
 permission set and contract-wide required permissions. A caller must still
-derive the write-field set from its checked Effect and prove current grants;
+use a write-field set derived from its checked Effect and prove current grants;
 this selection does not admit an Effectful Run or close SF-3.
+
+The checked-Effect bridge now derives selector class and complete write-field
+sets from retained headers. Result-backed create/store use the Mapping's
+explicit row field map; inline create, update, and upsert use authored keys;
+delete writes no fields. It then invokes the same static rule selector for
+every non-Command member. Mapping row values, type conversions, exact
+Environment ownership, current grants, Preview, and apply remain unadmitted.
 
 ## Capability comparison with Smooth Cloud
 

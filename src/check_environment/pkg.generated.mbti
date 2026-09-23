@@ -116,6 +116,8 @@ pub fn check_lookup_execution(WireEnvironment, LookupExecutionLimits) -> Result[
 
 pub fn check_mapping_contract_shapes(WireEnvironment, Limits, Int) -> Result[MappingContractShapes, MappingShapeIssue]
 
+pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowFields, MappingRowFieldsIssue]
+
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_pushdown_body_dependencies(PushdownContracts, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
@@ -233,6 +235,14 @@ pub fn mapping_permission_required_names(MappingPermissionSelection) -> Array[St
 pub fn mapping_permission_rule(MappingPermissionSelection) -> (String, String, Array[String])
 
 pub fn mapping_permission_shape(MappingPermissionSelection) -> MappingContractShape
+
+pub fn mapping_permission_work(MappingPermissionSelection) -> Int
+
+pub fn mapping_row_fields_names(MappingRowFields) -> Array[String]
+
+pub fn mapping_row_fields_shape(MappingRowFields) -> MappingContractShape
+
+pub fn mapping_row_fields_work(MappingRowFields) -> Int
 
 pub fn mapping_shape_at(MappingContractShapes, Int) -> MappingContractShape?
 
@@ -764,7 +774,22 @@ pub struct MappingPermissionSelection {
   write_fields : Array[String]
   permissions : Array[String]
   required_permissions : Array[String]
+  work : Int
 }
+
+pub struct MappingRowFields {
+  shape : MappingContractShape
+  fields : Array[String]
+  work : Int
+}
+
+pub(all) enum MappingRowFieldsIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidRowMapping
+  NonWritableField(String)
+  MissingRequiredField(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum MappingShapeIssue {
   InvalidLimits
