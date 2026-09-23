@@ -1,5 +1,7 @@
 // Structural Client–Host wire admission only. The Host's MoonBit owners decide
 // identities, authorization, state transitions, publication and retry.
+import {validDeliveryAttempt, validDeliveryRecord,
+  validHostReleaseReceipt} from './publication.generated.js';
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const exact = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') ===
@@ -127,83 +129,13 @@ export function validRequestLookup(value, expectedRequestId) {
     durability(value.durability) && boundedText(value.lookupExpiresAt);
 }
 
-// Validate the published delivery attempt, record and receipt schemas and
-// their identity bindings. The Host owns authorization and receipt issuance.
-const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
-const digest = /^[0-9a-f]{64}$/u;
-const count = value => Number.isSafeInteger(value) && value >= 0;
+// Generated guards validate the published shapes. These checks bind the
+// requested identity and related owner-issued evidence across those shapes.
 const shape = (value, required, optional = []) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   required.every(key => Object.hasOwn(value, key)) &&
   Object.keys(value).every(key => required.includes(key) ||
     optional.includes(key));
-const cidField = (value, key) => cid.test(value[key]);
-const optionalCid = (value, key) => !Object.hasOwn(value, key) ||
-  cidField(value, key);
-
-function validAttempt(value) {
-  return shape(value, ['version', 'attempt_id', 'result_read_grant_cid',
-    'run_definition_cid', 'result_manifest_cid', 'result_name',
-    'result_artifact_cid', 'serialization_contract_cid', 'requested_at',
-    'delivery_attempt_cid']) &&
-    value.version === 'actql-delivery-attempt/0.1' &&
-    boundedText(value.attempt_id) && boundedText(value.result_name) &&
-    ['result_read_grant_cid', 'run_definition_cid',
-      'result_manifest_cid', 'result_artifact_cid',
-      'serialization_contract_cid', 'delivery_attempt_cid']
-      .every(key => cidField(value, key)) &&
-    timestamp.test(value.requested_at);
-}
-
-function validRecord(value) {
-  if (!shape(value, ['version', 'delivery_attempt_cid', 'sequence',
-    'state', 'confirmed_byte_count', 'exposure', 'observed_at',
-    'cleanup_owner_cids', 'delivery_record_cid'],
-  ['prior_record_cid', 'possible_unconfirmed_max_bytes',
-    'delivered_sha256', 'result_delivery_receipt_cid', 'failure_cid']) ||
-    value.version !== 'actql-delivery-record/0.1' ||
-    !['delivery_attempt_cid', 'delivery_record_cid', 'prior_record_cid',
-      'result_delivery_receipt_cid', 'failure_cid']
-      .every(key => optionalCid(value, key)) ||
-    !count(value.sequence) || !count(value.confirmed_byte_count) ||
-    !['streaming', 'succeeded', 'failed', 'cancelled'].includes(value.state) ||
-    !['exact', 'unknown_additional'].includes(value.exposure) ||
-    !timestamp.test(value.observed_at) ||
-    !Array.isArray(value.cleanup_owner_cids) ||
-    !value.cleanup_owner_cids.every(item => cid.test(item)) ||
-    new Set(value.cleanup_owner_cids).size !==
-      value.cleanup_owner_cids.length ||
-    Object.hasOwn(value, 'possible_unconfirmed_max_bytes') &&
-      !count(value.possible_unconfirmed_max_bytes) ||
-    Object.hasOwn(value, 'delivered_sha256') &&
-      !digest.test(value.delivered_sha256) ||
-    value.exposure === 'unknown_additional' &&
-      !Object.hasOwn(value, 'possible_unconfirmed_max_bytes') ||
-    value.sequence === 0 && Object.hasOwn(value, 'prior_record_cid') ||
-    value.sequence > 0 && !Object.hasOwn(value, 'prior_record_cid')) {
-    return false;
-  }
-  return value.state === 'succeeded'
-    ? value.exposure === 'exact' &&
-      Object.hasOwn(value, 'delivered_sha256') &&
-      Object.hasOwn(value, 'result_delivery_receipt_cid')
-    : !Object.hasOwn(value, 'result_delivery_receipt_cid');
-}
-
-function validReceipt(value) {
-  return shape(value, ['version', 'run_definition_cid', 'invocation_cid',
-    'result_manifest_cid', 'result_name', 'result_artifact_cid',
-    'serialization_contract_cid', 'delivered_byte_count',
-    'delivered_sha256', 'authorization_context_cid',
-    'egress_admission_cid', 'result_delivery_receipt_cid']) &&
-    value.version === 'actql-result-delivery-receipt/0.1' &&
-    boundedText(value.result_name) && count(value.delivered_byte_count) &&
-    digest.test(value.delivered_sha256) &&
-    ['run_definition_cid', 'invocation_cid', 'result_manifest_cid',
-      'result_artifact_cid', 'serialization_contract_cid',
-      'authorization_context_cid', 'egress_admission_cid',
-      'result_delivery_receipt_cid'].every(key => cidField(value, key));
-}
 
 export function validDeliveryAttemptLookup(value, expected) {
   if (!shape(expected, ['attemptId', 'runDefinitionCid', 'resultName']) ||
@@ -213,18 +145,22 @@ export function validDeliveryAttemptLookup(value, expected) {
   if (exact(value, ['kind']) && value.kind === 'not_found') return true;
   if (!exact(value, ['kind', 'attempt', 'record',
     'hostReleaseReceipt']) || value.kind !== 'found' ||
-    !validAttempt(value.attempt) ||
+    !validDeliveryAttempt(value.attempt) ||
     value.attempt.attempt_id !== expected.attemptId ||
     value.attempt.run_definition_cid !== expected.runDefinitionCid ||
     value.attempt.result_name !== expected.resultName) return false;
   const {attempt, record, hostReleaseReceipt: receipt} = value;
   if (record === null) return receipt === null;
-  if (!validRecord(record) ||
-      record.delivery_attempt_cid !== attempt.delivery_attempt_cid) {
+  if (!validDeliveryRecord(record) ||
+      record.delivery_attempt_cid !== attempt.delivery_attempt_cid ||
+      record.sequence === 0 && Object.hasOwn(record, 'prior_record_cid') ||
+      record.sequence > 0 && !Object.hasOwn(record, 'prior_record_cid') ||
+      record.state !== 'succeeded' &&
+        Object.hasOwn(record, 'result_delivery_receipt_cid')) {
     return false;
   }
   if (record.state !== 'succeeded') return receipt === null;
-  if (!validReceipt(receipt) ||
+  if (!validHostReleaseReceipt(receipt) ||
       record.result_delivery_receipt_cid !==
         receipt.result_delivery_receipt_cid ||
       record.confirmed_byte_count !== receipt.delivered_byte_count ||
