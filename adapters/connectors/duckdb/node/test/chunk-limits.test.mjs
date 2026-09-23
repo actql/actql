@@ -28,6 +28,27 @@ test('bounded transport batches preserve ordered rows and cumulative accounting'
   assert.equal(result.value.cells, 100);
 });
 
+test('wide rows split by bytes without changing order or exceeding a frame', async () => {
+  const received = [];
+  let frameBytes = 0;
+  let metadataBytes;
+  const output = await withComputeDatabase({...limits, maxChunkRows: 64, maxChunkBytes: 100}, async session => {
+    await session.command("SELECT 'row-' || CAST(i AS VARCHAR) AS payload FROM range(40) r(i) ORDER BY i", [], chunk => {
+      const bytes = Buffer.byteLength(JSON.stringify({rowCount: chunk.rowCount, columns: chunk.columns}) + '\n');
+      assert(bytes <= 100);
+      metadataBytes ??= Buffer.byteLength(JSON.stringify({fields: chunk.fields}) + '\n');
+      frameBytes += bytes;
+      received.push(...chunk.columns[0]);
+    });
+    return session.usage();
+  });
+  assert.deepEqual(received, Array.from({length: 40}, (_, index) => `row-${index}`));
+  assert(output.value.chunks > 1);
+  assert(output.value.chunks < 40);
+  assert.equal(output.value.transportBytes,
+    Buffer.byteLength('{"parameters":[]}\n') + metadataBytes + frameBytes);
+});
+
 test('split batches do not populate the chunk-wide SDK value cache', async t => {
   const getColumnVector = DuckDBDataChunk.prototype.getColumnVector;
   const seen = new WeakSet();

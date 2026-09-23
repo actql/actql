@@ -45,13 +45,13 @@ fn profile_compute_transfer_capacity(value : DataProfile) -> Int64 {
 }
 
 ///|
-// Conservative installed Node transport envelope: 128 delivered rows, the
+// Conservative installed Node transport envelope: 512 delivered rows, the
 // pinned 2048-row native vector, 128 parameters per column, and column metadata.
 // SQL remains capped at 10000 bytes. This is a reservation policy, not measured
 // native memory. The actual transport charge still must fit this envelope.
 fn profile_resident_import_scratch(value : DataProfile) -> Int64 {
   value.batch_bytes.to_int64() * 32L +
-  value.columns.to_int64() * (128L + 2048L + 128L + 1L) * 256L +
+  value.columns.to_int64() * (512L + 2048L + 128L + 1L) * 256L +
   40000L
 }
 
@@ -126,7 +126,7 @@ fn profile_transport(
   rows : Int,
 ) -> @duckdb.TransportColumnLimits {
   // This is a per-frame decoder budget, not a cumulative receipt allowance.
-  let batch_rows = if rows < 128 { rows } else { 128 }
+  let batch_rows = if rows < 512 { rows } else { 512 }
   let batch_nodes = (batch_rows + 1) * value.columns + 1
   {
     max_bytes: value.batch_bytes,

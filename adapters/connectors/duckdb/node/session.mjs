@@ -306,44 +306,48 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         usage.rows += chunk.rowCount;
         usage.cells += chunk.rowCount * fields.length;
         const rowsPerBatch = limits.maxChunkRows ?? chunk.rowCount;
-        for (let start = 0; start < chunk.rowCount; start += rowsPerBatch) {
-          const rowCount = Math.min(rowsPerBatch, chunk.rowCount - start);
-          let batchBytes = 0;
-          const chargeBatch = bytes => {
-            if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes) - batchBytes) {
-              throw new DuckDBTransportError('ChunkBytes');
-            }
-            chargeBytes(bytes);
-            batchBytes += bytes;
-          };
-          chargeBatch(Buffer.byteLength(JSON.stringify({
-            rowCount, columns: fields.map(() => []),
-          }) + '\n', 'utf8'));
-          const columns = [];
-          for (let i = 0; i < fields.length; i++) {
-            const values = [];
-            // Variable-width SDK vectors cache getItem results. Use a view for
-            // this delivered batch so the chunk-wide vector does not accumulate
-            // every decoded string across otherwise released batches.
-            const vector = chunk.getColumnVector(i).slice(start, rowCount);
-            for (let row = start; row < start + rowCount; row++) {
+        const frameLimit = limits.maxChunkBytes ?? limits.maxTransportBytes;
+        for (let start = 0; start < chunk.rowCount;) {
+          const maximumRows = Math.min(rowsPerBatch, chunk.rowCount - start);
+          const columns = fields.map(() => []);
+          const emptyFrameBytes = Buffer.byteLength(JSON.stringify({
+            rowCount: 0, columns,
+          }) + '\n', 'utf8');
+          if (emptyFrameBytes > frameLimit) throw new DuckDBTransportError('ChunkBytes');
+          // Variable-width SDK vectors cache decoded values. Use a fresh view
+          // for each delivered batch, including a batch split by byte size.
+          const vectors = fields.map((_, i) => chunk.getColumnVector(i).slice(start, maximumRows));
+          let rowCount = 0;
+          let batchBytes = emptyFrameBytes;
+          while (rowCount < maximumRows) {
+            const candidate = [];
+            let nextBytes = batchBytes + String(rowCount + 1).length - String(rowCount).length;
+            for (let i = 0; i < fields.length; i++) {
               const item = bounded
-                ? boundedVectorItem(vector, row - start, fields[i].type, limits.maxChunkBytes)
-                : vector.getItem(row - start);
+                ? boundedVectorItem(vectors[i], rowCount, fields[i].type, frameLimit)
+                : vectors[i].getItem(rowCount);
               const cell = exportPhysicalValue(item, fields[i].type);
-              // Serialized transport framing, not canonical bytes or allocator
-              // memory. Charge before retaining the converted cell in a batch.
-              chargeBatch(Buffer.byteLength(JSON.stringify(cell), 'utf8') + (values.length === 0 ? 0 : 1));
-              values.push(cell);
+              nextBytes += Buffer.byteLength(JSON.stringify(cell), 'utf8') + (rowCount === 0 ? 0 : 1);
+              if (nextBytes > frameLimit) break;
+              candidate.push(cell);
             }
-            columns.push(Object.freeze(values));
+            if (candidate.length !== fields.length) {
+              if (rowCount === 0) throw new DuckDBTransportError('ChunkBytes');
+              break;
+            }
+            for (let i = 0; i < fields.length; i++) columns[i].push(candidate[i]);
+            batchBytes = nextBytes;
+            rowCount++;
           }
+          chargeBytes(batchBytes);
           usage.chunks++;
           const receiveStarted = performance.now();
           try {
-            await consume(Object.freeze({ fields, rowCount, columns: Object.freeze(columns) }));
+            await consume(Object.freeze({ fields, rowCount,
+              columns: Object.freeze(columns.map(column => Object.freeze(column))) }));
           } finally { usage.receiveCallbackMilliseconds += performance.now() - receiveStarted; }
           assertLive();
+          start += rowCount;
         }
       }
       succeeded = true;

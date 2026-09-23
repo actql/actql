@@ -108,7 +108,7 @@ export async function prepareExampleText({database, environmentCid, programText,
     // Do not reset usage between statements or borrow a spare data row for it.
     maxRows: data.source_rows + data.task_rows + 1,
     maxCells: (data.source_rows + data.task_rows) * data.columns + 1,
-    maxChunkRows: 128, maxChunkBytes: data.batch_bytes,
+    maxChunkRows: 512, maxChunkBytes: data.batch_bytes,
     // Explicitly reserve the bounded batch parameter capacity before selecting
     // a candidate. SQL/frame ceilings may choose fewer rows at import time.
     maxColumns: data.columns, maxParameters: data.columns * 128,

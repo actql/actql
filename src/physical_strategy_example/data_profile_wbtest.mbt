@@ -19,9 +19,9 @@ test "explicit data profile preserves distinct source and intermediate row bound
   assert_eq(acquisition.physical.max_cells, 192000)
   assert_eq(acquisition.output_rows, 1000)
   assert_eq(acquisition.output_entries, 64)
-  assert_eq(acquisition.transport.max_rows, 128)
+  assert_eq(acquisition.transport.max_rows, 512)
   assert_eq(acquisition.transport.max_bytes, data.batch_bytes)
-  assert_eq(acquisition.transport.max_nodes, 8257)
+  assert_eq(acquisition.transport.max_nodes, 32833)
   assert_eq(acquisition.measurement.max_bytes, 2000000)
   assert_eq(acquisition.completion.receipts.max_bytes, 2000000)
   assert_eq(acquisition.completion.max_retained_wire_bytes, 2000000)
@@ -34,7 +34,7 @@ test "explicit data profile preserves distinct source and intermediate row bound
   assert_eq(dispatch.guards.max_bytes, 3000000)
   assert_eq(dispatch.native_query.max_entries, data.entries)
   assert_eq(profile_compute_transfer_capacity(data), 36800192L)
-  assert_eq(profile_resident_import_scratch(data), 41005120L)
+  assert_eq(profile_resident_import_scratch(data), 47296576L)
   assert_true(
     profile_managed_retention_capacity(data, 1, true).unwrap() <
     profile_managed_retention_capacity(data, 64, true).unwrap(),
