@@ -1,8 +1,10 @@
 # Bounded placement search diagnostic
 
-`measure-built-tests.mjs` repeatedly runs the existing seven-task Carrier
-placement fixtures from the built `query_integration` JS whitebox test bundle.
-Build that bundle with the pinned MoonBit toolchain, then run either profile:
+`measure-built-tests.mjs` repeatedly runs the seven-task Carrier placement
+fixtures and a 20-compute-task standard Host fixture from the built
+`query_integration` JS whitebox test bundle. The larger fixture installs the
+ordinary Local and DuckDB contributions and uses bounded policy selection.
+Build that bundle with the pinned MoonBit toolchain, then run:
 
 ```sh
 node benchmarks/placement-search/measure-built-tests.mjs 100
@@ -13,16 +15,20 @@ Each profile is run once in a fresh process and then 100 times in another
 fresh process. The reported incremental fixture interval is the difference in
 process elapsed time divided by 99. It includes fixture construction, offer
 preparation, search, assertions and test-runner overhead. The one/two-offer
-profile runs both configurations per repetition. `maxRssKiB` is the whole
+profile runs both configurations per repetition. The 20-task profile constructs
+a checked 21-stage Program, then prepares 20 Local/DuckDB estimate profiles;
+its estimate rates are fixture values, not a calibrated production model.
+`maxRssKiB` is the whole
 process peak, including the large generated test bundle and runtime; it is not
 planner allocation or an estimate of deployed Host memory. Neither number is
 an acceptance threshold. The exact in-process frontier counters are asserted
 by the MoonBit tests separately.
 
 The release option selects the release test bundle built by
-`moon test --target js --release src/query_integration`. It still runs the same
-synthetic capability fixture and is not the required larger release Host
-workload with real installed provider capabilities.
+`moon test --target js --release src/query_integration`. The seven-task tests
+still use a synthetic capability fixture. The 20-task test uses installed
+standard Host contributions, but its full test-process interval and RSS are
+not an operational placement-only profile.
 
 At clean product revision `6e5e11a267836676a65c64463d408eaaa99d09aa`
 on macOS arm64, Node 22.23.2, three 100-repetition runs produced:
@@ -68,3 +74,26 @@ A 21-stage/20-compute-task version of the registered narrow-100 Program was
 rejected at preparation with `StageLimit`, before placement. The operational
 scale profile must use the generic standard Host with installed Local/DuckDB
 contributions, not raise the example's limit and call that product evidence.
+
+At clean revision `06cf63259` on macOS arm64 with Node 22.23.2, the release
+query-integration suite passed 554/554 on JS, Wasm and native. Three
+100-repetition release diagnostic runs produced:
+
+| Profile | Incremental fixture ms (three runs) | 100-repeat process peak RSS KiB (three runs) |
+| --- | --- | --- |
+| Seven tasks, five offers each | 18.327, 19.684, 14.495 | 356688, 353552, 358864 |
+| Seven tasks, one and two offers | 29.043, 28.797, 26.825 | 471952, 473600, 474672 |
+| Twenty compute tasks, Local/DuckDB modules | 78.227, 77.251, 73.015 | 729072, 729760, 729504 |
+
+The last row proves the bounded choice completes for a 20-task Host fixture
+without enumerating its 1,048,576 combinations. It includes Program checking,
+Host configuration and assertions. The approximately 729 MiB process peak
+includes the generated test bundle and 100 test-runner repetitions; it does
+not establish a planner heap bound or a deployable Workers profile. The raw
+records are under
+`workspace/.codex-scratch/placement-scale-06cf63259-run[1-3].json`, with SHA-256
+values `52083d84624db55c84ade0bc816c938cb7591bd92e224558be1b53b4182905a4`,
+`0439fc8d614ec38bea34e093efa81d714b99dbb4feaac5c3009961239652647f`,
+and `0e80a34598d3a894d142b44ec8d500d761c0cd0bcfa418b7a3fba4c3bfc00be5`.
+PERF-2 still needs an operational workload with attributed planner memory,
+calibrated provider estimates and a declared deployment budget.
