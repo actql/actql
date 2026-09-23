@@ -153,7 +153,11 @@ fn selected_relation_provider(
         Some(selected) => if selected != step { return false }
         None =>
           match @lower.kernel_body(kernel) {
-            @lower.Filter(_)
+            @lower.AssertAll(_)
+            | @lower.AssertUnique(_)
+            | @lower.SnapshotMap(_)
+            | @lower.OrderedBindings(_)
+            | @lower.Filter(_)
             | @lower.Select(_)
             | @lower.StableSort(_)
             | @lower.Limit(_, _, _) => ()

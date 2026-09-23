@@ -6195,6 +6195,9 @@ async function exerciseStrategyGraph(
   for (const ordinaryUnaryCase of [
     {name: 'ordinary-select-in-flight', kind: 'select'},
     {name: 'ordinary-filter-in-flight', kind: 'filter'},
+    {name: 'ordinary-derive-in-flight', kind: 'derive'},
+    {name: 'ordinary-assert-where-in-flight', kind: 'assert-where'},
+    {name: 'ordinary-assert-unique-in-flight', kind: 'assert-unique'},
     {name: 'ordinary-sort-in-flight', kind: 'sort'},
     {name: 'ordinary-take-in-flight', kind: 'take'},
   ]) {
@@ -6206,16 +6209,22 @@ async function exerciseStrategyGraph(
     if (ordinaryUnaryCase.kind !== 'select') {
       const unary = ordinaryUnaryProgram.stages.find(stage =>
         stage.id === 'selected');
-      unary.steps = [ordinaryUnaryCase.kind === 'filter'
-        ? {filter: 'id > 0', as: 'out'}
-        : ordinaryUnaryCase.kind === 'sort'
-          ? {sort: [{id: 'desc'}], as: 'out'}
-          : {take: 60, as: 'out'}];
-      unary.results.r.fields = ['id', 'amount'];
+      const unaryStep = {
+        filter: {filter: 'id > 0', as: 'out'},
+        derive: {derive: {next: 'id + 1'}, as: 'out'},
+        'assert-where': {assert_rows: {where: 'id > 0'}, as: 'out'},
+        'assert-unique': {assert_rows: {unique_by: ['id']}, as: 'out'},
+        sort: {sort: [{id: 'desc'}], as: 'out'},
+        take: {take: 60, as: 'out'},
+      }[ordinaryUnaryCase.kind];
+      unary.steps = [unaryStep];
+      const fields = ordinaryUnaryCase.kind === 'derive'
+        ? ['id', 'amount', 'next'] : ['id', 'amount'];
+      unary.results.r.fields = fields;
       for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
         stage.id.startsWith('select_consumer_'))) {
-        consumer.steps[0].select = ['id', 'amount'];
-        consumer.results.r.fields = ['id', 'amount'];
+        consumer.steps[0].select = fields;
+        consumer.results.r.fields = fields;
       }
     }
     const ordinaryUnaryFixture = fixture.strategyFixtureCreate(

@@ -490,7 +490,33 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "boundary_tests": [
+        {
+          "role": "ordinary_derive_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local derive resumes within quantum and preserves row order"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "ordinary_derive_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-derive-in-flight"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1081,7 +1107,25 @@
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
       },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
       "boundary_tests": [
+        {
+          "role": "ordinary_assert_where_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local assertions resume within quantum and retain input rows"
+        },
+        {
+          "role": "ordinary_assert_unique_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local assertions resume within quantum and retain input rows"
+        },
         {
           "role": "assert_where_mixed_stage_lifetime",
           "suite": "moon:query_integration",
@@ -1161,6 +1205,20 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "ordinary_assert_where_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-assert-where-in-flight"
+        },
+        {
+          "role": "ordinary_assert_unique_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-assert-unique-in-flight"
+        },
         {
           "role": "assert_where_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",

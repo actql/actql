@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 13 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 17 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 13 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -819,7 +819,7 @@ test('resource gate rejects a missing unique assertion product route', () => {
     const assertion = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'assert_rows');
     delete assertion.additional_dispatch;
-  }), /RelA assert_rows: both selected assertion forms must reach production/);
+  }), /RelA assert_rows: selected and ordinary assertion forms must reach production/);
 });
 
 test('resource gate rejects unique assertion without its exact boundary', () => {
@@ -973,4 +973,42 @@ test('resource gate rejects drop without its bounded entrypoint', () => {
       entry.operation === 'drop');
     delete drop.ordinary_entrypoint;
   }), /RelA drop: bounded ordinary entrypoint is missing/);
+});
+
+test('resource gate rejects derive without its ordinary bounded route', () => {
+  assert.match(run(undefined, value => {
+    const derive = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'derive');
+    delete derive.ordinary_entrypoint;
+  }), /RelA derive: bounded ordinary entrypoint is missing/);
+  assert.match(run(undefined, value => {
+    const derive = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'derive');
+    derive.boundary_tests = [];
+  }), /RelA derive: reviewed ordinary_derive_quantum_and_lifetime fixture is missing/);
+  assert.match(run(undefined, value => {
+    const derive = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'derive');
+    derive.environment_tests = [];
+  }), /RelA derive: ordinary derive Host timer evidence is missing/);
+});
+
+test('resource gate rejects assertions without ordinary bounded evidence', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    delete assertion.ordinary_entrypoint;
+  }), /RelA assert_rows: selected and ordinary assertion forms must reach production/);
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'ordinary_assert_unique_quantum_and_lifetime');
+  }), /RelA assert_rows: reviewed ordinary_assert_unique_quantum_and_lifetime fixture is missing/);
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.environment_tests = assertion.environment_tests.filter(item =>
+      item.role !== 'ordinary_assert_where_in_flight_host_timer');
+  }), /RelA assert_rows: ordinary_assert_where_in_flight_host_timer fixture is missing/);
 });

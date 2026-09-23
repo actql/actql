@@ -762,6 +762,7 @@ for (const [index, route] of routeEntries.entries()) {
   for (const [operation, role] of [
     ['rename', 'ordinary_rename_quantum_and_lifetime'],
     ['drop', 'ordinary_drop_quantum_and_lifetime'],
+    ['derive', 'ordinary_derive_quantum_and_lifetime'],
   ]) {
     if (route.family !== 'RelA' || route.operation !== operation) continue;
     if (route.ordinary_entrypoint?.symbol !==
@@ -771,6 +772,10 @@ for (const [index, route] of routeEntries.entries()) {
     if (!boundaryRoles.has(role)) {
       fail(`${label}: reviewed ${role} fixture is missing`);
     }
+  }
+  if (route.family === 'RelA' && route.operation === 'derive' &&
+    !environmentRoles.has('ordinary_derive_in_flight_host_timer')) {
+    fail(`${label}: ordinary derive Host timer evidence is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'take') {
     if (route.selected_entrypoint?.symbol !==
@@ -821,10 +826,14 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'assert_rows') {
     if (route.additional_dispatch?.marker !== 'AssertUnique(' ||
       route.selected_entrypoint?.symbol !==
+        'selected_binding_rows_execution' ||
+      route.ordinary_entrypoint?.symbol !==
         'selected_binding_rows_execution') {
-      fail(`${label}: both selected assertion forms must reach production`);
+      fail(`${label}: selected and ordinary assertion forms must reach production`);
     }
     for (const role of [
+      'ordinary_assert_where_quantum_and_lifetime',
+      'ordinary_assert_unique_quantum_and_lifetime',
       'assert_where_mixed_stage_lifetime',
       'assert_where_input_exact',
       'assert_where_input_one_short',
@@ -839,6 +848,14 @@ for (const [index, route] of routeEntries.entries()) {
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+    for (const role of [
+      'ordinary_assert_where_in_flight_host_timer',
+      'ordinary_assert_unique_in_flight_host_timer',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
       }
     }
     for (const role of [
