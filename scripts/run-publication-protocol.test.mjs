@@ -40,3 +40,17 @@ test('generator retains supported literal and property-name constraints', () => 
     assert.doesNotThrow(() => emitSchema(schema));
   }
 });
+
+test('generator keeps object-scoped Effect branch constraints', () => {
+  assert.doesNotThrow(() => emitSchema({
+    type: 'object',
+    properties: {kind: {enum: ['command', 'create']}},
+    allOf: [{oneOf: [
+      {properties: {kind: {const: 'command'}}, required: ['contract']},
+      {properties: {kind: {const: 'create'}}, required: ['mapping']},
+    ]}],
+  }));
+  assert.throws(() => emitSchema({
+    allOf: [{properties: {kind: {const: 'command'}}}],
+  }), /Unsupported typeless/);
+});
