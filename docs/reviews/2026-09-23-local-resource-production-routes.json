@@ -182,6 +182,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
       "boundary_tests": [
         {
           "role": "mixed_stage_sort_quantum_and_lifetime",
@@ -196,6 +200,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected sort cancels after work without publishing rows"
+        },
+        {
+          "role": "selected_sort_workspace_exact",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected sort admits its exact workspace peak"
+        },
+        {
+          "role": "selected_sort_workspace_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected sort rejects a workspace one entry short"
         }
       ],
       "environment_tests": [

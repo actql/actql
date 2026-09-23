@@ -178,6 +178,23 @@ test('resource gate rejects sort without its real Host timer case', () => {
   }), /RelA sort: selected sort Host timer evidence is missing/);
 });
 
+test('resource gate rejects sort without its one-short workspace proof', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    sort.boundary_tests = sort.boundary_tests.filter(item =>
+      item.role !== 'selected_sort_workspace_one_short');
+  }), /RelA sort: reviewed selected_sort_workspace_one_short fixture is missing/);
+});
+
+test('resource gate rejects sort without its selected product entrypoint', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    delete sort.selected_entrypoint;
+  }), /RelA sort: bounded selected sort entrypoint is missing/);
+});
+
 test('resource gate rejects assertion without failure cleanup', () => {
   assert.match(run(undefined, value => {
     const assertion = value.routes.find(entry => entry.family === 'RelA' &&
