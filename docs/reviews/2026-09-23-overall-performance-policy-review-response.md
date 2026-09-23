@@ -16,6 +16,14 @@ DuckDB. These measurements can inform an estimate model; they are neither
 calibration evidence by themselves nor proof of the small-case timing gate.
 Cost estimates, enforceable capacity and policy preferences remain separate.
 
+The registered equivalent-obligations case-level assessor now rejects missing
+or mixed-revision pairs, changed Program/source/configuration provenance,
+unconfirmed release and diagnostic-only product selection. It applies the
+registered small or large timing limit only after those checks. The seven
+existing small-case pairs are correctly incomplete at this boundary because
+their retained leg uses the example's uncalibrated estimate. This does not
+close PERF-1: qualified execution and the other comparator/matrix gates remain.
+
 Review regressions to add before closing PERF-1: missing pair, missing case,
 changed Program or implementation hash, unconfirmed cleanup, and a baseline
 capacity exception incorrectly converted into a finite speed ratio.
