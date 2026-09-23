@@ -2,6 +2,7 @@
 fn effect_binding_inputs(
   effects : String,
   reference_nullable? : Bool? = None,
+  amount_nullable? : Bool = false,
 ) -> (Checked, @syntax.EffectHeaders) {
   let fields = if reference_nullable is Some(_) {
     "[\"amount\",\"ref\"]"
@@ -12,6 +13,7 @@ fn effect_binding_inputs(
     "{\"from\":\"rows\",\"fields\":" + fields + "}",
     effects=",\"effects\":" + effects,
     reference_nullable~,
+    amount_nullable~,
   )
   let checked = check(operations, limits()).unwrap()
   let program = @parameters.program(@parameters.operations_source(operations))

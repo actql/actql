@@ -345,6 +345,7 @@ pub(all) enum EffectMappingRuleIssueKind {
   MissingRequiredField(String)
   MissingResultField(String)
   IncompatibleSourceType(String)
+  IncompatibleNullBehavior(String)
   RowFields(@check_environment.MappingRowFieldsIssue)
   Conversion(@check_environment.MappingConversionIssue)
   Permission(@check_environment.MappingPermissionIssue)

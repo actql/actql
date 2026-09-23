@@ -3,6 +3,7 @@ fn prepared(
   body : String,
   effects? : String = "",
   reference_nullable? : Bool? = None,
+  amount_nullable? : Bool = false,
 ) -> @parameters.CollectedOperations {
   let text = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[" +
     "{\"id\":\"a\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
@@ -39,7 +40,7 @@ fn prepared(
   let fields = [
     (
       @schema.Unqualified("amount"),
-      @contract.primitive(NumberType, nullable=false),
+      @contract.primitive(NumberType, nullable=amount_nullable),
     ),
   ]
   if reference_nullable is Some(nullable) {
