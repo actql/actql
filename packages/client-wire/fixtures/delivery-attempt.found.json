@@ -1,0 +1,42 @@
+{
+  "kind": "found",
+  "attempt": {
+    "version": "actql-delivery-attempt/0.1",
+    "attempt_id": "read-a",
+    "result_read_grant_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "run_definition_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "result_manifest_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "result_name": "answer",
+    "result_artifact_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "serialization_contract_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "requested_at": "2026-09-23T00:00:00.000Z",
+    "delivery_attempt_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "record": {
+    "version": "actql-delivery-record/0.1",
+    "delivery_attempt_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "sequence": 0,
+    "state": "succeeded",
+    "confirmed_byte_count": 17,
+    "exposure": "exact",
+    "delivered_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "result_delivery_receipt_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "observed_at": "2026-09-23T00:00:01.000Z",
+    "cleanup_owner_cids": [],
+    "delivery_record_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "hostReleaseReceipt": {
+    "version": "actql-result-delivery-receipt/0.1",
+    "run_definition_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "invocation_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "result_manifest_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "result_name": "answer",
+    "result_artifact_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "serialization_contract_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "delivered_byte_count": 17,
+    "delivered_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "authorization_context_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "egress_admission_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "result_delivery_receipt_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  }
+}
