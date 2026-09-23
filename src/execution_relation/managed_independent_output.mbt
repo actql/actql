@@ -136,7 +136,7 @@ priv enum IndependentRowCopyPhase {
 ///|
 priv struct IndependentRowCopyState {
   mut source : CompletedOutput?
-  source_rows : Table
+  mut source_rows : Table?
   mut names : Array[String]
   mut rows : Array[Array[Value]]
   mut row_values : Array[Value]
@@ -176,13 +176,15 @@ fn independent_row_copy_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    guard state.source is Some(source) && completed_output_available(source) else {
+    guard state.source is Some(source) &&
+      state.source_rows is Some(source_rows) &&
+      completed_output_available(source) else {
       return @bounded.Failed(Unavailable, progress, used)
     }
     match state.phase {
       CopyNames =>
-        if state.column < state.source_rows.names.length() {
-          state.names.push(state.source_rows.names[state.column])
+        if state.column < source_rows.names.length() {
+          state.names.push(source_rows.names[state.column])
           state.column += 1
           used += 1
         } else {
@@ -190,8 +192,8 @@ fn independent_row_copy_step(
           state.phase = BeginRow
         }
       BeginRow =>
-        if state.row < state.source_rows.rows.length() {
-          if state.source_rows.rows[state.row].length() != state.names.length() {
+        if state.row < source_rows.rows.length() {
+          if source_rows.rows[state.row].length() != state.names.length() {
             return @bounded.Failed(UnsupportedRepresentation, progress, used)
           }
           state.row_values = []
@@ -203,7 +205,7 @@ fn independent_row_copy_step(
         }
       CopyCells =>
         if state.column < state.names.length() {
-          state.row_values.push(state.source_rows.rows[state.row][state.column])
+          state.row_values.push(source_rows.rows[state.row][state.column])
           state.column += 1
           used += 1
         } else {
@@ -219,12 +221,12 @@ fn independent_row_copy_step(
       }
       FinishCopy => {
         let table : CompletedTable = RowTable({
-          owner: state.source_rows.owner,
-          id: state.source_rows.id,
+          owner: source_rows.owner,
+          id: source_rows.id,
           names: state.names,
           rows: state.rows,
         })
-        let prepared = @lower.bound_preparation(state.source_rows.owner)
+        let prepared = @lower.bound_preparation(source_rows.owner)
         let completion : CompletedSequence = {
           ..source.completion,
           result_identity: Ref(()),
@@ -239,6 +241,7 @@ fn independent_row_copy_step(
         state.names = []
         state.rows = []
         state.source = None
+        state.source_rows = None
         used += 1
         return @bounded.Complete(
           {
@@ -259,6 +262,7 @@ fn independent_row_copy_step(
 ///|
 fn cleanup_independent_row_copy_state(state : IndependentRowCopyState) -> Bool {
   state.source = None
+  state.source_rows = None
   state.names = []
   state.rows = []
   state.row_values = []
@@ -286,7 +290,7 @@ pub fn start_bounded_independent_row_copy(
   }
   let state : IndependentRowCopyState = {
     source: Some(output),
-    source_rows: source,
+    source_rows: Some(source),
     names: [],
     rows: [],
     row_values: [],
