@@ -133,6 +133,23 @@ test('resource gate rejects an ordered take without its cancellation fixture', (
   }), /RelA take: reviewed mixed_stage_sort_cancel_and_cleanup fixture is missing/);
 });
 
+test('resource gate rejects take without ordinary quantum evidence', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    take.boundary_tests = take.boundary_tests.filter(item =>
+      item.role !== 'ordinary_take_quantum_and_lifetime');
+  }), /RelA take: reviewed ordinary_take_quantum_and_lifetime fixture is missing/);
+});
+
+test('resource gate rejects take without its ordinary product route', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    delete take.ordinary_entrypoint;
+  }), /RelA take: bounded selected and ordinary entrypoints are required/);
+});
+
 test('resource gate rejects a take without exact sort-work evidence', () => {
   assert.match(run(undefined, value => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&

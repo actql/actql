@@ -24,7 +24,7 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}},\"picked\":3}", "{\"id\":2,\"payload\":null,\"picked\":null}",
       ]
-    // The bounded producer emits the checked schema's canonical field order.
+    // Bounded sort and take emit the checked schema's canonical field order.
     // Downstream selects still use their authored projection order.
     "sort" =>
       [
@@ -36,8 +36,8 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
         "{\"amount\":null,\"id\":1}", "{\"amount\":null,\"id\":2}", "{\"amount\":30,\"id\":1}",
         "{\"amount\":20,\"id\":2}",
       ]
-    "take" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
-    "take_parameter" => ["{\"id\":1,\"amount\":10}"]
+    "take" => ["{\"amount\":10,\"id\":1}", "{\"amount\":20,\"id\":2}"]
+    "take_parameter" => ["{\"amount\":10,\"id\":1}"]
     "top_k" => ["{\"id\":2,\"amount\":30}", "{\"id\":2,\"amount\":20}"]
     "top_k_parameter" => ["{\"id\":2,\"amount\":30}"]
     "top_k_compound" =>
@@ -219,6 +219,10 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
       "{\"id\":1,\"amount\":null}", "{\"id\":2,\"amount\":null}", "{\"id\":1,\"amount\":30}",
       "{\"id\":2,\"amount\":20}",
     ]
+  } else if kind == "take" {
+    ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
+  } else if kind == "take_parameter" {
+    ["{\"id\":1,\"amount\":10}"]
   } else {
     local_managed_unary_expected(kind)
   }
@@ -294,7 +298,7 @@ fn run_local_managed_unary_case(
   } else {
     None
   }
-  let sort_advances = Ref(0)
+  let bounded_advances = Ref(0)
   let (unary_ops, unary) = run_local_managed_test_task(
     installed,
     run,
@@ -304,15 +308,21 @@ fn run_local_managed_unary_case(
     2,
     unary_live,
     obligations?=unary_obligations,
-    execution_quantum=if kind == "sort" || kind == "sort_compound" {
+    execution_quantum=if kind == "sort" ||
+      kind == "sort_compound" ||
+      kind == "take" ||
+      kind == "take_parameter" {
       1
     } else {
       0
     },
-    execution_advances=Some(sort_advances),
+    execution_advances=Some(bounded_advances),
   )
-  if kind == "sort" || kind == "sort_compound" {
-    assert_true(sort_advances.val > 4)
+  if kind == "sort" ||
+    kind == "sort_compound" ||
+    kind == "take" ||
+    kind == "take_parameter" {
+    assert_true(bounded_advances.val > 4)
   }
   let expected = local_managed_unary_expected(kind)
   assert_eq(local_managed_test_rows(unary_ops), expected)
@@ -436,6 +446,12 @@ test "Local managed unary source forms feed two downstream Computes" {
 test "ordinary Local sort resumes within quantum and feeds two Computes" {
   run_local_managed_unary_case("sort")
   run_local_managed_unary_case("sort_compound")
+}
+
+///|
+test "ordinary Local take resumes within quantum and feeds two Computes" {
+  run_local_managed_unary_case("take")
+  run_local_managed_unary_case("take_parameter")
 }
 
 ///|

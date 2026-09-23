@@ -250,7 +250,22 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
       "boundary_tests": [
+        {
+          "role": "ordinary_take_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local take resumes within quantum and feeds two Computes"
+        },
         {
           "role": "mixed_stage_sort_quantum_and_lifetime",
           "suite": "moon:query_integration",
@@ -278,6 +293,15 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected take bounds key-completion workspace and output overlap"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "selected_take_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "normalize-take"
         }
       ]
     },
