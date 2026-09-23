@@ -8,6 +8,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
+  "actql/actql/relation_schema",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
@@ -54,6 +55,14 @@ pub fn effect_result_bindings_headers(EffectResultBindings) -> @stage_syntax.Eff
 pub fn effect_result_bindings_owner(EffectResultBindings) -> Checked
 
 pub fn effect_result_bindings_work(EffectResultBindings) -> Int
+
+pub fn effect_result_field_binding_at(EffectResultBinding, Int) -> EffectResultFieldBinding?
+
+pub fn effect_result_field_binding_count(EffectResultBinding) -> Int
+
+pub fn effect_result_field_binding_field(EffectResultFieldBinding) -> @relation_schema.Field
+
+pub fn effect_result_field_binding_role(EffectResultFieldBinding) -> EffectResultFieldRole
 
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
@@ -154,6 +163,7 @@ pub(all) struct CollectionLimits {
 pub struct EffectResultBinding {
   header : @stage_syntax.EffectHeader
   result : @relation_results.ResultDefinition?
+  fields : Array[EffectResultFieldBinding]
 }
 
 pub struct EffectResultBindingIssue {
@@ -177,6 +187,18 @@ pub struct EffectResultBindings {
   members : Array[EffectResultBinding]
   work : Int
 }
+
+pub struct EffectResultFieldBinding {
+  role : EffectResultFieldRole
+  field : @relation_schema.Field
+}
+
+pub(all) enum EffectResultFieldRole {
+  EffectSelector
+  EffectUpsertKey
+  EffectCommandTarget
+  EffectValue(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ImportIssue {
   InvalidLimits

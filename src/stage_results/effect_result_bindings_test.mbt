@@ -29,6 +29,28 @@ test "Effect Result bindings retain exact Stage definitions and budget" {
       physical_equal(effect_result_binding_result(binding).unwrap(), expected),
     )
   }
+  let update = effect_result_binding_at(bindings, 0).unwrap()
+  assert_eq(effect_result_field_binding_count(update), 2)
+  let selector = effect_result_field_binding_at(update, 0).unwrap()
+  assert_eq(effect_result_field_binding_role(selector), EffectSelector)
+  assert_eq(
+    @schema.field_reference_name(effect_result_field_binding_field(selector)),
+    "amount",
+  )
+  assert_eq(
+    effect_result_field_binding_role(
+      effect_result_field_binding_at(update, 1).unwrap(),
+    ),
+    EffectValue("value"),
+  )
+  let upsert = effect_result_binding_at(bindings, 1).unwrap()
+  assert_eq(effect_result_field_binding_count(upsert), 1)
+  assert_eq(
+    effect_result_field_binding_role(
+      effect_result_field_binding_at(upsert, 0).unwrap(),
+    ),
+    EffectUpsertKey,
+  )
   assert_true(effect_result_binding_at(bindings, -1) is None)
   assert_true(effect_result_binding_at(bindings, 4) is None)
   assert_eq(
@@ -82,6 +104,27 @@ test "Effect Result bindings reject absent command ResourceRef field" {
 }
 
 ///|
+test "Effect Result bindings retain command target and input field types" {
+  let effects = "{\"command\":{\"command\":{\"target\":{\"field\":\"amount\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{\"value\":{\"field\":\"amount\"}}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let bindings = bind_effect_results(headers, checked, 6).unwrap()
+  let first = effect_result_binding_at(bindings, 0).unwrap()
+  assert_eq(effect_result_field_binding_count(first), 2)
+  assert_eq(
+    effect_result_field_binding_role(
+      effect_result_field_binding_at(first, 0).unwrap(),
+    ),
+    EffectCommandTarget,
+  )
+  assert_eq(
+    effect_result_field_binding_role(
+      effect_result_field_binding_at(first, 1).unwrap(),
+    ),
+    EffectValue("value"),
+  )
+}
+
+///|
 test "Effect Result bindings cover match, upsert, and command inputs" {
   let cases = [
     "{\"update\":{\"update\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.update.v1\",\"from\":{\"result\":\"r\"},\"match\":{\"target_field\":\"Id\",\"result_field\":\"missing\"},\"set\":{\"value\":{\"literal\":1}}}}}",
@@ -105,5 +148,11 @@ test "literal create has no Result owner and cannot gain field authority" {
   assert_true(
     effect_result_binding_result(effect_result_binding_at(bindings, 0).unwrap())
     is None,
+  )
+  assert_eq(
+    effect_result_field_binding_count(
+      effect_result_binding_at(bindings, 0).unwrap(),
+    ),
+    0,
   )
 }
