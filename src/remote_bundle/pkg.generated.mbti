@@ -14,6 +14,14 @@ pub fn bundle_activation_transition_at(RemoteBundleActivation, Int) -> Result[Re
 
 pub fn bundle_activation_transition_count(RemoteBundleActivation) -> Int
 
+pub fn bundle_component_projection(RemoteBundleComponent) -> Array[String]
+
+pub fn bundle_manifest_component(RemoteBundleManifest, String) -> RemoteBundleComponent?
+
+pub fn bundle_manifest_component_count(RemoteBundleManifest) -> Int
+
+pub fn bundle_manifest_components_projection(RemoteBundleManifest) -> Array[Array[String]]
+
 pub fn bundle_manifest_identity(RemoteBundleManifest) -> String
 
 pub fn bundle_manifest_json(RemoteBundleManifest) -> Result[String, RemoteBundleIssue]
@@ -46,9 +54,13 @@ pub fn prepare_bundle_activate(RemoteBundleRecord) -> Result[RemoteBundleTransit
 
 pub fn prepare_bundle_activation(RemoteBundleRecord?, RemoteBundleRecord) -> Result[RemoteBundleActivation, RemoteBundleIssue]
 
+pub fn prepare_bundle_component(String, String, Int64) -> RemoteBundleComponent
+
 pub fn prepare_bundle_drain(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
 pub fn prepare_bundle_manifest(String, String, String, String, String, Int64, String, String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
+
+pub fn prepare_bundle_manifest_components(String, String, String, String, Array[RemoteBundleComponent], String, String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
 
 pub fn prepare_bundle_reclaim(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
 
@@ -66,6 +78,12 @@ pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[Remo
 
 // Types and methods
 type RemoteBundleActivation
+
+pub(all) struct RemoteBundleComponent {
+  role : String
+  cid : String
+  bytes : Int64
+}
 
 pub(all) enum RemoteBundleIssue {
   InvalidBundle

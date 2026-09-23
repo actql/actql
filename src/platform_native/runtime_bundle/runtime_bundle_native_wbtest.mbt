@@ -5,21 +5,21 @@ test "native bundle admission binds authority target and canonical preimage" {
   }
   let library = @signature.load_library(path).unwrap()
   let public_key = "-----BEGIN PUBLIC KEY-----\n" +
-    "MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n" +
+    "MCowBQYDK2VwAyEA0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\n" +
     "-----END PUBLIC KEY-----\n"
-  let body = "{\"bundle_name\":\"native-runtime\",\"component_bytes\":\"12\"," +
-    "\"component_cid\":\"sha256:" +
+  let body = "{\"bundle_name\":\"native-runtime\",\"components\":[{\"bytes\":\"12\"," +
+    "\"cid\":\"sha256:" +
     "a".repeat(64) +
-    "\",\"connector_registration\":\"local\"," +
+    "\",\"role\":\"runtime_executable\"}],\"connector_registration\":\"local\"," +
     "\"connector_revision\":\"local/1\"," +
     "\"issuer_authority\":\"bundle-authority-a\"," +
     "\"revision\":\"native/1\"," +
     "\"strategy_revision\":\"strategy/1\"," +
     "\"target_triple\":\"aarch64-apple-darwin\"," +
     "\"version\":\"actql-remote-runtime-bundle/0.1\"}"
-  let runtime_bundle_cid = "sha256:6e7d6989d49341ba9c47c937b72994b4a8b869adf54ea65946af76cce56010d7"
-  let signature = "VHc5Y9n1leMbzwAxezD-BeWXqC4u1vUX29O-q9jz1Z0-wx0h31XnQzeGOu8JM5NN" +
-    "1eqIJUFygwj8TB1m3Q7bAw"
+  let runtime_bundle_cid = "sha256:0d2749ebe4893ee0b8611759d5e102c8f060e0a5e144c51855cabc8e72c95104"
+  let signature = "mbxtoDzdPMPGrO2vJ-BqAHLgZ8mShCscH6TY2yGTWX5vQCUW2eFcxGC9kGVLAwrm" +
+    "L8Dq1H-39S30NH9hokXaDg"
   let authorities = [
     {
       issuer_authority: "bundle-authority-a",

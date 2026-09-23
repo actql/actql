@@ -1,8 +1,9 @@
 ///|
 fn native_bundle_body(revision : String) -> String {
-  "{\"bundle_name\":\"native-runtime\",\"component_bytes\":\"11\"," +
-  "\"component_cid\":\"sha256:" +
+  "{\"bundle_name\":\"native-runtime\",\"components\":[{\"bytes\":\"11\"," +
+  "\"cid\":\"sha256:" +
   "5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f\"," +
+  "\"role\":\"runtime_executable\"}]," +
   "\"connector_registration\":\"local\",\"connector_revision\":\"local/" +
   revision +
   "\",\"issuer_authority\":\"bundle-authority-a\",\"revision\":\"native/" +
@@ -16,13 +17,13 @@ fn native_bundle_body(revision : String) -> String {
 fn native_bundle_cid(revision : String) -> String {
   match revision {
     "1" =>
-      "sha256:e5a10059631b11842bb9fafd38c222d20ddffbc28123915457d45273fbf22863"
+      "sha256:a9be58865e039acd3c0921b70b86b5ede2a2047dbabab24abbad9af51cf09f5d"
     "2" =>
-      "sha256:a89dd00a0bb36a2becd2e2d7f2b94081d6d8e1f5e4653d64437790df1510f61f"
+      "sha256:8199ffa40a83b6147f2dc69a44117be8568ff4dada1d506bf4c8ed488573c8a3"
     "3" =>
-      "sha256:65c01d0428976c7f2d317391d05f03dc848dbd54cbe361350ee7c2e6c66a62a1"
+      "sha256:e829a99edcad82a5fd56b2f68339c25bf7bb0e91ca7d81905427f2c3c30fa88c"
     "4" =>
-      "sha256:340343dca069b3c5c0224ff0f282beb31320c6f4a0e40db059be9533601f2812"
+      "sha256:107c2ea5cbadf49edd7f8508826ae04a72aecf8791588b978b2cfe4fd777cf53"
     _ => ""
   }
 }
@@ -31,13 +32,13 @@ fn native_bundle_cid(revision : String) -> String {
 fn native_bundle_signature(revision : String) -> String {
   match revision {
     "1" =>
-      "cCQxbtE8Zb7nFFjgw88W3lXVmWB3qpC1YrFcUTmtmtx8oc4N6cvC6Dzv4aHSHI8qXrPS9TL_sCEXmQCN09TgCQ"
+      "uEiiGpn1eP-fd03qFXRUB1ADYqE_0kekPwA1HCXMGSdhuk_ecyOECxmymphETVciPuhlFiiA5CS_NW17mTeXAg"
     "2" =>
-      "bFlmRDpxcU4k5nd3d3g5Reo4s1Hdy_qtiJwts6fZqiba01Aeqfzq4qT3ZYsxbgSczC-GiDgs8TwWgutmVm0wCQ"
+      "6rqZ1dpERg5vQhVNV6hmpHx3P37JRQXr2a0FB3kyqQVSIWwyJNW_ZlGGcA1YdcBZ54-yhbIOSUM0hBtc0O5kCg"
     "3" =>
-      "e76Lms-YOo-AjBe3vYqT7ZCZUILepq_2VHWPS9Z89-i8kmYl0Lap9LrvzoZUpKtqx0s5KQ-qVaj5JXtRyh1BCQ"
+      "ZpobnHVpe5065mOgHMVIC82n60vikn37qD0O2Z1F5DcjiEi4dAA9yy8EjKFwblLGyNOxXFEM0RNtzSwcpzz8AQ"
     "4" =>
-      "OcDRGqLfuxaSmcAmPApg1orT7OqFnilDGG24HzE7r5HlFtvLkyP5xnn51tP-Hzq6yOVc0SKJh7TRnJkTteUCCA"
+      "iIUeRdz3abH3gqj7fdCMGn6hoHpY1YBFb_uF1rYezrKgGHZlHA7ANOe2vBSWCvVzfGidPkodx2KB0cYEmN2FDA"
     _ => ""
   }
 }
@@ -49,7 +50,7 @@ fn native_bundle_authorities() -> Array[NativeRuntimeBundleAuthority] {
       issuer_authority: "bundle-authority-a",
       key_id: "key-a",
       public_key_pem: "-----BEGIN PUBLIC KEY-----\n" +
-      "MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n" +
+      "MCowBQYDK2VwAyEA0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\n" +
       "-----END PUBLIC KEY-----\n",
     },
   ]
@@ -61,16 +62,17 @@ fn rotated_bundle_authority() -> NativeRuntimeBundleAuthority {
     issuer_authority: "bundle-authority-b",
     key_id: "key-b",
     public_key_pem: "-----BEGIN PUBLIC KEY-----\n" +
-    "MCowBQYDK2VwAyEANcMbAe2pxniljiDNtULyS6N23OFacFQwUGOy4GQL1P4=\n" +
+    "MCowBQYDK2VwAyEAoJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\n" +
     "-----END PUBLIC KEY-----\n",
   }
 }
 
 ///|
 fn rotated_bundle_body() -> String {
-  "{\"bundle_name\":\"native-runtime\",\"component_bytes\":\"11\"," +
-  "\"component_cid\":\"sha256:" +
+  "{\"bundle_name\":\"native-runtime\",\"components\":[{\"bytes\":\"11\"," +
+  "\"cid\":\"sha256:" +
   "5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f\"," +
+  "\"role\":\"runtime_executable\"}]," +
   "\"connector_registration\":\"local\"," +
   "\"connector_revision\":\"local/rotation\"," +
   "\"issuer_authority\":\"bundle-authority-b\"," +
@@ -82,13 +84,13 @@ fn rotated_bundle_body() -> String {
 
 ///|
 fn rotated_bundle_cid() -> String {
-  "sha256:27b8a9bba8e0f071b19e4856920bdaa57a6550c2ddfda6c6163726922331033d"
+  "sha256:2ea84dc9a0742c1217ba66576196eda370044734be3d9ad065ccaa71aeec0e44"
 }
 
 ///|
 fn rotated_bundle_signature() -> String {
-  "mr3OGOBwp4WkvNjXM7_bQc-Vj3WqKBypoYSFaLXQf074uOxYk3xwP54sCK7OcV0_" +
-  "AyaU6Xqk3mCtULKIyHpYDg"
+  "2MPAh6Hq2oa12sB3qey93jaNa1EdbT6oy72GwRLkLBYQuKUt69F70ulV0mCrCeky" +
+  "Sf7M9PFfKRnCynU7Vb3HAA"
 }
 
 ///|
@@ -423,6 +425,47 @@ test "native bundle adoption rejects altered authority and generation" {
     is Err(ComponentMismatch),
   )
   assert_eq(store.list().unwrap().length(), original_count)
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "single-component native Store rejects a signed library inventory" {
+  guard native_bundle_fixture("multi-component")
+    is Some((store, generation, artifact_name, _, _)) else {
+    return
+  }
+  let original_count = store.list().unwrap().length()
+  let original_usage = store.capacity_usage().unwrap()
+  let body = "{\"bundle_name\":\"native-runtime\",\"components\":[{" +
+    "\"bytes\":\"7\",\"cid\":\"sha256:" +
+    "b".repeat(64) +
+    "\",\"role\":\"duckdb_library\"},{\"bytes\":\"11\",\"cid\":\"sha256:" +
+    "5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f" +
+    "\",\"role\":\"runtime_executable\"}]," +
+    "\"connector_registration\":\"local\",\"connector_revision\":\"local/1\"," +
+    "\"issuer_authority\":\"bundle-authority-a\",\"revision\":\"native/1\"," +
+    "\"strategy_revision\":\"strategy/1\",\"target_triple\":\"aarch64-apple-darwin\"," +
+    "\"version\":\"actql-remote-runtime-bundle/0.1\"}"
+  let cid = "sha256:5d3b9527265eefa9ebfa0924cbb63b66465a447d67fcc212a9d56e305342f788"
+  let signature = "5gNFJF5kYuX60p160U3pqqRpGQRd76SUa4fmnfvgul-Vtrzuik_a80mDC-usYThHYOCs-vgJu75qYdt8Wl7iDQ"
+  assert_true(
+    store.adopt(
+      "actql-remote-runtime-bundle-signature/0.1", "key-a", cid, body, signature,
+      artifact_name, generation,
+    )
+    is Err(AdmissionRejected),
+  )
+  assert_true(
+    store.begin_install(
+      "multi-component", "actql-remote-runtime-bundle-signature/0.1", "key-a", cid,
+      body, signature,
+    )
+    is Err(AdmissionRejected),
+  )
+  assert_eq(store.list().unwrap().length(), original_count)
+  let final_usage = store.capacity_usage().unwrap()
+  assert_eq(final_usage.reserved_bytes, original_usage.reserved_bytes)
+  assert_eq(final_usage.reserved_objects, original_usage.reserved_objects)
   assert_true(store.close().unwrap())
 }
 

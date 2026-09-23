@@ -1603,6 +1603,11 @@ pub fn NativeRuntimeBundleStore::begin_install(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // This installer owns exactly one physical component. A bundle with a
+  // library sidecar requires the multi-component custody path.
+  if @bundle.bundle_manifest_component_count(manifest) != 1 {
+    return Err(AdmissionRejected)
+  }
   let projection = @bundle.bundle_manifest_projection(manifest)
   let component_bytes : Int64 = @string.from_str(projection[6]) catch {
     _ => return Err(ComponentMismatch)
@@ -1911,6 +1916,9 @@ pub fn NativeRuntimeBundleStore::adopt(
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if @bundle.bundle_manifest_component_count(manifest) != 1 {
+    return Err(AdmissionRejected)
   }
   let projection = @bundle.bundle_manifest_projection(manifest)
   let component_bytes : Int64 = @string.from_str(projection[6]) catch {

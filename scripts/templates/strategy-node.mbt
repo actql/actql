@@ -6061,6 +6061,70 @@ pub fn strategy_remote_bundle_manifest_prepare(
 }
 
 ///|
+#export_name("strategyRemoteBundleComponentPrepare")
+pub fn strategy_remote_bundle_component_prepare(
+  role : String,
+  cid : String,
+  bytes : Int64,
+) -> @bundle.RemoteBundleComponent {
+  @bundle.prepare_bundle_component(role, cid, bytes)
+}
+
+///|
+#export_name("strategyRemoteBundleManifestPrepareComponents")
+pub fn strategy_remote_bundle_manifest_prepare_components(
+  issuer_authority : String,
+  bundle_name : String,
+  revision : String,
+  target_triple : String,
+  components : Array[@bundle.RemoteBundleComponent],
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
+  match @bundle.prepare_bundle_manifest_components(
+    issuer_authority, bundle_name, revision, target_triple, components,
+    connector_registration, connector_revision, strategy_revision,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestComponentCount")
+pub fn strategy_remote_bundle_manifest_component_count(
+  manifest : @bundle.RemoteBundleManifest,
+) -> Int {
+  @bundle.bundle_manifest_component_count(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleManifestComponentsProjection")
+pub fn strategy_remote_bundle_manifest_components_projection(
+  manifest : @bundle.RemoteBundleManifest,
+) -> Array[Array[String]] {
+  @bundle.bundle_manifest_components_projection(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleManifestComponent")
+pub fn strategy_remote_bundle_manifest_component(
+  manifest : @bundle.RemoteBundleManifest,
+  role : String,
+) -> @bundle.RemoteBundleComponent? {
+  @bundle.bundle_manifest_component(manifest, role)
+}
+
+///|
+#export_name("strategyRemoteBundleComponentProjection")
+pub fn strategy_remote_bundle_component_projection(
+  component : @bundle.RemoteBundleComponent,
+) -> Array[String] {
+  @bundle.bundle_component_projection(component)
+}
+
+///|
 #export_name("strategyRemoteBundleManifestIdentity")
 pub fn strategy_remote_bundle_manifest_identity(
   manifest : @bundle.RemoteBundleManifest,

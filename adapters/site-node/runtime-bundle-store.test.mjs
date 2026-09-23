@@ -69,7 +69,7 @@ async function fixture(t) {
       runtimeBundleCid: control.identity(manifest),
     });
   };
-  return Object.freeze({open, prepare});
+  return Object.freeze({open, prepare, privateKey: keys.privateKey});
 }
 
 test('bundle activation drains old code and survives restart', async t => {
@@ -109,6 +109,39 @@ test('bundle activation drains old code and survives restart', async t => {
   await reopened.verify(second.runtimeBundleCid, control);
   await assert.rejects(readFile(reclaimed.artifactPath), {code: 'ENOENT'});
 });
+
+test('single-component Store rejects a signed 0.1 library inventory',
+  async t => {
+    const {open, prepare, privateKey} = await fixture(t);
+    const executable = Buffer.from('runtime-with-library');
+    const library = Buffer.from('duckdb-library');
+    const value = await prepare('components', executable);
+    const manifest = control.prepare({
+      issuerAuthority: 'bundle-authority-a',
+      bundleName: 'site-runtime',
+      revision: 'components',
+      targetTriple,
+      components: [
+        {role: 'duckdb_library', cid: componentCid(library),
+          bytes: BigInt(library.byteLength)},
+        {role: 'runtime_executable', cid: componentCid(executable),
+          bytes: BigInt(executable.byteLength)},
+      ],
+      connectorRegistration: 'duckdb',
+      connectorRevision: 'duckdb/components',
+      strategyRevision: 'strategy/1',
+    });
+    const signed = signRemoteRuntimeBundle(manifest, control, {
+      keyId: 'key-a',
+      privateKey,
+    });
+    const store = await open();
+    await assert.rejects(
+      store.install(value.sourcePath, signed, control),
+      {code: 'RemoteBundleComponentsNotInstalled'},
+    );
+    assert.equal(store.list(control).length, 0);
+  });
 
 test('bundle install rejects altered signatures and component bytes',
   async t => {

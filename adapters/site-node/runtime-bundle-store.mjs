@@ -262,7 +262,7 @@ export async function openRuntimeBundleStore(root, {
       'prepareActiveDrain', 'prepareRetain', 'prepareActiveRetain',
       'prepareRelease', 'prepareReclaim', 'prepareInactiveReclaim',
       'transitionProjection', 'transitionKey', 'commitTransition',
-      'recordProjection',
+      'recordProjection', 'componentsProjection',
     ]) {
       if (typeof control?.[name] !== 'function') {
         fail('MissingRemoteBundleControl');
@@ -283,6 +283,9 @@ export async function openRuntimeBundleStore(root, {
       bundleAuthorities,
       control,
     );
+    if (control.componentsProjection(manifest).length !== 1) {
+      fail('RemoteBundleComponentsNotInstalled');
+    }
     return Object.freeze({
       manifest,
       record: control.restore(manifest, [
@@ -321,6 +324,9 @@ export async function openRuntimeBundleStore(root, {
         bundleAuthorities,
         control,
       );
+      if (control.componentsProjection(manifest).length !== 1) {
+        fail('RemoteBundleComponentsNotInstalled');
+      }
       const projection = control.projection(manifest);
       const runtimeBundleCid = projection[0];
       const componentCid = projection[5];

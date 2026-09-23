@@ -1368,7 +1368,23 @@ function remoteBundleControl(moon) {
   let control = remoteBundleControls.get(moon);
   if (control !== undefined) return control;
   control = Object.freeze({
-    prepare: manifest => checked(moon.strategyRemoteBundleManifestPrepare(
+    prepare: manifest => Array.isArray(manifest.components) ? checked(
+      moon.strategyRemoteBundleManifestPrepareComponents(
+        manifest.issuerAuthority,
+        manifest.bundleName,
+        manifest.revision,
+        manifest.targetTriple,
+        manifest.components.map(component =>
+          moon.strategyRemoteBundleComponentPrepare(
+            component.role,
+            component.cid,
+            BigInt(component.bytes),
+          )),
+        manifest.connectorRegistration,
+        manifest.connectorRevision,
+        manifest.strategyRevision,
+      ),
+    ) : checked(moon.strategyRemoteBundleManifestPrepare(
       manifest.issuerAuthority,
       manifest.bundleName,
       manifest.revision,
@@ -1385,6 +1401,8 @@ function remoteBundleControl(moon) {
       moon.strategyRemoteBundleManifestAdmitJson(body, claimedCid),
     ),
     projection: moon.strategyRemoteBundleManifestProjection,
+    componentsProjection:
+      moon.strategyRemoteBundleManifestComponentsProjection,
     signaturePreimage: manifest => checked(
       moon.strategyRemoteBundleSignaturePreimage(manifest),
     ),

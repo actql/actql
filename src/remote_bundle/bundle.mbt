@@ -24,10 +24,18 @@ struct RemoteBundleManifest {
   target_triple : String
   component_cid : String
   component_bytes : Int64
+  components : Array[RemoteBundleComponent]
   connector_registration : String
   connector_revision : String
   strategy_revision : String
   runtime_bundle_cid : String
+}
+
+///|
+pub(all) struct RemoteBundleComponent {
+  role : String
+  cid : String
+  bytes : Int64
 }
 
 ///|
@@ -95,26 +103,62 @@ fn valid_manifest(value : RemoteBundleManifest) -> Bool {
   bounded(value.target_triple, 512) &&
   valid_cid(value.component_cid) &&
   value.component_bytes >= 0L &&
+  valid_components(value) &&
   bounded(value.connector_registration, 512) &&
   bounded(value.connector_revision, 512) &&
   bounded(value.strategy_revision, 512)
 }
 
 ///|
+fn valid_components(value : RemoteBundleManifest) -> Bool {
+  if value.components.is_empty() || value.components.length() > 16 {
+    return false
+  }
+  let mut previous = ""
+  let mut executable_found = false
+  for component in value.components {
+    if !bounded(component.role, 64) ||
+      !valid_cid(component.cid) ||
+      component.bytes < 0L ||
+      (previous != "" && component.role <= previous) {
+      return false
+    }
+    if component.role == "runtime_executable" {
+      executable_found = true
+      if component.cid != value.component_cid ||
+        component.bytes != value.component_bytes {
+        return false
+      }
+    }
+    previous = component.role
+  }
+  executable_found
+}
+
+///|
 fn manifest_body(
   value : RemoteBundleManifest,
 ) -> Result[String, RemoteBundleIssue] {
-  let writer = @encode.writer(16384, 24, 2) catch {
+  let writer = @encode.writer(16384, 128, 4) catch {
     _ => return Err(InvalidBundle)
   }
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "bundle_name")
     @encode.string_value(writer, value.bundle_name)
-    @encode.key(writer, "component_bytes")
-    @encode.string_value(writer, value.component_bytes.to_string())
-    @encode.key(writer, "component_cid")
-    @encode.string_value(writer, value.component_cid)
+    @encode.key(writer, "components")
+    @encode.begin_array(writer)
+    for component in value.components {
+      @encode.begin_object(writer)
+      @encode.key(writer, "bytes")
+      @encode.string_value(writer, component.bytes.to_string())
+      @encode.key(writer, "cid")
+      @encode.string_value(writer, component.cid)
+      @encode.key(writer, "role")
+      @encode.string_value(writer, component.role)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
     @encode.key(writer, "connector_registration")
     @encode.string_value(writer, value.connector_registration)
     @encode.key(writer, "connector_revision")
@@ -162,13 +206,57 @@ pub fn prepare_bundle_manifest(
   connector_revision : String,
   strategy_revision : String,
 ) -> Result[RemoteBundleManifest, RemoteBundleIssue] {
+  prepare_bundle_manifest_components(
+    issuer_authority,
+    bundle_name,
+    revision,
+    target_triple,
+    [
+      prepare_bundle_component(
+        "runtime_executable", component_cid, component_bytes,
+      ),
+    ],
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+  )
+}
+
+///|
+pub fn prepare_bundle_component(
+  role : String,
+  cid : String,
+  bytes : Int64,
+) -> RemoteBundleComponent {
+  { role, cid, bytes, }
+}
+
+///|
+pub fn prepare_bundle_manifest_components(
+  issuer_authority : String,
+  bundle_name : String,
+  revision : String,
+  target_triple : String,
+  components : Array[RemoteBundleComponent],
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+) -> Result[RemoteBundleManifest, RemoteBundleIssue] {
+  let mut primary : RemoteBundleComponent? = None
+  for component in components {
+    if component.role == "runtime_executable" {
+      primary = Some(component)
+    }
+  }
+  guard primary is Some(executable) else { return Err(InvalidBundle) }
   let pending : RemoteBundleManifest = {
     issuer_authority,
     bundle_name,
     revision,
     target_triple,
-    component_cid,
-    component_bytes,
+    component_cid: executable.cid,
+    component_bytes: executable.bytes,
+    components: components.copy(),
     connector_registration,
     connector_revision,
     strategy_revision,
@@ -256,38 +344,57 @@ pub fn admit_bundle_manifest_json(
     let node = match
       @source.parse_json_bytes(@utf8.encode(body), {
         max_input_bytes: 16384,
-        max_nodes: 24,
-        max_depth: 2,
+        max_nodes: 128,
+        max_depth: 4,
       }) {
       Ok(value) => value
       Err(_) => raise RemoteBundleDecodeStop
     }
     let cursor = decoded(
       @decode.admit(node, {
-        max_nodes: 24,
-        max_depth: 2,
+        max_nodes: 128,
+        max_depth: 4,
         max_string_bytes: 16384,
         max_total_string_bytes: 16384,
       }),
     )
     let object = decoded(
       @decode.closed_object(cursor, [
-        "bundle_name", "component_bytes", "component_cid", "connector_registration",
-        "connector_revision", "issuer_authority", "revision", "strategy_revision",
-        "target_triple", "version",
+        "bundle_name", "components", "connector_registration", "connector_revision",
+        "issuer_authority", "revision", "strategy_revision", "target_triple", "version",
       ]),
     )
     if field(object, "version") != "actql-remote-runtime-bundle/0.1" {
       raise RemoteBundleDecodeStop
     }
+    let components_node = decoded(@decode.required(object, "components"))
+    let count = match @decode.array_length(components_node) {
+      Some(value) if value > 0 && value <= 16 => value
+      _ => raise RemoteBundleDecodeStop
+    }
+    let components : Array[RemoteBundleComponent] = []
+    for index in 0..<count {
+      let component_object = decoded(
+        @decode.closed_object(
+          @decode.element_at(components_node, index).unwrap(),
+          ["bytes", "cid", "role"],
+        ),
+      )
+      components.push(
+        prepare_bundle_component(
+          field(component_object, "role"),
+          field(component_object, "cid"),
+          nonnegative_int64(field(component_object, "bytes")),
+        ),
+      )
+    }
     let manifest = match
-      prepare_bundle_manifest(
+      prepare_bundle_manifest_components(
         field(object, "issuer_authority"),
         field(object, "bundle_name"),
         field(object, "revision"),
         field(object, "target_triple"),
-        field(object, "component_cid"),
-        nonnegative_int64(field(object, "component_bytes")),
+        components,
         field(object, "connector_registration"),
         field(object, "connector_revision"),
         field(object, "strategy_revision"),
@@ -324,6 +431,38 @@ pub fn bundle_manifest_projection(
     value.connector_revision,
     value.strategy_revision,
   ]
+}
+
+///|
+pub fn bundle_manifest_component(
+  value : RemoteBundleManifest,
+  role : String,
+) -> RemoteBundleComponent? {
+  for component in value.components {
+    if component.role == role {
+      return Some(component)
+    }
+  }
+  None
+}
+
+///|
+pub fn bundle_manifest_component_count(value : RemoteBundleManifest) -> Int {
+  value.components.length()
+}
+
+///|
+pub fn bundle_component_projection(
+  value : RemoteBundleComponent,
+) -> Array[String] {
+  [value.role, value.cid, value.bytes.to_string()]
+}
+
+///|
+pub fn bundle_manifest_components_projection(
+  value : RemoteBundleManifest,
+) -> Array[Array[String]] {
+  value.components.map(bundle_component_projection)
 }
 
 ///|

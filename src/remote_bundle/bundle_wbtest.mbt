@@ -153,3 +153,66 @@ test "bundle signature envelope owns exact preimage and authority binding" {
     is Err(InvalidBundleSignature),
   )
 }
+
+///|
+test "bundle 0.1 binds one exact component inventory" {
+  let components = [
+    prepare_bundle_component("duckdb_library", bundle_cid("b"), 200L),
+    prepare_bundle_component("runtime_executable", bundle_cid("a"), 12L),
+  ]
+  let manifest = prepare_bundle_manifest_components(
+    "bundle-authority-a", "local-runtime", "local-runtime/1", "aarch64-apple-darwin",
+    components, "local", "local/1", "strategy/1",
+  ).unwrap()
+  let body = bundle_manifest_json(manifest).unwrap()
+  assert_eq(
+    bundle_manifest_identity(manifest),
+    "sha256:4846918745ac01d84be0e1dd77c5044ec5831b3935e3047efa1870947d77d45a",
+  )
+  assert_true(body.contains("actql-remote-runtime-bundle/0.1"))
+  assert_eq(bundle_manifest_component_count(manifest), 2)
+  assert_eq(
+    bundle_component_projection(
+      bundle_manifest_component(manifest, "duckdb_library").unwrap(),
+    ),
+    ["duckdb_library", bundle_cid("b"), "200"],
+  )
+  assert_eq(
+    bundle_manifest_json(
+      admit_bundle_manifest_json(body, bundle_manifest_identity(manifest)).unwrap(),
+    ),
+    Ok(body),
+  )
+  components[0] = prepare_bundle_component(
+    "duckdb_library",
+    bundle_cid("c"),
+    200L,
+  )
+  assert_eq(bundle_manifest_json(manifest), Ok(body))
+  assert_true(
+    prepare_bundle_manifest_components(
+      "bundle-authority-a",
+      "local-runtime",
+      "local-runtime/1",
+      "aarch64-apple-darwin",
+      [
+        prepare_bundle_component("runtime_executable", bundle_cid("a"), 12L),
+        prepare_bundle_component("duckdb_library", bundle_cid("b"), 200L),
+      ],
+      "local",
+      "local/1",
+      "strategy/1",
+    )
+    is Err(InvalidBundle),
+  )
+  let old_body = "{\"bundle_name\":\"local-runtime\",\"component_bytes\":\"12\"," +
+    "\"component_cid\":\"" +
+    bundle_cid("a") +
+    "\",\"connector_registration\":\"local\"," +
+    "\"connector_revision\":\"local/1\",\"issuer_authority\":\"bundle-authority-a\"," +
+    "\"revision\":\"local-runtime/1\",\"strategy_revision\":\"strategy/1\"," +
+    "\"target_triple\":\"aarch64-apple-darwin\",\"version\":\"actql-remote-runtime-bundle/0.1\"}"
+  assert_true(
+    admit_bundle_manifest_json(old_body, bundle_cid("0")) is Err(InvalidBundle),
+  )
+}
