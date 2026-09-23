@@ -84,7 +84,11 @@ readable coverage manifest is authoritative for individual operation status.
   ordering term. The empty branch uses charged identity indices rather than
   merge comparisons; its resource proof is not borrowed from the ordered
   branch. The synchronous and ordinary sort paths remain unassured. A passing
-  route gate alone is not operation-completion evidence.
+  route gate alone is not operation-completion evidence. An independent audit
+  claim now names the two resource-assured selected paths, and the default
+  gate rejects deleting their route proofs, inventing another claimed path,
+  or silently dropping one claim. This does not assert full assurance for
+  either operation or the other 66 operations.
   The RelA cross-join route now pairs an independently calculated 2-by-2
   work/workspace exact-and-one-short kernel fixture with a managed
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
