@@ -236,6 +236,32 @@ fn valid_reference(value : Json) -> Bool {
 }
 
 ///|
+fn attached_reference_matches(
+  request_wire : Bytes,
+  reply_wire : String,
+) -> Bool {
+  let request_text = @utf8.decode(request_wire) catch { _ => return false }
+  let request = @json.parse(request_text) catch { _ => return false }
+  let reply = @json.parse(reply_wire) catch { _ => return false }
+  guard request is Object(request_fields) &&
+    request_fields.get("ref") is Some(requested_ref) &&
+    reply is Object(reply_fields) &&
+    reply_fields.get("ref") is Some(returned_ref) &&
+    valid_reference(requested_ref) &&
+    valid_reference(returned_ref) else {
+    return false
+  }
+  guard requested_ref is Object(requested) && returned_ref is Object(returned) else {
+    return false
+  }
+  json_text(requested, "tenantId") == json_text(returned, "tenantId") &&
+  json_text(requested, "authorityScopeCid") ==
+  json_text(returned, "authorityScopeCid") &&
+  json_text(requested, "runDefinitionCid") ==
+  json_text(returned, "runDefinitionCid")
+}
+
+///|
 fn nonempty_member(fields : Map[String, Json], name : String) -> Bool {
   match json_text(fields, name) {
     Some(value) => !value.is_empty()
@@ -556,7 +582,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     Err(_) => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
-    if route == "submit" && result.status >= 500 {
+    if route == "submit" &&
+      ((result.status >= 300 && result.status < 400) || result.status >= 500) {
       stop("SubmissionUnknown request-id=" + required(child, "request-id"))
     }
     if route == "read" {
@@ -588,6 +615,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   if route == "attach" && !admitted_run(text, false) {
     stop("InvalidHostAdmission")
+  }
+  if route == "attach" && !attached_reference_matches(body, text) {
+    stop("ForeignHostAdmission")
   }
   if route == "read" {
     if !text.has_suffix("\u{1e}") {
