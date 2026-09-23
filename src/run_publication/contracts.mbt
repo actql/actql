@@ -296,6 +296,27 @@ fn contract_spec(name : String) -> ContractSpec? {
         identity: "result_delivery_receipt_cid",
         fields: [],
       })
+    "effect_apply_receipt" =>
+      Some({
+        name,
+        version: "actql-effect-apply-receipt/0.1",
+        identity: "receipt_cid",
+        fields: [],
+      })
+    "effect_set_apply_receipt" =>
+      Some({
+        name,
+        version: "actql-effect-set-apply-receipt/0.1",
+        identity: "receipt_cid",
+        fields: [],
+      })
+    "effect_reconciliation_receipt" =>
+      Some({
+        name,
+        version: "actql-effect-reconciliation-receipt/0.1",
+        identity: "reconciliation_receipt_cid",
+        fields: [],
+      })
     "publication_request" =>
       Some({
         name,
@@ -946,6 +967,10 @@ fn validate_bounded_contract(
         max_nodes,
         max_depth,
       ) {
+      if spec.name == "effect_apply_receipt" &&
+        !effect_apply_receipt_consistent(value) {
+        return Err(ConditionalField("status"))
+      }
       return Ok(())
     }
     return Err(InvalidField("protocol_schema"))
