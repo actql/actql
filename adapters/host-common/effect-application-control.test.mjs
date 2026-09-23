@@ -47,6 +47,26 @@ test('Effect Set frontier keeps member order independent of row halt', () => {
   assert.equal(effect.setFrontierReadyRow(frontier, 0), 1);
 });
 
+test('Host bridge rejects conflicting Effect members before mutation', () => {
+  const input = (targets, kinds = [0, 0], boundaries = [cid('a'), cid('a')]) => [
+    ['first', 'second'], kinds,
+    ['provider', 'provider'], boundaries,
+    [cid('b'), cid('b')], ['Record', 'Record'], targets,
+    2, 2, 20,
+  ];
+  assert.equal(effect.checkSetFootprintConflicts(...input([[cid('1')], [cid('2')]])),
+    true);
+  assert.throws(() => effect.checkSetFootprintConflicts(...input([
+    [cid('1')], [cid('1')],
+  ])));
+  assert.throws(() => effect.checkSetFootprintConflicts(...input([
+    [], [cid('2')],
+  ], [1, 0])));
+  assert.equal(effect.checkSetFootprintConflicts(...input([
+    [], [cid('2')],
+  ], [1, 0], [cid('a'), cid('c')])), true);
+});
+
 test('Host bridge issues the same typed Effect ledger chain as MoonBit', () => {
   const scope = effect.logicalRequestScope(cid('a'), 'request-1', 32);
   const key = effect.dispatchKey(scope, cid('b'), '"row-1"', 32, 8, 3);
