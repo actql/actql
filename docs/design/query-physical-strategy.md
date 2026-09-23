@@ -202,6 +202,12 @@ these fields are not execution authority. A policy transport and deployment
 remain separate Host adapters. The offline path does not require a policy
 service.
 
+The public [placement policy wire contract](placement-policy-wire.md) now
+serializes that request and decodes a closed response against the exact pending
+request and the Host-authenticated policy identity. The decoded response still
+passes the common commit boundary. Authentication, metadata-disclosure policy
+and network transport remain Host responsibilities.
+
 The minted consultation also exposes a bounded canonical JSON candidate-set
 projection. Its SHA-256 is the request's `candidate_set_cid`; the Host sends the
 bytes and CID together and the recipient checks their equality. The projection
