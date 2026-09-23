@@ -5,6 +5,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
+  "actql/actql/effect_application",
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
@@ -277,9 +278,19 @@ pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @ru
 
 pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_effect_dispatch_key(@effect_application.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
+
+pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
+
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+
+pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_application.LogicalRequestScope raise NodeHostFailure
+
+pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
+
+pub fn strategy_effect_row_recovery_action(@effect_application.EffectDispatchKey, String, String, String, Int, Bool) -> Int
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
@@ -1340,6 +1351,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
+  EffectIdentity(@effect_application.EffectIdentityIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)

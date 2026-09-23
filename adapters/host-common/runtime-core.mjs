@@ -16,8 +16,25 @@ const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
 const remoteStandardSourceControls = new WeakMap();
 const remoteCredentialControls = new WeakMap();
+const effectApplicationControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
+
+function effectApplicationControl(moon) {
+  let control = effectApplicationControls.get(moon);
+  if (control !== undefined) return control;
+  control = Object.freeze({
+    logicalRequestScope: (...args) =>
+      checked(moon.strategyEffectLogicalRequestScope(...args)),
+    logicalRequestScopeCid: moon.strategyEffectLogicalRequestScopeCid,
+    dispatchKey: (...args) =>
+      checked(moon.strategyEffectDispatchKey(...args)),
+    dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
+    recoveryAction: moon.strategyEffectRowRecoveryAction,
+  });
+  effectApplicationControls.set(moon, control);
+  return control;
+}
 
 function siteControl(moon) {
   let control = siteControls.get(moon);
@@ -2735,6 +2752,7 @@ export function runtimeCore(moon) {
     remoteTransferControl: remoteTransferControl(moon),
     remoteStandardSourceControl: remoteStandardSourceControl(moon),
     remoteCredentialControl: remoteCredentialControl(moon),
+    effectApplicationControl: effectApplicationControl(moon),
     remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
