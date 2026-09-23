@@ -1,21 +1,15 @@
 ///|
-fn run_local_managed_test_task(
+fn start_local_managed_test_task_operations(
   installed : @local_driver.LocalDispatchModule,
   run : @strategy.CapturedDAG,
   task : Int,
   inputs : Array[@execution.ManagedCompletedOutput[Int]],
   rows : Array[Array[String]],
-  payload : Int,
-  available : Ref[Bool],
   obligations? : @execution.ManagedObligations,
-  finalization_quantum? : Int = 16,
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
-) -> (
-  @local_driver.LocalManagedDispatchOperations[Int],
-  @execution.ManagedCompletedOutput[Int],
-) raise {
+) -> @local_driver.LocalManagedDispatchOperations[Int] raise {
   let owner = @strategy.graph_task_owner(
     @strategy.captured_dag_graph(run),
     task,
@@ -110,7 +104,64 @@ fn run_local_managed_test_task(
     }
     (transfer.finish)().unwrap()
   }
-  match (operations.execute)() {
+  operations
+}
+
+///|
+fn run_local_managed_test_task(
+  installed : @local_driver.LocalDispatchModule,
+  run : @strategy.CapturedDAG,
+  task : Int,
+  inputs : Array[@execution.ManagedCompletedOutput[Int]],
+  rows : Array[Array[String]],
+  payload : Int,
+  available : Ref[Bool],
+  obligations? : @execution.ManagedObligations,
+  finalization_quantum? : Int = 16,
+  execution_quantum? : Int = 0,
+  execution_advances? : Ref[Int]? = None,
+  carrier_inputs? : Array[
+    (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
+  ] = [],
+) -> (
+  @local_driver.LocalManagedDispatchOperations[Int],
+  @execution.ManagedCompletedOutput[Int],
+) raise {
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    task,
+    inputs,
+    rows,
+    obligations?,
+    carrier_inputs~,
+  )
+  fn execute_with_quantum() -> Result[Unit, @local_driver.LocalDispatchIssue] raise {
+    if execution_quantum == 0 {
+      return (operations.execute)()
+    }
+    let mut done = false
+    let mut polls = 0
+    while !done && polls < 10000 {
+      polls += 1
+      match (operations.advance)(execution_quantum) {
+        Ok(observation) => {
+          assert_true(observation.work >= 0L)
+          assert_true(observation.work <= execution_quantum.to_int64())
+          done = observation.complete
+        }
+        Err(issue) => return Err(issue)
+      }
+    }
+    if !done {
+      fail("Local managed execution did not make bounded progress")
+    }
+    if execution_advances is Some(counter) {
+      counter.val = polls
+    }
+    Ok(())
+  }
+  match execute_with_quantum() {
     Ok(_) => ()
     Err(
       @local_driver.Configuration(

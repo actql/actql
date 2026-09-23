@@ -901,6 +901,7 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
 ///|
 fn run_standard_host_mixed_vectors_relation_path(
   variant : String,
+  execution_quantum? : Int = 0,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
@@ -1038,6 +1039,7 @@ fn run_standard_host_mixed_vectors_relation_path(
     4,
     filtered_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    execution_quantum~,
   )
   let filtered_rows = local_managed_test_rows(filtered_ops)
   if variant == "bridge_derive" {
@@ -1128,7 +1130,12 @@ test "standard Host composes Vectors projection and Relation derive" {
 
 ///|
 test "standard Host composes Vectors projection and Relation take" {
-  run_standard_host_mixed_vectors_relation_path("bridge_take")
+  for quantum in [1, 2, 7, 1024] {
+    run_standard_host_mixed_vectors_relation_path(
+      "bridge_take",
+      execution_quantum=quantum,
+    )
+  }
 }
 
 ///|
