@@ -76,3 +76,19 @@ an equivalent benchmark leg and cannot be substituted for the registered
 Program or its cold-start cost. It does suggest that a native end-to-end
 execution profile is worth measuring before changing semantic validation or
 weakening the timing boundary.
+
+## Native preparation probe
+
+The existing release-built `native_remote_application_inspect` executable loaded
+the registered narrow 100-row Program, Environment, parameters and contracts
+through `load_native_remote_application`. Ten fresh native processes each
+reported the same four-task checked graph and completed in 10.6–12.6 ms from
+parent spawn to child exit (median 10.9 ms) on macOS arm64. The input files were
+generated from `managedCaseConfiguration`; the loader used its current default
+data profile rather than the JS benchmark's explicit `DataProfile`. The probe
+did not open DuckDB, execute tasks, retain output, or verify cleanup. It is not
+an equivalent comparator or an acceptance sample. It does establish that native
+Program preparation and process startup are much smaller than the measured
+JS parent/child preparation cost for this fixture. The next product diagnostic
+should execute the same checked fixture through the native Host with its exact
+data profile and independent holding before selecting an optimization target.
