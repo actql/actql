@@ -34,10 +34,12 @@ compatibility or force all version domains to advance in lockstep.
 
 ## When to keep or advance a contract version
 
-Decide per contract, not per feature branch. Through the initial ActQL 0.1
-development phase, owned contracts remain at 0.1. A version identifies one
-normative contract and, where applicable, one canonical signed preimage. The
-following rules apply before a writer emits a changed body:
+Decide per contract, not per feature branch. The initial ActQL product
+contracts, including the runtime bundle, are being completed at 0.1. Internal
+Store schema revisions used to migrate development data are separate from the
+product contract version. A version identifies one normative contract and,
+where applicable, one canonical signed preimage. The following rules apply
+before a writer emits a changed body:
 
 - Keep the version for an implementation fix that enforces the existing
   contract without changing accepted canonical bytes, meaning, or references.
