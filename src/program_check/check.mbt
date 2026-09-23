@@ -589,6 +589,24 @@ pub fn unit_pipeline(
 }
 
 ///|
+/// Return the exact checked Stage Results retained by this Program. This is
+/// an ownership bridge for downstream Run admission, not an Effect permit or
+/// authority to use a captured Result. The ordinary checker still rejects
+/// Effects until their full static and execution closure is connected.
+pub fn checked_stage_results(program : CheckedProgram) -> @results.Checked {
+  let sources = @context.program_identity_sources(program.identity)
+  let operation_checks = @context.program_sources_operations(sources)
+  let preparation = @context.operation_profiles_preparation(operation_checks)
+  let producers = @context.preparation_sources(preparation)
+  let capacity = @context.source_producer_capacity(producers)
+  let policy = @context.source_capacity_context(capacity)
+  let selected = @context.source_policy_selected(policy)
+  let reconciled = @context.policy_context(selected)
+  let wired = @context.reconciled_wiring(reconciled)
+  @context.stage_results(@context.wired_stage_contexts(wired))
+}
+
+///|
 pub fn requirements(
   program : CheckedProgram,
 ) -> @context.StageRequirementClosure {
