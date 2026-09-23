@@ -126,6 +126,9 @@ fixture creation runs in a separate, awaited process before sampling so its
 native allocation does not contaminate the controller baseline.
 The registered run is a readiness gate, not performance sampling; the default
 smoke does not prove the larger cases executable.
+The [2026-09-24 full-matrix readiness diagnostic](diagnostic-2026-09-24.md)
+records one successful 27/27 managed Host run. It remains outside formal paired
+performance acceptance.
 
 To compare ordinary and reused INSERTs through the actual bounded transport:
 

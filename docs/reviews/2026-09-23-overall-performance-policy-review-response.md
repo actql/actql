@@ -33,6 +33,13 @@ rejects some cases before dispatch under the fixed 1 GiB retention ceiling.
 This path needs managed bounded holding for native acceptance; raising the
 registered ceiling is not a valid substitute.
 
+A later full registered Node managed Host readiness run verified 27/27 case IDs
+with real DuckDB, independent file holding, consumers and release. It took 306.5
+seconds as a single diagnostic suite and is recorded in
+`benchmarks/retained-results/diagnostic-2026-09-24.md`. This establishes matrix
+readiness on that path, not the paired timing acceptance or Node-free native
+equivalence.
+
 Review regressions to add before closing PERF-1: missing pair, missing case,
 changed Program or implementation hash, unconfirmed cleanup, and a baseline
 capacity exception incorrectly converted into a finite speed ratio.
