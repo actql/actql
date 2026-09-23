@@ -258,7 +258,11 @@ pub fn mapping_permission_work(MappingPermissionSelection) -> Int
 
 pub fn mapping_row_fields_count(MappingRowFields) -> Int
 
+pub fn mapping_row_fields_literal_at(MappingRowFields, Int) -> @decode_core.Cursor?
+
 pub fn mapping_row_fields_names(MappingRowFields) -> Array[String]
+
+pub fn mapping_row_fields_null_behavior_at(MappingRowFields, Int) -> String?
 
 pub fn mapping_row_fields_shape(MappingRowFields) -> MappingContractShape
 
@@ -828,6 +832,8 @@ pub struct MappingRowFields {
   shape : MappingContractShape
   fields : Array[String]
   sources : Array[String?]
+  literals : Array[@decode_core.Cursor?]
+  null_behaviors : Array[String]
   work : Int
 }
 
