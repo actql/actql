@@ -144,6 +144,7 @@ pub fn NativeRemoteApplicationSite::persist_observed_output_payload(Self, @remot
 pub fn NativeRemoteApplicationSite::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::prepare_observed_output_plan(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, NativeRemoteApplicationOutputIntent) -> Result[NativeRemoteApplicationOutputPlan, NativeRemoteApplicationOutputPlanIssue]
 pub fn NativeRemoteApplicationSite::prepare_remote_output_plan(Self, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, NativeRemoteApplicationOutputIssue]
+pub fn NativeRemoteApplicationSite::retains_dispatch_resources(Self) -> Bool
 pub fn NativeRemoteApplicationSite::retry_output_cleanup(Self) -> Bool
 pub fn NativeRemoteApplicationSite::send_observed_output_direct(Self, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue]
 pub fn NativeRemoteApplicationSite::send_observed_output_store(Self, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteApplicationSiteIssue]

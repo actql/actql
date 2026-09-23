@@ -69,6 +69,8 @@ pub fn transfer_send_failure_issue(NativeRemoteTransferSendFailure) -> NativeRem
 
 pub fn validate_destination_material_use(NativeRemoteDestinationMaterialUse) -> Result[Unit, NativeRemoteTransferClientIssue]
 
+pub fn wait_for_remote_control_retry() -> Unit
+
 pub fn write_durable_direct_destination_chunk(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, Int, Bytes) -> Result[@filesystem.NativeFileGeneration, NativeRemoteTransferClientIssue]
 
 pub fn write_durable_store_object_chunk(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, Int, Bytes) -> Result[@filesystem.NativeFileGeneration, NativeRemoteTransferClientIssue]

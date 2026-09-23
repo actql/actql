@@ -180,6 +180,7 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(Self, @rem
 pub fn NativeRemoteStandardSiteComponent::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int) -> Result[@publication_store.NativePublicationPayloadInfo, NativeRemoteStandardPayloadFailure]
 pub fn NativeRemoteStandardSiteComponent::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteComponentIssue]
+pub fn NativeRemoteStandardSiteComponent::retains_dispatch_resources(Self) -> Bool
 pub fn NativeRemoteStandardSiteComponent::send_observed_output_direct(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteComponentIssue]
 pub fn NativeRemoteStandardSiteComponent::send_observed_output_store(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteComponentIssue]
 
@@ -205,6 +206,7 @@ pub fn NativeRemoteStandardSiteDistribution::open_observed_output_reader(Self, @
 pub fn NativeRemoteStandardSiteDistribution::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::persist_observed_output_payload(Self, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int) -> Result[@publication_store.NativePublicationPayloadInfo, NativeRemoteStandardPayloadFailure]
 pub fn NativeRemoteStandardSiteDistribution::poll(Self) -> Result[@remote_agent.NativeRemoteAgentOutcome, NativeRemoteStandardSiteDistributionIssue]
+pub fn NativeRemoteStandardSiteDistribution::retains_dispatch_resources(Self) -> Bool
 pub fn NativeRemoteStandardSiteDistribution::send_observed_output_direct(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteDistributionIssue]
 pub fn NativeRemoteStandardSiteDistribution::send_observed_output_store(Self, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteDistributionIssue]
 
