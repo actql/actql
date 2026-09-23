@@ -11,7 +11,7 @@ pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEn
 
 pub fn admit_effect_preview_apply_identity(String, String, String, LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
 
-pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
+pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
@@ -213,6 +213,7 @@ pub(all) enum EffectPreviewFootprintIssue {
   InvalidPreviewFootprint
   InventoryMismatch
   FailurePolicyMismatch
+  EffectIdentityMismatch
   Conflict(EffectFootprintIssue)
 } derive(@debug.Debug)
 

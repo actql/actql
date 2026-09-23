@@ -137,7 +137,7 @@ test('Host derives set conflicts from the closed private Preview shape', () => {
     executed: false,
     effect_preview_cid: cid('a'),
   });
-  const inventory = [['second', 'first'], [1, 0]];
+  const inventory = [['second', 'first'], [1, 0], [cid('a'), cid('a')]];
   const second = {...member('second', cid('2')), on_item_failure: 'continue'};
   const limits = [8192, 256, 12, 2, 2, 100];
   assert.equal(effect.checkPreviewFootprintConflicts(preview([
@@ -152,10 +152,14 @@ test('Host derives set conflicts from the closed private Preview shape', () => {
   ]), ...inventory, ...limits));
   assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
     member('first', cid('1')), second,
-  ]), ['first', 'foreign'], [0, 1], ...limits));
+  ]), ['first', 'foreign'], [0, 1], [cid('a'), cid('a')], ...limits));
   assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
     member('first', cid('1')), second,
-  ]), ['first', 'second'], [0, 0], ...limits));
+  ]), ['first', 'second'], [0, 0], [cid('a'), cid('a')], ...limits));
+  assert.throws(() => effect.checkPreviewFootprintConflicts(preview([
+    member('first', cid('1')),
+    {...second, effect_identity_cid: cid('b')},
+  ]), ...inventory, ...limits));
 });
 
 test('Host bridge admits Effect Preview identity and exact apply key', () => {
