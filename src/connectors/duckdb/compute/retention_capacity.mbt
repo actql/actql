@@ -25,6 +25,26 @@ pub fn duckdb_task_retention_capacity(limits : DuckDBComputeLimits) -> Int64? {
 }
 
 ///|
+/// The run reserves the whole DuckDB buffer-manager allowance once. This
+/// bounded per-table planning allowance uses the admitted result shape instead
+/// of cumulative Host value work, which may count many passes over one table.
+/// It is a suballocation policy, not a measurement or a process RSS bound.
+pub fn duckdb_resident_table_allowance(limits : DuckDBComputeLimits) -> Int64? {
+  let physical = limits.physical
+  if physical.max_rows < 0 ||
+    physical.max_cells < 0 ||
+    physical.max_text_bytes < 0 {
+    return None
+  }
+  Some(
+    1048576L +
+    physical.max_rows.to_int64() * 64L +
+    physical.max_cells.to_int64() * 64L +
+    physical.max_text_bytes.to_int64() * 2L,
+  )
+}
+
+///|
 /// Completed streamed output retains metadata, not the admitted value table.
 /// Storage bytes are added separately by the selected representation contract.
 pub fn duckdb_stream_retention_capacity(limits : DuckDBComputeLimits) -> Int64? {

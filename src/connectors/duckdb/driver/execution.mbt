@@ -77,7 +77,7 @@ pub fn start_captured_duckdb_task(
   // DB copy. The latter occupies shared environment capacity independently of
   // the file holding charged to this task.
   let copy_retention = if resident is Some(_) {
-    match @compute.duckdb_task_retention_capacity(limits) {
+    match @compute.duckdb_resident_table_allowance(limits) {
       Some(bytes) => bytes
       None => return Err(Physical(InvalidLimits))
     }

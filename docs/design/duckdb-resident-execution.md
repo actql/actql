@@ -122,6 +122,13 @@ to be confirmed. Cancellation is not that confirmation. Shared DB close forbids
 new tasks while preserving outstanding allocation and cleanup responsibility.
 Already consumed transport bytes and planning work are never refunded.
 
+Resident table suballocations use the admitted per-result row, cell and text
+limits. Cumulative Host value-node limits count repeated validation and cannot
+serve as one native table's capacity. The selected allowance is checked again
+at execution, while the environment's configured DuckDB memory limit and full
+shared reservation remain in force. The allowance is a planning policy, not a
+measurement of a table's bytes or a bound on whole-process RSS.
+
 Tables are retained through their last planned use. There is no automatic LRU
 or pressure eviction. Plans that cannot reserve the required capacity are
 infeasible. Reselection may retire tables that are no longer needed, without

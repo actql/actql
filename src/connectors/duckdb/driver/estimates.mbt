@@ -229,7 +229,7 @@ fn estimate_duckdb_configuration(
   // A resident DB copy is checked against its separate shared allocation;
   // adding that copy to task retention would count the same storage twice.
   let capacity = configuration.capacities[task - 1]
-  guard @compute.duckdb_task_retention_capacity(installed.limits.execution)
+  guard @compute.duckdb_resident_table_allowance(installed.limits.execution)
     is Some(copy_bytes) else {
     return Err(InvalidConfiguration)
   }

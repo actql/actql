@@ -114,6 +114,22 @@ test "bounded stream working capacity tracks frames not cumulative value counter
 ///|
 test "connector container allowances preserve retained and working capacity independently" {
   let limits = capacity_limits()
+  assert_eq(duckdb_resident_table_allowance(limits), Some(1050056L))
+  assert_eq(
+    duckdb_resident_table_allowance({
+      ..limits,
+      retention: { ..limits.retention, max_nodes: 1000000, },
+      values: { ..limits.values, max_nodes: 1000000, },
+    }),
+    duckdb_resident_table_allowance(limits),
+  )
+  assert_eq(
+    duckdb_resident_table_allowance({
+      ..limits,
+      physical: { ..limits.physical, max_cells: -1, },
+    }),
+    None,
+  )
   let transport : @duckdb.TransportColumnLimits = {
     max_bytes: 100000,
     max_nodes: 10000,

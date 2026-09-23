@@ -81,6 +81,8 @@ pub fn duckdb_resident_scan_sql(DuckDBResidentRead, Int) -> Result[String, @adap
 
 pub fn duckdb_resident_static_rejection(@lowering_relation.BoundPrepared) -> String?
 
+pub fn duckdb_resident_table_allowance(DuckDBComputeLimits) -> Int64?
+
 pub fn duckdb_selected_compute_candidate(DuckDBSelectedCompute) -> @connector_sdk.PreparedCompute[@adapter.FixedCompute]
 
 pub fn duckdb_selected_compute_choice(DuckDBSelectedCompute) -> @connector_sdk.FixedComputeChoice

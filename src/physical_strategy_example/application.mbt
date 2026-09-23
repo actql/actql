@@ -909,7 +909,7 @@ fn create_application_strategy_dispatch(
         .unwrap_or(2000000L),
         table_bytes: data
         .map(value => {
-          @duckdb_compute.duckdb_task_retention_capacity(
+          @duckdb_compute.duckdb_resident_table_allowance(
             dispatch_limits(data=Some(value)).native,
           ).unwrap()
         })
