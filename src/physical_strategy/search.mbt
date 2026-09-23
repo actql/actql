@@ -72,6 +72,22 @@ struct StrategyRevision {
 }
 
 ///|
+/// A bounded, owner-bound choice set. A policy may inspect its feasible
+/// candidates outside the search call and propose one existing position. The
+/// proposal remains provisional until committed against the current Run.
+struct StrategyChoiceSet {
+  run : CapturedDAG
+  registry : @connector.CapabilityRegistry
+  generation : Int
+  resources : SearchResources
+  revision : Int
+  feasible : Array[StrategyRevision]
+  durations : Array[@cost.DurationEstimate]
+  priority : Array[Int]?
+  mut committed : Bool
+}
+
+///|
 pub(all) enum SearchIssue {
   InvalidLimits
   AlreadyConfigured
@@ -87,6 +103,7 @@ pub(all) enum SearchIssue {
   CapabilityUnavailable(Int)
   InvalidCapacity
   InvalidPreference
+  StaleChoice
   Overflow
   Cost(@cost.CostIssue)
   Ledger(@resources.LedgerIssue)
@@ -228,6 +245,21 @@ pub fn revise_strategy(
   registry : @connector.CapabilityRegistry,
   host_priority : Array[Int]?,
 ) -> Result[StrategyDecision, SearchIssue] {
+  match prepare_strategy_choices(run, offers, registry, host_priority) {
+    Ok(choices) => commit_strategy_choice(choices, None)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Build the feasible set once before consulting a placement policy. No
+/// candidate is committed or dispatchable while the choice is pending.
+pub fn prepare_strategy_choices(
+  run : CapturedDAG,
+  offers : Array[TaskOffer],
+  registry : @connector.CapabilityRegistry,
+  host_priority : Array[Int]?,
+) -> Result[StrategyChoiceSet, SearchIssue] {
   guard run.search is Some(limits) else { return Err(NotConfigured) }
   if run.stopped {
     return Err(Stopped)
@@ -235,21 +267,7 @@ pub fn revise_strategy(
   if run.running is Some(_) || resident_provision_pending(run) {
     return Err(Busy)
   }
-  let latest = @resources.ledger_usage(run.ledger)
-  let admission = @resources.ledger_admission_limits(run.ledger)
-  let resources = {
-    planning_capacity: admission.planning_work,
-    attempt_capacity: admission.attempts,
-    holding_capacity: admission.holdings,
-    attempts: latest.attempts,
-    holdings: latest.holdings,
-    transferred: latest.transferred_bytes,
-    uncertain_transfer: latest.uncertain_transfer_bytes,
-    transfer: latest.reserved_transfer_bytes,
-    held: latest.held_bytes,
-    retention: latest.reserved_retention_bytes,
-    execution: latest.reserved_execution_bytes,
-  }
+  let resources = strategy_search_resources(run)
   if run.searched_generation == Some(run.generation) &&
     run.searched_resources == Some(resources) {
     return Err(UnchangedState)
@@ -500,34 +518,138 @@ pub fn revise_strategy(
       )
     }
   }
-  match
-    @cost.choose_serial(durations, feasible_priority, durations.length() * 2) {
-    Err(issue) => Err(Cost(issue))
-    Ok(NoCandidates) => {
-      run.search_report_complete = true
-      run.strategy = None
-      Ok(NoFeasible)
+  run.search_report_complete = true
+  Ok({
+    run,
+    registry,
+    generation: run.generation,
+    resources,
+    revision: run.revisions,
+    feasible,
+    durations,
+    priority: feasible_priority,
+    committed: false,
+  })
+}
+
+///|
+fn strategy_search_resources(run : CapturedDAG) -> SearchResources {
+  let latest = @resources.ledger_usage(run.ledger)
+  let admission = @resources.ledger_admission_limits(run.ledger)
+  {
+    planning_capacity: admission.planning_work,
+    attempt_capacity: admission.attempts,
+    holding_capacity: admission.holdings,
+    attempts: latest.attempts,
+    holdings: latest.holdings,
+    transferred: latest.transferred_bytes,
+    uncertain_transfer: latest.uncertain_transfer_bytes,
+    transfer: latest.reserved_transfer_bytes,
+    held: latest.held_bytes,
+    retention: latest.reserved_retention_bytes,
+    execution: latest.reserved_execution_bytes,
+  }
+}
+
+///|
+pub fn strategy_choice_count(choices : StrategyChoiceSet) -> Int {
+  choices.feasible.length()
+}
+
+///|
+pub fn strategy_choice_assessment(
+  choices : StrategyChoiceSet,
+  index : Int,
+) -> StrategyAssessment? {
+  choices.feasible.get(index).map(choice => choice.assessment)
+}
+
+///|
+pub fn strategy_choice_registration(
+  choices : StrategyChoiceSet,
+  index : Int,
+  task : Int,
+) -> @connector.CapabilityRegistration? {
+  choices.feasible
+  .get(index)
+  .bind(choice => choice.choices.get(task).bind(value => value))
+  .map(offer => offer.registration)
+}
+
+///|
+/// `position` is the original complete-assignment position, not an index into
+/// a policy-controlled list. Invalid or stale responses never fall back to a
+/// different candidate. `None` applies the offline default latency policy.
+pub fn commit_strategy_choice(
+  choices : StrategyChoiceSet,
+  position : Int?,
+) -> Result[StrategyDecision, SearchIssue] {
+  let run = choices.run
+  if choices.committed ||
+    run.stopped ||
+    run.running is Some(_) ||
+    resident_provision_pending(run) ||
+    run.generation != choices.generation ||
+    run.revisions != choices.revision ||
+    run.searched_generation != Some(choices.generation) ||
+    run.searched_resources != Some(choices.resources) ||
+    strategy_search_resources(run) != choices.resources ||
+    run.strategy is Some(_) {
+    return Err(StaleChoice)
+  }
+  let selected = match position {
+    Some(position) => {
+      let mut found = None
+      for index, candidate in choices.feasible {
+        if candidate.assessment.position == position {
+          found = Some(index)
+          break
+        }
+      }
+      guard found is Some(index) else { return Err(InvalidPreference) }
+      Some((index, false))
     }
-    Ok(Deferred) => {
-      run.search_report_complete = true
-      run.strategy = None
-      Ok(Deferred)
-    }
-    Ok(EstimatedFastest(index, _)) => {
-      run.search_report_complete = true
-      let selected = { ..feasible[index], estimated_fastest: true, }
-      run.strategy = Some(selected)
-      run.revision_history.push(selected)
-      Ok(Selected(selected))
-    }
-    Ok(HostPreferred(index)) => {
-      run.search_report_complete = true
-      let selected = feasible[index]
-      run.strategy = Some(selected)
-      run.revision_history.push(selected)
-      Ok(Selected(selected))
+    None =>
+      match
+        @cost.choose_serial(
+          choices.durations,
+          choices.priority,
+          choices.durations.length() * 2,
+        ) {
+        Err(issue) => return Err(Cost(issue))
+        Ok(NoCandidates) => {
+          choices.committed = true
+          return Ok(NoFeasible)
+        }
+        Ok(Deferred) => {
+          choices.committed = true
+          return Ok(Deferred)
+        }
+        Ok(EstimatedFastest(index, _)) => Some((index, true))
+        Ok(HostPreferred(index)) => Some((index, false))
+      }
+  }
+  guard selected is Some((index, estimated_fastest)) else {
+    return Err(InvalidPreference)
+  }
+  for task, offer in choices.feasible[index].choices {
+    if !task_done(run, task) &&
+      offer is Some(offer) &&
+      (
+        !@connector.capability_registration_matches(
+          offer.registration,
+          choices.registry,
+        ) ||
+        !@connector.capability_registration_available(offer.registration)
+      ) {
+      return Err(CapabilityUnavailable(task))
     }
   }
+  choices.committed = true
+  let revision = { ..choices.feasible[index], estimated_fastest, }
+  run.strategy = Some(revision)
+  run.revision_history.push(revision)
+  Ok(Selected(revision))
 }
 
 ///|

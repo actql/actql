@@ -57,6 +57,114 @@ fn search_offers(
 }
 
 ///|
+test "placement proposal chooses only an existing feasible position" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let offers = search_offers(run, registry, [1, 2, 3], Some(20L))
+  let choices = @strategy.prepare_strategy_choices(run, offers, registry, None).unwrap()
+  assert_eq(@strategy.strategy_choice_count(choices), 8)
+  assert_eq(@strategy.strategy_history_count(run), 0)
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  assert_true(
+    @strategy.commit_strategy_choice(choices, Some(8)) is Err(InvalidPreference),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  let selected = @strategy.commit_strategy_choice(choices, Some(7)).unwrap()
+  guard selected is Selected(revision) else { abort("selected") }
+  assert_eq(@strategy.strategy_assessment(revision).position, 7)
+  assert_true(
+    physical_equal(
+      @strategy.strategy_registration(revision, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ),
+  )
+  assert_true(
+    @strategy.commit_strategy_choice(choices, Some(0)) is Err(StaleChoice),
+  )
+}
+
+///|
+test "placement proposal refuses changed resources before commit" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let choices = @strategy.prepare_strategy_choices(
+    run,
+    search_offers(run, registry, [1, 2, 3], Some(20L)),
+    registry,
+    None,
+  ).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  ignore(@resources.reserve_attempt(ledger, 1L, 0L, 0L).unwrap())
+  assert_true(
+    @strategy.commit_strategy_choice(choices, Some(0)) is Err(StaleChoice),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+}
+
+///|
+test "placement proposal cannot promote a capacity-rejected assignment" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let reserved = @resources.reserve_attempt(ledger, 0L, 31999901L, 0L).unwrap()
+  ignore(@resources.retain_allocation(ledger, reserved, 31999901L).unwrap())
+  @resources.settle_reservation(ledger, reserved).unwrap()
+  let choices = @strategy.prepare_strategy_choices(
+    run,
+    search_offers(run, registry, [1, 2, 3], Some(1L)),
+    registry,
+    None,
+  ).unwrap()
+  assert_eq(@strategy.strategy_choice_count(choices), 0)
+  assert_true(
+    @strategy.commit_strategy_choice(choices, Some(0)) is Err(InvalidPreference),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+}
+
+///|
+test "placement proposal rechecks registration availability" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let choices = @strategy.prepare_strategy_choices(
+    run,
+    search_offers(run, registry, [1, 2, 3], Some(1L)),
+    registry,
+    None,
+  ).unwrap()
+  @connector.close_capability_registry(registry)
+  assert_true(
+    @strategy.commit_strategy_choice(choices, Some(0))
+    is Err(CapabilityUnavailable(_)),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+}
+
+///|
 test "retention search releases checked intermediates after their last consumer" {
   let (run, _) = captured_graph_fixture(join=true)
   let registry = search_registry()

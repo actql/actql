@@ -121,6 +121,25 @@ pub fn[C, E] refresh_compute_host(
 }
 
 ///|
+/// The environment performs policy I/O after receiving this bounded choice
+/// set. The selected candidate still passes the common Run and dispatch checks.
+pub fn[C, E] prepare_compute_host_policy_choice(
+  host : ComputeHost[C, E],
+) -> Result[@strategy.StrategyChoiceSet?, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  prepare_adaptive_policy_choice(policy)
+}
+
+///|
+pub fn[C, E] commit_compute_host_policy_choice(
+  host : ComputeHost[C, E],
+  position : Int?,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  commit_adaptive_policy_choice(policy, position)
+}
+
+///|
 pub fn[C, E] prepare_next_compute_task(
   host : ComputeHost[C, E],
   context : C,

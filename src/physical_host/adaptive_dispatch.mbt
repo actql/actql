@@ -13,6 +13,7 @@ struct AdaptiveDispatch[E] {
     (Unit, Int, TaskEstimateQuantities) -> Result[Array[@strategy.TaskOffer], E],
   ]
   mut seen : (Int, Int, @resources.LedgerUsage)?
+  mut pending_choice : @strategy.StrategyChoiceSet?
   mut failure : AdaptiveEstimateIssue[E]?
 }
 
@@ -99,6 +100,7 @@ pub fn[E] open_adaptive_dispatch(
     limits,
     estimate_work,
     seen: None,
+    pending_choice: None,
     failure: None,
   })
 }
@@ -113,6 +115,11 @@ pub fn[E] refresh_adaptive_dispatch(
   if policy.failure is Some(issue) {
     return Err(issue)
   }
+  // An external policy decision is outstanding. A routine refresh must not
+  // replace it with the offline default while its response is in flight.
+  if policy.pending_choice is Some(_) {
+    return Ok(())
+  }
   guard @strategy.next_captured_task(run) is Some(next) else { return Ok(()) }
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
   let key = (
@@ -123,7 +130,15 @@ pub fn[E] refresh_adaptive_dispatch(
   if policy.seen == Some(key) {
     return Ok(())
   }
-  let result = rebuild_adaptive_dispatch(policy)
+  let result = match rebuild_adaptive_dispatch(policy) {
+    Err(issue) => Err(issue)
+    Ok(choices) =>
+      match @strategy.commit_strategy_choice(choices, None) {
+        Ok(Selected(_)) => Ok(())
+        Ok(_) => Err(NoStrategy)
+        Err(issue) => Err(Search(issue))
+      }
+  }
   policy.seen = Some(key)
   if result is Err(issue) {
     policy.failure = Some(issue)
@@ -135,9 +150,82 @@ pub fn[E] refresh_adaptive_dispatch(
 }
 
 ///|
+/// Construct a bounded candidate set for a policy service at a planning
+/// boundary. The Host may perform I/O while this owner-bound set is pending;
+/// no task can dispatch until an explicit choice is committed.
+pub fn[E] prepare_adaptive_policy_choice(
+  policy : AdaptiveDispatch[E],
+) -> Result[@strategy.StrategyChoiceSet?, AdaptiveEstimateIssue[E]] {
+  if policy.failure is Some(issue) {
+    return Err(issue)
+  }
+  if policy.pending_choice is Some(choices) {
+    return Ok(Some(choices))
+  }
+  let run = policy.driver.owner.run
+  guard @strategy.next_captured_task(run) is Some(next) else { return Ok(None) }
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  let key = (
+    next,
+    @strategy.captured_dag_generation(run),
+    { ..usage, planning_work: 0, },
+  )
+  if policy.seen == Some(key) {
+    return Ok(None)
+  }
+  match rebuild_adaptive_dispatch(policy) {
+    Ok(choices) => {
+      policy.seen = Some(key)
+      policy.pending_choice = Some(choices)
+      Ok(Some(choices))
+    }
+    Err(issue) => {
+      policy.seen = Some(key)
+      policy.failure = Some(issue)
+      stop_dispatch_driver(policy.driver)
+      Err(issue)
+    }
+  }
+}
+
+///|
+/// Accept only a current feasible candidate from the pending set. `None` is
+/// an explicit decision to use the offline default after a policy failure.
+pub fn[E] commit_adaptive_policy_choice(
+  policy : AdaptiveDispatch[E],
+  position : Int?,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  if policy.failure is Some(issue) {
+    return Err(issue)
+  }
+  guard policy.pending_choice is Some(choices) else {
+    return Err(InvalidConfiguration)
+  }
+  match @strategy.commit_strategy_choice(choices, position) {
+    Ok(Selected(_)) => {
+      policy.pending_choice = None
+      Ok(())
+    }
+    Ok(_) => {
+      policy.pending_choice = None
+      policy.failure = Some(NoStrategy)
+      stop_dispatch_driver(policy.driver)
+      Err(NoStrategy)
+    }
+    Err(InvalidPreference) => Err(Search(InvalidPreference))
+    Err(issue) => {
+      policy.pending_choice = None
+      policy.failure = Some(Search(issue))
+      stop_dispatch_driver(policy.driver)
+      Err(Search(issue))
+    }
+  }
+}
+
+///|
 fn[E] rebuild_adaptive_dispatch(
   policy : AdaptiveDispatch[E],
-) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+) -> Result[@strategy.StrategyChoiceSet, AdaptiveEstimateIssue[E]] {
   let run = policy.driver.owner.run
   let graph = @strategy.captured_dag_graph(run)
   let count = @strategy.graph_task_count(graph)
@@ -237,9 +325,8 @@ fn[E] rebuild_adaptive_dispatch(
       Err(Unavailable) | Err(ForeignOffer) => return Err(ForeignSelection)
     }
   }
-  match @strategy.revise_strategy(run, offers, policy.registry, None) {
-    Ok(Selected(_)) => Ok(())
-    Ok(_) => Err(NoStrategy)
+  match @strategy.prepare_strategy_choices(run, offers, policy.registry, None) {
+    Ok(choices) => Ok(choices)
     Err(issue) => Err(Search(issue))
   }
 }

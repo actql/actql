@@ -173,6 +173,19 @@ rejected before comparison. Candidate order, price and route never modify the
 shared semantic derivation. All shared runtime requirements remain visible and
 pending even after a candidate has been selected.
 
+The common search can also expose a bounded, owner-bound `StrategyChoiceSet`
+before committing a revision. A placement policy may inspect its feasible
+assessments and registered implementations, then propose one original assignment
+position. This allows the policy to prefer an eligible candidate for reasons
+other than estimated latency without falsifying the cost estimate. A proposal
+does not reserve capacity or start a task. At commit, the common search checks
+the Run generation, resource state and current registration availability; an
+invalid or stale response cannot silently fall back to another position. The
+default offline latency choice uses this same preparation and commit path.
+External policy I/O belongs to the Host between those two calls. While a
+response is pending, routine Host refresh does not substitute the offline
+choice. Dispatch still performs its ordinary exact input and reservation checks.
+
 ## Mock execution and capture separation
 
 The synchronous mock attempt copies only a bounded container of immutable source

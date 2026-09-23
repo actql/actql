@@ -72,3 +72,100 @@ test "adaptive implementation failure is sticky and revokes old direct dispatch"
   assert_eq(@resources.ledger_usage(ledger), stopped)
   @resources.settle_reservation(ledger, reservation).unwrap()
 }
+
+///|
+test "adaptive policy waits for an explicit feasible placement" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  let driver = @host_driver.open_dispatch_driver(run)
+  let local_registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let native = @connector.capability_registration_at(registry, 1).unwrap()
+  let entries = @connector.install_capability_implementations(
+    registry,
+    [
+      (
+        local_registration,
+        fn(
+          _context : Unit,
+          task,
+          _quantities : @host_driver.TaskEstimateQuantities,
+        ) -> Result[Array[@strategy.TaskOffer], String] {
+          @strategy.prepare_task_offer(
+            run,
+            task,
+            local_registration,
+            1,
+            [{ work_slots: [0], milliseconds: Some(1L), }],
+            {
+              transfer_bytes: 0L,
+              retained_bytes: 100L,
+              execution_bytes: 2000L,
+            },
+            100,
+          )
+          .map(offer => [offer])
+          .map_err(_ => "local-offer-failed")
+        },
+      ),
+      (
+        native,
+        fn(
+          _context : Unit,
+          task,
+          _quantities : @host_driver.TaskEstimateQuantities,
+        ) -> Result[Array[@strategy.TaskOffer], String] {
+          @strategy.prepare_task_offer(
+            run,
+            task,
+            native,
+            1,
+            [{ work_slots: [0], milliseconds: Some(100L), }],
+            {
+              transfer_bytes: 0L,
+              retained_bytes: 100L,
+              execution_bytes: 2000L,
+            },
+            100,
+          )
+          .map(offer => [offer])
+          .map_err(_ => "native-offer-failed")
+        },
+      ),
+    ],
+    2,
+  ).unwrap()
+  let policy = @host_driver.open_adaptive_dispatch(
+    driver,
+    registry,
+    entries,
+    [Some(1000), Some(1000), Some(1000)],
+    { max_offers: 6, max_strategies: 8, max_work: 1000, max_revisions: 1, },
+    0,
+  ).unwrap()
+  let choices = @host_driver.prepare_adaptive_policy_choice(policy)
+    .unwrap()
+    .unwrap()
+  assert_eq(@strategy.strategy_choice_count(choices), 8)
+  assert_eq(@strategy.strategy_history_count(run), 0)
+  @host_driver.refresh_adaptive_dispatch(policy).unwrap()
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  assert_true(
+    @host_driver.commit_adaptive_policy_choice(policy, Some(8))
+    is Err(Search(InvalidPreference)),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  @host_driver.commit_adaptive_policy_choice(policy, Some(7)).unwrap()
+  let revision = @strategy.captured_dag_strategy(run).unwrap()
+  assert_eq(@strategy.strategy_assessment(revision).position, 7)
+  assert_true(
+    physical_equal(
+      @strategy.strategy_registration(revision, 1).unwrap(),
+      native,
+    ),
+  )
+  assert_eq(@strategy.strategy_history_count(run), 1)
+  assert_true(
+    @host_driver.commit_adaptive_policy_choice(policy, Some(0))
+    is Err(InvalidConfiguration),
+  )
+}
