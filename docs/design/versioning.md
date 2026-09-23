@@ -36,8 +36,13 @@ compatibility or force all version domains to advance in lockstep.
 
 Decide per contract, not per feature branch. The initial ActQL product
 contracts, including the runtime bundle, are being completed at 0.1. Internal
-Store schema revisions used to migrate development data are separate from the
-product contract version. A version identifies one normative contract and,
+Store catalog labels are separate from the product contract version. The
+unpublished native bundle Store has one current catalog schema, not a chain of
+development-format readers or migrations. An unsupported existing catalog is
+rejected without treating its physical allocations as an empty Store. A
+persisted Store outside controlled development fixtures requires a separate
+migration decision before it is changed. A version identifies one normative
+contract and,
 where applicable, one canonical signed preimage. The following rules apply
 before a writer emits a changed body:
 
