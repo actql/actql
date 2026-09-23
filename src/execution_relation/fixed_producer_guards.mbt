@@ -61,6 +61,30 @@ pub fn execute_fixed_producers_guarded(
   max_value_bytes~ : Int,
   physical : FixedInputGuardMeasureLimits,
 ) -> Result[CompletedSequence, FixedInputGuardIssue] {
+  execute_fixed_producers_guarded_with_usage(
+    original,
+    inputs,
+    target,
+    execution,
+    max_rows~,
+    max_value_bytes~,
+    physical,
+  ).map(value => value.0)
+}
+
+///|
+/// Return the actual cumulative guard use only after all input and output
+/// measurement has completed. The existing guarded entrypoint discards this
+/// diagnostic; neither path changes admission or charges on failure.
+pub fn execute_fixed_producers_guarded_with_usage(
+  original : GeneratedSequence,
+  inputs : Array[ProducerRead],
+  target : @pipeline.Target,
+  execution : SequenceExecutionLimits,
+  max_rows~ : Int,
+  max_value_bytes~ : Int,
+  physical : FixedInputGuardMeasureLimits,
+) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue] {
   if max_rows < 0 ||
     max_value_bytes < 0 ||
     physical.max_work < 0 ||
@@ -128,6 +152,16 @@ pub fn execute_fixed_producers_guarded(
   guard output.table is Some(table) else { return Err(MissingOutput) }
   match measure_input_values(table, max_value_bytes, Output, budget) {
     Err(issue) => Err(issue)
-    Ok(_) => Ok(completed)
+    Ok(_) =>
+      Ok(
+        (
+          completed,
+          (
+            physical.max_work - budget.work,
+            physical.max_bytes - budget.bytes,
+            physical.max_nodes - budget.nodes,
+          ),
+        ),
+      )
   }
 }

@@ -34,6 +34,7 @@ function installed(consume, completionFailure, options = {}) {
       finish: () => { events.push('verified'); return ok(); },
     }],
     execute: () => { events.push('execute'); return ok(); },
+    guard_usage: () => [12, 34, 5],
     settle: () => { events.push('settle'); return ok(); },
     complete: () => {
       events.push('complete');
@@ -62,7 +63,9 @@ test('Local contribution admits, reads, executes and completes before exposing i
   const output = await f.entry.run(f.task);
   assert.deepEqual(f.events, ['reserved', 'begin', ['charge', 10n], ['row', '{"id":3}'],
     'verified', 'execute', 'settle', 'complete']);
-  assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 1, importedBytes: '10'});
+  assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 1,
+    importedBytes: '10', measuredGuardWork: 12, measuredGuardBytes: 34,
+    measuredGuardNodes: 5});
   output.close();
   assert.equal(f.events.at(-1), 'close');
 });
@@ -84,6 +87,7 @@ test('standard Local legacy completion observes forced Site loss', async () => {
         return ok();
       },
       settle: () => ok(),
+      guard_usage: () => [0, 0, 0],
       complete() {
         completionCalls++;
         completed = true;

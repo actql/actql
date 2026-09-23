@@ -98,6 +98,7 @@ pub struct LocalDispatchOperations {
   inputs : Array[LocalInputTransfer]
   output : LocalOutputTransfer?
   execute : () -> Result[Unit, LocalDispatchIssue]
+  guard_usage : () -> Array[Int]
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
   close : () -> Unit

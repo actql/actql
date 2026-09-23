@@ -71,7 +71,7 @@ test "two fixed producer ports share storage but not admission or measurement cr
     max_nodes: 12,
     max_depth: 100,
   }
-  let result = execute_fixed_producers_guarded(
+  let (result, guard_usage) = execute_fixed_producers_guarded_with_usage(
     generated,
     inputs,
     Step(0),
@@ -80,6 +80,9 @@ test "two fixed producer ports share storage but not admission or measurement cr
     max_value_bytes=1,
     measurement,
   ).unwrap()
+  assert_true(guard_usage.0 > 0)
+  assert_true(guard_usage.1 > 0)
+  assert_eq(guard_usage.2, 12)
   let output = completed_output(result, Step(0)).unwrap()
   assert_true(completed_output_matches_inputs(output, inputs))
   assert_false(completed_output_matches_inputs(output, [inputs[1], inputs[0]]))

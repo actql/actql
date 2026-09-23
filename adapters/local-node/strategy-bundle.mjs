@@ -418,7 +418,16 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         recordManagedFailureExecutionSettled(failureProgress);
         completionPermit?.assertAvailable?.();
         checked(operations.complete());
-        return {diagnostic: {realization: 'local', importedRows, importedBytes: String(importedBytes), ...exported},
+        const guardUsage = operations.guard_usage();
+        if (!Array.isArray(guardUsage) || guardUsage.length !== 3 ||
+            !guardUsage.every(value => Number.isSafeInteger(value) && value >= 0)) {
+          throw new Error('MissingLocalGuardUsage');
+        }
+        return {diagnostic: {realization: 'local', importedRows,
+          importedBytes: String(importedBytes),
+          measuredGuardWork: guardUsage[0],
+          measuredGuardBytes: guardUsage[1],
+          measuredGuardNodes: guardUsage[2], ...exported},
           close: output ? async () => {
             output?.close();
             operations.close();

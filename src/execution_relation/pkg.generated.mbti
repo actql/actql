@@ -326,6 +326,8 @@ pub fn execute_fixed_producer_inputs(GeneratedSequence, Array[ProducerRead], Seq
 
 pub fn execute_fixed_producers_guarded(GeneratedSequence, Array[ProducerRead], @pipeline_typing.Target, SequenceExecutionLimits, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[CompletedSequence, FixedInputGuardIssue]
 
+pub fn execute_fixed_producers_guarded_with_usage(GeneratedSequence, Array[ProducerRead], @pipeline_typing.Target, SequenceExecutionLimits, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue]
+
 pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], SequenceExecutionLimits, produced? : Array[BoundProducerInput]) -> Result[CompletedSequence, SequenceRunIssue]
 
 pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimits) -> Result[CompletedSequence, LocalComputeIssue]

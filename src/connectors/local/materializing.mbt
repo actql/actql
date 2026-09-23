@@ -25,13 +25,14 @@ struct LocalMaterializingAttempt {
   copies : Array[@execution.CompletedOutput?]
   limits : LocalImportLimits
   execute : (Array[@execution.CompletedOutput?]) -> Result[
-    @execution.CompletedOutput,
+    (@execution.CompletedOutput, (Int, Int, Int)),
     @connector.FixedComputeIssue,
   ]
   mut started : Bool
   mut closed : Bool
   mut settled : Bool
   mut output : @execution.CompletedOutput?
+  mut guard_usage : (Int, Int, Int)?
   output_limits : LocalExportLimits?
   mut exported : Bool
   mut export_stream : @execution.CompletedOutputExport?
@@ -168,16 +169,17 @@ pub fn[E] prepare_local_materializing_execution(
         copies: Array::make(inputs.length(), None),
         limits: imports,
         execute: copies => {
-          execute_local_fixed_compute(
+          execute_local_fixed_compute_with_usage(
             choice,
             prepared,
             execution,
             measurement~,
             join_output_ceilings=ceilings,
             representations=copies,
-          ).bind(completed => {
+          ).bind(result => {
+            let (completed, usage) = result
             match @execution.completed_output(completed, target) {
-              Some(output) => Ok(output)
+              Some(output) => Ok((output, usage))
               None => Err(@connector.FixedComputeIssue::UnsupportedInputShape)
             }
           })
@@ -186,6 +188,7 @@ pub fn[E] prepare_local_materializing_execution(
         closed: false,
         settled: false,
         output: None,
+        guard_usage: None,
         output_limits,
         exported: false,
         export_stream: None,
@@ -331,14 +334,27 @@ pub fn execute_local_materializing_attempt(
   }
   attempt.started = true
   match (attempt.execute)(attempt.copies) {
-    Ok(output) => {
+    Ok((output, usage)) => {
       attempt.output = Some(output)
+      attempt.guard_usage = Some(usage)
       Ok(())
     }
     Err(error) => {
       close_local_materializing_attempt(attempt)
       Err(Candidate(error))
     }
+  }
+}
+
+///|
+/// Available only after successful complete input and output measurement.
+pub fn local_materializing_guard_usage(
+  attempt : LocalMaterializingAttempt,
+) -> (Int, Int, Int)? {
+  if attempt.closed || !attempt.started {
+    None
+  } else {
+    attempt.guard_usage
   }
 }
 

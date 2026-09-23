@@ -21,6 +21,17 @@ DuckDB. These measurements can inform an estimate model; they are neither
 calibration evidence by themselves nor proof of the small-case timing gate.
 Cost estimates, enforceable capacity and policy preferences remain separate.
 
+The fixed-producer Local path now exposes its completed input/output guard
+measurement in the task diagnostic. The implementation reads the existing
+cumulative budget after successful measurement; it does not re-evaluate the
+sequence or infer a charge from elapsed time. A held-out 10,000-row source with
+three selected Local tasks completed in a diagnostic run, each reporting work
+9, bytes 16 and nodes 4. JS, Wasm and native execution-relation tests each
+passed 759/759, and the Node Local strategy tests passed 16/16. This makes
+Local's observed guard use available, but the equivalent-obligation comparator
+still has a DuckDB-specific per-task accounting model. These observations do
+not turn the six Local-selected matrix cases into admitted pairs.
+
 The native policy check used `ACTQL_TEST_SCRATCH_ROOT` pointing to a writable
 workspace scratch directory with `node scripts/test-native-http-client.mjs`.
 The real mTLS fixture covered success, lost response, foreign policy identity,

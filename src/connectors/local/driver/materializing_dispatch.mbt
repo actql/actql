@@ -49,6 +49,7 @@ pub struct LocalDispatchOperations {
   inputs : Array[LocalInputTransfer]
   output : LocalOutputTransfer?
   execute : () -> Result[Unit, LocalDispatchIssue]
+  guard_usage : () -> Array[Int]
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
   close : () -> Unit
@@ -76,6 +77,7 @@ pub fn[C, E] start_local_dispatch(
         inputs: [],
         output: None,
         execute: () => Ok(()),
+        guard_usage: () => [],
         settle: () => Ok(()),
         complete: () => Ok(()),
         close: fn() {  },
@@ -140,6 +142,12 @@ pub fn[C, E] start_local_dispatch(
           @local.execute_local_materializing_attempt(attempt).map_err(issue => {
             Preparation(Materializing(issue))
           })
+        },
+        guard_usage: () => {
+          match @local.local_materializing_guard_usage(attempt) {
+            Some((work, bytes, nodes)) => [work, bytes, nodes]
+            None => []
+          }
         },
         settle: () => {
           @strategy.settle_task_execution(run, ticket, true).map_err(issue => {

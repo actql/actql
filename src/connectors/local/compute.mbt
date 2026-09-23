@@ -426,6 +426,32 @@ pub fn execute_local_fixed_compute(
   join_output_ceilings? : Array[(Int, Int64)] = [],
   representations? : Array[@execution.CompletedOutput?],
 ) -> Result[@execution.CompletedSequence, @connector.FixedComputeIssue] {
+  execute_local_fixed_compute_with_usage(
+    choice,
+    prepared,
+    limits,
+    measurement~,
+    join_output_ceiling~,
+    join_output_ceilings~,
+    representations?,
+  ).map(value => value.0)
+}
+
+///|
+/// The usage is an observation of the admitted fixed input and output guard,
+/// not an estimate or an additional execution of the sequence.
+pub fn execute_local_fixed_compute_with_usage(
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
+  limits : @execution.SequenceExecutionLimits,
+  measurement~ : @execution.FixedInputGuardMeasureLimits,
+  join_output_ceiling? : (Int, Int64)? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
+  representations? : Array[@execution.CompletedOutput?],
+) -> Result[
+  (@execution.CompletedSequence, (Int, Int, Int)),
+  @connector.FixedComputeIssue,
+] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
     return Err(NotSelected)
@@ -465,7 +491,7 @@ pub fn execute_local_fixed_compute(
       }
     }
   }
-  @execution.execute_fixed_producers_guarded(
+  @execution.execute_fixed_producers_guarded_with_usage(
     sequence,
     inputs,
     target,

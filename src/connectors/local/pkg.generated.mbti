@@ -27,6 +27,8 @@ pub fn close_local_materializing_attempt(LocalMaterializingAttempt) -> Unit
 
 pub fn execute_local_fixed_compute(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, measurement~ : @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?, join_output_ceilings? : Array[(Int, Int64)], representations? : Array[@execution_relation.CompletedOutput?]) -> Result[@execution_relation.CompletedSequence, @connector_sdk.FixedComputeIssue]
 
+pub fn execute_local_fixed_compute_with_usage(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, measurement~ : @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?, join_output_ceilings? : Array[(Int, Int64)], representations? : Array[@execution_relation.CompletedOutput?]) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @connector_sdk.FixedComputeIssue]
+
 pub fn[T] execute_local_managed_fixed_compute(@connector_sdk.ManagedFixedComputeChoice[T], @connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], Array[@execution_relation.ProducerRead], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, join_output_ceilings? : Array[(Int, Int64)], interval_search_ceilings? : Array[(Int, Int64)], asof_search_ceilings? : Array[(Int, Int64)], aggregate_output_ceilings? : Array[@connector_sdk.AggregateOutputCeiling], analytic_envelopes? : Array[@connector_sdk.AnalyticEnvelope], numeric? : @execution_relation.NumericAggregateExecution?) -> Result[@execution_relation.CompletedOutput, @connector_sdk.FixedComputeIssue]
 
 pub fn execute_local_materializing_attempt(LocalMaterializingAttempt) -> Result[Unit, LocalMaterializingIssue]
@@ -48,6 +50,8 @@ pub fn[T] local_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistr
 pub fn local_managed_sequence_supported(@execution_relation.GeneratedSequence) -> Bool
 
 pub fn local_materializing_completed_output(LocalMaterializingAttempt) -> @execution_relation.CompletedOutput?
+
+pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, Int)?
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
