@@ -257,6 +257,14 @@ The retained comparison function also accepts an explicit fifth argument such as
 `{resident: true, nativeMilliseconds: '20'}`. Defaults remain fresh selection
 with a supplied native estimate of `'1'`. Reports snapshot and hash these
 selection inputs, and retain the actual per-task realizations and import counts.
+For a task-specific cost experiment, pass both `localTaskMilliseconds` and
+`nativeTaskMilliseconds` arrays with one decimal-string duration per Compute
+task, plus an `estimateSource` SHA-256 reference. The example Host then compares
+those supplied costs through the ordinary planner instead of its fixed Local
+`1 + 2 * rows` and native fixed estimates. The reference records provenance;
+the comparator does not prove that the figures came from measurement. A formal
+runner must verify independent calibration evidence and held-out workload
+selection before treating such a sample as cost-grounded.
 Enabling resident candidates does not force them past eligibility or resource
 checks. The estimate is not elapsed time, and changing it is a different selection
 configuration, not an optimization speedup by itself.

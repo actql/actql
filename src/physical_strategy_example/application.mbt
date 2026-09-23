@@ -660,6 +660,34 @@ fn core_application_retained_local_dispatch(
 }
 
 ///|
+fn core_application_retained_task_estimate_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  local_import_ms : Int64,
+  local_export_ms : Int64,
+  local_task_ms : Array[Int64],
+  native_task_ms : Array[Int64],
+  resident : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  @dbhost.dispatch_installation(
+    create_application_strategy_dispatch(
+      app,
+      run,
+      native_fixed_ms,
+      resident,
+      Some((file_bytes, Some(file_work_ms))),
+      local_import_ms=Some(local_import_ms),
+      local_export_ms=Some(local_export_ms),
+      local_task_ms~,
+      native_task_ms~,
+    ),
+  )
+}
+
+///|
 fn create_application_strategy_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
@@ -668,6 +696,7 @@ fn create_application_strategy_dispatch(
   retained : (Int64, Int64?)?,
   local_import_ms? : Int64? = None,
   local_export_ms? : Int64? = None,
+  local_task_ms? : Array[Int64] = [],
   native_task_ms? : Array[Int64] = [],
   managed_output? : Bool = false,
 ) -> @dbhost.StrategyHostDispatch raise {
@@ -679,8 +708,13 @@ fn create_application_strategy_dispatch(
       !native_task_ms.is_empty() &&
       native_task_ms.length() != app.generated.length()
     ) ||
-    native_task_ms.any(value => value < 0L) {
-    fail("invalid native task estimates")
+    native_task_ms.any(value => value < 0L) ||
+    (
+      !local_task_ms.is_empty() &&
+      local_task_ms.length() != app.generated.length()
+    ) ||
+    local_task_ms.any(value => value < 0L) {
+    fail("invalid task estimates")
   }
   let dispatch = @dbhost.configure_strategy_dispatch(
     run,
@@ -753,8 +787,8 @@ fn create_application_strategy_dispatch(
       local_rates: [
         {
           work_slots: [0, 1, 2, 3, 4],
-          fixed_ms: Some(1L),
-          per_row_ms: Some(2L),
+          fixed_ms: Some(local_task_ms.get(index).unwrap_or(1L)),
+          per_row_ms: Some(if local_task_ms.is_empty() { 2L } else { 0L }),
           per_wire_byte_ms: Some(0L),
           per_pair_ms: Some(0L),
         },

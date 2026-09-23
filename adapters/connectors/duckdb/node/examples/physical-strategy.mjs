@@ -51,7 +51,7 @@ export async function runExample({ database, environment, environmentCid, progra
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, dataProfile, signal }, observer) {
+  nativeTaskMilliseconds, localTaskMilliseconds, dataProfile, signal }, observer) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
@@ -65,7 +65,7 @@ export async function runExample({ database, environment, environmentCid, progra
     adoptedText, query, evidence, receipts, retainedOutput,
     acquisitionRetainedOutput, managedOutput,
     retainedWorkMilliseconds, localImportWorkMilliseconds,
-    localExportWorkMilliseconds, nativeTaskMilliseconds, dataProfile});
+    localExportWorkMilliseconds, nativeTaskMilliseconds, localTaskMilliseconds, dataProfile});
   const opened = await plan.open(signal);
   let execution;
   try {
@@ -94,7 +94,7 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, dataProfile}, resourceLimits) {
+  nativeTaskMilliseconds, localTaskMilliseconds, dataProfile}, resourceLimits) {
   const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
@@ -139,6 +139,14 @@ export async function prepareExampleText({database, environmentCid, programText,
   if (taskEstimates.some(value => typeof value !== 'string' || !/^\d{1,18}$/.test(value))) {
     throw new Error('Invalid native task estimates');
   }
+  if (localTaskMilliseconds !== undefined &&
+      (localExportWorkMilliseconds === undefined || !Array.isArray(localTaskMilliseconds))) {
+    throw new Error('Invalid local task estimates');
+  }
+  const localTaskEstimates = Object.freeze(Array.from(localTaskMilliseconds ?? []));
+  if (localTaskEstimates.some(value => typeof value !== 'string' || !/^\d{1,18}$/.test(value))) {
+    throw new Error('Invalid local task estimates');
+  }
   if (localExportWorkMilliseconds !== undefined &&
       (!retained || localImportWorkMilliseconds === undefined || !/^\d{1,18}$/.test(localExportWorkMilliseconds) ||
         retained.maxFrameBytes !== (data?.batch_bytes ?? 100000) || retained.wire.max_bytes !== (data?.wire_bytes ?? 100000))) {
@@ -168,6 +176,9 @@ export async function prepareExampleText({database, environmentCid, programText,
   const preparedAt = performance.now();
   if (nativeTaskMilliseconds !== undefined && taskEstimates.length !== app.applicationComputeCount(prepared)) {
     throw new Error('Invalid native task estimate count');
+  }
+  if (localTaskMilliseconds !== undefined && localTaskEstimates.length !== app.applicationComputeCount(prepared)) {
+    throw new Error('Invalid local task estimate count');
   }
   const computeTransport = data ? {...transportLimits,
     // Each input INSERT yields a one-cell acknowledgement. These rows are
@@ -262,7 +273,12 @@ export async function prepareExampleText({database, environmentCid, programText,
           BigInt(retainedWorkMilliseconds), resident)
         : retained
         ? localExportWorkMilliseconds !== undefined
-          ? app.applicationRetainedLocalDispatch(prepared, graph, BigInt(nativeMilliseconds),
+          ? localTaskMilliseconds !== undefined
+            ? app.applicationRetainedTaskEstimateDispatch(prepared, graph, BigInt(nativeMilliseconds),
+            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),
+            BigInt(localImportWorkMilliseconds), BigInt(localExportWorkMilliseconds),
+            localTaskEstimates.map(BigInt), taskEstimates.map(BigInt), resident)
+            : app.applicationRetainedLocalDispatch(prepared, graph, BigInt(nativeMilliseconds),
             BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),
             BigInt(localImportWorkMilliseconds), BigInt(localExportWorkMilliseconds), taskEstimates.map(BigInt), resident)
           : localImportWorkMilliseconds !== undefined

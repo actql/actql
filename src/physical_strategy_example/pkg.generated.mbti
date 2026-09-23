@@ -49,6 +49,8 @@ pub fn application_retained_dispatch(Application, @physical_strategy.CapturedDAG
 
 pub fn application_retained_local_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
+pub fn application_retained_task_estimate_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Array[Int64], Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+
 pub fn application_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @standard_host.StrategyHostDispatch raise
 
 pub fn application_task_completion_preparation(Application, Int) -> @execution_relation.CompletionPreparation raise

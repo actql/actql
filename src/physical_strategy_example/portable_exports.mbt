@@ -256,3 +256,23 @@ pub fn application_retained_local_dispatch(
     native_task_ms, resident,
   )
 }
+
+///|
+#cfg(not(target="js"))
+pub fn application_retained_task_estimate_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  local_import_ms : Int64,
+  local_export_ms : Int64,
+  local_task_ms : Array[Int64],
+  native_task_ms : Array[Int64],
+  resident : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  core_application_retained_task_estimate_dispatch(
+    app, run, native_fixed_ms, file_bytes, file_work_ms, local_import_ms, local_export_ms,
+    local_task_ms, native_task_ms, resident,
+  )
+}

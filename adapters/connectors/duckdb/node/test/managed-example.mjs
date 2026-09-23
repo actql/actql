@@ -35,8 +35,15 @@ export async function exerciseManagedExample(database, environmentText, environm
     await assert.rejects(prepareExampleText({...estimateInput, nativeTaskMilliseconds}),
       /Invalid native task estimate/);
   }
+  for (const localTaskMilliseconds of [['20', '1'], [], ['20', '-1', '1'], ['20', 1, '1']]) {
+    await assert.rejects(prepareExampleText({...estimateInput, localTaskMilliseconds}),
+      /Invalid local task estimate/);
+  }
   const corrected = await prepareExampleText({...estimateInput, nativeTaskMilliseconds: ['20', '20', '1']});
   assert.equal(typeof corrected.open, 'function');
+  const withTaskEstimates = await prepareExampleText({...estimateInput,
+    localTaskMilliseconds: ['1', '1', '1'], nativeTaskMilliseconds: ['20', '20', '20']});
+  assert.equal(typeof withTaskEstimates.open, 'function');
   const childLimits = {planning_work: 100000, attempts: 10, holdings: 10,
     transfer_bytes: 500000n, retained_bytes: 200000000n, execution_bytes: 268435456n};
   // Explicit data profile crosses the old 100-row boundary through the same

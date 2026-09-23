@@ -34,7 +34,7 @@ test('sample cleanup permits missing completion but never unconfirmed release', 
 test('retained comparator rejects invalid selection before preparing or executing', async () => {
   for (const options of [null, [], {resident: 'true'}, {nativeMilliseconds: '-1'},
     {nativeMilliseconds: '1.5'}, {nativeMilliseconds: '2147483648'}, {nativeMilliseconds: 20},
-    {unknown: true}]) {
+    {localTaskMilliseconds: '1'}, {nativeTaskMilliseconds: 1}, {unknown: true}]) {
     await assert.rejects(runRetainedComparator(undefined, undefined, undefined, undefined, options),
       {code: 'ERR_ASSERTION'});
   }
@@ -65,6 +65,22 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert.equal(report.comparator, 'retained-actql');
       assert.equal(report.scope, 'managed-host-cycle-diagnostic');
       assert.deepEqual(report.selection, {resident: false, nativeMilliseconds: '1'});
+      if (workload === workloads[0]) {
+        const estimates = {
+          resident: true,
+          nativeMilliseconds: '20',
+          localTaskMilliseconds: ['1000', '1000', '1000'],
+          nativeTaskMilliseconds: ['1', '1', '1'],
+          estimateSource: `sha256:${'0'.repeat(64)}`,
+        };
+        const selected = await runRetainedComparator(
+          fixture, contracts, database, directory, estimates,
+        );
+        assert.equal(selected.status, 'completed');
+        assert.equal(selected.expectedRowsCid, report.expectedRowsCid);
+        assert.deepEqual(selected.selection, estimates);
+        assert(selected.tasks.every(task => task.realization === 'duckdb'));
+      }
       assert.equal(report.expectedRowsCid, fixture.identity().rowsCid);
       const evidence = report.acquisitionEvidence;
       assert.deepEqual(evidence.receipts.map(value => value.role),

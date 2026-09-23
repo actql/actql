@@ -36,18 +36,42 @@ export async function closeRetainedSample(result, finalTask) {
 
 export async function runRetainedComparator(fixture, contracts, database, directory, options = {}) {
   assert(options && typeof options === 'object' && !Array.isArray(options), 'InvalidComparatorOptions');
-  assert(Object.keys(options).every(key => ['resident', 'nativeMilliseconds'].includes(key)),
+  assert(Object.keys(options).every(key => ['resident', 'nativeMilliseconds',
+    'localTaskMilliseconds', 'nativeTaskMilliseconds', 'estimateSource'].includes(key)),
     'UnknownComparatorOption');
+  assert(options.localTaskMilliseconds === undefined ||
+    Array.isArray(options.localTaskMilliseconds), 'InvalidTaskEstimates');
+  assert(options.nativeTaskMilliseconds === undefined ||
+    Array.isArray(options.nativeTaskMilliseconds), 'InvalidTaskEstimates');
   // Snapshot selection inputs before any await. These are estimates, never
   // measurements or permission to override a reservation/capacity refusal.
   const selection = Object.freeze({resident: options.resident ?? false,
-    nativeMilliseconds: options.nativeMilliseconds ?? '1'});
+    nativeMilliseconds: options.nativeMilliseconds ?? '1',
+    ...(options.localTaskMilliseconds === undefined ? {} : {
+      localTaskMilliseconds: Object.freeze([...options.localTaskMilliseconds])}),
+    ...(options.nativeTaskMilliseconds === undefined ? {} : {
+      nativeTaskMilliseconds: Object.freeze([...options.nativeTaskMilliseconds])}),
+    ...(options.estimateSource === undefined ? {} : {estimateSource: options.estimateSource})});
   assert.equal(typeof selection.resident, 'boolean', 'InvalidResidentSelection');
   assert(typeof selection.nativeMilliseconds === 'string' &&
     /^(0|[1-9][0-9]*)$/.test(selection.nativeMilliseconds) &&
     BigInt(selection.nativeMilliseconds) <= 2147483647n, 'InvalidNativeEstimate');
   const config = managedCaseConfiguration(fixture, contracts, database, directory);
-  const input = Object.freeze({...config.input, ...selection});
+  const taskRates = [selection.localTaskMilliseconds, selection.nativeTaskMilliseconds];
+  assert(taskRates.every(value => value === undefined) ||
+    taskRates.every(value => Array.isArray(value) && value.length === config.finalTask &&
+      value.every(item => typeof item === 'string' && /^(0|[1-9][0-9]*)$/.test(item) &&
+        BigInt(item) <= 2147483647n)), 'InvalidTaskEstimates');
+  assert(taskRates[0] === undefined ||
+    typeof selection.estimateSource === 'string' &&
+      /^sha256:[0-9a-f]{64}$/.test(selection.estimateSource),
+  'MissingEstimateEvidence');
+  assert(taskRates[0] !== undefined || selection.estimateSource === undefined,
+    'UnusedEstimateEvidence');
+  const input = Object.freeze({...config.input, resident: selection.resident,
+    nativeMilliseconds: selection.nativeMilliseconds,
+    ...(taskRates[0] === undefined ? {} : {
+      localTaskMilliseconds: taskRates[0], nativeTaskMilliseconds: taskRates[1]})});
   const expected = fixture.identity(); // Independent oracle, not timed product work.
   const memory = sampleControllerMemory();
   let result, memoryReport, elapsed, cleanupMs, report;
