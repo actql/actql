@@ -124,6 +124,10 @@ export async function callHttpsCredentialResource({
       tenant: scope.tenant,
       environment: scope.environment,
       operation: scope.operation,
+      resourceOrigin: scope.resourceOrigin,
+      siteKey: scope.siteKey,
+      siteGeneration: scope.siteGeneration,
+      connectorRegistration: scope.connectorRegistration,
     }), signal);
     if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
     signal?.throwIfAborted();
