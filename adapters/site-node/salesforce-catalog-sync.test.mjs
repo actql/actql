@@ -120,7 +120,7 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
     runtimeBundleCid: cid('a'), connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', resourceOrigin: origin,
     operation, runInvocationCid: cid('b'), taskAttempt: 2,
-    dispatchRequestCid: cid('c'),
+    dispatchRequestCid: cid(operation === 'salesforce:query:read' ? 'd' : 'c'),
     expiresUnixMilliseconds: 2_000_000_000_000n,
     maxUses: 5,
   });
@@ -350,6 +350,8 @@ test('Site HTTPS query follows the exact locator with bounded page delivery',
   async t => {
     const setup = await fixture(t);
     const plan = await queryProjection(setup);
+    assert.notEqual(setup.query.scope.dispatchRequestCid,
+      setup.list.scope.dispatchRequestCid);
     const delivered = [];
     const result = await readSalesforceQuery(queryRequest(setup, plan, {
       consumePage: async (page, context) => {
