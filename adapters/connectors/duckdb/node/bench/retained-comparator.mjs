@@ -13,6 +13,8 @@ const usage = value => Object.fromEntries(Object.entries(value).map(([key, v]) =
   [key, typeof v === 'bigint' ? v.toString() : v]));
 
 function warmTaskMilliseconds(task) {
+  const taskElapsed = task.taskElapsedMilliseconds;
+  if (Number.isFinite(taskElapsed) && taskElapsed >= 0) return taskElapsed;
   const resident = task.phases?.workMilliseconds;
   if (Number.isFinite(resident) && resident >= 0) return resident;
   const inputs = task.phases?.inputs;

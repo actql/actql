@@ -355,6 +355,8 @@ test('opaque registrations choose installed execution without a backend classifi
   assert.equal(result.status, 'host-tasks-completed');
   assert.deepEqual(calls, [0, 2, 1]);
   assert.deepEqual(result.completed.map(value => value.task), [1, 2, 3]);
+  assert(result.completed.every(value =>
+    Number.isFinite(value.taskElapsedMilliseconds) && value.taskElapsedMilliseconds >= 0));
   result.close(); result.close();
   assert.equal(f.closed(), 1);
 });

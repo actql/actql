@@ -715,6 +715,9 @@ export async function runInstalledStrategy(
       }) : task;
       let result, siteResult;
       let successProgress;
+      // The same physical task boundary is measured for every realization.
+      // This is diagnostic timing, never a cost estimate or execution proof.
+      const taskStarted = performance.now();
       try {
         result = await (managed
           ? entry.runPrepared(siteTask, signal)
@@ -861,6 +864,7 @@ export async function runInstalledStrategy(
       }
       completed.push(Object.freeze({
         ...result?.diagnostic,
+        taskElapsedMilliseconds: performance.now() - taskStarted,
         task: index,
         executionSite: executionSiteDescription(siteCandidate.site),
       }));

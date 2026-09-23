@@ -83,6 +83,11 @@ timings. INSERT time is part of each input interval; preparation and receiving
 callbacks are parts of command time. Do not sum overlapping intervals. Counters
 distinguish actual statement executions from SQL preparations, so preparation
 reuse cannot be mistaken for fewer imported rows or shared transfer.
+Each completed Host task also reports `taskElapsedMilliseconds`, measured from
+the selected implementation's run call through its admitted completion. It
+uses the same boundary for Local and DuckDB. The sum is a warm task interval;
+it excludes candidate preparation and process startup and is not a cost-model
+calibration by itself.
 `controlTransport` separately reports the process channel's submitted and received
 wire bytes as decimal strings. These include envelopes, configuration, accounting,
 Store requests and completion metadata, not only result descriptors. Submitted
