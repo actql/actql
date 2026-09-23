@@ -342,6 +342,8 @@ pub fn strategy_effect_set_footprint_conflicts_check(Array[String], Array[Int], 
 
 pub fn strategy_effect_set_frontier(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
 
+pub fn strategy_effect_set_frontier_from_ledger(Array[String], Array[Int], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
+
 pub fn strategy_effect_set_frontier_outcome(@effect_application.EffectSetFrontier) -> Int
 
 pub fn strategy_effect_set_frontier_ready_count(@effect_application.EffectSetFrontier) -> Int
