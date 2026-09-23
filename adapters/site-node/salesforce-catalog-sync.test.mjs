@@ -17,6 +17,7 @@ import {openSqliteCredentialJournal} from
 import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
+import {readSalesforceQuery} from './salesforce-query-read.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -39,7 +40,8 @@ function openssl(root, ...arguments_) {
 }
 
 async function fixture(t, {customStatus = 200, customResponse = customBody,
-  listStatus = 200, listResponse = listBody} = {}) {
+  listStatus = 200, listResponse = listBody,
+  querySecondStatus = 200, queryFirstResponse} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-catalog-'));
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out',
@@ -74,6 +76,20 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
       '/services/data/v62.0/sobjects/Test_Record__c/describe') {
       response.writeHead(customStatus, {'content-type': 'application/json'});
       response.end(customResponse);
+    } else if (request.url ===
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account') {
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(queryFirstResponse ?? JSON.stringify({totalSize: 2, done: false,
+        nextRecordsUrl: '/services/data/v62.0/query/01gABC-2000',
+        records: [{attributes: {type: 'Account'}, Id: '001A'}]}));
+    } else if (request.url ===
+      '/services/data/v62.0/query/01gABC-2000') {
+      response.writeHead(querySecondStatus,
+        {'content-type': 'application/json'});
+      response.end(querySecondStatus === 200
+        ? JSON.stringify({totalSize: 2, done: true,
+          records: [{attributes: {type: 'Account'}, Id: '001B'}]})
+        : JSON.stringify([{errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
     } else {
       response.writeHead(404).end();
     }
@@ -116,8 +132,9 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   };
   const list = authorize('salesforce:catalog:list');
   const describe = authorize('salesforce:catalog:describe');
+  const query = authorize('salesforce:query:read');
   return {
-    seen, journal, list, describe, ca,
+    seen, journal, list, describe, query, ca,
     credential: {
       control, journal,
       resolveSecret: async () => 'test-only-secret',
@@ -293,4 +310,132 @@ test('list rejection keeps the provider reason without starting describes',
       {code: 'SalesforceCatalogListRejected', reason: 1},
     );
     assert.equal(setup.seen.length, 1);
+  });
+
+async function queryProjection(setup) {
+  const catalog = await syncSalesforceCatalog(request(setup));
+  const binding = setup.list.scope;
+  return checked(salesforceMoon.salesforcePrepareReadProjection(
+    catalog.observation,
+    binding.tenant, binding.principal, binding.environment,
+    'connection-revision-a', binding.siteKey, binding.siteGeneration,
+    binding.connectorRegistration, binding.connectorRevision,
+    binding.resourceOrigin, binding.runInvocationCid,
+    binding.dispatchRequestCid, 'catalog-sync-a', 'Account', ['Id'], 100));
+}
+
+const queryLimits = Object.freeze({maxBytes: 4096, maxNodes: 100,
+  maxDepth: 10, maxRows: 2, maxLocatorUnits: 128,
+  maxPages: 3, maxTotalRows: 4});
+
+function queryRequest(setup, plan, overrides = {}) {
+  return {
+    moon: salesforceMoon,
+    plan,
+    apiVersion: 'v62.0',
+    initialAuthorization: {...setup.query, useId: 'query-initial'},
+    authorizationForPage: async () => ({
+      ...setup.query, useId: 'query-continuation',
+    }),
+    credential: setup.credential,
+    limits: queryLimits,
+    consumePage: async () => {},
+    ...overrides,
+  };
+}
+
+test('Site HTTPS query follows the exact locator with bounded page delivery',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const delivered = [];
+    const result = await readSalesforceQuery(queryRequest(setup, plan, {
+      consumePage: async (page, context) => {
+        delivered.push({index: context.pageIndex,
+          rows: salesforceMoon.salesforceQueryPageRowCount(page)});
+      },
+    }));
+    assert.deepEqual(delivered, [{index: 0, rows: 1},
+      {index: 1, rows: 1}]);
+    assert.equal(result.rowCount, 2n);
+    assert.equal(result.pages.length, 2);
+    assert.deepEqual(setup.seen.slice(-2).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+      '/services/data/v62.0/query/01gABC-2000',
+    ]);
+    assert.equal(setup.journal.inspect(result.pages[0].useCid).outcome,
+      'succeeded');
+    assert.equal(setup.journal.inspect(result.pages[1].useCid).outcome,
+      'succeeded');
+    assert.ok(result.pages.every(entry => entry.responseSha256.length === 64));
+  });
+
+test('failed locator cannot be replaced by a fresh query in one observation',
+  async t => {
+    const setup = await fixture(t, {querySecondStatus: 503});
+    const plan = await queryProjection(setup);
+    const delivered = [];
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      consumePage: async page => delivered.push(
+        salesforceMoon.salesforceQueryPageRowCount(page)),
+    })), {code: 'SalesforceQueryResourceRejected'});
+    assert.deepEqual(delivered, [1]);
+    assert.deepEqual(setup.seen.slice(-2).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+      '/services/data/v62.0/query/01gABC-2000',
+    ]);
+  });
+
+test('foreign continuation authority is rejected before the next request',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      authorizationForPage: async () => ({...setup.query,
+        useId: 'foreign-query-continuation',
+        scope: {...setup.query.scope, siteGeneration: 5}}),
+    })), {code: 'InvalidSalesforceQueryAuthorization'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
+  });
+
+test('foreign initial query authority is rejected before any query request',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      initialAuthorization: {...setup.query,
+        useId: 'foreign-query-initial',
+        scope: {...setup.query.scope, siteGeneration: 5}},
+    })), {code: 'ForeignSalesforceQueryProjection'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 0);
+  });
+
+test('invalid locator fails closed before a second credential use',
+  async t => {
+    const setup = await fixture(t, {queryFirstResponse: JSON.stringify({
+      totalSize: 2, done: false,
+      nextRecordsUrl: 'https://foreign.invalid/query/01gABC',
+      records: [{Id: '001A'}],
+    })});
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan)),
+      {code: 'MoonBitHostFailure'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
+  });
+
+test('page consumer failure stops the locator chain instead of retrying',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      consumePage: async () => {
+        throw Object.assign(new Error('PageConsumerFailed'),
+          {code: 'PageConsumerFailed'});
+      },
+    })), {code: 'PageConsumerFailed'});
+    assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
   });
