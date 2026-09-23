@@ -14,6 +14,9 @@ import * as salesforceConformance from
   '../../_build/js/release/build/connectors/salesforce/site_test/site_test.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {openEffectLedger} from '../host-node/effect-ledger.mjs';
+import {captureSalesforceSingleEffectWrite} from
+  '../host-node/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
@@ -380,6 +383,83 @@ test('Site sends one scoped Salesforce write and keeps response as observation',
       '{"External_Key__c":"key-1"}',
     ]]);
   });
+
+test('Host claim owns one local HTTPS write', async t => {
+  const setup = await fixture(t);
+  const catalog = await syncSalesforceCatalog(request(setup));
+  const binding = setup.list.scope;
+  const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+    catalog.observation,
+    binding.tenant, binding.principal, binding.environment,
+    'connection-revision-a', binding.siteKey, binding.siteGeneration,
+    binding.connectorRegistration, binding.connectorRevision,
+    binding.resourceOrigin, binding.runInvocationCid,
+    binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+    0, '', ['External_Key__c'], 2));
+  const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+    projection, Buffer.from('{"External_Key__c":"key-1"}'),
+    1024, 32, 5));
+  const outbound = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+    body, 'v62.0', 0, '', 0, 256, 128, 1024));
+  const requestCid = checked(salesforceMoon.salesforceSingleWriteRequestCid(
+    outbound, binding.resourceOrigin, 4096));
+  const effect = runtimeCore(commonMoon).effectApplicationControl;
+  const authorityScopeCid = cid('8');
+  const scope = effect.logicalRequestScope(authorityScopeCid,
+    'salesforce-business-request', 128);
+  const key = effect.dispatchKey(scope, cid('7'), '"row-1"', 32, 8, 3);
+  const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+    'CreateOne', '{"row":"key-1"}', 64, 128, 8, 3);
+  const basis = effect.ledgerBasis(scope, locator, key,
+    cid('6'), cid('5'), cid('4'), requestCid, cid('3'),
+    'unavailable', cid('2'), cid('1'));
+  const claim = {scope, locator, key, basis,
+    intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
+  const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-effect-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const open = () => openEffectLedger({moon: commonMoon, root,
+    authorityScopeCid, callerRequestId: 'salesforce-business-request',
+    maxEntryBytes: 4096});
+  const options = {claim, moon: salesforceMoon, request: outbound,
+    currentObservation: catalog.observation,
+    authorization: {...setup.write, useId: 'effect-write-use'},
+    credential: setup.credential,
+    limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+      maxNodes: 32, maxDepth: 5}};
+  const first = open();
+  t.after(() => first.close());
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first,
+    claim: {...claim, canonicalRequestCid: cid('9')},
+  }), {code: 'InvalidEffectPhysicalDispatch'});
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first,
+    authorization: {...options.authorization,
+      scope: {...options.authorization.scope, siteGeneration: 5}},
+  }), {code: 'ForeignSalesforceEffectWrite'});
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first,
+    authorization: {...options.authorization, grant: undefined},
+  }), {code: 'ForeignSalesforceEffectWrite'});
+  assert.equal(first.current(effect.logicalItemLocatorCid(locator)), undefined);
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 0);
+  const sent = await captureSalesforceSingleEffectWrite({
+    ...options, ledger: first});
+  assert.equal(sent.claimed, true);
+  assert.equal(sent.physical.kind, 'typed-success-response');
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
+  assert.deepEqual(sent.response.responseBytes,
+    Buffer.from(JSON.stringify({id: 'a00123456789012',
+      success: true, errors: []})));
+  first.close();
+  const restarted = open();
+  t.after(() => restarted.close());
+  const retry = await captureSalesforceSingleEffectWrite({
+    ...options, ledger: restarted});
+  assert.equal(retry.claimed, false);
+  assert.equal(retry.ownership.action, 3);
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
+});
 
 test('Site does not promote rejected or malformed writes to Effect success',
   async t => {
