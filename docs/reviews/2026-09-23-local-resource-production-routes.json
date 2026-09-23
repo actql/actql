@@ -1159,6 +1159,13 @@
           "fixture": "standard Host selects bounded external cross join for two consumers"
         },
         {
+          "role": "external_product_mixed_stage_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+          "fixture": "standard Host splits cross join and filter before two consumers"
+        },
+        {
           "role": "external_product_host_in_flight_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -1187,6 +1194,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "external-cross-join-in-flight"
+        },
+        {
+          "role": "external_product_mixed_stage_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-external-cross-join-in-flight"
         }
       ],
       "path_assurance": {

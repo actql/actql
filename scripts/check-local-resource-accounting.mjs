@@ -834,10 +834,15 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'product_work_workspace_exact_one_short',
       'managed_pre_execution_cancel_cleanup',
+      'external_product_mixed_stage_two_consumers',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
       }
+    }
+    if (!environmentRoles.has(
+      'external_product_mixed_stage_timer_cancel_cleanup')) {
+      fail(`${label}: mixed-stage timer cancellation fixture is missing`);
     }
     // Closing before execute cannot prove a delivered in-flight stop.
     // A future unrelated environment fixture must not close this route.

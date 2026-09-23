@@ -5707,6 +5707,14 @@ async function exerciseStrategyGraph(
     results: {r: {from: 'out', fields: id === 'a'
       ? externalCrossFields : [...externalCrossFields].reverse()}},
   })));
+  const splitCrossJoinProgram = structuredClone(externalCrossJoinProgram);
+  const splitCrossedStage = splitCrossJoinProgram.stages.find(
+    stage => stage.id === 'crossed',
+  );
+  splitCrossedStage.steps[0].as = 'crossed_rows';
+  splitCrossedStage.steps.push({
+    from: 'crossed_rows', filter: 'id > 0', as: 'out',
+  });
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
@@ -5735,6 +5743,7 @@ async function exerciseStrategyGraph(
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
     ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
+    ['split external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5, 6]],
   ]) {
     const fixtureArgs = name === 'analytic' ? analyticArgs : args;
     let zeroInputFixture;
@@ -5786,10 +5795,12 @@ async function exerciseStrategyGraph(
           'sort and both consumers publish complete retained outputs',
         );
       }
-      if (name === 'external cross join') {
+      if (name === 'external cross join' ||
+          name === 'split external cross join') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [2, 3, 6, 6, 6],
+          name === 'external cross join'
+            ? [2, 3, 6, 6, 6] : [2, 3, 6, 6, 6, 6],
         );
       }
       if (name === 'snapshot derive') {
@@ -5885,130 +5896,133 @@ async function exerciseStrategyGraph(
     assert.equal(zeroInputExecution.usage().heldBytes, 0n);
     assert.equal(zeroInputExecution.usage().reservedExecutionBytes, 0n);
   }
-  const externalCrossJoinCancellationCase = {
-    name: 'external-cross-join-in-flight',
-  };
-  const cancellableCrossJoinProgram = structuredClone(externalCrossJoinProgram);
-  const cancellableLeft = cancellableCrossJoinProgram.stages.find(
-    stage => stage.id === 'cross_left',
-  );
-  const cancellableRight = cancellableCrossJoinProgram.stages.find(
-    stage => stage.id === 'cross_right',
-  );
-  cancellableLeft.steps[0].values.rows = Array.from(
-    {length: 10}, (_, index) => ({id: index}),
-  );
-  cancellableRight.steps[0].values.rows = Array.from(
-    {length: 10}, (_, index) => ({tag: `tag${index}`}),
-  );
-  const crossJoinCancellationFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(cancellableCrossJoinProgram),
-  );
-  const crossJoinCancellationCapture = await runNativeHostQuery(
-    grant,
-    fixture.strategyFixtureAcquisition(crossJoinCancellationFixture),
-    suppliedLimits,
-  );
-  const crossJoinCancellation = new AbortController();
-  let crossJoinCancellationExecution;
-  let crossJoinManagedStarts = 0;
-  let crossJoinPairProgress = 0n;
-  let crossJoinCancellationScheduled = false;
-  let crossJoinCancellationDeliveredAt;
-  let crossJoinStopObservedAt;
-  crossJoinCancellation.signal.addEventListener('abort', () => {
-    crossJoinCancellationDeliveredAt = performance.now();
-  }, {once: true});
-  try {
-    assert.equal(fixture.strategyFixtureOpen(
-      crossJoinCancellationFixture,
-      crossJoinCancellationCapture.source(),
-    ), true);
-    const setup = fixture.strategyFixtureModuleSubset(
-      crossJoinCancellationFixture, 0,
+  for (const {name: cancellationName, program: cancellationProgram} of [
+    {name: 'external-cross-join-in-flight', program: externalCrossJoinProgram},
+    {name: 'split-external-cross-join-in-flight', program: splitCrossJoinProgram},
+  ]) {
+    const externalCrossJoinCancellationCase = {name: cancellationName};
+    const cancellableCrossJoinProgram = structuredClone(cancellationProgram);
+    const cancellableLeft = cancellableCrossJoinProgram.stages.find(
+      stage => stage.id === 'cross_left',
     );
-    const observedRuntime = new Proxy(hostRuntime, {
-      get(target, property, receiver) {
-        if (property !== 'strategyModule_local_ManagedStart') {
-          return Reflect.get(target, property, receiver);
-        }
-        return configuration => {
-          const start = ++crossJoinManagedStarts;
-          const execution = checked(
-            target.strategyModule_local_ManagedStart(configuration),
-          );
-          const observed = new Proxy(execution, {
-            get(operation, name, operationReceiver) {
-              if (name === 'execution_stopped') {
-                return () => {
-                  const stopped = operation.execution_stopped();
-                  if (stopped && crossJoinCancellation.signal.aborted &&
-                      crossJoinStopObservedAt === undefined) {
-                    crossJoinStopObservedAt = performance.now();
-                  }
-                  return stopped;
-                };
-              }
-              if (name !== 'advance') {
-                return Reflect.get(operation, name, operationReceiver);
-              }
-              return quantum => {
-                const result = operation.advance(quantum);
-                const observation = checked(result);
-                if (start === 3) {
-                  assert(observation.work <= BigInt(quantum));
-                }
-                if (start === 3 && observation?.complete === false &&
-                    observation.progress > 0n && observation.work > 0n) {
-                  crossJoinPairProgress += observation.progress;
-                  if (!crossJoinCancellationScheduled) {
-                    crossJoinCancellationScheduled = true;
-                    setTimeout(() => crossJoinCancellation.abort(), 0);
-                  }
-                }
-                return result;
-              };
-            },
-          });
-          return {$tag: 1, _0: observed};
-        };
-      },
-    });
-    crossJoinCancellationExecution = await runInstalledStrategy(
-      setup,
-      runtimeCore(hostRuntime),
-      [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-      crossJoinCancellation.signal,
+    const cancellableRight = cancellableCrossJoinProgram.stages.find(
+      stage => stage.id === 'cross_right',
     );
-    assert.equal(crossJoinManagedStarts, 3);
-    assert.equal(crossJoinPairProgress > 0n, true,
-      `${externalCrossJoinCancellationCase.name}: pair work must precede abort`);
-    assert.equal(crossJoinCancellation.signal.aborted, true);
-    assert.equal(Number.isFinite(crossJoinCancellationDeliveredAt), true);
-    assert.equal(Number.isFinite(crossJoinStopObservedAt), true);
-    assert(crossJoinStopObservedAt >= crossJoinCancellationDeliveredAt);
-    assert.equal(crossJoinCancellationExecution.status, 'host-tasks-failed');
-    assert.equal(crossJoinCancellationExecution.failure?.name, 'AbortError');
-    assert.deepEqual(
-      crossJoinCancellationExecution.completed.map(item => item.task),
-      [1, 2],
-      `${externalCrossJoinCancellationCase.name}: no partial cross output`,
+    cancellableLeft.steps[0].values.rows = Array.from(
+      {length: 10}, (_, index) => ({id: index}),
     );
-  } finally {
-    crossJoinCancellationCapture.close();
-    await crossJoinCancellationExecution?.close();
-    if (crossJoinCancellationExecution) {
-      let cleaned = false;
-      for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
-        cleaned = await crossJoinCancellationExecution.cleanup();
-      }
-      assert.equal(cleaned, true);
-      assert.equal(crossJoinCancellationExecution.cleanupPending(), false);
-      assert.equal(crossJoinCancellationExecution.usage().heldBytes, 0n);
-      assert.equal(
-        crossJoinCancellationExecution.usage().reservedExecutionBytes,
-        0n,
+    cancellableRight.steps[0].values.rows = Array.from(
+      {length: 10}, (_, index) => ({tag: `tag${index}`}),
+    );
+    const crossJoinCancellationFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(cancellableCrossJoinProgram),
+    );
+    const crossJoinCancellationCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(crossJoinCancellationFixture),
+      suppliedLimits,
+    );
+    const crossJoinCancellation = new AbortController();
+    let crossJoinCancellationExecution;
+    let crossJoinManagedStarts = 0;
+    let crossJoinPairProgress = 0n;
+    let crossJoinCancellationScheduled = false;
+    let crossJoinCancellationDeliveredAt;
+    let crossJoinStopObservedAt;
+    crossJoinCancellation.signal.addEventListener('abort', () => {
+      crossJoinCancellationDeliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        crossJoinCancellationFixture,
+        crossJoinCancellationCapture.source(),
+      ), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        crossJoinCancellationFixture, 0,
       );
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++crossJoinManagedStarts;
+            const execution = checked(
+              target.strategyModule_local_ManagedStart(configuration),
+            );
+            const observed = new Proxy(execution, {
+              get(operation, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = operation.execution_stopped();
+                    if (stopped && crossJoinCancellation.signal.aborted &&
+                        crossJoinStopObservedAt === undefined) {
+                      crossJoinStopObservedAt = performance.now();
+                    }
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(operation, name, operationReceiver);
+                }
+                return quantum => {
+                  const result = operation.advance(quantum);
+                  const observation = checked(result);
+                  if (start === 3) {
+                    assert(observation.work <= BigInt(quantum));
+                  }
+                  if (start === 3 && observation?.complete === false &&
+                      observation.progress > 0n && observation.work > 0n) {
+                    crossJoinPairProgress += observation.progress;
+                    if (!crossJoinCancellationScheduled) {
+                      crossJoinCancellationScheduled = true;
+                      setTimeout(() => crossJoinCancellation.abort(), 0);
+                    }
+                  }
+                  return result;
+                };
+              },
+            });
+            return {$tag: 1, _0: observed};
+          };
+        },
+      });
+      crossJoinCancellationExecution = await runInstalledStrategy(
+        setup,
+        runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        crossJoinCancellation.signal,
+      );
+      assert.equal(crossJoinManagedStarts, 3);
+      assert.equal(crossJoinPairProgress > 0n, true,
+        `${externalCrossJoinCancellationCase.name}: pair work must precede abort`);
+      assert.equal(crossJoinCancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(crossJoinCancellationDeliveredAt), true);
+      assert.equal(Number.isFinite(crossJoinStopObservedAt), true);
+      assert(crossJoinStopObservedAt >= crossJoinCancellationDeliveredAt);
+      assert.equal(crossJoinCancellationExecution.status, 'host-tasks-failed');
+      assert.equal(crossJoinCancellationExecution.failure?.name, 'AbortError');
+      assert.deepEqual(
+        crossJoinCancellationExecution.completed.map(item => item.task),
+        [1, 2],
+        `${externalCrossJoinCancellationCase.name}: no partial cross output`,
+      );
+    } finally {
+      crossJoinCancellationCapture.close();
+      await crossJoinCancellationExecution?.close();
+      if (crossJoinCancellationExecution) {
+        let cleaned = false;
+        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+          cleaned = await crossJoinCancellationExecution.cleanup();
+        }
+        assert.equal(cleaned, true);
+        assert.equal(crossJoinCancellationExecution.cleanupPending(), false);
+        assert.equal(crossJoinCancellationExecution.usage().heldBytes, 0n);
+        assert.equal(
+          crossJoinCancellationExecution.usage().reservedExecutionBytes,
+          0n,
+        );
+      }
     }
   }
   const valuesCancellationCase = {name: 'zero-input-values-in-flight'};

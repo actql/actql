@@ -58,8 +58,9 @@ cross join followed by a Relation filter in the same Stage now splits at a
 typed provider boundary. The prefix and filter use their bounded providers.
 A standard Host fixture checks quantum-one progress, two downstream Computes,
 independent release, and final reclamation. Post-pair cancellation also covers
-this split form, but Node timer delivery during this exact form is not yet
-proven. One-step zero-input `values` now uses
+this split form. The real Node standard Host fixture now delivers a timer
+cancel during this exact split form and verifies stop, nonpublication, and
+final reclamation. One-step zero-input `values` now uses
 a bounded provider: row and cell construction advance within the requested
 quantum, and a managed-driver fixture stops after cell work without
 publishing output. A separate standard Node Host fixture delivers a timer
