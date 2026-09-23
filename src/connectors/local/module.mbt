@@ -187,6 +187,10 @@ pub fn local_module_managed_provider(
   if managed_provider_accepts(cross_join, sequence) {
     return Some(cross_join)
   }
+  let append = append_provider(installed.execution, installed.measurement)
+  if managed_provider_accepts(append, sequence) {
+    return Some(append)
+  }
   let values = values_provider(installed.execution, installed.measurement)
   if managed_provider_accepts(values, sequence) {
     return Some(values)

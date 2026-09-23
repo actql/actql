@@ -12,6 +12,7 @@
     {"family": "RelA", "operation": "take", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "values", "path": "zero_input_entrypoint"},
     {"family": "RelA", "operation": "cross_join", "path": "external_input_entrypoint"},
+    {"family": "RelA", "operation": "append", "path": "external_input_entrypoint"},
     {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
     {"family": "SGA", "operation": "degree", "path": "entrypoint"}
   ],

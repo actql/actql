@@ -210,9 +210,17 @@ Do not change its expected output merely to make a new provider route pass.
   The append route now binds an independently calculated control-work and
   peak-workspace exact/one-short fixture, plus distinct-input and
   self-occurrence two-consumer reclamation fixtures. This raises the
-  operation-specific record count to 16/68. Append still uses the synchronous
-  providerless lane for its fused execution; these fixtures do not establish
-  in-flight cancellation or full route assurance.
+  operation-specific record count to 16/68. A single-step append with two
+  external Relation inputs now uses a bounded provider. Its field alignment,
+  row construction, and completion run in finite resume steps. Independent
+  exact/one-short work and workspace fixtures, quantum-one output, and
+  standard Host cancellation after row work cover this selected route on
+  JS, Wasm, and native. The Node standard Host also delivers a timer cancel
+  after row progress, observes stop, leaves the append output unpublished,
+  preserves both producer completions, and reclaims the attempt. The
+  external-input path has full path-scoped resource assurance; same-sequence
+  append still uses the synchronous providerless lane. The operation as a
+  whole is not resource-complete.
   A trial global split of Relation-only filter/sort/take pipelines changed
   physical tasks before connector selection and failed 106 of 576 JS query
   integration tests, including non-Local strategy and task-identity cases.
