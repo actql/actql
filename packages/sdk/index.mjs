@@ -441,7 +441,9 @@ export async function connect(options) {
       catch (cause) {
         throw new ClientError('InvalidHostRequestLookup', {cause});
       }
-      if (!validRequestLookup(answer)) fail('InvalidHostRequestLookup');
+      if (!validRequestLookup(answer, requestId)) {
+        fail('InvalidHostRequestLookup');
+      }
       if (answer.kind === 'found') {
         return Object.freeze({...answer, ref: Object.freeze({...answer.ref})});
       }

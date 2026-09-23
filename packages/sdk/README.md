@@ -20,7 +20,8 @@ the same intent; safety depends on the Host's atomic deduplication and its
 documented request-record retention horizon.
 Profile, admission and request-lookup replies use the public
 `@actql/client-wire` validators, including exact connection and durability
-bindings. A malformed or foreign acceptance does not become a known Run.
+bindings. A found request lookup must echo the requested ID. A malformed or
+foreign acceptance does not become a known Run.
 The Client serializes the submitted Program and parameters before awaiting an
 asynchronous credential callback, so later mutation of caller objects cannot
 change that transmission. An application that may need to resend must retain
