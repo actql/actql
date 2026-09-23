@@ -8,14 +8,17 @@ type WireConnectionBase = Readonly<{
   durability?: 'volatile' | 'durable';
   consentRefs: readonly string[];
   runners: readonly string[];
-  movementPolicyRef?: string;
 }>;
 
 export type WireConnection =
-  | (WireConnectionBase & Readonly<{mode: 'local'; owner: 'local'}>)
-  | (WireConnectionBase & Readonly<{mode: 'remote'; owner: 'remote'}>)
-  | (WireConnectionBase & Readonly<{mode: 'hybrid';
-      owner: 'local' | 'cloud'; movementPolicyRef: string}>);
+  | (WireConnectionBase & Readonly<{mode: 'local'; owner: 'local';
+      movementPolicyRef?: never; cloudConnectionRef?: never}>)
+  | (WireConnectionBase & Readonly<{mode: 'remote'; owner: 'remote';
+      movementPolicyRef?: never; cloudConnectionRef?: never}>)
+  | (WireConnectionBase & Readonly<{mode: 'hybrid'; owner: 'local';
+      movementPolicyRef: string; cloudConnectionRef: string}>)
+  | (WireConnectionBase & Readonly<{mode: 'hybrid'; owner: 'cloud';
+      movementPolicyRef: string; cloudConnectionRef?: never}>);
 
 export type WireRunRef = Readonly<{
   tenantId: string;

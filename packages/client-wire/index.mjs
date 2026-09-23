@@ -26,7 +26,8 @@ export function validClientConnection(value) {
   if (value === null || typeof value !== 'object' ||
       Array.isArray(value)) return false;
   const required = ['mode', 'owner', 'consentRefs', 'runners'];
-  const allowed = new Set([...required, 'durability', 'movementPolicyRef']);
+  const allowed = new Set([...required, 'durability', 'movementPolicyRef',
+    'cloudConnectionRef']);
   if (required.some(key => !Object.hasOwn(value, key)) ||
       Object.keys(value).some(key => !allowed.has(key)) ||
       !(value.mode === 'remote' && value.owner === 'remote' ||
@@ -35,9 +36,14 @@ export function validClientConnection(value) {
       !refs(value.consentRefs) || !refs(value.runners) ||
       value.durability !== undefined &&
         !['volatile', 'durable'].includes(value.durability)) return false;
-  return value.mode === 'hybrid'
-    ? boundedText(value.movementPolicyRef)
-    : value.movementPolicyRef === undefined && value.runners.length === 0;
+  if (value.mode === 'hybrid') {
+    if (!boundedText(value.movementPolicyRef)) return false;
+    return value.owner === 'local'
+      ? boundedText(value.cloudConnectionRef)
+      : value.cloudConnectionRef === undefined && value.runners.length > 0;
+  }
+  return value.movementPolicyRef === undefined &&
+    value.cloudConnectionRef === undefined && value.runners.length === 0;
 }
 
 export function validClientBody(operation, body) {
