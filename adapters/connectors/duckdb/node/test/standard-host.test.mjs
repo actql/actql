@@ -2771,6 +2771,7 @@ async function exerciseStrategyGraph(
   const stressSortKeys = Array.from(
     {length: 5}, (_, index) => `sort_key_${index + 1}`,
   );
+  const stressSortTextBytes = 660;
   const graphCancellationCases = [{
     name: 'concise-graph-construction',
     concise: true,
@@ -4154,8 +4155,10 @@ async function exerciseStrategyGraph(
         valueStep.schema[key] = {type: 'string', nullable: false};
       }
       for (const row of valueStep.rows) {
-        row.node_name = 'x'.repeat(165);
-        for (const key of stressSortKeys) row[key] = 'x'.repeat(165);
+        row.node_name = 'x'.repeat(stressSortTextBytes);
+        for (const key of stressSortKeys) {
+          row[key] = 'x'.repeat(stressSortTextBytes);
+        }
       }
       graphCancellationProgram.stages[1].results.r.fields.push(
         ...stressSortKeys,
@@ -4289,6 +4292,7 @@ async function exerciseStrategyGraph(
     let managedStarts = 0;
     let maxSortResumeMs = 0;
     let selectedSortAdvances = 0;
+    let selectedSortReportedWork = 0n;
     const advanceObservations = [];
     const finalizationObservations = [];
     const lifecycleObservations = [];
@@ -4384,6 +4388,7 @@ async function exerciseStrategyGraph(
                       performance.now() - resumeStartedAt,
                     );
                     selectedSortAdvances++;
+                    selectedSortReportedWork += observation?.work ?? 0n;
                   }
                   if (cancellationCase.cancelAfterSortAdvances !== undefined &&
                       start === 5 && observation?.complete === false &&
@@ -4471,6 +4476,7 @@ async function exerciseStrategyGraph(
         assert(selectedSortAdvances >=
           cancellationCase.cancelAfterSortAdvances);
         assert(Number.isFinite(maxSortResumeMs));
+        assert(selectedSortReportedWork > 0n);
       }
       assert.equal(graphCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(cancellationDeliveredAt), true);
@@ -4481,8 +4487,9 @@ async function exerciseStrategyGraph(
           maxResumeMs: maxSortResumeMs,
           stopAfterDeliveryMs: stopObservedAt - cancellationDeliveredAt,
           selectedSortAdvances,
+          reportedStepWork: selectedSortReportedWork.toString(),
           keys: stressSortKeys.length + 2,
-          textBytesPerKey: 165,
+          textBytesPerKey: stressSortTextBytes,
         }));
       }
       if (cancellationCase.cancelDuringFinalization) {
