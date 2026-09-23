@@ -47,6 +47,11 @@
   ],
   "graphs": [
     {"name":"union sum applies to equal values", "op":"union", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{"score":"number_sum"}, "expected":{"a":{"score":4}}},
+    {"name":"pairwise mean survives intermediate sum overflow", "op":"union", "left":{"a":{"score":1.7976931348623157e308}}, "right":{"a":{"score":1.7976931348623157e308}}, "merge":{"score":"number_mean"}, "expected":{"a":{"score":1.7976931348623157e308}}},
+    {"name":"pairwise mean cancels opposite large operands", "op":"union", "left":{"a":{"score":1.7976931348623157e308}}, "right":{"a":{"score":-1.7976931348623157e308}}, "merge":{"score":"number_mean"}, "expected":{"a":{"score":0}}},
+    {"name":"pairwise mean rounds a subnormal tie to even", "op":"union", "left":{"a":{"score":5e-324}}, "right":{"a":{"score":1e-323}}, "merge":{"score":"number_mean"}, "expected":{"a":{"score":1e-323}}},
+    {"name":"pairwise mean rounds a normal tie to even", "op":"union", "left":{"a":{"score":1.0000000000000002}}, "right":{"a":{"score":1.0000000000000004}}, "merge":{"score":"number_mean"}, "expected":{"a":{"score":1.0000000000000004}}},
+    {"name":"number sum still rejects overflow", "op":"union", "left":{"a":{"score":1.7976931348623157e308}}, "right":{"a":{"score":1.7976931348623157e308}}, "merge":{"score":"number_sum"}, "error":"NonFinite"},
     {"name":"ordinary subtraction removes equal entity", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{}, "expected":{}},
     {"name":"subtraction explicit sum retains transformed entity", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{"score":"number_sum"}, "expected":{"a":{"score":4}}},
     {"name":"explicit equal retains entity", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{"score":"exact_equal"}, "expected":{"a":{"score":2}}},
