@@ -2945,6 +2945,69 @@ test "graph diagnostics admit workspace before execution and clean cancel" {
 }
 
 ///|
+test "graph bounds admits exact value work and rejects one short" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":1," + "\"node_name\":\"only\",\"weight\":10}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_bounds_owner(source_owner, "{\"max_nodes\":0}")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let completion = task_test_completion(owner)
+  let start = fn(max_work, workspace) {
+    @local_sga.start_graph_bounds(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 5, max_text_bytes: 25, max_depth: 10, max_work, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    )
+  }
+  // One node needs 3 index slots; four result fields need four more.
+  assert_true(start(30, 6) is Err(@local_sga.GraphBoundsWorkspaceLimit))
+  let exact = start(30, 7).unwrap()
+  let output = finish_graph_bounds(exact).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("nodes")))
+  assert_eq(@local_sga.cleanup_graph_bounds(exact), Ok(true))
+  // The row object and four scalar values cost five nodes. Four field names
+  // cost 4+7+6+3 bytes, and the only text value, "nodes", costs five more.
+  // Thus the independent value-work bound is 5 + 20 + 5 = 30.
+  let short = start(29, 7).unwrap()
+  assert_true(
+    finish_graph_bounds(short)
+    is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(short), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
 test "degree metrics preserve directions and admitted execution" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)

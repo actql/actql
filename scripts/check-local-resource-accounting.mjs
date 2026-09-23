@@ -816,6 +816,10 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: in-flight Host cancellation evidence is missing`);
     }
   }
+  if (route.family === 'SGA' && route.operation === 'graph_bounds' &&
+    !boundaryRoles.has('graph_bounds_value_work_exact_one_short')) {
+    fail(`${label}: exact value-work boundary fixture is missing`);
+  }
 }
 
 // Route fixtures cannot make a synchronous providerless resume interruptible.

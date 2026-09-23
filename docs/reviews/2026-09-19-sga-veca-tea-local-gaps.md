@@ -135,7 +135,10 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   workspace boundaries with in-flight cancellation after charged work. A Node
   standard Host timer reaches the same graph-bounds operation, giving its
   direct entrypoint all four proof roles. Its kernel reports cumulative work,
-  but its direct start has no local cumulative work ceiling. The provider
+  and a separate one-row fixture now fixes the output value-work boundary at
+  30 units, rejects 29, and admits seven workspace slots but rejects six.
+  This value-construction budget is not the kernel's cumulative control-work
+  ceiling: its direct start has no local cumulative work ceiling. The provider
   receives the common execution limits but does not yet use its execution
   work ceiling; the value limit passed to the kernel is a separate validation
   budget. The common selected execution ceiling needs an exact/one-short
@@ -183,8 +186,9 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   cancellation result. Each set includes real Host timer cancellation.
   Their ordinary or multi-step fallback paths are not covered by those
   selected fixtures. Graph normalization and graph bounds have all four
-  lifecycle proof roles, but neither has independently registered exact and
-  one-short work and workspace evidence. The completion command intentionally
+  lifecycle proof roles. Graph bounds now has independent value-work evidence,
+  but neither operation has independently registered exact and one-short
+  cumulative control-work assurance. The completion command intentionally
   fails. The ordinary resource command checks route identity and existing
   scoped evidence without claiming release completion.
   Checked Relation sort after a Carrier projection now has a selected task
