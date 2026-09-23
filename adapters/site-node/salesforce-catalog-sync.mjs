@@ -1,5 +1,7 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+import {matchesSalesforceCredentialOrg} from
+  './salesforce-credential-binding.mjs';
 
 const versionPattern = /^v[1-9][0-9]*\.[0-9]+$/;
 const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -65,6 +67,7 @@ export async function syncSalesforceCatalog({
   moon,
   apiVersion,
   connectionRevision,
+  orgId,
   syncOccurrence,
   maxObservationBytes,
   listAuthorization,
@@ -78,6 +81,7 @@ export async function syncSalesforceCatalog({
   if (!moon || !versionPattern.test(apiVersion) ||
       typeof connectionRevision !== 'string' ||
       connectionRevision.length === 0 ||
+      !matchesSalesforceCredentialOrg(credential, orgId) ||
       typeof syncOccurrence !== 'string' || syncOccurrence.length === 0 ||
       !count(maxObservationBytes) || maxObservationBytes === 0 ||
       typeof authorizationForDescribe !== 'function' ||
@@ -181,6 +185,7 @@ export async function syncSalesforceCatalog({
     listScope.principal,
     listScope.environment,
     connectionRevision,
+    orgId,
     listScope.siteKey,
     listScope.siteGeneration,
     listScope.connectorRegistration,

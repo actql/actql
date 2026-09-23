@@ -54,6 +54,7 @@ fn plan(
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-a",
+    org_id: "00D000000000001EAA",
     site_key: "site-a",
     site_generation: 1,
     connector_registration: "salesforce",

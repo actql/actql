@@ -52,6 +52,11 @@ pub fn single_write_request_body(value : SingleWriteRequest) -> String {
 }
 
 ///|
+pub fn single_write_request_org_id(value : SingleWriteRequest) -> String {
+  value.projection.binding.org_id
+}
+
+///|
 pub fn single_write_request_kind(value : SingleWriteRequest) -> WriteSingleKind {
   value.kind
 }

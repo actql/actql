@@ -58,6 +58,8 @@ pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[Wri
 
 pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
 
+pub fn prepare_write_target_identity(WriteProjection, WriteTargetValue, Int, Int) -> Result[WriteTargetIdentity, WriteCollectionRequestIssue]
+
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
 pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
@@ -138,6 +140,8 @@ pub fn single_write_request_matches_site_scope(SingleWriteRequest, String, Strin
 
 pub fn single_write_request_method(SingleWriteRequest) -> String
 
+pub fn single_write_request_org_id(SingleWriteRequest) -> String
+
 pub fn single_write_request_path(SingleWriteRequest) -> String
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
@@ -155,6 +159,8 @@ pub fn write_collection_request_grant_operation(WriteCollectionRequest) -> Strin
 pub fn write_collection_request_matches_site_scope(WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn write_collection_request_method(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_org_id(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_path(WriteCollectionRequest) -> String
 
@@ -182,6 +188,12 @@ pub fn write_single_response_sha256(WriteSingleResponse) -> String
 
 pub fn write_single_result(WriteSingleResponse) -> WriteRowResult
 
+pub fn write_target_boundary_cid(WriteTargetIdentity) -> String
+
+pub fn write_target_object_cid(WriteTargetIdentity) -> String
+
+pub fn write_target_scheme_cid(WriteTargetIdentity) -> String
+
 // Errors
 
 // Types and methods
@@ -199,6 +211,7 @@ pub(all) struct CatalogObservationBinding {
   principal : String
   environment : String
   connection_revision : String
+  org_id : String
   site_key : String
   site_generation : Int
   connector_registration : String
@@ -591,6 +604,12 @@ pub(all) enum WriteSingleResponseIssue {
   UnexpectedStatus
   InvalidResponse
 } derive(Eq, @debug.Debug)
+
+pub struct WriteTargetIdentity {
+  boundary_cid : String
+  scheme_cid : String
+  object_cid : String
+}
 
 pub(all) enum WriteTargetValue {
   NoWriteTarget
