@@ -22,10 +22,12 @@ The intervening MoonBit work now collects structurally checked Effect headers
 and binds their direct Result references to exact checked Stage Result fields.
 The binding retains each field's admitted type and its selector, key, command
 target, or value role. The next increment rejects a Command target field that
-is not a non-null value-level ResourceRef. It still cannot check the reference
-kind against the resolved Command Contract. It does not resolve complete
-Mapping/Command Contracts, establish current authority, admit a Preview, or
-permit execution.
+is not a non-null value-level ResourceRef. A further target-only selector
+matches its kind to the exact Command Contract in an identity-checked
+Connector Catalog. This is not complete Command Contract admission: input,
+permission, recovery, current authority, and the checked Program's exact
+Environment binding remain open. Complete Mapping Contract admission,
+Preview, and apply permission are also still absent.
 The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member
