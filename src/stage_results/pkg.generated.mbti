@@ -269,6 +269,7 @@ pub(all) enum EffectMappingRuleIssueKind {
   InvalidBody
   MissingRequiredField(String)
   MissingResultField(String)
+  IncompatibleSourceType(String)
   RowFields(@check_environment.MappingRowFieldsIssue)
   Conversion(@check_environment.MappingConversionIssue)
   Permission(@check_environment.MappingPermissionIssue)

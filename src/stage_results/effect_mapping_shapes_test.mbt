@@ -3,8 +3,13 @@ fn effect_mapping_shape_fixture_with_body(
   rules : String,
   required_fields : String,
   row_source : String,
+  target_type? : String = "number",
 ) -> @environment.MappingContractShapes {
   let before = "{\"connector_manifest_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"conversions\":[],"
+  let target_schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":true,\"type\":\"" +
+    target_type +
+    "\"}},\"nullable\":false,\"type\":\"object\"}"
+  let target_schema_cid = "sha256:" + @sha.hex(@utf8.encode(target_schema))
   let after = "\"mapping_ref\":\"mapping:crm.account.v1\",\"minimum_approval\":\"none\",\"permission_rules\":" +
     rules +
     "," +
@@ -14,8 +19,11 @@ fn effect_mapping_shape_fixture_with_body(
     "\"row_mapping\":{\"Name\":{\"field\":\"" +
     row_source +
     "\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\"," +
-    "\"target_schema\":{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":true,\"type\":\"string\"}},\"nullable\":false,\"type\":\"object\"}," +
-    "\"target_schema_identity\":\"sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66\",\"version\":\"salesforce-v1\",\"writable_fields\":[\"Name\"]}"
+    "\"target_schema\":" +
+    target_schema +
+    ",\"target_schema_identity\":\"" +
+    target_schema_cid +
+    "\",\"version\":\"salesforce-v1\",\"writable_fields\":[\"Name\"]}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(before + after))
   let body = before + "\"mapping_contract_cid\":\"" + cid + "\"," + after
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"

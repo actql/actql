@@ -261,8 +261,10 @@ every non-Command member. Mapping row values, type conversions, exact
 Environment ownership, current grants, Preview, and apply remain unadmitted.
 The bridge additionally rejects inline create when a required target field
 is omitted and result-backed create/store when an explicitly mapped source
-field is absent from the retained checked Result. Those checks do not yet
-prove source-to-target type compatibility or conversion-law closure.
+field is absent from the retained checked Result. Direct Result-field copies
+now check their non-null value shape against the exact target field, including
+inline update/upsert `set` references. Literal value admission, null behavior,
+and conversion-law closure remain open.
 Declared conversion entries are now checked against writable targets, exact
 source-contract identities, and law CIDs before the static rule is exposed;
 equal Mapping bodies share one admitted inventory across Effect members.
