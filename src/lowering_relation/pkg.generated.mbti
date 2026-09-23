@@ -705,8 +705,6 @@ pub fn node_at(Prepared, Int) -> PreparedNode?
 
 pub fn node_count(Prepared) -> Int
 
-pub fn node_has_bounded_relation_handoff(PreparedNode) -> Bool
-
 pub fn node_id(PreparedNode) -> String
 
 pub fn node_input_count(PreparedNode) -> Int
