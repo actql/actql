@@ -50,6 +50,8 @@ pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, Strin
 
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
 
+pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRequestLimits) -> Result[SingleWriteRequest, WriteRequestIssue]
+
 pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
 
 pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
@@ -115,6 +117,12 @@ pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[Fi
 pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn single_write_request_body(SingleWriteRequest) -> String
+
+pub fn single_write_request_method(SingleWriteRequest) -> String
+
+pub fn single_write_request_path(SingleWriteRequest) -> String
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
 
@@ -386,6 +394,12 @@ pub(all) enum ResourceSelectionIssue {
   DescribeMismatch
 } derive(Eq, @debug.Debug)
 
+pub struct SingleWriteRequest {
+  verb : String
+  path : String
+  body : String
+}
+
 pub struct WriteBody {
   projection : WriteProjection
   json : String
@@ -466,6 +480,21 @@ pub(all) struct WriteProviderError {
   fields : Array[String]
 } derive(Eq, @debug.Debug)
 
+pub(all) enum WriteRequestIssue {
+  InvalidLimits
+  InvalidVersion
+  InvalidTarget
+  TargetTypeMismatch
+  InvalidUnicode
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteRequestLimits {
+  max_path_bytes : Int
+  max_target_bytes : Int
+  max_body_bytes : Int
+}
+
 pub(all) enum WriteRowResult {
   RowApplied(String, Bool)
   RowFailed(Array[WriteProviderError])
@@ -487,6 +516,13 @@ pub(all) enum WriteSingleResponseIssue {
   BudgetExceeded
   UnexpectedStatus
   InvalidResponse
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteTargetValue {
+  NoWriteTarget
+  RecordId(String)
+  ExternalText(String)
+  ExternalInt(Int)
 } derive(Eq, @debug.Debug)
 
 // Type aliases
