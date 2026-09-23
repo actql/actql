@@ -239,3 +239,19 @@ It passed JS/Wasm/native checks, the example's JS test, the focused Node
 configuration test, format, and one real-DuckDB 100-row retained diagnostic.
 The changed revision still needs a fresh fixed-SHA performance assessment;
 the old timings must not be reused as its result.
+
+At clean revision `ad320af81`, the registered narrow/100000 retained-reuse
+case completed seven alternating equivalent-obligation pairs. All seven pairs
+were admitted, but the unchanged 1.25 ratio gate failed: estimate 1.668,
+95% bootstrap interval 1.484–1.858. The product still chose three fresh
+DuckDB tasks. Its resident alternative declared about 3.22 GB of retained
+capacity and was rejected against the unchanged 1 GiB ledger limit. Matching
+the DuckDB memory configuration therefore repaired a comparison disparity but
+did not close the actual reuse cost. The one-case assessment remains incomplete
+for the 27-case experiment. Its raw `assessment.json` and `case-00.json` are
+in workspace scratch `equivalent-narrow-ad320`, with SHA-256 digests
+`fba0c96159a18d43f23d399848b05f096f1c9e2746306554be10cc4fa6425855`
+and `1e0d884b55540965fe629673649deb2729817461436bdce7971561e627327e38`.
+The failed larger training candidate was preserved as a mixed Local/DuckDB
+selection after confirmed cleanup; the smaller registered training case was
+used without changing the held-out evaluation fixture.
