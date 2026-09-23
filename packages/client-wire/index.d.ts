@@ -64,6 +64,46 @@ export declare function validClientConnection(value: unknown):
 export declare function validClientBody<O extends ClientHostOperation>(
   operation: O, body: unknown): body is WireClientBodyByOperation[O];
 
+type WireProfileSelection =
+  | Readonly<{mode: 'local'; owner: 'local'}>
+  | Readonly<{mode: 'remote'; owner: 'remote'}>
+  | Readonly<{mode: 'hybrid'; owner: 'local' | 'cloud'}>;
+
+export type WireClientProfile = WireProfileSelection & Readonly<{
+  version: 'actql-client-host/0.1';
+  durability: 'volatile' | 'durable';
+  scopeRef: string;
+  capabilities: readonly string[];
+  limits: Readonly<{
+    maxReadWireBytes: number;
+    maxRowWireBytes: number;
+    maxRowRetainedValueBytes: number;
+    maxRetainedValueBytes: number;
+    maxRows: number;
+    maxBatchRows: number;
+    maxBatchRetainedValueBytes: number;
+  }>;
+}>;
+
+export type WireClientAdmission = Readonly<{
+  ref: WireRunRef;
+  durability: 'volatile' | 'durable';
+  revision: number;
+}>;
+
+export type WireRequestLookup =
+  | Readonly<{kind: 'found'; ref: WireRunRef;
+      durability: 'volatile' | 'durable'; lookupExpiresAt: string}>
+  | Readonly<{kind: 'not_found'}>
+  | Readonly<{kind: 'unknown'; reason: string}>;
+
+export declare function validClientProfile(value: unknown,
+  selected: WireConnection): value is WireClientProfile;
+export declare function validClientAdmission(value: unknown,
+  selected: WireConnection): value is WireClientAdmission;
+export declare function validRequestLookup(value: unknown):
+  value is WireRequestLookup;
+
 export type WireDeliveryAttempt = Readonly<{
   version: 'actql-delivery-attempt/0.1';
   attempt_id: string;

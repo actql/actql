@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clientHostOperations, validClientBody, validClientConnection,
-  validDeliveryAttemptLookup, validRunRef} from './index.mjs';
+import {clientHostOperations, validClientAdmission, validClientBody,
+  validClientConnection, validClientProfile, validDeliveryAttemptLookup,
+  validRequestLookup, validRunRef} from './index.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
@@ -56,6 +57,47 @@ test('Hybrid wire binds Cloud assistance to its selected Run owner', () => {
   assert.equal(validClientBody('connect', {connection: {...connection,
     cloudConnectionRef: 'registered-cloud-a'}}), false);
 });
+
+test('Host profile and admission replies bind the selected connection', () => {
+  const selected = {...connection, durability: 'durable'};
+  const profile = {version: 'actql-client-host/0.1', mode: 'remote',
+    owner: 'remote', durability: 'durable', scopeRef: 'scope-a',
+    capabilities: ['aql-document'],
+    limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+      maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+      maxRows: 10, maxBatchRows: 3,
+      maxBatchRetainedValueBytes: 1024}};
+  const admission = {ref, durability: 'durable', revision: 4};
+  assert.equal(validClientProfile(profile, selected), true);
+  assert.equal(validClientAdmission(admission, selected), true);
+  assert.equal(validClientProfile({...profile, durability: 'volatile'},
+    selected), false);
+  assert.equal(validClientAdmission({...admission, durability: 'volatile'},
+    selected), false);
+  assert.equal(validClientProfile({...profile, owner: 'cloud'},
+    selected), false);
+  assert.equal(validClientProfile({...profile,
+    limits: {...profile.limits, maxRows: 1.5}}, selected), false);
+  assert.equal(validClientAdmission({...admission,
+    ref: {...ref, tenantId: ''}}, selected), false);
+  assert.equal(validClientAdmission({...admission, revision: -1},
+    selected), false);
+});
+
+test('request lookup retains found, absent and observation-unknown replies',
+  () => {
+    assert.equal(validRequestLookup({kind: 'found', ref,
+      durability: 'volatile',
+      lookupExpiresAt: '2026-09-24T00:00:00.000Z'}), true);
+    assert.equal(validRequestLookup({kind: 'not_found'}), true);
+    assert.equal(validRequestLookup({kind: 'unknown',
+      reason: 'query_failed'}), true);
+    assert.equal(validRequestLookup({kind: 'found', ref: {...ref,
+      runDefinitionCid: 'foreign'}, durability: 'durable',
+    lookupExpiresAt: 'tomorrow'}), false);
+    assert.equal(validRequestLookup({kind: 'not_found', ref}), false);
+    assert.equal(validRequestLookup({kind: 'unknown', reason: ''}), false);
+  });
 
 const delivery = JSON.parse(readFileSync(new URL(
   './fixtures/delivery-attempt.found.json', import.meta.url), 'utf8'));

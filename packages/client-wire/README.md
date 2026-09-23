@@ -15,6 +15,12 @@ attempt ID, Run definition and Result name. It also checks the shared artifact
 and serialization contract CIDs, record state, receipt reference, byte count
 and digest. The Host still authorizes lookup against tenant, scope and grant;
 those private grant facts are not present in this public response.
+`validClientProfile`, `validClientAdmission` and `validRequestLookup` check
+closed Host response shapes. Profile and admission validation bind the selected
+connection and reject a durable downgrade. Request lookup preserves distinct
+found, not-found and observation-unknown results. These decoders do not make
+an acceptance durable or prove that an absent request cannot be accepted
+later.
 
 These functions do not authenticate callers, grant movement or execution,
 admit Program intent, interpret Run state, or validate a Remote Site message.
