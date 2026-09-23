@@ -232,6 +232,61 @@ test('invalid refs and unsafe endpoints are rejected before transport', async t 
     {code: 'InvalidRunReference'});
 });
 
+test('attach rejects each foreign Run reference before status or read',
+  async t => {
+    let returned = ref;
+    const operations = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      operations.push(operation);
+      if (operation === 'connect') return Response.json(profile);
+      if (operation === 'attach') return Response.json({
+        ...admission, ref: returned});
+      throw new Error(`unexpected ${operation}`);
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    for (const field of ['tenantId', 'authorityScopeCid',
+      'runDefinitionCid']) {
+      returned = {...ref, [field]: field === 'tenantId' ? 'tenant-b' :
+        `sha256:${'c'.repeat(64)}`};
+      await assert.rejects(client.attach(ref),
+        {code: 'ForeignHostAdmission'});
+    }
+    returned = ref;
+    assert.deepEqual((await client.attach(ref)).ref, ref);
+    assert.deepEqual(operations,
+      ['connect', 'attach', 'attach', 'attach', 'attach']);
+  });
+
+test('attach snapshots the requested reference before async credentials',
+  async t => {
+    let releaseCredential;
+    let credentialCalls = 0;
+    let sent;
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      if (operation === 'connect') return Response.json(profile);
+      if (operation === 'attach') {
+        sent = JSON.parse(init.body).ref;
+        return Response.json(admission);
+      }
+      throw new Error(`unexpected ${operation}`);
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect({...options, token: () => {
+      credentialCalls++;
+      return credentialCalls === 1 ? 'scoped-token' :
+        new Promise(resolve => { releaseCredential = resolve; });
+    }});
+    const mutable = {...ref};
+    const attached = client.attach(mutable);
+    mutable.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
+    releaseCredential('scoped-token');
+    assert.deepEqual((await attached).ref, ref);
+    assert.deepEqual(sent, ref);
+  });
+
 test('a complete row prefix without the end marker remains incomplete', async t => {
   mock.method(globalThis, 'fetch', async url => {
     const operation = url.pathname.split('/').at(-1);
