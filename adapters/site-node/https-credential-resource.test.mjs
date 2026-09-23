@@ -68,6 +68,7 @@ async function fixture(t) {
   ]);
   let requests = 0;
   let redirected = 0;
+  const mutationBodies = [];
   const server = createServer({cert, key}, (request, response) => {
     requests++;
     if (request.url === '/redirected') redirected++;
@@ -81,6 +82,17 @@ async function fixture(t) {
     } else if (request.url === '/limit') {
       response.writeHead(429, {'content-type': 'application/json'});
       response.end('[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]');
+    } else if (request.url === '/mutate' && request.method === 'POST') {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.once('end', () => {
+        mutationBodies.push(Buffer.concat(chunks).toString('utf8'));
+        response.writeHead(201, {'content-type': 'application/json'});
+        response.end('{"id":"record-1","success":true,"errors":[]}');
+      });
+    } else if (request.url === '/mutation-redirect' &&
+        request.method === 'POST') {
+      response.writeHead(302, {location: '/redirected'}).end();
     } else {
       response.writeHead(404).end();
     }
@@ -115,6 +127,7 @@ async function fixture(t) {
     }),
     requests: () => requests,
     redirected: () => redirected,
+    mutationBodies: () => [...mutationBodies],
   });
 }
 
@@ -143,6 +156,10 @@ const operations = Object.freeze(new Map([
   ['records:read', Object.freeze({method: 'GET', path: '/records'})],
   ['records:redirect', Object.freeze({method: 'GET', path: '/redirect'})],
   ['records:limit', Object.freeze({method: 'GET', path: '/limit'})],
+  ['records:create', Object.freeze({method: 'POST', path: '/mutate',
+    body: '{"Name":"new"}'})],
+  ['records:mutation-redirect', Object.freeze({method: 'POST',
+    path: '/mutation-redirect', body: '{"Name":"new"}'})],
 ]));
 
 async function call(setup, grant, grantScope, useId, overrides = {}) {
@@ -251,6 +268,45 @@ test('401 invalidates only the used credential and never retries the request',
     assert.deepEqual(invalidated, ['revoked-secret']);
     assert.equal(setup.requests(), 1);
     assert.equal(setup.journal.inspect(response.useCid).outcome, 'failed');
+  });
+
+test('scoped mutation sends exact bounded body once with a durable use',
+  async t => {
+    const setup = await fixture(t);
+    const grantScope = scope(setup.origin, 'records:create');
+    const grant = control.prepare(grantScope);
+    setup.journal.acceptGrant(setup.sign(grant), control);
+    const response = await call(setup, grant, grantScope, 'create-a', {
+      maxRequestBytes: 14,
+    });
+    assert.equal(response.statusCode, 201);
+    assert.deepEqual(setup.mutationBodies(), ['{"Name":"new"}']);
+    assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+    await assert.rejects(call(setup, grant, grantScope, 'create-a'), {
+      code: 'RemoteCredentialUseAlreadyClaimed',
+    });
+    assert.equal(setup.requests(), 1);
+  });
+
+test('mutation bound and redirect preserve uncertain-send distinction',
+  async t => {
+    const setup = await fixture(t);
+    const scopeCreate = scope(setup.origin, 'records:create');
+    const grantCreate = control.prepare(scopeCreate);
+    setup.journal.acceptGrant(setup.sign(grantCreate), control);
+    await assert.rejects(call(setup, grantCreate, scopeCreate, 'too-large', {
+      maxRequestBytes: 1,
+    }), {code: 'InvalidRemoteCredentialOperation'});
+    assert.equal(setup.requests(), 0);
+    const redirectScope = scope(setup.origin,
+      'records:mutation-redirect');
+    const redirectGrant = control.prepare(redirectScope);
+    setup.journal.acceptGrant(setup.sign(redirectGrant), control);
+    await assert.rejects(call(setup, redirectGrant, redirectScope,
+      'redirected-write'), {code: 'RemoteCredentialRedirectRejected'});
+    assert.equal(setup.requests(), 1);
+    assert.equal(setup.redirected(), 0);
+    assert.equal(setup.journal.recover().at(-1).outcome, 'unknown');
   });
 
 test('resource operation attempt and revocation scope stop before HTTPS I/O',
