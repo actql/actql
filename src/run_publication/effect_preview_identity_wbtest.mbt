@@ -155,6 +155,42 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     )
     is Err(RowInventoryMismatch(0)),
   )
+  let second_row = preview_identity_test_cid("5")
+  let second_key = preview_identity_test_cid("6")
+  let over_limit = valid
+    .replace_all(old="\"count\":1", new="\"count\":2")
+    .replace_all(
+      old="}],\"row_order\":[\"" + row + "\"]",
+      new="},{\"target_row_identity\":\"001000000000002\"," +
+        "\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}," +
+        "\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}," +
+        "\"row_preview_cid\":\"" +
+        second_row +
+        "\"," +
+        "\"row_idempotency_key\":\"" +
+        second_key +
+        "\"}]," +
+        "\"row_order\":[\"" +
+        row +
+        "\",\"" +
+        second_row +
+        "\"]",
+    )
+  assert_true(
+    derive_effect_preview_identities(over_limit, 8192, 256, 12)
+    is Err(RowInventoryMismatch(0)),
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      over_limit,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RowInventoryMismatch(0)),
+  )
   let foreign_order = valid.replace_all(
     old="\"row_order\":[\"" + row + "\"]",
     new="\"row_order\":[\"" + preview_identity_test_cid("6") + "\"]",
