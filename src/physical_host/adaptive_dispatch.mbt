@@ -195,23 +195,32 @@ pub fn[E] commit_adaptive_policy_choice(
   policy : AdaptiveDispatch[E],
   position : Int?,
 ) -> Result[Unit, AdaptiveEstimateIssue[E]] {
-  commit_adaptive_choice(policy, position, None)
+  commit_adaptive_choice(policy, position)
+}
+
+///|
+pub fn[E] prepare_adaptive_policy_request(
+  policy : AdaptiveDispatch[E],
+  request_id : String,
+  run_identity : String,
+  authority : String,
+  deadline_ms : Int64,
+  now_ms : Int64,
+) -> Result[@strategy.PolicyRequest, AdaptiveEstimateIssue[E]] {
+  guard policy.pending_choice is Some(choices) else {
+    return Err(InvalidConfiguration)
+  }
+  @strategy.prepare_strategy_policy_request(
+    choices, request_id, run_identity, authority, deadline_ms, now_ms,
+  ).map_err(issue => Search(issue))
 }
 
 ///|
 pub fn[E] commit_adaptive_policy_decision(
   policy : AdaptiveDispatch[E],
-  position : Int,
-  reference : @strategy.PolicyDecisionRef,
-) -> Result[Unit, AdaptiveEstimateIssue[E]] {
-  commit_adaptive_choice(policy, Some(position), Some(reference))
-}
-
-///|
-fn[E] commit_adaptive_choice(
-  policy : AdaptiveDispatch[E],
-  position : Int?,
-  reference : @strategy.PolicyDecisionRef?,
+  request : @strategy.PolicyRequest,
+  response : @strategy.PolicyResponse,
+  now_ms : Int64,
 ) -> Result[Unit, AdaptiveEstimateIssue[E]] {
   if policy.failure is Some(issue) {
     return Err(issue)
@@ -219,17 +228,36 @@ fn[E] commit_adaptive_choice(
   guard policy.pending_choice is Some(choices) else {
     return Err(InvalidConfiguration)
   }
-  let decision = match reference {
-    Some(reference) =>
-      match position {
-        Some(position) =>
-          @strategy.commit_strategy_policy_decision(
-            choices, position, reference,
-          )
-        None => Err(InvalidPreference)
-      }
-    None => @strategy.commit_strategy_choice(choices, position)
+  finish_adaptive_policy_choice(
+    policy,
+    @strategy.commit_strategy_policy_decision(
+      choices, request, response, now_ms,
+    ),
+  )
+}
+
+///|
+fn[E] commit_adaptive_choice(
+  policy : AdaptiveDispatch[E],
+  position : Int?,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  if policy.failure is Some(issue) {
+    return Err(issue)
   }
+  guard policy.pending_choice is Some(choices) else {
+    return Err(InvalidConfiguration)
+  }
+  finish_adaptive_policy_choice(
+    policy,
+    @strategy.commit_strategy_choice(choices, position),
+  )
+}
+
+///|
+fn[E] finish_adaptive_policy_choice(
+  policy : AdaptiveDispatch[E],
+  decision : Result[@strategy.StrategyDecision, @strategy.SearchIssue],
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
   match decision {
     Ok(Selected(_)) => {
       policy.pending_choice = None

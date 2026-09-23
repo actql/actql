@@ -142,11 +142,27 @@ pub fn[C, E] commit_compute_host_policy_choice(
 ///|
 pub fn[C, E] commit_compute_host_policy_decision(
   host : ComputeHost[C, E],
-  position : Int,
-  reference : @strategy.PolicyDecisionRef,
+  request : @strategy.PolicyRequest,
+  response : @strategy.PolicyResponse,
+  now_ms : Int64,
 ) -> Result[Unit, AdaptiveEstimateIssue[E]] {
   guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
-  commit_adaptive_policy_decision(policy, position, reference)
+  commit_adaptive_policy_decision(policy, request, response, now_ms)
+}
+
+///|
+pub fn[C, E] prepare_compute_host_policy_request(
+  host : ComputeHost[C, E],
+  request_id : String,
+  run_identity : String,
+  authority : String,
+  deadline_ms : Int64,
+  now_ms : Int64,
+) -> Result[@strategy.PolicyRequest, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  prepare_adaptive_policy_request(
+    policy, request_id, run_identity, authority, deadline_ms, now_ms,
+  )
 }
 
 ///|

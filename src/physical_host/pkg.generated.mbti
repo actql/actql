@@ -18,11 +18,11 @@ pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.Capabi
 
 pub fn[E] commit_adaptive_policy_choice(AdaptiveDispatch[E], Int?) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
-pub fn[E] commit_adaptive_policy_decision(AdaptiveDispatch[E], Int, @physical_strategy.PolicyDecisionRef) -> Result[Unit, AdaptiveEstimateIssue[E]]
+pub fn[E] commit_adaptive_policy_decision(AdaptiveDispatch[E], @physical_strategy.PolicyRequest, @physical_strategy.PolicyResponse, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
 pub fn[C, E] commit_compute_host_policy_choice(ComputeHost[C, E], Int?) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
-pub fn[C, E] commit_compute_host_policy_decision(ComputeHost[C, E], Int, @physical_strategy.PolicyDecisionRef) -> Result[Unit, AdaptiveEstimateIssue[E]]
+pub fn[C, E] commit_compute_host_policy_decision(ComputeHost[C, E], @physical_strategy.PolicyRequest, @physical_strategy.PolicyResponse, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
 pub fn compute_author_sequence(ComputeAuthorContext, Int) -> @execution_relation.CompletionPreparation?
 
@@ -66,9 +66,13 @@ pub fn[C, E] open_dispatch_host(DispatchDriver, @connector_sdk.CapabilityImpleme
 
 pub fn[E] prepare_adaptive_policy_choice(AdaptiveDispatch[E]) -> Result[@physical_strategy.StrategyChoiceSet?, AdaptiveEstimateIssue[E]]
 
+pub fn[E] prepare_adaptive_policy_request(AdaptiveDispatch[E], String, String, String, Int64, Int64) -> Result[@physical_strategy.PolicyRequest, AdaptiveEstimateIssue[E]]
+
 pub fn prepare_compute_author_context(DispatchDriver, Array[@execution_relation.CompletionPreparation]) -> Result[ComputeAuthorContext, @connector_sdk.FixedComputeIssue]
 
 pub fn[C, E] prepare_compute_host_policy_choice(ComputeHost[C, E]) -> Result[@physical_strategy.StrategyChoiceSet?, AdaptiveEstimateIssue[E]]
+
+pub fn[C, E] prepare_compute_host_policy_request(ComputeHost[C, E], String, String, String, Int64, Int64) -> Result[@physical_strategy.PolicyRequest, AdaptiveEstimateIssue[E]]
 
 pub fn prepare_dispatch_inputs(DispatchDriver, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[@connector_sdk.FixedComputeRequest, DispatchIssue]
 

@@ -109,12 +109,58 @@ test "placement policy provenance rejects empty metadata before commit" {
     registry,
     None,
   ).unwrap()
+  let request = @strategy.prepare_strategy_policy_request(
+    choices, "plan-1", "run-1", "authority-1", 100L, 0L,
+  ).unwrap()
+  assert_true(request.candidate_set_cid.has_prefix("sha256:"))
+  assert_eq(
+    request.candidate_set_cid,
+    "sha256:557d320ba1d153b5c1e30cb79c2a75d82ef4166be14bf0a8914dc33c60b2a902",
+  )
+  let response : @strategy.PolicyResponse = {
+    request,
+    position: 0,
+    policy_id: "",
+    policy_revision: "r1",
+    explanation: "candidate zero",
+  }
   assert_true(
-    @strategy.commit_strategy_policy_decision(choices, 0, {
-      policy_id: "",
-      revision: "r1",
-      request_id: "plan-1",
-    })
+    @strategy.commit_strategy_policy_decision(choices, request, response, 1L)
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.commit_strategy_policy_decision(
+      choices,
+      request,
+      {
+        ..response,
+        policy_id: "cloud",
+        request: { ..request, run_identity: "other-run", },
+      },
+      1L,
+    )
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.commit_strategy_policy_decision(
+      choices,
+      request,
+      {
+        ..response,
+        policy_id: "cloud",
+        request: { ..request, candidate_set_cid: "sha256:other", },
+      },
+      1L,
+    )
+    is Err(InvalidPreference),
+  )
+  assert_true(
+    @strategy.commit_strategy_policy_decision(
+      choices,
+      request,
+      { ..response, policy_id: "cloud", },
+      101L,
+    )
     is Err(InvalidPreference),
   )
   assert_true(@strategy.captured_dag_strategy(run) is None)
@@ -144,12 +190,30 @@ test "placement proposal refuses changed resources before commit" {
     registry,
     None,
   ).unwrap()
+  let request = @strategy.prepare_strategy_policy_request(
+    choices, "plan-stale", "run-stale", "authority-1", 100L, 0L,
+  ).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
   ignore(@resources.reserve_attempt(ledger, 1L, 0L, 0L).unwrap())
   assert_true(
     @strategy.commit_strategy_choice(choices, Some(0)) is Err(StaleChoice),
   )
   assert_true(@strategy.captured_dag_strategy(run) is None)
+  assert_true(
+    @strategy.commit_strategy_policy_decision(
+      choices,
+      request,
+      {
+        request,
+        position: 0,
+        policy_id: "cloud",
+        policy_revision: "r1",
+        explanation: "stale decision",
+      },
+      1L,
+    )
+    is Err(StaleChoice),
+  )
 }
 
 ///|

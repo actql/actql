@@ -185,11 +185,22 @@ default offline latency choice uses this same preparation and commit path.
 External policy I/O belongs to the Host between those two calls. While a
 response is pending, routine Host refresh does not substitute the offline
 choice. Dispatch still performs its ordinary exact input and reservation checks.
-An externally proposed choice records a bounded policy ID, revision and
-decision request ID in the selected strategy revision. These fields identify
-the proposing policy for audit; they are not execution authority. The Host
-authenticates the response and binds it to the exact pending request before
-passing its candidate position to common admission.
+An external consultation now has one versioned `PolicyRequest`. It binds the
+Host-supplied Run and authority identities, request occurrence, planning
+generation and revision, deadline, and the common planner's digest of the
+ordered feasible assignments. A response repeats that exact request and names
+one original assignment position, a bounded policy ID and revision, and a
+bounded explanation. The common planner rejects altered, expired, stale, or
+out-of-set responses before committing the strategy. The candidate digest is
+an identity for this planning projection, not a material Result CID or a
+substitute for the opaque local offer handles. The Host authenticates the
+policy peer, sources the Run/authority identities from its trusted Run record,
+and keeps the same pending request across the transport boundary. An externally
+selected revision records the policy ID, revision, request ID, and explanation
+for audit;
+these fields are not execution authority. A policy transport and deployment
+remain separate Host adapters. The offline path does not require a policy
+service.
 
 ## Mock execution and capture separation
 

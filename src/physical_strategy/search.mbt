@@ -77,6 +77,31 @@ pub(all) struct PolicyDecisionRef {
   policy_id : String
   revision : String
   request_id : String
+  explanation : String
+} derive(Eq, Debug)
+
+///|
+/// Transport-neutral consultation identity. The Host supplies the authenticated
+/// Run and authority identities; the common planner fixes the candidate set.
+pub(all) struct PolicyRequest {
+  version : String
+  request_id : String
+  run_identity : String
+  authority : String
+  candidate_set_cid : String
+  generation : Int
+  revision : Int
+  deadline_ms : Int64
+} derive(Eq, Debug)
+
+///|
+/// A policy proposes a member of the exact request, never a new capability.
+pub(all) struct PolicyResponse {
+  request : PolicyRequest
+  position : Int
+  policy_id : String
+  policy_revision : String
+  explanation : String
 } derive(Eq, Debug)
 
 ///|
@@ -100,6 +125,7 @@ struct StrategyChoiceSet {
   durations : Array[@cost.DurationEstimate]
   priority : Array[Int]?
   mut committed : Bool
+  mut pending_policy_request : PolicyRequest?
 }
 
 ///|
@@ -545,6 +571,7 @@ pub fn prepare_strategy_choices(
     durations,
     priority: feasible_priority,
     committed: false,
+    pending_policy_request: None,
   })
 }
 
@@ -612,22 +639,79 @@ pub fn commit_strategy_choice(
 }
 
 ///|
-/// A policy reference is audit provenance. The Host must authenticate and
-/// bind the response to the exact pending request before passing it here.
-pub fn commit_strategy_policy_decision(
+/// Mint one bounded consultation for this choice set. The Host authenticates
+/// the policy peer and retains this request across the I/O boundary.
+pub fn prepare_strategy_policy_request(
   choices : StrategyChoiceSet,
-  position : Int,
-  reference : PolicyDecisionRef,
-) -> Result[StrategyDecision, SearchIssue] {
-  for value in [reference.policy_id, reference.revision, reference.request_id] {
+  request_id : String,
+  run_identity : String,
+  authority : String,
+  deadline_ms : Int64,
+  now_ms : Int64,
+) -> Result[PolicyRequest, SearchIssue] {
+  for value in [request_id, run_identity, authority] {
     if value.is_empty() || value.length() > 128 {
       return Err(InvalidPreference)
     }
   }
+  if deadline_ms <= now_ms || choices.committed {
+    return Err(InvalidPreference)
+  }
+  if choices.pending_policy_request is Some(_) {
+    return Err(InvalidPreference)
+  }
+  match
+    @resources.charge_planning(choices.run.ledger, choices.feasible.length()) {
+    Ok(_) => ()
+    Err(issue) => return Err(Ledger(issue))
+  }
+  let cid = match strategy_policy_candidate_set_cid(choices) {
+    Ok(cid) => cid
+    Err(issue) => return Err(issue)
+  }
+  let request = {
+    version: "actql-placement-policy/0.1",
+    request_id,
+    run_identity,
+    authority,
+    candidate_set_cid: cid,
+    generation: choices.generation,
+    revision: choices.revision,
+    deadline_ms,
+  }
+  choices.pending_policy_request = Some(request)
+  Ok(request)
+}
+
+///|
+/// Reject a stale, cross-Run, expired or altered response before common
+/// feasibility and dispatch checks. Authentication belongs to the Host adapter.
+pub fn commit_strategy_policy_decision(
+  choices : StrategyChoiceSet,
+  request : PolicyRequest,
+  response : PolicyResponse,
+  now_ms : Int64,
+) -> Result[StrategyDecision, SearchIssue] {
+  if choices.pending_policy_request != Some(request) ||
+    response.request != request ||
+    request.version != "actql-placement-policy/0.1" ||
+    now_ms > request.deadline_ms ||
+    response.policy_id.is_empty() ||
+    response.policy_id.length() > 128 ||
+    response.policy_revision.is_empty() ||
+    response.policy_revision.length() > 128 ||
+    response.explanation.length() > 1024 {
+    return Err(InvalidPreference)
+  }
   commit_strategy_choice_with_source(
     choices,
-    Some(position),
-    ExternalPolicy(reference),
+    Some(response.position),
+    ExternalPolicy({
+      policy_id: response.policy_id,
+      revision: response.policy_revision,
+      request_id: request.request_id,
+      explanation: response.explanation,
+    }),
   )
 }
 
