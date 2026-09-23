@@ -279,3 +279,14 @@ The equivalent matrix CLI now rebuilds the pinned JS release modules before
 calibration; a clean source checkout alone does not validate ignored build
 outputs. PERF-1 remains open for this case, the other 26 cases, and the three
 other registered comparators.
+
+A separate capacity diagnosis copied the same held-out 100,000-row narrow
+source into three tables in an in-memory DuckDB session configured with a
+2 GiB memory limit. `pragma_database_size()` reported 2.7, 4.8, and 6.8 MiB
+of buffer-manager usage after the successive copies. This is not a hard bound
+on a table or process RSS and is not an accepted performance sample. It does
+show that the current 1.28 GiB per-copy planning allowance comes from a
+cumulative Host value-node ceiling rather than observed DB table size. A
+replacement must keep shared DB capacity, independent file retention, and
+runtime overflow/cleanup obligations distinct; simply substituting observed
+buffer-manager bytes for the declared allowance would not be safe.
