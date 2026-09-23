@@ -156,9 +156,17 @@ test "sliding row windows use exact large-offset overlap boundaries" {
 }
 
 ///|
-test "row windows reject unrepresentable exact boundaries as arithmetic" {
-  let owner = bound_pipeline(
+test "row windows admit representable large boundaries and reject others" {
+  let representable = execute_window(
     "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":9007199254740991}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":9007199254740991}}]",
+    "window_1",
+    max_rows=1,
+  )
+  assert_eq(representable.rows.length(), 1)
+  assert_true(representable.rows[0][1] is Number(18014398509481982.0))
+  assert_true(representable.rows[0][2] is Number(9007199254740991.0))
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":9007199254740992}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"sliding\",\"time\":\"at\",\"size\":8,\"step\":1}}]",
   )
   assert_true(
     evaluate_sequence_components(
@@ -166,11 +174,40 @@ test "row windows reject unrepresentable exact boundaries as arithmetic" {
       prepared_sequence(owner),
       [],
       ["window_1"],
-      { ..run_limits(), max_rows: 1, },
+      { ..run_limits(), max_rows: 8, },
       { remaining: 100000, max_frames: 100, },
     )
     is Err(Rows(1, WindowArithmetic(0))),
   )
+}
+
+///|
+// Expectations are transcribed from the separately authored
+// portability/corpus/event-window-boundaries.json.
+test "row windows share the exact finite boundary vectors with Events" {
+  for
+    (time, size, expected_start, expected_end) in [
+      ("-0.5", 10, -10.0, 0.0),
+      ("0.5", 10, 0.0, 10.0),
+      ("9007199254740992", 8, 9007199254740992.0, 9007199254741000.0),
+      ("18014398509481984", 4, 18014398509481984.0, 18014398509481988.0),
+      (
+        "9223372036854775808", 2048, 9223372036854775808.0, 9223372036854777856.0,
+      ),
+      (
+        "-9223372036854775808", 2048, -9223372036854775808.0, -9223372036854773760.0,
+      ),
+    ] {
+    let source = "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":" +
+      time +
+      "}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":" +
+      size.to_string() +
+      "}}]"
+    let table = execute_window(source, "window_1", max_rows=1)
+    assert_eq(table.rows.length(), 1)
+    assert_true(table.rows[0][1] is Number(end) && end == expected_end)
+    assert_true(table.rows[0][2] is Number(start) && start == expected_start)
+  }
 }
 
 ///|

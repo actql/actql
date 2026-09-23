@@ -6,6 +6,7 @@ import {
   "actql/actql/relation_join" @asof,
   "actql/actql/relation_set" @set,
   "actql/actql/temporal_window" @window,
+  "actql/actql/exact_window_grid" @grid,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/value_admission" @admitted,
   "actql/actql/canonical_value" @canonical,
@@ -26,6 +27,7 @@ import {
   "actql/actql/managed_carrier_runtime" @managed_carrier,
   "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/json",
+  "moonbitlang/core/bigint",
 }
 
 import {
