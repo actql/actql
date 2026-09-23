@@ -2182,6 +2182,7 @@ try {
   let terminalStatusDropped = false;
   let interruptedCoordinatorExit;
   const applicationProxyFailures = [];
+  const applicationProxyEvents = [];
   let applicationControlRequests = 0;
   applicationControlProxy = createServer({
     key: await readFile(join(root, 'server.key')),
@@ -2194,11 +2195,19 @@ try {
     const chunks = [];
     for await (const chunk of incoming) chunks.push(chunk);
     const body = Buffer.concat(chunks);
+    const proxyEvent = {
+      path: incoming.url,
+      bodyBytes: body.length,
+      terminalStatus: body.includes('"evidence":{'),
+    };
+    applicationProxyEvents.push(proxyEvent);
+    if (applicationProxyEvents.length > 32) applicationProxyEvents.shift();
     if (!terminalStatusDropped &&
         incoming.url.endsWith('/outbound/observations') &&
         body.includes('actql-remote-dispatch-status/0.1') &&
         body.includes('"evidence":{')) {
       terminalStatusDropped = true;
+      proxyEvent.dropped = true;
       incoming.socket.destroy();
       const interrupted = coordinatorRun;
       interrupted.child.kill('SIGKILL');
@@ -2220,6 +2229,7 @@ try {
       ca: await readFile(join(root, 'ca.crt')),
       headers: {'content-type': 'application/json'},
     }, response => {
+      proxyEvent.status = response.statusCode;
       outgoing.writeHead(response.statusCode, {
         'content-type': response.headers['content-type'] ??
           'application/json',
@@ -2361,11 +2371,19 @@ try {
           `native output plan unavailable: ${JSON.stringify(
             {
               lastPlanObservation,
+              applicationProcess: process.platform === 'linux'
+                ? await runCapturedIn('ps', [
+                    '-p', String(applicationRun.child.pid),
+                    '-o', 'pid,stat,etime,time,comm',
+                  ], {}, undefined, undefined).completed
+                : undefined,
               applicationStdout: applicationRun.stdoutSnapshot(),
               applicationStderr: applicationRun.stderrSnapshot(),
               coordinatorStdout: coordinatorRun.stdoutSnapshot(),
               coordinatorStderr: coordinatorRun.stderrSnapshot(),
               terminalStatusDropped,
+              applicationControlRequests,
+              applicationProxyEvents,
               applicationProxyFailures,
             },
           )}`,
