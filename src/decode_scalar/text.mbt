@@ -55,14 +55,24 @@ fn admit_utf8_window(
   if text.length().to_int64() > limit {
     return Err(LimitExceeded)
   }
-  let mut remaining = limit
+  // ASCII has the same UTF-16 and UTF-8 length. Account for its prefix in
+  // whole windows and continue the scalar scan at the first non-ASCII unit.
+  let mut ascii_index = 0
+  while ascii_index < text.length() && text[ascii_index].to_int() < 0x80 {
+    ascii_index += 1
+  }
+  if ascii_index == text.length() {
+    return Ok(ascii_index.to_int64())
+  }
+  let consumed = ascii_index / window * window
+  let mut remaining = limit - consumed.to_int64()
   let mut allowance = if remaining > window.to_int64() {
     window
   } else {
     remaining.to_int()
   }
-  let mut used = 0
-  let mut index = 0
+  let mut used = ascii_index - consumed
+  let mut index = ascii_index
   while index < text.length() {
     let unit = text[index].to_int()
     let width = if unit < 0x80 {

@@ -58,3 +58,23 @@ test "UTF8 diagnostic precedence and offsets do not depend on allowance width or
     }
   }
 }
+
+///|
+test "ASCII prefix accounting preserves mixed-scalar errors at window edges" {
+  let high = String::from_array([(0xd800).unsafe_to_char()])
+  for window in [4, 5, 6, 7, 13] {
+    for prefix in [0, 1, 3, 4, 5, 6, 7, 12, 13, 14, 27] {
+      let text = "a".repeat(prefix) + "界😀b"
+      let expected = prefix.to_int64() + 8L
+      assert_eq(admit_utf8_window(text, expected, window), Ok(expected))
+      assert_eq(
+        admit_utf8_window(text, expected - 1L, window),
+        Err(LimitExceeded),
+      )
+      assert_eq(
+        admit_utf8_window(text + high, expected + 1L, window),
+        Err(MalformedUtf16(prefix + 4)),
+      )
+    }
+  }
+}
