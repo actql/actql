@@ -181,7 +181,7 @@ closure conditions. The independent RowTable copy, external-input cross join,
 zero-input values, and external-input append now have bounded paths. The
 providerless compute call still runs an unmatched whole checked sequence in
 one resume; it remains a release blocker. The normal route gate reports 68
-mapped operations and 18 with operation-specific boundary records. The
+mapped operations and 20 with operation-specific boundary records. The
 registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
 one-short work/workspace assurance. The ordinary and selected one-step filter
 and select paths now share their respective bounded evaluators and have
