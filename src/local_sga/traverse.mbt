@@ -25,9 +25,8 @@ pub(all) enum TraverseIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Start a finite node-emitting traversal kernel.
-/// Homogeneous bounds and authored hop patterns share the managed lifecycle,
-/// while path emission remains a separate unsupported result contract.
+/// Start a finite traversal kernel. Eligible multi-hop node emission uses
+/// the same simple-path search as path emission before reducing endpoints.
 pub fn start_traverse(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -72,7 +71,9 @@ pub fn start_traverse(
       return Err(UnsupportedTraverseKernel)
     }
   }
-  if @lower.graph_traverse_emits_paths(prepared) {
+  if @lower.graph_traverse_emits_paths(prepared) ||
+    (patterned && hop_count > 1) ||
+    minimum > 1L {
     return start_traverse_paths(
         control, preparation, sequence, step, input, max_rows, limits, max_workspace_slots,
         max_entries, max_name_bytes, inputs,
