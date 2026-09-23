@@ -24,6 +24,8 @@ pub fn attached_stage(AttachedImports) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(AttachedImports) -> Int
 
+pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogContents, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
+
 pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[EffectResultBindings, EffectResultBindingIssue]
 
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
@@ -33,6 +35,26 @@ pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLim
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
+
+pub fn effect_command_target_at(EffectCommandTargets, Int) -> EffectCommandTargetBinding?
+
+pub fn effect_command_target_contract(EffectCommandTargetBinding) -> @check_environment.CommandTarget
+
+pub fn effect_command_target_count(EffectCommandTargets) -> Int
+
+pub fn effect_command_target_effect(EffectCommandTargetBinding) -> EffectResultBinding
+
+pub fn effect_command_target_issue_effect(EffectCommandTargetIssue) -> String
+
+pub fn effect_command_target_issue_kind(EffectCommandTargetIssue) -> EffectCommandTargetIssueKind
+
+pub fn effect_command_target_issue_stage(EffectCommandTargetIssue) -> Int
+
+pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environment.CatalogContents
+
+pub fn effect_command_targets_effects(EffectCommandTargets) -> EffectResultBindings
+
+pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
 pub fn effect_result_binding_at(EffectResultBindings, Int) -> EffectResultBinding?
 
@@ -159,6 +181,31 @@ pub(all) struct CollectionLimits {
   max_nodes : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub struct EffectCommandTargetBinding {
+  effect : EffectResultBinding
+  contract : @check_environment.CommandTarget
+}
+
+pub struct EffectCommandTargetIssue {
+  kind : EffectCommandTargetIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectCommandTargetIssueKind {
+  InvalidLimits
+  WorkLimit
+  Contract(@check_environment.CommandTargetIssue)
+  TargetKindMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct EffectCommandTargets {
+  effects : EffectResultBindings
+  catalogs : @check_environment.CatalogContents
+  entries : Array[EffectCommandTargetBinding]
+  work : Int
+}
 
 pub struct EffectResultBinding {
   header : @stage_syntax.EffectHeader
