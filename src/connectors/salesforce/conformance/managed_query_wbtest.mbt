@@ -16,7 +16,10 @@ fn cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
-fn plan() -> @catalog.ReadProjection {
+fn plan(
+  id_type? : String = "id",
+  filterable? : Bool = false,
+) -> @catalog.ReadProjection {
   let list = @catalog.project_resource_listing(
     @utf8.encode(
       (
@@ -33,8 +36,11 @@ fn plan() -> @catalog.ReadProjection {
     },
   ).unwrap()
   let sync = @catalog.begin_catalog_sync(list)
-  let description =
-    #|{"name":"Account","queryable":true,"fields":[{"name":"Id","type":"id","nillable":false},{"name":"Name","type":"string","nillable":true}]}
+  let description = "{\"name\":\"Account\",\"queryable\":true,\"fields\":[{\"name\":\"Id\",\"type\":\"" +
+    id_type +
+    "\",\"nillable\":false,\"filterable\":" +
+    filterable.to_string() +
+    "},{\"name\":\"Name\",\"type\":\"string\",\"nillable\":true}]}"
   @catalog.catalog_sync_describe(sync, "Account", @utf8.encode(description), {
     max_bytes: 1000,
     max_nodes: 100,
@@ -207,6 +213,27 @@ test "Salesforce managed read rejects schema drift before physical query" {
       output_values("number"),
     )
     is Err(InvalidOutputSchema),
+  )
+}
+
+///|
+test "managed output cannot borrow a caller-supplied row prefilter" {
+  let supplied = @catalog.with_exact_int_comparison(
+    plan(id_type="int", filterable=true),
+    "Id",
+    @catalog.Greater,
+    2,
+  ).unwrap()
+  assert_true(
+    @acquisition.prepare_managed_query(
+      supplied,
+      "v62.0",
+      query_limits(),
+      3,
+      3L,
+      output_values("number"),
+    )
+    is Err(UnexpectedPrefilter),
   )
 }
 
