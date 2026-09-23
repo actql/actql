@@ -10,6 +10,8 @@
     {"family": "RelA", "operation": "filter", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "select", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "select", "path": "ordinary_entrypoint"},
+    {"family": "RelA", "operation": "rename", "path": "ordinary_entrypoint"},
+    {"family": "RelA", "operation": "drop", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "assert_rows", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "assert_rows", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "sort", "path": "selected_entrypoint"},

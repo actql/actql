@@ -462,8 +462,72 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary Local rename resumes within quantum"
+        },
+        {
+          "role": "rename_input_exact",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded rename validates exact input and cancels before output"
+        },
+        {
+          "role": "rename_input_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded rename validates exact input and cancels before output"
+        },
+        {
+          "role": "rename_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded rename validates exact input and cancels before output"
+        },
+        {
+          "role": "rename_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded rename admits exact and one-short work and workspace"
+        },
+        {
+          "role": "rename_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded rename admits exact and one-short work and workspace"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "ordinary_rename_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-rename-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "ordinary_entrypoint": {
+          "exact_limit": "rename_input_exact",
+          "one_short_limit": "rename_input_one_short",
+          "in_flight_cancel": "ordinary_rename_in_flight_host_timer",
+          "cleanup": "rename_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "ordinary_entrypoint": {
+          "work": {
+            "exact_limit": "rename_work_exact_one_short",
+            "one_short_limit": "rename_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "rename_workspace_exact_one_short",
+            "one_short_limit": "rename_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
@@ -489,8 +553,72 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary Local drop resumes within quantum"
+        },
+        {
+          "role": "drop_input_exact",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded drop validates exact input and cancels before output"
+        },
+        {
+          "role": "drop_input_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded drop validates exact input and cancels before output"
+        },
+        {
+          "role": "drop_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded drop validates exact input and cancels before output"
+        },
+        {
+          "role": "drop_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded drop admits exact and one-short work and workspace"
+        },
+        {
+          "role": "drop_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded drop admits exact and one-short work and workspace"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "ordinary_drop_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-drop-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "ordinary_entrypoint": {
+          "exact_limit": "drop_input_exact",
+          "one_short_limit": "drop_input_one_short",
+          "in_flight_cancel": "ordinary_drop_in_flight_host_timer",
+          "cleanup": "drop_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "ordinary_entrypoint": {
+          "work": {
+            "exact_limit": "drop_work_exact_one_short",
+            "one_short_limit": "drop_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "drop_workspace_exact_one_short",
+            "one_short_limit": "drop_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",

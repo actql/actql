@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 18 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 15 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 18 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 17 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -1073,6 +1073,22 @@ test('resource gate rejects rename without its ordinary evidence', () => {
       entry.operation === 'rename');
     rename.boundary_tests = [];
   }), /RelA rename: reviewed ordinary_rename_quantum_and_lifetime fixture is missing/);
+});
+
+test('rename and drop lose bounded assurance when a resource proof is removed', () => {
+  for (const operation of ['rename', 'drop']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_work_exact_one_short`);
+    }), new RegExp(`RelA ${operation}: ordinary_entrypoint operation work lacks an executable fixture`));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.environment_tests = [];
+    }), new RegExp(`RelA ${operation}: ordinary_entrypoint in_flight_cancel lacks an executable fixture`));
+  }
 });
 
 test('resource gate rejects drop without its bounded entrypoint', () => {

@@ -41,6 +41,8 @@ fn bounded_binding_rows_receiver(
   assert_all? : Bool = false,
   assert_unique? : Bool = false,
   select? : Bool = false,
+  rename? : Bool = false,
+  drop? : Bool = false,
   take? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
@@ -70,6 +72,10 @@ fn bounded_binding_rows_receiver(
         "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
         "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if rename {
+        "{\"rename\":{\"left\":\"alias\"},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if drop {
+        "{\"drop\":[\"left\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else {
@@ -116,6 +122,8 @@ fn bounded_binding_rows_fixture(
   assert_all? : Bool = false,
   assert_unique? : Bool = false,
   select? : Bool = false,
+  rename? : Bool = false,
+  drop? : Bool = false,
   take? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
@@ -138,6 +146,8 @@ fn bounded_binding_rows_fixture(
     assert_all~,
     assert_unique~,
     select~,
+    rename~,
+    drop~,
     take~,
     sort~,
     sort_empty~,
@@ -150,6 +160,8 @@ fn bounded_binding_rows_fixture(
     registered_relation_contracts(),
     sequence,
     if select ||
+      rename ||
+      drop ||
       assert_unique ||
       take ||
       sort ||
@@ -1618,6 +1630,143 @@ test "bounded selected projection admits exact work and workspace" {
     assert_true(bounded_binding_rows_cleanup_pending(rejected))
     assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
   }
+}
+
+///|
+fn bounded_projection_source_form_limits(
+  rename : Bool,
+  work : Int,
+  workspace : Int,
+  accepted : Bool,
+) -> Unit raise {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    rename~,
+    drop=!rename,
+    max_work=work,
+    max_entries=workspace,
+  )
+  let mut terminated = false
+  let mut polls = 0
+  while !terminated && polls < 500 {
+    polls += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_true(accepted)
+        assert_eq(completed_row_count(output), 2)
+        assert_eq(completed_column_count(output), if rename { 3 } else { 2 })
+        assert_eq(
+          completed_column_name(output, 0),
+          Some(if rename { "alias" } else { "id" }),
+        )
+        terminated = true
+      }
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+        assert_false(accepted)
+        assert_true(bounded_binding_rows_cleanup_pending(execution))
+        terminated = true
+      }
+      _ => fail("projection source form had another outcome")
+    }
+  }
+  assert_true(terminated)
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded rename admits exact and one-short work and workspace" {
+  // Two input and two output row openings, plus two copies of the
+  // 12 UTF-8 bytes in alias, id, and right, require 28 control units.
+  // Three view entries, three input names, three output names, three
+  // input ordinals, three projection ordinals, and six live row entries
+  // require 21 structural slots at the peak.
+  bounded_projection_source_form_limits(true, 28, 21, true)
+  bounded_projection_source_form_limits(true, 27, 21, false)
+  bounded_projection_source_form_limits(true, 28, 20, false)
+}
+
+///|
+test "bounded drop admits exact and one-short work and workspace" {
+  // Two input and two output row openings, plus two copies of the
+  // seven UTF-8 bytes in id and right, require 18 control units.
+  // Two view entries, three input names, two output names, three input
+  // ordinals, two projection ordinals, and four live row entries peak at 16.
+  bounded_projection_source_form_limits(false, 18, 16, true)
+  bounded_projection_source_form_limits(false, 17, 16, false)
+  bounded_projection_source_form_limits(false, 18, 15, false)
+}
+
+///|
+fn bounded_projection_source_form_input_and_cancel(rename : Bool) -> Unit raise {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Each of two rows has one object, three field values, and four vector
+  // elements: 16 input nodes, independently of the output projection.
+  for (nodes, accepted) in [(16, true), (15, false)] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      rename~,
+      drop=!rename,
+      input_limits=Some({
+        max_nodes: nodes,
+        max_text_bytes: 22,
+        max_depth: 3,
+        max_work: 38,
+      }),
+    )
+    let mut terminated = false
+    let mut polls = 0
+    while !terminated && polls < 500 {
+      polls += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(accepted)
+          assert_eq(completed_row_count(output), 2)
+          terminated = true
+        }
+        BoundedBindingRowsFailed(InputLimit, ..) => {
+          assert_false(accepted)
+          terminated = true
+        }
+        _ => fail("projection input boundary had another outcome")
+      }
+    }
+    assert_true(terminated)
+    assert_true(producer_read_available(input))
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  }
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    rename~,
+    drop=!rename,
+  )
+  for _ in 0..<12 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded rename validates exact input and cancels before output" {
+  bounded_projection_source_form_input_and_cancel(true)
+}
+
+///|
+test "bounded drop validates exact input and cancels before output" {
+  bounded_projection_source_form_input_and_cancel(false)
 }
 
 ///|

@@ -362,8 +362,14 @@ same-sequence variants can still reach the providerless lane.
   product entrypoint and scope; the synchronous whole-sequence route remains
   unassured.
   Rename and drop now have separate ordinary-route quantum and lifetime
-  fixtures over their named source forms. These do not establish their exact,
-  one-short, delivered-cancel, or cleanup assurance.
+  fixtures over their named source forms. Each ordinary route now also binds
+  exact and one-short input, control-work, and structural-workspace fixtures
+  for its own output width and names. The independent work expectations count
+  row openings and output-name bytes; peak workspace includes view metadata
+  and both live output row buffers. Dedicated Node Host timers deliver cancel
+  after positive rename and drop row work, confirm stop without partial
+  publication, and reclaim the attempt. Their synchronous whole-sequence
+  entrypoints remain unassured.
   The production-route manifest now scopes completion proofs to each registered
   entrypoint, ordinary entrypoint, and selected entrypoint. A selected proof
   cannot close the synchronous or ordinary path. The where and unique_by
@@ -380,7 +386,7 @@ same-sequence variants can still reach the providerless lane.
   The separate `check:local-resource-completion` command requires all four
   lifecycle proof roles and independent exact/one-short work and workspace
   roles on every route. Sort and take have selected-path proof bindings;
-  filter and select also have ordinary-path proof. Sort uses an exact/one-short workspace pair and
+  filter, select, rename, and drop also have ordinary-path proof. Sort uses an exact/one-short workspace pair and
   its wide-comparison Host timer; take uses independent exact/one-short work
   and peak-workspace fixtures plus the selected Host timer. The where and
   unique_by `assert_rows` variants have separate selected and ordinary proof
