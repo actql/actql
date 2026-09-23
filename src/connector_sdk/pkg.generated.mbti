@@ -159,6 +159,8 @@ pub fn[T] prepare_managed_fixed_compute_request_for_owner(@lowering_relation.Bou
 
 pub fn prepare_resource_binding(CapabilityRegistry, CapabilityRegistration) -> Result[ResourceBinding, CapabilityInstallationIssue]
 
+pub fn prepare_source_free_fixed_compute_request(@lowering_relation.BoundPrepared, FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
+
 pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
 
 pub fn[T, E] prepared_execution_aggregate_output_ceiling(PreparedExecution[T, E], Int, String, AggregateOutputUnit) -> Int64?

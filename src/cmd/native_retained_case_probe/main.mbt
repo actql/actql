@@ -92,6 +92,7 @@ fn native_strategy_issue_name(
         @host.Strategy(run) =>
           match run {
             @strategy.UnsupportedGraph => "start-strategy-graph"
+            @strategy.PreviewWorkLimit => "start-strategy-preview-work"
             @strategy.ForeignCapture => "start-strategy-capture"
             @strategy.NotReady => "start-strategy-not-ready"
             @strategy.Stopped => "start-strategy-stopped"

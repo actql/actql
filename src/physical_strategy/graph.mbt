@@ -29,6 +29,7 @@ priv struct LocalInputSlot {
 ///|
 struct CheckedDAG {
   program : @checked.CheckedProgram
+  source_free_root : Bool
   owners : Array[@lower.BoundPrepared]
   stage_tasks : Array[Array[Int]]
   targets : Array[@pipeline.Target?]
@@ -334,11 +335,18 @@ pub fn prepare_checked_dag(
   owners : Array[@lower.BoundPrepared],
   max_tasks : Int,
   max_work : Int,
+  source_free_root? : Bool = false,
 ) -> Result[CheckedDAG, GraphIssue] {
   if @checked.checked_program_has_effects(program) {
     return Err(EffectGraphOwnerRequired)
   }
-  prepare_checked_dag_owned(program, owners, max_tasks, max_work)
+  prepare_checked_dag_owned(
+    program,
+    owners,
+    max_tasks,
+    max_work,
+    source_free_root=source_free_root,
+  )
 }
 
 ///|
@@ -349,6 +357,7 @@ fn prepare_checked_dag_owned(
   owners : Array[@lower.BoundPrepared],
   max_tasks : Int,
   max_work : Int,
+  source_free_root? : Bool = false,
 ) -> Result[CheckedDAG, GraphIssue] {
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)
@@ -356,6 +365,19 @@ fn prepare_checked_dag_owned(
   let count = @checked.unit_count(program)
   if count > max_tasks || owners.length() != count {
     return Err(TaskLimit)
+  }
+  if source_free_root &&
+    (
+      count == 0 ||
+      @pipeline.input_count(
+        @lower.pipeline(@lower.bound_preparation(owners[0])),
+      ) !=
+      0 ||
+      !@pipeline.starts_with_values(
+        @lower.pipeline(@lower.bound_preparation(owners[0])),
+      )
+    ) {
+    return Err(UnsupportedIncoming(0))
   }
   if count > max_work {
     return Err(WorkLimit)
@@ -686,13 +708,14 @@ fn prepare_checked_dag_owned(
   }
   let logical : CheckedDAG = {
     program,
+    source_free_root,
     owners: owners.copy(),
     stage_tasks: Array::makei(count, stage => [stage]),
     targets: Array::makei(count, task => {
-      if task == 0 {
+      let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
+      if (task == 0 && !source_free_root) || @pipeline.step_count(pipeline) == 0 {
         None
       } else {
-        let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
         Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
       }
     }),

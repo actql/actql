@@ -10,9 +10,13 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/parameter_references" @parameters,
   "actql/actql/pipeline_check_context" @context,
+  "actql/actql/pipeline_typing" @pipeline,
 }
 
 import {
   "actql/actql/check_environment" @environment,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/physical_host" @host_driver,
   "moonbitlang/core/encoding/utf8",
 } for "test"

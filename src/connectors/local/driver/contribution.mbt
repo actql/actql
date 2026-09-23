@@ -20,7 +20,10 @@ pub fn[E] local_compute_contribution(
       }
       let excluded = []
       let graph = @strategy.captured_dag_graph(installed.run)
-      for task in 1..<@strategy.graph_task_count(graph) {
+      for
+        task in @strategy.captured_compute_first_task(installed.run)..<@strategy.graph_task_count(
+          graph,
+        ) {
         if local_dispatch_rejection(installed, task) is Some(reason) {
           if excluded.length() >= max_entries {
             return None

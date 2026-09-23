@@ -76,6 +76,60 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(prepared_client_result_count(prepared), 1)
   assert_eq(prepared_client_result_name(prepared, 0), Some("answer"))
   assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
+  let ledger = @resources.create_ledger({
+    planning_work: 10000,
+    attempts: 2,
+    holdings: 2,
+    transfer_bytes: 10000L,
+    retained_bytes: 10000L,
+    execution_bytes: 10000L,
+  }).unwrap()
+  let run = @strategy.open_source_free_dag(
+    prepared_client_graph(prepared),
+    ledger,
+  ).unwrap()
+  assert_eq(@strategy.captured_compute_first_task(run), 0)
+  assert_eq(@strategy.next_captured_task(run), Some(0))
+  assert_false(@strategy.captured_task_completed(run, 0))
+  assert_true(@strategy.captured_task_target(run, 0) is Some(_))
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, }],
+    1,
+    100,
+  ).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 1,
+    max_strategies: 1,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let offer = @strategy.prepare_task_offer(
+    run,
+    0,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    1,
+    [{ work_slots: [0], milliseconds: Some(1L), }],
+    { transfer_bytes: 0L, retained_bytes: 10L, execution_bytes: 1L, },
+    100,
+  ).unwrap()
+  guard @strategy.revise_strategy(run, [offer], registry, None)
+    is Ok(Selected(revision)) else {
+    fail("source-free root was not selected")
+  }
+  let request = @host_driver.prepare_dispatch_inputs(
+    @host_driver.open_dispatch_driver(run),
+    0,
+    revision,
+    {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 100,
+      max_value_bytes: 10000,
+      common_fragment: None,
+    },
+    100,
+    10000,
+  ).unwrap()
+  assert_eq(@connector.fixed_compute_request_input_count(request), 0)
   assert_true(
     prepare_effect_free_client_program(
       document.replace(old="actql/0.1", new="actql/9.9"),
