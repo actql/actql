@@ -1,8 +1,17 @@
 ///|
-fn effect_binding_inputs(effects : String) -> (Checked, @syntax.EffectHeaders) {
+fn effect_binding_inputs(
+  effects : String,
+  reference_nullable? : Bool? = None,
+) -> (Checked, @syntax.EffectHeaders) {
+  let fields = if reference_nullable is Some(_) {
+    "[\"amount\",\"ref\"]"
+  } else {
+    "[\"amount\"]"
+  }
   let operations = prepared(
-    "{\"from\":\"rows\",\"fields\":[\"amount\"]}",
+    "{\"from\":\"rows\",\"fields\":" + fields + "}",
     effects=",\"effects\":" + effects,
+    reference_nullable~,
   )
   let checked = check(operations, limits()).unwrap()
   let program = @parameters.program(@parameters.operations_source(operations))
@@ -105,8 +114,11 @@ test "Effect Result bindings reject absent command ResourceRef field" {
 
 ///|
 test "Effect Result bindings retain command target and input field types" {
-  let effects = "{\"command\":{\"command\":{\"target\":{\"field\":\"amount\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{\"value\":{\"field\":\"amount\"}}}}}"
-  let (checked, headers) = effect_binding_inputs(effects)
+  let effects = "{\"command\":{\"command\":{\"target\":{\"field\":\"ref\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{\"value\":{\"field\":\"amount\"}}}}}"
+  let (checked, headers) = effect_binding_inputs(
+    effects,
+    reference_nullable=Some(false),
+  )
   let bindings = bind_effect_results(headers, checked, 6).unwrap()
   let first = effect_result_binding_at(bindings, 0).unwrap()
   assert_eq(effect_result_field_binding_count(first), 2)
@@ -122,6 +134,29 @@ test "Effect Result bindings retain command target and input field types" {
     ),
     EffectValue("value"),
   )
+  let target = effect_result_field_binding_at(first, 0).unwrap()
+  assert_eq(
+    @contract.nonnull_resource_ref_kind(
+      @schema.field_contract(effect_result_field_binding_field(target)),
+    ),
+    Some("crm/account"),
+  )
+}
+
+///|
+test "Effect Result bindings reject numeric or nullable command targets" {
+  for (field, nullable) in [("amount", false), ("ref", true)] {
+    let effects = "{\"command\":{\"command\":{\"target\":{\"field\":\"" +
+      field +
+      "\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{}}}}"
+    let (checked, headers) = effect_binding_inputs(
+      effects,
+      reference_nullable=Some(nullable),
+    )
+    let issue = bind_effect_results(headers, checked, 6).unwrap_err()
+    assert_eq(effect_result_binding_issue_kind(issue), InvalidCommandTarget)
+    assert_eq(effect_result_binding_issue_field(issue), Some(field))
+  }
 }
 
 ///|
@@ -129,10 +164,13 @@ test "Effect Result bindings cover match, upsert, and command inputs" {
   let cases = [
     "{\"update\":{\"update\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.update.v1\",\"from\":{\"result\":\"r\"},\"match\":{\"target_field\":\"Id\",\"result_field\":\"missing\"},\"set\":{\"value\":{\"literal\":1}}}}}",
     "{\"upsert\":{\"upsert\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.upsert.v1\",\"from\":{\"result\":\"r\"},\"key\":\"missing\",\"set\":{\"value\":{\"literal\":1}}}}}",
-    "{\"command\":{\"command\":{\"target\":{\"field\":\"amount\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{\"value\":{\"field\":\"missing\"}}}}}",
+    "{\"command\":{\"command\":{\"target\":{\"field\":\"ref\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{\"value\":{\"field\":\"missing\"}}}}}",
   ]
   for effects in cases {
-    let (checked, headers) = effect_binding_inputs(effects)
+    let (checked, headers) = effect_binding_inputs(
+      effects,
+      reference_nullable=Some(false),
+    )
     let issue = bind_effect_results(headers, checked, 8).unwrap_err()
     assert_eq(effect_result_binding_issue_kind(issue), MissingField)
     assert_eq(effect_result_binding_issue_field(issue), Some("missing"))

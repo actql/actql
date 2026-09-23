@@ -5,6 +5,7 @@ pub(all) enum EffectResultBindingIssueKind {
   ForeignProgram
   MissingResult
   MissingField
+  InvalidCommandTarget
 } derive(Eq, Debug)
 
 ///|
@@ -184,9 +185,10 @@ fn binding_charge(
 
 ///|
 /// Bind authored member fields to the admitted Stage Result schema. This
-/// retains exact Result ownership and checked field contracts, but does not
-/// establish Mapping/Command compatibility, current authority, Preview, or
-/// apply admission. The binding is not an execution permit.
+/// retains exact Result ownership and checked field contracts, and rejects a
+/// Command target that is not a non-null ResourceRef. It does not establish
+/// Mapping/Command compatibility, current authority, Preview, or apply
+/// admission. The binding is not an execution permit.
 pub fn bind_effect_results(
   headers : @syntax.EffectHeaders,
   checked : Checked,
@@ -262,7 +264,16 @@ pub fn bind_effect_results(
         }
         let name = @decode.text(cursor).unwrap()
         match binding_field(header, definition, name) {
-          Ok(field) => fields.push({ role: direct_role, field, })
+          Ok(field) => {
+            if direct_role == EffectCommandTarget &&
+              @contract.nonnull_resource_ref_kind(@schema.field_contract(field))
+              is None {
+              return Err(
+                binding_issue(InvalidCommandTarget, header, field=Some(name)),
+              )
+            }
+            fields.push({ role: direct_role, field, })
+          }
           Err(issue) => return Err(issue)
         }
       }
