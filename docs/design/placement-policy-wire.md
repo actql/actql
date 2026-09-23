@@ -35,6 +35,30 @@ retain the consultation owner until it commits or explicitly ends the Run.
 An environment without native HTTPS uses the same portable standard Host
 contract with its own physical adapter.
 
+For the supported native Host profile, the application supplies a pinned HTTPS
+endpoint, its expected `policy_id`, a CA bundle, a client certificate and key,
+and a durable SQLite-backed `NativeTrustedClock` scoped to the Coordinator
+authority. It creates the native HTTP client with an explicit response-byte
+limit and connection/operation timeouts. The response limit must cover the
+closed policy response while remaining bounded independently of the request
+limit (`max_envelope_bytes`, at most 16 MiB). The application also supplies a
+disclosure callback that decides whether this exact request and candidate
+projection may leave the Host. These are trusted deployment settings, not
+fields accepted from the policy response or the ActQL Program. The policy
+endpoint must present a certificate valid under the configured CA and the
+client certificate identifies the caller; no plaintext or unauthenticated
+fallback is part of this profile.
+
+The Host calls `prepare_native_standard_policy_consultation` once for the
+pending choice, retains the returned owner, and calls
+`consult_native_standard_policy` before `prepare_next_dispatch`. A transport
+error leaves that owner pending; retrying it sends the same request and
+candidate CID. An application that abandons the consultation must explicitly
+end the Run. It must not create a fresh request merely because a response was
+lost, nor interpret policy failure as permission to retry an already started
+task. `scripts/test-native-http-client.mjs` runs the native mTLS fixture with
+success, lost response, foreign policy identity, expiry and denied disclosure.
+
 The response is a closed JSON object with exactly these fields:
 
 | Field | Type | Meaning |
