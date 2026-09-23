@@ -11,7 +11,11 @@ pub fn as_object(Schema) -> @value_contract.Contract?
 
 pub fn field_at(Schema, Int) -> Field?
 
+pub fn field_contract(Field) -> @value_contract.Contract
+
 pub fn field_count(Schema) -> Int
+
+pub fn field_reference_name(Field) -> String
 
 pub fn fields(Schema) -> Array[Field]
 
