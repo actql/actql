@@ -290,6 +290,9 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: reviewed ${role} fixture is missing`);
       }
     }
+    if (!environmentRoles.has('filter_in_flight_host_timer')) {
+      fail(`${label}: in-flight Host cancellation fixture is missing`);
+    }
   }
   if (route.family === 'RelA' && route.operation === 'select') {
     if (route.selected_entrypoint?.symbol !==

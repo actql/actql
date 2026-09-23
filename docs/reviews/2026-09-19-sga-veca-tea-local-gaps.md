@@ -58,7 +58,9 @@ readable coverage manifest is authoritative for individual operation status.
   synchronous Cartesian-product loop.
   Eight of the 68 production routes currently bind operation-specific boundary
   fixtures. The selected RelA filter route adds an independent exact/one-short
-  input-admission pair alongside mixed-stage and cancel/cleanup fixtures. A
+  input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
+  selected Graph-to-Relation path also receives a Node Host timer cancellation
+  after measured work, then confirms stop without exposing a partial result. A
   successful route gate does not establish boundary closure for the other 60
   operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and

@@ -47,6 +47,15 @@
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected filter cancels before publication"
         }
+      ],
+      "environment_tests": [
+        {
+          "role": "filter_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "normalize-filter"
+        }
       ]
     },
     {
