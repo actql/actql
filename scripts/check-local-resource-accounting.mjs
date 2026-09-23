@@ -195,6 +195,36 @@ if (routeKeys.length !== actualKeys.length ||
   new Set(routeKeys).size !== routeKeys.length) {
   fail('production routes must exactly preserve both authoritative inventories');
 }
+const assuredPaths = manifest.assured_production_paths;
+if (!Array.isArray(assuredPaths)) {
+  fail('assured production paths must be an array');
+} else {
+  const claimKeys = [];
+  for (const claim of assuredPaths) {
+    const key = `${claim?.family}:${claim?.operation}:${claim?.path}`;
+    claimKeys.push(key);
+    const route = routeEntries.find(entry =>
+      entry.family === claim?.family &&
+      entry.operation === claim?.operation);
+    if (!route ||
+      !['entrypoint', 'ordinary_entrypoint', 'selected_entrypoint']
+        .includes(claim?.path) ||
+      route[claim.path] === undefined ||
+      route.path_assurance?.[claim.path] === undefined ||
+      route.resource_assurance?.[claim.path] === undefined ||
+      Object.keys(claim).length !== 3) {
+      fail(`${key}: assured production claim lacks its exact route proofs`);
+    }
+  }
+  const recordedKeys = routeEntries.flatMap(route =>
+    Object.keys(route.resource_assurance ?? {}).map(pathName =>
+      `${route.family}:${route.operation}:${pathName}`));
+  if (new Set(claimKeys).size !== claimKeys.length ||
+    claimKeys.length !== recordedKeys.length ||
+    claimKeys.some(key => !recordedKeys.includes(key))) {
+    fail('assured production claims differ from resource-assured routes');
+  }
+}
 const mixedPaths = routes.mixed_paths ?? [];
 if (!Array.isArray(mixedPaths)) {
   fail('mixed production paths must be an array');

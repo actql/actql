@@ -44,6 +44,30 @@ test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 2 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
+test('assured path claims retain the completed selection routes', () => {
+  assert.match(run(manifest => {
+    manifest.assured_production_paths = manifest.assured_production_paths
+      .filter(claim => claim.operation !== 'sort');
+  }), /assured production claims differ from resource-assured routes/);
+  assert.match(run(undefined, routes => {
+    const take = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    delete take.resource_assurance.selected_entrypoint;
+  }), /RelA:take:selected_entrypoint: assured production claim lacks its exact route proofs/);
+});
+
+test('assured path claims reject duplicate or invented routes', () => {
+  assert.match(run(manifest => {
+    manifest.assured_production_paths.push(
+      manifest.assured_production_paths[0]);
+  }), /assured production claims differ from resource-assured routes/);
+  assert.match(run(manifest => {
+    manifest.assured_production_paths.push({
+      family: 'SGA', operation: 'shortest_path', path: 'entrypoint',
+    });
+  }), /SGA:shortest_path:entrypoint: assured production claim lacks its exact route proofs/);
+});
+
 test('mixed-path gate rejects missing delivered prefix cancellation', () => {
   assert.match(run(undefined, value => {
     value.mixed_paths[0].in_flight_cancel.fixture = 'missing-prefix-case';

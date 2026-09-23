@@ -5,6 +5,10 @@
     "families": "docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json"
   },
   "production_routes": "docs/reviews/2026-09-23-local-resource-production-routes.json",
+  "assured_production_paths": [
+    {"family": "RelA", "operation": "sort", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "take", "path": "selected_entrypoint"}
+  ],
   "required_facets": [
     "admission_before_allocation",
     "charged_bounded_work",
