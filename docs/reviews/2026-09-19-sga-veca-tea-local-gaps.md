@@ -53,6 +53,28 @@ delivery. The strict resource-completion gate still rejects the providerless
 lane even if route evidence is added elsewhere. Its source
 check is a blocker guard, not a positive proof that a replacement is bounded.
 
+The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` separates three
+closure conditions. At `357af5e18fcf959015c04a9e507da5ce17776387`, the
+independent RowTable copy is bounded and workspace-admitted, but the ordinary
+providerless compute call still runs a whole checked sequence in one resume.
+That is an unresolved execution-lane defect, not a completed cancellation
+path. The normal route gate reports 68 mapped operations and 14 with
+operation-specific boundary records; its zero fully work/workspace-assured
+routes make resource completion separately open. The strict completion gate
+remains red by design. Standard Host fixtures are not evidence for the
+Distribution-owned ordinary Run entry; that integration is also open. These
+are three separate acceptance conditions, so closing one must not change the
+status of the others.
+
+The ordinary one-step filter, select, sort, and take forms use the bounded
+Relation provider. Other accepted Relation forms, including zero-input,
+binary, and multi-step sequences, can still use the providerless lane.
+Moving ordinary derive or assertions onto the selected bounded evaluator
+requires a representation-preservation check: a direct route experiment
+changed the serialized field order in the existing Host fixture. In
+particular, `assert_rows` is required to preserve input row bytes and shape.
+Do not change its expected output merely to make a new provider route pass.
+
 ## Current cross-operation review gaps
 
 - Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
@@ -132,9 +154,10 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Fourteen of the 68 production routes bind operation-specific boundary
-  fixtures. Graph normalization has separate exact/one-short node-capacity
-  and cancel/cleanup fixtures for its direct and managed-view starts on all
+  The route gate reports the current number of operation-specific boundary
+  records; that count is not the number of resource-complete operations.
+  Graph normalization has separate exact/one-short node-capacity and
+  cancel/cleanup fixtures for its direct and managed-view starts on all
   three targets. One standard Host timer cancels the fused normalize after its
   80 graph-construction steps; another cancels the third selected task after
   measured work. The split task map binds that task to the managed-view
@@ -186,9 +209,9 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   different production paths requires a recorded reason and the same exact
   implementation entrypoint.
   A successful route gate does not establish full work/workspace boundary
-  closure for any of the 68 operations. Fifty-five still lack operation-specific
-  boundary records. Reused evidence must identify the shared product
-  implementation and cover exact, one-short, in-flight cancellation, and
+  closure for any of the 68 operations. Routes without operation-specific
+  boundary records remain open. Reused evidence must identify the shared
+  product implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
