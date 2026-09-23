@@ -80,6 +80,33 @@ test('resource completion requires work and workspace proof independently', () =
     /SGA graph_bounds: entrypoint work\/workspace assurance is missing/);
 });
 
+test('selected take needs both keyed and unkeyed resource branches', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    delete take.resource_assurance.selected_entrypoint.variants.keyed;
+  }), /RelA take: selected_entrypoint needs keyed and unkeyed take resource variants/);
+});
+
+test('selected take loses resource proof when a fixture is removed', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    take.boundary_tests.find(item =>
+      item.role === 'take_unkeyed_workspace_exact_one_short').fixture =
+      'missing-unkeyed-workspace-case';
+  }), /RelA take: missing operation boundary fixture missing-unkeyed-workspace-case/);
+});
+
+test('selected take rejects a borrowed resource role', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    take.resource_assurance.selected_entrypoint.variants.unkeyed
+      .workspace.one_short_limit = 'take_keyed_workspace_exact_one_short';
+  }), /RelA take: selected_entrypoint unkeyed workspace lacks an executable fixture/);
+});
+
 test('resource gate rejects a borrowed work fixture', () => {
   assert.match(run(undefined, value => {
     const bounds = value.routes.find(entry => entry.family === 'SGA' &&

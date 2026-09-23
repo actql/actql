@@ -70,11 +70,16 @@ readable coverage manifest is authoritative for individual operation status.
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
   cleanup evidence. The take route registers bounded mixed-stage quantum,
-  lifetime, cancellation, and cleanup fixtures. Its key-completion sort also
-  has independent exact/one-short control-work and peak-workspace fixtures,
-  including overlap with the selected output row. These direct fixtures are
-  paired with the standard Host route rather than substituted for it. A
-  passing route gate alone is not completion evidence.
+  lifetime, cancellation, and cleanup fixtures. Its selected path now binds
+  separate exact/one-short control-work and peak-workspace fixtures for both
+  unkeyed and key-completion variants. The key-completion peak includes the
+  retained sort indices and selected output row; the unkeyed peak includes
+  persistent schema metadata and the selected row's checked values. The
+  resource gate requires both variants and rejects missing or borrowed proof
+  roles. These direct fixtures are paired with the standard Host route rather
+  than substituted for it. The synchronous and ordinary take paths still lack
+  corresponding full boundary assurance, so this is not operation completion.
+  A passing route gate alone is not completion evidence.
   The RelA cross-join route now pairs an independently calculated 2-by-2
   work/workspace exact-and-one-short kernel fixture with a managed
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation

@@ -1273,6 +1273,49 @@ test "bounded selected take has an exact control-work boundary" {
 }
 
 ///|
+test "bounded selected take admits exact unkeyed workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Four three-column metadata views persist. One output row and its
+  // checked values overlap them, so the workspace peak is 12 + 3 + 3.
+  let (_, accepted, input) = bounded_binding_rows_fixture(
+    rows,
+    take=true,
+    max_entries=18,
+  )
+  let mut completed = false
+  while !completed {
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 1)
+        completed = true
+      }
+      _ => fail("exact unkeyed take workspace failed")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  let (_, rejected, input) = bounded_binding_rows_fixture(
+    rows,
+    take=true,
+    max_entries=17,
+  )
+  let mut failed = false
+  while !failed {
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) =>
+        fail("one-short unkeyed take workspace completed")
+      _ => fail("one-short unkeyed take workspace had another outcome")
+    }
+  }
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
 test "bounded selected take admits exact key-completion work" {
   // Control: input 6, sort names 4, rows 3, term 2, sort polls 15,
   // comparisons 3, sorted rows 9, output names 4, copied row 3.

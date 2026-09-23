@@ -415,6 +415,34 @@
           "fixture": "standard Host cancels ordered Graph projection take before completion"
         },
         {
+          "role": "take_unkeyed_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected take has an exact control-work boundary"
+        },
+        {
+          "role": "take_unkeyed_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected take admits exact unkeyed workspace"
+        },
+        {
+          "role": "take_keyed_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected take admits exact key-completion work"
+        },
+        {
+          "role": "take_keyed_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected take bounds key-completion workspace and output overlap"
+        },
+        {
           "role": "key_completion_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -444,6 +472,32 @@
           "one_short_limit": "key_completion_workspace_exact_one_short",
           "in_flight_cancel": "selected_take_host_timer",
           "cleanup": "mixed_stage_sort_cancel_and_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "variants": {
+            "unkeyed": {
+              "work": {
+                "exact_limit": "take_unkeyed_work_exact_one_short",
+                "one_short_limit": "take_unkeyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "take_unkeyed_workspace_exact_one_short",
+                "one_short_limit": "take_unkeyed_workspace_exact_one_short"
+              }
+            },
+            "keyed": {
+              "work": {
+                "exact_limit": "take_keyed_work_exact_one_short",
+                "one_short_limit": "take_keyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "take_keyed_workspace_exact_one_short",
+                "one_short_limit": "take_keyed_workspace_exact_one_short"
+              }
+            }
+          }
         }
       }
     },
