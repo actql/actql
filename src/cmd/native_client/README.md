@@ -13,7 +13,9 @@ HTTPS endpoint, CA, client certificate and key, the installed libcurl library,
 and a bearer token file. The token stays out of command-line arguments.
 
 The connection JSON contains the public `mode`, `owner`, `consentRefs`,
-`runners`, optional `durability` and Hybrid `movementPolicyRef`. The CLI
+`runners`, optional `durability` and Hybrid `movementPolicyRef`. Local-owned
+Hybrid also requires a registered `cloudConnectionRef`; Cloud-owned Hybrid
+requires at least one selected Runner. The CLI
 negotiates that exact connection before each operation and rejects a Host
 profile with a different mode or owner, or a downgrade from requested durable
 to volatile. The `aql` command takes a JSON or YAML Program document and an

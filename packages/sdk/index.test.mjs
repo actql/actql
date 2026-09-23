@@ -147,6 +147,35 @@ test('hybrid options are snapshotted and durable requests cannot downgrade', asy
   assert.deepEqual(sent.connection.consentRefs, ['grant-a']);
 });
 
+test('local-owned Hybrid identifies Cloud assistance without changing owner',
+  async t => {
+    const requests = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      requests.push({operation: url.pathname.split('/').at(-1),
+        body: JSON.parse(init.body)});
+      return Response.json({...profile, mode: 'hybrid', owner: 'local'});
+    });
+    t.after(() => mock.restoreAll());
+    const selected = {mode: 'hybrid', owner: 'local',
+      endpoint: 'https://local-host.example/', token: 'local-token',
+      movementPolicyRef: 'movement-a',
+      cloudConnectionRef: 'registered-cloud-a',
+      consentRefs: ['grant-a']};
+    const client = await connect(selected);
+    assert.equal(client.profile.owner, 'local');
+    assert.deepEqual(requests[0].body.connection, {
+      mode: 'hybrid', owner: 'local', consentRefs: ['grant-a'],
+      runners: [], movementPolicyRef: 'movement-a',
+      cloudConnectionRef: 'registered-cloud-a',
+    });
+    await assert.rejects(connect({...selected,
+      cloudConnectionRef: undefined}), {code: 'InvalidHybridConnection'});
+    await assert.rejects(connect({...selected, mode: 'remote',
+      owner: undefined}), {code: 'InvalidHybridConnection'});
+    await assert.rejects(connect({...selected, owner: 'cloud'}),
+      {code: 'InvalidHybridConnection'});
+  });
+
 test('invalid refs and unsafe endpoints are rejected before transport', async t => {
   for (const endpoint of ['http://host.example/',
     'https://user:secret@host.example/',

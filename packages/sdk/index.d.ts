@@ -5,16 +5,26 @@ export type RunReference = Readonly<{
   runDefinitionCid: string;
 }>;
 
-export type ConnectionOptions = Readonly<{
-  mode: 'remote' | 'local' | 'hybrid';
-  owner?: 'local' | 'cloud';
+type ConnectedEndpoint = Readonly<{
   endpoint: string;
   token: string | (() => string | Promise<string>);
   durability?: Durability;
   consentRefs?: readonly string[];
-  runners?: readonly string[];
-  movementPolicyRef?: string;
 }>;
+
+export type ConnectionOptions =
+  | (ConnectedEndpoint & Readonly<{mode: 'remote'; owner?: never;
+      runners?: never; movementPolicyRef?: never;
+      cloudConnectionRef?: never}>)
+  | (ConnectedEndpoint & Readonly<{mode: 'local'; owner: 'local';
+      runners?: never; movementPolicyRef?: never;
+      cloudConnectionRef?: never}>)
+  | (ConnectedEndpoint & Readonly<{mode: 'hybrid'; owner: 'cloud';
+      runners: readonly string[]; movementPolicyRef: string;
+      cloudConnectionRef?: never}>)
+  | (ConnectedEndpoint & Readonly<{mode: 'hybrid'; owner: 'local';
+      runners?: readonly string[]; movementPolicyRef: string;
+      cloudConnectionRef: string}>);
 
 export type ConfirmedProfile = Readonly<{
   version: 'actql-client-host/0.1';
