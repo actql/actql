@@ -195,6 +195,80 @@ if (routeKeys.length !== actualKeys.length ||
   new Set(routeKeys).size !== routeKeys.length) {
   fail('production routes must exactly preserve both authoritative inventories');
 }
+const mixedPaths = routes.mixed_paths ?? [];
+if (!Array.isArray(mixedPaths)) {
+  fail('mixed production paths must be an array');
+} else {
+  const names = new Set();
+  for (const mixed of mixedPaths) {
+    const label = `mixed path ${mixed?.id}`;
+    if (!mixed || typeof mixed !== 'object' || Array.isArray(mixed)) {
+      fail(`${label}: entry must be an object`);
+      continue;
+    }
+    if (typeof mixed?.id !== 'string' || names.has(mixed.id)) {
+      fail(`${label}: id must be unique`);
+    }
+    names.add(mixed.id);
+    if (!['Graph', 'Events', 'Vectors'].includes(mixed.carrier) ||
+      mixed.standalone_prefix_provider !== false ||
+      !Array.isArray(mixed.operations) || mixed.operations.length < 3 ||
+      new Set(mixed.operations).size !== mixed.operations.length ||
+      mixed.operations.some(operation =>
+        actual.filter(entry => entry.operation === operation).length !== 1)) {
+      fail(`${label}: must bind an unselected typed Carrier prefix and Relation operation`);
+    } else {
+      const family = {Graph: 'SGA', Events: 'TEA', Vectors: 'VecA'}[
+        mixed.carrier
+      ];
+      const bridge = {
+        Graph: ['node_rows', 'edge_rows'],
+        Events: ['events'],
+        Vectors: ['vectors'],
+      }[mixed.carrier];
+      const entryFor = operation => actual.find(entry =>
+        entry.operation === operation);
+      if (entryFor(mixed.operations[0])?.family !== family ||
+        !mixed.operations.slice(1, -1).some(operation =>
+          bridge.includes(operation) &&
+          entryFor(operation)?.family === 'Bridge') ||
+        entryFor(mixed.operations.at(-1))?.family !== 'RelA') {
+        fail(`${label}: Carrier, formal Bridge, and Relation roles differ`);
+      }
+    }
+    const host = mixed.standard_host ?? {};
+    if (host.suite !== 'moon:query_integration' ||
+      JSON.stringify(host.targets) !== JSON.stringify(['js', 'wasm', 'native']) ||
+      typeof host.path !== 'string' ||
+      !host.path.startsWith('src/query_integration/') ||
+      host.path.split('/').includes('..') ||
+      !host.path.endsWith('_wbtest.mbt') ||
+      typeof host.fixture !== 'string' ||
+      !fs.existsSync(path.join(root, host.path)) ||
+      !fs.readFileSync(path.join(root, host.path), 'utf8')
+        .includes(`test "${host.fixture}"`)) {
+      fail(`${label}: missing three-target standard Host consumer fixture`);
+    }
+    const cancellation = mixed.in_flight_cancel ?? {};
+    const nodeHost = 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
+    if (cancellation.suite !== 'node:duckdb_standard_host' ||
+      JSON.stringify(cancellation.targets) !== JSON.stringify(['node']) ||
+      cancellation.path !== nodeHost ||
+      typeof cancellation.fixture !== 'string' ||
+      !fs.readFileSync(path.join(root, nodeHost), 'utf8')
+        .includes(`name: '${cancellation.fixture}'`)) {
+      fail(`${label}: missing delivered in-flight cancellation fixture`);
+    }
+  }
+  if (requireBoundaryComplete) {
+    for (const carrier of ['Graph', 'Events', 'Vectors']) {
+      if (!mixedPaths.some(path => path.carrier === carrier &&
+        path.standalone_prefix_provider === false)) {
+        fail(`${carrier}: unselected prefix mixed-stage assurance is missing`);
+      }
+    }
+  }
+}
 for (const [index, route] of routeEntries.entries()) {
   const binding = actual[index];
   const label = `${route.family} ${route.operation}`;

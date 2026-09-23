@@ -44,6 +44,25 @@ test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
+test('mixed-path gate rejects missing delivered prefix cancellation', () => {
+  assert.match(run(undefined, value => {
+    value.mixed_paths[0].in_flight_cancel.fixture = 'missing-prefix-case';
+  }), /mixed path graph_subgraph_node_rows_filter: missing delivered in-flight cancellation fixture/);
+});
+
+test('mixed-path gate preserves Carrier, Bridge, and Relation roles', () => {
+  assert.match(run(undefined, value => {
+    value.mixed_paths[0].operations = ['subgraph', 'degree', 'filter'];
+  }), /mixed path graph_subgraph_node_rows_filter: Carrier, formal Bridge, and Relation roles differ/);
+});
+
+test('resource completion requires each unselected Carrier prefix', () => {
+  assert.match(run(undefined, value => {
+    value.mixed_paths = [];
+  }, ['--require-boundary-complete']),
+  /Graph: unselected prefix mixed-stage assurance is missing/);
+});
+
 test('resource completion requires work and workspace proof independently', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
     /SGA graph_bounds: entrypoint work\/workspace assurance is missing/);
