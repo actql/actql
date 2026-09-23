@@ -711,6 +711,7 @@ test('issued broad Site driver leaves completion to the Host verifier',
     const attempt = Object.freeze({selected: true});
     let read;
     let state = 'pending';
+    let aborts = 0;
     const moon = {
       ...salesforceMoon,
       salesforceIssuedBroadPlan: selected => {
@@ -719,7 +720,9 @@ test('issued broad Site driver leaves completion to the Host verifier',
       },
       salesforceIssuedBroadBegin(selected, ...args) {
         assert.equal(selected, attempt);
-        assert.equal(state, 'pending');
+        if (state !== 'pending') {
+          return {$tag: 0, _0: new Error('InvalidState')};
+        }
         read = checked(salesforceMoon.salesforceBeginQueryRead(
           plan, ...args.slice(0, 8)));
         state = 'reading';
@@ -743,14 +746,41 @@ test('issued broad Site driver leaves completion to the Host verifier',
         return {$tag: 1, _0: true};
       },
       salesforceIssuedBroadAbort: () => {
+        aborts += 1;
         state = 'aborted';
       },
     };
-    const result = await readSalesforceIssuedBroad(queryRequest(setup, plan, {
+    let enteredDescribe;
+    const describeStarted = new Promise(resolve => { enteredDescribe = resolve; });
+    let releaseDescribe;
+    const describeGate = new Promise(resolve => { releaseDescribe = resolve; });
+    const options = queryRequest(setup, plan, {
       moon, attempt, maxCaptureRows: 3,
       captureLimits: {maxNodes: 100, maxTextBytes: 1000,
         maxDepth: 10, maxWork: 1000},
-    }));
+    });
+    const refresh = options.refreshCatalog;
+    options.refreshCatalog = {
+      ...refresh,
+      async authorizationForDescribe(name) {
+        enteredDescribe();
+        await describeGate;
+        return refresh.authorizationForDescribe(name);
+      },
+    };
+    const first = readSalesforceIssuedBroad(options);
+    try {
+      await describeStarted;
+      const physicalRequests = setup.seen.length;
+      await assert.rejects(readSalesforceIssuedBroad(options),
+        {code: 'MoonBitHostFailure'});
+      assert.equal(setup.seen.length, physicalRequests);
+      assert.equal(state, 'reading');
+      assert.equal(aborts, 0);
+    } finally {
+      releaseDescribe();
+    }
+    const result = await first;
     assert.equal(state, 'awaiting-cleanup');
     assert.equal(result.attempt, attempt);
     assert.equal(result.rowCount, 2n);
