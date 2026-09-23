@@ -2,12 +2,16 @@ import {spawnSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
-const bundle = fileURLToPath(new URL(
-  '../../_build/js/debug/test/query_integration/query_integration.whitebox_test.js',
-  import.meta.url,
-));
 const preload = fileURLToPath(new URL('./resource-exit.mjs', import.meta.url));
 const repetitions = Number.parseInt(process.argv[2] ?? '100', 10);
+const build = process.argv[3] ?? 'debug';
+if (!['debug', 'release'].includes(build) || process.argv.length > 4) {
+  throw new Error('build must be debug or release');
+}
+const bundle = fileURLToPath(new URL(
+  `../../_build/js/${build}/test/query_integration/query_integration.whitebox_test.js`,
+  import.meta.url,
+));
 if (!Number.isSafeInteger(repetitions) || repetitions < 2 ||
     repetitions > 1000 || !existsSync(bundle)) {
   throw new Error('build query_integration JS tests first; repetitions must be 2..1000');
@@ -56,6 +60,7 @@ const results = profiles.map(({index, name}) => {
 });
 process.stdout.write(`${JSON.stringify({
   kind: 'actql-placement-search-process-diagnostic',
+  build,
   node: process.version,
   platform: process.platform,
   arch: process.arch,

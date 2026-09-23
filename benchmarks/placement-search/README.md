@@ -2,10 +2,11 @@
 
 `measure-built-tests.mjs` repeatedly runs the existing seven-task Carrier
 placement fixtures from the built `query_integration` JS whitebox test bundle.
-Build that bundle with the pinned MoonBit toolchain, then run:
+Build that bundle with the pinned MoonBit toolchain, then run either profile:
 
 ```sh
 node benchmarks/placement-search/measure-built-tests.mjs 100
+node benchmarks/placement-search/measure-built-tests.mjs 100 release
 ```
 
 Each profile is run once in a fresh process and then 100 times in another
@@ -17,6 +18,11 @@ process peak, including the large generated test bundle and runtime; it is not
 planner allocation or an estimate of deployed Host memory. Neither number is
 an acceptance threshold. The exact in-process frontier counters are asserted
 by the MoonBit tests separately.
+
+The release option selects the release test bundle built by
+`moon test --target js --release src/query_integration`. It still runs the same
+synthetic capability fixture and is not the required larger release Host
+workload with real installed provider capabilities.
 
 At clean product revision `6e5e11a267836676a65c64463d408eaaa99d09aa`
 on macOS arm64, Node 22.23.2, three 100-repetition runs produced:
